@@ -1,66 +1,19 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
 use futures::StreamExt;
 use serenity::all::{
     ButtonStyle, CommandInteraction, Context, CreateActionRow, CreateButton, CreateEmbed,
     CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse,
-    ReactionType, ResolvedOption, ResolvedValue, UserId,
+    ReactionType, ResolvedOption, ResolvedValue,
 };
-use sqlx::{Database, FromRow, Pool, any::AnyQueryResult, types::Json};
+use sqlx::{Database, Pool};
 use zayden_core::FormatNum;
 
 use crate::{
-    COIN, Coins, GamblingItem, ItemInventory, Result, SHOP_ITEMS, ShopPage,
-    commands::shop::ShopManager, shop::SALES_TAX,
+    COIN, Coins, ItemInventory, Mining, Result, SHOP_ITEMS, ShopPage,
+    commands::shop::{BuyRow, ShopManager},
+    shop::SALES_TAX,
 };
-
-#[async_trait]
-pub trait ListManager<Db: Database> {
-    async fn save(pool: &Pool<Db>, row: ListRow) -> sqlx::Result<AnyQueryResult>;
-}
-
-#[derive(FromRow)]
-pub struct ListRow {
-    pub id: i64,
-    pub coins: i64,
-    pub inventory: Option<Json<Vec<GamblingItem>>>,
-}
-
-impl Coins for ListRow {
-    fn coins(&self) -> i64 {
-        self.coins
-    }
-
-    fn coins_mut(&mut self) -> &mut i64 {
-        &mut self.coins
-    }
-}
-
-impl ListRow {
-    fn new(id: impl Into<UserId> + Send) -> Self {
-        let id = id.into();
-
-        Self {
-            id: id.get() as i64,
-            coins: 0,
-            inventory: Some(Json(Vec::new())),
-        }
-    }
-}
-
-impl ItemInventory for ListRow {
-    fn inventory(&self) -> &[GamblingItem] {
-        match self.inventory.as_ref() {
-            Some(vec_ref) => &vec_ref.0,
-            None => &[],
-        }
-    }
-
-    fn inventory_mut(&mut self) -> &mut Vec<GamblingItem> {
-        self.inventory.get_or_insert_with(|| Json(Vec::new()))
-    }
-}
 
 pub async fn list<Db: Database, Manager: ShopManager<Db>>(
     ctx: &Context,
@@ -73,9 +26,9 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
         _ => ShopPage::Item,
     };
 
-    let row = match Manager::list_row(pool, interaction.user.id).await.unwrap() {
+    let row = match Manager::buy_row(pool, interaction.user.id).await.unwrap() {
         Some(row) => row,
-        None => ListRow::new(interaction.user.id),
+        None => BuyRow::new(interaction.user.id),
     };
 
     let embed = create_embed(page, &row);
@@ -137,11 +90,7 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
     Ok(())
 }
 
-fn shop(
-    row: &ListRow,
-    title: Option<&str>,
-    page_change: i8,
-) -> (CreateEmbed, Vec<CreateActionRow>) {
+fn shop(row: &BuyRow, title: Option<&str>, page_change: i8) -> (CreateEmbed, Vec<CreateActionRow>) {
     let current_cat = title
         .map(|title| title.strip_suffix(" Shop").unwrap().parse().unwrap())
         .unwrap_or(ShopPage::Item);
@@ -171,17 +120,18 @@ fn shop(
     (embed, vec![CreateActionRow::Buttons(vec![prev, next])])
 }
 
-fn create_embed(category: ShopPage, row: &ListRow) -> CreateEmbed {
+fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed {
     let inv = row.inventory();
 
     let items = SHOP_ITEMS
         .iter()
         .filter(|item| item.category == category)
         .map(|item| {
+            let current_quantity = row.str_to_value(item.id).unwrap_or_default();
+
             let costs = item
-                .cost
-                .iter()
-                .filter_map(|x| x.as_ref())
+                .costs(current_quantity, 1)
+                .into_iter()
                 .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency))
                 .collect::<Vec<_>>();
 

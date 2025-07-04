@@ -11,7 +11,7 @@ pub mod list;
 pub mod sell;
 
 pub use buy::{BuyRow, buy};
-pub use list::{ListRow, list};
+pub use list::list;
 pub use sell::{SellRow, sell};
 
 use crate::{GoalsManager, Result, SHOP_ITEMS, ShopPage};
@@ -24,11 +24,6 @@ pub trait ShopManager<Db: Database> {
     -> sqlx::Result<Option<BuyRow>>;
 
     async fn buy_save(pool: &Pool<Db>, row: BuyRow) -> sqlx::Result<AnyQueryResult>;
-
-    async fn list_row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<ListRow>>;
 
     async fn sell_row(
         pool: &Pool<Db>,

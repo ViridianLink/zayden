@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use gambling::commands::shop::{BuyRow, ListRow, SellRow, ShopManager};
+use gambling::commands::shop::{BuyRow, SellRow, ShopManager};
 use gambling::{Commands, GamblingItem};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::types::Json;
@@ -124,36 +124,6 @@ impl ShopManager<Postgres> for ShopTable {
         tx.commit().await.unwrap();
 
         Ok(result)
-    }
-
-    async fn list_row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<ListRow>> {
-        let id = id.into();
-
-        sqlx::query_as!(
-            ListRow,
-            r#"SELECT
-            g.id,
-            g.coins,
-            
-            (
-                SELECT jsonb_agg(
-                    jsonb_build_object(
-                        'quantity', inv.quantity,
-                        'item_id', inv.item_id
-                    )
-                )
-                FROM gambling_inventory inv
-                WHERE inv.user_id = g.id
-            ) as "inventory: Json<Vec<GamblingItem>>"
-            
-            FROM gambling g LEFT JOIN levels l ON g.id = l.id WHERE g.id = $1;"#,
-            id.get() as i64
-        )
-        .fetch_optional(pool)
-        .await
     }
 
     async fn sell_row(
