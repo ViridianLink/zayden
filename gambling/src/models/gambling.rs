@@ -4,6 +4,8 @@ use sqlx::{Database, Pool};
 
 #[async_trait]
 pub trait GamblingManager<Db: Database> {
+    async fn coins(conn: &mut Db::Connection, id: impl Into<UserId> + Send) -> sqlx::Result<i64>;
+
     async fn max_bet(conn: &mut Db::Connection, id: impl Into<UserId> + Send) -> sqlx::Result<i64>;
 
     async fn bet(

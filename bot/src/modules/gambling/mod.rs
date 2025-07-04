@@ -98,6 +98,17 @@ impl GamblingTable {
 
 #[async_trait]
 impl GamblingManager<Postgres> for GamblingTable {
+    async fn coins(
+        conn: &mut PgConnection,
+        id: impl Into<UserId> + std::marker::Send,
+    ) -> sqlx::Result<i64> {
+        let id = id.into();
+
+        sqlx::query_file_scalar!("./sql/gambling/GamblingManager/coins.sql", id.get() as i64)
+            .fetch_one(conn)
+            .await
+    }
+
     async fn max_bet(
         conn: &mut PgConnection,
         id: impl Into<UserId> + std::marker::Send,

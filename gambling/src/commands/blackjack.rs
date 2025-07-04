@@ -58,17 +58,19 @@ impl Commands {
             unreachable!("bet is required")
         };
 
-        let mut row = GameHandler::row(pool, interaction.user.id)
-            .await?
-            .unwrap_or_else(|| GameRow::new(interaction.user.id));
+        let mut tx = pool.begin().await.unwrap();
+
+        let coins = GamblingHandler::coins(&mut *tx, interaction.user.id)
+            .await
+            .unwrap();
+
+        tx.commit().await.unwrap();
 
         GameCache::can_play(ctx, interaction.user.id).await?;
-        EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, row.coins())
-            .await?;
+        EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, coins).await?;
         GamblingHandler::bet(pool, interaction.user.id, bet)
             .await
             .unwrap();
-        row.bet(bet);
 
         let mut card_shoe = CARD_DECK
             .iter()
@@ -104,7 +106,7 @@ impl Commands {
             .emoji('⏫')
             .label("Double Down")
             .style(ButtonStyle::Secondary)
-            .disabled(row.coins() < bet);
+            .disabled(coins < bet * 2);
 
         let message = interaction
             .edit_response(
@@ -138,7 +140,6 @@ impl Commands {
                     GamblingHandler::bet(pool, interaction.user.id, bet)
                         .await
                         .unwrap();
-                    row.bet(bet);
                     bet *= 2;
                     player_hand.push(card_shoe.pop().unwrap());
                 }
@@ -169,6 +170,11 @@ impl Commands {
                 break;
             }
         }
+
+        let mut row = GameHandler::row(pool, interaction.user.id)
+            .await
+            .unwrap()
+            .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         if player_value > 21 {
             Dispatch::<Db, GoalsHandler>::new(pool)
