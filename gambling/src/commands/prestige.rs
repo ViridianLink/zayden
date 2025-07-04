@@ -6,7 +6,6 @@ use serenity::all::{
     ButtonStyle, Colour, CommandInteraction, Context, CreateButton, CreateCommand, CreateEmbed,
     CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse, UserId,
 };
-use sqlx::any::AnyQueryResult;
 use sqlx::types::Json;
 use sqlx::{Database, FromRow, Pool};
 use zayden_core::FormatNum;
@@ -25,7 +24,9 @@ pub trait PrestigeManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<PrestigeRow>>;
 
-    async fn save(pool: &Pool<Db>, row: PrestigeRow) -> sqlx::Result<AnyQueryResult>;
+    async fn lotto(pool: &Pool<Db>, tickets: i64) -> sqlx::Result<Db::QueryResult>;
+
+    async fn save(pool: &Pool<Db>, row: PrestigeRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow, Default)]
@@ -59,8 +60,14 @@ pub struct PrestigeRow {
 
 impl PrestigeRow {
     pub fn req_miners(&self) -> i64 {
-        if self.prestige() > 10 {
-            todo!()
+        if self.prestige() >= 10 {
+            Self::solar_system_per_galaxies()
+                * Self::plants_per_solar_system()
+                * Self::continents_per_plant()
+                * Self::countries_per_continent()
+                * Self::land_per_country()
+                * Self::mines_per_land()
+                * Self::miners_per_mine()
         } else {
             Self::plants_per_solar_system()
                 * Self::continents_per_plant()
@@ -263,6 +270,18 @@ impl Commands {
                     return Ok(());
                 }
 
+                Manager::lotto(
+                    pool,
+                    row.inventory
+                        .as_ref()
+                        .unwrap_or(&Json(Vec::new()))
+                        .iter()
+                        .find(|item| item.item_id == LOTTO_TICKET.id)
+                        .map(|item| item.quantity)
+                        .unwrap_or_default(),
+                )
+                .await
+                .unwrap();
                 row.do_prestige();
 
                 Manager::save(pool, row).await.unwrap();

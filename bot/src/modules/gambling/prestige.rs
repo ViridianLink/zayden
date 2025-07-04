@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use gambling::commands::prestige::{PrestigeManager, PrestigeRow};
+use gambling::shop::LOTTO_TICKET;
 use gambling::{Commands, GamblingItem};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::any::AnyQueryResult;
+use sqlx::postgres::PgQueryResult;
 use sqlx::types::Json;
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
@@ -79,7 +80,20 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: PrestigeRow) -> sqlx::Result<AnyQueryResult> {
+    async fn lotto(pool: &PgPool, tickets: i64) -> sqlx::Result<PgQueryResult> {
+        const BOT_ID: i64 = 787490197943091211;
+
+        sqlx::query_file!(
+            "./sql/gambling/PrestigeManager/lotto.sql",
+            BOT_ID,
+            LOTTO_TICKET.id,
+            tickets,
+        )
+        .execute(pool)
+        .await
+    }
+
+    async fn save(pool: &PgPool, row: PrestigeRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
@@ -93,8 +107,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
             MAX_STAMINA,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         let result2 = sqlx::query!(
             "DELETE FROM gambling_inventory
@@ -102,8 +115,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
             row.id,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         let result3 = sqlx::query!(
             "INSERT INTO gambling_inventory (user_id, item_id, quantity)
@@ -117,8 +129,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
             serde_json::to_value(row.inventory.unwrap_or_default().0).unwrap()
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         let result4 = sqlx::query!(
             "INSERT INTO gambling_mine (id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
@@ -166,8 +177,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
                 row.utility,
                 row.production
             ).execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         tx.commit().await?;
 
