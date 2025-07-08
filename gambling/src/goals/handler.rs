@@ -1,10 +1,10 @@
-use serenity::all::UserId;
+use serenity::all::{
+    ChannelId, Colour, Context, CreateEmbed, CreateMessage, Message, MessageId, UserId,
+};
 use sqlx::{Database, Pool};
 
-use crate::GamblingGoalsRow;
-use crate::GoalsManager;
-use crate::events::Event;
-use crate::events::EventRow;
+use crate::events::{Event, EventRow};
+use crate::{COIN, GEM, GamblingGoalsRow, GoalsManager, tomorrow};
 
 use super::GOAL_REGISTRY;
 
@@ -51,7 +51,9 @@ impl GoalHandler {
     }
 
     pub async fn process_goals<Db: Database, Manager: GoalsManager<Db>>(
+        ctx: &Context,
         pool: &Pool<Db>,
+        channel: ChannelId,
         row: &mut dyn EventRow,
         event: Event,
     ) -> sqlx::Result<Event> {
@@ -71,20 +73,44 @@ impl GoalHandler {
                 let changed = (definition.update_fn)(goal, &event);
 
                 if changed {
-                    acc.push(goal);
+                    acc.push(&*goal);
                 }
 
                 acc
             });
 
-        changed
-            .iter()
-            .filter(|goal| goal.is_complete())
-            .for_each(|_| row.add_coins(5_000));
+        for &goal in changed.iter().filter(|goal| goal.is_complete()) {
+            row.add_coins(5_000);
+
+            channel
+                .send_message(
+                    ctx,
+                    CreateMessage::new().embed(
+                        CreateEmbed::new()
+                            .description(format!(
+                                "**Daily goal completed:** {}\n**Reward:** 5,000 <:coin:{COIN}>",
+                                goal.title()
+                            ))
+                            .colour(Colour::DARK_GREEN),
+                    ),
+                )
+                .await
+                .unwrap();
+        }
 
         if !changed.is_empty() {
             if all_goals.iter().all(|row| row.is_complete()) {
                 row.add_gems(1);
+
+                channel
+                    .send_message(
+                        ctx,
+                        CreateMessage::new().embed(CreateEmbed::new().description(format!(
+                            "You have completed **all** daily goals! 🎉\n**Reward:** 1 {GEM}\n\nGoals reset <t:{}:R>", tomorrow(None)
+                        )).colour(Colour::DARK_GREEN)),
+                    )
+                    .await
+                    .unwrap();
             }
 
             Manager::update(pool, &all_goals).await.unwrap();

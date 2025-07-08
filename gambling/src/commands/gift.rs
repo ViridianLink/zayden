@@ -8,7 +8,7 @@ use sqlx::{Database, Pool, any::AnyQueryResult, prelude::FromRow};
 use zayden_core::FormatNum;
 
 use crate::{
-    Coins, Error, Gems, GoalsManager, MaxBet, Prestige, Result, START_AMOUNT,
+    Coins, Error, GamblingManager, Gems, GoalsManager, MaxBet, Prestige, Result, START_AMOUNT,
     events::{Dispatch, Event, SendEvent},
     tomorrow,
 };
@@ -114,6 +114,7 @@ impl Coins for RecipientRow {
 impl Commands {
     pub async fn gift<
         Db: Database,
+        GamblingHandler: GamblingManager<Db>,
         GoalsHandler: GoalsManager<Db>,
         GiftHandler: GiftManager<Db>,
     >(
@@ -145,12 +146,17 @@ impl Commands {
 
         let amount = GIFT_AMOUNT * (user_row.prestige + 1);
 
-        GiftHandler::add_coins(pool, recipient.id, amount)
+        let mut tx = pool.begin().await.unwrap();
+
+        GamblingHandler::add_coins(&mut *tx, recipient.id, amount)
             .await
             .unwrap();
 
-        Dispatch::<Db, GoalsHandler>::new(pool)
+        tx.commit().await.unwrap();
+
+        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
             .fire(
+                interaction.channel_id,
                 &mut user_row,
                 Event::Send(SendEvent::new(amount, interaction.user.id)),
             )

@@ -176,9 +176,12 @@ impl Commands {
             .unwrap()
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
+        let dispatch = Dispatch::<Db, GoalsHandler>::new(ctx, pool);
+
         if player_value > 21 {
-            Dispatch::<Db, GoalsHandler>::new(pool)
+            dispatch
                 .fire(
+                    interaction.channel_id,
                     &mut row,
                     Event::Game(GameEvent::new("blackjack", interaction.user.id, bet, false)),
                 )
@@ -242,8 +245,9 @@ impl Commands {
             (Some(false), 0)
         };
 
-        Dispatch::<Db, GoalsHandler>::new(pool)
+        dispatch
             .fire(
+                interaction.channel_id,
                 &mut row,
                 Event::Game(GameEvent::new(
                     "blackjack",

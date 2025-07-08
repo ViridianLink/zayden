@@ -52,12 +52,16 @@ impl GamblingGoalsRow {
         self.progress == self.target
     }
 
-    pub fn description(&self) -> String {
-        let title = if let Some(goal) = GOAL_REGISTRY.get_definition(&self.goal_id) {
+    pub fn title(&self) -> String {
+        if let Some(goal) = GOAL_REGISTRY.get_definition(&self.goal_id) {
             (goal.description)(self.target)
         } else {
-            self.goal_id.clone()
-        };
+            self.goal_id.to_string()
+        }
+    }
+
+    pub fn description(&self) -> String {
+        let title = self.title();
 
         let progress_str = self.progress.format();
         let target_str = self.target.format();

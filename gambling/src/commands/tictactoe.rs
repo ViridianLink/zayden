@@ -143,10 +143,11 @@ impl Commands {
                 .colour(Colour::TEAL)
         };
 
-        let dispatch = Dispatch::<Db, GoalHandler>::new(pool);
+        let dispatch = Dispatch::<Db, GoalHandler>::new(ctx, pool);
 
         dispatch
             .fire(
+                interaction.channel_id,
                 &mut p1_row,
                 Event::Game(GameEvent::new("rps", p1, state.bet, false)), // TODO: Fix win logic
             )
@@ -154,6 +155,7 @@ impl Commands {
 
         dispatch
             .fire(
+                interaction.channel_id,
                 &mut p2_row,
                 Event::Game(GameEvent::new("rps", p2, state.bet, false)), // TODO: Fix win logic
             )

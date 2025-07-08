@@ -275,8 +275,9 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
         edit_inv(&mut row, item, amount)
     };
 
-    Dispatch::<Db, GoalsHandler>::new(pool)
+    Dispatch::<Db, GoalsHandler>::new(ctx, pool)
         .fire(
+            interaction.channel_id,
             &mut row,
             Event::ShopPurchase(ShopPurchaseEvent::new(interaction.user.id, item.id)),
         )

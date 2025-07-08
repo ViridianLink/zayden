@@ -60,8 +60,9 @@ impl Commands {
             0
         };
 
-        Dispatch::<Db, GoalHandler>::new(pool)
+        Dispatch::<Db, GoalHandler>::new(ctx, pool)
             .fire(
+                interaction.channel_id,
                 &mut row,
                 Event::Game(GameEvent::new(
                     "rps",

@@ -142,8 +142,12 @@ impl Commands {
 
         let coins = row.coins_str();
 
-        Dispatch::<Db, GoalHandler>::new(pool)
-            .fire(&mut row, Event::Work(interaction.user.id))
+        Dispatch::<Db, GoalHandler>::new(ctx, pool)
+            .fire(
+                interaction.channel_id,
+                &mut row,
+                Event::Work(interaction.user.id),
+            )
             .await?;
 
         row.done_work();

@@ -220,8 +220,12 @@ impl Commands {
             s => unreachable!("Invalid resource: {s}"),
         });
 
-        Dispatch::<Db, GoalsHandler>::new(pool)
-            .fire(&mut row, Event::Work(interaction.user.id))
+        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
+            .fire(
+                interaction.channel_id,
+                &mut row,
+                Event::Work(interaction.user.id),
+            )
             .await?;
 
         let mine_amount = row.mine_amount();

@@ -173,8 +173,9 @@ impl Commands {
 
         let coins = row.coins_str();
 
-        Dispatch::<Db, GoalsHandler>::new(pool)
+        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
             .fire(
+                interaction.channel_id,
                 &mut row,
                 Event::Game(GameEvent::new(
                     "higherorlower",

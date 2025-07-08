@@ -62,8 +62,9 @@ impl Commands {
             _ => 0,
         };
 
-        Dispatch::<Db, GoalsHandler>::new(pool)
+        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
             .fire(
+                interaction.channel_id,
                 &mut row,
                 Event::Game(GameEvent::new("coinflip", interaction.user.id, bet, winner)),
             )

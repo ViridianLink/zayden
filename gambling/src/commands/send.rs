@@ -150,8 +150,9 @@ impl Commands {
 
         let stamina = row.stamina_str();
 
-        Dispatch::<Db, GoalHandler>::new(pool)
+        Dispatch::<Db, GoalHandler>::new(ctx, pool)
             .fire(
+                interaction.channel_id,
                 &mut row,
                 Event::Send(SendEvent::new(amount, interaction.user.id)),
             )
