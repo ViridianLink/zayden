@@ -18,12 +18,12 @@ use crate::{COIN, Coins, Gems, GoalsManager, MaxBet, MineHourly, Result, Stamina
 
 use super::Commands;
 
-const CHUNK_BLOCKS: f64 = 16.0 * 16.0 * 123.0;
-const COAL_PER_CHUNK: f64 = 141.0;
+const CHUNK_BLOCKS: f64 = 16.0 * 16.0 * 62.0;
+const COAL_PER_CHUNK: f64 = 140.0;
 const IRON_PER_CHUNK: f64 = 77.0;
-const GOLD_PER_CHUNK: f64 = 8.3;
-const REDSTONE_PER_CHUNK: f64 = 7.8;
-const LAPIS_PER_CHUNK: f64 = 3.9;
+const GOLD_PER_CHUNK: f64 = 25.0;
+const REDSTONE_PER_CHUNK: f64 = 7.5;
+const LAPIS_PER_CHUNK: f64 = 3.4;
 const DIAMOND_PER_CHUNK: f64 = 3.7;
 const EMERALDS_PER_CHUNK: f64 = 3.0;
 
@@ -195,10 +195,10 @@ impl Commands {
             ("emeralds", 0),
         ]);
 
-        let miners = row.miners() * row.prestige_mult_10() / 10;
+        let miners = 1000 + (row.miners() * row.prestige_mult_10()) / 10;
 
         for (&resource, chance) in CHANCES.iter() {
-            let ore = Binomial::new(miners as u64, chance.min(1.0))
+            let ore = Binomial::new(miners as u64, (chance).min(1.0))
                 .unwrap()
                 .sample(&mut rng()) as i64;
 
