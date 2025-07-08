@@ -13,4 +13,10 @@ pub trait GamblingManager<Db: Database> {
         id: impl Into<UserId> + Send,
         bet: i64,
     ) -> sqlx::Result<Db::QueryResult>;
+
+    async fn add_coins(
+        conn: &mut Db::Connection,
+        id: impl Into<UserId> + Send,
+        amount: i64,
+    ) -> sqlx::Result<Db::QueryResult>;
 }

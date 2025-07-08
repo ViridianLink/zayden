@@ -6,7 +6,7 @@ use sqlx::any::AnyQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
-use crate::modules::gambling::StaminaTable;
+use crate::modules::gambling::{GamblingTable, StaminaTable};
 use crate::{Error, Result};
 
 use super::goals::GoalsTable;
@@ -43,23 +43,6 @@ impl SendManager<Postgres> for SendTable {
         .await
     }
 
-    async fn add_coins(
-        pool: &PgPool,
-        id: impl Into<UserId> + std::marker::Send,
-        amount: i64,
-    ) -> sqlx::Result<AnyQueryResult> {
-        let id = id.into();
-
-        sqlx::query!(
-            "UPDATE gambling SET coins = coins + $2 WHERE id = $1",
-            id.get() as i64,
-            amount
-        )
-        .execute(pool)
-        .await
-        .map(AnyQueryResult::from)
-    }
-
     async fn save(pool: &PgPool, row: SendRow) -> sqlx::Result<AnyQueryResult> {
         sqlx::query!(
             "INSERT INTO gambling (id, coins, gems, stamina)
@@ -87,7 +70,7 @@ impl SlashCommand<Error, Postgres> for Send {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::send::<Postgres, StaminaTable, GoalsTable, SendTable>(
+        Commands::send::<Postgres, GamblingTable, StaminaTable, GoalsTable, SendTable>(
             ctx,
             interaction,
             options,

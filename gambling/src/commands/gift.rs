@@ -24,12 +24,6 @@ pub trait GiftManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<SenderRow>>;
 
-    async fn add_coins(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-        amount: i64,
-    ) -> sqlx::Result<AnyQueryResult>;
-
     async fn save_sender(pool: &Pool<Db>, row: SenderRow) -> sqlx::Result<AnyQueryResult>;
 }
 

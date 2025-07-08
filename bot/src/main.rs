@@ -12,7 +12,7 @@ use sqlx::Postgres;
 use sqlx_lib::PostgresPool;
 use zayden_core::CronJobs;
 
-use crate::modules::gambling::{LottoTable, StaminaTable};
+use crate::modules::gambling::{GamblingTable, LottoTable, StaminaTable};
 
 mod cron;
 mod error;
@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
     let mut type_map = TypeMap::new();
     type_map.insert::<PostgresPool>(pool);
     type_map.insert::<CronJobs<Postgres>>(vec![
-        Lotto::cron_job::<Postgres, LottoTable>(),
+        Lotto::cron_job::<Postgres, GamblingTable, LottoTable>(),
         StaminaCron::cron_job::<Postgres, StaminaTable>(),
     ]);
 

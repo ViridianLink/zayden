@@ -9,8 +9,8 @@ use zayden_core::{FormatNum, parse_options};
 
 use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
-    COIN, Coins, Commands, Error, Gems, GoalsManager, MaxBet, Prestige, Result, ShopCurrency,
-    Stamina, StaminaManager,
+    COIN, Coins, Commands, Error, GamblingManager, Gems, GoalsManager, MaxBet, Prestige, Result,
+    ShopCurrency, Stamina, StaminaManager,
 };
 
 pub struct SendRow {
@@ -83,18 +83,13 @@ impl Prestige for SendRow {
 pub trait SendManager<Db: Database> {
     async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<SendRow>>;
 
-    async fn add_coins(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-        amount: i64,
-    ) -> sqlx::Result<AnyQueryResult>;
-
     async fn save(pool: &Pool<Db>, row: SendRow) -> sqlx::Result<AnyQueryResult>;
 }
 
 impl Commands {
     pub async fn send<
         Db: Database,
+        GamblingHandler: GamblingManager<Db>,
         StaminaHandler: StaminaManager<Db>,
         GoalHandler: GoalsManager<Db>,
         SendHandler: SendManager<Db>,
@@ -104,7 +99,7 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(ctx).await?;
 
         let mut options = parse_options(options);
 
@@ -145,7 +140,11 @@ impl Commands {
 
         *row.coins_mut() -= amount;
 
-        SendHandler::add_coins(pool, recipient.id, amount).await?;
+        let mut tx = pool.begin().await.unwrap();
+
+        GamblingHandler::add_coins(&mut *tx, recipient.id, amount).await?;
+
+        tx.commit().await.unwrap();
 
         row.done_work();
 

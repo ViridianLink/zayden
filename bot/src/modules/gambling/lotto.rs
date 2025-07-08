@@ -7,6 +7,7 @@ use sqlx::any::AnyQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::SlashCommand;
 
+use crate::modules::gambling::GamblingTable;
 use crate::{Error, Result};
 
 pub struct LottoTable;
@@ -57,23 +58,6 @@ impl LottoManager<Postgres> for LottoTable {
         .await
         .map(AnyQueryResult::from)
     }
-
-    async fn add_coins(
-        conn: &mut PgConnection,
-        id: impl Into<UserId> + Send,
-        amount: i64,
-    ) -> sqlx::Result<AnyQueryResult> {
-        let id = id.into();
-
-        sqlx::query!(
-            "UPDATE gambling SET coins = coins + $2 WHERE id = $1",
-            id.get() as i64,
-            amount
-        )
-        .execute(conn)
-        .await
-        .map(AnyQueryResult::from)
-    }
 }
 
 pub struct Lotto;
@@ -86,7 +70,7 @@ impl SlashCommand<Error, Postgres> for Lotto {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::lotto::<Postgres, LottoTable>(ctx, interaction, pool).await?;
+        Commands::lotto::<Postgres, GamblingTable, LottoTable>(ctx, interaction, pool).await?;
         Ok(())
     }
 

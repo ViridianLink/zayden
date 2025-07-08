@@ -8,7 +8,7 @@ use sqlx::{Database, FromRow};
 use zayden_core::{CronJob, FormatNum};
 
 use crate::shop::LOTTO_TICKET;
-use crate::{COIN, Coins};
+use crate::{COIN, Coins, GamblingManager};
 
 const CHANNEL_ID: ChannelId = ChannelId::new(1383573049563156502);
 
@@ -24,12 +24,6 @@ pub trait LottoManager<Db: Database> {
     async fn total_tickets(conn: &mut Db::Connection) -> sqlx::Result<i64>;
 
     async fn delete_tickets(conn: &mut Db::Connection) -> sqlx::Result<AnyQueryResult>;
-
-    async fn add_coins(
-        conn: &mut Db::Connection,
-        id: impl Into<UserId> + Send,
-        amount: i64,
-    ) -> sqlx::Result<AnyQueryResult>;
 }
 
 #[derive(FromRow)]
@@ -77,11 +71,15 @@ pub fn jackpot(tickets: i64) -> i64 {
 pub struct Lotto;
 
 impl Lotto {
-    pub fn cron_job<Db: Database, Manager: LottoManager<Db>>() -> CronJob<Db> {
+    pub fn cron_job<
+        Db: Database,
+        GamblingHandler: GamblingManager<Db>,
+        LottoHandler: LottoManager<Db>,
+    >() -> CronJob<Db> {
         CronJob::new("lotto", "0 0 17 * * Fri *").set_action(|ctx, pool| async move {
             let mut tx: sqlx::Transaction<'static, Db> = pool.begin().await.unwrap();
 
-            let mut rows = Manager::rows(&mut *tx).await.unwrap();
+            let mut rows = LottoHandler::rows(&mut *tx).await.unwrap();
 
             let prize_share = [0.5, 0.3, 0.2];
 
@@ -107,12 +105,14 @@ impl Lotto {
                 })
                 .collect::<Vec<_>>();
 
-            Manager::delete_tickets(&mut *tx).await.unwrap();
+            LottoHandler::delete_tickets(&mut *tx).await.unwrap();
 
             let mut lines = Vec::with_capacity(expected_winners);
 
             for (winner, payout) in winners {
-                Manager::add_coins(&mut *tx, winner, payout).await.unwrap();
+                GamblingHandler::add_coins(&mut *tx, winner, payout)
+                    .await
+                    .unwrap();
 
                 let line = format!(
                     "{} ({}) has won {} <:coin:{COIN}> from the lottery!",

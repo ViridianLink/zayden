@@ -1,4 +1,5 @@
 use futures::FutureExt;
+use gambling::GamblingManager;
 use serenity::all::{Context, Message};
 use sqlx::{PgPool, Postgres};
 use zayden_core::MessageCommand;
@@ -23,9 +24,13 @@ impl Handler {
         )?;
 
         if let Some(level) = new_level {
-            GamblingTable::add_coins(pool, msg.author.id, level as i64 * 1000)
+            let mut tx = pool.begin().await.unwrap();
+
+            GamblingTable::add_coins(&mut tx, msg.author.id, level as i64 * 1000)
                 .await
                 .unwrap();
+
+            tx.commit().await.unwrap();
         }
 
         Ok(())

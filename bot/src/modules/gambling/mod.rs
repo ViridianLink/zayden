@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use gambling::{GamblingManager, GameManager, GameRow};
 use serenity::all::{Context, CreateCommand, UserId};
-use sqlx::{PgConnection, PgPool, Postgres, any::AnyQueryResult, postgres::PgQueryResult};
+use sqlx::{PgConnection, PgPool, Postgres, postgres::PgQueryResult};
 use zayden_core::SlashCommand;
 
 mod blackjack;
@@ -77,25 +77,6 @@ pub fn register(ctx: &Context) -> [CreateCommand; 20] {
 
 pub struct GamblingTable;
 
-impl GamblingTable {
-    pub async fn add_coins(
-        pool: &PgPool,
-        id: impl Into<UserId>,
-        amount: i64,
-    ) -> sqlx::Result<AnyQueryResult> {
-        let id = id.into();
-
-        sqlx::query!(
-            "UPDATE gambling SET coins = coins + $2 WHERE id = $1",
-            id.get() as i64,
-            amount
-        )
-        .execute(pool)
-        .await
-        .map(|r| r.into())
-    }
-}
-
 #[async_trait]
 impl GamblingManager<Postgres> for GamblingTable {
     async fn coins(
@@ -136,6 +117,7 @@ impl GamblingManager<Postgres> for GamblingTable {
         .map(|r| r.unwrap())
     }
 
+    //region: Update
     async fn bet(
         pool: &PgPool,
         id: impl Into<UserId> + std::marker::Send,
@@ -149,6 +131,22 @@ impl GamblingManager<Postgres> for GamblingTable {
             bet
         )
         .execute(pool)
+        .await
+    }
+
+    async fn add_coins(
+        conn: &mut PgConnection,
+        id: impl Into<UserId> + std::marker::Send,
+        amount: i64,
+    ) -> sqlx::Result<PgQueryResult> {
+        let id = id.into();
+
+        sqlx::query_file!(
+            "./sql/gambling/GamblingManager/add_coins.sql",
+            id.get() as i64,
+            amount
+        )
+        .execute(conn)
         .await
     }
 }

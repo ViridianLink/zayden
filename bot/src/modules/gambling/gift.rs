@@ -5,7 +5,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, 
 use sqlx::{PgPool, Postgres, any::AnyQueryResult};
 use zayden_core::SlashCommand;
 
-use crate::modules::gambling::GoalsTable;
+use crate::modules::gambling::{GamblingTable, GoalsTable};
 use crate::{Error, Result};
 
 pub struct GiftTable;
@@ -38,23 +38,6 @@ impl GiftManager<Postgres> for GiftTable {
         )
         .fetch_optional(pool)
         .await
-    }
-
-    async fn add_coins(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-        amount: i64,
-    ) -> sqlx::Result<AnyQueryResult> {
-        let id = id.into();
-
-        sqlx::query!(
-            "UPDATE gambling SET coins = coins + $2 WHERE id = $1",
-            id.get() as i64,
-            amount
-        )
-        .execute(pool)
-        .await
-        .map(AnyQueryResult::from)
     }
 
     async fn save_sender(pool: &PgPool, row: SenderRow) -> sqlx::Result<AnyQueryResult> {
@@ -103,7 +86,13 @@ impl SlashCommand<Error, Postgres> for Gift {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::gift::<Postgres, GoalsTable, GiftTable>(ctx, interaction, options, pool).await?;
+        Commands::gift::<Postgres, GamblingTable, GoalsTable, GiftTable>(
+            ctx,
+            interaction,
+            options,
+            pool,
+        )
+        .await?;
 
         Ok(())
     }
