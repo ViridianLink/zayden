@@ -153,7 +153,7 @@ pub struct ShopItem<'a> {
     pub name: &'a str,
     pub emoji: Emoji<'a>,
     pub description: &'a str,
-    pub cost: [Option<(i64, ShopCurrency)>; 4],
+    pub costs: [Option<(i64, ShopCurrency)>; 4],
     pub category: ShopPage,
     pub sellable: bool,
     pub useable: bool,
@@ -176,7 +176,7 @@ impl<'a> ShopItem<'a> {
             name,
             emoji,
             description: desc,
-            cost: [Some((cost, currency)), None, None, None],
+            costs: [Some((cost, currency)), None, None, None],
             category,
             sellable: false,
             useable: false,
@@ -187,9 +187,9 @@ impl<'a> ShopItem<'a> {
 
     const fn add_cost(mut self, cost: i64, currency: ShopCurrency) -> ShopItem<'a> {
         let mut i = 0;
-        while i < self.cost.len() {
-            if self.cost[i].is_none() {
-                self.cost[i] = Some((cost, currency));
+        while i < self.costs.len() {
+            if self.costs[i].is_none() {
+                self.costs[i] = Some((cost, currency));
                 break;
             }
 
@@ -199,12 +199,12 @@ impl<'a> ShopItem<'a> {
         self
     }
 
-    const fn sellable(mut self, value: bool) -> ShopItem<'a> {
+    const fn sellable(mut self, value: bool) -> Self {
         self.sellable = value;
         self
     }
 
-    const fn useable(mut self, value: bool) -> ShopItem<'a> {
+    const fn useable(mut self, value: bool) -> Self {
         self.useable = value;
         self
     }
@@ -228,7 +228,7 @@ impl<'a> ShopItem<'a> {
     }
 
     pub fn cost_desc(&self) -> String {
-        self.cost
+        self.costs
             .iter()
             .filter_map(|cost| cost.as_ref())
             .map(|(cost, currency)| format!("`{cost}` {currency}"))
@@ -237,12 +237,19 @@ impl<'a> ShopItem<'a> {
     }
 
     pub fn coin_cost(&self) -> Option<i64> {
-        self.cost
+        self.costs
             .iter()
             .filter_map(|x| x.as_ref())
             .find(|(_, currency)| matches!(currency, ShopCurrency::Coins))
             .map(|(cost, _)| cost)
             .copied()
+    }
+
+    pub fn costs(&self, current_quantity: i64, amount: i64) -> Vec<(i64, ShopCurrency)> {
+        let iter = self.costs.iter().copied().flatten();
+
+        iter.map(|(cost, currency)| (cost * amount, currency))
+            .collect()
     }
 }
 
@@ -424,12 +431,12 @@ const PAYOUT_X100: ShopItem = ShopItem::new(
 .duration(Duration::from_secs(60));
 
 //region: Mine
-const MINER: ShopItem = ShopItem::new(
+pub const MINER: ShopItem = ShopItem::new(
     "miner",
     "Miner",
     Emoji::None,
     "Increases passive mine income and boosts resource gains from dig",
-    1,
+    100,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 );
@@ -438,8 +445,8 @@ const MINE: ShopItem = ShopItem::new(
     "mine",
     "Mine",
     Emoji::None,
-    "Allows you to hire 100 extra miners per mine",
-    MINER.cost[0].unwrap().0 * 10,
+    "Allows you to hire 10 extra miners per mine",
+    20_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -449,8 +456,8 @@ const LAND: ShopItem = ShopItem::new(
     "land",
     "Land",
     Emoji::None,
-    "Allows you to buy 100 extra mines per land",
-    MINE.cost[0].unwrap().0 * 10,
+    "Allows you to buy 10 extra mines per land",
+    100_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -460,78 +467,77 @@ const COUNTRY: ShopItem = ShopItem::new(
     "country",
     "Country",
     Emoji::None,
-    "Allows you to buy 100 extra plots of land per country",
-    LAND.cost[0].unwrap().0 * 10,
+    "Allows you to buy 10 extra plots of land per country",
+    350_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
-.add_cost(250, ShopCurrency::Tech)
-.add_cost(10, ShopCurrency::Utility);
+.add_cost(100, ShopCurrency::Tech)
+.add_cost(1, ShopCurrency::Utility);
 
 const CONTINENT: ShopItem = ShopItem::new(
     "continent",
     "Continent",
     Emoji::None,
-    "Allows you to buy 100 extra countries per continent",
-    COUNTRY.cost[0].unwrap().0 * 10,
+    "Allows you to buy 10 extra countries per continent",
+    1_500_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
 .add_cost(1000, ShopCurrency::Tech)
-.add_cost(250, ShopCurrency::Utility)
-.add_cost(50, ShopCurrency::Production);
+.add_cost(10, ShopCurrency::Utility);
 
 const PLANET: ShopItem = ShopItem::new(
     "planet",
     "Planet",
     Emoji::None,
-    "Allows you to buy 100 extra continents per planet",
-    CONTINENT.cost[0].unwrap().0 * 10,
+    "Allows you to buy 10 extra continents per planet",
+    5_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
-.add_cost(10000, ShopCurrency::Tech)
-.add_cost(2500, ShopCurrency::Utility)
-.add_cost(1000, ShopCurrency::Production);
+.add_cost(10_000, ShopCurrency::Tech)
+.add_cost(100, ShopCurrency::Utility)
+.add_cost(1, ShopCurrency::Production);
 
 const SOLAR_SYSTEM: ShopItem = ShopItem::new(
     "solarsystem",
     "Solar System",
     Emoji::None,
-    "Allows you to buy 100 extra planets per solar system",
-    PLANET.cost[0].unwrap().0 * 10,
+    "Allows you to buy 10 extra planets per solar system",
+    20_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
-.add_cost(25000, ShopCurrency::Tech)
-.add_cost(10000, ShopCurrency::Utility)
-.add_cost(5000, ShopCurrency::Production);
+.add_cost(100_000, ShopCurrency::Tech)
+.add_cost(1000, ShopCurrency::Utility)
+.add_cost(10, ShopCurrency::Production);
 
 const GALAXY: ShopItem = ShopItem::new(
     "galaxy",
     "Galaxy",
     Emoji::None,
-    "Allows you to buy 100 extra planets per solar system",
-    SOLAR_SYSTEM.cost[0].unwrap().0 * 10,
+    "Allows you to buy 10 extra planets per solar system",
+    100_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
-.add_cost(50000, ShopCurrency::Tech)
-.add_cost(25000, ShopCurrency::Utility)
-.add_cost(10000, ShopCurrency::Production);
+.add_cost(1_000_000, ShopCurrency::Tech)
+.add_cost(10_000, ShopCurrency::Utility)
+.add_cost(100, ShopCurrency::Production);
 
 const UNIVERSE: ShopItem = ShopItem::new(
     "universe",
     "Universe",
     Emoji::None,
-    "Allows you to buy 100 extra galaxies per universe",
-    GALAXY.cost[0].unwrap().0 * 10,
+    "Allows you to buy 10 extra galaxies per universe",
+    350_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
-.add_cost(1000000, ShopCurrency::Tech)
-.add_cost(1000000, ShopCurrency::Utility)
-.add_cost(1000000, ShopCurrency::Production);
+.add_cost(10_000_000, ShopCurrency::Tech)
+.add_cost(100_000, ShopCurrency::Utility)
+.add_cost(1000, ShopCurrency::Production);
 //endregion
 
 pub struct ShopItems<'a>([ShopItem<'a>; 18]);

@@ -36,7 +36,7 @@ impl<'a> From<&ShopItem<'a>> for InventoryItem<'a> {
             id: value.id,
             name: value.name,
             emoji: value.emoji(),
-            cost: value.cost,
+            cost: value.costs,
             quantity: 0,
         }
     }
