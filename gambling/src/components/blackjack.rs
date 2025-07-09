@@ -242,8 +242,6 @@ fn card_shoe(mut cards: HashSet<EmojiId>) -> Vec<EmojiId> {
     let mut shoe = CARD_DECK
         .iter()
         .copied()
-        .cycle()
-        .take(52 * 2)
         .filter(|card| !cards.remove(card))
         .collect::<Vec<_>>();
 

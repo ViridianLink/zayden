@@ -45,12 +45,7 @@ impl Commands {
             .await
             .unwrap();
 
-        let mut card_shoe = CARD_DECK
-            .iter()
-            .copied()
-            .cycle()
-            .take(52 * 2)
-            .collect::<Vec<_>>();
+        let mut card_shoe = CARD_DECK.to_vec();
 
         card_shoe.shuffle(&mut rng());
 
