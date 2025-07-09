@@ -2,8 +2,10 @@ use chrono::Utc;
 use serenity::all::{ComponentInteraction, Context, EditInteractionResponse};
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
+use zayden_core::Component;
 
 use crate::handler::Handler;
+use crate::modules::gambling::Blackjack;
 use crate::modules::lfg::PostTable;
 use crate::modules::ticket::Ticket;
 use crate::{Error, Result};
@@ -23,6 +25,9 @@ impl Handler {
         );
 
         let result = match interaction.data.custom_id.as_str() {
+            //region: Gambling
+            id if id.starts_with("blackjack") => Blackjack::run(ctx, interaction, pool).await,
+
             // region: Lfg
             "lfg_join" => lfg::Components::join::<Postgres, PostTable>(ctx, interaction, pool)
                 .await

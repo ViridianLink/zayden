@@ -2,9 +2,11 @@ use chrono::{DateTime, Days, NaiveTime, Utc};
 use serenity::all::{EmojiId, UserId};
 
 pub mod commands;
+pub mod components;
 pub mod error;
 pub mod events;
 pub mod game_cache;
+pub mod games;
 pub mod goals;
 pub mod lotto;
 pub mod models;
