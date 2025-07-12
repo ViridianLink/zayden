@@ -245,7 +245,7 @@ impl<'a> ShopItem<'a> {
             .copied()
     }
 
-    pub fn costs(&self, current_quantity: i64, amount: i64) -> Vec<(i64, ShopCurrency)> {
+    pub fn costs(&self, amount: i64) -> Vec<(i64, ShopCurrency)> {
         let iter = self.costs.iter().copied().flatten();
 
         iter.map(|(cost, currency)| (cost * amount, currency))
@@ -446,7 +446,7 @@ const MINE: ShopItem = ShopItem::new(
     "Mine",
     Emoji::None,
     "Allows you to hire 10 extra miners per mine",
-    20_000,
+    15_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -457,7 +457,7 @@ const LAND: ShopItem = ShopItem::new(
     "Land",
     Emoji::None,
     "Allows you to buy 10 extra mines per land",
-    100_000,
+    75_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -468,7 +468,7 @@ const COUNTRY: ShopItem = ShopItem::new(
     "Country",
     Emoji::None,
     "Allows you to buy 10 extra plots of land per country",
-    350_000,
+    250_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -480,7 +480,7 @@ const CONTINENT: ShopItem = ShopItem::new(
     "Continent",
     Emoji::None,
     "Allows you to buy 10 extra countries per continent",
-    1_500_000,
+    1_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -492,7 +492,7 @@ const PLANET: ShopItem = ShopItem::new(
     "Planet",
     Emoji::None,
     "Allows you to buy 10 extra continents per planet",
-    5_000_000,
+    3_500_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -505,7 +505,7 @@ const SOLAR_SYSTEM: ShopItem = ShopItem::new(
     "Solar System",
     Emoji::None,
     "Allows you to buy 10 extra planets per solar system",
-    20_000_000,
+    15_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -518,7 +518,7 @@ const GALAXY: ShopItem = ShopItem::new(
     "Galaxy",
     Emoji::None,
     "Allows you to buy 10 extra planets per solar system",
-    100_000_000,
+    75_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -531,7 +531,7 @@ const UNIVERSE: ShopItem = ShopItem::new(
     "Universe",
     Emoji::None,
     "Allows you to buy 10 extra galaxies per universe",
-    350_000_000,
+    250_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
