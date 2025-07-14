@@ -1,6 +1,6 @@
 use serenity::all::{
-    ChannelId, CommandInteraction, ComponentInteraction, ComponentInteractionDataKind, Context,
-    Mentionable, ResolvedValue, UserId,
+    CommandInteraction, ComponentInteraction, ComponentInteractionDataKind,
+    GenericInteractionChannel, Http, Mentionable, ResolvedValue, ThreadId, UserId,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub struct LeaveInteraction {
-    thread: ChannelId,
+    thread: ThreadId,
     author: UserId,
     user: UserId,
 }
@@ -27,8 +27,8 @@ impl From<&CommandInteraction> for LeaveInteraction {
 
         let mut options = parse_options(subcommand);
         let thread = match options.remove("thread") {
-            Some(ResolvedValue::Channel(channel)) => channel.id,
-            _ => value.channel_id,
+            Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(thread))) => thread.id,
+            _ => value.channel_id.expect_thread(),
         };
         let user = match options.remove("guardian") {
             Some(ResolvedValue::User(user, _)) => user.id,
@@ -51,7 +51,7 @@ impl From<&ComponentInteraction> for LeaveInteraction {
         };
 
         Self {
-            thread: value.channel_id,
+            thread: value.channel_id.expect_thread(),
             author: value.user.id,
             user,
         }
@@ -59,7 +59,7 @@ impl From<&ComponentInteraction> for LeaveInteraction {
 }
 
 pub async fn leave<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
-    ctx: &Context,
+    http: &Http,
     interaction: impl Into<LeaveInteraction>,
     pool: &Pool<Db>,
 ) -> Result<String> {
@@ -68,22 +68,22 @@ pub async fn leave<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>
     let mut row = Manager::row(pool, interaction.thread).await.unwrap();
     row.leave(interaction.user);
 
-    let owner = row.owner().to_user(ctx).await.unwrap();
+    let owner = row.owner().to_user(http).await.unwrap();
 
-    update_embeds::<DefaultTemplate>(ctx, &row, owner.display_name(), interaction.thread).await;
+    update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread).await;
     Announcement::Left(interaction.user)
-        .send(ctx, interaction.thread)
+        .send(http, interaction.thread)
         .await;
 
     Manager::save(pool, row).await.unwrap();
 
     let content = if interaction.author == interaction.user {
-        format!("You have left {}", interaction.thread.mention())
+        format!("You have left {}", interaction.thread.widen().mention())
     } else {
         format!(
             "{} have left {}",
             interaction.user.mention(),
-            interaction.thread.mention()
+            interaction.thread.widen().mention()
         )
     };
 

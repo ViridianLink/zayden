@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use sqlx::{Database, Pool, any::AnyQueryResult};
+use sqlx::{Database, Pool};
 use zayden_core::CronJob;
 
 #[async_trait]
 pub trait StaminaManager<Db: Database> {
-    async fn update(pool: &Pool<Db>) -> sqlx::Result<AnyQueryResult>;
+    async fn update(pool: &Pool<Db>) -> sqlx::Result<Db::QueryResult>;
 }
 
 pub struct StaminaCron;

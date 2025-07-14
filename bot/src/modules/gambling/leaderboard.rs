@@ -2,15 +2,15 @@ use async_trait::async_trait;
 use futures::TryStreamExt;
 use gambling::Commands;
 use gambling::commands::leaderboard::{
-    CoinsRow, EggplantsRow, GemsRow, LeaderboardManager, LeaderboardRow, LottoTicketRow,
-    NetworthRow,
+    CoinsRow, EggplantsRow, GemsRow, HigherLowerRow, LeaderboardManager, LeaderboardRow,
+    LottoTicketRow, NetworthRow, WeeklyHigherLowerRow,
 };
 use gambling::shop::{EGGPLANT, LOTTO_TICKET, WEAPON_CRATE};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 const LIMIT: i64 = 10;
 
@@ -20,36 +20,16 @@ pub struct LeaderboardTable;
 impl LeaderboardManager<Postgres> for LeaderboardTable {
     async fn networth(
         pool: &PgPool,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>> {
         let offset = (page_num - 1) * LIMIT;
 
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             NetworthRow,
-            r#"
-            SELECT
-                g.id,
-                (
-                    g.coins +
-                    COALESCE(gi_eggplants.quantity, 0) * $3 +
-                    COALESCE(gi_crates.quantity, 0) * $5
-                ) AS networth
-            FROM
-                gambling g
-            LEFT JOIN
-                gambling_inventory gi_eggplants ON g.id = gi_eggplants.user_id
-                                            AND gi_eggplants.item_id = $2
-            LEFT JOIN
-                gambling_inventory gi_crates ON g.id = gi_crates.user_id
-                                            AND gi_crates.item_id = $4
-            WHERE
-                g.id = ANY($1)
-            ORDER BY
-                networth DESC
-            LIMIT $6
-            OFFSET $7
-            "#,
+            "sql/gambling/LeaderboardManager/networth.sql",
+            global,
             users,
             EGGPLANT.id,
             EGGPLANT.coin_cost().unwrap_or_default(),
@@ -66,40 +46,16 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn networth_row_number(
         pool: &PgPool,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>> {
         let user_id = id.into();
 
-        sqlx::query_scalar!(
-            r#"
-            WITH user_networths AS (
-                SELECT
-                    g.id,
-                    (
-                        g.coins +
-                        COALESCE(gi_eggplants.quantity, 0) * $3 +
-                        COALESCE(gi_crates.quantity, 0) * $5
-                    ) AS networth_value
-                FROM
-                    gambling g
-                LEFT JOIN
-                    gambling_inventory gi_eggplants ON g.id = gi_eggplants.user_id
-                                                AND gi_eggplants.item_id = $2
-                LEFT JOIN
-                    gambling_inventory gi_crates ON g.id = gi_crates.user_id
-                                                AND gi_crates.item_id = $4
-            ),
-            ranked_users AS (
-                SELECT
-                    id,
-                    ROW_NUMBER() OVER (ORDER BY networth_value DESC) as rn
-                FROM
-                    user_networths
-            )
-            SELECT rn
-            FROM ranked_users
-            WHERE id = $1 -- User ID ($1)
-            "#,
+        sqlx::query_file_scalar!(
+            "sql/gambling/LeaderboardManager/networth_row_number.sql",
+            global,
+            users,
             user_id.get() as i64,
             EGGPLANT.id,
             EGGPLANT.coin_cost().unwrap_or_default(),
@@ -113,21 +69,16 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn coins(
         pool: &PgPool,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>> {
         let offset = (page_num - 1) * LIMIT;
 
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             CoinsRow,
-            r#"
-            SELECT id, coins
-            FROM gambling
-            WHERE id = ANY($1)
-            ORDER BY coins DESC
-            LIMIT $2
-            OFFSET $3
-            "#,
+            "sql/gambling/LeaderboardManager/coins.sql",
+            global,
             users,
             LIMIT,
             offset
@@ -140,23 +91,16 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn coins_row_number(
         pool: &PgPool,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>> {
         let user_id = id.into();
 
-        sqlx::query_scalar!(
-            r#"
-        WITH numbered_users AS (
-            SELECT
-                id,
-                ROW_NUMBER() OVER (ORDER BY coins DESC) as rn
-            FROM
-                gambling
-        )
-        SELECT rn
-        FROM numbered_users
-        WHERE id = $1
-        "#,
+        sqlx::query_file_scalar!(
+            "sql/gambling/LeaderboardManager/coins_row_number.sql",
+            global,
+            users,
             user_id.get() as i64
         )
         .fetch_optional(pool)
@@ -166,21 +110,16 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn gems(
         pool: &PgPool,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>> {
         let offset = (page_num - 1) * LIMIT;
 
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             GemsRow,
-            r#"
-            SELECT id, gems
-            FROM gambling
-            WHERE id = ANY($1)
-            ORDER BY gems DESC
-            LIMIT $2
-            OFFSET $3
-            "#,
+            "sql/gambling/LeaderboardManager/gems.sql",
+            global,
             users,
             LIMIT,
             offset
@@ -193,23 +132,16 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn gems_row_number(
         pool: &PgPool,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>> {
         let user_id = id.into();
 
-        sqlx::query_scalar!(
-            r#"
-        WITH numbered_users AS (
-            SELECT
-                id,
-                ROW_NUMBER() OVER (ORDER BY gems DESC) as rn
-            FROM
-                gambling
-        )
-        SELECT rn
-        FROM numbered_users
-        WHERE id = $1
-        "#,
+        sqlx::query_file_scalar!(
+            "sql/gambling/LeaderboardManager/gems_row_number.sql",
+            global,
+            users,
             user_id.get() as i64
         )
         .fetch_optional(pool)
@@ -219,6 +151,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn eggplants(
         pool: &PgPool,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>> {
@@ -247,6 +180,8 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn eggplants_row_number(
         pool: &PgPool,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>> {
         let id = id.into();
@@ -277,7 +212,12 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         .map(|num| num.flatten())
     }
 
-    async fn lottotickets(pool: &PgPool, page_num: i64) -> sqlx::Result<Vec<LeaderboardRow>> {
+    async fn lottotickets(
+        pool: &PgPool,
+        global: bool,
+        users: &[i64],
+        page_num: i64,
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
         let offset = (page_num - 1) * LIMIT;
 
         sqlx::query_as!(
@@ -302,6 +242,8 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 
     async fn lottotickets_row_number(
         pool: &PgPool,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>> {
         let id = id.into();
@@ -331,6 +273,88 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         .await
         .map(|num| num.flatten())
     }
+
+    async fn higherlower(
+        pool: &PgPool,
+        global: bool,
+        users: &[i64],
+        page_num: i64,
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
+
+        sqlx::query_file_as!(
+            HigherLowerRow,
+            "sql/gambling/LeaderboardManager/higherlower.sql",
+            global,
+            users,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::HigherLower)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    async fn higherlower_row_number(
+        pool: &PgPool,
+        global: bool,
+        users: &[i64],
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<i64>> {
+        let id = id.into();
+
+        sqlx::query_file_scalar!(
+            "sql/gambling/LeaderboardManager/higherlower_row_number.sql",
+            global,
+            users,
+            id.get() as i64
+        )
+        .fetch_optional(pool)
+        .await
+        .map(|num| num.flatten())
+    }
+
+    async fn weekly_higherlower(
+        pool: &PgPool,
+        global: bool,
+        users: &[i64],
+        page_num: i64,
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
+
+        sqlx::query_file_as!(
+            WeeklyHigherLowerRow,
+            "sql/gambling/LeaderboardManager/weekly_higherlower.sql",
+            global,
+            users,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::WeeklyHigherLower)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    async fn weekly_higherlower_row_number(
+        pool: &PgPool,
+        global: bool,
+        users: &[i64],
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<i64>> {
+        let id = id.into();
+
+        sqlx::query_file_scalar!(
+            "sql/gambling/LeaderboardManager/weekly_higherlower_row_number.sql",
+            global,
+            users,
+            id.get() as i64
+        )
+        .fetch_optional(pool)
+        .await
+        .map(|num| num.flatten())
+    }
 }
 
 pub struct Leaderboard;
@@ -343,8 +367,13 @@ impl SlashCommand<Error, Postgres> for Leaderboard {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::leaderboard::<Postgres, LeaderboardTable>(ctx, interaction, options, pool)
-            .await?;
+        Commands::leaderboard::<CtxData, Postgres, LeaderboardTable>(
+            ctx,
+            interaction,
+            options,
+            pool,
+        )
+        .await?;
 
         Ok(())
     }

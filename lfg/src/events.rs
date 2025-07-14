@@ -1,24 +1,27 @@
 use chrono::{Duration, Utc};
 use serenity::all::{
-    Context, DiscordJsonError, EditThread, ErrorResponse, Guild, HttpError, PartialGuildChannel,
+    Context, DiscordJsonError, EditThread, ErrorResponse, Guild, Http, HttpError, JsonErrorCode,
+    PartialGuildThread,
 };
 use sqlx::{Database, Pool};
+use zayden_core::CronJobData;
 
 use crate::{GuildManager, PostManager, actions, cron::create_reminders, templates::TemplateInfo};
 
 pub async fn thread_delete<Db: Database, Manager: PostManager<Db>>(
-    ctx: &Context,
-    thread: &PartialGuildChannel,
+    http: &Http,
+    thread: &PartialGuildThread,
     pool: &Pool<Db>,
 ) {
     if Manager::exists(pool, thread.id).await.unwrap() {
-        actions::delete::<Db, Manager>(ctx, thread.id, pool)
+        actions::delete::<Db, Manager>(http, thread.id, pool)
             .await
             .unwrap();
     }
 }
 
 pub async fn guild_create<
+    Data: CronJobData<Db>,
     Db: Database,
     GuildHandler: GuildManager<Db>,
     PostHandler: PostManager<Db>,
@@ -34,14 +37,14 @@ pub async fn guild_create<
     let lfg_channel = guild_row.channel_id();
 
     let archived_threads = lfg_channel
-        .get_archived_public_threads(&ctx, None, Some(100))
+        .get_archived_public_threads(&ctx.http, None, Some(100))
         .await
         .unwrap();
 
     let threads = guild
         .threads
         .iter()
-        .filter(|thread| thread.parent_id.is_some_and(|id| id == lfg_channel))
+        .filter(|thread| thread.parent_id == lfg_channel)
         .chain(archived_threads.threads.iter())
         .cloned();
 
@@ -50,21 +53,27 @@ pub async fn guild_create<
     let month_ago = now - Duration::days(30);
 
     for mut thread in threads {
-        let created_at = *thread.last_message_id.unwrap().created_at();
+        let created_at = *thread.base.last_message_id.unwrap().created_at();
 
         if created_at < month_ago {
-            thread.delete(ctx).await.unwrap();
+            thread
+                .delete(&ctx.http, Some("Thread older than 30 days"))
+                .await
+                .unwrap();
         }
 
         if created_at < week_ago {
             match thread
-                .edit_thread(ctx, EditThread::new().archived(true))
+                .edit(&ctx.http, EditThread::new().archived(true))
                 .await
             {
                 Ok(_)
-                // Unknown Channel
                 | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error: DiscordJsonError { code: 10003, .. },
+                    error:
+                        DiscordJsonError {
+                            code: JsonErrorCode::UnknownChannel,
+                            ..
+                        },
                     ..
                 }))) => {}
                 Err(e) => panic!("{e:?}"),
@@ -77,16 +86,22 @@ pub async fn guild_create<
         };
 
         if post.start_time > now {
-            create_reminders::<Db, PostHandler>(ctx, &post).await;
+            create_reminders::<Data, Db, PostHandler>(ctx, &post).await;
         }
 
         if post.start_time < now {
-            if let (Some(channel), Some(message)) = (post.alt_channel(), post.alt_message()) {
-                match channel.delete_message(ctx, message).await {
+            if let (Some(channel), Some(message)) = (post.schedule_channel(), post.alt_message()) {
+                match channel
+                    .delete_message(&ctx.http, message, Some("Expired LFG post"))
+                    .await
+                {
                     Ok(_)
-                    // Unknown Message
                     | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                        error: DiscordJsonError { code: 10008, .. },
+                        error:
+                            DiscordJsonError {
+                                code: JsonErrorCode::UnknownMessage,
+                                ..
+                            },
                         ..
                     }))) => {}
                     Err(e) => panic!("{e:?}"),
@@ -95,22 +110,10 @@ pub async fn guild_create<
         }
 
         if post.start_time + Duration::hours(2) < now {
-            post.channel()
-                .edit_thread(ctx, EditThread::new().archived(true))
+            post.thread()
+                .edit(&ctx.http, EditThread::new().archived(true))
                 .await
                 .unwrap();
         }
-
-        /*
-            for post in posts {
-                let thread = post.channel();
-
-                if !threads.contain(thread) {
-                    actions::delete::<Db, PostHandler>(ctx, thread, pool)
-                            .await
-                            .unwrap();
-                }
-            }
-        */
     }
 }

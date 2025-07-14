@@ -1,23 +1,24 @@
 use chrono::{Datelike, Duration, Timelike};
 use futures::future;
-use serenity::all::{ChannelId, Colour, Context, CreateEmbed, CreateMessage, Mentionable};
+use serenity::all::{Colour, Context, CreateEmbed, CreateMessage, Http, Mentionable, ThreadId};
 use sqlx::{Database, Pool};
-use zayden_core::{CronJob, cron::CronJobs};
+use tokio::sync::RwLock;
+use zayden_core::{CronJob, CronJobData};
 
 use crate::{Join, PostManager, PostRow};
 
-pub async fn create_reminders<Db: Database, Manager: PostManager<Db>>(
+pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: PostManager<Db>>(
     ctx: &Context,
     row: &PostRow,
 ) {
-    let post_id = row.channel();
+    let post_id = row.thread();
 
     let week = row.start_time - Duration::days(7);
     let day = row.start_time - Duration::hours(24);
     let mins_30 = row.start_time - Duration::minutes(30);
 
     let week_job = CronJob::<Db>::new(
-        format!("lfg_{}", post_id),
+        format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
             week.minute(),
@@ -28,11 +29,11 @@ pub async fn create_reminders<Db: Database, Manager: PostManager<Db>>(
         ),
     )
     .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(ctx, pool, post_id).await;
+        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
     });
 
     let day_job = CronJob::<Db>::new(
-        format!("lfg_{}", post_id),
+        format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
             day.minute(),
@@ -43,11 +44,11 @@ pub async fn create_reminders<Db: Database, Manager: PostManager<Db>>(
         ),
     )
     .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(ctx, pool, post_id).await;
+        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
     });
 
     let mins_30_job = CronJob::<Db>::new(
-        format!("lfg_{}", post_id),
+        format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
             mins_30.minute(),
@@ -58,11 +59,11 @@ pub async fn create_reminders<Db: Database, Manager: PostManager<Db>>(
         ),
     )
     .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(ctx, pool, post_id).await;
+        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
     });
 
     let now_job = CronJob::<Db>::new(
-        format!("lfg_{}", post_id),
+        format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
             row.start_time.minute(),
@@ -73,25 +74,26 @@ pub async fn create_reminders<Db: Database, Manager: PostManager<Db>>(
         ),
     )
     .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(ctx, pool, post_id).await;
+        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
     });
 
-    let mut data = ctx.data.write().await;
-    let jobs = data.entry::<CronJobs<Db>>().or_insert(Vec::new());
+    let data = ctx.data::<RwLock<Data>>();
+    let mut data = data.write().await;
+    let jobs = data.jobs_mut();
 
-    jobs.retain(|job| job.id != format!("lfg_{}", post_id));
+    jobs.retain(|job| job.id != format!("lfg_{post_id}"));
     jobs.extend([week_job, day_job, mins_30_job, now_job]);
 }
 
 async fn reminder<Db: Database, Manager: PostManager<Db>>(
-    ctx: Context,
+    http: &Http,
     pool: Pool<Db>,
-    id: ChannelId,
+    id: ThreadId,
 ) {
     let post = match Manager::row(&pool, id).await {
         Ok(post) => post,
         Err(sqlx::Error::RowNotFound) => {
-            println!("Post for '{}' not found", id);
+            println!("Post for '{id}' not found");
             return;
         }
         Err(e) => panic!("{e:?}"),
@@ -104,7 +106,7 @@ async fn reminder<Db: Database, Manager: PostManager<Db>>(
         .colour(Colour::BLUE)
         .description(format!(
             "Starting <t:{timestamp}:R>\nThread: {}",
-            post.channel().mention()
+            post.thread().widen().mention()
         ))
         .field(
             "Joined",
@@ -117,7 +119,7 @@ async fn reminder<Db: Database, Manager: PostManager<Db>>(
 
     let iter = post
         .fireteam()
-        .map(|user| user.dm(&ctx, CreateMessage::new().embed(embed.clone())));
+        .map(|user| user.dm(http, CreateMessage::new().embed(embed.clone())));
 
     future::join_all(iter).await;
 }

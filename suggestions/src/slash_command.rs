@@ -1,9 +1,9 @@
 use std::time;
 
-use futures::{stream, StreamExt};
+use futures::{StreamExt, stream};
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, CreateMessage, EditInteractionResponse, Permissions, ResolvedOption,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    CreateMessage, EditInteractionResponse, Http, Mentionable, Permissions, ResolvedOption,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
@@ -15,7 +15,7 @@ pub struct FetchSuggestions;
 
 impl FetchSuggestions {
     pub async fn run<Db: Database, Manager: SuggestionsGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
@@ -27,7 +27,7 @@ impl FetchSuggestions {
         let mut options = parse_options(options);
 
         let channel_id = match options.remove("channel") {
-            Some(ResolvedValue::Channel(channel)) => channel.id,
+            Some(ResolvedValue::Channel(channel)) => channel.id().expect_channel(),
             _ => Manager::get(pool, guild_id)
                 .await
                 .unwrap()
@@ -36,14 +36,14 @@ impl FetchSuggestions {
                 .ok_or(Error::MissingSuggesionChannel)?,
         };
 
-        let active_guild_threads = guild_id.get_active_threads(&ctx).await.unwrap();
+        let active_guild_threads = guild_id.get_active_threads(http).await.unwrap();
         let threads_iter = active_guild_threads
             .threads
             .into_iter()
-            .filter(|thread| thread.parent_id.is_some_and(|id| id == channel_id))
+            .filter(|thread| thread.parent_id == channel_id)
             .chain(
                 channel_id
-                    .get_archived_public_threads(&ctx, None, None)
+                    .get_archived_public_threads(http, None, None)
                     .await
                     .unwrap()
                     .threads,
@@ -52,7 +52,9 @@ impl FetchSuggestions {
         let mut reaction_counts = stream::iter(threads_iter)
             .then(|thread| async {
                 let reactions = thread
-                    .reaction_users(&ctx, thread.id.get(), '👍', Some(100), None)
+                    .id
+                    .widen()
+                    .reaction_users(http, thread.id.get().into(), '👍', Some(100), None)
                     .await
                     .unwrap();
 
@@ -73,7 +75,7 @@ impl FetchSuggestions {
                 .map(|(i, (thread, count))| {
                     (
                         format!("{}. 👍: {}", i + 1, count),
-                        format!("Link: {}", thread),
+                        format!("Link: {}", thread.mention()),
                         false,
                     )
                 });
@@ -85,13 +87,14 @@ impl FetchSuggestions {
 
         interaction
             .user
-            .dm(&ctx, CreateMessage::new().embed(embed))
+            .id
+            .direct_message(&http, CreateMessage::new().embed(embed))
             .await
             .unwrap();
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new().content(format!(
                     "Suggestions fetched. Took {} seconds",
                     elapsed_time.as_secs()
@@ -103,7 +106,7 @@ impl FetchSuggestions {
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("fetch_suggestions")
             .description("Fetch suggestions from the suggestion channel")
             .default_member_permissions(Permissions::ADMINISTRATOR)

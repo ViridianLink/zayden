@@ -4,11 +4,10 @@ use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketModal;
 
-use crate::handler::Handler;
 use crate::modules::lfg::{PostTable, UsersTable};
 use crate::modules::ticket::TicketTable;
 use crate::sqlx_lib::GuildTable;
-use crate::{Error, Result, modules};
+use crate::{CtxData, Error, Handler, Result, modules};
 
 impl Handler {
     pub async fn interaction_modal(
@@ -25,36 +24,39 @@ impl Handler {
 
         let result = match interaction.data.custom_id.as_str() {
             // region LFG
-            "lfg_edit" => {
-                lfg::modals::Edit::run::<Postgres, PostTable, UsersTable>(ctx, interaction, pool)
-                    .await
-                    .map_err(Error::from)
-            }
-            custom_id if custom_id.starts_with("lfg_create") => lfg::modals::Create::run::<
-                Postgres,
-                modules::lfg::GuildTable,
-                PostTable,
-                UsersTable,
-            >(
-                ctx, interaction, pool
+            "lfg_edit" => lfg::modals::Edit::run::<CtxData, Postgres, PostTable, UsersTable>(
+                ctx,
+                interaction,
+                pool,
             )
             .await
             .map_err(Error::from),
+            custom_id if custom_id.starts_with("lfg_create") => {
+                lfg::modals::Create::run::<
+                    CtxData,
+                    Postgres,
+                    modules::lfg::GuildTable,
+                    PostTable,
+                    UsersTable,
+                >(ctx, interaction, pool)
+                .await
+                .map_err(Error::from)
+            }
             // endregion
 
             // region Ticket
             "create_ticket" => {
-                TicketModal::run::<Postgres, GuildTable, TicketTable>(ctx, interaction, pool)
+                TicketModal::run::<Postgres, GuildTable, TicketTable>(&ctx.http, interaction, pool)
                     .await
                     .map_err(Error::from)
             }
             // endregion
             "suggestions_accept" => {
-                Suggestions::modal(ctx, interaction, true).await;
+                Suggestions::modal(&ctx.http, interaction, true).await;
                 Ok(())
             }
             "suggestions_reject" => {
-                Suggestions::modal(ctx, interaction, false).await;
+                Suggestions::modal(&ctx.http, interaction, false).await;
                 Ok(())
             }
 
@@ -64,10 +66,10 @@ impl Handler {
         if let Err(e) = result {
             let msg = e.to_string();
 
-            let _ = interaction.defer_ephemeral(ctx).await;
+            let _ = interaction.defer_ephemeral(&ctx.http).await;
 
             interaction
-                .edit_response(ctx, EditInteractionResponse::new().content(msg))
+                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
                 .await
                 .unwrap();
         }

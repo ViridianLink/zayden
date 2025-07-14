@@ -1,9 +1,11 @@
-use serenity::all::{Context, DiscordJsonError, ErrorResponse, HttpError};
+use serenity::all::{Context, DiscordJsonError, ErrorResponse, HttpError, JsonErrorCode};
 use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 
 use crate::{CachedState, Result, TempVoiceGuildManager, VoiceChannelManager, VoiceStateCache};
 
 pub async fn channel_deleter<
+    Data: VoiceStateCache,
     Db: Database,
     GuildManager: TempVoiceGuildManager<Db>,
     ChannelManager: VoiceChannelManager<Db>,
@@ -35,15 +37,13 @@ pub async fn channel_deleter<
         return Ok(());
     }
 
-    let channel = match channel_id.to_channel(ctx).await {
-        // Unknown channel
+    let channel = match channel_id.to_guild_channel(ctx, Some(old.guild_id)).await {
         Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error: DiscordJsonError { code: 10003, .. },
-            ..
-        })))
-        // Missing access
-        | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error: DiscordJsonError { code: 50001, .. },
+            error:
+                DiscordJsonError {
+                    code: JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
+                    ..
+                },
             ..
         }))) => {
             return Ok(());
@@ -52,21 +52,14 @@ pub async fn channel_deleter<
     };
     let category = guild_data.category();
 
-    if channel
-        .guild()
-        .expect("Should be in a guild")
-        .parent_id
-        .expect("Should be in a category")
-        != category
-    {
+    if channel.parent_id.expect("Should be in a category") != category {
         return Ok(());
     }
 
     let users = {
-        let data = ctx.data.read().await;
-        let cache = data
-            .get::<VoiceStateCache>()
-            .expect("Expected VoiceStateCache in TypeMap");
+        let data = ctx.data::<RwLock<Data>>();
+        let data = data.read().await;
+        let cache = data.get();
 
         cache
             .values()
@@ -77,13 +70,20 @@ pub async fn channel_deleter<
     if users == 0 {
         row.delete::<Db, ChannelManager>(pool).await?;
 
-        match channel_id.delete(ctx).await {
+        match channel_id
+            .widen()
+            .delete(&ctx.http, Some("Empty temporary voice channel"))
+            .await
+        {
+            // Channel already deleted, ignore this error
             Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                error: DiscordJsonError { code: 10003, .. },
+                error:
+                    DiscordJsonError {
+                        code: JsonErrorCode::UnknownChannel,
+                        ..
+                    },
                 ..
-            }))) => {
-                // Channel already deleted, ignore this error
-            }
+            }))) => {}
             result => {
                 result.unwrap();
             }

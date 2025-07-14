@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use chrono_tz::Tz;
-use serenity::all::{CommandInteraction, Context, EditInteractionResponse, ResolvedValue};
+use serenity::all::{CommandInteraction, EditInteractionResponse, Http, ResolvedValue};
 use sqlx::{Database, Pool};
 
 use crate::{Result, TimezoneManager};
@@ -11,12 +11,12 @@ use super::Command;
 
 impl Command {
     pub async fn timezone<Db: Database, Manager: TimezoneManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        interaction.defer_ephemeral(ctx).await.unwrap();
+        interaction.defer_ephemeral(http).await.unwrap();
 
         let Some(ResolvedValue::String(region)) = options.remove("region") else {
             unreachable!("Region is required");
@@ -28,7 +28,7 @@ impl Command {
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new()
                     .content(format!("Your timezone has been set to {}", tz.name())),
             )

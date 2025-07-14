@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use serenity::all::{
-    ComponentInteraction, ComponentInteractionDataKind, Context, CreateInteractionResponse,
-    EditThread, ForumTagId,
+    ComponentInteraction, ComponentInteractionDataKind, CreateInteractionResponse, EditThread,
+    ForumTagId, Http,
 };
 
 use crate::Result;
@@ -10,40 +10,39 @@ use crate::Result;
 pub struct TagsComponent;
 
 impl TagsComponent {
-    pub async fn add(ctx: &Context, interaction: &ComponentInteraction) -> Result<()> {
+    pub async fn add(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
         let mut tag_ids = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => values
                 .iter()
                 .map(|x| x.parse::<u64>().unwrap())
                 .map(|id| ForumTagId::new(id))
-                .collect::<HashSet<_>>(),
+                .collect::<Vec<_>>(),
             _ => unreachable!("Expected string select"),
         };
 
-        let mut channel = interaction
+        let mut thread = interaction
             .channel_id
-            .to_channel(ctx)
+            .expect_thread()
+            .to_thread(http, interaction.guild_id)
             .await
-            .unwrap()
-            .guild()
             .unwrap();
 
-        tag_ids.extend(channel.applied_tags.iter().copied());
+        tag_ids.extend(thread.applied_tags.iter().copied());
 
-        channel
-            .edit_thread(ctx, EditThread::new().applied_tags(tag_ids))
+        thread
+            .edit(http, EditThread::new().applied_tags(tag_ids))
             .await
             .unwrap();
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Acknowledge)
+            .create_response(http, CreateInteractionResponse::Acknowledge)
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub async fn remove(ctx: &Context, interaction: &ComponentInteraction) -> Result<()> {
+    pub async fn remove(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
         let selected_ids = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => values
                 .iter()
@@ -53,28 +52,27 @@ impl TagsComponent {
             _ => unreachable!("Expected string select"),
         };
 
-        let mut channel = interaction
+        let mut thread = interaction
             .channel_id
-            .to_channel(ctx)
+            .expect_thread()
+            .to_thread(http, interaction.guild_id)
             .await
-            .unwrap()
-            .guild()
             .unwrap();
 
-        let new_tag_ids = channel
+        let new_tag_ids = thread
             .applied_tags
             .iter()
             .copied()
             .filter(|tag_id| !selected_ids.contains(tag_id))
-            .collect::<HashSet<_>>();
+            .collect::<Vec<_>>();
 
-        channel
-            .edit_thread(ctx, EditThread::new().applied_tags(new_tag_ids))
+        thread
+            .edit(http, EditThread::new().applied_tags(new_tag_ids))
             .await
             .unwrap();
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Acknowledge)
+            .create_response(http, CreateInteractionResponse::Acknowledge)
             .await
             .unwrap();
 

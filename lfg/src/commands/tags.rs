@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    CommandInteraction, Context, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
-    EditInteractionResponse, GuildChannel, ResolvedValue,
+    CommandInteraction, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
+    EditInteractionResponse, GuildChannel, GuildThread, Http, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -12,12 +12,12 @@ use super::Command;
 
 impl Command {
     pub async fn tags<Db: Database, Manager: PostManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        interaction.defer_ephemeral(ctx).await.unwrap();
+        interaction.defer_ephemeral(http).await.unwrap();
 
         let post_owner = Manager::owner(pool, interaction.channel_id).await.unwrap();
 
@@ -27,27 +27,23 @@ impl Command {
 
         let thread_channel = interaction
             .channel_id
-            .to_channel(ctx)
+            .expect_thread()
+            .to_thread(http, interaction.guild_id)
             .await
-            .unwrap()
-            .guild()
             .unwrap();
 
         let forum_channel = thread_channel
             .parent_id
-            .unwrap()
-            .to_channel(ctx)
+            .to_guild_channel(http, interaction.guild_id)
             .await
-            .unwrap()
-            .guild()
             .unwrap();
 
         if options.contains_key("add") {
-            add_tags(ctx, interaction, forum_channel, thread_channel)
+            add_tags(http, interaction, forum_channel, thread_channel)
                 .await
                 .unwrap();
         } else if options.contains_key("remove") {
-            remove_tags(ctx, interaction, forum_channel, thread_channel)
+            remove_tags(http, interaction, forum_channel, thread_channel)
                 .await
                 .unwrap();
         }
@@ -56,15 +52,15 @@ impl Command {
     }
 }
 async fn add_tags(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     forum_channel: GuildChannel,
-    thread_channel: GuildChannel,
+    thread: GuildThread,
 ) -> Result<()> {
     let options = forum_channel
         .available_tags
         .into_iter()
-        .filter(|tag| !thread_channel.applied_tags.contains(&tag.id))
+        .filter(|tag| !thread.applied_tags.contains(&tag.id))
         .map(|tag| CreateSelectMenuOption::new(tag.name, tag.id.to_string()))
         .collect::<Vec<_>>();
 
@@ -72,10 +68,15 @@ async fn add_tags(
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().select_menu(
-                CreateSelectMenu::new("lfg_tags_add", CreateSelectMenuKind::String { options })
-                    .max_values(max_values),
+                CreateSelectMenu::new(
+                    "lfg_tags_add",
+                    CreateSelectMenuKind::String {
+                        options: options.into(),
+                    },
+                )
+                .max_values(max_values),
             ),
         )
         .await
@@ -85,15 +86,15 @@ async fn add_tags(
 }
 
 async fn remove_tags(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     forum_channel: GuildChannel,
-    thread_channel: GuildChannel,
+    thread: GuildThread,
 ) -> Result<()> {
     let options = forum_channel
         .available_tags
         .into_iter()
-        .filter(|tag| thread_channel.applied_tags.contains(&tag.id))
+        .filter(|tag| thread.applied_tags.contains(&tag.id))
         .map(|tag| CreateSelectMenuOption::new(tag.name, tag.id.to_string()))
         .collect::<Vec<_>>();
 
@@ -101,10 +102,15 @@ async fn remove_tags(
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().select_menu(
-                CreateSelectMenu::new("lfg_tags_remove", CreateSelectMenuKind::String { options })
-                    .max_values(max_values),
+                CreateSelectMenu::new(
+                    "lfg_tags_remove",
+                    CreateSelectMenuKind::String {
+                        options: options.into(),
+                    },
+                )
+                .max_values(max_values),
             ),
         )
         .await

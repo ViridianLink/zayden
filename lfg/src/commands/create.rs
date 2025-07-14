@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::Utc;
 use serenity::all::{
-    CommandInteraction, Context, CreateInteractionResponse, CreateModal, ResolvedValue,
+    CommandInteraction, CreateInteractionResponse, CreateModal, Http, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -13,7 +13,7 @@ use super::Command;
 
 impl Command {
     pub async fn create<Db: Database, Manager: TimezoneManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
@@ -40,10 +40,10 @@ impl Command {
         let row = modal_components(activity, now, fireteam_size, None);
 
         let modal =
-            CreateModal::new(format!("lfg_create_{}", template), "Create Event").components(row);
+            CreateModal::new(format!("lfg_create_{template}"), "Create Event").components(row);
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Modal(modal))
+            .create_response(http, CreateInteractionResponse::Modal(modal))
             .await
             .unwrap();
 

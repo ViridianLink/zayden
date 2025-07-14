@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse, UserId,
+    CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
 };
 use sqlx::{Database, FromRow, Pool};
 
@@ -65,11 +65,11 @@ impl MaxBet for GoalsRow {
 
 impl Commands {
     pub async fn goals<Db: Database, Manager: GoalsManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let row = Manager::row(pool, interaction.user.id)
             .await
@@ -92,14 +92,14 @@ impl Commands {
         let embed = CreateEmbed::new().title("Daily Goals 📋").description(desc);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_goals() -> CreateCommand {
+    pub fn register_goals<'a>() -> CreateCommand<'a> {
         CreateCommand::new("goals").description("Show your daily goal progress")
     }
 }

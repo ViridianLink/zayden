@@ -1,10 +1,9 @@
 use async_trait::async_trait;
-use levels::Commands;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 use super::LevelsTable;
 
@@ -18,13 +17,13 @@ impl SlashCommand<Error, Postgres> for Levels {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        levels::Commands::levels::<Postgres, LevelsTable>(ctx, interaction, pool).await;
+        levels::Levels::run::<CtxData, Postgres, LevelsTable>(ctx, interaction, pool).await;
 
         Ok(())
     }
 
     fn register(_ctx: &Context) -> Result<CreateCommand> {
-        unimplemented!()
+        Ok(levels::Levels::register())
     }
 }
 
@@ -38,13 +37,13 @@ impl SlashCommand<Error, Postgres> for Rank {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::rank::<Postgres, LevelsTable>(ctx, interaction, options, pool).await;
+        levels::Rank::rank::<Postgres, LevelsTable>(&ctx.http, interaction, options, pool).await;
 
         Ok(())
     }
 
     fn register(_ctx: &Context) -> Result<CreateCommand> {
-        unimplemented!()
+        Ok(levels::Rank::register())
     }
 }
 
@@ -58,12 +57,12 @@ impl SlashCommand<Error, Postgres> for Xp {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::xp::<Postgres, LevelsTable>(ctx, interaction, options, pool).await;
+        levels::Xp::xp::<Postgres, LevelsTable>(&ctx.http, interaction, options, pool).await;
 
         Ok(())
     }
 
     fn register(_ctx: &Context) -> Result<CreateCommand> {
-        unimplemented!()
+        Ok(levels::Xp::register())
     }
 }

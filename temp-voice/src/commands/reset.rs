@@ -1,21 +1,22 @@
 use serenity::all::{
-    ChannelId, CommandInteraction, Context, EditChannel, EditInteractionResponse, GuildId,
+    ChannelId, CommandInteraction, EditChannel, EditInteractionResponse, GuildId, Http,
     PermissionOverwriteType,
 };
+use serenity::nonmax::NonMaxU16;
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
 use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow};
 
 pub async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     guild_id: GuildId,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
 ) -> Result<()> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(http).await.unwrap();
 
     if !row.is_owner(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotOwner));
@@ -25,7 +26,7 @@ pub async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
     row.save::<Db, Manager>(pool).await?;
 
     let channel = guild_id
-        .channels(ctx)
+        .channels(http)
         .await
         .unwrap()
         .remove(&channel_id)
@@ -39,10 +40,10 @@ pub async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
 
     channel_id
         .edit(
-            ctx,
+            http,
             EditChannel::new()
                 .name(format!("{}'s Channel", interaction.user.display_name()))
-                .user_limit(0)
+                .user_limit(NonMaxU16::ZERO)
                 .permissions(vec![everyone_permissions.clone()]),
         )
         .await
@@ -50,7 +51,7 @@ pub async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().content("Reset channel."),
         )
         .await

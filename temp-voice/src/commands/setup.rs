@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelType, CommandInteraction, Context, CreateChannel, EditInteractionResponse, GuildId,
+    ChannelType, CommandInteraction, CreateChannel, EditInteractionResponse, GuildId, Http,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
-use crate::{guild_manager::TempVoiceGuildManager, Result};
+use crate::{Result, guild_manager::TempVoiceGuildManager};
 
 pub async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<()> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(http).await.unwrap();
 
     if !interaction
         .member
@@ -27,7 +27,7 @@ pub async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
     {
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new()
                     .content("You must be an administrator to run this command."),
             )
@@ -37,27 +37,27 @@ pub async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
     }
 
     let category = match options.remove("category") {
-        Some(ResolvedValue::Channel(category)) => category,
+        Some(ResolvedValue::Channel(category)) => category.id().expect_channel(),
         _ => unreachable!("Category is required"),
     };
 
     let creator_channel = guild_id
         .create_channel(
-            ctx,
+            http,
             CreateChannel::new("➕ Creator Channel")
-                .category(category.id)
+                .category(category)
                 .kind(ChannelType::Voice),
         )
         .await
         .unwrap();
 
-    Manager::save(pool, guild_id, category.id, creator_channel.id)
+    Manager::save(pool, guild_id, category, creator_channel.id)
         .await
         .unwrap();
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().content("Setup complete."),
         )
         .await

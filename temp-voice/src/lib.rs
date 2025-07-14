@@ -8,9 +8,8 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use serenity::all::{
-    ChannelId, Context, GuildChannel, GuildId, LightMethod, Request, Route, UserId, VoiceState,
+    ChannelId, Guild, GuildChannel, GuildId, Http, LightMethod, Request, Route, UserId, VoiceState,
 };
-use serenity::prelude::TypeMapKey;
 
 pub use commands::VoiceCommand;
 pub use error::Error;
@@ -45,14 +44,28 @@ impl From<&VoiceState> for CachedState {
     }
 }
 
-pub struct VoiceStateCache;
+pub trait VoiceStateCache: Send + Sync + 'static {
+    fn get(&self) -> &HashMap<UserId, CachedState>;
 
-impl VoiceStateCache {
-    pub async fn update(ctx: &Context, new: &VoiceState) -> Result<Option<CachedState>> {
-        let mut data = ctx.data.write().await;
-        let cache = data
-            .get_mut::<Self>()
-            .expect("Expected VoiceStateCache in TypeMap");
+    fn get_mut(&mut self) -> &mut HashMap<UserId, CachedState>;
+
+    fn guild_create(&mut self, guild: &Guild) {
+        let cache = self.get_mut();
+
+        guild
+            .voice_states
+            .iter()
+            .filter(|state| state.channel_id.is_some())
+            .for_each(|state| {
+                cache.insert(
+                    state.user_id,
+                    CachedState::new(state.channel_id, guild.id, state.user_id),
+                );
+            })
+    }
+
+    fn update(&mut self, new: &VoiceState) -> Result<Option<CachedState>> {
+        let cache = self.get_mut();
 
         let old = if new.channel_id.is_none() {
             cache.remove(&new.user_id)
@@ -64,35 +77,32 @@ impl VoiceStateCache {
     }
 }
 
-impl TypeMapKey for VoiceStateCache {
-    type Value = HashMap<UserId, CachedState>;
-}
-
 pub async fn get_voice_state(
-    ctx: &Context,
+    http: &Http,
     guild_id: GuildId,
     user_id: UserId,
 ) -> serenity::Result<VoiceState> {
-    ctx.http
-        .fire::<VoiceState>(Request::new(
-            Route::GuildVoiceStates { guild_id, user_id },
-            LightMethod::Get,
-        ))
-        .await
+    http.fire::<VoiceState>(Request::new(
+        Route::GuildVoiceStates { guild_id, user_id },
+        LightMethod::Get,
+    ))
+    .await
 }
 
 pub async fn delete_voice_channel_if_inactive(
-    ctx: &Context,
+    http: &Http,
     guild_id: GuildId,
     user_id: UserId,
     vc: &GuildChannel,
 ) -> bool {
     tokio::time::sleep(Duration::from_secs(60)).await;
 
-    match get_voice_state(ctx, guild_id, user_id).await {
+    match get_voice_state(http, guild_id, user_id).await {
         Ok(voice_state) if voice_state.channel_id == Some(vc.id) => false,
         _ => {
-            vc.delete(ctx).await.unwrap();
+            vc.delete(http, Some("Empty and inactive channel"))
+                .await
+                .unwrap();
             true
         }
     }

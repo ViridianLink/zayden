@@ -3,19 +3,22 @@ use std::collections::HashMap;
 pub mod gambling;
 mod gambling_effects;
 mod gambling_goals;
-mod gambling_item;
+pub mod gambling_inventory;
+pub mod gambling_stats;
 mod game_row;
 
 use chrono::{NaiveDateTime, Timelike, Utc};
 pub use gambling::GamblingManager;
 pub use gambling_effects::{EffectsManager, EffectsRow};
 pub use gambling_goals::GamblingGoalsRow;
-pub use gambling_item::GamblingItem;
+pub use gambling_inventory::{GamblingItem, InventoryManager, InventoryRow};
+pub use gambling_stats::StatsManager;
 pub use game_row::{GameManager, GameRow};
 use sqlx::Database;
 use zayden_core::FormatNum;
 
-use crate::{Error, Result, StaminaCron, StaminaManager, shop::ShopCurrency};
+use crate::shop::ShopCurrency;
+use crate::{Error, Result, StaminaCron, StaminaManager};
 
 pub trait Coins {
     fn coins(&self) -> i64;
@@ -145,6 +148,21 @@ pub trait Mining {
 
     fn emeralds(&self) -> i64;
 
+    fn str_to_value(&self, s: &str) -> Option<i64> {
+        match s {
+            "miner" => Some(self.miners()),
+            "mine" => Some(self.mines()),
+            "land" => Some(self.land()),
+            "country" => Some(self.countries()),
+            "continent" => Some(self.continents()),
+            "planet" => Some(self.planets()),
+            "solar_system" => Some(self.solar_systems()),
+            "galaxy" => Some(self.galaxies()),
+            "universe" => Some(self.universes()),
+            _ => None,
+        }
+    }
+
     fn resources(&self) -> String {
         format!(
             "{} `{}` coal
@@ -201,42 +219,42 @@ pub trait Prestige {
 pub trait MaxValues: Mining + Prestige {
     #[inline(always)]
     fn miners_per_mine() -> i64 {
-        100
+        10
     }
 
     #[inline(always)]
     fn mines_per_land() -> i64 {
-        100
+        10
     }
 
     #[inline(always)]
     fn land_per_country() -> i64 {
-        100
+        10
     }
 
     #[inline(always)]
     fn countries_per_continent() -> i64 {
-        100
+        10
     }
 
     #[inline(always)]
     fn continents_per_plant() -> i64 {
-        100
+        10
     }
 
     #[inline(always)]
     fn plants_per_solar_system() -> i64 {
-        100
+        10
     }
 
     #[inline(always)]
     fn solar_system_per_galaxies() -> i64 {
-        100
+        10
     }
 
     #[inline(always)]
     fn galaxies_per_universe() -> i64 {
-        100
+        10
     }
 
     fn max_values(&self) -> HashMap<&str, i64> {
@@ -315,7 +333,7 @@ pub trait MineHourly: Prestige {
             return 0;
         }
 
-        (miners * self.prestige_mult_100()) / 1000
+        (miners * self.prestige_mult_100()) / 100
     }
 }
 

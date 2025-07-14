@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
-use sqlx::any::AnyQueryResult;
 use sqlx::{Database, Pool};
 use zayden_core::{FormatNum, parse_options};
 
@@ -83,7 +82,7 @@ impl Prestige for SendRow {
 pub trait SendManager<Db: Database> {
     async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<SendRow>>;
 
-    async fn save(pool: &Pool<Db>, row: SendRow) -> sqlx::Result<AnyQueryResult>;
+    async fn save(pool: &Pool<Db>, row: SendRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 impl Commands {
@@ -94,12 +93,12 @@ impl Commands {
         GoalHandler: GoalsManager<Db>,
         SendHandler: SendManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(http).await?;
 
         let mut options = parse_options(options);
 
@@ -150,7 +149,7 @@ impl Commands {
 
         let stamina = row.stamina_str();
 
-        Dispatch::<Db, GoalHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalHandler>::new(http, pool)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -168,14 +167,14 @@ impl Commands {
         ));
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_send() -> CreateCommand {
+    pub fn register_send<'a>() -> CreateCommand<'a> {
         CreateCommand::new("send")
             .description("Send another player some of your coins")
             .add_option(

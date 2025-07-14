@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelId, CommandInteraction, Context, GuildId, PermissionOverwrite, PermissionOverwriteType,
+    ChannelId, CommandInteraction, GuildId, Http, PermissionOverwrite, PermissionOverwriteType,
     Permissions,
 };
 use serenity::all::{EditInteractionResponse, ResolvedValue};
@@ -9,14 +9,14 @@ use serenity::all::{EditInteractionResponse, ResolvedValue};
 use crate::{Error, Result, VoiceChannelRow};
 
 pub async fn join(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     guild_id: GuildId,
     channel_id: ChannelId,
     row: &VoiceChannelRow,
 ) -> Result<()> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(http).await.unwrap();
 
     let pass = match options.remove("pass") {
         Some(ResolvedValue::String(pass)) => pass,
@@ -29,24 +29,25 @@ pub async fn join(
 
     channel_id
         .create_permission(
-            ctx,
+            http,
             PermissionOverwrite {
                 allow: Permissions::VIEW_CHANNEL | Permissions::CONNECT,
                 deny: Permissions::empty(),
                 kind: PermissionOverwriteType::Member(interaction.user.id),
             },
+            Some("Correct channel password"),
         )
         .await
         .unwrap();
 
     guild_id
-        .move_member(ctx, interaction.user.id, channel_id)
+        .move_member(http, interaction.user.id, channel_id)
         .await
         .unwrap();
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().content("Successfully joined channel."),
         )
         .await

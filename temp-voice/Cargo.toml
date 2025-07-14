@@ -6,12 +6,8 @@ edition = "2024"
 [dependencies]
 zayden-core = { workspace = true }
 
-async-trait = { version = "*", default-features = false }
-sqlx = { version = "*", default-features = false, features = ["any", "macros"] }
-tokio = { version = "*", default-features = false }
-futures = { version = "*", default-features = false }
-
-[dependencies.serenity]
-version = "*"
-default-features = false
-features = ["rustls_backend", "builder", "client", "gateway", "model"]
+async-trait = { workspace = true }
+futures = { workspace = true }
+serenity = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }

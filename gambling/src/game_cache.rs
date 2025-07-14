@@ -1,31 +1,26 @@
 use std::collections::HashMap;
-use std::sync::RwLockReadGuard;
+use std::sync::Arc;
 
 use chrono::{DateTime, Duration, Utc};
-use serenity::all::{Context, UserId};
-use serenity::prelude::{TypeMap, TypeMapKey};
+use serenity::all::UserId;
+use tokio::sync::RwLock;
 
+use crate::ctx_data::GamblingData;
 use crate::{Error, Result};
 
+#[derive(Default)]
 pub struct GameCache(HashMap<UserId, DateTime<Utc>>);
 
 impl GameCache {
-    pub fn get<'a>(data: &'a RwLockReadGuard<'_, TypeMap>) -> Option<&'a Self> {
-        data.get::<GameCache>()
-    }
-
-    pub async fn can_play(ctx: &Context, id: impl Into<UserId>) -> Result<()> {
-        let data = ctx.data.read().await;
-        match data.get::<GameCache>() {
-            Some(cache) => cache.validate_cooldown(id),
-            None => Ok(()),
-        }
-    }
-
-    fn validate_cooldown(&self, id: impl Into<UserId>) -> Result<()> {
+    pub async fn can_play<D: GamblingData>(
+        data: Arc<RwLock<D>>,
+        id: impl Into<UserId>,
+    ) -> Result<()> {
         let id = id.into();
 
-        if let Some(last_played) = self.0.get(&id) {
+        let data = data.read().await;
+
+        if let Some(last_played) = data.game_cache().0.get(&id) {
             let cooldown_over = *last_played + Duration::seconds(5);
 
             if cooldown_over >= Utc::now() {
@@ -36,16 +31,11 @@ impl GameCache {
         Ok(())
     }
 
-    pub async fn update(ctx: &Context, id: impl Into<UserId>) {
-        let mut data = ctx.data.write().await;
-        let cache = data
-            .entry::<GameCache>()
-            .or_insert(GameCache(HashMap::new()));
+    pub async fn update<D: GamblingData>(data: Arc<RwLock<D>>, id: impl Into<UserId>) {
+        let mut data = data.write().await;
+
+        let cache = data.game_cache_mut();
 
         cache.0.insert(id.into(), Utc::now());
     }
-}
-
-impl TypeMapKey for GameCache {
-    type Value = GameCache;
 }

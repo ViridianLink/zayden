@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    CommandInteraction, Context, EditChannel, EditInteractionResponse, GuildId, ResolvedValue,
+    CommandInteraction, EditInteractionResponse, EditThread, GenericInteractionChannel, GuildId,
+    Http, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
-use crate::{Error, Result, TicketGuildManager};
+use crate::{Error, Result, Ticket, TicketGuildManager};
 
-use super::TicketCommand;
-
-impl TicketCommand {
+impl Ticket {
     pub(super) async fn fixed<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
@@ -23,8 +22,8 @@ impl TicketCommand {
         };
 
         match version.is_empty() {
-            true => interaction.defer_ephemeral(&ctx).await?,
-            false => interaction.defer(&ctx).await?,
+            true => interaction.defer_ephemeral(http).await?,
+            false => interaction.defer(http).await?,
         };
 
         let support_channel_id = GuildManager::get(pool, guild_id)
@@ -36,29 +35,31 @@ impl TicketCommand {
 
         let channel = interaction.channel.as_ref().unwrap();
 
-        if channel.parent_id.unwrap() != support_channel_id {
+        if let GenericInteractionChannel::Thread(c) = channel
+            && c.parent_id != support_channel_id
+        {
             return Err(Error::NotInSupportChannel);
         }
 
-        let new_channel_name = format!("{} - {}", "[Fixed]", channel.name.as_ref().unwrap())
+        let new_channel_name = format!("{} - {}", "[Fixed]", channel.base().name.as_ref().unwrap())
             .chars()
             .take(100)
             .collect::<String>();
 
         interaction
             .channel_id
-            .edit(ctx, EditChannel::new().name(new_channel_name))
+            .expect_thread()
+            .edit(http, EditThread::new().name(new_channel_name))
             .await
             .unwrap();
 
         let response = if version.is_empty() {
             EditInteractionResponse::new().content("Ticket marked as fixed")
         } else {
-            EditInteractionResponse::new()
-                .content(format!("Ticket marked as fixed for {}", version))
+            EditInteractionResponse::new().content(format!("Ticket marked as fixed for {version}"))
         };
 
-        interaction.edit_response(ctx, response).await?;
+        interaction.edit_response(http, response).await?;
 
         Ok(())
     }

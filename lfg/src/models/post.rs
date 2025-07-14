@@ -1,15 +1,15 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
-use serenity::all::{ChannelId, MessageId, UserId};
+use serenity::all::{GenericChannelId, MessageId, ThreadId, UserId};
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool, any::AnyQueryResult};
+use sqlx::{Database, Pool};
 
 use crate::templates::TemplateInfo;
 use crate::{Join, Leave};
 
 pub struct PostBuilder {
-    id: ChannelId,
+    id: ThreadId,
     owner: UserId,
     activity: String,
     start_time: DateTime<Tz>,
@@ -17,7 +17,7 @@ pub struct PostBuilder {
     fireteam_size: i16,
     fireteam: Vec<UserId>,
     alternatives: Vec<UserId>,
-    alt_channel: Option<ChannelId>,
+    schedule_channel: Option<GenericChannelId>,
     alt_message: Option<MessageId>,
 }
 
@@ -32,7 +32,7 @@ impl PostBuilder {
         let owner = owner.into();
 
         Self {
-            id: ChannelId::default(),
+            id: ThreadId::default(),
             owner,
             activity: activity.into(),
             start_time: start,
@@ -40,12 +40,12 @@ impl PostBuilder {
             fireteam_size,
             fireteam: vec![owner],
             alternatives: Vec::new(),
-            alt_channel: None,
+            schedule_channel: None,
             alt_message: None,
         }
     }
 
-    pub fn id(mut self, id: impl Into<ChannelId>) -> Self {
+    pub fn id(mut self, id: impl Into<ThreadId>) -> Self {
         self.id = id.into();
         self
     }
@@ -70,8 +70,8 @@ impl PostBuilder {
         self
     }
 
-    pub fn alt_channel(mut self, channel: ChannelId) -> Self {
-        self.alt_channel = Some(channel);
+    pub fn schedule_channel(mut self, channel: GenericChannelId) -> Self {
+        self.schedule_channel = Some(channel);
         self
     }
 
@@ -98,7 +98,7 @@ impl PostBuilder {
                 .into_iter()
                 .map(|user| user.get() as i64)
                 .collect(),
-            alt_channel: self.alt_channel.map(|channel| channel.get() as i64),
+            alt_channel: self.schedule_channel.map(|channel| channel.get() as i64),
             alt_message: self.alt_message.map(|message| message.get() as i64),
         }
     }
@@ -129,8 +129,8 @@ impl TemplateInfo for PostBuilder {
         self.alternatives.iter().copied()
     }
 
-    fn alt_channel(&self) -> Option<ChannelId> {
-        self.alt_channel
+    fn schedule_channel(&self) -> Option<GenericChannelId> {
+        self.schedule_channel
     }
 
     fn alt_message(&self) -> Option<MessageId> {
@@ -141,7 +141,7 @@ impl TemplateInfo for PostBuilder {
 impl From<PostRow> for PostBuilder {
     fn from(value: PostRow) -> Self {
         Self {
-            id: ChannelId::new(value.id as u64),
+            id: ThreadId::new(value.id as u64),
             owner: UserId::new(value.owner as u64),
             activity: value.activity,
             start_time: value.start_time.with_timezone(&Tz::UTC),
@@ -157,7 +157,7 @@ impl From<PostRow> for PostBuilder {
                 .into_iter()
                 .map(|id| UserId::new(id as u64))
                 .collect(),
-            alt_channel: value.alt_channel.map(|id| ChannelId::new(id as u64)),
+            schedule_channel: value.alt_channel.map(|id| GenericChannelId::new(id as u64)),
             alt_message: value.alt_message.map(|id| MessageId::new(id as u64)),
         }
     }
@@ -165,16 +165,17 @@ impl From<PostRow> for PostBuilder {
 
 #[async_trait]
 pub trait PostManager<Db: Database> {
-    async fn exists(pool: &Pool<Db>, id: impl Into<ChannelId> + Send) -> sqlx::Result<bool>;
+    async fn exists(pool: &Pool<Db>, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<bool>;
 
-    async fn owner(pool: &Pool<Db>, id: impl Into<ChannelId> + Send) -> sqlx::Result<UserId>;
+    async fn owner(pool: &Pool<Db>, id: impl Into<GenericChannelId> + Send)
+    -> sqlx::Result<UserId>;
 
-    async fn row(pool: &Pool<Db>, id: impl Into<ChannelId> + Send) -> sqlx::Result<PostRow>;
+    async fn row(pool: &Pool<Db>, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<PostRow>;
 
     async fn delete(
         pool: &Pool<Db>,
-        id: impl Into<ChannelId> + Send,
-    ) -> sqlx::Result<AnyQueryResult>;
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -193,8 +194,8 @@ pub struct PostRow {
 }
 
 impl PostRow {
-    pub fn channel(&self) -> ChannelId {
-        ChannelId::new(self.id as u64)
+    pub fn thread(&self) -> ThreadId {
+        ThreadId::new(self.id as u64)
     }
 
     pub fn message(&self) -> MessageId {
@@ -259,8 +260,8 @@ impl TemplateInfo for PostRow {
         self.alternatives.iter().map(|&id| UserId::new(id as u64))
     }
 
-    fn alt_channel(&self) -> Option<ChannelId> {
-        self.alt_channel.map(|id| ChannelId::new(id as u64))
+    fn schedule_channel(&self) -> Option<GenericChannelId> {
+        self.alt_channel.map(|id| GenericChannelId::new(id as u64))
     }
 
     fn alt_message(&self) -> Option<MessageId> {

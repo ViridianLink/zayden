@@ -1,17 +1,17 @@
-use futures::{stream, StreamExt};
+use futures::{StreamExt, stream};
 use serenity::all::{
-    AutoArchiveDuration, ChannelType, Context, CreateAttachment, CreateEmbed, CreateMessage,
-    CreateThread, DiscordJsonError, ErrorResponse, HttpError, Mentionable, Message,
+    AutoArchiveDuration, ChannelType, CreateAttachment, CreateEmbed, CreateMessage, CreateThread,
+    Http, Mentionable, Message,
 };
 use sqlx::{Database, Pool};
 
-use crate::{send_support_message, thread_name, Result, TicketGuildManager};
+use crate::{Result, TicketGuildManager, send_support_message, thread_name};
 
 pub struct SupportMessageCommand;
 
 impl SupportMessageCommand {
     pub async fn run<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         message: &Message,
         pool: &Pool<Db>,
     ) -> Result<()> {
@@ -23,11 +23,13 @@ impl SupportMessageCommand {
             return Ok(());
         };
 
-        let Some(channel_id) = row.channel_id() else {
+        let Some(support_channel) = row.channel_id() else {
             return Ok(());
         };
 
-        if channel_id != message.channel_id {
+        let channel_id = message.channel_id.expect_channel();
+
+        if support_channel != channel_id {
             return Ok(());
         }
 
@@ -39,10 +41,9 @@ impl SupportMessageCommand {
             &message.content,
         );
 
-        let thread = message
-            .channel_id
+        let thread = channel_id
             .create_thread(
-                &ctx,
+                http,
                 CreateThread::new(thread_name)
                     .kind(ChannelType::PrivateThread)
                     .auto_archive_duration(AutoArchiveDuration::OneWeek),
@@ -69,7 +70,7 @@ impl SupportMessageCommand {
             .await;
 
         let mentions = if role_ids.is_empty() {
-            let owner_id = guild_id.to_partial_guild(ctx).await.unwrap().owner_id;
+            let owner_id = guild_id.to_partial_guild(http).await.unwrap().owner_id;
             vec![message.author.mention(), owner_id.mention()]
         } else {
             role_ids
@@ -80,7 +81,7 @@ impl SupportMessageCommand {
         };
 
         send_support_message(
-            ctx,
+            http,
             thread.id,
             &mentions,
             vec![CreateMessage::new().embed(issue).files(attachments)],
@@ -88,16 +89,9 @@ impl SupportMessageCommand {
         .await
         .unwrap();
 
-        match message.delete(&ctx).await {
-            // 10008: Unknown Message
-            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                error: DiscordJsonError { code: 10008, .. },
-                ..
-            }))) => {}
-            result => {
-                result.unwrap();
-            }
-        }
+        message
+            .delete(http, Some("Support message deleted"))
+            .await?;
 
         Ok(())
     }

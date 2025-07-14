@@ -3,7 +3,7 @@ use bigdecimal::ToPrimitive;
 use gambling::shop::LOTTO_TICKET;
 use gambling::{Commands, LottoManager, LottoRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::any::AnyQueryResult;
+use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::SlashCommand;
 
@@ -49,14 +49,13 @@ impl LottoManager<Postgres> for LottoTable {
         .map(|x| x.to_i64().unwrap_or_default())
     }
 
-    async fn delete_tickets(conn: &mut PgConnection) -> sqlx::Result<AnyQueryResult> {
+    async fn delete_tickets(conn: &mut PgConnection) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "DELETE FROM gambling_inventory WHERE item_id = $1",
             LOTTO_TICKET.id
         )
         .execute(conn)
         .await
-        .map(AnyQueryResult::from)
     }
 }
 
@@ -70,7 +69,8 @@ impl SlashCommand<Error, Postgres> for Lotto {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::lotto::<Postgres, GamblingTable, LottoTable>(ctx, interaction, pool).await?;
+        Commands::lotto::<Postgres, GamblingTable, LottoTable>(&ctx.http, interaction, pool)
+            .await?;
         Ok(())
     }
 

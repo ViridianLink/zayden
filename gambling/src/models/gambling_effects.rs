@@ -12,7 +12,7 @@ use crate::{
 };
 
 #[async_trait]
-pub trait EffectsManager<Db: Database> {
+pub trait EffectsManager<Db: Database>: Send {
     async fn get_effects(
         conn: &mut Db::Connection,
         user_id: impl Into<UserId> + Send,

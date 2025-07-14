@@ -3,7 +3,6 @@ use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     ResolvedOption, ResolvedValue, UserId,
 };
-use sqlx::any::AnyQueryResult;
 use sqlx::{Database, Pool};
 
 pub mod buy;
@@ -23,14 +22,15 @@ pub trait ShopManager<Db: Database> {
     async fn buy_row(pool: &Pool<Db>, id: impl Into<UserId> + Send)
     -> sqlx::Result<Option<BuyRow>>;
 
-    async fn buy_save(pool: &Pool<Db>, row: BuyRow) -> sqlx::Result<AnyQueryResult>;
+    async fn buy_save(pool: &Pool<Db>, row: BuyRow) -> sqlx::Result<Db::QueryResult>;
 
     async fn sell_row(
         pool: &Pool<Db>,
         id: impl Into<UserId> + Send,
+        item_id: &str,
     ) -> sqlx::Result<Option<SellRow>>;
 
-    async fn sell_save(pool: &Pool<Db>, row: SellRow) -> sqlx::Result<AnyQueryResult>;
+    async fn sell_save(pool: &Pool<Db>, row: SellRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 impl Commands {
@@ -44,25 +44,27 @@ impl Commands {
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(&ctx.http).await?;
 
         let command = options.pop().unwrap();
 
-        let ResolvedValue::SubCommand(options) = command.value else {
+        let ResolvedValue::SubCommand(options) = &command.value else {
             unreachable!("Subcommand is required")
         };
 
         match command.name {
             "list" => list::<Db, ShopHandler>(ctx, interaction, pool, options).await?,
-            "buy" => buy::<Db, GoalsHandler, ShopHandler>(ctx, interaction, pool, options).await?,
-            "sell" => sell::<Db, ShopHandler>(ctx, interaction, pool, options).await?,
+            "buy" => {
+                buy::<Db, GoalsHandler, ShopHandler>(&ctx.http, interaction, pool, options).await?
+            }
+            "sell" => sell::<Db, ShopHandler>(&ctx.http, interaction, pool, options).await?,
             _ => unreachable!("Invalid subcommand name"),
         };
 
         Ok(())
     }
 
-    pub fn register_shop() -> CreateCommand {
+    pub fn register_shop<'a>() -> CreateCommand<'a> {
         let mut page_opt = CreateCommandOption::new(CommandOptionType::String, "page", "test");
 
         for page in ShopPage::pages() {

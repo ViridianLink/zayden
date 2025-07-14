@@ -43,18 +43,20 @@ use untrust::untrust;
 
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    DiscordJsonError, ErrorResponse, HttpError, ResolvedValue,
+    ResolvedValue,
 };
 use zayden_core::parse_options;
 
 use crate::{
-    Error, Result, VoiceChannelManager, get_voice_state, guild_manager::TempVoiceGuildManager,
+    Error, Result, VoiceChannelManager, VoiceStateCache, get_voice_state,
+    guild_manager::TempVoiceGuildManager,
 };
 
 pub struct VoiceCommand;
 
 impl VoiceCommand {
     pub async fn run<
+        Data: VoiceStateCache,
         Db: Database,
         GuildManager: TempVoiceGuildManager<Db>,
         ChannelManager: VoiceChannelManager<Db>,
@@ -74,13 +76,13 @@ impl VoiceCommand {
 
         match command.name {
             "setup" => {
-                setup::<Db, GuildManager>(ctx, interaction, pool, guild_id, options).await?;
+                setup::<Db, GuildManager>(&ctx.http, interaction, pool, guild_id, options).await?;
 
                 return Ok(());
             }
             "create" => {
                 create::<Db, GuildManager, ChannelManager>(
-                    ctx,
+                    &ctx.http,
                     interaction,
                     pool,
                     guild_id,
@@ -94,22 +96,17 @@ impl VoiceCommand {
         }
 
         let channel_id = match options.remove("channel") {
-            Some(ResolvedValue::Channel(channel)) => channel.id,
-            _ => match get_voice_state(ctx, guild_id, interaction.user.id).await {
-                Ok(state) => state.channel_id.ok_or(Error::MemberNotInVoiceChannel)?,
-                // Unknown Voice State
-                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error: DiscordJsonError { code: 10065, .. },
-                    ..
-                }))) => return Ok(()),
-                r => r?.channel_id.ok_or(Error::MemberNotInVoiceChannel)?,
-            },
+            Some(ResolvedValue::Channel(channel)) => channel.id().expect_channel(),
+            _ => get_voice_state(&ctx.http, guild_id, interaction.user.id)
+                .await?
+                .channel_id
+                .ok_or(Error::MemberNotInVoiceChannel)?,
         };
 
         let row = ChannelManager::get(pool, channel_id).await.unwrap();
 
         if command.name == "claim" {
-            claim::<Db, ChannelManager>(ctx, interaction, pool, channel_id, row).await?;
+            claim::<Data, Db, ChannelManager>(ctx, interaction, pool, channel_id, row).await?;
             return Ok(());
         }
 
@@ -117,43 +114,50 @@ impl VoiceCommand {
 
         match command.name {
             "join" => {
-                join(ctx, interaction, options, guild_id, channel_id, &row).await?;
+                join(&ctx.http, interaction, options, guild_id, channel_id, &row).await?;
             }
             "persist" => {
-                persist::<Db, ChannelManager>(ctx, interaction, pool, row).await?;
+                persist::<Db, ChannelManager>(&ctx.http, interaction, pool, row).await?;
             }
             "name" => {
-                name(ctx, interaction, options, channel_id, &row).await?;
+                name(&ctx.http, interaction, options, channel_id, &row).await?;
             }
             "limit" => {
-                limit(ctx, interaction, options, channel_id, &row).await?;
+                limit(&ctx.http, interaction, options, channel_id, &row).await?;
             }
             "privacy" => {
-                privacy(ctx, interaction, options, guild_id, channel_id, row).await?;
+                privacy::<Data>(ctx, interaction, options, guild_id, channel_id, row).await?;
             }
             "waiting" => {
                 // waiting(ctx, interaction, guild_id, options).await?;
             }
             "trust" => {
-                trust::<Db, ChannelManager>(ctx, interaction, pool, options, channel_id, row)
+                trust::<Db, ChannelManager>(&ctx.http, interaction, pool, options, channel_id, row)
                     .await?;
             }
             "untrust" => {
-                untrust::<Db, ChannelManager>(ctx, interaction, pool, options, channel_id, row)
-                    .await?;
+                untrust::<Db, ChannelManager>(
+                    &ctx.http,
+                    interaction,
+                    pool,
+                    options,
+                    channel_id,
+                    row,
+                )
+                .await?;
             }
             "invite" => {
-                invite(ctx, interaction, options, channel_id, row).await?;
+                invite(&ctx.http, interaction, options, channel_id, row).await?;
             }
             "kick" => {
-                kick(ctx, interaction, options, guild_id, &row).await?;
+                kick(&ctx.http, interaction, options, guild_id, &row).await?;
             }
             "region" => {
-                region(ctx, interaction, options, channel_id, &row).await?;
+                region(&ctx.http, interaction, options, channel_id, &row).await?;
             }
             "block" => {
                 block::<Db, ChannelManager>(
-                    ctx,
+                    &ctx.http,
                     interaction,
                     pool,
                     options,
@@ -164,20 +168,20 @@ impl VoiceCommand {
                 .await?;
             }
             "unblock" => {
-                unblock(ctx, interaction, options, channel_id, &row).await?;
+                unblock(&ctx.http, interaction, options, channel_id, &row).await?;
             }
             "delete" => {
-                delete::<Db, ChannelManager>(ctx, interaction, pool, channel_id, row).await?;
+                delete::<Db, ChannelManager>(&ctx.http, interaction, pool, channel_id, row).await?;
             }
             "bitrate" => {
-                bitrate(ctx, interaction, options, channel_id, &row).await?;
+                bitrate(&ctx.http, interaction, options, channel_id, &row).await?;
             }
             "info" => {
                 // info(ctx, interaction, guild_id, options).await?;
             }
             "password" => {
                 password::<Db, ChannelManager>(
-                    ctx,
+                    &ctx.http,
                     interaction,
                     pool,
                     options,
@@ -188,12 +192,26 @@ impl VoiceCommand {
                 .await?;
             }
             "reset" => {
-                reset::<Db, ChannelManager>(ctx, interaction, pool, guild_id, channel_id, row)
-                    .await?;
+                reset::<Db, ChannelManager>(
+                    &ctx.http,
+                    interaction,
+                    pool,
+                    guild_id,
+                    channel_id,
+                    row,
+                )
+                .await?;
             }
             "transfer" => {
-                transfer::<Db, ChannelManager>(ctx, interaction, pool, options, channel_id, row)
-                    .await?;
+                transfer::<Db, ChannelManager>(
+                    &ctx.http,
+                    interaction,
+                    pool,
+                    options,
+                    channel_id,
+                    row,
+                )
+                .await?;
             }
             _ => unreachable!("Invalid subcommand name"),
         };
@@ -201,7 +219,7 @@ impl VoiceCommand {
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         let setup = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "setup",

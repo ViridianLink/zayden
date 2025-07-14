@@ -2,23 +2,21 @@ use std::collections::HashMap;
 
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    CommandInteraction, Context, CreateEmbed, EditInteractionResponse, GuildId, ResolvedValue,
+    CommandInteraction, CreateEmbed, EditInteractionResponse, GuildId, Http, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
-use crate::{Result, TicketGuildManager};
+use crate::{Result, Support, TicketGuildManager};
 
-use super::SupportCommand;
-
-impl SupportCommand {
+impl Support {
     pub(super) async fn get<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
         guild_id: GuildId,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(http).await?;
 
         let id = match options.remove("id") {
             Some(ResolvedValue::String(id)) => id,
@@ -32,7 +30,7 @@ impl SupportCommand {
             .faq_channel_id()
             .unwrap();
 
-        let mut stream = faq_channel_id.messages_iter(ctx).boxed();
+        let mut stream = faq_channel_id.widen().messages_iter(http).boxed();
 
         while let Some(msg) = stream.try_next().await.unwrap() {
             let support_id = msg.content.lines().next().unwrap().trim();
@@ -43,7 +41,7 @@ impl SupportCommand {
             if support_id.contains(id) {
                 interaction
                     .edit_response(
-                        ctx,
+                        http,
                         EditInteractionResponse::new()
                             .embed(CreateEmbed::new().title(title).description(description)),
                     )
@@ -56,7 +54,7 @@ impl SupportCommand {
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new().content("Support message not found"),
             )
             .await?;

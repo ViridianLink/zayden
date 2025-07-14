@@ -1,6 +1,4 @@
-use serenity::all::{
-    ChannelId, Colour, Context, CreateEmbed, CreateMessage, Message, MessageId, UserId,
-};
+use serenity::all::{Colour, CreateEmbed, CreateMessage, GenericChannelId, Http, UserId};
 use sqlx::{Database, Pool};
 
 use crate::events::{Event, EventRow};
@@ -51,9 +49,9 @@ impl GoalHandler {
     }
 
     pub async fn process_goals<Db: Database, Manager: GoalsManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         pool: &Pool<Db>,
-        channel: ChannelId,
+        channel: GenericChannelId,
         row: &mut dyn EventRow,
         event: Event,
     ) -> sqlx::Result<Event> {
@@ -84,7 +82,7 @@ impl GoalHandler {
 
             channel
                 .send_message(
-                    ctx,
+                    http,
                     CreateMessage::new().embed(
                         CreateEmbed::new()
                             .description(format!(
@@ -104,7 +102,7 @@ impl GoalHandler {
 
                 channel
                     .send_message(
-                        ctx,
+                        http,
                         CreateMessage::new().embed(CreateEmbed::new().description(format!(
                             "You have completed **all** daily goals! 🎉\n**Reward:** 1 {GEM}\n\nGoals reset <t:{}:R>", tomorrow(None)
                         )).colour(Colour::DARK_GREEN)),

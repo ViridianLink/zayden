@@ -1,17 +1,15 @@
 use futures::StreamExt;
 use serenity::all::{
-    CommandInteraction, Context, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
-    EditInteractionResponse, GuildId,
+    CommandInteraction, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
+    EditInteractionResponse, GuildId, Http,
 };
 use sqlx::{Database, Pool};
 
-use crate::{Result, TicketGuildManager};
+use crate::{Result, Support, TicketGuildManager};
 
-use super::SupportCommand;
-
-impl SupportCommand {
+impl Support {
     pub(super) async fn list<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         guild_id: GuildId,
@@ -24,7 +22,8 @@ impl SupportCommand {
             .unwrap();
 
         let menu_options = faq_channel_id
-            .messages_iter(ctx)
+            .widen()
+            .messages_iter(http)
             .enumerate()
             .map(|(index, msg_result)| {
                 let msg = msg_result.unwrap();
@@ -37,11 +36,11 @@ impl SupportCommand {
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new().select_menu(CreateSelectMenu::new(
                     "support_faq",
                     CreateSelectMenuKind::String {
-                        options: menu_options,
+                        options: menu_options.into(),
                     },
                 )),
             )

@@ -22,7 +22,7 @@ impl Ai {
 
         if let Some(referenced_message) = &msg.referenced_message {
             contents.push((
-                referenced_message.author.bot,
+                referenced_message.author.bot(),
                 Self::parse_mentions(referenced_message),
             ));
 
@@ -34,12 +34,12 @@ impl Ai {
     }
 
     fn parse_mentions(message: &Message) -> String {
-        let mut parsed_content = message.content.clone();
+        let mut parsed_content = message.content.to_string();
 
         for mention in &message.mentions {
             let mention_tag = format!("<@{}>", mention.id);
 
-            if mention.bot {
+            if mention.bot() {
                 parsed_content = parsed_content.replace(&mention_tag, "");
                 continue;
             }
@@ -103,13 +103,13 @@ impl MessageCommand<Error, Postgres> for Ai {
         let choice = match openai.chat_completion_create(&body) {
             Ok(mut completion) => completion.choices.pop().unwrap(),
             Err(e) => {
-                println!("{:?}", e);
+                println!("{e:?}");
                 return Ok(());
             }
         };
         let ai_msg = choice.message.unwrap();
 
-        message.reply(ctx, ai_msg.content).await.unwrap();
+        message.reply(&ctx.http, ai_msg.content).await.unwrap();
 
         Ok(())
     }

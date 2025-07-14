@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 use serenity::all::{
-    ComponentInteraction, Context, CreateInteractionResponse, CreateModal, MessageId, UserId,
+    ComponentInteraction,  CreateInteractionResponse, CreateModal, Http, MessageId, UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
@@ -44,7 +44,7 @@ impl EditRow {
 
 impl Components {
     pub async fn edit<Db: Database, Manager: EditManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
@@ -66,7 +66,7 @@ impl Components {
         let modal = CreateModal::new("lfg_edit", "Edit Event").components(row);
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Modal(modal))
+            .create_response(http, CreateInteractionResponse::Modal(modal))
             .await
             .unwrap();
 

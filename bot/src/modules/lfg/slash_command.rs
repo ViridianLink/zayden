@@ -19,7 +19,7 @@ impl SlashCommand<Error, Postgres> for Lfg {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        lfg::Command::lfg::<Postgres, UsersTable, PostTable>(ctx, interaction, options, pool)
+        lfg::Command::lfg::<Postgres, UsersTable, PostTable>(&ctx.http, interaction, options, pool)
             .await?;
 
         Ok(())
@@ -38,7 +38,7 @@ impl Autocomplete<Error, Postgres> for Lfg {
         option: AutocompleteOption<'_>,
         _pool: &PgPool,
     ) -> Result<()> {
-        lfg::Command::autocomplete(ctx, interaction, option).await?;
+        lfg::Command::autocomplete(&ctx.http, interaction, option).await?;
 
         Ok(())
     }

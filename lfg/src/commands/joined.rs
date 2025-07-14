@@ -1,8 +1,7 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serenity::all::{
-    ChannelId, CommandInteraction, Context, CreateEmbed, EditInteractionResponse, Mentionable,
-    UserId,
+    ChannelId, CommandInteraction, CreateEmbed, EditInteractionResponse, Http, Mentionable, UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow};
 
@@ -44,11 +43,11 @@ impl JoinedRow {
 
 impl Command {
     pub async fn joined<Db: Database, Manager: JoinedManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) {
-        interaction.defer_ephemeral(ctx).await.unwrap();
+        interaction.defer_ephemeral(http).await.unwrap();
 
         let posts = Manager::upcoming(pool, interaction.user.id).await.unwrap();
 
@@ -91,7 +90,7 @@ impl Command {
         }
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
     }

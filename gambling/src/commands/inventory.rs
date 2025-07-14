@@ -2,9 +2,10 @@ use std::fmt::Display;
 
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
+use serenity::small_fixed_array::FixedArray;
 use sqlx::types::Json;
 use sqlx::{Database, Pool, prelude::FromRow};
 use zayden_core::parse_options;
@@ -191,30 +192,30 @@ impl Commands {
         EffectsHandler: EffectsManager<Db>,
         InventoryHandler: InventoryManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let subcommand = options.pop().unwrap();
 
         match subcommand.name {
-            "show" => show::<Db, InventoryHandler>(ctx, interaction, pool).await,
+            "show" => show::<Db, InventoryHandler>(http, interaction, pool).await,
             "use" => {
                 let ResolvedValue::SubCommand(options) = subcommand.value else {
                     unreachable!("Option must be a subcommand")
                 };
 
-                use_item::<Db, EffectsHandler, InventoryHandler>(ctx, interaction, options, pool)
+                use_item::<Db, EffectsHandler, InventoryHandler>(http, interaction, options, pool)
                     .await
             }
             _ => unreachable!("Invalid subcommand"),
         }
     }
 
-    pub fn register_inventory() -> CreateCommand {
+    pub fn register_inventory<'a>() -> CreateCommand<'a> {
         let mut item_opt = CreateCommandOption::new(
             CommandOptionType::String,
             "item",
@@ -250,7 +251,7 @@ impl Commands {
 }
 
 async fn show<Db: Database, Manager: InventoryManager<Db>>(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
 ) -> Result<()> {
@@ -325,7 +326,7 @@ async fn show<Db: Database, Manager: InventoryManager<Db>>(
     }
 
     interaction
-        .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+        .edit_response(http, EditInteractionResponse::new().embed(embed))
         .await
         .unwrap();
 
@@ -337,9 +338,9 @@ async fn use_item<
     EffectsHandler: EffectsManager<Db>,
     InventoryHandler: InventoryManager<Db>,
 >(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
-    options: Vec<ResolvedOption<'_>>,
+    options: FixedArray<ResolvedOption<'_>>,
     pool: &Pool<Db>,
 ) -> Result<()> {
     let mut options = parse_options(options);
@@ -383,12 +384,11 @@ async fn use_item<
     tx.commit().await.unwrap();
 
     let embed = CreateEmbed::new().description(format!(
-        "Successfully activated item:\n**{item}**\nUses left:{}",
-        quantity
+        "Successfully activated item:\n**{item}**\nUses left:{quantity}"
     ));
 
     interaction
-        .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+        .edit_response(http, EditInteractionResponse::new().embed(embed))
         .await
         .unwrap();
 

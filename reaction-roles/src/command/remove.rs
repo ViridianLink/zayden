@@ -1,4 +1,4 @@
-use serenity::all::{ChannelId, Context, GuildId, MessageId, ReactionType, ResolvedValue};
+use serenity::all::{GenericChannelId, GuildId, Http, MessageId, ReactionType, ResolvedValue};
 use sqlx::{Database, Pool};
 use std::collections::HashMap;
 
@@ -9,9 +9,9 @@ use super::ReactionRoleCommand;
 
 impl ReactionRoleCommand {
     pub(super) async fn remove<Db: Database, Manager: ReactionRolesManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         pool: &Pool<Db>,
-        channel_id: ChannelId,
+        channel_id: GenericChannelId,
         guild_id: GuildId,
         reaction: ReactionType,
         mut options: HashMap<&str, ResolvedValue<'_>>,
@@ -24,7 +24,7 @@ impl ReactionRoleCommand {
                 .map_err(|_| Error::InvalidMessageId(id.to_string()))?,
         );
 
-        Manager::delete_row(
+        Manager::delete(
             pool,
             guild_id,
             channel_id,
@@ -35,7 +35,7 @@ impl ReactionRoleCommand {
         .unwrap();
 
         channel_id
-            .delete_reaction_emoji(ctx, message_id, reaction)
+            .delete_reaction_emoji(http, message_id, reaction)
             .await
             .unwrap();
 

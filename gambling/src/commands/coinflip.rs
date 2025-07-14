@@ -1,24 +1,28 @@
 use std::fmt::Display;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::gambling::GamblingManager;
 use crate::utils::{Emoji, GameResult, game_embed};
 use crate::{
-    COIN, Coins, EffectsManager, GameCache, GameManager, GameRow, GoalsManager, Result, TAILS,
+    COIN, Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager,
+    Result, TAILS,
 };
 
 use super::Commands;
 
 impl Commands {
     pub async fn coinflip<
+        Data: GamblingData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalsHandler: GoalsManager<Db>,
@@ -30,7 +34,7 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let mut options = parse_options(options);
 
@@ -47,7 +51,9 @@ impl Commands {
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
-        GameCache::can_play(ctx, interaction.user.id).await?;
+        let data = ctx.data::<RwLock<Data>>();
+
+        GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
         EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, row.coins())
             .await?;
         row.bet(bet);
@@ -62,7 +68,7 @@ impl Commands {
             _ => 0,
         };
 
-        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -77,7 +83,7 @@ impl Commands {
         let coins = row.coins();
 
         GameHandler::save(pool, row).await.unwrap();
-        GameCache::update(ctx, interaction.user.id).await;
+        GameCache::update(data, interaction.user.id).await;
 
         let (coin, title) = if edge {
             (prediction, "Coin Flip - EDGE ROLL!")
@@ -98,14 +104,14 @@ impl Commands {
         );
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_coinflip() -> CreateCommand {
+    pub fn register_coinflip<'a>() -> CreateCommand<'a> {
         CreateCommand::new("coinflip")
             .description("Flip a coin!")
             .add_option(

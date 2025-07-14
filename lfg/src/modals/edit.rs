@@ -1,6 +1,6 @@
 use serenity::all::{Context, CreateInteractionResponse, EditThread, ModalInteraction};
 use sqlx::{Database, Pool};
-use zayden_core::parse_modal_data;
+use zayden_core::{CronJobData, parse_modal_data};
 
 use crate::cron::create_reminders;
 use crate::templates::DefaultTemplate;
@@ -13,6 +13,7 @@ pub struct Edit;
 
 impl Edit {
     pub async fn run<
+        Data: CronJobData<Db>,
         Db: Database,
         Manager: PostManager<Db> + Savable<Db, PostRow>,
         TzManager: TimezoneManager<Db>,
@@ -51,10 +52,11 @@ impl Edit {
             .description(description)
             .start(start_time);
 
-        interaction
-            .channel_id
-            .edit_thread(
-                ctx,
+        let thread = interaction.channel_id.expect_thread();
+
+        thread
+            .edit(
+                &ctx.http,
                 EditThread::new().name(format!(
                     "{} - {}",
                     activity,
@@ -64,21 +66,16 @@ impl Edit {
             .await
             .unwrap();
 
-        update_embeds::<DefaultTemplate>(
-            ctx,
-            &post,
-            interaction.user.display_name(),
-            interaction.channel_id,
-        )
-        .await;
+        update_embeds::<DefaultTemplate>(&ctx.http, &post, interaction.user.display_name(), thread)
+            .await;
 
         let post = post.build();
 
-        create_reminders::<Db, Manager>(ctx, &post).await;
+        create_reminders::<Data, Db, Manager>(ctx, &post).await;
         Manager::save(pool, post).await.unwrap();
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Acknowledge)
+            .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
             .await
             .unwrap();
 

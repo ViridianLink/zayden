@@ -10,7 +10,7 @@ use sqlx::{Database, Pool};
 pub mod cache;
 
 pub mod cron;
-pub use cron::{ActionFn, CronJob, CronJobs};
+pub use cron::{ActionFn, CronJob, CronJobData};
 
 mod error;
 pub use error::Error;
@@ -18,9 +18,6 @@ pub use error::Error;
 pub mod events;
 pub mod format_num;
 pub use format_num::FormatNum;
-
-pub mod sqlx_lib;
-pub use sqlx_lib::TableRow;
 
 #[async_trait]
 pub trait SlashCommand<E: std::error::Error, Db: Database> {
@@ -74,6 +71,15 @@ pub fn parse_options<'a>(
     options
         .into_iter()
         .map(|option| (option.name, option.value))
+        .collect()
+}
+
+pub fn parse_options_ref<'a>(
+    options: impl IntoIterator<Item = &'a ResolvedOption<'a>>,
+) -> HashMap<&'a str, &'a ResolvedValue<'a>> {
+    options
+        .into_iter()
+        .map(|option| (option.name, &option.value))
         .collect()
 }
 

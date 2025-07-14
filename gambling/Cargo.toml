@@ -7,15 +7,18 @@ edition = "2024"
 zayden-core = { workspace = true }
 levels = { workspace = true }
 
-async-trait = { version = "*", default-features = false }
-chrono = { version = "*", default-features = false }
-futures = { version = "*", default-features = false }
-rand = { version = "*", default-features = false, features = ["thread_rng"] }
-rand_distr = { version = "*", default-features = false }
-serde = { version = "*", default-features = false }
-serenity = { version = "*", default-features = false, features = [] }
-sqlx = { version = "*", default-features = false, features = [
-    "any",
-    "json",
-    "macros",
+async-trait = { workspace = true }
+chrono = { workspace = true }
+futures = { workspace = true }
+rand = { workspace = true }
+rand_distr = { workspace = true }
+serde = { workspace = true }
+serenity = { workspace = true, features = [
+    "rustls_backend",
+    "builder",
+    "gateway",
+    "collector",
+
 ] }
+sqlx = { workspace = true, features = ["json"] }
+tokio = { workspace = true }

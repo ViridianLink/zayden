@@ -3,8 +3,9 @@ use std::time::Duration;
 use async_trait::async_trait;
 use futures::StreamExt;
 use serenity::all::{
-    ButtonStyle, Colour, CommandInteraction, Context, CreateButton, CreateCommand, CreateEmbed,
-    CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse, UserId,
+    ButtonStyle, CollectComponentInteractions, Colour, CommandInteraction, Context, CreateButton,
+    CreateCommand, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
+    EditInteractionResponse, UserId,
 };
 use sqlx::types::Json;
 use sqlx::{Database, FromRow, Pool};
@@ -205,7 +206,7 @@ impl Commands {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(&ctx.http).await?;
 
         let row = Manager::row(pool, interaction.user.id)
             .await
@@ -224,7 +225,7 @@ impl Commands {
                 .colour(Colour::RED);
 
             interaction
-                .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+                .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
                 .await
                 .unwrap();
 
@@ -244,7 +245,7 @@ impl Commands {
 
         let msg = interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .embed(embed)
                     .button(confirm)
@@ -254,7 +255,8 @@ impl Commands {
             .unwrap();
 
         let mut stream = msg
-            .await_component_interactions(ctx)
+            .id
+            .collect_component_interactions(ctx)
             .author_id(interaction.user.id)
             .timeout(Duration::from_secs(120))
             .stream();
@@ -288,7 +290,7 @@ impl Commands {
 
                 component
                     .create_response(
-                        ctx,
+                        &ctx.http,
                         CreateInteractionResponse::UpdateMessage(
                             CreateInteractionResponseMessage::new()
                                 .content("Done (message wip)")
@@ -303,17 +305,19 @@ impl Commands {
             }
 
             component
-                .create_response(ctx, CreateInteractionResponse::Acknowledge)
+                .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
                 .await
                 .unwrap();
         }
 
-        msg.delete(ctx).await.unwrap();
+        msg.delete(&ctx.http, Some("User prestiged their mine"))
+            .await
+            .unwrap();
 
         Ok(())
     }
 
-    pub fn register_prestige() -> CreateCommand {
+    pub fn register_prestige<'a>() -> CreateCommand<'a> {
         CreateCommand::new("prestige")
             .description("Prestige your mine or casino to get unique rewards!")
     }

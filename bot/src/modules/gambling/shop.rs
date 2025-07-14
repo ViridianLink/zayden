@@ -2,8 +2,9 @@ use async_trait::async_trait;
 use gambling::commands::shop::{BuyRow, SellRow, ShopManager};
 use gambling::{Commands, GamblingItem};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use sqlx::postgres::PgQueryResult;
 use sqlx::types::Json;
-use sqlx::{PgPool, Postgres, any::AnyQueryResult};
+use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
 use crate::modules::gambling::GoalsTable;
@@ -54,7 +55,7 @@ impl ShopManager<Postgres> for ShopTable {
         ).fetch_optional(pool).await
     }
 
-    async fn buy_save(pool: &PgPool, row: BuyRow) -> sqlx::Result<AnyQueryResult> {
+    async fn buy_save(pool: &PgPool, row: BuyRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
@@ -67,8 +68,7 @@ impl ShopManager<Postgres> for ShopTable {
             row.gems,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         for item in row.inventory.unwrap_or_default().0 {
             let result2 = sqlx::query!(
@@ -81,8 +81,7 @@ impl ShopManager<Postgres> for ShopTable {
                 item.quantity
             )
             .execute(&mut *tx)
-            .await
-            .map(AnyQueryResult::from)?;
+            .await?;
 
             result.extend([result2]);
         }
@@ -117,7 +116,7 @@ impl ShopManager<Postgres> for ShopTable {
             row.tech,
             row.utility,
             row.production,
-        ).execute(&mut *tx).await.map(AnyQueryResult::from)?;
+        ).execute(&mut *tx).await?;
 
         result.extend([result3]);
 
@@ -129,34 +128,34 @@ impl ShopManager<Postgres> for ShopTable {
     async fn sell_row(
         pool: &PgPool,
         id: impl Into<UserId> + Send,
+        item_id: &str,
     ) -> sqlx::Result<Option<SellRow>> {
         let id = id.into();
 
         sqlx::query_as!(
             SellRow,
-            r#"SELECT
-            g.id,
-            g.coins,
+            r#"
+            SELECT
+                g.id,
+                g.coins,
 
-            (
-                SELECT jsonb_agg(
-                    jsonb_build_object(
-                        'quantity', inv.quantity,
-                        'item_id', inv.item_id
-                    )
-                )
-                FROM gambling_inventory inv
-                WHERE inv.user_id = g.id
-            ) as "inventory: Json<Vec<GamblingItem>>"
-            
-            FROM gambling g LEFT JOIN levels l ON g.id = l.id WHERE g.id = $1;"#,
-            id.get() as i64
+                i.id AS "item_row_id?",
+                i.quantity AS "item_quantity?"
+            FROM
+                gambling g
+            LEFT JOIN
+                gambling_inventory i ON g.id = i.user_id AND i.item_id = $2
+            WHERE
+                g.id = $1
+            "#,
+            id.get() as i64,
+            item_id
         )
         .fetch_optional(pool)
         .await
     }
 
-    async fn sell_save(pool: &PgPool, row: SellRow) -> sqlx::Result<AnyQueryResult> {
+    async fn sell_save(pool: &PgPool, row: SellRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
@@ -168,27 +167,28 @@ impl ShopManager<Postgres> for ShopTable {
             row.coins,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
-        for item in row.inventory.unwrap_or_default().0 {
-            let result2 = sqlx::query!(
-                "INSERT INTO gambling_inventory (user_id, item_id, quantity)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (user_id, item_id) DO UPDATE
-                SET quantity = EXCLUDED.quantity",
-                row.id,
-                item.item_id,
-                item.quantity
+        let result2 = if row.item_quantity == Some(0) {
+            sqlx::query!(
+                "DELETE FROM gambling_inventory WHERE id = $1",
+                row.item_row_id
             )
             .execute(&mut *tx)
-            .await
-            .map(AnyQueryResult::from)?;
+            .await?
+        } else {
+            sqlx::query!(
+                "UPDATE gambling_inventory SET quantity = $1 WHERE id = $2",
+                row.item_quantity,
+                row.item_row_id
+            )
+            .execute(&mut *tx)
+            .await?
+        };
 
-            result.extend([result2]);
-        }
+        result.extend([result2]);
 
-        tx.commit().await.unwrap();
+        tx.commit().await?;
 
         Ok(result)
     }

@@ -1,14 +1,14 @@
 use chrono::{DateTime, Days, NaiveTime, Utc};
-use serenity::all::{EmojiId, UserId};
+use serenity::all::EmojiId;
 
 pub mod commands;
 pub mod components;
+pub mod ctx_data;
 pub mod error;
 pub mod events;
 pub mod game_cache;
 pub mod games;
 pub mod goals;
-pub mod lotto;
 pub mod models;
 pub mod shop;
 pub mod stamina;
@@ -16,20 +16,19 @@ pub mod utils;
 
 pub use commands::Commands;
 pub use commands::goals::GoalsManager;
+pub use ctx_data::GamblingData;
 pub use error::Error;
 use error::Result;
 pub use game_cache::GameCache;
+pub use games::{HigherLower, Lotto, LottoManager, LottoRow, jackpot};
 pub use goals::GoalHandler;
-pub use lotto::{Lotto, LottoManager, LottoRow, jackpot};
 pub use models::{
     Coins, EffectsManager, EffectsRow, GamblingGoalsRow, GamblingItem, GamblingManager,
     GameManager, GameRow, Gems, ItemInventory, MaxBet, MaxValues, MineHourly, Mining, Prestige,
-    Stamina,
+    Stamina, StatsManager,
 };
 pub use shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
 pub use stamina::{StaminaCron, StaminaManager};
-
-const SUPER_USER: UserId = UserId::new(211486447369322506);
 
 const START_AMOUNT: i64 = 1000;
 

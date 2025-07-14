@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    CommandInteraction, Context, EditChannel, EditInteractionResponse, GuildId, ResolvedValue,
+    CommandInteraction, EditInteractionResponse, EditThread, GenericInteractionChannel, GuildId,
+    Http, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
-use crate::{Error, Result, TicketGuildManager};
+use crate::{Error, Result, Ticket, TicketGuildManager};
 
-use super::TicketCommand;
-
-impl TicketCommand {
+impl Ticket {
     pub(super) async fn close<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
@@ -23,8 +22,8 @@ impl TicketCommand {
         };
 
         match message.is_empty() {
-            true => interaction.defer_ephemeral(&ctx).await?,
-            false => interaction.defer(&ctx).await?,
+            true => interaction.defer_ephemeral(http).await?,
+            false => interaction.defer(http).await?,
         };
 
         let support_channel_id = GuildManager::get(pool, guild_id)
@@ -36,27 +35,30 @@ impl TicketCommand {
 
         let channel = interaction.channel.as_ref().unwrap();
 
-        if channel.parent_id.unwrap() != support_channel_id {
+        if let GenericInteractionChannel::Thread(channel) = channel
+            && channel.parent_id != support_channel_id
+        {
             return Err(Error::NotInSupportChannel);
         }
 
         let new_channel_name: String =
-            format!("{} - {}", "[Closed]", channel.name.as_ref().unwrap())
+            format!("{} - {}", "[Closed]", channel.base().name.as_ref().unwrap())
                 .chars()
                 .take(100)
                 .collect();
 
         interaction
             .channel_id
-            .edit(&ctx, EditChannel::new().name(new_channel_name))
+            .expect_thread()
+            .edit(http, EditThread::new().name(new_channel_name))
             .await
             .unwrap();
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new()
-                    .content(format!("Ticket marked as closed\n\n{}", message)),
+                    .content(format!("Ticket marked as closed\n\n{message}")),
             )
             .await
             .unwrap();

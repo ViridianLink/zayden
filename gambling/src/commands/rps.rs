@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{fmt::Display, str::FromStr};
 
 use rand::seq::IndexedRandom;
@@ -6,16 +7,21 @@ use serenity::all::{
     CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::{FormatNum, parse_options};
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::GamblingManager;
-use crate::{COIN, Coins, EffectsManager, GameCache, GameManager, GameRow, GoalsManager, Result};
+use crate::{
+    COIN, Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager,
+    Result,
+};
 
 use super::Commands;
 
 impl Commands {
     pub async fn rps<
+        Data: GamblingData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalHandler: GoalsManager<Db>,
@@ -27,7 +33,7 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let mut options = parse_options(options);
 
@@ -44,7 +50,9 @@ impl Commands {
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
-        GameCache::can_play(ctx, interaction.user.id).await?;
+        let data = ctx.data::<RwLock<Data>>();
+
+        GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
         EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, row.coins())
             .await?;
         row.bet(bet);
@@ -60,7 +68,7 @@ impl Commands {
             0
         };
 
-        Dispatch::<Db, GoalHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -80,7 +88,7 @@ impl Commands {
         let coins = row.coins();
 
         GameHandler::save(pool, row).await?;
-        GameCache::update(ctx, interaction.user.id).await;
+        GameCache::update(data, interaction.user.id).await;
 
         let title = if winner == Some(true) {
             "Rock 🪨 Paper 🗞️ Scissors ✂ - You Won!"
@@ -120,14 +128,14 @@ impl Commands {
             .colour(colour);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_rps() -> CreateCommand {
+    pub fn register_rps<'a>() -> CreateCommand<'a> {
         CreateCommand::new("rps")
             .description("Play a game of rock paper scissors against the bot")
             .add_option(

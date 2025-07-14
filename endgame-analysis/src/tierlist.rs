@@ -2,9 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
+    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType,
     CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateEmbed, CreateEmbedFooter,
-    CreateInteractionResponse, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CreateInteractionResponse, EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -19,12 +19,12 @@ pub struct TierListCommand;
 
 impl TierListCommand {
     pub async fn run<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let mut options = parse_options(options);
 
@@ -71,7 +71,7 @@ impl TierListCommand {
             });
 
         let embed = CreateEmbed::new()
-            .title(format!("Tier List for {}", archetype))
+            .title(format!("Tier List for {archetype}"))
             .footer(CreateEmbedFooter::new("From 'Destiny 2: Endgame Analysis'"))
             .fields(TIERS.iter().filter_map(|t| {
                 let weapons = weapons.get(t)?;
@@ -90,14 +90,14 @@ impl TierListCommand {
             }));
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         let tier_option = TIERS.iter().fold(
             CreateCommandOption::new(
                 CommandOptionType::String,
@@ -127,7 +127,7 @@ impl TierListCommand {
     }
 
     pub async fn autocomplete<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
         pool: &Pool<Db>,
@@ -161,7 +161,7 @@ impl TierListCommand {
 
         interaction
             .create_response(
-                ctx,
+                http,
                 CreateInteractionResponse::Autocomplete(
                     CreateAutocompleteResponse::new().set_choices(choices),
                 ),

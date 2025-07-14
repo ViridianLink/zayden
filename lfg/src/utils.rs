@@ -1,38 +1,42 @@
 use std::fmt::Display;
 
 use serenity::all::{
-    ChannelId, Context, CreateMessage, DiscordJsonError, EditMessage, ErrorResponse, HttpError,
-    Mentionable, UserId,
+    CreateMessage, DiscordJsonError, EditMessage, ErrorResponse, Http, HttpError, JsonErrorCode,
+    Mentionable, ThreadId, UserId,
 };
 
 use crate::templates::{Template, TemplateInfo};
 
 pub async fn update_embeds<T: Template>(
-    ctx: &Context,
+    http: &Http,
     row: &impl TemplateInfo,
     owner_name: &str,
-    thread: impl Into<ChannelId>,
+    thread: impl Into<ThreadId>,
 ) {
     let thread = thread.into();
 
     let embed = T::thread_embed(row, owner_name);
 
     thread
-        .edit_message(ctx, thread.get(), EditMessage::new().embed(embed))
+        .widen()
+        .edit_message(http, thread.get().into(), EditMessage::new().embed(embed))
         .await
         .unwrap();
 
-    if let (Some(channel), Some(message)) = (row.alt_channel(), row.alt_message()) {
+    if let (Some(channel), Some(message)) = (row.schedule_channel(), row.alt_message()) {
         let embed = T::message_embed(row, owner_name, thread);
 
         match channel
-            .edit_message(ctx, message, EditMessage::new().embed(embed))
+            .edit_message(http, message, EditMessage::new().embed(embed))
             .await
         {
             Ok(_)
-            // Unknown Message
             | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                error: DiscordJsonError { code: 10008, .. },
+                error:
+                    DiscordJsonError {
+                        code: JsonErrorCode::UnknownMessage,
+                        ..
+                    },
                 ..
             }))) => {}
             Err(e) => panic!("{e:?}"),
@@ -46,9 +50,10 @@ pub enum Announcement {
 }
 
 impl Announcement {
-    pub async fn send(&self, ctx: &Context, channel: ChannelId) {
+    pub async fn send(&self, http: &Http, channel: ThreadId) {
         channel
-            .send_message(ctx, CreateMessage::new().content(format!("{self}")))
+            .widen()
+            .send_message(http, CreateMessage::new().content(format!("{self}")))
             .await
             .unwrap();
     }

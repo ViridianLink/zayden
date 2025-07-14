@@ -1,22 +1,24 @@
 use std::collections::HashMap;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
 use futures::StreamExt;
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    Colour, CommandInteraction, ComponentInteraction, Context, CreateButton, CreateCommand,
-    CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EditInteractionResponse, EmojiId, parse_emoji,
+    CollectComponentInteractions, Colour, CommandInteraction, ComponentInteraction, Context,
+    CreateButton, CreateCommand, CreateEmbed, CreateInteractionResponse,
+    CreateInteractionResponseMessage, EditInteractionResponse, EmojiId, Http, parse_emoji,
 };
 use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::FormatNum;
 
 use crate::events::{Dispatch, Event, GameEvent};
+use crate::models::gambling_stats::StatsManager;
 use crate::{
-    CARD_DECK, Coins, Error, GameCache, GameManager, GameRow, Gems, GoalsManager, Result,
-    ShopCurrency,
+    CARD_DECK, Coins, Error, GamblingData, GameCache, GameManager, GameRow, Gems, GoalsManager,
+    Result, ShopCurrency,
 };
 
 use super::Commands;
@@ -33,15 +35,17 @@ static CARD_TO_NUM: LazyLock<HashMap<EmojiId, u8>> = LazyLock::new(|| {
 
 impl Commands {
     pub async fn higher_lower<
+        Data: GamblingData,
         Db: Database,
         GoalsHandler: GoalsManager<Db>,
         GameHandler: GameManager<Db>,
+        StatsHandler: StatsManager<Db>,
     >(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let mut row = GameHandler::row(pool, interaction.user.id)
             .await
@@ -55,7 +59,9 @@ impl Commands {
             });
         }
 
-        GameCache::can_play(ctx, interaction.user.id).await?;
+        let data = ctx.data::<RwLock<Data>>();
+
+        GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
 
         row.bet(BUYIN);
 
@@ -74,7 +80,7 @@ impl Commands {
 
         let msg = interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .embed(embed)
                     .button(higher_btn)
@@ -84,7 +90,8 @@ impl Commands {
             .unwrap();
 
         let mut stream = msg
-            .await_component_interactions(ctx)
+            .id
+            .collect_component_interactions(ctx)
             .author_id(interaction.user.id)
             .timeout(Duration::from_secs(120))
             .stream();
@@ -126,7 +133,7 @@ impl Commands {
 
             let winner = if choice == "hol_higher" {
                 higher(
-                    ctx,
+                    &ctx.http,
                     &interaction,
                     &mut prev_seq,
                     prev_num,
@@ -137,7 +144,7 @@ impl Commands {
                 .await?
             } else {
                 lower(
-                    ctx,
+                    &ctx.http,
                     &interaction,
                     &mut prev_seq,
                     prev_num,
@@ -152,6 +159,14 @@ impl Commands {
                 break;
             }
         }
+
+        let mut tx = pool.begin().await.unwrap();
+
+        StatsHandler::higherlower(&mut *tx, interaction.user.id, (payout / 1000) as i32)
+            .await
+            .unwrap();
+
+        tx.commit().await.unwrap();
 
         let mut row = GameHandler::row(pool, interaction.user.id)
             .await
@@ -173,7 +188,7 @@ impl Commands {
 
         let coins = row.coins_str();
 
-        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -187,7 +202,7 @@ impl Commands {
             .await?;
 
         GameHandler::save(pool, row).await.unwrap();
-        GameCache::update(ctx, interaction.user.id).await;
+        GameCache::update(data, interaction.user.id).await;
 
         let result = format!("Payout: {}", payout.format());
 
@@ -202,7 +217,7 @@ impl Commands {
 
         interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .embed(embed)
                     .components(Vec::new()),
@@ -213,12 +228,12 @@ impl Commands {
         Ok(())
     }
 
-    pub fn register_higher_lower() -> CreateCommand {
+    pub fn register_higher_lower<'a>() -> CreateCommand<'a> {
         CreateCommand::new("higherorlower").description("Play a game of higher or lower")
     }
 }
 
-fn create_embed(seq: &str, payout: i64, winner: bool) -> CreateEmbed {
+fn create_embed<'a>(seq: &str, payout: i64, winner: bool) -> CreateEmbed<'a> {
     let payout = payout.format();
 
     let desc = if winner {
@@ -234,7 +249,7 @@ fn create_embed(seq: &str, payout: i64, winner: bool) -> CreateEmbed {
 }
 
 async fn higher(
-    ctx: &Context,
+    http: &Http,
     interaction: &ComponentInteraction,
     seq: &mut String,
     prev: u8,
@@ -266,14 +281,14 @@ async fn higher(
     };
 
     interaction
-        .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
+        .create_response(http, CreateInteractionResponse::UpdateMessage(msg))
         .await?;
 
     Ok(winner)
 }
 
 async fn lower(
-    ctx: &Context,
+    http: &Http,
     interaction: &ComponentInteraction,
     seq: &mut String,
     prev: u8,
@@ -305,7 +320,7 @@ async fn lower(
     };
 
     interaction
-        .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
+        .create_response(http, CreateInteractionResponse::UpdateMessage(msg))
         .await?;
 
     Ok(winner)

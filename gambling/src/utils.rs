@@ -63,14 +63,14 @@ impl PartialEq for GameResult<'_> {
 }
 
 pub fn game_embed<'a>(
-    title: impl Into<String>,
+    title: &'a str,
     prediction: impl Into<GameResult<'a>>,
     outcome_text: &str,
     outcome: impl Into<GameResult<'a>>,
     bet: i64,
     payout: i64,
     coins: i64,
-) -> CreateEmbed {
+) -> CreateEmbed<'a> {
     let prediction = prediction.into();
     let outcome = outcome.into();
 
@@ -94,7 +94,7 @@ pub fn game_embed<'a>(
         coins.format()
     );
 
-    CreateEmbed::new()
+    CreateEmbed::<'a>::new()
         .title(title)
         .description(desc)
         .colour(colour)

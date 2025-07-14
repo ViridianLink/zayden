@@ -1,20 +1,14 @@
 use std::collections::HashMap;
 
-use serenity::all::{Context, Guild, GuildId, UserId};
-use serenity::prelude::TypeMapKey;
+use serenity::all::{Guild, GuildId, UserId};
 
-pub struct GuildMembersCache;
+pub trait GuildMembersCache: Send + Sync + 'static {
+    fn get(&self) -> &HashMap<GuildId, Vec<UserId>>;
 
-impl GuildMembersCache {
-    pub async fn guild_create(ctx: &Context, guild: &Guild) {
-        let mut data = ctx.data.write().await;
+    fn get_mut(&mut self) -> &mut HashMap<GuildId, Vec<UserId>>;
 
-        data.entry::<GuildMembersCache>()
-            .or_insert_with(HashMap::new)
-            .insert(guild.id, guild.members.keys().copied().collect());
+    fn guild_create(&mut self, guild: &Guild) {
+        self.get_mut()
+            .insert(guild.id, guild.members.iter().map(|x| x.user.id).collect());
     }
-}
-
-impl TypeMapKey for GuildMembersCache {
-    type Value = HashMap<GuildId, Vec<UserId>>;
 }

@@ -5,7 +5,7 @@ pub mod events;
 
 use async_trait::async_trait;
 use serenity::all::{ChannelId, Context, CreateCommand, GuildId, UserId};
-use sqlx::any::AnyQueryResult;
+use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use temp_voice::voice_channel_manager::VoiceChannelMode;
 use temp_voice::{TempVoiceGuildManager, TempVoiceRow, VoiceChannelManager, VoiceChannelRow};
@@ -24,8 +24,8 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
         id: GuildId,
         category: ChannelId,
         creator_channel: ChannelId,
-    ) -> sqlx::Result<AnyQueryResult> {
-        let result = sqlx::query!(
+    ) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
             r#"
             INSERT INTO guilds (id, temp_voice_category, temp_voice_creator_channel)
             VALUES ($1, $2, $3)
@@ -37,36 +37,28 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
             creator_channel.get() as i64
         )
         .execute(pool)
-        .await?;
-
-        Ok(result.into())
+        .await
     }
 
     async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<TempVoiceRow> {
-        let row = sqlx::query_as!(
+        sqlx::query_as!(
             TempVoiceRow,
             r#"SELECT id, temp_voice_category, temp_voice_creator_channel FROM guilds WHERE id = $1"#,
             id.get() as i64
         )
         .fetch_one(pool)
-        .await?;
-
-        Ok(row)
+        .await
     }
 
     async fn get_category(pool: &PgPool, id: GuildId) -> sqlx::Result<ChannelId> {
-        let row = sqlx::query!(
+        let category = sqlx::query_scalar!(
             r#"SELECT temp_voice_category FROM guilds WHERE id = $1"#,
             id.get() as i64
         )
         .fetch_one(pool)
         .await?;
 
-        let category = row
-            .temp_voice_category
-            .expect("Category ID is required when saving") as u64;
-
-        Ok(ChannelId::from(category))
+        Ok(ChannelId::new(category.unwrap() as u64))
     }
 
     async fn get_creator_channel(pool: &PgPool, id: GuildId) -> sqlx::Result<Option<ChannelId>> {
@@ -129,10 +121,10 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
         Ok(count.unwrap())
     }
 
-    async fn save(pool: &PgPool, row: VoiceChannelRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save(pool: &PgPool, row: VoiceChannelRow) -> sqlx::Result<PgQueryResult> {
         let mode = TempVoiceMode::from(row.mode);
 
-        let result = sqlx::query!(
+        sqlx::query!(
             r#"
             INSERT INTO voice_channels (id, owner_id, trusted_ids, password, persistent, invites, mode)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -148,19 +140,15 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
             mode as TempVoiceMode
         )
         .execute(pool)
-        .await.unwrap();
-
-        Ok(result.into())
+        .await
     }
 
-    async fn delete(pool: &PgPool, id: ChannelId) -> sqlx::Result<AnyQueryResult> {
-        let result = sqlx::query!(
+    async fn delete(pool: &PgPool, id: ChannelId) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
             r#"DELETE FROM voice_channels WHERE id = $1"#,
             id.get() as i64
         )
         .execute(pool)
-        .await?;
-
-        Ok(result.into())
+        .await
     }
 }

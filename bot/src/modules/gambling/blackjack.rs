@@ -1,12 +1,13 @@
 use async_trait::async_trait;
 use gambling::Commands;
 use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption,
+    CommandInteraction, ComponentInteraction, Context, CreateCommand, MessageInteractionMetadata,
+    ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
 use zayden_core::{Component, SlashCommand};
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 
@@ -20,7 +21,7 @@ impl SlashCommand<Error, Postgres> for Blackjack {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::blackjack::<Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
+        Commands::blackjack::<CtxData, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
             ctx,
             interaction,
             options,
@@ -39,16 +40,30 @@ impl SlashCommand<Error, Postgres> for Blackjack {
 #[async_trait]
 impl Component<Error, Postgres> for Blackjack {
     async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+        let Some(MessageInteractionMetadata::Command(metadata)) =
+            interaction.message.interaction_metadata.as_deref()
+        else {
+            unreachable!("Message must be created from an command")
+        };
+
+        if interaction.user != metadata.user {
+            return Ok(());
+        };
+
         match interaction.data.custom_id.as_str() {
-            "blackjack_hit" => gambling::components::Blackjack::hit::<
-                Postgres,
-                GoalsTable,
-                EffectsTable,
-                GameTable,
-            >(ctx, interaction, pool)
-            .await?,
+            "blackjack_hit" => {
+                gambling::components::Blackjack::hit::<
+                    CtxData,
+                    Postgres,
+                    GoalsTable,
+                    EffectsTable,
+                    GameTable,
+                >(ctx, interaction, pool)
+                .await?
+            }
             "blackjack_stand" => {
                 gambling::components::Blackjack::stand::<
+                    CtxData,
                     Postgres,
                     GoalsTable,
                     EffectsTable,
@@ -58,6 +73,7 @@ impl Component<Error, Postgres> for Blackjack {
             }
             "blackjack_double" => {
                 gambling::components::Blackjack::double::<
+                    CtxData,
                     Postgres,
                     GamblingTable,
                     GoalsTable,

@@ -1,37 +1,36 @@
-use serenity::all::{ChannelId, GuildId, MessageId, RoleId};
+use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId};
 use serenity::async_trait;
-use sqlx::any::AnyQueryResult;
 use sqlx::{Database, FromRow, Pool};
 
 #[async_trait]
 pub trait ReactionRolesManager<Db: Database> {
-    async fn create_row(
+    async fn create(
         pool: &Pool<Db>,
-        guild_id: impl Into<i64> + Send,
-        channel_id: impl Into<i64> + Send,
-        message_id: impl Into<i64> + Send,
-        role_id: impl Into<i64> + Send,
+        guild_id: impl Into<GuildId> + Send,
+        channel_id: impl Into<GenericChannelId> + Send,
+        message_id: impl Into<MessageId> + Send,
+        role_id: impl Into<RoleId> + Send,
         emoji: &str,
-    ) -> sqlx::Result<AnyQueryResult>;
+    ) -> sqlx::Result<Db::QueryResult>;
 
-    async fn get_guild_rows(
+    async fn rows(
         pool: &Pool<Db>,
-        guild_id: impl Into<i64> + Send,
+        guild_id: impl Into<GuildId> + Send,
     ) -> sqlx::Result<Vec<ReactionRole>>;
 
-    async fn get_row(
+    async fn row(
         pool: &Pool<Db>,
-        message_id: impl Into<i64> + Send,
+        message_id: impl Into<MessageId> + Send,
         emoji: &str,
     ) -> sqlx::Result<Option<ReactionRole>>;
 
-    async fn delete_row(
+    async fn delete(
         pool: &Pool<Db>,
-        guild_id: impl Into<i64> + Send,
-        channel_id: impl Into<i64> + Send,
-        message_id: impl Into<i64> + Send,
+        guild_id: impl Into<GuildId> + Send,
+        channel_id: impl Into<GenericChannelId> + Send,
+        message_id: impl Into<MessageId> + Send,
         emoji: &str,
-    ) -> sqlx::Result<AnyQueryResult>;
+    ) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -49,8 +48,8 @@ impl ReactionRole {
         GuildId::new(self.guild_id as u64)
     }
 
-    pub fn channel_id(&self) -> ChannelId {
-        ChannelId::new(self.channel_id as u64)
+    pub fn channel_id(&self) -> GenericChannelId {
+        GenericChannelId::new(self.channel_id as u64)
     }
 
     pub fn message_id(&self) -> MessageId {

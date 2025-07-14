@@ -8,9 +8,9 @@ mod timezone;
 
 pub use joined::{JoinedManager, JoinedRow};
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
+    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType,
     CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateInteractionResponse,
-    ResolvedOption, ResolvedValue,
+    Http, ResolvedOption, ResolvedValue,
 };
 pub use setup::SetupManager;
 use sqlx::{Database, Pool};
@@ -26,7 +26,7 @@ impl Command {
         TzManager: TimezoneManager<Db>,
         PostHandler: PostManager<Db> + SetupManager<Db> + JoinedManager<Db> + Savable<Db, PostRow>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
@@ -41,20 +41,20 @@ impl Command {
         let options = parse_options(options);
 
         match command.name {
-            "setup" => Self::setup::<Db, PostHandler>(ctx, interaction, pool, options).await?,
-            "create" => Self::create::<Db, TzManager>(ctx, interaction, pool, options).await?,
-            "tags" => Self::tags::<Db, PostHandler>(ctx, interaction, pool, options).await?,
-            "join" => Self::join::<Db, PostHandler>(ctx, interaction, pool, options).await?,
-            "leave" => Self::leave::<Db, PostHandler>(ctx, interaction, pool).await?,
-            "joined" => Self::joined::<Db, PostHandler>(ctx, interaction, pool).await,
-            "timezone" => Self::timezone::<Db, TzManager>(ctx, interaction, pool, options).await?,
+            "setup" => Self::setup::<Db, PostHandler>(http, interaction, pool, options).await?,
+            "create" => Self::create::<Db, TzManager>(http, interaction, pool, options).await?,
+            "tags" => Self::tags::<Db, PostHandler>(http, interaction, pool, options).await?,
+            "join" => Self::join::<Db, PostHandler>(http, interaction, pool, options).await?,
+            "leave" => Self::leave::<Db, PostHandler>(http, interaction, pool).await?,
+            "joined" => Self::joined::<Db, PostHandler>(http, interaction, pool).await,
+            "timezone" => Self::timezone::<Db, TzManager>(http, interaction, pool, options).await?,
             _ => unreachable!("Invalid subcommand"),
         }
 
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         let setup = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "setup",
@@ -174,7 +174,7 @@ impl Command {
     }
 
     pub async fn autocomplete(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
     ) -> Result<()> {
@@ -201,7 +201,7 @@ impl Command {
 
         interaction
             .create_response(
-                ctx,
+                http,
                 CreateInteractionResponse::Autocomplete(
                     CreateAutocompleteResponse::new().set_choices(filtered),
                 ),

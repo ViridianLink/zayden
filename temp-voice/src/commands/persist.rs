@@ -1,16 +1,16 @@
-use serenity::all::{CommandInteraction, Context, EditInteractionResponse};
+use serenity::all::{CommandInteraction, EditInteractionResponse, Http};
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
 use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow};
 
 pub async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     mut row: VoiceChannelRow,
 ) -> Result<()> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(http).await.unwrap();
 
     let member = interaction.member.as_ref().unwrap();
     let is_moderator = member.permissions.unwrap().manage_channels();
@@ -38,9 +38,8 @@ pub async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
 
     interaction
         .edit_response(
-            ctx,
-            EditInteractionResponse::new()
-                .content(format!("Channel persistence is now {}.", state)),
+            http,
+            EditInteractionResponse::new().content(format!("Channel persistence is now {state}.")),
         )
         .await
         .unwrap();

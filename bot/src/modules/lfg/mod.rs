@@ -7,8 +7,7 @@ use lfg::components::{EditManager, EditRow};
 use lfg::modals::create::{GuildManager, GuildRow};
 use lfg::models::timezone_manager::LOCALE_TO_TIMEZONE;
 use lfg::{JoinedRow, PostManager, PostRow, Savable, TimezoneManager}; // PostRow
-use serenity::all::{ChannelId, GuildId, MessageId, RoleId, UserId};
-use sqlx::any::AnyQueryResult;
+use serenity::all::{ChannelId, GenericChannelId, GuildId, MessageId, RoleId, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 
@@ -18,7 +17,7 @@ pub struct PostTable;
 
 #[async_trait]
 impl PostManager<Postgres> for PostTable {
-    async fn exists(pool: &PgPool, id: impl Into<ChannelId> + Send) -> sqlx::Result<bool> {
+    async fn exists(pool: &PgPool, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<bool> {
         let id = id.into();
 
         sqlx::query_scalar!(
@@ -30,7 +29,7 @@ impl PostManager<Postgres> for PostTable {
         .map(|exists| exists.unwrap_or(false))
     }
 
-    async fn owner(pool: &PgPool, id: impl Into<ChannelId> + Send) -> sqlx::Result<UserId> {
+    async fn owner(pool: &PgPool, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<UserId> {
         let id = id.into();
 
         sqlx::query_scalar!("SELECT owner from lfg_posts WHERE id = $1", id.get() as i64)
@@ -39,7 +38,7 @@ impl PostManager<Postgres> for PostTable {
             .map(|id| UserId::new(id as u64))
     }
 
-    async fn row(pool: &PgPool, id: impl Into<ChannelId> + Send) -> sqlx::Result<PostRow> {
+    async fn row(pool: &PgPool, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<PostRow> {
         let id = id.into();
 
         sqlx::query_as!(
@@ -81,14 +80,13 @@ impl PostManager<Postgres> for PostTable {
 
     async fn delete(
         pool: &PgPool,
-        id: impl Into<ChannelId> + Send,
-    ) -> sqlx::Result<AnyQueryResult> {
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
 
         sqlx::query!("DELETE FROM lfg_posts WHERE id = $1", id.get() as i64)
             .execute(pool)
             .await
-            .map(AnyQueryResult::from)
     }
 }
 
@@ -175,7 +173,7 @@ impl SetupManager<Postgres> for PostTable {
         id: impl Into<GuildId> + Send,
         channel: impl Into<ChannelId> + Send,
         role: Option<impl Into<RoleId> + Send>,
-    ) -> sqlx::Result<AnyQueryResult> {
+    ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
         let channel = channel.into();
         let role = role.map(|role| role.into());
@@ -195,7 +193,6 @@ impl SetupManager<Postgres> for PostTable {
         )
         .execute(pool)
         .await
-        .map(AnyQueryResult::from)
     }
 }
 
@@ -289,18 +286,16 @@ impl TimezoneManager<Postgres> for UsersTable {
         pool: &PgPool,
         id: impl Into<UserId> + Send,
         tz: Tz,
-    ) -> sqlx::Result<AnyQueryResult> {
+    ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
 
-        let result = sqlx::query!(
+        sqlx::query!(
             "INSERT INTO lfg_users (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
             id.get() as i64,
             tz.name()
         )
         .execute(pool)
-        .await?;
-
-        Ok(result.into())
+        .await
     }
 }
 

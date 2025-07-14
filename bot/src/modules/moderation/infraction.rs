@@ -2,6 +2,7 @@ use std::cmp;
 
 use async_trait::async_trait;
 use chrono::{Months, TimeDelta, Utc};
+use core::{SlashCommand, parse_options};
 use serenity::all::{
     CommandInteraction, CommandOptionType, CreateEmbed, CreateMessage, EditInteractionResponse,
     Message, Ready, ResolvedOption, ResolvedValue, User, UserId,
@@ -11,7 +12,6 @@ use serenity::model::prelude::GuildId;
 use serenity::model::{Permissions, Timestamp};
 use serenity::prelude::Context;
 use sqlx::{PgPool, Pool, Postgres};
-use core::{SlashCommand, parse_options};
 
 use crate::{Error, Result};
 
@@ -215,7 +215,7 @@ async fn warn<'a>(
 #[allow(clippy::too_many_arguments)]
 async fn mute<'a>(
     ctx: &Context,
-    pool: &Pool<Postgres>,
+    pool: PgPool,
     guild_id: GuildId,
     user: &User,
     moderator: &User,
@@ -288,7 +288,7 @@ async fn mute<'a>(
 
 async fn ban<'a>(
     ctx: &Context,
-    pool: &Pool<Postgres>,
+    pool: PgPool,
     guild_id: GuildId,
     user: &User,
     moderator: &User,

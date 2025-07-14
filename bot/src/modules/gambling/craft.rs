@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::craft::{CraftManager, CraftRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::{PgPool, Postgres, any::AnyQueryResult};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
 use crate::{Error, Result};
@@ -17,7 +18,7 @@ impl CraftManager<Postgres> for CraftTable {
         sqlx::query_as!(CraftRow, "SELECT id, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production FROM gambling_mine WHERE id = $1", id.get() as i64).fetch_optional(pool).await
     }
 
-    async fn save(pool: &PgPool, row: CraftRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save(pool: &PgPool, row: CraftRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "INSERT INTO gambling_mine (id, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -46,7 +47,6 @@ impl CraftManager<Postgres> for CraftTable {
         )
         .execute(pool)
         .await
-        .map(AnyQueryResult::from)
     }
 }
 
@@ -60,7 +60,7 @@ impl SlashCommand<Error, Postgres> for Craft {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::craft::<Postgres, CraftTable>(ctx, interaction, options, pool).await?;
+        Commands::craft::<Postgres, CraftTable>(&ctx.http, interaction, options, pool).await?;
 
         Ok(())
     }

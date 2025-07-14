@@ -11,7 +11,7 @@ rust-tls = ["serenity/rustls_backend"]
 [dependencies]
 zayden-core = { workspace = true }
 
-sqlx = { version = "*", default-features = false, features = ["any", "macros"] }
-serenity = { version = "*", default-features = false, features = ["model"] }
-async-trait = { version = "*", default-features = false }
-futures = { version = "*", default-features = false }
+async-trait = { workspace = true }
+futures = { workspace = true }
+serenity = { workspace = true }
+sqlx = { workspace = true, features = ["macros"] }

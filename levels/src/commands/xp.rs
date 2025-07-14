@@ -1,17 +1,17 @@
 use serenity::all::{
-    CommandInteraction, Context, CreateEmbed, EditInteractionResponse, ResolvedOption,
-    ResolvedValue,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
 use crate::{LevelsManager, LevelsRow};
 
-use super::Commands;
+pub struct Xp;
 
-impl Commands {
+impl Xp {
     pub async fn xp<Db: Database, Manager: LevelsManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
@@ -19,8 +19,8 @@ impl Commands {
         let mut options = parse_options(options);
 
         match options.remove("ephemeral") {
-            Some(ResolvedValue::Boolean(true)) => interaction.defer_ephemeral(ctx).await.unwrap(),
-            _ => interaction.defer(ctx).await.unwrap(),
+            Some(ResolvedValue::Boolean(true)) => interaction.defer_ephemeral(http).await.unwrap(),
+            _ => interaction.defer(http).await.unwrap(),
         }
 
         let row = Manager::xp_row(pool, interaction.user.id)
@@ -36,8 +36,18 @@ impl Commands {
         ));
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
+    }
+
+    pub fn register<'a>() -> CreateCommand<'a> {
+        CreateCommand::new("xp")
+            .description("Get your current xp")
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::Boolean,
+                "ephemeral",
+                "Whether the response should be ephemeral",
+            ))
     }
 }

@@ -1,22 +1,18 @@
 use std::collections::HashMap;
 
-use serenity::all::{
-    CommandInteraction, Context, EditInteractionResponse, MessageId, ResolvedValue,
-};
+use serenity::all::{CommandInteraction, EditInteractionResponse, Http, MessageId, ResolvedValue};
 use sqlx::{Database, Pool};
 
-use crate::{ticket_manager::TicketManager, Result};
+use crate::{Result, Ticket, TicketManager};
 
-use super::TicketCommand;
-
-impl TicketCommand {
+impl Ticket {
     pub(super) async fn remove<Db: Database, Manager: TicketManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        interaction.defer_ephemeral(ctx).await?;
+        interaction.defer_ephemeral(http).await?;
 
         let message_id = match options.remove("message") {
             Some(ResolvedValue::Integer(id)) => MessageId::new(id as u64),
@@ -24,17 +20,20 @@ impl TicketCommand {
         };
 
         let channel_id = match options.remove("channel") {
-            Some(ResolvedValue::Channel(channel)) => channel.id,
+            Some(ResolvedValue::Channel(channel)) => channel.id(),
             _ => interaction.channel_id,
         };
 
-        channel_id.delete_message(ctx, message_id).await.unwrap();
+        channel_id
+            .delete_message(http, message_id, Some("Deleted created ticket message"))
+            .await
+            .unwrap();
 
         Manager::delete(pool, message_id).await.unwrap();
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new().content("Message removed"),
             )
             .await

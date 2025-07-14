@@ -4,14 +4,16 @@ use serenity::all::Context;
 use sqlx::{PgPool, Postgres};
 use std::cmp::Ordering;
 use std::time::Duration;
+use tokio::sync::RwLock;
 use tokio::time::sleep;
-use zayden_core::{ActionFn, CronJobs};
+use zayden_core::{ActionFn, CronJobData};
 
 use crate::Result;
+use crate::ctx_data::CtxData;
 
 pub async fn start_cron_jobs(ctx: Context, pool: PgPool) {
     if let Err(e) = _start_cron_jobs(ctx, pool).await {
-        eprintln!("Error starting cron jobs: {:?}", e);
+        eprintln!("Error starting cron jobs: {e:?}");
     }
 }
 
@@ -21,7 +23,7 @@ async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
 
         let sleep_duration = match pending_jobs.first() {
             Some((target_wakeup_time, _)) => {
-                println!("Next Job: {:?}", target_wakeup_time);
+                println!("Next Job: {target_wakeup_time:?}");
 
                 let now = Utc::now();
                 if *target_wakeup_time > now {
@@ -55,22 +57,23 @@ async fn pending_jobs(ctx: &Context) -> Vec<(DateTime<Utc>, ActionFn<Postgres>)>
     let mut pending_jobs: Vec<(DateTime<Utc>, ActionFn<Postgres>)> = Vec::new();
     let mut earliest_time = None;
 
-    let mut data = ctx.data.write().await;
-    let jobs = data
-        .remove::<CronJobs<Postgres>>()
-        .unwrap_or(Vec::new())
-        .into_iter()
-        .filter_map(|job| {
-            job.schedule
-                .upcoming(Utc)
-                .next()
-                .map(|run_time| (job, run_time))
-        })
-        .collect::<Vec<_>>();
+    let data = ctx.data::<RwLock<CtxData>>();
 
-    for (job, run_time) in &jobs {
-        let run_time = *run_time;
+    {
+        let mut data = data.write().await;
+        data.jobs_mut()
+            .retain(|job| job.schedule.upcoming(Utc).next().is_some());
+    }
 
+    let data = data.read().await;
+    let jobs = data.jobs().iter().filter_map(|job| {
+        job.schedule
+            .upcoming(Utc)
+            .next()
+            .map(|run_time| (job, run_time))
+    });
+
+    for (job, run_time) in jobs {
         match earliest_time {
             Some(time) => match run_time.cmp(&time) {
                 Ordering::Less => {
@@ -86,8 +89,6 @@ async fn pending_jobs(ctx: &Context) -> Vec<(DateTime<Utc>, ActionFn<Postgres>)>
             }
         }
     }
-
-    data.insert::<CronJobs<Postgres>>(jobs.into_iter().map(|(job, _)| job).collect());
 
     pending_jobs
 }

@@ -1,5 +1,6 @@
 use serenity::all::{
-    ComponentInteraction, Context, CreateInteractionResponse, CreateInteractionResponseMessage,
+    ComponentInteraction,  CreateComponent, CreateInteractionResponse,
+    CreateInteractionResponseMessage, Http,
 };
 use sqlx::{Database, Pool};
 
@@ -10,7 +11,7 @@ use super::Components;
 
 impl Components {
     pub async fn settings<Db: Database, Manager: PostManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
@@ -29,10 +30,12 @@ impl Components {
 
         interaction
             .create_response(
-                ctx,
+                http,
                 CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::new()
-                        .components(vec![main_row, settings_row]),
+                    CreateInteractionResponseMessage::new().components(vec![
+                        CreateComponent::ActionRow(main_row),
+                        CreateComponent::ActionRow(settings_row),
+                    ]),
                 ),
             )
             .await

@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use async_trait::async_trait;
 use serenity::all::{ChannelId, UserId};
-use sqlx::any::AnyQueryResult;
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 
@@ -12,8 +11,8 @@ use crate::Result;
 pub trait VoiceChannelManager<Db: Database> {
     async fn get(pool: &Pool<Db>, id: ChannelId) -> sqlx::Result<Option<VoiceChannelRow>>;
     async fn count_persistent_channels(pool: &Pool<Db>, user_id: UserId) -> sqlx::Result<i64>;
-    async fn save(pool: &Pool<Db>, row: VoiceChannelRow) -> sqlx::Result<AnyQueryResult>;
-    async fn delete(pool: &Pool<Db>, id: ChannelId) -> sqlx::Result<AnyQueryResult>;
+    async fn save(pool: &Pool<Db>, row: VoiceChannelRow) -> sqlx::Result<Db::QueryResult>;
+    async fn delete(pool: &Pool<Db>, id: ChannelId) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]

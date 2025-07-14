@@ -21,7 +21,7 @@ impl SlashCommand<Error, Postgres> for DimWishlist {
         pool: &PgPool,
     ) -> Result<()> {
         DimWishlistCommand::run::<Postgres, DestinyWeaponTable, DestinyPerkTable>(
-            ctx,
+            &ctx.http,
             interaction,
             options,
             pool,
@@ -46,7 +46,7 @@ impl SlashCommand<Error, Postgres> for TierList {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        TierListCommand::run::<Postgres, DestinyWeaponTable>(ctx, interaction, options, pool)
+        TierListCommand::run::<Postgres, DestinyWeaponTable>(&ctx.http, interaction, options, pool)
             .await?;
 
         Ok(())
@@ -66,7 +66,7 @@ impl Autocomplete<Error, Postgres> for TierList {
         pool: &PgPool,
     ) -> Result<()> {
         TierListCommand::autocomplete::<Postgres, DestinyWeaponTable>(
-            ctx,
+            &ctx.http,
             interaction,
             option,
             pool,
@@ -84,10 +84,10 @@ impl SlashCommand<Error, Postgres> for Weapon {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
+        _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        WeaponCommand::run::<Postgres, DestinyWeaponTable>(ctx, interaction, options, pool).await?;
+        WeaponCommand::run::<Postgres, DestinyWeaponTable>(&ctx.http, interaction, pool).await?;
 
         Ok(())
     }
@@ -105,8 +105,13 @@ impl Autocomplete<Error, Postgres> for Weapon {
         option: AutocompleteOption<'_>,
         pool: &PgPool,
     ) -> Result<()> {
-        WeaponCommand::autocomplete::<Postgres, DestinyWeaponTable>(ctx, interaction, option, pool)
-            .await?;
+        WeaponCommand::autocomplete::<Postgres, DestinyWeaponTable>(
+            &ctx.http,
+            interaction,
+            option,
+            pool,
+        )
+        .await?;
 
         Ok(())
     }

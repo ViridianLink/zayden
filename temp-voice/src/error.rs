@@ -1,4 +1,4 @@
-use serenity::all::{ChannelId, DiscordJsonError, ErrorResponse, HttpError, Mentionable};
+use serenity::all::{ChannelId, Mentionable};
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
@@ -55,26 +55,7 @@ impl std::fmt::Display for Error {
                 "Channel not found: {}\nTry using `/voice claim` to claim the channel.",
                 id.mention()
             ),
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error: DiscordJsonError { code: 10003, .. },
-                    ..
-                },
-            ))) => zayden_core::Error::ChannelDeleted.fmt(f),
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error: DiscordJsonError { code: 50013, .. },
-                    ..
-                },
-            ))) => {
-                write!(
-                    f,
-                    "I'm missing permissions perform that action. Please contact a server admin to resolve this."
-                )
-            }
-            Self::Serenity(e) => {
-                unimplemented!("Unhandled serenity error: {e:?}")
-            }
+            Self::Serenity(_) => unimplemented!("Serenity errors should be handled in application"),
         }
     }
 }

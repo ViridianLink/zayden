@@ -88,7 +88,7 @@ impl EndgameAnalysisSheet {
                 match builder.build::<Db, Manager>(pool).await {
                     Ok(weapon) => Some(weapon),
                     Err(_) => {
-                        eprintln!("Missing weapon {}", name);
+                        eprintln!("Missing weapon {name}");
                         None
                     }
                 }

@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 use async_trait::async_trait;
 use chrono_tz::{America, Asia, Europe, Tz};
 use serenity::all::UserId;
-use sqlx::{Database, Pool, any::AnyQueryResult};
+use sqlx::{Database, Pool};
 
 pub static LOCALE_TO_TIMEZONE: LazyLock<HashMap<&'static str, chrono_tz::Tz>> =
     LazyLock::new(|| {
@@ -51,5 +51,5 @@ pub trait TimezoneManager<Db: Database> {
         pool: &Pool<Db>,
         id: impl Into<UserId> + Send,
         tz: Tz,
-    ) -> sqlx::Result<AnyQueryResult>;
+    ) -> sqlx::Result<Db::QueryResult>;
 }

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::dig::{DigManager, DigRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::any::AnyQueryResult;
+use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
@@ -49,7 +49,7 @@ impl DigManager<Postgres> for DigTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: DigRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save(pool: &PgPool, row: DigRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
@@ -65,8 +65,7 @@ impl DigManager<Postgres> for DigTable {
             row.stamina,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         let result2 = sqlx::query!(
             "INSERT INTO gambling_mine (id, coal, iron, gold, redstone, lapis, diamonds, emeralds, mine_activity)
@@ -91,8 +90,7 @@ impl DigManager<Postgres> for DigTable {
             row.mine_activity
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         result.extend([result2]);
 
@@ -112,7 +110,7 @@ impl SlashCommand<Error, Postgres> for Dig {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::dig::<Postgres, StaminaTable, GoalsTable, DigTable>(ctx, interaction, pool)
+        Commands::dig::<Postgres, StaminaTable, GoalsTable, DigTable>(&ctx.http, interaction, pool)
             .await?;
         Ok(())
     }

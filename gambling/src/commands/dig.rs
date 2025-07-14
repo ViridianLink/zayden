@@ -5,10 +5,9 @@ use chrono::{NaiveDateTime, Utc};
 use rand::rng;
 use rand_distr::{Binomial, Distribution};
 use serenity::all::{
-    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
-    UserId,
+    Colour, CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
 };
-use sqlx::{Database, Pool, any::AnyQueryResult, prelude::FromRow};
+use sqlx::{Database, Pool, prelude::FromRow};
 use zayden_core::FormatNum;
 
 use crate::events::{Dispatch, Event};
@@ -43,7 +42,7 @@ static CHANCES: LazyLock<HashMap<&str, f64>> = LazyLock::new(|| {
 pub trait DigManager<Db: Database> {
     async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<DigRow>>;
 
-    async fn save(pool: &Pool<Db>, row: DigRow) -> sqlx::Result<AnyQueryResult>;
+    async fn save(pool: &Pool<Db>, row: DigRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(Debug, FromRow)]
@@ -172,11 +171,11 @@ impl Commands {
         GoalsHandler: GoalsManager<Db>,
         DigHandler: DigManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(http).await?;
 
         let mut row = DigHandler::row(pool, interaction.user.id)
             .await
@@ -195,7 +194,7 @@ impl Commands {
             ("emeralds", 0),
         ]);
 
-        let miners = 1000 + (row.miners() * row.prestige_mult_10()) / 10;
+        let miners = (row.miners() * 10) * row.prestige_mult_10() / 10;
 
         for (&resource, chance) in CHANCES.iter() {
             let ore = Binomial::new(miners as u64, (chance).min(1.0))
@@ -220,7 +219,7 @@ impl Commands {
             s => unreachable!("Invalid resource: {s}"),
         });
 
-        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalsHandler>::new(http, pool)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -278,14 +277,14 @@ impl Commands {
             .color(Colour::GOLD);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_dig() -> CreateCommand {
+    pub fn register_dig<'a>() -> CreateCommand<'a> {
         CreateCommand::new("dig").description("Dig in the mines to collect resources")
     }
 }

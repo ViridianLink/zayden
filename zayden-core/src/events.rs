@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use serenity::all::{Context, Guild, Message, PartialGuildChannel, Reaction, VoiceState};
+use serenity::all::{Context, Guild, Message, PartialGuildThread, Reaction, VoiceState};
 use sqlx::{Database, Pool};
 
 #[async_trait]
@@ -52,7 +52,7 @@ pub trait VoiceStateUpdate<E: std::error::Error> {
 pub trait ThreadDelete<E: std::error::Error> {
     async fn run<Db: Database>(
         ctx: &Context,
-        thread: &PartialGuildChannel,
+        thread: &PartialGuildThread,
         pool: &Pool<Db>,
     ) -> Result<(), E>;
 }

@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use levels::{LevelsRow, level_up_xp};
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
+    Colour, CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool, types::Json};
 use zayden_core::FormatNum;
@@ -99,7 +99,7 @@ impl MaxBet for ProfileRow {
     }
 }
 
-impl From<ProfileRow> for CreateEmbed {
+impl From<ProfileRow> for CreateEmbed<'_> {
     fn from(value: ProfileRow) -> Self {
         let mut betting_max = value.max_bet_str();
         if value.prestige() != 0 {
@@ -140,12 +140,12 @@ impl From<ProfileRow> for CreateEmbed {
 
 impl Commands {
     pub async fn profile<Db: Database, Manager: ProfileManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let user = match options.pop() {
             Some(option) => {
@@ -166,14 +166,14 @@ impl Commands {
         }
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_profile() -> CreateCommand {
+    pub fn register_profile<'a>() -> CreateCommand<'a> {
         CreateCommand::new("profile")
             .description("Show your coins, level and items")
             .add_option(CreateCommandOption::new(

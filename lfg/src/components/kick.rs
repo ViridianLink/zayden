@@ -1,4 +1,4 @@
-use serenity::all::{ComponentInteraction, Context, CreateInteractionResponseMessage};
+use serenity::all::{ComponentInteraction,  CreateInteractionResponseMessage, Http};
 use serenity::all::{CreateInteractionResponse, CreateSelectMenu, CreateSelectMenuKind};
 use sqlx::Database;
 use sqlx::Pool;
@@ -11,7 +11,7 @@ use super::Components;
 
 impl Components {
     pub async fn kick<Db: Database, Manager: PostManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
@@ -30,7 +30,7 @@ impl Components {
 
         interaction
             .create_response(
-                ctx,
+                http,
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
                         .content("Select the user you want to kick")
@@ -49,16 +49,16 @@ pub struct KickComponent;
 
 impl KickComponent {
     pub async fn run<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        actions::leave::<Db, Manager>(ctx, interaction, pool)
+        actions::leave::<Db, Manager>(http, interaction, pool)
             .await
             .unwrap();
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Acknowledge)
+            .create_response(http, CreateInteractionResponse::Acknowledge)
             .await
             .unwrap();
 

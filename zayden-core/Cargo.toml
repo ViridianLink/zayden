@@ -3,13 +3,10 @@ name = "zayden-core"
 version = "0.9.0"
 edition = "2024"
 
+
 [dependencies]
-async-trait = { version = "*", default-features = false }
-cron = { version = "*", default-features = false }
-serenity = { version = "*", default-features = false, features = [
-    "rustls_backend",
-    "client",
-    "gateway",
-    "builder",
-] }
-sqlx = { version = "*", default-features = false, features = ["any"] }
+async-trait = { workspace = true }
+cron = { workspace = true }
+serenity = { workspace = true, features = ["rustls_backend", "gateway"] }
+sqlx = { workspace = true }
+tokio = { workspace = true }

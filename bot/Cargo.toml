@@ -14,47 +14,30 @@ suggestions = { workspace = true }
 temp-voice = { workspace = true }
 ticket = { workspace = true }
 
-bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
+bungie-api = { workspace = true }
 
-async-trait = { version = "*", default-features = false }
-bigdecimal = { version = "*", default-features = false }
-chrono = { version = "*", default-features = false }
-chrono-tz = { version = "*", default-features = false }
-cron = { version = "*", default-features = false }
-dotenvy = { version = "*", default-features = false }
-futures = { version = "*", default-features = false, features = [
-    "async-await",
-] }
-serde = { version = "*", default-features = false }
-serde_json = { version = "*", default-features = false }
-sqlx = { version = "*", default-features = false, features = [
-    "runtime-tokio",
-    "tls-native-tls",
-    "postgres",
-    "macros",
-    "chrono",
-    "uuid",
-    "json",
-    "bigdecimal",
-] }
-tokio = { version = "*", default-features = false, features = [
-    "macros",
-    "rt-multi-thread",
-] }
-time = { version = "*", default-features = false }
-url = { version = "*", default-features = false }
-walkdir = { version = "*", default-features = false }
-rand = { version = "*", default-features = false, features = ["thread_rng"] }
-rand_distr = { version = "*", default-features = false }
-serenity = { version = "*", default-features = false, features = [
+async-trait = { workspace = true }
+bigdecimal = { workspace = true }
+chrono = { workspace = true }
+chrono-tz = { workspace = true }
+dotenvy = { workspace = true }
+futures = { workspace = true, features = ["async-await"] }
+openai_api_rust = { workspace = true }
+rand = { workspace = true, features = ["thread_rng"] }
+serde_json = { workspace = true }
+serenity = { workspace = true, features = [
     "rustls_backend",
     "builder",
-    "chrono",
-    "client",
     "gateway",
-    "model",
-    "utils",
-    "collector",
+    "transport_compression_zlib",
+    "transport_compression_zstd",
 ] }
-openai_api_rust = { version = "*", default-features = false }
-num-format = { version = "*", default-features = false, features = ["std"] }
+sqlx = { workspace = true, features = [
+    "macros",
+    "bigdecimal",
+    "chrono",
+    "postgres",
+    "runtime-tokio-rustls",
+    # "time",
+] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }

@@ -297,7 +297,7 @@ impl Weapon {
         let weapons = WeaponManager::get_by_prefix(pool, name).await.unwrap();
 
         if weapons.is_empty() {
-            panic!("No weapon found for {}", name);
+            panic!("No weapon found for {name}");
         }
 
         let api_perks = self.perks().as_api::<Db, PerkManager>(pool).await;
@@ -334,20 +334,20 @@ impl Weapon {
     }
 }
 
-impl From<&Weapon> for CreateEmbed {
-    fn from(value: &Weapon) -> Self {
+impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
+    fn from(value: &'a Weapon) -> Self {
         let frame = value
             .frame
             .as_ref()
-            .map(|f| format!("{} ", f))
+            .map(|f| format!("{f} "))
             .unwrap_or_default();
 
         let mut description = format!("Tier: {} (#{})", value.tier.tier(), value.rank);
         if let Some(reserves) = value.reserves {
-            description.push_str(&format!("\nReserves: {}", reserves));
+            description.push_str(&format!("\nReserves: {reserves}"));
         }
 
-        let embed = CreateEmbed::new()
+        CreateEmbed::new()
             .author(CreateEmbedAuthor::new(format!(
                 "{} {}{}",
                 value.affinity,
@@ -374,15 +374,13 @@ impl From<&Weapon> for CreateEmbed {
                                 .collect::<Vec<_>>(),
                         )
                     })
-                    .map(|(i, p)| (format!("Perk {}", i), p.join("\n"), true)),
+                    .map(|(i, p)| (format!("Perk {i}"), p.join("\n"), true)),
             )
-            .field("Origin Trait", value.origin_trait(), false);
-
-        embed
+            .field("Origin Trait", value.origin_trait(), false)
     }
 }
 
-impl From<Weapon> for AutocompleteChoice {
+impl From<Weapon> for AutocompleteChoice<'_> {
     fn from(value: Weapon) -> Self {
         AutocompleteChoice::new(value.name.clone(), value.name)
     }

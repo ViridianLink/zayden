@@ -4,11 +4,13 @@ use serenity::all::{
     ChannelId, CommandInteraction, Context, EditChannel, EditInteractionResponse, GuildId,
     PermissionOverwrite, PermissionOverwriteType, Permissions, ResolvedValue, RoleId, UserId,
 };
+use serenity::small_fixed_array::FixedArray;
+use tokio::sync::RwLock;
 
 use crate::error::PermissionError;
 use crate::{Error, VoiceChannelRow, VoiceStateCache};
 
-pub async fn privacy(
+pub async fn privacy<Data: VoiceStateCache>(
     ctx: &Context,
     interaction: &CommandInteraction,
     mut options: HashMap<&str, ResolvedValue<'_>>,
@@ -16,7 +18,7 @@ pub async fn privacy(
     channel_id: ChannelId,
     row: VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(&ctx.http).await.unwrap();
 
     if !row.is_trusted(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotTrusted));
@@ -29,11 +31,16 @@ pub async fn privacy(
 
     let everyone_role = guild_id.everyone_role();
 
-    let channel = channel_id.to_channel(ctx).await.unwrap().guild().unwrap();
+    let channel = channel_id
+        .to_guild_channel(&ctx.http, interaction.guild_id)
+        .await
+        .unwrap();
+
     let users = {
-        let data = ctx.data.read().await;
-        let cache = data.get::<VoiceStateCache>().unwrap();
-        cache
+        let data = ctx.data::<RwLock<Data>>();
+        let data = data.read().await;
+
+        data.get()
             .values()
             .filter(|state| state.channel_id == Some(channel_id))
             .map(|state| state.user_id)
@@ -50,11 +57,11 @@ pub async fn privacy(
         _ => unreachable!("Invalid privacy option"),
     };
 
-    channel_id.edit(ctx, builder).await.unwrap();
+    channel_id.edit(&ctx.http, builder).await.unwrap();
 
     interaction
         .edit_response(
-            ctx,
+            &ctx.http,
             EditInteractionResponse::new().content("Channel privacy updated."),
         )
         .await
@@ -63,27 +70,32 @@ pub async fn privacy(
     Ok(())
 }
 
-fn open_builder<'a>(perms: Vec<PermissionOverwrite>, everyone: RoleId) -> EditChannel<'a> {
-    let perms = perms.into_iter().map(|perm| {
-        if perm.kind == PermissionOverwriteType::Role(everyone) {
-            PermissionOverwrite {
-                allow: Permissions::VIEW_CHANNEL,
-                deny: Permissions::empty(),
-                kind: PermissionOverwriteType::Role(everyone),
+fn open_builder<'a>(perms: FixedArray<PermissionOverwrite>, everyone: RoleId) -> EditChannel<'a> {
+    let perms = perms
+        .into_iter()
+        .map(|perm| {
+            if perm.kind == PermissionOverwriteType::Role(everyone) {
+                PermissionOverwrite {
+                    allow: Permissions::VIEW_CHANNEL,
+                    deny: Permissions::empty(),
+                    kind: PermissionOverwriteType::Role(everyone),
+                }
+            } else {
+                perm
             }
-        } else {
-            perm
-        }
-    });
+        })
+        .collect::<Vec<_>>();
 
     EditChannel::new().permissions(perms)
 }
 
 fn spectate_builder<'a>(
-    mut perms: Vec<PermissionOverwrite>,
+    perms: FixedArray<PermissionOverwrite>,
     everyone: RoleId,
     users: Vec<UserId>,
 ) -> EditChannel<'a> {
+    let mut perms = perms.into_vec();
+
     for user in users {
         let perm = perms.iter_mut().find(
             |perm| matches!(perm.kind, PermissionOverwriteType::Member(user_id) if user_id == user),
@@ -115,34 +127,43 @@ fn spectate_builder<'a>(
     EditChannel::new().permissions(perms)
 }
 
-fn lock_builder<'a>(perms: Vec<PermissionOverwrite>, everyone: RoleId) -> EditChannel<'a> {
-    let perms = perms.into_iter().map(|perm| {
-        if perm.kind == PermissionOverwriteType::Role(everyone) {
-            PermissionOverwrite {
-                allow: Permissions::empty(),
-                deny: Permissions::CONNECT,
-                kind: PermissionOverwriteType::Role(everyone),
+fn lock_builder<'a>(perms: FixedArray<PermissionOverwrite>, everyone: RoleId) -> EditChannel<'a> {
+    let perms = perms
+        .into_iter()
+        .map(|perm| {
+            if perm.kind == PermissionOverwriteType::Role(everyone) {
+                PermissionOverwrite {
+                    allow: Permissions::empty(),
+                    deny: Permissions::CONNECT,
+                    kind: PermissionOverwriteType::Role(everyone),
+                }
+            } else {
+                perm
             }
-        } else {
-            perm
-        }
-    });
+        })
+        .collect::<Vec<_>>();
 
     EditChannel::new().permissions(perms)
 }
 
-fn invisible_builder<'a>(perms: Vec<PermissionOverwrite>, everyone: RoleId) -> EditChannel<'a> {
-    let perms = perms.into_iter().map(|perm| {
-        if perm.kind == PermissionOverwriteType::Role(everyone) {
-            PermissionOverwrite {
-                allow: Permissions::empty(),
-                deny: Permissions::VIEW_CHANNEL,
-                kind: PermissionOverwriteType::Role(everyone),
+fn invisible_builder<'a>(
+    perms: FixedArray<PermissionOverwrite>,
+    everyone: RoleId,
+) -> EditChannel<'a> {
+    let perms = perms
+        .into_iter()
+        .map(|perm| {
+            if perm.kind == PermissionOverwriteType::Role(everyone) {
+                PermissionOverwrite {
+                    allow: Permissions::empty(),
+                    deny: Permissions::VIEW_CHANNEL,
+                    kind: PermissionOverwriteType::Role(everyone),
+                }
+            } else {
+                perm
             }
-        } else {
-            perm
-        }
-    });
+        })
+        .collect::<Vec<_>>();
 
     EditChannel::new().permissions(perms)
 }

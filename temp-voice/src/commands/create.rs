@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelType, Context, CreateChannel, GuildId, PermissionOverwrite, PermissionOverwriteType,
-    Permissions, ResolvedValue,
+    ChannelType, CreateChannel, GuildId, Http, JsonErrorCode, PermissionOverwrite,
+    PermissionOverwriteType, Permissions, ResolvedValue,
 };
 use serenity::all::{DiscordJsonError, EditInteractionResponse, ErrorResponse, HttpError};
+use serenity::nonmax::NonMaxU16;
 use sqlx::{Database, Pool};
 
 use crate::{
@@ -17,13 +18,13 @@ pub async fn create<
     GuildManager: TempVoiceGuildManager<Db>,
     ChannelManager: VoiceChannelManager<Db>,
 >(
-    ctx: &Context,
+    http: &Http,
     interaction: &serenity::all::CommandInteraction,
     pool: &Pool<Db>,
     guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(http).await.unwrap();
 
     let name = match options.remove("name") {
         Some(ResolvedValue::String(name)) => name.to_string(),
@@ -31,7 +32,7 @@ pub async fn create<
     };
 
     let limit = match options.remove("limit") {
-        Some(ResolvedValue::Integer(limit)) => limit.clamp(0, 99) as u32,
+        Some(ResolvedValue::Integer(limit)) => limit.clamp(0, 99) as u16,
         _ => 0,
     };
 
@@ -75,12 +76,12 @@ pub async fn create<
     let vc_builder = CreateChannel::new(name)
         .kind(ChannelType::Voice)
         .category(category)
-        .user_limit(limit)
+        .user_limit(NonMaxU16::new(limit).unwrap())
         .permissions(perms);
 
-    let vc = guild_id.create_channel(ctx, vc_builder).await.unwrap();
+    let vc: serenity::all::GuildChannel = guild_id.create_channel(http, vc_builder).await.unwrap();
 
-    let move_result = guild_id.move_member(ctx, interaction.user.id, vc.id).await;
+    let move_result = guild_id.move_member(http, interaction.user.id, vc.id).await;
 
     let response_content = match move_result {
         Ok(_) => "Voice channel created and you have been moved successfully.",
@@ -89,7 +90,7 @@ pub async fn create<
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().content(response_content),
         )
         .await
@@ -97,11 +98,15 @@ pub async fn create<
 
     // Target user is not connected to voice.
     if let Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-        error: DiscordJsonError { code: 40032, .. },
+        error:
+            DiscordJsonError {
+                code: JsonErrorCode::TargetUserNotConnectedToVoice,
+                ..
+            },
         ..
     }))) = move_result
     {
-        if delete_voice_channel_if_inactive(ctx, guild_id, interaction.user.id, &vc).await {
+        if delete_voice_channel_if_inactive(http, guild_id, interaction.user.id, &vc).await {
             return Ok(());
         }
     }

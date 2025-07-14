@@ -1,18 +1,21 @@
-use std::{marker::PhantomData, time::Duration};
+use std::{marker::PhantomData, sync::Arc, time::Duration};
 
 use futures::StreamExt;
 use rand::{rng, seq::IndexedRandom};
 use serenity::all::{
-    ActionRow, ActionRowComponent, ButtonStyle, Colour, CommandInteraction, CommandOptionType,
-    ComponentInteraction, Context, CreateActionRow, CreateButton, CreateCommand,
-    CreateCommandOption, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EditInteractionResponse, Mentionable, ReactionType, ResolvedOption, ResolvedValue, UserId,
+    ActionRowComponent, ButtonStyle, CollectComponentInteractions, Colour, CommandInteraction,
+    CommandOptionType, Component, ComponentInteraction, Context, CreateActionRow, CreateButton,
+    CreateCommand, CreateCommandOption, CreateComponent, CreateEmbed, CreateInteractionResponse,
+    CreateInteractionResponseMessage, EditInteractionResponse, Http, Mentionable, ReactionType,
+    ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
 use crate::{
-    BLANK, COIN, Coins, EffectsManager, GameCache, GameManager, GameRow, GoalsManager, Result,
+    BLANK, COIN, Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow,
+    GoalsManager, Result,
     events::{Dispatch, Event, GameEvent},
     models::GamblingManager,
 };
@@ -24,6 +27,7 @@ const EMOJI_P2: char = '⭕';
 
 impl Commands {
     pub async fn tictactoe<
+        Data: GamblingData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalHandler: GoalsManager<Db>,
@@ -35,14 +39,16 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let row = GameHandler::row(pool, interaction.user.id)
             .await
             .unwrap()
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
-        GameCache::can_play(ctx, interaction.user.id).await?;
+        let data = ctx.data::<RwLock<Data>>();
+
+        GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
 
         let mut options = parse_options(options);
 
@@ -58,7 +64,7 @@ impl Commands {
             .await?;
 
         GameHandler::save(pool, row).await.unwrap();
-        GameCache::update(ctx, interaction.user.id).await;
+        GameCache::update(Arc::clone(&data), interaction.user.id).await;
 
         let embed = CreateEmbed::new().title("TicTacToe").description(format!(
             "{} wants to play tic-tac-toe ({size}x{size}) for **{bet}** <:coin:{COIN}>",
@@ -67,7 +73,7 @@ impl Commands {
 
         let msg = interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .embed(embed.clone())
                     .button(
@@ -87,7 +93,8 @@ impl Commands {
             .unwrap();
 
         let mut stream = msg
-            .await_component_interactions(ctx)
+            .id
+            .collect_component_interactions(ctx)
             .timeout(Duration::from_secs(120))
             .stream();
 
@@ -96,7 +103,7 @@ impl Commands {
 
         while let Some(component) = stream.next().await {
             if !run_component::<Db, GamblingHandler, EffectsHandler, GameHandler>(
-                ctx,
+                &ctx.http,
                 interaction,
                 component,
                 pool,
@@ -143,7 +150,7 @@ impl Commands {
                 .colour(Colour::TEAL)
         };
 
-        let dispatch = Dispatch::<Db, GoalHandler>::new(ctx, pool);
+        let dispatch = Dispatch::<Db, GoalHandler>::new(&ctx.http, pool);
 
         dispatch
             .fire(
@@ -164,12 +171,12 @@ impl Commands {
         GameHandler::save(pool, p1_row).await?;
         GameHandler::save(pool, p2_row).await?;
 
-        GameCache::update(ctx, p1).await;
-        GameCache::update(ctx, p2).await;
+        GameCache::update(Arc::clone(&data), p1).await;
+        GameCache::update(data, p2).await;
 
         interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .embed(embed)
                     .components(Vec::new()),
@@ -180,7 +187,7 @@ impl Commands {
         Ok(())
     }
 
-    pub fn register_tictactoe() -> CreateCommand {
+    pub fn register_tictactoe<'a>() -> CreateCommand<'a> {
         CreateCommand::new("tictactoe")
             .description("Play a game of tic tac toe")
             .add_option(
@@ -257,7 +264,7 @@ async fn run_component<
     EffectsHandler: EffectsManager<Db> + Send,
     GameHandler: GameManager<Db>,
 >(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     component: ComponentInteraction,
     pool: &Pool<Db>,
@@ -275,7 +282,7 @@ async fn run_component<
             .components(Vec::new());
 
         component
-            .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
+            .create_response(http, CreateInteractionResponse::UpdateMessage(msg))
             .await
             .unwrap();
 
@@ -295,7 +302,7 @@ async fn run_component<
         .await?;
 
         component
-            .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
+            .create_response(http, CreateInteractionResponse::UpdateMessage(msg))
             .await
             .unwrap();
 
@@ -312,13 +319,11 @@ async fn run_component<
 
     let mut components = component.message.components.clone();
 
-    let ActionRowComponent::Button(button) = components
-        .get_mut(i)
-        .unwrap()
-        .components
-        .get_mut(j)
-        .unwrap()
-    else {
+    let Component::ActionRow(action_row) = components.get_mut(i).unwrap() else {
+        unreachable!("Component must be an action row")
+    };
+
+    let ActionRowComponent::Button(button) = action_row.components.get_mut(j).unwrap() else {
         unreachable!("Component must be a button")
     };
 
@@ -343,7 +348,11 @@ async fn run_component<
 
     let components = components
         .into_iter()
-        .map(|row| {
+        .map(|component| {
+            let Component::ActionRow(row) = component else {
+                unreachable!("Component must be an action row")
+            };
+
             let buttons = row
                 .components
                 .into_iter()
@@ -356,9 +365,9 @@ async fn run_component<
                 })
                 .collect::<Vec<CreateButton>>();
 
-            CreateActionRow::Buttons(buttons)
+            CreateComponent::ActionRow(CreateActionRow::buttons(buttons))
         })
-        .collect::<Vec<CreateActionRow>>();
+        .collect::<Vec<_>>();
 
     // Next player
     state.current_turn = if state.current_turn == state.players[0] {
@@ -376,7 +385,7 @@ async fn run_component<
         .components(components);
 
     component
-        .create_response(ctx, CreateInteractionResponse::UpdateMessage(msg))
+        .create_response(http, CreateInteractionResponse::UpdateMessage(msg))
         .await
         .unwrap();
 
@@ -384,6 +393,7 @@ async fn run_component<
 }
 
 async fn accept<
+    'a,
     Db: Database,
     GamblingHandler: GamblingManager<Db>,
     EffectsHandler: EffectsManager<Db> + Send,
@@ -392,7 +402,7 @@ async fn accept<
     pool: &Pool<Db>,
     state: &mut GameState<Db, GameHandler>,
     p2: UserId,
-) -> Result<CreateInteractionResponseMessage> {
+) -> Result<CreateInteractionResponseMessage<'a>> {
     state.players[1] = p2;
 
     let mut p1_row = state.p1_row(pool).await;
@@ -419,13 +429,13 @@ async fn accept<
         .map(|i| {
             let row = (0..state.size)
                 .map(|j| {
-                    CreateButton::new(format!("ttt_{}{}", i, j))
+                    CreateButton::new(format!("ttt_{i}{j}"))
                         .emoji(BLANK)
                         .style(ButtonStyle::Secondary)
                 })
                 .collect::<Vec<_>>();
 
-            CreateActionRow::Buttons(row)
+            CreateComponent::ActionRow(CreateActionRow::buttons(row))
         })
         .collect::<Vec<_>>();
 
@@ -436,12 +446,16 @@ async fn accept<
 
 fn check_win<Db: Database, Manager: GameManager<Db>>(
     state: &GameState<Db, Manager>,
-    components: &[ActionRow],
+    components: &[Component],
     target: ReactionType,
 ) -> bool {
     let get_emoji = |r: usize, c: usize| -> Option<&ReactionType> {
-        match components.get(r).unwrap().components.get(c).unwrap() {
-            ActionRowComponent::Button(b) => b.emoji.as_ref(),
+        let Some(Component::ActionRow(action_row)) = components.get(r) else {
+            unreachable!("Component must be an action row")
+        };
+
+        match action_row.components.get(c) {
+            Some(ActionRowComponent::Button(b)) => b.emoji.as_ref(),
             _ => unreachable!("Component must be a button"),
         }
     };
@@ -487,19 +501,19 @@ fn check_win<Db: Database, Manager: GameManager<Db>>(
     false
 }
 
-fn check_draw(components: &[ActionRow]) -> bool {
+fn check_draw(components: &[Component]) -> bool {
     let x_emoji = Some(ReactionType::from(EMOJI_P1));
     let o_emoji = Some(ReactionType::from(EMOJI_P2));
 
     components
         .iter()
-        .flat_map(|row| row.components.iter())
-        .filter_map(|component| {
-            if let ActionRowComponent::Button(button) = component {
-                Some(button)
-            } else {
-                None
-            }
+        .flat_map(|component| match component {
+            Component::ActionRow(action_row) => action_row.components.iter(),
+            _ => unreachable!("Component must be an action row"),
+        })
+        .map(|component| match component {
+            ActionRowComponent::Button(button) => button,
+            _ => unreachable!("Component must be a button"),
         })
         .all(|button| button.emoji == x_emoji || button.emoji == o_emoji)
 }

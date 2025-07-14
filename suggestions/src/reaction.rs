@@ -1,8 +1,8 @@
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    ButtonStyle, Context, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedAuthor,
-    CreateEmbedFooter, CreateMessage, EditMessage, EmbedField, GuildChannel, Message, Reaction,
-    ReactionType,
+    ButtonStyle, CreateActionRow, CreateButton, CreateComponent, CreateEmbed, CreateEmbedAuthor,
+    CreateEmbedFooter, CreateMessage, EditMessage, EmbedField, GuildChannel, Http, Message,
+    Reaction, ReactionType,
 };
 use sqlx::{Database, Pool};
 
@@ -10,7 +10,7 @@ use crate::{Suggestions, SuggestionsGuildManager};
 
 impl Suggestions {
     pub async fn reaction<Db: Database, Manager: SuggestionsGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         reaction: &Reaction,
         pool: &Pool<Db>,
     ) {
@@ -18,7 +18,7 @@ impl Suggestions {
             return;
         };
 
-        let Some(channel) = reaction.channel(&ctx).await.unwrap().guild() else {
+        let Some(channel) = reaction.channel(&http).await.unwrap().guild() else {
             return;
         };
 
@@ -37,7 +37,7 @@ impl Suggestions {
             return;
         };
 
-        let message = reaction.message(ctx).await.unwrap();
+        let message = reaction.message(http).await.unwrap();
 
         let positive_reaction = ReactionType::from('👍');
         let negative_reaction = ReactionType::from('👎');
@@ -52,23 +52,25 @@ impl Suggestions {
             }
         });
 
-        let mut messages = review_channel_id.messages_iter(&ctx).boxed();
+        let mut messages = review_channel_id.widen().messages_iter(&http).boxed();
 
         if (pos_count - neg_count) >= 20 {
             while let Some(mut msg) = messages.try_next().await.unwrap() {
                 if let Some(embed) = msg.embeds.first() {
-                    if embed.url == Some(message.link()) {
+                    if embed.url.as_deref() == Some(message.link().as_str()) {
+                        let embed = create_embed(
+                            &channel,
+                            &message,
+                            &msg.embeds[0].fields,
+                            pos_count,
+                            neg_count,
+                        );
+
                         msg.edit(
-                            ctx,
+                            http,
                             EditMessage::new()
-                                .embed(create_embed(
-                                    &channel,
-                                    &message,
-                                    &msg.embeds[0].fields,
-                                    pos_count,
-                                    neg_count,
-                                ))
-                                .components(create_components()),
+                                .embed(embed)
+                                .components(vec![create_components()]),
                         )
                         .await
                         .unwrap();
@@ -79,8 +81,9 @@ impl Suggestions {
             }
 
             review_channel_id
+                .widen()
                 .send_message(
-                    ctx,
+                    http,
                     CreateMessage::new()
                         .embed(create_embed(
                             &channel,
@@ -89,14 +92,16 @@ impl Suggestions {
                             pos_count,
                             neg_count,
                         ))
-                        .components(create_components()),
+                        .components(vec![create_components()]),
                 )
                 .await
                 .unwrap();
         } else if (neg_count - pos_count) <= 15 {
             while let Some(msg) = messages.try_next().await.unwrap() {
-                if msg.embeds[0].url == Some(message.link()) {
-                    msg.delete(ctx).await.unwrap();
+                if msg.embeds[0].url.as_deref() == Some(message.link().as_str()) {
+                    msg.delete(http, Some("Positive delta fell below 15"))
+                        .await
+                        .unwrap();
 
                     return;
                 }
@@ -105,27 +110,26 @@ impl Suggestions {
     }
 }
 
-fn create_embed(
-    channel: &GuildChannel,
-    message: &Message,
+fn create_embed<'a>(
+    channel: &'a GuildChannel,
+    message: &'a Message,
     embed_fields: &[EmbedField],
     pos_count: i32,
     neg_count: i32,
-) -> CreateEmbed {
+) -> CreateEmbed<'a> {
     let mut embed = CreateEmbed::new()
-        .title(&channel.name)
+        .title(&channel.base.name)
         .url(message.link())
         .description(&message.content)
         .author(CreateEmbedAuthor::new(&message.author.name))
         .footer(CreateEmbedFooter::new(format!(
-            "👍 {} · 👎 {}",
-            pos_count, neg_count
+            "👍 {pos_count} · 👎 {neg_count}",
         )));
 
     if let Some(team_response) = embed_fields.first() {
         embed = embed.field(
-            &team_response.name,
-            &team_response.value,
+            team_response.name.clone(),
+            team_response.value.clone(),
             team_response.inline,
         );
     }
@@ -133,13 +137,13 @@ fn create_embed(
     embed
 }
 
-fn create_components() -> Vec<CreateActionRow> {
-    vec![CreateActionRow::Buttons(vec![
+fn create_components<'a>() -> CreateComponent<'a> {
+    CreateComponent::ActionRow(CreateActionRow::buttons(vec![
         CreateButton::new("suggestions_accept")
             .label("Accept")
             .style(ButtonStyle::Success),
         CreateButton::new("suggestions_reject")
             .label("Reject")
             .style(ButtonStyle::Danger),
-    ])]
+    ]))
 }

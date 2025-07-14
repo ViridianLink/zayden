@@ -1,12 +1,12 @@
 use serenity::all::{
-    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow, types::Json};
-use zayden_core::{FormatNum, parse_options};
+use zayden_core::{FormatNum, parse_options_ref};
 
 use crate::{
     Coins, Error, Gems, GoalsManager, ItemInventory, MaxBet, MaxValues, Prestige, Result,
-    SHOP_ITEMS, SUPER_USER, ShopCurrency, ShopItem, ShopPage,
+    SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage,
     commands::shop::ShopManager,
     events::{Dispatch, Event, ShopPurchaseEvent},
     models::{GamblingItem, Mining},
@@ -35,7 +35,7 @@ pub struct BuyRow {
 }
 
 impl BuyRow {
-    fn new(id: impl Into<UserId> + Send) -> Self {
+    pub fn new(id: impl Into<UserId>) -> Self {
         let id = id.into();
 
         Self {
@@ -185,12 +185,12 @@ impl MaxBet for BuyRow {
 }
 
 pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopManager<Db>>(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
-    options: Vec<ResolvedOption<'_>>,
+    options: &[ResolvedOption<'_>],
 ) -> Result<()> {
-    let mut options = parse_options(options);
+    let mut options = parse_options_ref(options);
 
     let Some(ResolvedValue::String(item)) = options.remove("item") else {
         unreachable!("item is required");
@@ -209,26 +209,17 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
         None => BuyRow::new(interaction.user.id),
     };
 
-    let costs = item
-        .cost
-        .iter()
-        .filter_map(|x| x.as_ref())
-        .copied()
-        .collect::<Vec<_>>();
-
     let amount: i64 = match amount.parse() {
         Ok(x) => x,
-        Err(_) if amount == "a" => {
-            if SUPER_USER != interaction.user.id {
-                return Err(Error::PremiumRequired);
-            }
+        Err(_) if *amount == "a" => {
+            return Err(Error::PremiumRequired);
 
-            match costs.first().copied() {
-                Some((coins, ShopCurrency::Coins)) => row.coins() / coins,
-                Some((gems, ShopCurrency::Gems)) => row.gems() / gems,
-                Some(_) => unimplemented!("Currency not implimented"),
-                None => unreachable!("No cost found"),
-            }
+            // match costs.first().copied() {
+            //     Some((coins, ShopCurrency::Coins)) => row.coins() / coins,
+            //     Some((gems, ShopCurrency::Gems)) => row.gems() / gems,
+            //     Some(_) => unimplemented!("Currency not implimented"),
+            //     None => unreachable!("No cost found"),
+            // }
         }
         _ => return Err(Error::InvalidAmount),
     };
@@ -241,14 +232,7 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
         return Err(Error::ZeroAmount);
     }
 
-    let costs = costs
-        .into_iter()
-        .map(|(cost, currency)| {
-            cost.checked_mul(amount)
-                .map(|new_cost| (new_cost, currency))
-                .ok_or_else(|| Error::Overflow(i64::MAX / cost))
-        })
-        .collect::<Result<Vec<_>>>()?;
+    let costs = item.costs(amount);
 
     for (cost, currency) in costs.iter().copied() {
         let funds = match currency {
@@ -259,6 +243,7 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
             ShopCurrency::Production => &mut row.production,
             _ => unimplemented!("Currnecy not implemented"),
         };
+
         *funds -= cost;
 
         if *funds < 0 {
@@ -275,7 +260,7 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
         edit_inv(&mut row, item, amount)
     };
 
-    Dispatch::<Db, GoalsHandler>::new(ctx, pool)
+    Dispatch::<Db, GoalsHandler>::new(http, pool)
         .fire(
             interaction.channel_id,
             &mut row,
@@ -292,7 +277,7 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().content(format!(
                 "You bought {} {item} for {}\nYou now have {}.",
                 amount.format(),

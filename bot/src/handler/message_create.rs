@@ -12,15 +12,15 @@ use crate::modules::levels::LevelsTable;
 use crate::modules::ticket::message_commands::support;
 
 impl Handler {
-    pub async fn message_create(ctx: &Context, msg: Message, pool: &PgPool) -> Result<()> {
-        if msg.author.bot {
+    pub async fn message_create(ctx: &Context, msg: &Message, pool: &PgPool) -> Result<()> {
+        if msg.author.bot() {
             return Ok(());
         }
 
         let (new_level, ..) = tokio::try_join!(
-            levels::message_create::<Postgres, LevelsTable>(&msg, pool).map(Result::Ok),
-            Ai::run(ctx, &msg, pool),
-            support(ctx, &msg, pool),
+            levels::message_create::<Postgres, LevelsTable>(msg, pool).map(Result::Ok),
+            Ai::run(ctx, msg, pool),
+            support(ctx, msg, pool),
         )?;
 
         if let Some(level) = new_level {

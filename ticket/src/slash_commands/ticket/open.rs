@@ -1,13 +1,14 @@
-use serenity::all::{CommandInteraction, Context, EditChannel, EditInteractionResponse, GuildId};
+use serenity::all::{
+    CommandInteraction, EditInteractionResponse, EditThread, GenericInteractionChannel, GuildId,
+    Http,
+};
 use sqlx::{Database, Pool};
 
-use crate::{Error, Result, TicketGuildManager};
+use crate::{Error, Result, Ticket, TicketGuildManager};
 
-use super::TicketCommand;
-
-impl TicketCommand {
+impl Ticket {
     pub(super) async fn open<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         guild_id: GuildId,
@@ -21,11 +22,14 @@ impl TicketCommand {
 
         let channel = interaction.channel.as_ref().unwrap();
 
-        if channel.parent_id.unwrap() != support_channel_id {
+        if let GenericInteractionChannel::Thread(c) = channel
+            && c.parent_id != support_channel_id
+        {
             return Err(Error::NotInSupportChannel);
         }
 
         let new_channel_name = channel
+            .base()
             .name
             .as_ref()
             .unwrap()
@@ -34,13 +38,14 @@ impl TicketCommand {
 
         interaction
             .channel_id
-            .edit(&ctx, EditChannel::new().name(new_channel_name))
+            .expect_thread()
+            .edit(http, EditThread::new().name(new_channel_name))
             .await
             .unwrap();
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new().content("Ticket reopened"),
             )
             .await

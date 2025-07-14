@@ -2,15 +2,15 @@ use std::time::Duration;
 
 use futures::StreamExt;
 use serenity::all::{
-    ButtonStyle, CommandInteraction, Context, CreateActionRow, CreateButton, CreateEmbed,
-    CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse,
-    ReactionType, ResolvedOption, ResolvedValue,
+    ButtonStyle, CollectComponentInteractions, CommandInteraction, Context, CreateActionRow,
+    CreateButton, CreateComponent, CreateEmbed, CreateInteractionResponse,
+    CreateInteractionResponseMessage, EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::FormatNum;
 
 use crate::{
-    COIN, Coins, ItemInventory, Mining, Result, SHOP_ITEMS, ShopPage,
+    COIN, Coins, ItemInventory, Result, SHOP_ITEMS, ShopPage,
     commands::shop::{BuyRow, ShopManager},
     shop::SALES_TAX,
 };
@@ -19,9 +19,9 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
     ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
-    mut options: Vec<ResolvedOption<'_>>,
+    options: &[ResolvedOption<'_>],
 ) -> Result<()> {
-    let page = match options.pop().map(|opt| opt.value) {
+    let page = match options.first().map(|opt| &opt.value) {
         Some(ResolvedValue::String(page)) => page.parse().unwrap(),
         _ => ShopPage::Item,
     };
@@ -33,27 +33,25 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
 
     let embed = create_embed(page, &row);
 
-    let left_arrow = ReactionType::Unicode(String::from("⬅️"));
-    let right_arrow = ReactionType::Unicode(String::from("➡️"));
-
     let prev = CreateButton::new("shop_prev")
-        .emoji(left_arrow)
+        .label("<")
         .style(ButtonStyle::Secondary);
     let next = CreateButton::new("shop_next")
-        .emoji(right_arrow)
+        .label(">")
         .style(ButtonStyle::Secondary);
 
     let msg = interaction
         .edit_response(
-            ctx,
-            EditInteractionResponse::new()
-                .embed(embed)
-                .components(vec![CreateActionRow::Buttons(vec![prev, next])]),
+            &ctx.http,
+            EditInteractionResponse::new().embed(embed).components(vec![
+                CreateComponent::ActionRow(CreateActionRow::buttons(vec![prev, next])),
+            ]),
         )
         .await?;
 
     let mut stream = msg
-        .await_component_interactions(ctx)
+        .id
+        .collect_component_interactions(ctx)
         .timeout(Duration::from_secs(120))
         .stream();
 
@@ -72,11 +70,11 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
 
         interaction
             .create_response(
-                ctx,
+                &ctx.http,
                 CreateInteractionResponse::UpdateMessage(
                     CreateInteractionResponseMessage::new()
                         .embed(embed)
-                        .components(components),
+                        .components(vec![components]),
                 ),
             )
             .await
@@ -84,13 +82,20 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
     }
 
     interaction
-        .edit_response(ctx, EditInteractionResponse::new().components(Vec::new()))
+        .edit_response(
+            &ctx.http,
+            EditInteractionResponse::new().components(Vec::new()),
+        )
         .await?;
 
     Ok(())
 }
 
-fn shop(row: &BuyRow, title: Option<&str>, page_change: i8) -> (CreateEmbed, Vec<CreateActionRow>) {
+fn shop<'a>(
+    row: &'a BuyRow,
+    title: Option<&str>,
+    page_change: i8,
+) -> (CreateEmbed<'a>, CreateComponent<'a>) {
     let current_cat = title
         .map(|title| title.strip_suffix(" Shop").unwrap().parse().unwrap())
         .unwrap_or(ShopPage::Item);
@@ -107,17 +112,17 @@ fn shop(row: &BuyRow, title: Option<&str>, page_change: i8) -> (CreateEmbed, Vec
 
     let embed = create_embed(category, row);
 
-    let left_arrow = ReactionType::Unicode(String::from("⬅️"));
-    let right_arrow = ReactionType::Unicode(String::from("➡️"));
-
     let prev = CreateButton::new("shop_prev")
-        .emoji(left_arrow)
+        .label("<")
         .style(ButtonStyle::Secondary);
     let next = CreateButton::new("shop_next")
-        .emoji(right_arrow)
+        .label(">")
         .style(ButtonStyle::Secondary);
 
-    (embed, vec![CreateActionRow::Buttons(vec![prev, next])])
+    (
+        embed,
+        CreateComponent::ActionRow(CreateActionRow::buttons(vec![prev, next])),
+    )
 }
 
 fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed {
@@ -127,10 +132,8 @@ fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed {
         .iter()
         .filter(|item| item.category == category)
         .map(|item| {
-            let current_quantity = row.str_to_value(item.id).unwrap_or_default();
-
             let costs = item
-                .costs(current_quantity, 1)
+                .costs(1)
                 .into_iter()
                 .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency))
                 .collect::<Vec<_>>();
@@ -170,6 +173,6 @@ fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed {
     );
 
     CreateEmbed::new()
-        .title(format!("{} Shop", category))
+        .title(format!("{category} Shop"))
         .description(desc)
 }

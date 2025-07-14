@@ -1,6 +1,6 @@
 use serenity::all::{
-    ChannelId, CommandInteraction, ComponentInteraction, Context, Mentionable, ResolvedValue,
-    UserId,
+    CommandInteraction, ComponentInteraction, GenericInteractionChannel, Http, Mentionable,
+    ResolvedValue, ThreadId, UserId,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -11,14 +11,14 @@ use crate::utils::{Announcement, update_embeds};
 use crate::{Join, PostManager, PostRow, Result};
 
 pub struct JoinInteraction {
-    thread: ChannelId,
+    thread: ThreadId,
     user: UserId,
 }
 
 impl From<&ComponentInteraction> for JoinInteraction {
     fn from(value: &ComponentInteraction) -> Self {
         Self {
-            thread: value.channel_id,
+            thread: value.channel_id.expect_thread(),
             user: value.user.id,
         }
     }
@@ -33,8 +33,8 @@ impl From<&CommandInteraction> for JoinInteraction {
 
         let mut options = parse_options(subcommand);
         let thread = match options.remove("thread") {
-            Some(ResolvedValue::Channel(channel)) => channel.id,
-            _ => value.channel_id,
+            Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(thread))) => thread.id,
+            _ => value.channel_id.expect_thread(),
         };
         let user = match options.remove("guardian") {
             Some(ResolvedValue::User(user, _)) => user.id,
@@ -46,7 +46,7 @@ impl From<&CommandInteraction> for JoinInteraction {
 }
 
 pub async fn join<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
-    ctx: &Context,
+    http: &Http,
     interaction: impl Into<JoinInteraction>,
     pool: &Pool<Db>,
     alternative: bool,
@@ -56,17 +56,20 @@ pub async fn join<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>
     let mut row = Manager::row(pool, interaction.thread).await.unwrap();
     row.join(interaction.user, alternative)?;
 
-    let owner = row.owner().to_user(ctx).await.unwrap();
+    let owner = row.owner().to_user(http).await.unwrap();
 
-    update_embeds::<DefaultTemplate>(ctx, &row, owner.display_name(), interaction.thread).await;
+    update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread).await;
     Announcement::Joined {
         user: interaction.user,
         alternative,
     }
-    .send(ctx, interaction.thread)
+    .send(http, interaction.thread)
     .await;
 
     Manager::save(pool, row).await.unwrap();
 
-    Ok(format!("You have joined {}", interaction.thread.mention()))
+    Ok(format!(
+        "You have joined {}",
+        interaction.thread.widen().mention()
+    ))
 }

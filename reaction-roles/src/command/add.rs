@@ -1,6 +1,6 @@
 use serenity::all::{
-    ChannelId, Context, CreateEmbed, CreateMessage, GuildId, Mentionable, MessageId, ReactionType,
-    ResolvedValue,
+    CreateEmbed, CreateMessage, GenericChannelId, GuildId, Http, Mentionable, MessageId,
+    ReactionType, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use std::collections::HashMap;
@@ -12,10 +12,10 @@ use super::ReactionRoleCommand;
 
 impl ReactionRoleCommand {
     pub(super) async fn add<Db: Database, Manager: ReactionRolesManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         pool: &Pool<Db>,
         guild_id: GuildId,
-        channel_id: ChannelId,
+        channel_id: GenericChannelId,
         reaction: ReactionType,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
@@ -32,10 +32,10 @@ impl ReactionRoleCommand {
         };
 
         let message = match message_id {
-            Some(message_id) => channel_id.message(ctx, message_id).await.unwrap(),
+            Some(message_id) => channel_id.message(http, message_id).await.unwrap(),
             None => channel_id
                 .send_message(
-                    ctx,
+                    http,
                     CreateMessage::new().embed(CreateEmbed::new().description(format!(
                         "{} | {}",
                         reaction,
@@ -46,7 +46,7 @@ impl ReactionRoleCommand {
                 .unwrap(),
         };
 
-        Manager::create_row(
+        Manager::create(
             pool,
             guild_id,
             channel_id,
@@ -57,7 +57,7 @@ impl ReactionRoleCommand {
         .await
         .unwrap();
 
-        message.react(ctx, reaction).await.unwrap();
+        message.react(http, reaction).await.unwrap();
 
         Ok(())
     }

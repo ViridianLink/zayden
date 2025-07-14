@@ -1,8 +1,8 @@
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    ComponentInteraction, ComponentInteractionDataKind, Context, CreateActionRow, CreateEmbed,
+    ComponentInteraction, ComponentInteractionDataKind, CreateActionRow, CreateEmbed,
     CreateInputText, CreateInteractionResponse, CreateInteractionResponseMessage, CreateModal,
-    EditThread, InputTextStyle,
+    EditThread, Http, InputTextStyle,
 };
 use sqlx::{Database, Pool};
 
@@ -12,51 +12,55 @@ pub struct TicketComponent;
 
 impl TicketComponent {
     pub async fn ticket_create(
-        ctx: &Context,
+        http: &Http,
         interaction: &ComponentInteraction,
-        compnents: impl IntoIterator<Item = CreateInputText>,
+        components: impl IntoIterator<Item = CreateInputText<'_>>,
     ) -> Result<()> {
         let issue_input = CreateInputText::new(InputTextStyle::Paragraph, "Issue", "issue")
             .placeholder("Describe the issue you're experiencing");
 
         let modal = CreateModal::new("create_ticket", "Ticket").components(
-            vec![issue_input]
+            [issue_input]
                 .into_iter()
-                .chain(compnents)
+                .chain(components)
                 .map(CreateActionRow::InputText)
-                .collect(),
+                .collect::<Vec<_>>(),
         );
 
         interaction
-            .create_response(&ctx, CreateInteractionResponse::Modal(modal))
+            .create_response(http, CreateInteractionResponse::Modal(modal))
             .await?;
 
         Ok(())
     }
 
-    pub async fn support_close(ctx: &Context, interaction: &ComponentInteraction) -> Result<()> {
+    pub async fn support_close(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
         let channel = interaction.channel.as_ref().unwrap();
 
         let new_channel_name: String =
-            format!("{} - {}", "[Closed]", channel.name.as_ref().unwrap())
+            format!("{} - {}", "[Closed]", channel.base().name.as_ref().unwrap())
                 .chars()
                 .take(100)
                 .collect();
 
-        interaction
-            .channel_id
-            .edit_thread(ctx, EditThread::new().name(new_channel_name).archived(true))
+        channel
+            .id()
+            .expect_thread()
+            .edit(
+                http,
+                EditThread::new().name(new_channel_name).archived(true),
+            )
             .await?;
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Acknowledge)
+            .create_response(http, CreateInteractionResponse::Acknowledge)
             .await?;
 
         Ok(())
     }
 
     pub async fn support_faq<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
@@ -77,7 +81,8 @@ impl TicketComponent {
             .unwrap();
 
         let message = faq_channel_id
-            .messages_iter(ctx)
+            .widen()
+            .messages_iter(http)
             .skip(index)
             .boxed()
             .try_next()
@@ -91,7 +96,7 @@ impl TicketComponent {
 
         interaction
             .create_response(
-                ctx,
+                http,
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new().embed(
                         CreateEmbed::new()

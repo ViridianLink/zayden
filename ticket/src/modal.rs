@@ -1,7 +1,7 @@
 use serenity::all::{
-    AutoArchiveDuration, ChannelType, Context, CreateEmbed, CreateEmbedFooter,
-    CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, CreateThread,
-    Mentionable, ModalInteraction,
+    AutoArchiveDuration, ChannelType, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse,
+    CreateInteractionResponseMessage, CreateMessage, CreateThread, Http, Mentionable,
+    ModalInteraction,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_modal_data;
@@ -19,7 +19,7 @@ impl TicketModal {
         GuildManager: TicketGuildManager<Db>,
         Manager: TicketManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &ModalInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
@@ -67,8 +67,9 @@ impl TicketModal {
 
         let thread = interaction
             .channel_id
+            .expect_channel()
             .create_thread(
-                ctx,
+                http,
                 CreateThread::new(&thread_name)
                     .kind(ChannelType::PrivateThread)
                     .auto_archive_duration(AutoArchiveDuration::OneWeek),
@@ -80,7 +81,7 @@ impl TicketModal {
             .unwrap();
 
         let mentions = if role_ids.is_empty() {
-            let owner_id = guild_id.to_partial_guild(ctx).await.unwrap().owner_id;
+            let owner_id = guild_id.to_partial_guild(http).await.unwrap().owner_id;
             vec![interaction.user.mention(), owner_id.mention()]
         } else {
             role_ids
@@ -90,13 +91,13 @@ impl TicketModal {
                 .collect::<Vec<_>>()
         };
 
-        send_support_message(ctx, thread.id, &mentions, messages)
+        send_support_message(http, thread.id, &mentions, messages)
             .await
             .unwrap();
 
         interaction
             .create_response(
-                ctx,
+                http,
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
                         .content(format!("Support thread created: {}", thread.mention()))

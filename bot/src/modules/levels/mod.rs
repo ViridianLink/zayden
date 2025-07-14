@@ -3,11 +3,18 @@ mod commands;
 pub use commands::{Levels, Rank, Xp};
 
 use async_trait::async_trait;
-pub use levels::Commands;
 use levels::{FullLevelRow, LeaderboardRow, LevelsManager, RankRow, XpRow};
-use serenity::all::UserId;
-use sqlx::any::AnyQueryResult;
-use sqlx::{PgPool, Postgres};
+use serenity::all::{Context, CreateCommand, UserId};
+use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
+use zayden_core::SlashCommand;
+
+pub fn register(ctx: &Context) -> [CreateCommand; 3] {
+    [
+        Levels::register(ctx).unwrap(),
+        Rank::register(ctx).unwrap(),
+        Xp::register(ctx).unwrap(),
+    ]
+}
 
 pub struct LevelsTable;
 
@@ -86,7 +93,7 @@ impl LevelsManager<Postgres> for LevelsTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: FullLevelRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save(pool: &PgPool, row: FullLevelRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "INSERT INTO levels (id, xp, total_xp, level, message_count, last_xp)
             VALUES ($1, $2, $3, $4, $5, now())
@@ -104,6 +111,5 @@ impl LevelsManager<Postgres> for LevelsTable {
         )
         .execute(pool)
         .await
-        .map(AnyQueryResult::from)
     }
 }

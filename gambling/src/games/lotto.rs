@@ -3,7 +3,6 @@ use rand::distr::weighted::WeightedIndex;
 use rand::rng;
 use rand_distr::Distribution;
 use serenity::all::{ChannelId, CreateEmbed, CreateMessage, Mentionable, UserId};
-use sqlx::any::AnyQueryResult;
 use sqlx::{Database, FromRow};
 use zayden_core::{CronJob, FormatNum};
 
@@ -23,7 +22,7 @@ pub trait LottoManager<Db: Database> {
 
     async fn total_tickets(conn: &mut Db::Connection) -> sqlx::Result<i64>;
 
-    async fn delete_tickets(conn: &mut Db::Connection) -> sqlx::Result<AnyQueryResult>;
+    async fn delete_tickets(conn: &mut Db::Connection) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -142,13 +141,14 @@ impl Lotto {
                 );
 
             CHANNEL_ID
+                .widen()
                 .send_message(
-                    &ctx,
+                    &ctx.http,
                     CreateMessage::new().content(lines.join("\n")).embed(embed),
                 )
                 .await
                 .unwrap()
-                .crosspost(&ctx)
+                .crosspost(&ctx.http)
                 .await
                 .unwrap();
         })

@@ -4,7 +4,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 
@@ -18,7 +18,7 @@ impl SlashCommand<Error, Postgres> for Coinflip {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::coinflip::<Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
+        Commands::coinflip::<CtxData, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
             ctx,
             interaction,
             options,

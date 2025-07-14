@@ -1,17 +1,17 @@
 use serenity::all::{
-    CommandInteraction, Context, CreateEmbed, EditInteractionResponse, ResolvedOption,
-    ResolvedValue,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
 use crate::{level_up_xp, LevelsManager, LevelsRow};
 
-use super::Commands;
+pub struct Rank;
 
-impl Commands {
+impl Rank {
     pub async fn rank<Db: Database, Manager: LevelsManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
@@ -19,8 +19,8 @@ impl Commands {
         let mut options = parse_options(options);
 
         match options.remove("ephemeral") {
-            Some(ResolvedValue::Boolean(true)) => interaction.defer_ephemeral(ctx).await.unwrap(),
-            _ => interaction.defer(ctx).await.unwrap(),
+            Some(ResolvedValue::Boolean(true)) => interaction.defer_ephemeral(http).await.unwrap(),
+            _ => interaction.defer(http).await.unwrap(),
         }
 
         let user = match options.remove("user") {
@@ -51,8 +51,23 @@ impl Commands {
             ));
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
+    }
+
+    pub fn register<'a>() -> CreateCommand<'a> {
+        CreateCommand::new("rank")
+            .description("Get your rank or another member's rank")
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::User,
+                "user",
+                "The user to get the xp of",
+            ))
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::Boolean,
+                "ephemeral",
+                "Whether the response should be ephemeral",
+            ))
     }
 }

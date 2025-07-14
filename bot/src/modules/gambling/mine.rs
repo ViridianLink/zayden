@@ -32,7 +32,7 @@ impl SlashCommand<Error, Postgres> for Mine {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::mine::<Postgres, MineTable>(ctx, interaction, pool).await?;
+        Commands::mine::<Postgres, MineTable>(&ctx.http, interaction, pool).await?;
 
         Ok(())
     }

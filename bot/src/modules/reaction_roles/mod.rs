@@ -1,89 +1,92 @@
 use async_trait::async_trait;
 use reaction_roles::ReactionRolesManager;
 use reaction_roles::reaction_roles_manager::ReactionRole;
-use serenity::all::{Context, CreateCommand};
-use sqlx::any::AnyQueryResult;
-use sqlx::{Pool, Postgres};
+use serenity::all::{Context, CreateCommand, GenericChannelId, GuildId, MessageId, RoleId};
+use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
 use zayden_core::SlashCommand;
 
 pub use slash_command::ReactionRoleCommand;
 
-pub mod reaction;
 pub mod slash_command;
 
 pub fn register(ctx: &Context) -> CreateCommand {
     ReactionRoleCommand::register(ctx).unwrap()
 }
 
-struct ReactionRolesTable;
+pub struct ReactionRolesTable;
 
 #[async_trait]
 impl ReactionRolesManager<Postgres> for ReactionRolesTable {
-    async fn create_row(
-        pool: &Pool<Postgres>,
-        guild_id: impl Into<i64> + Send,
-        channel_id: impl Into<i64> + Send,
-        message_id: impl Into<i64> + Send,
-        role_id: impl Into<i64> + Send,
+    async fn create(
+        pool: &PgPool,
+        guild_id: impl Into<GuildId> + Send,
+        channel_id: impl Into<GenericChannelId> + Send,
+        message_id: impl Into<MessageId> + Send,
+        role_id: impl Into<RoleId> + Send,
         emoji: &str,
-    ) -> sqlx::Result<AnyQueryResult> {
-        let result = sqlx::query!("INSERT INTO reaction_roles (guild_id, channel_id, message_id, role_id, emoji) VALUES ($1, $2, $3, $4, $5)",
-        guild_id.into(),
-        channel_id.into(),
-        message_id.into(),
-        role_id.into(),
-        emoji)
-            .execute(pool)
-            .await?;
+    ) -> sqlx::Result<PgQueryResult> {
+        let guild_id = guild_id.into();
+        let channel_id = channel_id.into();
+        let message_id = message_id.into();
+        let role_id = role_id.into();
 
-        let result = result.into();
-
-        Ok(result)
+        sqlx::query_file!(
+            "sql/reaction_roles/create.sql",
+            guild_id.get() as i64,
+            channel_id.get() as i64,
+            message_id.get() as i64,
+            role_id.get() as i64,
+            emoji
+        )
+        .execute(pool)
+        .await
     }
 
-    async fn get_guild_rows(
-        pool: &Pool<Postgres>,
-        guild_id: impl Into<i64> + Send,
+    async fn rows(
+        pool: &PgPool,
+        guild_id: impl Into<GuildId> + Send,
     ) -> sqlx::Result<Vec<ReactionRole>> {
-        let reaction_roles = sqlx::query_as!(
+        let guild_id = guild_id.into();
+
+        sqlx::query_as!(
             ReactionRole,
             "SELECT * FROM reaction_roles WHERE guild_id = $1",
-            guild_id.into()
+            guild_id.get() as i64
         )
         .fetch_all(pool)
-        .await?;
-
-        Ok(reaction_roles)
+        .await
     }
 
-    async fn get_row(
-        pool: &Pool<Postgres>,
-        message_id: impl Into<i64> + Send,
+    async fn row(
+        pool: &PgPool,
+        message_id: impl Into<MessageId> + Send,
         emoji: &str,
     ) -> sqlx::Result<Option<ReactionRole>> {
-        let reaction_role = sqlx::query_as!(
+        let message_id = message_id.into();
+
+        sqlx::query_as!(
             ReactionRole,
             "SELECT * FROM reaction_roles WHERE message_id = $1 AND emoji = $2",
-            message_id.into(),
+            message_id.get() as i64,
             emoji
         )
         .fetch_optional(pool)
-        .await?;
-
-        Ok(reaction_role)
+        .await
     }
 
-    async fn delete_row(
-        pool: &Pool<Postgres>,
-        guild_id: impl Into<i64> + Send,
-        channel_id: impl Into<i64> + Send,
-        message_id: impl Into<i64> + Send,
+    async fn delete(
+        pool: &PgPool,
+        guild_id: impl Into<GuildId> + Send,
+        channel_id: impl Into<GenericChannelId> + Send,
+        message_id: impl Into<MessageId> + Send,
         emoji: &str,
-    ) -> sqlx::Result<AnyQueryResult> {
-        let result = sqlx::query!("DELETE FROM reaction_roles WHERE guild_id = $1 AND channel_id = $2 AND message_id = $3 AND emoji = $4", guild_id.into(), channel_id.into(), message_id.into(), emoji)
-            .execute(pool)
-            .await?;
+    ) -> sqlx::Result<PgQueryResult> {
+        let guild_id = guild_id.into();
+        let channel_id = channel_id.into();
+        let message_id = message_id.into();
 
-        Ok(result.into())
+        sqlx::query!("DELETE FROM reaction_roles WHERE guild_id = $1 AND channel_id = $2 AND message_id = $3 AND emoji = $4", guild_id.get() as i64, channel_id.get() as i64, message_id.get() as i64, emoji)
+            .execute(pool)
+            .await
     }
 }

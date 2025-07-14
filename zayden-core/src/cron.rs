@@ -1,15 +1,20 @@
 use std::fmt::Debug;
+use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::{marker::PhantomData, pin::Pin};
 
 use cron::Schedule;
 use serenity::all::Context;
-use serenity::prelude::TypeMapKey;
 use sqlx::{Database, Pool};
 
 pub type ActionFn<Db> =
     Arc<dyn Fn(Context, Pool<Db>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+
+pub trait CronJobData<Db: Database>: Send + Sync + 'static {
+    fn jobs(&self) -> &[CronJob<Db>];
+
+    fn jobs_mut(&mut self) -> &mut Vec<CronJob<Db>>;
+}
 
 #[derive(Clone)]
 pub struct CronJob<Db: Database> {
@@ -62,10 +67,4 @@ impl<Db: Database> Debug for CronJob<Db> {
             .field("schedule", &self.schedule)
             .finish()
     }
-}
-
-pub struct CronJobs<Db: Database>(PhantomData<Db>);
-
-impl<Db: Database> TypeMapKey for CronJobs<Db> {
-    type Value = Vec<CronJob<Db>>;
 }

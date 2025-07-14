@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::send::{SendManager, SendRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::any::AnyQueryResult;
+use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
@@ -43,7 +43,7 @@ impl SendManager<Postgres> for SendTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: SendRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save(pool: &PgPool, row: SendRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "INSERT INTO gambling (id, coins, gems, stamina)
             VALUES ($1, $2, $3, $4)
@@ -56,7 +56,6 @@ impl SendManager<Postgres> for SendTable {
         )
         .execute(pool)
         .await
-        .map(AnyQueryResult::from)
     }
 }
 
@@ -71,7 +70,7 @@ impl SlashCommand<Error, Postgres> for Send {
         pool: &PgPool,
     ) -> Result<()> {
         Commands::send::<Postgres, GamblingTable, StaminaTable, GoalsTable, SendTable>(
-            ctx,
+            &ctx.http,
             interaction,
             options,
             pool,

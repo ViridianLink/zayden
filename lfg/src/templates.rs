@@ -1,6 +1,6 @@
 use serenity::all::{
-    ButtonStyle, ChannelId, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter,
-    Mentionable, MessageId, UserId,
+    ButtonStyle, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter, GenericChannelId,
+    Mentionable, MessageId, ThreadId, UserId,
 };
 
 pub trait TemplateInfo {
@@ -16,20 +16,24 @@ pub trait TemplateInfo {
 
     fn alternatives(&self) -> impl Iterator<Item = UserId>;
 
-    fn alt_channel(&self) -> Option<ChannelId>;
+    fn schedule_channel(&self) -> Option<GenericChannelId>;
 
     fn alt_message(&self) -> Option<MessageId>;
 }
 
 pub trait Template {
-    fn thread_embed(post: &impl TemplateInfo, owner_name: &str) -> CreateEmbed;
+    fn thread_embed<'a>(post: &'a impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a>;
 
-    fn message_embed(post: &impl TemplateInfo, owner_name: &str, thread: ChannelId) -> CreateEmbed;
+    fn message_embed<'a>(
+        post: &'a impl TemplateInfo,
+        owner_name: &str,
+        thread: ThreadId,
+    ) -> CreateEmbed<'a>;
 
-    fn main_row() -> CreateActionRow;
+    fn main_row<'a>() -> CreateActionRow<'a>;
 
-    fn settings_row() -> CreateActionRow {
-        CreateActionRow::Buttons(vec![
+    fn settings_row<'a>() -> CreateActionRow<'a> {
+        CreateActionRow::buttons(vec![
             CreateButton::new("lfg_edit")
                 .label("Edit")
                 .style(ButtonStyle::Secondary),
@@ -49,16 +53,20 @@ pub trait Template {
 pub struct DefaultTemplate;
 
 impl Template for DefaultTemplate {
-    fn thread_embed(post: &impl TemplateInfo, owner_name: &str) -> CreateEmbed {
+    fn thread_embed<'a>(post: &'a impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a> {
         embed(post, owner_name, None)
     }
 
-    fn message_embed(post: &impl TemplateInfo, owner_name: &str, thread: ChannelId) -> CreateEmbed {
+    fn message_embed<'a>(
+        post: &'a impl TemplateInfo,
+        owner_name: &str,
+        thread: ThreadId,
+    ) -> CreateEmbed<'a> {
         embed(post, owner_name, Some(thread))
     }
 
-    fn main_row() -> CreateActionRow {
-        CreateActionRow::Buttons(vec![
+    fn main_row<'a>() -> CreateActionRow<'a> {
+        CreateActionRow::buttons(vec![
             CreateButton::new("lfg_join")
                 .emoji('➕')
                 .style(ButtonStyle::Success),
@@ -75,7 +83,11 @@ impl Template for DefaultTemplate {
     }
 }
 
-fn embed(post: &impl TemplateInfo, owner_name: &str, thread: Option<ChannelId>) -> CreateEmbed {
+fn embed<'a>(
+    post: &'a impl TemplateInfo,
+    owner_name: &str,
+    thread: Option<ThreadId>,
+) -> CreateEmbed<'a> {
     let timestamp = post.timestamp();
 
     let fireteam = post
@@ -93,10 +105,10 @@ fn embed(post: &impl TemplateInfo, owner_name: &str, thread: Option<ChannelId>) 
     let mut embed = CreateEmbed::new()
         .title(format!("{} - <t:{}>", post.activity(), timestamp))
         .field("Activity", post.activity(), true)
-        .field("Start Time", format!("<t:{}:R>", timestamp), true);
+        .field("Start Time", format!("<t:{timestamp}:R>"), true);
 
     if let Some(thread) = thread {
-        embed = embed.field("Event Thread", thread.mention().to_string(), true);
+        embed = embed.field("Event Thread", thread.widen().mention().to_string(), true);
     }
 
     if !post.description().is_empty() {
@@ -109,7 +121,7 @@ fn embed(post: &impl TemplateInfo, owner_name: &str, thread: Option<ChannelId>) 
             fireteam_str,
             false,
         )
-        .footer(CreateEmbedFooter::new(format!("Posted by {}", owner_name)));
+        .footer(CreateEmbedFooter::new(format!("Posted by {owner_name}")));
 
     if !alternatives.is_empty() {
         embed = embed.field("Alternatives", alternatives.join("\n"), true);

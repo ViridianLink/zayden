@@ -1,9 +1,9 @@
 use std::fs;
 
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
+    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType,
     CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateInteractionResponse,
-    EditInteractionResponse, ResolvedOption, ResolvedValue,
+    EditInteractionResponse, Http, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -17,12 +17,11 @@ pub struct WeaponCommand;
 
 impl WeaponCommand {
     pub async fn run<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let options = interaction.data.options();
         let options = parse_options(options);
@@ -46,14 +45,14 @@ impl WeaponCommand {
             .ok_or_else(|| Error::WeaponNotFound(name.to_string()))?;
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(weapon.into()))
+            .edit_response(http, EditInteractionResponse::new().embed(weapon.into()))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("weapon")
             .description("Get a weapon from Destiny 2")
             .add_option(
@@ -68,7 +67,7 @@ impl WeaponCommand {
     }
 
     pub async fn autocomplete<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
         pool: &Pool<Db>,
@@ -94,7 +93,7 @@ impl WeaponCommand {
 
         interaction
             .create_response(
-                ctx,
+                http,
                 CreateInteractionResponse::Autocomplete(
                     CreateAutocompleteResponse::new().set_choices(weapons),
                 ),

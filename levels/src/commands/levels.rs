@@ -2,29 +2,31 @@ use std::time::Duration;
 
 use futures::StreamExt;
 use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateButton, CreateEmbed,
-    CreateEmbedFooter, EditInteractionResponse, GuildId, Mentionable,
+    CollectComponentInteractions, CommandInteraction, ComponentInteraction, Context, CreateButton,
+    CreateCommand, CreateEmbed, CreateEmbedFooter, EditInteractionResponse, GuildId, Mentionable,
 };
 use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::cache::GuildMembersCache;
 
 use crate::{LeaderboardRow, LevelsManager, LevelsRow};
 
-use super::Commands;
+pub struct Levels;
 
-impl Commands {
-    pub async fn levels<Db: Database, Manager: LevelsManager<Db>>(
+impl Levels {
+    pub async fn run<Data: GuildMembersCache, Db: Database, Manager: LevelsManager<Db>>(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
-        let embed = create_embed::<Db, Manager>(ctx, pool, interaction.guild_id.unwrap(), 1).await;
+        let embed =
+            create_embed::<Data, Db, Manager>(ctx, pool, interaction.guild_id.unwrap(), 1).await;
 
         let msg = interaction
             .edit_response(
-                &ctx,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .embed(embed)
                     .button(CreateButton::new("previous").label("<"))
@@ -35,24 +37,29 @@ impl Commands {
             .unwrap();
 
         let mut stream = msg
-            .await_component_interactions(ctx)
+            .id
+            .collect_component_interactions(ctx)
             .timeout(Duration::from_secs(120))
             .stream();
 
         while let Some(component) = stream.next().await {
-            run_components::<Db, Manager>(ctx, component, pool).await
+            run_components::<Data, Db, Manager>(ctx, component, pool).await
         }
+    }
+
+    pub fn register<'a>() -> CreateCommand<'a> {
+        CreateCommand::new("levels").description("Get the leaderboard")
     }
 }
 
-async fn run_components<Db: Database, Manager: LevelsManager<Db>>(
+async fn run_components<Data: GuildMembersCache, Db: Database, Manager: LevelsManager<Db>>(
     ctx: &Context,
-    mut interaction: ComponentInteraction,
+    interaction: ComponentInteraction,
     pool: &Pool<Db>,
 ) {
-    interaction.defer(ctx).await.unwrap();
+    interaction.defer(&ctx.http).await.unwrap();
 
-    let Some(embed) = interaction.message.embeds.pop() else {
+    let Some(embed) = interaction.message.embeds.first() else {
         unreachable!("Embed must be present")
     };
 
@@ -60,6 +67,7 @@ async fn run_components<Db: Database, Manager: LevelsManager<Db>>(
         "previous" => {
             embed
                 .footer
+                .as_ref()
                 .unwrap()
                 .text
                 .strip_prefix("Page ")
@@ -79,6 +87,7 @@ async fn run_components<Db: Database, Manager: LevelsManager<Db>>(
         "next" => {
             embed
                 .footer
+                .as_ref()
                 .unwrap()
                 .text
                 .strip_prefix("Page ")
@@ -91,26 +100,31 @@ async fn run_components<Db: Database, Manager: LevelsManager<Db>>(
     }
     .max(1);
 
-    let embed =
-        create_embed::<Db, Manager>(ctx, pool, interaction.guild_id.unwrap(), page_number + 1)
-            .await;
+    let embed = create_embed::<Data, Db, Manager>(
+        ctx,
+        pool,
+        interaction.guild_id.unwrap(),
+        page_number + 1,
+    )
+    .await;
 
     interaction
-        .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+        .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
         .await
         .unwrap();
 }
 
-async fn create_embed<Db: Database, Manager: LevelsManager<Db>>(
+async fn create_embed<'a, Data: GuildMembersCache, Db: Database, Manager: LevelsManager<Db>>(
     ctx: &Context,
     pool: &Pool<Db>,
     guild_id: GuildId,
     page_number: i64,
-) -> CreateEmbed {
+) -> CreateEmbed<'a> {
     let users = {
-        let data = ctx.data.read().await;
-        let cache = data.get::<GuildMembersCache>().unwrap();
-        cache
+        let data = ctx.data::<RwLock<Data>>();
+        let data = data.read().await;
+
+        data.get()
             .get(&guild_id)
             .unwrap()
             .iter()
@@ -132,7 +146,7 @@ async fn create_embed<Db: Database, Manager: LevelsManager<Db>>(
     CreateEmbed::new()
         .title("Leaderboard")
         .description(desc)
-        .footer(CreateEmbedFooter::new(format!("Page {}", page_number)))
+        .footer(CreateEmbedFooter::new(format!("Page {page_number}")))
 }
 
 fn row_as_desc(row: &LeaderboardRow, i: usize) -> String {

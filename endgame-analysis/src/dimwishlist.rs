@@ -1,7 +1,7 @@
 use futures::{StreamExt, future, stream};
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateAttachment, CreateCommand,
-    CreateCommandOption, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CommandInteraction, CommandOptionType, CreateAttachment, CreateCommand, CreateCommandOption,
+    EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -18,12 +18,12 @@ impl DimWishlistCommand {
         WeaponManager: DestinyWeaponManager<Db>,
         PerkManager: DestinyPerkManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) {
-        interaction.defer_ephemeral(ctx).await.unwrap();
+        interaction.defer_ephemeral(http).await.unwrap();
 
         let strict = match options.pop().map(|o| o.value) {
             Some(ResolvedValue::String(strict)) => strict,
@@ -66,23 +66,20 @@ impl DimWishlistCommand {
 
         let wishlist = format!("title: DIM Wishlist\n\n{}", wishlist.join("\n\n"));
 
-        let file = CreateAttachment::bytes(
-            wishlist.as_bytes(),
-            format!("PVE Wishlist ({}).txt", strict),
-        );
+        let file = CreateAttachment::bytes(wishlist, format!("PVE Wishlist ({strict}).txt"));
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new()
                     .new_attachment(file)
-                    .content(format!("PVE Wishlist ({}):", strict)),
+                    .content(format!("PVE Wishlist ({strict}):")),
             )
             .await
             .unwrap();
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("dimwishlist")
             .description("Get a wishlist from DIM")
             .add_option(

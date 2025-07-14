@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 use serenity::all::{
-    AutoArchiveDuration, ChannelId, Context, CreateForumPost, CreateInteractionResponse,
-    CreateMessage, DiscordJsonError, ErrorResponse, GuildId, HttpError, Mentionable,
-    ModalInteraction,
+    AutoArchiveDuration, ChannelId, Context, CreateComponent, CreateForumPost,
+    CreateInteractionResponse, CreateMessage, DiscordJsonError, ErrorResponse, GenericChannelId,
+    GuildId, HttpError, JsonErrorCode, Mentionable, ModalInteraction,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
-use zayden_core::parse_modal_data;
+use zayden_core::{CronJobData, parse_modal_data};
 
 use crate::cron::create_reminders;
 use crate::templates::{DefaultTemplate, Template};
@@ -31,8 +31,9 @@ impl GuildRow {
         ChannelId::new(self.channel_id as u64)
     }
 
-    pub fn scheduled_thread_id(&self) -> Option<ChannelId> {
-        self.scheduled_thread_id.map(|id| ChannelId::new(id as u64))
+    pub fn scheduled_channel(&self) -> Option<GenericChannelId> {
+        self.scheduled_thread_id
+            .map(|id| GenericChannelId::new(id as u64))
     }
 }
 
@@ -40,6 +41,7 @@ pub struct Create;
 
 impl Create {
     pub async fn run<
+        Data: CronJobData<Db>,
         Db: Database,
         GuildHandler: GuildManager<Db>,
         PostHandler: PostManager<Db> + Savable<Db, PostRow>,
@@ -93,10 +95,8 @@ impl Create {
 
         let channel = lfg_guild
             .channel_id()
-            .to_channel(ctx)
+            .to_guild_channel(&ctx.http, Some(guild_id))
             .await
-            .unwrap()
-            .guild()
             .unwrap();
 
         let tags = channel
@@ -111,14 +111,18 @@ impl Create {
                         .unwrap_or_default()
                         .to_lowercase()
             })
-            .map(|tag| tag.id);
+            .map(|tag| tag.id)
+            .collect::<Vec<_>>();
 
         let thread = match channel
+            .id
             .create_forum_post(
-                ctx,
+                &ctx.http,
                 CreateForumPost::new(
                     format!("{} - {}", activity, start_time.format("%d %b %H:%M %Z")),
-                    CreateMessage::new().embed(embed).components(vec![row]),
+                    CreateMessage::new()
+                        .embed(embed)
+                        .components(vec![CreateComponent::ActionRow(row)]),
                 )
                 .auto_archive_duration(AutoArchiveDuration::OneWeek)
                 .set_applied_tags(tags),
@@ -126,9 +130,12 @@ impl Create {
             .await
         {
             Ok(thread) => thread,
-            // A tag is required to create a thread
             Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                error: DiscordJsonError { code: 40067, .. },
+                error:
+                    DiscordJsonError {
+                        code: JsonErrorCode::TagRequiredForForumPost,
+                        ..
+                    },
                 ..
             }))) => {
                 return Err(Error::TagRequired);
@@ -138,32 +145,32 @@ impl Create {
 
         thread
             .send_message(
-                ctx,
+                &ctx.http,
                 CreateMessage::new().content(interaction.user.mention().to_string()),
             )
             .await
             .unwrap();
 
-        if let Some(thread_id) = lfg_guild.scheduled_thread_id() {
+        if let Some(channel_id) = lfg_guild.scheduled_channel() {
             let embed =
                 DefaultTemplate::message_embed(&post, interaction.user.display_name(), thread.id);
 
-            let msg = thread_id
-                .send_message(ctx, CreateMessage::new().embed(embed))
+            let msg = channel_id
+                .send_message(&ctx.http, CreateMessage::new().embed(embed))
                 .await
                 .unwrap();
 
-            post = post.alt_channel(thread_id).alt_message(msg.id)
+            post = post.schedule_channel(channel_id).alt_message(msg.id)
         }
 
         let post = post.id(thread.id).build();
 
-        create_reminders::<Db, PostHandler>(ctx, &post).await;
+        create_reminders::<Data, Db, PostHandler>(ctx, &post).await;
 
         PostHandler::save(pool, post).await.unwrap();
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Acknowledge)
+            .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
             .await
             .unwrap();
 

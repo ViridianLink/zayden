@@ -1,15 +1,15 @@
+use serenity::all::{DiscordJsonError, ErrorResponse, HttpError, JsonErrorCode, StatusCode};
+
 #[derive(Debug)]
 pub enum Error {
     MissingGuildId,
     NotInteractionAuthor,
 
     MessageConflict,
-    //region: Serenity
-    UnknownInteraction,
-    ChannelDeleted,
-    //endregion
+
+    Serenity(serenity::Error),
     //region: Sqlx
-    PoolTimedOut,
+    Sqlx(sqlx::Error),
     //endregion
 }
 
@@ -22,15 +22,60 @@ impl std::fmt::Display for Error {
                 f,
                 "Command is already awaiting interaction. Please respond to previous command first."
             ),
-            Error::UnknownInteraction => write!(
+
+            Error::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                serenity::all::ErrorResponse {
+                    status_code: StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE,
+                    ..
+                },
+            ))) => write!(
                 f,
-                "An error occurred while processing the interaction. Please try again."
+                "It looks like Discord is currently experiencing some server issues. Please try your request again shortly. If the problem persists, please contact OscarSix for more details."
             ),
-            Error::ChannelDeleted => write!(f, "Channel already deleted"),
-            Error::PoolTimedOut => write!(
+
+            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                ErrorResponse {
+                    error: DiscordJsonError { code, .. },
+                    ..
+                },
+            ))) => match *code {
+                JsonErrorCode::UnknownChannel => write!(f, "Channel already deleted"),
+                JsonErrorCode::UnknownMessage => {
+                    write!(f, "Message was unexpectably deleted. Please try again.")
+                }
+                JsonErrorCode::UnknownWebhook => write!(f, "Unknown Webhook"),
+                JsonErrorCode::UnknownInteraction => write!(
+                    f,
+                    "An error occurred while processing the interaction. Please try again."
+                ),
+                JsonErrorCode::MissingAccess => write!(
+                    f,
+                    "I don't have access to that resource. Please check my role or permissions, or ask a server admin for help."
+                ),
+                JsonErrorCode::LackPermissionsForAction => write!(
+                    f,
+                    "I'm missing permissions perform that action. Please contact a server admin to resolve this."
+                ),
+                JsonErrorCode::OperationOnArchivedThread => {
+                    write!(f, "This thread has already been closed and archived.")
+                }
+                _ => unimplemented!("Unhandled Discord error: {self:?}"),
+            },
+            Self::Serenity(e) => unimplemented!("Unhandled Serenity error: {e:?}"),
+
+            Self::Sqlx(sqlx::Error::PoolTimedOut) => write!(
                 f,
                 "An internal error occurred while accessing data. Please try again shortly."
             ),
+            Self::Sqlx(sqlx::Error::ColumnDecode { index, source })
+                if source.is::<sqlx::error::UnexpectedNullError>() =>
+            {
+                write!(
+                    f,
+                    "Unexpected null found at {index}, please contact OscarSix to resolve."
+                )
+            }
+            Self::Sqlx(e) => unimplemented!("Unhandled Sqlx error: {e:?}"),
         }
     }
 }

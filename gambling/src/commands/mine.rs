@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse, UserId,
+    CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
 };
 use sqlx::{Database, FromRow, Pool};
 use zayden_core::FormatNum;
@@ -120,11 +120,11 @@ use super::Commands;
 
 impl Commands {
     pub async fn mine<Db: Database, Manager: MineManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(http).await?;
 
         let row = Manager::row(pool, interaction.user.id)
             .await
@@ -140,14 +140,14 @@ impl Commands {
             .field("Units", row.units(), false);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_mine() -> CreateCommand {
+    pub fn register_mine<'a>() -> CreateCommand<'a> {
         CreateCommand::new("mine").description("Show the details of your mine")
     }
 }

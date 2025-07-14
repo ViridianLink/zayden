@@ -5,23 +5,21 @@ mod open;
 mod remove;
 
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    Permissions, ResolvedOption, ResolvedValue,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, Http, Permissions,
+    ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
-use crate::{Error, Result, TicketGuildManager, TicketManager};
+use crate::{Error, Result, Ticket, TicketGuildManager, TicketManager};
 
-pub struct TicketCommand;
-
-impl TicketCommand {
+impl Ticket {
     pub async fn run<
         Db: Database,
         GuildManager: TicketGuildManager<Db>,
         Manager: TicketManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: Vec<ResolvedOption<'_>>,
@@ -39,21 +37,21 @@ impl TicketCommand {
 
         match command.name {
             "close" => {
-                Self::close::<Db, GuildManager>(ctx, interaction, pool, options, guild_id).await?
+                Self::close::<Db, GuildManager>(http, interaction, pool, options, guild_id).await?
             }
-            "create" => Self::create(ctx, interaction, options).await?,
+            "create" => Self::create(http, interaction, options).await?,
             "fixed" => {
-                Self::fixed::<Db, GuildManager>(ctx, interaction, pool, options, guild_id).await?
+                Self::fixed::<Db, GuildManager>(http, interaction, pool, options, guild_id).await?
             }
-            "open" => Self::open::<Db, GuildManager>(ctx, interaction, pool, guild_id).await?,
-            "remove" => Self::remove::<Db, Manager>(ctx, interaction, pool, options).await?,
+            "open" => Self::open::<Db, GuildManager>(http, interaction, pool, guild_id).await?,
+            "remove" => Self::remove::<Db, Manager>(http, interaction, pool, options).await?,
             _ => unreachable!("Subcommand is required"),
         }
 
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         let close =
             CreateCommandOption::new(CommandOptionType::SubCommand, "close", "Close the ticket")
                 .add_sub_option(

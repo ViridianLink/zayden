@@ -10,12 +10,12 @@ use serenity::all::{CreateActionRow, CreateInputText, InputTextStyle};
 
 use crate::{Error, Result};
 
-pub fn modal_components(
-    activity: &str,
+pub fn modal_components<'a>(
+    activity: &'a str,
     start_time: DateTime<Tz>,
     fireteam_size: i16,
-    description: Option<&str>,
-) -> Vec<CreateActionRow> {
+    description: Option<&'a str>,
+) -> Vec<CreateActionRow<'a>> {
     let mut desc_input =
         CreateInputText::new(InputTextStyle::Paragraph, "Description", "description")
             .required(false);

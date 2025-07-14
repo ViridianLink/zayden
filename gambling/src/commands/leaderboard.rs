@@ -3,12 +3,14 @@ use std::time::Duration;
 use async_trait::async_trait;
 use futures::StreamExt;
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, ComponentInteraction, Context, CreateButton,
-    CreateCommand, CreateCommandOption, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse,
-    CreateInteractionResponseMessage, EditInteractionResponse, Mentionable, Message,
-    ResolvedOption, ResolvedValue, UserId,
+    CollectComponentInteractions, Colour, CommandInteraction, CommandOptionType,
+    ComponentInteraction, Context, CreateButton, CreateCommand, CreateCommandOption, CreateEmbed,
+    CreateEmbedFooter, CreateInteractionResponse, CreateInteractionResponseMessage,
+    EditInteractionResponse, Http, Mentionable, Message, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow};
+use tokio::sync::RwLock;
+use zayden_core::parse_options;
 use zayden_core::{FormatNum, cache::GuildMembersCache};
 
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
@@ -20,52 +22,99 @@ use super::Commands;
 pub trait LeaderboardManager<Db: Database> {
     async fn networth(
         pool: &Pool<Db>,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>>;
 
     async fn networth_row_number(
         pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn coins(
         pool: &Pool<Db>,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>>;
 
     async fn coins_row_number(
         pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn gems(
         pool: &Pool<Db>,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>>;
 
     async fn gems_row_number(
         pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn eggplants(
         pool: &Pool<Db>,
+        global: bool,
         users: &[i64],
         page_num: i64,
     ) -> sqlx::Result<Vec<LeaderboardRow>>;
 
     async fn eggplants_row_number(
         pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>>;
 
-    async fn lottotickets(pool: &Pool<Db>, page_num: i64) -> sqlx::Result<Vec<LeaderboardRow>>;
+    async fn lottotickets(
+        pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
+        page_num: i64,
+    ) -> sqlx::Result<Vec<LeaderboardRow>>;
 
     async fn lottotickets_row_number(
         pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<i64>>;
+
+    async fn higherlower(
+        pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
+        page_num: i64,
+    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+
+    async fn higherlower_row_number(
+        pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<i64>>;
+
+    async fn weekly_higherlower(
+        pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
+        page_num: i64,
+    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+
+    async fn weekly_higherlower_row_number(
+        pool: &Pool<Db>,
+        global: bool,
+        users: &[i64],
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>>;
 }
@@ -120,31 +169,58 @@ pub struct LottoTicketRow {
     pub quantity: i64,
 }
 
+#[derive(FromRow)]
+pub struct HigherLowerRow {
+    pub user_id: i64,
+    pub higher_or_lower_score: i32,
+}
+
+#[derive(FromRow)]
+pub struct WeeklyHigherLowerRow {
+    pub user_id: i64,
+    pub weekly_higher_or_lower_score: i32,
+}
+
 impl Commands {
-    pub async fn leaderboard<Db: Database, Manager: LeaderboardManager<Db>>(
+    pub async fn leaderboard<
+        Data: GuildMembersCache,
+        Db: Database,
+        Manager: LeaderboardManager<Db>,
+    >(
         ctx: &Context,
         interaction: &CommandInteraction,
-        mut options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
-        let ResolvedValue::String(leaderboard) = options.pop().unwrap().value else {
+        let mut options = parse_options(options);
+
+        let ResolvedValue::String(leaderboard) = options.remove("leaderboard").unwrap() else {
             unreachable!("leaderboard option is required")
         };
 
-        let users = {
-            let data = ctx.data.read().await;
-            let cache = data.get::<GuildMembersCache>().unwrap();
-            cache
+        let global = match options.remove("global") {
+            Some(ResolvedValue::Boolean(global)) => global,
+            _ => false,
+        };
+
+        let users = if !global {
+            let data = ctx.data::<RwLock<Data>>();
+            let data = data.read().await;
+            let users = data
+                .get()
                 .get(&interaction.guild_id.unwrap())
                 .unwrap()
                 .iter()
                 .map(|id| id.get() as i64)
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>();
+            Some(users)
+        } else {
+            None
         };
 
-        let rows = get_rows::<Db, Manager>(leaderboard, pool, &users, 1).await;
+        let rows = get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), 1).await;
 
         let desc = rows
             .into_iter()
@@ -163,7 +239,7 @@ impl Commands {
             .embed(embed)
             .button(CreateButton::new("leaderboard_previous").label("<"));
 
-        if get_row_number::<Db, Manager>(leaderboard, pool, interaction.user.id)
+        if get_row_number::<Db, Manager>(leaderboard, pool, users.as_deref(), interaction.user.id)
             .await
             .is_some()
         {
@@ -172,29 +248,34 @@ impl Commands {
 
         let msg = interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 response.button(CreateButton::new("leaderboard_next").label(">")),
             )
             .await
             .unwrap();
 
         let mut stream = msg
-            .await_component_interactions(ctx)
+            .id
+            .collect_component_interactions(ctx)
             .timeout(Duration::from_secs(120))
             .stream();
 
         while let Some(component) = stream.next().await {
-            run_component::<Db, Manager>(ctx, pool, &users, &msg, component).await?;
+            run_component::<Db, Manager>(&ctx.http, pool, users.as_deref(), &msg, component)
+                .await?;
         }
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().components(Vec::new()))
+            .edit_response(
+                &ctx.http,
+                EditInteractionResponse::new().components(Vec::new()),
+            )
             .await?;
 
         Ok(())
     }
 
-    pub fn register_leaderboard() -> CreateCommand {
+    pub fn register_leaderboard<'a>() -> CreateCommand<'a> {
         CreateCommand::new("leaderboard")
             .description("The server leaderboard")
             .add_option(
@@ -208,15 +289,22 @@ impl Commands {
                 .add_string_choice("Coins", "coins")
                 .add_string_choice("Gems", "gems")
                 .add_string_choice(EGGPLANT.name, "eggplants")
-                .add_string_choice(LOTTO_TICKET.name, "lottotickets"),
+                .add_string_choice(LOTTO_TICKET.name, "lottotickets")
+                .add_string_choice("Higher or Lower", "higherlower")
+                .add_string_choice("Weekly Higher or Lower", "weekly_higherlower"),
             )
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::Boolean,
+                "global",
+                "Whether to show global scores",
+            ))
     }
 }
 
 async fn run_component<Db: Database, Manager: LeaderboardManager<Db>>(
-    ctx: &Context,
+    http: &Http,
     pool: &Pool<Db>,
-    users: &[i64],
+    users: Option<&[i64]>,
     msg: &Message,
     interaction: ComponentInteraction,
 ) -> Result<()> {
@@ -252,9 +340,10 @@ async fn run_component<Db: Database, Manager: LeaderboardManager<Db>>(
             page_number = (page_number - 1).max(1);
         }
         "user" => {
-            let row_num = get_row_number::<Db, Manager>(leaderboard, pool, interaction.user.id)
-                .await
-                .unwrap();
+            let row_num =
+                get_row_number::<Db, Manager>(leaderboard, pool, users, interaction.user.id)
+                    .await
+                    .unwrap();
             page_number = row_num / 10 + 1;
         }
         "next" => {
@@ -265,6 +354,10 @@ async fn run_component<Db: Database, Manager: LeaderboardManager<Db>>(
 
     let rows = get_rows::<Db, Manager>(leaderboard, pool, users, page_number).await;
 
+    if rows.is_empty() {
+        return Ok(());
+    }
+
     let desc = rows
         .into_iter()
         .enumerate()
@@ -273,12 +366,12 @@ async fn run_component<Db: Database, Manager: LeaderboardManager<Db>>(
         .join("\n\n");
 
     let embed = CreateEmbed::from(embed.clone())
-        .footer(CreateEmbedFooter::new(format!("Page {}", page_number)))
+        .footer(CreateEmbedFooter::new(format!("Page {page_number}")))
         .description(desc);
 
     interaction
         .create_response(
-            ctx,
+            http,
             CreateInteractionResponse::UpdateMessage(
                 CreateInteractionResponseMessage::new().embed(embed),
             ),
@@ -295,6 +388,8 @@ pub enum LeaderboardRow {
     Gems(GemsRow),
     Eggplants(EggplantsRow),
     LottoTickets(LottoTicketRow),
+    HigherLower(HigherLowerRow),
+    WeeklyHigherLower(WeeklyHigherLowerRow),
 }
 
 impl LeaderboardRow {
@@ -305,6 +400,8 @@ impl LeaderboardRow {
             Self::Gems(row) => UserId::new(row.id as u64),
             Self::Eggplants(row) => UserId::new(row.user_id as u64),
             Self::LottoTickets(row) => UserId::new(row.user_id as u64),
+            Self::HigherLower(row) => UserId::new(row.user_id as u64),
+            Self::WeeklyHigherLower(row) => UserId::new(row.user_id as u64),
         }
     }
 
@@ -327,6 +424,8 @@ impl LeaderboardRow {
             Self::LottoTickets(row) => {
                 format!("{} {}", row.quantity.format(), LOTTO_TICKET.emoji())
             }
+            Self::HigherLower(row) => row.higher_or_lower_score.to_string(),
+            Self::WeeklyHigherLower(row) => row.weekly_higher_or_lower_score.to_string(),
         };
 
         format!("{place} - {} - {data}", self.user_id().mention())
@@ -336,15 +435,30 @@ impl LeaderboardRow {
 async fn get_rows<Db: Database, Manager: LeaderboardManager<Db>>(
     leaderboard: &str,
     pool: &Pool<Db>,
-    users: &[i64],
+    users: Option<&[i64]>,
     page_num: i64,
 ) -> Vec<LeaderboardRow> {
+    let global = users.is_none();
+    let users = users.unwrap_or_default();
+
     match leaderboard {
-        "networth" => Manager::networth(pool, users, page_num).await.unwrap(),
-        "coins" => Manager::coins(pool, users, page_num).await.unwrap(),
-        "gems" => Manager::gems(pool, users, page_num).await.unwrap(),
-        "eggplants" => Manager::eggplants(pool, users, page_num).await.unwrap(),
-        "lottotickets" => Manager::lottotickets(pool, page_num).await.unwrap(),
+        "networth" => Manager::networth(pool, global, users, page_num)
+            .await
+            .unwrap(),
+        "coins" => Manager::coins(pool, global, users, page_num).await.unwrap(),
+        "gems" => Manager::gems(pool, global, users, page_num).await.unwrap(),
+        "eggplants" => Manager::eggplants(pool, global, users, page_num)
+            .await
+            .unwrap(),
+        "lottotickets" => Manager::lottotickets(pool, global, users, page_num)
+            .await
+            .unwrap(),
+        "higherlower" => Manager::higherlower(pool, global, users, page_num)
+            .await
+            .unwrap(),
+        "weekly_higherlower" => Manager::weekly_higherlower(pool, global, users, page_num)
+            .await
+            .unwrap(),
         _ => unreachable!("Invalid leaderboard option"),
     }
 }
@@ -352,19 +466,31 @@ async fn get_rows<Db: Database, Manager: LeaderboardManager<Db>>(
 async fn get_row_number<Db: Database, Manager: LeaderboardManager<Db>>(
     leaderboard: &str,
     pool: &Pool<Db>,
+    users: Option<&[i64]>,
     user: UserId,
 ) -> Option<i64> {
+    let global = users.is_none();
+    let users = users.unwrap_or_default();
+
     match leaderboard {
-        "coins" => Manager::coins_row_number(pool, user).await.ok().flatten(),
-        "gems" => Manager::gems_row_number(pool, user).await.ok().flatten(),
-        "eggplants" => Manager::eggplants_row_number(pool, user)
+        "coins" => Manager::coins_row_number(pool, global, users, user)
             .await
-            .ok()
-            .flatten(),
-        "lottotickets" => Manager::lottotickets_row_number(pool, user)
+            .unwrap(),
+        "gems" => Manager::gems_row_number(pool, global, users, user)
             .await
-            .ok()
-            .flatten(),
+            .unwrap(),
+        "eggplants" => Manager::eggplants_row_number(pool, global, users, user)
+            .await
+            .unwrap(),
+        "lottotickets" => Manager::lottotickets_row_number(pool, global, users, user)
+            .await
+            .unwrap(),
+        "higherlower" => Manager::higherlower_row_number(pool, global, users, user)
+            .await
+            .unwrap(),
+        "weekly_higherlower" => Manager::weekly_higherlower_row_number(pool, global, users, user)
+            .await
+            .unwrap(),
         _ => None,
     }
 }

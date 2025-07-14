@@ -15,8 +15,13 @@ impl SlashCommand<Error, Postgres> for FetchSuggestions {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        suggestions::FetchSuggestions::run::<Postgres, GuildTable>(ctx, interaction, options, pool)
-            .await?;
+        suggestions::FetchSuggestions::run::<Postgres, GuildTable>(
+            &ctx.http,
+            interaction,
+            options,
+            pool,
+        )
+        .await?;
 
         Ok(())
     }

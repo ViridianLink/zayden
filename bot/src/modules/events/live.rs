@@ -19,7 +19,7 @@ impl SlashCommand<Error, Postgres> for Live {
         _options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let now = Utc::now();
 
@@ -27,7 +27,7 @@ impl SlashCommand<Error, Postgres> for Live {
             .guild_id
             .unwrap()
             .create_scheduled_event(
-                ctx,
+                &ctx.http,
                 CreateScheduledEvent::new(
                     ScheduledEventType::External,
                     "Brad is LIVE",
@@ -41,7 +41,7 @@ impl SlashCommand<Error, Postgres> for Live {
 
         interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 EditInteractionResponse::new().content("Event successfully created."),
             )
             .await

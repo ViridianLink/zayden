@@ -1,17 +1,15 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ButtonStyle, CommandInteraction, Context, CreateButton, CreateEmbed, CreateMessage,
-    EditInteractionResponse, ResolvedValue,
+    ButtonStyle, CommandInteraction, CreateButton, CreateEmbed, CreateMessage,
+    EditInteractionResponse, Http, ResolvedValue,
 };
 
-use crate::Result;
+use crate::{Result, Ticket};
 
-use super::TicketCommand;
-
-impl TicketCommand {
+impl Ticket {
     pub(super) async fn create(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
@@ -27,7 +25,7 @@ impl TicketCommand {
             unreachable!("Label is required")
         };
 
-        interaction.defer_ephemeral(ctx).await?;
+        interaction.defer_ephemeral(http).await?;
 
         let embed = CreateEmbed::new()
             .title(title)
@@ -39,13 +37,13 @@ impl TicketCommand {
 
         interaction
             .channel_id
-            .send_message(ctx, CreateMessage::new().embed(embed).button(button))
+            .send_message(http, CreateMessage::new().embed(embed).button(button))
             .await
             .unwrap();
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new().content("Ticket embed created"),
             )
             .await

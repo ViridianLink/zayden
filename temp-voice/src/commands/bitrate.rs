@@ -1,20 +1,20 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelId, CommandInteraction, Context, EditChannel, EditInteractionResponse, ResolvedValue,
+    ChannelId, CommandInteraction, EditChannel, EditInteractionResponse, Http, ResolvedValue,
 };
 
 use crate::error::PermissionError;
 use crate::{Error, VoiceChannelRow};
 
 pub async fn bitrate(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     row: &VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(http).await.unwrap();
 
     if !row.is_trusted(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotTrusted));
@@ -26,13 +26,13 @@ pub async fn bitrate(
     };
 
     channel_id
-        .edit(ctx, EditChannel::new().bitrate(kbps * 1000))
+        .edit(http, EditChannel::new().bitrate(kbps * 1000))
         .await
         .unwrap();
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().content("Channel bitrate updated."),
         )
         .await

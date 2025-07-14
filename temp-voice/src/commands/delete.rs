@@ -1,17 +1,17 @@
-use serenity::all::{ChannelId, CommandInteraction, Context, EditInteractionResponse};
+use serenity::all::{ChannelId, CommandInteraction, EditInteractionResponse, Http};
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelRow, VoiceChannelManager};
+use crate::{Error, VoiceChannelManager, VoiceChannelRow};
 
 pub async fn delete<Db: Database, Manager: VoiceChannelManager<Db>>(
-    ctx: &Context,
+    http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     channel_id: ChannelId,
     row: VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(ctx).await.unwrap();
+    interaction.defer_ephemeral(http).await.unwrap();
 
     if row.is_owner(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotOwner));
@@ -19,11 +19,15 @@ pub async fn delete<Db: Database, Manager: VoiceChannelManager<Db>>(
 
     row.delete::<Db, Manager>(pool).await?;
 
-    channel_id.delete(ctx).await.unwrap();
+    channel_id
+        .widen()
+        .delete(http, Some("User deleted channel"))
+        .await
+        .unwrap();
 
     interaction
         .edit_response(
-            ctx,
+            http,
             EditInteractionResponse::new().content("Channel deleted."),
         )
         .await

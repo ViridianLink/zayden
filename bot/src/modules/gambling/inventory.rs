@@ -103,7 +103,7 @@ impl SlashCommand<Error, Postgres> for Inventory {
         pool: &PgPool,
     ) -> Result<()> {
         Commands::inventory::<Postgres, EffectsTable, InventoryTable>(
-            ctx,
+            &ctx.http,
             interaction,
             options,
             pool,

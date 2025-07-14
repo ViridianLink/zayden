@@ -35,7 +35,7 @@ impl std::fmt::Display for Error {
                 id.mention()
             ),
             Self::InvalidDateTime(format) => {
-                write!(f, "Invalid date time. Expected format: {}", format)
+                write!(f, "Invalid date time. Expected format: {format}")
             }
             Self::TagRequired => {
                 write!(

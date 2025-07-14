@@ -1,4 +1,3 @@
-use serenity::all::{DiscordJsonError, HttpError, StatusCode};
 use zayden_core::Error as ZaydenError;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -17,8 +16,7 @@ pub enum Error {
     Suggestions(suggestions::Error),
     TempVoice(temp_voice::Error),
 
-    Serenity(serenity::Error),
-    Sqlx(sqlx::Error),
+    ZaydenCore(ZaydenError),
 }
 
 #[allow(clippy::print_in_format_impl)]
@@ -29,6 +27,8 @@ impl std::fmt::Display for Error {
             Error::NotInteractionAuthor => write!(f, "You are not the author of this interaction."),
             Error::NegativeHours => write!(f, "Hours must be a positive number."),
 
+            Error::ZaydenCore(e) => e.fmt(f),
+
             Error::EndgameAnalysis(e) => e.fmt(f),
             Error::Gambling(e) => e.fmt(f),
             Error::Lfg(e) => e.fmt(f),
@@ -36,73 +36,6 @@ impl std::fmt::Display for Error {
             Error::Ticket(e) => e.fmt(f),
             Error::Suggestions(e) => e.fmt(f),
             Error::TempVoice(e) => e.fmt(f),
-
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    error: DiscordJsonError { code: 10003, .. },
-                    ..
-                },
-            ))) => ZaydenError::ChannelDeleted.fmt(f),
-
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    error: DiscordJsonError { code: 10008, .. },
-                    ..
-                },
-            ))) => write!(f, "Message was unexpectably deleted. Please try again."),
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    error: DiscordJsonError { code: 10062, .. },
-                    ..
-                },
-            ))) => ZaydenError::UnknownInteraction.fmt(f),
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    error: DiscordJsonError { code: 50001, .. },
-                    ..
-                },
-            ))) => write!(
-                f,
-                "I'm missing access perform that action. Please contact a server admin to resolve this."
-            ),
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    error: DiscordJsonError { code: 50013, .. },
-                    ..
-                },
-            ))) => {
-                write!(
-                    f,
-                    "I'm missing permissions perform that action. Please contact a server admin to resolve this."
-                )
-            }
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    error: DiscordJsonError { code: 50083, .. },
-                    ..
-                },
-            ))) => write!(f, "This thread has already been closed and archived."),
-            Error::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE,
-                    ..
-                },
-            ))) => write!(
-                f,
-                "It looks like Discord is currently experiencing some server issues. Please try your request again shortly. If the problem persists, please contact OscarSix for more details."
-            ),
-            Error::Serenity(e) => unimplemented!("Unhandled Serenity error: {e:?}"),
-
-            Error::Sqlx(sqlx::Error::PoolTimedOut) => ZaydenError::PoolTimedOut.fmt(f),
-            Error::Sqlx(sqlx::Error::ColumnDecode { index, source })
-                if source.is::<sqlx::error::UnexpectedNullError>() =>
-            {
-                write!(
-                    f,
-                    "Unexpected null found at {index}, please contact OscarSix to resolve."
-                )
-            }
-            Error::Sqlx(e) => unimplemented!("Unhandled SQLx error: {e:?}"),
         }
     }
 }
@@ -118,8 +51,8 @@ impl From<endgame_analysis::Error> for Error {
 impl From<gambling::Error> for Error {
     fn from(value: gambling::Error) -> Self {
         match value {
-            gambling::Error::Serenity(e) => Self::Serenity(e),
-            gambling::Error::Sqlx(e) => Self::Sqlx(e),
+            gambling::Error::Serenity(e) => Self::ZaydenCore(ZaydenError::Serenity(e)),
+            gambling::Error::Sqlx(e) => Self::ZaydenCore(ZaydenError::Sqlx(e)),
             value => Self::Gambling(value),
         }
     }
@@ -128,7 +61,7 @@ impl From<gambling::Error> for Error {
 impl From<lfg::Error> for Error {
     fn from(value: lfg::Error) -> Self {
         match value {
-            lfg::Error::Serenity(e) => Self::Serenity(e),
+            lfg::Error::Serenity(e) => Self::ZaydenCore(ZaydenError::Serenity(e)),
             value => Self::Lfg(value),
         }
     }
@@ -143,7 +76,7 @@ impl From<reaction_roles::Error> for Error {
 impl From<temp_voice::Error> for Error {
     fn from(value: temp_voice::Error) -> Self {
         match value {
-            temp_voice::Error::Serenity(e) => Self::Serenity(e),
+            temp_voice::Error::Serenity(e) => Self::ZaydenCore(ZaydenError::Serenity(e)),
             value => Error::TempVoice(value),
         }
     }
@@ -153,7 +86,7 @@ impl From<ticket::Error> for Error {
     fn from(value: ticket::Error) -> Self {
         match value {
             ticket::Error::MissingGuildId => Self::MissingGuildId,
-            ticket::Error::Serenity(e) => Self::Serenity(e),
+            ticket::Error::ZaydenCore(e) => Self::ZaydenCore(e),
             value => Self::Ticket(value),
         }
     }
@@ -170,12 +103,12 @@ impl From<suggestions::Error> for Error {
 
 impl From<serenity::Error> for Error {
     fn from(value: serenity::Error) -> Self {
-        Self::Serenity(value)
+        Self::ZaydenCore(ZaydenError::Serenity(value))
     }
 }
 
 impl From<sqlx::Error> for Error {
     fn from(value: sqlx::Error) -> Self {
-        Self::Sqlx(value)
+        Self::ZaydenCore(ZaydenError::Sqlx(value))
     }
 }

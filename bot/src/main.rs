@@ -1,24 +1,23 @@
-use std::env;
+use std::sync::Arc;
 
 use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
-use gambling::{Lotto, StaminaCron};
-use modules::destiny2::endgame_analysis::DestinyWeaponTable;
-use modules::destiny2::endgame_analysis::database_manager::DestinyDatabaseManager;
-use serenity::all::{ClientBuilder, GatewayIntents, GuildId, UserId};
-use serenity::prelude::TypeMap;
-
-pub use error::{Error, Result};
+use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Token, UserId};
 use sqlx::Postgres;
-use sqlx_lib::PostgresPool;
-use zayden_core::CronJobs;
-
-use crate::modules::gambling::{GamblingTable, LottoTable, StaminaTable};
+use tokio::sync::RwLock;
 
 mod cron;
+pub mod ctx_data;
 mod error;
 mod handler;
 pub mod modules;
 mod sqlx_lib;
+
+pub use ctx_data::CtxData;
+pub use error::{Error, Result};
+pub use handler::Handler;
+use modules::destiny2::endgame_analysis::DestinyWeaponTable;
+use modules::destiny2::endgame_analysis::database_manager::DestinyDatabaseManager;
+use sqlx_lib::PostgresPool;
 
 pub const SUPER_USERS: [UserId; 1] = [
     UserId::new(211486447369322506), // oscarsix
@@ -34,31 +33,25 @@ async fn main() -> Result<()> {
     //     let _ = dotenvy::from_filename_override(".env.dev");
     // }
 
-    let pool = PostgresPool::new().await.unwrap();
+    let data = CtxData::new().await?;
 
     if !cfg!(debug_assertions) {
-        DestinyDatabaseManager::update_dbs(&pool.pool)
+        DestinyDatabaseManager::update_dbs(data.pool())
             .await
             .unwrap();
-        EndgameAnalysisSheet::update::<Postgres, DestinyWeaponTable>(&pool.pool)
+        EndgameAnalysisSheet::update::<Postgres, DestinyWeaponTable>(data.pool())
             .await
             .unwrap();
     }
 
-    let mut type_map = TypeMap::new();
-    type_map.insert::<PostgresPool>(pool);
-    type_map.insert::<CronJobs<Postgres>>(vec![
-        Lotto::cron_job::<Postgres, GamblingTable, LottoTable>(),
-        StaminaCron::cron_job::<Postgres, StaminaTable>(),
-    ]);
-
-    let token = &env::var("DISCORD_TOKEN").expect("Expected DISCORD_TOKEN in the environment");
-
-    let mut client = ClientBuilder::new(token, GatewayIntents::all())
-        .type_map(type_map)
-        .raw_event_handler(handler::Handler)
-        .await
-        .unwrap();
+    let mut client = ClientBuilder::new(
+        Token::from_env("DISCORD_TOKEN").unwrap(),
+        GatewayIntents::all(),
+    )
+    .data(Arc::new(RwLock::new(data)))
+    .event_handler(handler::Handler)
+    .await
+    .unwrap();
 
     client.start().await.unwrap();
 

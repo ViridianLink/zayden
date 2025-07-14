@@ -1,6 +1,6 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    ReactionType, ResolvedValue,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption,
+    EditInteractionResponse, Http, Permissions, ReactionType, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -15,10 +15,12 @@ pub struct ReactionRoleCommand;
 
 impl ReactionRoleCommand {
     pub async fn run<Db: Database, Manager: ReactionRolesManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
+        interaction.defer_ephemeral(http).await.unwrap();
+
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
         let command = interaction.data.options().remove(0);
@@ -30,7 +32,7 @@ impl ReactionRoleCommand {
         let mut options = parse_options(options);
 
         let channel_id = match options.remove("channel") {
-            Some(ResolvedValue::Channel(channel)) => channel.id,
+            Some(ResolvedValue::Channel(channel)) => channel.id(),
             _ => interaction.channel_id,
         };
 
@@ -42,19 +44,25 @@ impl ReactionRoleCommand {
 
         match command.name {
             "add" => {
-                Self::add::<Db, Manager>(ctx, pool, guild_id, channel_id, reaction, options).await?
+                Self::add::<Db, Manager>(http, pool, guild_id, channel_id, reaction, options)
+                    .await?
             }
             "remove" => {
-                Self::remove::<Db, Manager>(ctx, pool, channel_id, guild_id, reaction, options)
+                Self::remove::<Db, Manager>(http, pool, channel_id, guild_id, reaction, options)
                     .await?;
             }
             _ => unreachable!("Invalid subcommand name"),
         };
 
+        interaction
+            .edit_response(http, EditInteractionResponse::new().content("Success."))
+            .await
+            .unwrap();
+
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         let add =
             CreateCommandOption::new(CommandOptionType::SubCommand, "add", "Adds a reaction role")
                 .add_sub_option(
@@ -113,6 +121,7 @@ impl ReactionRoleCommand {
 
         CreateCommand::new("reaction_role")
             .description("Adds or removes a reaction role")
+            .default_member_permissions(Permissions::MANAGE_MESSAGES)
             .add_option(add)
             .add_option(remove)
     }

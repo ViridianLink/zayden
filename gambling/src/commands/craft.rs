@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
+    Colour, CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
 };
-use sqlx::any::AnyQueryResult;
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use zayden_core::{FormatNum, parse_options};
@@ -17,7 +16,7 @@ use super::Commands;
 pub trait CraftManager<Db: Database> {
     async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<CraftRow>>;
 
-    async fn save(pool: &Pool<Db>, row: CraftRow) -> sqlx::Result<AnyQueryResult>;
+    async fn save(pool: &Pool<Db>, row: CraftRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -57,12 +56,12 @@ impl CraftRow {
 
 impl Commands {
     pub async fn craft<Db: Database, Manager: CraftManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let mut row = Manager::row(pool, interaction.user.id)
             .await
@@ -72,7 +71,7 @@ impl Commands {
         let mut options = parse_options(options);
 
         if !options.contains_key("type") {
-            menu(ctx, interaction, row).await;
+            menu(http, interaction, row).await;
             return Ok(());
         }
 
@@ -150,14 +149,14 @@ impl Commands {
             .colour(Colour::ORANGE);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_craft() -> CreateCommand {
+    pub fn register_craft<'a>() -> CreateCommand<'a> {
         CreateCommand::new("craft")
             .description("Craft packs to buy mining units")
             .add_option(
@@ -178,7 +177,7 @@ impl Commands {
     }
 }
 
-async fn menu(ctx: &Context, interaction: &CommandInteraction, row: CraftRow) {
+async fn menu(http: &Http, interaction: &CommandInteraction, row: CraftRow) {
     let mut desc = [
         ShopCurrency::Tech,
         ShopCurrency::Utility,
@@ -225,7 +224,7 @@ async fn menu(ctx: &Context, interaction: &CommandInteraction, row: CraftRow) {
         .colour(Colour::ORANGE);
 
     interaction
-        .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+        .edit_response(http, EditInteractionResponse::new().embed(embed))
         .await
         .unwrap();
 }

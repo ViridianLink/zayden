@@ -21,7 +21,7 @@ pub fn global_register(ctx: &Context) -> Vec<CreateCommand> {
     let mut cmds = destiny2::register(ctx).to_vec();
 
     cmds.extend(gambling::register(ctx));
-    cmds.extend(levels::Commands::register());
+    cmds.extend(levels::register(ctx));
     cmds.push(Lfg::register(ctx).unwrap());
     cmds.push(misc::register(ctx));
     cmds.push(reaction_roles::register(ctx));

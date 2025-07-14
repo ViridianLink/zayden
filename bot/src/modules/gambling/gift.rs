@@ -2,7 +2,8 @@ use async_trait::async_trait;
 use gambling::commands::gift::GiftManager;
 use gambling::{Commands, commands::gift::SenderRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::{PgPool, Postgres, any::AnyQueryResult};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
 use crate::modules::gambling::{GamblingTable, GoalsTable};
@@ -40,7 +41,7 @@ impl GiftManager<Postgres> for GiftTable {
         .await
     }
 
-    async fn save_sender(pool: &PgPool, row: SenderRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save_sender(pool: &PgPool, row: SenderRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
@@ -53,8 +54,7 @@ impl GiftManager<Postgres> for GiftTable {
             row.gems,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         let result2 = sqlx::query!(
             "INSERT INTO levels (id, level)
@@ -65,8 +65,7 @@ impl GiftManager<Postgres> for GiftTable {
             row.level,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         result.extend([result2]);
 
@@ -87,7 +86,7 @@ impl SlashCommand<Error, Postgres> for Gift {
         pool: &PgPool,
     ) -> Result<()> {
         Commands::gift::<Postgres, GamblingTable, GoalsTable, GiftTable>(
-            ctx,
+            &ctx.http,
             interaction,
             options,
             pool,

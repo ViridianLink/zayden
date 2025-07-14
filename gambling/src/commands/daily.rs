@@ -1,10 +1,9 @@
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use serenity::all::{
-    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
-    UserId,
+    Colour, CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
 };
-use sqlx::{Database, Pool, any::AnyQueryResult, prelude::FromRow};
+use sqlx::{Database, Pool, prelude::FromRow};
 use zayden_core::FormatNum;
 
 use crate::{COIN, Coins, Error, Result, START_AMOUNT, tomorrow};
@@ -15,7 +14,7 @@ use super::Commands;
 pub trait DailyManager<Db: Database> {
     async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<DailyRow>>;
 
-    async fn save(pool: &Pool<Db>, row: DailyRow) -> sqlx::Result<AnyQueryResult>;
+    async fn save(pool: &Pool<Db>, row: DailyRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -51,11 +50,11 @@ impl Coins for DailyRow {
 
 impl Commands {
     pub async fn daily<Db: Database, Manager: DailyManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let mut row = Manager::row(pool, interaction.user.id)
             .await
@@ -80,14 +79,14 @@ impl Commands {
             .colour(Colour::GOLD);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_daily() -> CreateCommand {
+    pub fn register_daily<'a>() -> CreateCommand<'a> {
         CreateCommand::new("daily").description("Collect your daily coins")
     }
 }

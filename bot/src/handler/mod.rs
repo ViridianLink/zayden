@@ -1,8 +1,10 @@
-use serenity::all::{Event, InteractionCreateEvent, RawEventHandler};
+use serenity::all::{EventHandler, FullEvent};
 use serenity::async_trait;
 use serenity::model::prelude::Interaction;
 use serenity::prelude::Context;
+use tokio::sync::RwLock;
 
+use crate::ctx_data::CtxData;
 use crate::sqlx_lib::PostgresPool;
 
 mod guild_create;
@@ -17,35 +19,45 @@ mod voice_state_update;
 pub struct Handler;
 
 #[async_trait]
-impl RawEventHandler for Handler {
-    async fn raw_event(&self, ctx: Context, ev: Event) {
-        let event_name = ev.name().unwrap_or(String::from("Unknown"));
-        let ev_command_name = match &ev {
-            Event::InteractionCreate(InteractionCreateEvent {
+impl EventHandler for Handler {
+    async fn dispatch(&self, ctx: &Context, ev: &FullEvent) {
+        let event_name: &'static str = ev.into();
+
+        let ev_command_name = match ev {
+            FullEvent::InteractionCreate {
                 interaction: Interaction::Command(interaction),
                 ..
-            }) => interaction.data.name.clone(),
-            _ => String::new(),
+            } => interaction.data.name.as_str(),
+            _ => "",
         };
-        let ev_debug = format!("{:?}", ev);
 
-        let pool = PostgresPool::get(&ctx).await;
+        let pool = {
+            let data = ctx.data::<RwLock<CtxData>>();
+            let data = data.read().await;
+            data.pool().clone()
+        };
 
         let result = match ev {
-            Event::GuildCreate(event) => Self::guild_create(&ctx, event.guild, &pool).await,
-            Event::MessageCreate(event) => Self::message_create(&ctx, event.message, &pool).await,
-            Event::ReactionAdd(event) => Self::reaction_add(&ctx, event.reaction, &pool).await,
-            Event::ReactionRemove(event) => {
-                Self::reaction_remove(&ctx, event.reaction, &pool).await
+            FullEvent::GuildCreate { guild, .. } => Self::guild_create(ctx, guild, &pool).await,
+            FullEvent::Message { new_message, .. } => {
+                Self::message_create(ctx, new_message, &pool).await
             }
-            Event::Ready(event) => Self::ready(&ctx, event.ready, &pool).await,
-            Event::VoiceStateUpdate(event) => {
-                Self::voice_state_update(&ctx, event.voice_state, &pool).await
+            FullEvent::ReactionAdd { add_reaction, .. } => {
+                Self::reaction_add(ctx, add_reaction, &pool).await
             }
-            Event::InteractionCreate(event) => {
-                Self::interaction_create(&ctx, event.interaction, &pool).await
+            FullEvent::ReactionRemove {
+                removed_reaction, ..
+            } => Self::reaction_remove(ctx, removed_reaction, &pool).await,
+            FullEvent::Ready { data_about_bot, .. } => {
+                Self::ready(ctx, data_about_bot, &pool).await
             }
-            Event::ThreadDelete(event) => Self::thread_delete(&ctx, event.thread, &pool).await,
+            FullEvent::VoiceStateUpdate { new, .. } => {
+                Self::voice_state_update(ctx, new, &pool).await
+            }
+            FullEvent::InteractionCreate { interaction, .. } => {
+                Self::interaction_create(ctx, interaction, &pool).await
+            }
+            FullEvent::ThreadDelete { thread, .. } => Self::thread_delete(ctx, thread, &pool).await,
             _ => Ok(()),
         };
 
@@ -53,10 +65,10 @@ impl RawEventHandler for Handler {
             let msg = if ev_command_name.is_empty() {
                 format!("Error handling {event_name}: {e:?}")
             } else {
-                format!("Error handling {event_name} | {ev_command_name}: {:?}", e)
+                format!("Error handling {event_name} | {ev_command_name}: {e:?}")
             };
 
-            eprintln!("\n{msg}\n{ev_debug}\n");
+            eprintln!("\n{msg}\n{ev:?}\n");
         }
     }
 }

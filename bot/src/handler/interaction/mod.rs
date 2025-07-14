@@ -13,10 +13,10 @@ use super::Handler;
 impl Handler {
     pub async fn interaction_create(
         ctx: &Context,
-        interaction: Interaction,
+        interaction: &Interaction,
         pool: &PgPool,
     ) -> Result<()> {
-        match &interaction {
+        match interaction {
             Interaction::Command(command) => {
                 Handler::interaction_command(ctx, command, pool).await?
             }

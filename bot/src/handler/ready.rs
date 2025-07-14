@@ -6,7 +6,7 @@ use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
 
 impl Handler {
-    pub async fn ready(ctx: &Context, ready: Ready, pool: &PgPool) -> Result<()> {
+    pub async fn ready(ctx: &Context, ready: &Ready, pool: &PgPool) -> Result<()> {
         println!("{} is connected!", ready.user.name);
 
         ctx.set_presence(None, OnlineStatus::Online);

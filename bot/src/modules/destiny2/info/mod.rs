@@ -2,8 +2,7 @@ use async_trait::async_trait;
 use endgame_analysis::DestinyPerk;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateInteractionResponse, CreateInteractionResponseMessage, EditInteractionResponse,
-    ResolvedOption, ResolvedValue,
+    EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
@@ -20,23 +19,11 @@ impl SlashCommand<Error, Postgres> for Perk {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
+        interaction.defer(&ctx.http).await.unwrap();
+
         let ResolvedValue::String(perk) = options[0].value else {
-            interaction
-                .create_response(
-                    ctx,
-                    CreateInteractionResponse::Message(
-                        CreateInteractionResponseMessage::new()
-                            .content("Invalid perk name")
-                            .ephemeral(true),
-                    ),
-                )
-                .await
-                .unwrap();
-
-            return Ok(());
+            unreachable!("Option must be string")
         };
-
-        interaction.defer(ctx).await.unwrap();
 
         let perk = match sqlx::query_as!(
             DestinyPerk,
@@ -48,14 +35,14 @@ impl SlashCommand<Error, Postgres> for Perk {
         {
             Ok(perk) => perk,
             Err(_) => {
-                interaction.edit_response(ctx, EditInteractionResponse::new().content("This command is still work in progress. Please make sure the perk is typed __exactly__ how it appears in game (including captalisation).")).await.unwrap();
+                interaction.edit_response(&ctx.http, EditInteractionResponse::new().content("This command is still work in progress. Please make sure the perk is typed __exactly__ how it appears in game (including captalisation).")).await.unwrap();
                 return Ok(());
             }
         };
 
         interaction
             .edit_response(
-                ctx,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .content(format!("__{}__\n{}", perk.name, perk.description)),
             )

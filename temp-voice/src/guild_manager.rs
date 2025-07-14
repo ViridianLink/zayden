@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId};
-use sqlx::any::AnyQueryResult;
 use sqlx::{Database, FromRow, Pool};
 
 #[async_trait]
@@ -10,7 +9,7 @@ pub trait TempVoiceGuildManager<Db: Database> {
         id: GuildId,
         category: ChannelId,
         creator_channel: ChannelId,
-    ) -> sqlx::Result<AnyQueryResult>;
+    ) -> sqlx::Result<Db::QueryResult>;
 
     async fn get(pool: &Pool<Db>, id: GuildId) -> sqlx::Result<TempVoiceRow>;
 

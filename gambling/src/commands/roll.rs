@@ -1,19 +1,26 @@
+use std::sync::Arc;
+
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::GamblingManager;
 use crate::utils::{GameResult, game_embed};
-use crate::{Coins, EffectsManager, Error, GameCache, GameManager, GameRow, GoalsManager, Result};
+use crate::{
+    Coins, EffectsManager, Error, GamblingData, GameCache, GameManager, GameRow, GoalsManager,
+    Result,
+};
 
 use super::Commands;
 
 impl Commands {
     pub async fn roll<
+        Data: GamblingData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalHandler: GoalsManager<Db>,
@@ -25,7 +32,7 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(&ctx.http).await?;
 
         let mut options = parse_options(options);
 
@@ -46,7 +53,9 @@ impl Commands {
             .unwrap()
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
-        GameCache::can_play(ctx, interaction.user.id).await?;
+        let data = ctx.data::<RwLock<Data>>();
+
+        GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
             unreachable!("bet option is required")
@@ -64,7 +73,7 @@ impl Commands {
             ("🎲 Dice Roll 🎲 - You Lost!", 0)
         };
 
-        Dispatch::<Db, GoalHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -91,7 +100,7 @@ impl Commands {
         let coins = row.coins();
 
         GameHandler::save(pool, row).await.unwrap();
-        GameCache::update(ctx, interaction.user.id).await;
+        GameCache::update(data, interaction.user.id).await;
 
         let embed = game_embed(
             title,
@@ -104,14 +113,14 @@ impl Commands {
         );
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_roll() -> CreateCommand {
+    pub fn register_roll<'a>() -> CreateCommand<'a> {
         CreateCommand::new("roll")
             .description("Roll the dice")
             .add_option(

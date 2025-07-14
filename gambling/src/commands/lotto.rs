@@ -1,5 +1,5 @@
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
+    CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http,
 };
 use sqlx::{Database, Pool};
 use zayden_core::FormatNum;
@@ -13,11 +13,11 @@ impl Commands {
         GamblingHandler: GamblingManager<Db>,
         LottoHandler: LottoManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let mut tx = pool.begin().await.unwrap();
 
@@ -64,14 +64,14 @@ impl Commands {
             );
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_lotto() -> CreateCommand {
+    pub fn register_lotto<'a>() -> CreateCommand<'a> {
         CreateCommand::new("lotto").description("Show the lottery information")
     }
 }

@@ -1,4 +1,4 @@
-use serenity::all::{ComponentInteraction, Context, CreateInteractionResponse, CreateModal};
+use serenity::all::{ComponentInteraction, CreateInteractionResponse, CreateModal, Http};
 use sqlx::{Database, Pool};
 
 use crate::modals::modal_components;
@@ -8,7 +8,7 @@ use super::{Components, EditManager};
 
 impl Components {
     pub async fn copy<Db: Database, Manager: EditManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
@@ -30,7 +30,7 @@ impl Components {
         let modal = CreateModal::new("lfg_create", "Copy Event").components(row);
 
         interaction
-            .create_response(ctx, CreateInteractionResponse::Modal(modal))
+            .create_response(http, CreateInteractionResponse::Modal(modal))
             .await
             .unwrap();
 

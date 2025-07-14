@@ -5,7 +5,7 @@ use temp_voice::VoiceCommand;
 use zayden_core::SlashCommand;
 
 use crate::sqlx_lib::GuildTable;
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 use super::VoiceChannelTable;
 
@@ -19,8 +19,12 @@ impl SlashCommand<Error, Postgres> for Voice {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        VoiceCommand::run::<Postgres, GuildTable, VoiceChannelTable>(ctx, interaction, pool)
-            .await?;
+        VoiceCommand::run::<CtxData, Postgres, GuildTable, VoiceChannelTable>(
+            ctx,
+            interaction,
+            pool,
+        )
+        .await?;
 
         Ok(())
     }

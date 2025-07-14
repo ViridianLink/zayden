@@ -110,7 +110,7 @@ impl SlashCommand<Error, Postgres> for Goals {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::goals::<Postgres, GoalsTable>(ctx, interaction, pool).await?;
+        Commands::goals::<Postgres, GoalsTable>(&ctx.http, interaction, pool).await?;
         Ok(())
     }
 

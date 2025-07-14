@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use serenity::all::UserId;
-use sqlx::{any::AnyQueryResult, prelude::FromRow, Database, Pool};
+use sqlx::{prelude::FromRow, Database, Pool};
 
 use crate::level_up_xp;
 
@@ -30,7 +30,7 @@ pub trait LevelsManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<FullLevelRow>>;
 
-    async fn save(pool: &Pool<Db>, row: FullLevelRow) -> sqlx::Result<AnyQueryResult>;
+    async fn save(pool: &Pool<Db>, row: FullLevelRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 pub trait LevelsRow {

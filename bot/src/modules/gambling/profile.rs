@@ -58,7 +58,7 @@ impl SlashCommand<Error, Postgres> for Profile {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::profile::<Postgres, ProfileTable>(ctx, interaction, options, pool).await?;
+        Commands::profile::<Postgres, ProfileTable>(&ctx.http, interaction, options, pool).await?;
 
         Ok(())
     }

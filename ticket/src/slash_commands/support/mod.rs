@@ -2,19 +2,17 @@ mod get;
 mod list;
 
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    Permissions, ResolvedOption, ResolvedValue,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, Http, Permissions,
+    ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
-use crate::{Error, Result, TicketGuildManager};
+use crate::{Error, Result, Support, TicketGuildManager};
 
-pub struct SupportCommand;
-
-impl SupportCommand {
+impl Support {
     pub async fn run<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: Vec<ResolvedOption<'_>>,
@@ -32,16 +30,16 @@ impl SupportCommand {
 
         match command.name {
             "get" => {
-                Self::get::<Db, GuildManager>(ctx, interaction, pool, options, guild_id).await?
+                Self::get::<Db, GuildManager>(http, interaction, pool, options, guild_id).await?
             }
-            "list" => Self::list::<Db, GuildManager>(ctx, interaction, pool, guild_id).await?,
+            "list" => Self::list::<Db, GuildManager>(http, interaction, pool, guild_id).await?,
             _ => unreachable!("Subcommand is required"),
         }
 
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         let list = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "list",

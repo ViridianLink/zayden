@@ -1,10 +1,8 @@
 use async_trait::async_trait;
 use chrono::{NaiveDateTime, Utc};
 use serenity::all::{
-    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
-    UserId,
+    Colour, CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
 };
-use sqlx::any::AnyQueryResult;
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use zayden_core::FormatNum;
@@ -17,7 +15,7 @@ use crate::{
 
 use super::Commands;
 
-#[derive(FromRow)]
+#[derive(Debug, FromRow)]
 pub struct WorkRow {
     pub id: i64,
     pub coins: i64,
@@ -37,7 +35,7 @@ impl WorkRow {
             id: id.get() as i64,
             coins: 0,
             gems: 0,
-            stamina: 0,
+            stamina: 3,
             level: Some(0),
             miners: Some(0),
             prestige: Some(0),
@@ -104,7 +102,7 @@ impl Prestige for WorkRow {
 pub trait WorkManager<Db: Database> {
     async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<WorkRow>>;
 
-    async fn save(pool: &Pool<Db>, row: WorkRow) -> sqlx::Result<AnyQueryResult>;
+    async fn save(pool: &Pool<Db>, row: WorkRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 impl Commands {
@@ -114,11 +112,11 @@ impl Commands {
         GoalHandler: GoalsManager<Db>,
         WorkHandler: WorkManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await?;
+        interaction.defer(http).await.unwrap();
 
         let mut row = match WorkHandler::row(pool, interaction.user.id).await.unwrap() {
             Some(row) => row,
@@ -142,7 +140,7 @@ impl Commands {
 
         let coins = row.coins_str();
 
-        Dispatch::<Db, GoalHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalHandler>::new(http, pool)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -164,13 +162,13 @@ impl Commands {
             .colour(Colour::GOLD);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await?;
 
         Ok(())
     }
 
-    pub fn register_work() -> CreateCommand {
+    pub fn register_work<'a>() -> CreateCommand<'a> {
         CreateCommand::new("work").description("Do some work and get some quick coins")
     }
 }

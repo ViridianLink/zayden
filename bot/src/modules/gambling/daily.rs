@@ -4,7 +4,7 @@ use gambling::{
     commands::daily::{DailyManager, DailyRow},
 };
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::{PgPool, Postgres, any::AnyQueryResult};
+use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
 use zayden_core::SlashCommand;
 
 use crate::{Error, Result};
@@ -34,7 +34,7 @@ impl DailyManager<Postgres> for DailyTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: DailyRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save(pool: &PgPool, row: DailyRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "INSERT INTO gambling (id, coins, daily)
             VALUES ($1, $2, now())
@@ -45,7 +45,6 @@ impl DailyManager<Postgres> for DailyTable {
         )
         .execute(pool)
         .await
-        .map(AnyQueryResult::from)
     }
 }
 
@@ -59,7 +58,7 @@ impl SlashCommand<Error, Postgres> for Daily {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::daily::<Postgres, DailyTable>(ctx, interaction, pool).await?;
+        Commands::daily::<Postgres, DailyTable>(&ctx.http, interaction, pool).await?;
 
         Ok(())
     }

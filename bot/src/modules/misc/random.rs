@@ -33,7 +33,7 @@ impl SlashCommand<Error, Postgres> for Random {
 
         interaction
             .create_response(
-                ctx,
+                &ctx.http,
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new().embed(embed),
                 ),

@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    Colour, CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
-use sqlx::{Database, Pool, any::AnyQueryResult, prelude::FromRow};
+use sqlx::{Database, Pool, prelude::FromRow};
 use zayden_core::FormatNum;
 
 use crate::{
@@ -24,7 +24,7 @@ pub trait GiftManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<SenderRow>>;
 
-    async fn save_sender(pool: &Pool<Db>, row: SenderRow) -> sqlx::Result<AnyQueryResult>;
+    async fn save_sender(pool: &Pool<Db>, row: SenderRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -118,12 +118,12 @@ impl Commands {
         GoalsHandler: GoalsManager<Db>,
         GiftHandler: GiftManager<Db>,
     >(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(http).await.unwrap();
 
         let ResolvedValue::User(recipient, _) = options[0].value else {
             unreachable!("recipient is required")
@@ -154,7 +154,7 @@ impl Commands {
 
         tx.commit().await.unwrap();
 
-        Dispatch::<Db, GoalsHandler>::new(ctx, pool)
+        Dispatch::<Db, GoalsHandler>::new(http, pool)
             .fire(
                 interaction.channel_id,
                 &mut user_row,
@@ -173,14 +173,14 @@ impl Commands {
             .colour(Colour::GOLD);
 
         interaction
-            .edit_response(ctx, EditInteractionResponse::new().embed(embed))
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
         Ok(())
     }
 
-    pub fn register_gift() -> CreateCommand {
+    pub fn register_gift<'a>() -> CreateCommand<'a> {
         CreateCommand::new("gift")
             .description("Send a free gift to a user!")
             .add_option(

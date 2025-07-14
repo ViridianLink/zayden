@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::work::{WorkManager, WorkRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
-use sqlx::any::AnyQueryResult;
+use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
@@ -42,7 +42,7 @@ impl WorkManager<Postgres> for WorkTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: WorkRow) -> sqlx::Result<AnyQueryResult> {
+    async fn save(pool: &PgPool, row: WorkRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
@@ -56,8 +56,7 @@ impl WorkManager<Postgres> for WorkTable {
             row.stamina
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         let result2 = sqlx::query!(
             "INSERT INTO gambling_mine (id, mine_activity)
@@ -68,8 +67,7 @@ impl WorkManager<Postgres> for WorkTable {
             row.mine_activity,
         )
         .execute(&mut *tx)
-        .await
-        .map(AnyQueryResult::from)?;
+        .await?;
 
         result.extend([result2]);
 
@@ -89,8 +87,12 @@ impl SlashCommand<Error, Postgres> for Work {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::work::<Postgres, StaminaTable, GoalsTable, WorkTable>(ctx, interaction, pool)
-            .await?;
+        Commands::work::<Postgres, StaminaTable, GoalsTable, WorkTable>(
+            &ctx.http,
+            interaction,
+            pool,
+        )
+        .await?;
 
         Ok(())
     }

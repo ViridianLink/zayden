@@ -89,12 +89,11 @@ impl Handler {
 
         if let Err(e) = result {
             let msg = e.to_string();
-            let _ = interaction.defer_ephemeral(ctx).await;
+            let _ = interaction.defer_ephemeral(&ctx.http).await;
 
             interaction
-                .edit_response(ctx, EditInteractionResponse::new().content(msg))
-                .await
-                .unwrap();
+                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
+                .await?;
         }
 
         Ok(())
