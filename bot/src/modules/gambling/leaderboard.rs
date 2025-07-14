@@ -157,16 +157,10 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
     ) -> sqlx::Result<Vec<LeaderboardRow>> {
         let offset = (page_num - 1) * LIMIT;
 
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             EggplantsRow,
-            r#"
-            SELECT user_id, quantity
-            FROM gambling_inventory
-            WHERE user_id = ANY($1) AND item_id = $2
-            ORDER BY quantity DESC
-            LIMIT $3
-            OFFSET $4
-            "#,
+            "sql/gambling/LeaderboardManager/item.sql",
+            global,
             users,
             EGGPLANT.id,
             LIMIT,
@@ -186,24 +180,10 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
     ) -> sqlx::Result<Option<i64>> {
         let id = id.into();
 
-        sqlx::query_scalar!(
-            r#"
-        WITH RankedUsers AS (
-            SELECT
-                user_id,
-                ROW_NUMBER() OVER (ORDER BY quantity DESC) as row_num
-            FROM
-                gambling_inventory
-            WHERE
-                item_id = $1
-        )
-        SELECT
-            row_num
-        FROM
-            RankedUsers
-        WHERE
-            user_id = $2;
-        "#,
+        sqlx::query_file_scalar!(
+            "sql/gambling/LeaderboardManager/item_row_number.sql",
+            global,
+            users,
             EGGPLANT.id,
             id.get() as i64
         )
@@ -220,16 +200,11 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
     ) -> sqlx::Result<Vec<LeaderboardRow>> {
         let offset = (page_num - 1) * LIMIT;
 
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             LottoTicketRow,
-            r#"
-            SELECT user_id, quantity
-            FROM gambling_inventory
-            WHERE item_id = $1
-            ORDER BY quantity DESC
-            LIMIT $2
-            OFFSET $3
-            "#,
+            "sql/gambling/LeaderboardManager/item.sql",
+            global,
+            users,
             LOTTO_TICKET.id,
             LIMIT,
             offset
@@ -248,24 +223,10 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
     ) -> sqlx::Result<Option<i64>> {
         let id = id.into();
 
-        sqlx::query_scalar!(
-            r#"
-        WITH RankedUsers AS (
-            SELECT
-                user_id,
-                ROW_NUMBER() OVER (ORDER BY quantity DESC) as row_num
-            FROM
-                gambling_inventory
-            WHERE
-                item_id = $1
-        )
-        SELECT
-            row_num
-        FROM
-            RankedUsers
-        WHERE
-            user_id = $2;
-        "#,
+        sqlx::query_file_scalar!(
+            "sql/gambling/LeaderboardManager/item_row_number.sql",
+            global,
+            users,
             LOTTO_TICKET.id,
             id.get() as i64
         )
