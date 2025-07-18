@@ -131,7 +131,7 @@ impl Commands {
 
         *row.coins_mut() += total_amount;
 
-        let gem_desc = if rand::random_bool(1.0 / 200.0) {
+        let gem_desc = if rand::random_bool(1.0 / 100.0) {
             row.add_gems(1);
             "\n💎 You found a GEM!"
         } else {
