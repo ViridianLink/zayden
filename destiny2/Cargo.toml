@@ -1,0 +1,10 @@
+[package]
+name = "destiny2"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bungie-api = { workspace = true }
+zayden-core = { workspace = true }
+
+serenity = { workspace = true }

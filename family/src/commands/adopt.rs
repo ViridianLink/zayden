@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     ResolvedValue, UserId,
@@ -9,13 +8,10 @@ use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
 use crate::{Error, Result};
 
-use super::FamilyCommand;
-
 pub struct Adopt;
 
-#[async_trait]
-impl FamilyCommand<UserId> for Adopt {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl Adopt {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -33,11 +29,11 @@ impl FamilyCommand<UserId> for Adopt {
             return Err(Error::Zayden);
         }
 
-        if target_user.bot {
+        if target_user.bot() {
             return Err(Error::Bot);
         }
 
-        let row = match Manager::get_row(pool, interaction.user.id).await? {
+        let row = match Manager::row(pool, interaction.user.id).await? {
             Some(row) => row,
             None => (&interaction.user).into(),
         };
@@ -57,7 +53,7 @@ impl FamilyCommand<UserId> for Adopt {
         Ok(target_user.id)
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("adopt")
             .description("Adopt another user into your family.")
             .add_option(

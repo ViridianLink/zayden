@@ -1,11 +1,13 @@
-use serenity::all::{CommandInteraction, Context, EditInteractionResponse};
+use serenity::all::{
+    CommandInteraction, Context, DiscordJsonError, ErrorResponse, HttpError, JsonErrorCode,
+};
 use sqlx::PgPool;
 use zayden_core::Autocomplete;
 
-use crate::Result;
 use crate::handler::Handler;
 use crate::modules::destiny2::endgame_analysis::slash_commands::{TierList, Weapon};
 use crate::modules::lfg::Lfg;
+use crate::{Error, Result};
 
 impl Handler {
     pub async fn interaction_autocomplete(
@@ -25,14 +27,21 @@ impl Handler {
             }
         };
 
-        if let Err(e) = result {
-            let msg = e.to_string();
-
-            let _ = interaction.defer_ephemeral(&ctx.http).await;
-
-            interaction
-                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
-                .await?;
+        match result {
+            Ok(_)
+            | Err(Error::ZaydenCore(zayden_core::Error::Serenity(serenity::Error::Http(
+                HttpError::UnsuccessfulRequest(ErrorResponse {
+                    error:
+                        DiscordJsonError {
+                            code: JsonErrorCode::UnknownWebhook,
+                            ..
+                        },
+                    ..
+                }),
+            )))) => {}
+            Err(e) => {
+                eprintln!("Error handling INTERACTION_AUTOCOMPLETE: {e:?}");
+            }
         }
 
         Ok(())

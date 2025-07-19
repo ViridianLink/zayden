@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use futures::{stream, StreamExt, TryStreamExt};
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
@@ -9,13 +8,10 @@ use sqlx::{Database, Pool};
 use crate::family_manager::FamilyManager;
 use crate::{Error, Result};
 
-use super::FamilyCommand;
-
 pub struct Siblings;
 
-#[async_trait]
-impl FamilyCommand<(UserId, Vec<String>)> for Siblings {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl Siblings {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -28,7 +24,7 @@ impl FamilyCommand<(UserId, Vec<String>)> for Siblings {
             _ => &interaction.user,
         };
 
-        let row = match Manager::get_row(pool, user.id).await? {
+        let row = match Manager::row(pool, user.id).await? {
             Some(row) => row,
             None => (&interaction.user).into(),
         };
@@ -42,8 +38,9 @@ impl FamilyCommand<(UserId, Vec<String>)> for Siblings {
         }
 
         let siblings: Vec<String> = stream::iter(row.parent_ids)
+            .map(|id| UserId::new(id as u64))
             .then(|id| async move {
-                if let Some(row) = Manager::get_row(pool, id).await? {
+                if let Some(row) = Manager::row(pool, id).await? {
                     for sib_id in row.children_ids {
                         if sib_id != row.id {
                             let user_id = UserId::new(sib_id as u64);
@@ -54,7 +51,7 @@ impl FamilyCommand<(UserId, Vec<String>)> for Siblings {
                     }
                 }
 
-                Err(Error::NoData(UserId::new(id as u64)))
+                Err(Error::NoData(id))
             })
             .try_collect()
             .await?;
@@ -62,7 +59,7 @@ impl FamilyCommand<(UserId, Vec<String>)> for Siblings {
         Ok((user.id, siblings))
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("siblings")
             .description("List who your siblings are.")
             .add_option(CreateCommandOption::new(

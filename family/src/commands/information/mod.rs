@@ -5,8 +5,6 @@ mod partner;
 mod relationship;
 mod siblings;
 
-use super::FamilyCommand;
-
 pub use children::Children;
 pub use parents::Parents;
 pub use partner::Partner;

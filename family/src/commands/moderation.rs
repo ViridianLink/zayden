@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::Permissions;
 use serenity::all::{CommandInteraction, Context, CreateCommand};
 use sqlx::{Database, Pool};
@@ -6,13 +5,10 @@ use sqlx::{Database, Pool};
 use crate::FamilyManager;
 use crate::Result;
 
-use super::FamilyCommand;
-
 pub struct ResetFamily;
 
-#[async_trait]
-impl FamilyCommand<()> for ResetFamily {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl ResetFamily {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         _ctx: &Context,
         _interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -22,7 +18,7 @@ impl FamilyCommand<()> for ResetFamily {
         Ok(())
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("resetfamily")
             .description("Resets the family tree(s) in guild")
             .default_member_permissions(Permissions::ADMINISTRATOR)

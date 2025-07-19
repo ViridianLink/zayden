@@ -1,5 +1,7 @@
 use chrono::Utc;
-use serenity::all::{ComponentInteraction, Context, EditInteractionResponse};
+use serenity::all::{
+    ComponentInteraction, Context, CreateInteractionResponse, EditInteractionResponse,
+};
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketComponent;
@@ -104,7 +106,10 @@ impl Handler {
                     .map_err(Error::from)
             }
             //endregion: Ticket
-            _ => Ok(()),
+            _ => interaction
+                .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
+                .await
+                .map_err(Error::from),
         };
 
         if let Err(e) = result {

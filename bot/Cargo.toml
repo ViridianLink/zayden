@@ -4,7 +4,7 @@ version = "0.9.0"
 edition = "2024"
 
 [dependencies]
-zayden-core = { workspace = true }
+destiny2 = { workspace = true }
 endgame-analysis = { workspace = true }
 gambling = { workspace = true }
 levels = { workspace = true }
@@ -13,6 +13,7 @@ reaction-roles = { workspace = true }
 suggestions = { workspace = true }
 temp-voice = { workspace = true }
 ticket = { workspace = true }
+zayden-core = { workspace = true }
 
 bungie-api = { workspace = true }
 

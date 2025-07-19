@@ -6,12 +6,8 @@ edition = "2021"
 [dependencies]
 zayden-core = { workspace = true }
 
-sqlx = { version = "*", default-features = false, features = ["macros"] }
-async-trait = { version = "*", default-features = false }
-futures = { version = "*", default-features = false }
-charming = { version = "*", default-features = false }
-
-[dependencies.serenity]
-version = "*"
-default-features = false
-features = ["rustls_backend", "builder", "client", "gateway", "model"]
+async-trait = { workspace = true }
+sqlx = { workspace = true }
+futures = { workspace = true }
+charming = { workspace = true }
+serenity = { workspace = true }

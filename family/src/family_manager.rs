@@ -8,15 +8,15 @@ use crate::Result;
 
 #[async_trait]
 pub trait FamilyManager<Db: Database> {
-    async fn get_row(
+    async fn row(
         pool: &Pool<Db>,
-        user_id: impl Into<i64> + Send,
+        user_id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<FamilyRow>>;
 
     async fn tree<'a>(
         pool: &Pool<Db>,
-        user_id: impl Into<i64> + Send,
-        mut tree: HashMap<i32, Vec<FamilyRow>>,
+        user_id: impl Into<UserId> + Send,
+        tree: HashMap<i32, Vec<FamilyRow>>,
         depth: i32,
         add_parents: bool,
         add_partners: bool,
@@ -185,7 +185,15 @@ impl FamilyRow {
         self,
         pool: &Pool<Db>,
     ) -> Result<HashMap<i32, Vec<FamilyRow>>> {
-        let tree = Manager::tree(pool, self.id, HashMap::new(), 0, true, true).await?;
+        let tree = Manager::tree(
+            pool,
+            UserId::new(self.id as u64),
+            HashMap::new(),
+            0,
+            true,
+            true,
+        )
+        .await?;
 
         Ok(tree)
     }
@@ -203,7 +211,7 @@ impl From<&User> for FamilyRow {
     fn from(user: &User) -> Self {
         Self {
             id: user.id.get() as i64,
-            username: user.name.clone(),
+            username: user.display_name().to_string(),
             ..Default::default()
         }
     }

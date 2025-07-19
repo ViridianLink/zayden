@@ -16,14 +16,9 @@ use zayden_core::FormatNum;
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::gambling_stats::StatsManager;
-use crate::{
-    CARD_DECK, Coins, Error, GamblingData, GameCache, GameManager, GameRow, Gems, GoalsManager,
-    Result, ShopCurrency,
-};
+use crate::{CARD_DECK, Coins, GamblingData, GameCache, GameManager, Gems, GoalsManager, Result};
 
 use super::Commands;
-
-const BUYIN: i64 = 1000;
 
 static CARD_TO_NUM: LazyLock<HashMap<EmojiId, u8>> = LazyLock::new(|| {
     CARD_DECK
@@ -47,25 +42,9 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await.unwrap();
 
-        let mut row = GameHandler::row(pool, interaction.user.id)
-            .await
-            .unwrap()
-            .unwrap_or_else(|| GameRow::new(interaction.user.id));
-
-        if row.coins() < BUYIN {
-            return Err(Error::InsufficientFunds {
-                required: BUYIN - row.coins(),
-                currency: ShopCurrency::Coins,
-            });
-        }
-
         let data = ctx.data::<RwLock<Data>>();
 
         GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
-
-        row.bet(BUYIN);
-
-        GameHandler::save(pool, row).await.unwrap();
 
         let mut deck = CARD_DECK.to_vec();
         deck.shuffle(&mut rng());
@@ -175,8 +154,7 @@ impl Commands {
 
         row.add_coins(payout);
 
-        // 51 as the user starts at -1000
-        if payout == 51 * BUYIN {
+        if payout == 52_000 {
             row.add_gems(1);
         }
 
@@ -195,8 +173,8 @@ impl Commands {
                 Event::Game(GameEvent::new(
                     "higherorlower",
                     interaction.user.id,
-                    payout + BUYIN,
-                    payout > 0,
+                    payout,
+                    payout != 0,
                 )),
             )
             .await?;

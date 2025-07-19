@@ -1,16 +1,12 @@
 use serenity::all::{Context, CreateCommand};
-
-pub mod levels;
-pub mod lfg;
 use zayden_core::SlashCommand;
 
-use crate::modules::lfg::Lfg;
-
-// pub mod moderation;
 pub mod ai;
 pub mod destiny2;
 pub mod events;
 pub mod gambling;
+pub mod levels;
+pub mod lfg;
 pub mod misc;
 pub mod reaction_roles;
 pub mod suggestions;
@@ -22,7 +18,7 @@ pub fn global_register(ctx: &Context) -> Vec<CreateCommand> {
 
     cmds.extend(gambling::register(ctx));
     cmds.extend(levels::register(ctx));
-    cmds.push(Lfg::register(ctx).unwrap());
+    cmds.push(lfg::Lfg::register(ctx).unwrap());
     cmds.push(misc::register(ctx));
     cmds.push(reaction_roles::register(ctx));
     cmds.push(suggestions::register(ctx));

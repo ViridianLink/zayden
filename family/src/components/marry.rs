@@ -20,12 +20,12 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
         return Err(Error::UnauthorisedUser);
     };
 
-    let mut row = match Manager::get_row(pool, author.id).await? {
+    let mut row = match Manager::row(pool, author.id).await? {
         Some(row) => row,
         None => author.into(),
     };
 
-    let mut partner_row = match Manager::get_row(pool, partner.id).await? {
+    let mut partner_row = match Manager::row(pool, partner.id).await? {
         Some(row) => row,
         None => partner.into(),
     };

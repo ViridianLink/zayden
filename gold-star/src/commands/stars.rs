@@ -1,6 +1,6 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
+    EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -9,7 +9,7 @@ use crate::{GoldStarManager, GoldStarRow, Result, Stars};
 
 impl Stars {
     pub async fn run<Db: Database, Manager: GoldStarManager<Db>>(
-        ctx: &Context,
+        http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
@@ -30,10 +30,10 @@ impl Stars {
 
         interaction
             .edit_response(
-                ctx,
+                http,
                 EditInteractionResponse::new().embed(
                     CreateEmbed::new()
-                        .title(format!("{}'s Stars", username))
+                        .title(format!("{username}'s Stars"))
                         .field("Number of Stars", row.number_of_stars.to_string(), true)
                         .field("Given Stars", row.given_stars.to_string(), true)
                         .field("Received Stars", row.received_stars.to_string(), true),
@@ -45,7 +45,7 @@ impl Stars {
         Ok(())
     }
 
-    pub fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("stars")
             .description("Get the number of stars a user has.")
             .add_option(

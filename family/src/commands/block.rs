@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     ResolvedValue,
@@ -8,13 +7,10 @@ use sqlx::{Database, Pool};
 use crate::family_manager::FamilyManager;
 use crate::{Error, Result};
 
-use super::FamilyCommand;
-
 pub struct Block;
 
-#[async_trait]
-impl FamilyCommand<()> for Block {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl Block {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         _ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -28,7 +24,7 @@ impl FamilyCommand<()> for Block {
             return Err(Error::UserSelfBlock);
         }
 
-        let mut row = match Manager::get_row(pool, interaction.user.id).await? {
+        let mut row = match Manager::row(pool, interaction.user.id).await? {
             Some(row) => row,
             None => (&interaction.user).into(),
         };
@@ -39,7 +35,7 @@ impl FamilyCommand<()> for Block {
         Ok(())
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("block")
             .description("Blocks a user from being able to adopt/marry/etc you.")
             .add_option(CreateCommandOption::new(
@@ -52,9 +48,8 @@ impl FamilyCommand<()> for Block {
 
 pub struct Unblock;
 
-#[async_trait]
-impl FamilyCommand<()> for Unblock {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl Unblock {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         _ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -68,7 +63,7 @@ impl FamilyCommand<()> for Unblock {
             return Err(Error::UserSelfBlock);
         }
 
-        let mut row = match Manager::get_row(pool, interaction.user.id).await? {
+        let mut row = match Manager::row(pool, interaction.user.id).await? {
             Some(row) => row,
             None => (&interaction.user).into(),
         };
@@ -79,7 +74,7 @@ impl FamilyCommand<()> for Unblock {
         Ok(())
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("unblock")
             .description("Unblocks a user from being able to adopt/marry/etc you.")
             .add_option(CreateCommandOption::new(

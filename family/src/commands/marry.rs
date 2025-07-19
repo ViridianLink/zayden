@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     ResolvedValue, UserId,
@@ -9,15 +8,12 @@ use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
 use crate::{Error, Result};
 
-use super::FamilyCommand;
-
 const MAX_PARTNERS: usize = 1;
 
 pub struct Marry;
 
-#[async_trait]
-impl FamilyCommand<UserId> for Marry {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl Marry {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -35,11 +31,11 @@ impl FamilyCommand<UserId> for Marry {
             return Err(Error::Zayden);
         }
 
-        if target_user.bot {
+        if target_user.bot() {
             return Err(Error::Bot);
         }
 
-        if let Some(row) = Manager::get_row(pool, interaction.user.id).await? {
+        if let Some(row) = Manager::row(pool, interaction.user.id).await? {
             let relationship = row.relationship(target_user.id);
 
             if relationship != Relationships::None {
@@ -54,7 +50,7 @@ impl FamilyCommand<UserId> for Marry {
             }
         }
 
-        if let Some(row) = Manager::get_row(pool, target_user.id).await? {
+        if let Some(row) = Manager::row(pool, target_user.id).await? {
             if row.partner_ids.len() >= MAX_PARTNERS {
                 return Err(Error::MaxPartners);
             }
@@ -63,7 +59,7 @@ impl FamilyCommand<UserId> for Marry {
         Ok(target_user.id)
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("marry")
             .description("Propose to another Discord user")
             .add_option(

@@ -446,7 +446,7 @@ const MINE: ShopItem = ShopItem::new(
     "Mine",
     Emoji::None,
     "Allows you to hire 10 extra miners per mine",
-    15_000,
+    10_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -457,7 +457,7 @@ const LAND: ShopItem = ShopItem::new(
     "Land",
     Emoji::None,
     "Allows you to buy 10 extra mines per land",
-    75_000,
+    50_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -468,7 +468,7 @@ const COUNTRY: ShopItem = ShopItem::new(
     "Country",
     Emoji::None,
     "Allows you to buy 10 extra plots of land per country",
-    250_000,
+    200_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -480,7 +480,7 @@ const CONTINENT: ShopItem = ShopItem::new(
     "Continent",
     Emoji::None,
     "Allows you to buy 10 extra countries per continent",
-    1_000_000,
+    500_000,
     ShopCurrency::Coins,
     ShopPage::Mine1,
 )
@@ -492,7 +492,7 @@ const PLANET: ShopItem = ShopItem::new(
     "Planet",
     Emoji::None,
     "Allows you to buy 10 extra continents per planet",
-    3_500_000,
+    2_500_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -505,7 +505,7 @@ const SOLAR_SYSTEM: ShopItem = ShopItem::new(
     "Solar System",
     Emoji::None,
     "Allows you to buy 10 extra planets per solar system",
-    15_000_000,
+    5_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -518,7 +518,7 @@ const GALAXY: ShopItem = ShopItem::new(
     "Galaxy",
     Emoji::None,
     "Allows you to buy 10 extra planets per solar system",
-    75_000_000,
+    25_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -531,7 +531,7 @@ const UNIVERSE: ShopItem = ShopItem::new(
     "Universe",
     Emoji::None,
     "Allows you to buy 10 extra galaxies per universe",
-    250_000_000,
+    50_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )

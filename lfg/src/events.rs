@@ -56,10 +56,22 @@ pub async fn guild_create<
         let created_at = *thread.base.last_message_id.unwrap().created_at();
 
         if created_at < month_ago {
-            thread
+            match thread
                 .delete(&ctx.http, Some("Thread older than 30 days"))
                 .await
-                .unwrap();
+            {
+                Ok(_)
+                // Channel already removed
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                    error:
+                        DiscordJsonError {
+                            code: JsonErrorCode::UnknownChannel,
+                            ..
+                        },
+                    ..
+                }))) => {}
+                Err(e) => panic!("{e:?}"),
+            };
         }
 
         if created_at < week_ago {

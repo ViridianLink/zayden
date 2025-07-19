@@ -7,6 +7,8 @@ use crate::Result;
 use crate::handler::Handler;
 use crate::modules::destiny2::endgame_analysis::slash_commands::{DimWishlist, TierList, Weapon};
 use crate::modules::destiny2::info::Perk;
+use crate::modules::destiny2::loadouts::Loadout;
+use crate::modules::destiny2::raid_guide::RaidGuide;
 use crate::modules::events::live::Live;
 use crate::modules::gambling::{
     Blackjack, Coinflip, Craft, Daily, Dig, Gift, Goals, HigherLower, Inventory, Leaderboard,
@@ -75,6 +77,8 @@ impl Handler {
             "xp" => Xp::run(ctx, interaction, options, pool),
             "reaction_role" => ReactionRoleCommand::run(ctx, interaction, options, pool),
             "voice" => Voice::run(ctx, interaction, options, pool),
+            "raidguide" => RaidGuide::run(ctx, interaction, options, pool),
+            "builds" => Loadout::run(ctx, interaction, options, pool),
 
             // region: ticket
             "ticket" => TicketCommand::run(ctx, interaction, options, pool),

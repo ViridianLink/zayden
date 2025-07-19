@@ -1,6 +1,4 @@
-use async_trait::async_trait;
 use futures::{stream, StreamExt, TryStreamExt};
-// use futures::StreamExt;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     Mentionable, ResolvedOption, ResolvedValue, UserId,
@@ -10,13 +8,10 @@ use sqlx::{Database, Pool};
 use crate::family_manager::FamilyManager;
 use crate::{Error, Result};
 
-use super::FamilyCommand;
-
 pub struct Parents;
 
-#[async_trait]
-impl FamilyCommand<(UserId, Vec<String>)> for Parents {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl Parents {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -29,7 +24,7 @@ impl FamilyCommand<(UserId, Vec<String>)> for Parents {
             _ => &interaction.user,
         };
 
-        let row = match Manager::get_row(pool, user.id).await? {
+        let row = match Manager::row(pool, user.id).await? {
             Some(row) => row,
             None => (&interaction.user).into(),
         };
@@ -55,7 +50,7 @@ impl FamilyCommand<(UserId, Vec<String>)> for Parents {
         Ok((user.id, parents))
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("parents")
             .description("List who your siblings are.")
             .add_option(CreateCommandOption::new(

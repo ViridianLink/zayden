@@ -1,7 +1,6 @@
-use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    ResolvedValue, UserId,
+    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, Http, ResolvedValue,
+    UserId,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -9,8 +8,6 @@ use zayden_core::parse_options;
 use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
 use crate::{Error, Result};
-
-use super::FamilyCommand;
 
 pub struct RelationshipResponse {
     pub other_id: UserId,
@@ -20,14 +17,13 @@ pub struct RelationshipResponse {
 
 pub struct Relationship;
 
-#[async_trait]
-impl FamilyCommand<RelationshipResponse> for Relationship {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
-        ctx: &Context,
+impl Relationship {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+        http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<RelationshipResponse> {
-        interaction.defer(ctx).await?;
+        interaction.defer(http).await?;
 
         let options = interaction.data.options();
         let options = parse_options(options);
@@ -46,7 +42,7 @@ impl FamilyCommand<RelationshipResponse> for Relationship {
             return Err(Error::SameUser(user.id));
         }
 
-        let user_info = match Manager::get_row(pool, user.id).await? {
+        let user_info = match Manager::row(pool, user.id).await? {
             Some(row) => row,
             None => user.into(),
         };
@@ -60,7 +56,7 @@ impl FamilyCommand<RelationshipResponse> for Relationship {
         })
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("relationship")
             .description("View the relationship between two users.")
             .add_option(

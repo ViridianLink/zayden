@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use charming::series::{GraphData, GraphLink, GraphNode, GraphNodeLabel};
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
@@ -7,8 +6,6 @@ use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
 use crate::Result;
-
-use super::FamilyCommand;
 
 #[derive(Debug)]
 struct Node {
@@ -66,14 +63,13 @@ impl From<&Node> for GraphNode {
 
 pub struct Tree;
 
-#[async_trait]
-impl FamilyCommand<GraphData> for Tree {
-    async fn run<Db: Database, Manager: FamilyManager<Db>>(
+impl Tree {
+    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         _ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<GraphData> {
-        let row = match Manager::get_row(pool, interaction.user.id).await? {
+        let row = match Manager::row(pool, interaction.user.id).await? {
             Some(row) => row,
             None => (&interaction.user).into(),
         };
@@ -123,7 +119,7 @@ impl FamilyCommand<GraphData> for Tree {
         Ok(data)
     }
 
-    fn register() -> CreateCommand {
+    pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("tree")
             .description("Adopt another user into your family.")
             .add_option(CreateCommandOption::new(
