@@ -229,6 +229,7 @@ async fn game_end<
                 "blackjack",
                 interaction.user.id,
                 game.bet(),
+                payout,
                 win == Some(true),
             )),
         )
@@ -317,6 +318,7 @@ async fn bust<
                 "blackjack",
                 interaction.user.id,
                 game.bet(),
+                0,
                 false,
             )),
         )

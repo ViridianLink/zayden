@@ -156,7 +156,7 @@ impl Commands {
             .fire(
                 interaction.channel_id,
                 &mut p1_row,
-                Event::Game(GameEvent::new("rps", p1, state.bet, false)), // TODO: Fix win logic
+                Event::Game(GameEvent::new("rps", p1, state.bet, state.bet, false)), // TODO: Fix win logic
             )
             .await?;
 
@@ -164,7 +164,7 @@ impl Commands {
             .fire(
                 interaction.channel_id,
                 &mut p2_row,
-                Event::Game(GameEvent::new("rps", p2, state.bet, false)), // TODO: Fix win logic
+                Event::Game(GameEvent::new("rps", p2, state.bet, state.bet, false)), // TODO: Fix win logic
             )
             .await?;
 

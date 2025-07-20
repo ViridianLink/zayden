@@ -76,6 +76,7 @@ impl Commands {
                     "rps",
                     interaction.user.id,
                     bet,
+                    payout,
                     winner == Some(true),
                 )),
             )

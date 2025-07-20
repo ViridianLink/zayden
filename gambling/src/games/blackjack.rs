@@ -242,7 +242,7 @@ async fn game_end_common<
         .fire(
             channel_id,
             &mut row,
-            Event::Game(GameEvent::new("blackjack", user_id, bet, true)),
+            Event::Game(GameEvent::new("blackjack", user_id, bet, payout, true)),
         )
         .await
         .unwrap();

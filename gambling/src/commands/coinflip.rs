@@ -72,7 +72,13 @@ impl Commands {
             .fire(
                 interaction.channel_id,
                 &mut row,
-                Event::Game(GameEvent::new("coinflip", interaction.user.id, bet, winner)),
+                Event::Game(GameEvent::new(
+                    "coinflip",
+                    interaction.user.id,
+                    bet,
+                    payout,
+                    winner,
+                )),
             )
             .await?;
 

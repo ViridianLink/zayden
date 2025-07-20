@@ -81,6 +81,7 @@ impl Commands {
                     "roll",
                     interaction.user.id,
                     bet,
+                    payout,
                     roll == prediction,
                 )),
             )
