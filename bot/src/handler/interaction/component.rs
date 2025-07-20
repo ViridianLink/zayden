@@ -8,7 +8,7 @@ use ticket::TicketComponent;
 use zayden_core::Component;
 
 use crate::handler::Handler;
-use crate::modules::gambling::Blackjack;
+use crate::modules::gambling::{Blackjack, HigherLower};
 use crate::modules::lfg::PostTable;
 use crate::modules::ticket::Ticket;
 use crate::sqlx_lib::GuildTable;
@@ -33,6 +33,7 @@ impl Handler {
         let result = match custom_id.as_str() {
             //region: Gambling
             id if id.starts_with("blackjack") => Blackjack::run(ctx, interaction, pool).await,
+            id if id.starts_with("hol") => HigherLower::run(ctx, interaction, pool).await,
 
             // region: Lfg
             "lfg_join" => {

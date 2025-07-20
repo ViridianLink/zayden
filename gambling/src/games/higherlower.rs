@@ -1,11 +1,21 @@
+use std::{collections::HashMap, sync::LazyLock};
+
 use async_trait::async_trait;
-use serenity::all::{ChannelId, CreateMessage, Mentionable, UserId};
+use serenity::all::{ChannelId, Colour, CreateEmbed, CreateMessage, EmojiId, Mentionable, UserId};
 use sqlx::{Database, Transaction};
 use zayden_core::{CronJob, FormatNum};
 
-use crate::{GEM, GamblingManager};
+use crate::{CARD_DECK, GEM, GamblingManager};
 
 const CHANNEL_ID: ChannelId = ChannelId::new(1383573049563156502);
+
+pub static CARD_TO_NUM: LazyLock<HashMap<EmojiId, u8>> = LazyLock::new(|| {
+    CARD_DECK
+        .iter()
+        .copied()
+        .zip((1u8..=13).cycle().take(52))
+        .collect()
+});
 
 #[async_trait]
 pub trait HigherLowerManager<Db: Database> {
@@ -57,4 +67,19 @@ impl HigherLower {
                 .unwrap();
         })
     }
+}
+
+pub fn create_embed<'a>(seq: &str, payout: i64, winner: bool) -> CreateEmbed<'a> {
+    let payout = payout.format();
+
+    let desc = if winner {
+        format!("{seq}\n\nCurrent Payout: {payout}\n\nGuess the next number!")
+    } else {
+        format!("{seq}\n\nFinal Payout: {payout}")
+    };
+
+    CreateEmbed::new()
+        .title("Higher or Lower")
+        .description(desc)
+        .colour(Colour::TEAL)
 }

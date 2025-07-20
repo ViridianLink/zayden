@@ -2,15 +2,17 @@ use async_trait::async_trait;
 use futures::TryStreamExt;
 use gambling::Commands;
 use gambling::games::higherlower::HigherLowerManager;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{
+    CommandInteraction, ComponentInteraction, Context, CreateCommand, MessageInteractionMetadata,
+    ResolvedOption, UserId,
+};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::{Component, SlashCommand};
 
 use crate::{CtxData, Error, Result};
 
-use super::goals::GoalsTable;
-use super::{GameTable, StatsTable};
+use super::{GameTable, GoalsTable, StatsTable};
 
 pub struct HigherLowerTable;
 
@@ -39,19 +41,54 @@ impl SlashCommand<Error, Postgres> for HigherLower {
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
+        _pool: &PgPool,
     ) -> Result<()> {
-        Commands::higher_lower::<CtxData, Postgres, GoalsTable, GameTable, StatsTable>(
-            ctx,
-            interaction,
-            pool,
-        )
-        .await?;
+        Commands::higher_lower::<CtxData>(ctx, interaction).await?;
 
         Ok(())
     }
 
     fn register(_ctx: &Context) -> Result<CreateCommand> {
         Ok(Commands::register_higher_lower())
+    }
+}
+
+#[async_trait]
+impl Component<Error, Postgres> for HigherLower {
+    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+        let Some(MessageInteractionMetadata::Command(metadata)) =
+            interaction.message.interaction_metadata.as_deref()
+        else {
+            unreachable!("Message must be created from an command")
+        };
+
+        if interaction.user != metadata.user {
+            return Ok(());
+        };
+
+        match interaction.data.custom_id.as_str() {
+            "hol_higher" => {
+                gambling::components::HigherLower::higher::<
+                    Postgres,
+                    GameTable,
+                    GoalsTable,
+                    StatsTable,
+                >(&ctx.http, interaction, pool)
+                .await?;
+            }
+            "hol_lower" => {
+                gambling::components::HigherLower::lower::<
+                    Postgres,
+                    GameTable,
+                    GoalsTable,
+                    StatsTable,
+                >(&ctx.http, interaction, pool)
+                .await?;
+            }
+
+            id => unreachable!("Invalid custom_id: {id}"),
+        };
+
+        Ok(())
     }
 }
