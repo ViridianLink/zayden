@@ -54,14 +54,14 @@ impl Ai {
 #[async_trait]
 impl MessageCommand<Error, Postgres> for Ai {
     async fn run(ctx: &Context, message: &Message, _pool: &PgPool) -> Result<()> {
-        if message.mentions_me(ctx).await.map_or(true, |value| !value) {
+        if !message.mentions_me(ctx).await.unwrap_or(false) {
             return Ok(());
         }
 
         if message
             .referenced_message
             .as_ref()
-            .is_some_and(|msg| !msg.embeds.is_empty())
+            .is_some_and(|msg| msg.content.is_empty())
         {
             return Ok(());
         }
