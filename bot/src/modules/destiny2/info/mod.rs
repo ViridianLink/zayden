@@ -52,7 +52,7 @@ impl SlashCommand<Error, Postgres> for Perk {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         let cmd = CreateCommand::new("perk")
             .description("Perk information")
             .add_option(

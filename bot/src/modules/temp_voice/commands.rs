@@ -29,7 +29,7 @@ impl SlashCommand<Error, Postgres> for Voice {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(VoiceCommand::register())
     }
 }

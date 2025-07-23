@@ -20,7 +20,7 @@ impl SlashCommand<Error, Postgres> for RaidGuide {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(destiny2::raid_guides::RaidGuide::<0>::register())
     }
 }

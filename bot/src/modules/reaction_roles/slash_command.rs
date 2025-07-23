@@ -27,7 +27,7 @@ impl SlashCommand<Error, Postgres> for ReactionRoleCommand {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(reaction_roles::ReactionRoleCommand::register())
     }
 }

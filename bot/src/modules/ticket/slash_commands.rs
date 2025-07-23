@@ -25,7 +25,7 @@ impl SlashCommand<Error, Postgres> for TicketCommand {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(Ticket::register())
     }
 }
@@ -45,7 +45,7 @@ impl SlashCommand<Error, Postgres> for SupportCommand {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(Support::register())
     }
 }

@@ -26,7 +26,7 @@ impl SlashCommand<Error, Postgres> for FetchSuggestions {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(suggestions::FetchSuggestions::register())
     }
 }

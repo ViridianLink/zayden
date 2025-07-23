@@ -22,7 +22,7 @@ impl SlashCommand<Error, Postgres> for Levels {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(levels::Levels::register())
     }
 }
@@ -42,7 +42,7 @@ impl SlashCommand<Error, Postgres> for Rank {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(levels::Rank::register())
     }
 }
@@ -62,7 +62,7 @@ impl SlashCommand<Error, Postgres> for Xp {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(levels::Xp::register())
     }
 }

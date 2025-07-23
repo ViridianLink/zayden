@@ -8,7 +8,7 @@ use serenity::all::{Context, CreateCommand, UserId};
 use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
 use zayden_core::SlashCommand;
 
-pub fn register(ctx: &Context) -> [CreateCommand; 3] {
+pub fn register(ctx: &Context) -> [CreateCommand<'_>; 3] {
     [
         Levels::register(ctx).unwrap(),
         Rank::register(ctx).unwrap(),

@@ -13,7 +13,7 @@ use zayden_core::SlashCommand;
 
 use crate::sqlx_lib::GuildTable;
 
-pub fn register(ctx: &Context) -> CreateCommand {
+pub fn register(ctx: &Context) -> CreateCommand<'_> {
     Voice::register(ctx).unwrap()
 }
 

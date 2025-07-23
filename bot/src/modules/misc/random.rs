@@ -44,7 +44,7 @@ impl SlashCommand<Error, Postgres> for Random {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         let cmd = CreateCommand::new("random")
             .description("A command demonstrating the maximum number of options (25).")
             .add_option(

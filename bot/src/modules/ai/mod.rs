@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use openai_api_rust::chat::{ChatApi, ChatBody};
 use openai_api_rust::{Auth, OpenAI, Role};
-use serenity::all::{Context, Message};
+use serenity::all::{Context, GenericChannelId, Message};
 use sqlx::{PgPool, Postgres};
 use zayden_core::MessageCommand;
 
@@ -54,7 +54,9 @@ impl Ai {
 #[async_trait]
 impl MessageCommand<Error, Postgres> for Ai {
     async fn run(ctx: &Context, message: &Message, _pool: &PgPool) -> Result<()> {
-        if !message.mentions_me(ctx).await.unwrap_or(false) {
+        const GAMBLING_CHANNEL: GenericChannelId = GenericChannelId::new(1281440730820116582);
+
+        if message.channel_id != GAMBLING_CHANNEL {
             return Ok(());
         }
 
@@ -63,6 +65,10 @@ impl MessageCommand<Error, Postgres> for Ai {
             .as_ref()
             .is_some_and(|msg| msg.content.is_empty())
         {
+            return Ok(());
+        }
+
+        if !message.mentions_me(ctx).await.unwrap_or(false) {
             return Ok(());
         }
 

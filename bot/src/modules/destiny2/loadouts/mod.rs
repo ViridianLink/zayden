@@ -20,7 +20,7 @@ impl SlashCommand<Error, Postgres> for Loadout {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(destiny2::loadouts::Loadout::register())
     }
 }

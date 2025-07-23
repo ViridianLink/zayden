@@ -37,7 +37,7 @@ impl SlashCommand<Error, Postgres> for Mine {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(Commands::register_mine())
     }
 }

@@ -10,7 +10,7 @@ pub mod info;
 pub mod loadouts;
 pub mod raid_guide;
 
-pub fn register(ctx: &Context) -> [CreateCommand; 6] {
+pub fn register(ctx: &Context) -> [CreateCommand<'_>; 6] {
     [
         DimWishlist::register(ctx).unwrap(),
         Weapon::register(ctx).unwrap(),

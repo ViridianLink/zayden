@@ -105,10 +105,9 @@ pub async fn create<
             },
         ..
     }))) = move_result
+        && delete_voice_channel_if_inactive(http, guild_id, interaction.user.id, &vc).await
     {
-        if delete_voice_channel_if_inactive(http, guild_id, interaction.user.id, &vc).await {
-            return Ok(());
-        }
+        return Ok(());
     }
 
     let row = VoiceChannelRow::new(vc.id, interaction.user.id);

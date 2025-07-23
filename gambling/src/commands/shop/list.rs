@@ -125,7 +125,7 @@ fn shop<'a>(
     )
 }
 
-fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed {
+fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed<'_> {
     let inv = row.inventory();
 
     let items = SHOP_ITEMS

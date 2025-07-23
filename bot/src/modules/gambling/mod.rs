@@ -49,7 +49,7 @@ pub use stamina::StaminaTable;
 pub use tictactoe::TicTacToe;
 pub use work::Work;
 
-pub fn register(ctx: &Context) -> [CreateCommand; 20] {
+pub fn register(ctx: &Context) -> [CreateCommand<'_>; 20] {
     [
         Blackjack::register(ctx).unwrap(),
         Coinflip::register(ctx).unwrap(),

@@ -28,7 +28,7 @@ pub trait SlashCommand<E: std::error::Error, Db: Database> {
         pool: &Pool<Db>,
     ) -> Result<(), E>;
 
-    fn register(ctx: &Context) -> Result<CreateCommand, E>;
+    fn register(ctx: &Context) -> Result<CreateCommand<'_>, E>;
 }
 
 #[async_trait]

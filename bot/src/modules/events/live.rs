@@ -50,7 +50,7 @@ impl SlashCommand<Error, Postgres> for Live {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         let cmd = CreateCommand::new("live")
             .description("Notify the server that Brad is live on Twitch")
             .default_member_permissions(Permissions::CREATE_EVENTS);

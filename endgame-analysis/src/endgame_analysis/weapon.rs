@@ -273,7 +273,7 @@ impl Weapon {
         &self.archetype
     }
 
-    pub fn perks(&self) -> Perks {
+    pub fn perks(&self) -> Perks<'_> {
         let column_1 = self.column_1.split('\n').collect::<Vec<_>>();
         let column_2 = self.column_2.split('\n').collect::<Vec<_>>();
 

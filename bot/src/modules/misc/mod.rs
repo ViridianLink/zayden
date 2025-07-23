@@ -4,6 +4,6 @@ use zayden_core::SlashCommand;
 
 mod random;
 
-pub fn register(ctx: &Context) -> CreateCommand {
+pub fn register(ctx: &Context) -> CreateCommand<'_> {
     Random::register(ctx).unwrap()
 }

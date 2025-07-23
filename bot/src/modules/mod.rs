@@ -13,7 +13,7 @@ pub mod suggestions;
 pub mod temp_voice;
 pub mod ticket;
 
-pub fn global_register(ctx: &Context) -> Vec<CreateCommand> {
+pub fn global_register(ctx: &Context) -> Vec<CreateCommand<'_>> {
     let mut cmds = destiny2::register(ctx).to_vec();
 
     cmds.extend(gambling::register(ctx));

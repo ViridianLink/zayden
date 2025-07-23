@@ -65,7 +65,7 @@ impl SlashCommand<Error, Postgres> for Craft {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(Commands::register_craft())
     }
 }

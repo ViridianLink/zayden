@@ -543,7 +543,7 @@ const UNIVERSE: ShopItem = ShopItem::new(
 pub struct ShopItems<'a>([ShopItem<'a>; 18]);
 
 impl ShopItems<'_> {
-    pub fn get(&self, id: &str) -> Option<&ShopItem> {
+    pub fn get(&self, id: &str) -> Option<&ShopItem<'_>> {
         self.0.iter().find(|item| item.id == id)
     }
 }

@@ -25,7 +25,7 @@ impl SlashCommand<Error, Postgres> for Lfg {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(lfg::Command::register())
     }
 }

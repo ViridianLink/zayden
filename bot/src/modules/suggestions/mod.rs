@@ -10,7 +10,7 @@ pub use slash_command::FetchSuggestions;
 
 use crate::sqlx_lib::GuildTable;
 
-pub fn register(ctx: &Context) -> CreateCommand {
+pub fn register(ctx: &Context) -> CreateCommand<'_> {
     FetchSuggestions::register(ctx).unwrap()
 }
 

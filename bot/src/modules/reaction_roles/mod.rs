@@ -9,7 +9,7 @@ pub use slash_command::ReactionRoleCommand;
 
 pub mod slash_command;
 
-pub fn register(ctx: &Context) -> CreateCommand {
+pub fn register(ctx: &Context) -> CreateCommand<'_> {
     ReactionRoleCommand::register(ctx).unwrap()
 }
 

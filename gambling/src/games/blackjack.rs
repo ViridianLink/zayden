@@ -174,7 +174,7 @@ pub fn sum_cards(hand: &[EmojiId]) -> u8 {
     sum
 }
 
-pub fn in_play_embed(bet: i64, player_hand: &[EmojiId], dealer_card: EmojiId) -> CreateEmbed {
+pub fn in_play_embed(bet: i64, player_hand: &[EmojiId], dealer_card: EmojiId) -> CreateEmbed<'_> {
     let player_value = sum_cards(player_hand);
     let dealer_value = sum_cards(&[dealer_card]);
 

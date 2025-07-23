@@ -31,7 +31,7 @@ impl SlashCommand<Error, Postgres> for DimWishlist {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(DimWishlistCommand::register())
     }
 }
@@ -52,7 +52,7 @@ impl SlashCommand<Error, Postgres> for TierList {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(TierListCommand::register())
     }
 }
@@ -92,7 +92,7 @@ impl SlashCommand<Error, Postgres> for Weapon {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(WeaponCommand::register())
     }
 }

@@ -63,7 +63,7 @@ impl SlashCommand<Error, Postgres> for Profile {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand> {
+    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(Commands::register_profile())
     }
 }

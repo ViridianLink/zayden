@@ -15,7 +15,7 @@ pub mod components;
 pub mod message_commands;
 pub mod slash_commands;
 
-pub fn register(ctx: &Context) -> [CreateCommand; 2] {
+pub fn register(ctx: &Context) -> [CreateCommand<'_>; 2] {
     [
         TicketCommand::register(ctx).unwrap(),
         SupportCommand::register(ctx).unwrap(),

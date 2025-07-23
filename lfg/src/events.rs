@@ -101,24 +101,24 @@ pub async fn guild_create<
             create_reminders::<Data, Db, PostHandler>(ctx, &post).await;
         }
 
-        if post.start_time < now {
-            if let (Some(channel), Some(message)) = (post.schedule_channel(), post.alt_message()) {
-                match channel
-                    .delete_message(&ctx.http, message, Some("Expired LFG post"))
-                    .await
-                {
-                    Ok(_)
-                    | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                        error:
-                            DiscordJsonError {
-                                code: JsonErrorCode::UnknownMessage,
-                                ..
-                            },
-                        ..
-                    }))) => {}
-                    Err(e) => panic!("{e:?}"),
-                };
-            }
+        if post.start_time < now
+            && let (Some(channel), Some(message)) = (post.schedule_channel(), post.alt_message())
+        {
+            match channel
+                .delete_message(&ctx.http, message, Some("Expired LFG post"))
+                .await
+            {
+                Ok(_)
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                    error:
+                        DiscordJsonError {
+                            code: JsonErrorCode::UnknownMessage,
+                            ..
+                        },
+                    ..
+                }))) => {}
+                Err(e) => panic!("{e:?}"),
+            };
         }
 
         if post.start_time + Duration::hours(2) < now {
