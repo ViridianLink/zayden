@@ -221,18 +221,28 @@ impl<'a> From<Loadout<'a>> for CreateComponent<'a> {
             ))
         });
 
-        let artifact_heading =
-            CreateComponent::TextDisplay(CreateTextDisplay::new("### ARTIFACT PERKS"));
-
-        let artifact = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
-            "#{}",
+        let mut misc_content = format!(
+            "### Stats Priority\n#{}\n### ARTIFACT PERKS\n#{}",
+            value
+                .gear
+                .stats_priority
+                .into_iter()
+                .map(|f| format!(" {f}"))
+                .collect::<String>(),
             value
                 .artifact
                 .into_iter()
                 .flatten()
                 .map(|f| format!(" {f}"))
                 .collect::<String>()
-        )));
+        );
+
+        if let Some(how_it_works) = value.details.how_it_works {
+            misc_content.push_str("\n### HOW IT WORKS\n# ");
+            misc_content.push_str(how_it_works);
+        }
+
+        let misc = CreateComponent::TextDisplay(CreateTextDisplay::new(misc_content));
 
         let mut components = vec![
             heading1,
@@ -244,7 +254,7 @@ impl<'a> From<Loadout<'a>> for CreateComponent<'a> {
             subclass_heading,
             subclass,
             fragments,
-            line_sep.clone(),
+            line_sep,
             gear_and_mods_heading,
         ];
 
@@ -253,7 +263,7 @@ impl<'a> From<Loadout<'a>> for CreateComponent<'a> {
             CreateSeparator::new(false).spacing(Spacing::Large),
         ));
         components.extend(armour);
-        components.extend([artifact_heading, artifact]);
+        components.push(misc);
 
         CreateComponent::Container(CreateContainer::new(components))
     }
@@ -820,6 +830,34 @@ pub enum Stat {
     Super,
     Class,
     Weapons,
+}
+
+impl Display for Stat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Stat::Health => "health",
+            Stat::Melee => "melee",
+            Stat::Grenade => "grenade",
+            Stat::Super => "super",
+            Stat::Class => "class",
+            Stat::Weapons => "weapons",
+        };
+
+        write!(f, "<:{name}:{}>", EmojiId::from(*self))
+    }
+}
+
+impl From<Stat> for EmojiId {
+    fn from(value: Stat) -> Self {
+        match value {
+            Stat::Health => EmojiId::new(1396955669063536751),
+            Stat::Melee => EmojiId::new(1396955747480375326),
+            Stat::Grenade => EmojiId::new(1396955787510939738),
+            Stat::Super => EmojiId::new(1396955844544954378),
+            Stat::Class => EmojiId::new(1396955885418447050),
+            Stat::Weapons => EmojiId::new(1396955919769800844),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
