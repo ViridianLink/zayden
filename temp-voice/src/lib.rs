@@ -7,9 +7,7 @@ pub mod voice_channel_manager;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use serenity::all::{
-    ChannelId, Guild, GuildChannel, GuildId, Http, LightMethod, Request, Route, UserId, VoiceState,
-};
+use serenity::all::{ChannelId, Guild, GuildChannel, GuildId, Http, UserId, VoiceState};
 
 pub use commands::VoiceCommand;
 pub use error::Error;
@@ -77,18 +75,6 @@ pub trait VoiceStateCache: Send + Sync + 'static {
     }
 }
 
-pub async fn get_voice_state(
-    http: &Http,
-    guild_id: GuildId,
-    user_id: UserId,
-) -> serenity::Result<VoiceState> {
-    http.fire::<VoiceState>(Request::new(
-        Route::GuildVoiceStates { guild_id, user_id },
-        LightMethod::Get,
-    ))
-    .await
-}
-
 pub async fn delete_voice_channel_if_inactive(
     http: &Http,
     guild_id: GuildId,
@@ -97,7 +83,7 @@ pub async fn delete_voice_channel_if_inactive(
 ) -> bool {
     tokio::time::sleep(Duration::from_secs(60)).await;
 
-    match get_voice_state(http, guild_id, user_id).await {
+    match guild_id.get_user_voice_state(http, user_id).await {
         Ok(voice_state) if voice_state.channel_id == Some(vc.id) => false,
         _ => {
             vc.delete(http, Some("Empty and inactive channel"))

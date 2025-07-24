@@ -47,10 +47,8 @@ use serenity::all::{
 };
 use zayden_core::parse_options;
 
-use crate::{
-    Error, Result, VoiceChannelManager, VoiceStateCache, get_voice_state,
-    guild_manager::TempVoiceGuildManager,
-};
+use crate::guild_manager::TempVoiceGuildManager;
+use crate::{Error, Result, VoiceChannelManager, VoiceStateCache};
 
 pub struct VoiceCommand;
 
@@ -97,7 +95,8 @@ impl VoiceCommand {
 
         let channel_id = match options.remove("channel") {
             Some(ResolvedValue::Channel(channel)) => channel.id().expect_channel(),
-            _ => get_voice_state(&ctx.http, guild_id, interaction.user.id)
+            _ => guild_id
+                .get_user_voice_state(&ctx.http, interaction.user.id)
                 .await?
                 .channel_id
                 .ok_or(Error::MemberNotInVoiceChannel)?,
