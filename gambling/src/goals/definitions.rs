@@ -102,7 +102,7 @@ const HIGHERLOWER: GoalDefinition = GoalDefinition::new("higherlower")
             return false;
         }
 
-        goal.progress = event.bet / 1000;
+        goal.progress = event.payout / 1000;
         goal.progress = goal.progress.min(goal.target);
         true
     });
