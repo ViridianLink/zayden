@@ -8,5 +8,5 @@ zayden-core = { workspace = true }
 
 async-trait = { workspace = true }
 futures = { workspace = true }
-sqlx = { workspace = true }
+sqlx = { workspace = true, features = ["macros"] }
 serenity = { workspace = true }
