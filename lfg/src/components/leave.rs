@@ -1,4 +1,4 @@
-use serenity::all::{ComponentInteraction,  CreateInteractionResponse, Http};
+use serenity::all::{ComponentInteraction, CreateInteractionResponse, Http};
 use sqlx::{Database, Pool};
 
 use crate::{PostManager, PostRow, Result, Savable, actions};

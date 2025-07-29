@@ -11,9 +11,7 @@ impl Components {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        actions::join::<Db, Manager>(http, interaction, pool, true)
-            .await
-            .unwrap();
+        actions::join::<Db, Manager>(http, interaction, pool, true).await?;
 
         interaction
             .create_response(http, CreateInteractionResponse::Acknowledge)

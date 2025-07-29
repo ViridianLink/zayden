@@ -1,4 +1,4 @@
-use serenity::all::{ComponentInteraction,  CreateInteractionResponseMessage, Http};
+use serenity::all::{ComponentInteraction, CreateInteractionResponseMessage, Http};
 use serenity::all::{CreateInteractionResponse, CreateSelectMenu, CreateSelectMenuKind};
 use sqlx::Database;
 use sqlx::Pool;
