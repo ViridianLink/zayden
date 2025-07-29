@@ -122,10 +122,22 @@ pub async fn guild_create<
         }
 
         if post.start_time + Duration::hours(2) < now {
-            post.thread()
+            match post
+                .thread()
                 .edit(&ctx.http, EditThread::new().archived(true))
                 .await
-                .unwrap();
+            {
+                Ok(_)
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                    error:
+                        DiscordJsonError {
+                            code: JsonErrorCode::UnknownChannel,
+                            ..
+                        },
+                    ..
+                }))) => {}
+                Err(e) => panic!("{e:?}"),
+            };
         }
     }
 }
