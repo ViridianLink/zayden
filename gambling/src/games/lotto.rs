@@ -90,7 +90,12 @@ impl Lotto {
 
             let total_tickets: i64 = rows.iter().map(|row| row.quantity()).sum();
 
-            let mut dist = WeightedIndex::new(rows.iter().map(|row| row.quantity())).unwrap();
+            let mut dist = WeightedIndex::new(
+                rows.iter()
+                    .filter(|row| row.id != 787490197943091211)
+                    .map(|row| row.quantity()),
+            )
+            .unwrap();
 
             let jackpot = jackpot(total_tickets);
 

@@ -182,6 +182,7 @@ impl WeaponBuilder {
             .remove("reserves")
             .map(|r| r.formatted_value.unwrap())
             .filter(|s| s != "?")
+            .filter(|s| s != "N/A")
             .map(|s| s.parse().unwrap());
         let shield = data
             .remove("shield")
@@ -196,8 +197,13 @@ impl WeaponBuilder {
             s => String::from(&s[..s.len() - 1]),
         };
 
-        let weapon = Self::new(weapon_name, archetype)
-            .affinity(data.remove("affinity").unwrap().formatted_value.unwrap())
+        let weapon = Self::new(&weapon_name, archetype)
+            .affinity(
+                data.remove("affinity")
+                    .unwrap()
+                    .formatted_value
+                    .unwrap_or_default(),
+            )
             .frame(data.remove("frame").map(|f| f.formatted_value.unwrap()))
             .enhanceable(data.remove("enhance").unwrap().formatted_value.unwrap() == "Yes")
             .shield(shield)

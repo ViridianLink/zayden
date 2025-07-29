@@ -83,24 +83,30 @@ impl Display for Error {
                 target,
                 relationship,
             } => {
-                write!(f, 
+                write!(
+                    f,
                     "You guys are already related! {} is your {relationship}.",
                     target.mention()
                 )
             }
-            Self::MaxPartners => write!(f, 
-                "You're already at your partner limit! Use `/divorce` to break up with someone.",
-            ),
+            Self::MaxPartners => {
+                write!(f, "You're already at your partner limit! Use `/divorce` to break up with someone.")
+            }
             Self::UnauthorisedUser => write!(f, "You can't respond to this interaction."),
-            Self::SameUser(user_id) => write!(f, 
+            Self::SameUser(user_id) => write!(
+                f,
                 "Would you look at that... {0} is very closely related to {0}",
                 user_id.mention()
             ),
             Self::UserSelfAdopt => write!(f, "You can't adopt yourself!"),
             Self::AlreadyAdopted(user_id) => {
-                write!(f, "It looks like {} already has a parent.", user_id.mention())
+                write!(
+                    f,
+                    "It looks like {} already has a parent.",
+                    user_id.mention()
+                )
             }
-            e => unimplemented!("Unhandled Error Display: {e:?}")
+            e => unimplemented!("Unhandled Error Display: {e:?}"),
         }
     }
 }

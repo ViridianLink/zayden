@@ -20,7 +20,7 @@ impl Handler {
         let (new_level, ..) = tokio::try_join!(
             levels::message_create::<Postgres, LevelsTable>(msg, pool).map(Result::Ok),
             Ai::run(ctx, msg, pool),
-            support(ctx, msg, pool),
+            support(&ctx.http, msg, pool),
         )?;
 
         if let Some(level) = new_level {

@@ -77,8 +77,7 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
                         .components(vec![components]),
                 ),
             )
-            .await
-            .unwrap();
+            .await?
     }
 
     interaction
