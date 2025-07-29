@@ -3,7 +3,8 @@ use std::time::Duration;
 use futures::StreamExt;
 use serenity::all::{
     CollectComponentInteractions, CommandInteraction, ComponentInteraction, Context, CreateButton,
-    CreateCommand, CreateEmbed, CreateEmbedFooter, EditInteractionResponse, GuildId, Mentionable,
+    CreateCommand, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse,
+    CreateInteractionResponseMessage, EditInteractionResponse, GuildId, Mentionable,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -57,8 +58,6 @@ async fn run_components<Data: GuildMembersCache, Db: Database, Manager: LevelsMa
     interaction: ComponentInteraction,
     pool: &Pool<Db>,
 ) {
-    interaction.defer(&ctx.http).await.unwrap();
-
     let Some(embed) = interaction.message.embeds.first() else {
         unreachable!("Embed must be present")
     };
@@ -109,7 +108,12 @@ async fn run_components<Data: GuildMembersCache, Db: Database, Manager: LevelsMa
     .await;
 
     interaction
-        .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
+        .create_response(
+            &ctx.http,
+            CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new().embed(embed),
+            ),
+        )
         .await
         .unwrap();
 }
