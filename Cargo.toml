@@ -48,8 +48,6 @@ serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", d
     "transport_compression_zlib",
     "transport_compression_zstd",
 ] }
-
-
 sqlx = { version = "*", default-features = false }
 tokio = { version = "*", default-features = false }
 time = { version = "*", default-features = false }

@@ -39,6 +39,5 @@ sqlx = { workspace = true, features = [
     "chrono",
     "postgres",
     "runtime-tokio-rustls",
-    # "time",
 ] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }

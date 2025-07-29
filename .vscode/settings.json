@@ -1,14 +1,10 @@
 {
     "files.exclude": {
-        "endgame-analysis/": true,
         "family/": true,
         "gold-star/": true,
         "levels/": true,
         "reaction-roles/": true,
         "suggestions/": true,
-        "temp-voice/": true,
-        "ticket/": true,
-        "**/target/": true,
         "**/Cargo.lock": true
     },
 }
