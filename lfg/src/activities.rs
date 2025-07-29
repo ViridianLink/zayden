@@ -1,7 +1,8 @@
 use core::fmt;
 
-pub const ACTIVITIES: [Activity; 40] = [
+pub const ACTIVITIES: [Activity; 41] = [
     //region: Raids
+    Activity::new("Desert Perpetual", ActivityCategory::Raid, 6),
     Activity::new("Salvation's Edge", ActivityCategory::Raid, 6),
     Activity::new("Crota's End", ActivityCategory::Raid, 6),
     Activity::new("Root of Nightmares", ActivityCategory::Raid, 6),
