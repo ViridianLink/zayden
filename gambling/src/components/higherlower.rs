@@ -11,7 +11,9 @@ use zayden_core::FormatNum;
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::higherlower::{CARD_TO_NUM, create_embed};
-use crate::{CARD_DECK, Coins, GameManager, Gems, GoalsManager, Result, StatsManager};
+use crate::{
+    CARD_DECK, Coins, GamblingManager, GameManager, GameRow, GoalsManager, Result, StatsManager,
+};
 
 pub struct HigherLower {
     seq: Vec<String>,
@@ -20,8 +22,9 @@ pub struct HigherLower {
 }
 
 impl HigherLower {
-    pub async fn higher<
+    pub async fn run_components<
         Db: Database,
+        GamblingHandler: GamblingManager<Db>,
         GameHandler: GameManager<Db>,
         GoalsHandler: GoalsManager<Db>,
         StatsHandler: StatsManager<Db>,
@@ -32,15 +35,71 @@ impl HigherLower {
     ) -> Result<()> {
         let mut details = HigherLower::from(interaction);
         let prev = details.prev();
-        let next = details.next();
+        let next = match details.next() {
+            Some(next) => next,
+            None => {
+                let mut tx = pool.begin().await.unwrap();
+                GamblingHandler::add_gems(&mut *tx, interaction.user.id, 1)
+                    .await
+                    .unwrap();
+                tx.commit().await.unwrap();
 
+                details.new_deck();
+                details.next().unwrap()
+            }
+        };
+
+        match interaction.data.custom_id.as_str() {
+            "hol_higher" => {
+                Self::higher::<Db, GameHandler, GoalsHandler, StatsHandler>(
+                    http,
+                    interaction,
+                    pool,
+                    details,
+                    prev,
+                    next,
+                )
+                .await?;
+            }
+            "hol_lower" => {
+                Self::lower::<Db, GameHandler, GoalsHandler, StatsHandler>(
+                    http,
+                    interaction,
+                    pool,
+                    details,
+                    prev,
+                    next,
+                )
+                .await?;
+            }
+            id => unreachable!("Invalid custom_id: {id}"),
+        };
+
+        Ok(())
+    }
+
+    async fn higher<
+        Db: Database,
+        GameHandler: GameManager<Db>,
+        GoalsHandler: GoalsManager<Db>,
+        StatsHandler: StatsManager<Db>,
+    >(
+        http: &Http,
+        interaction: &ComponentInteraction,
+        pool: &Pool<Db>,
+        mut details: Self,
+        prev: u8,
+        next: (EmojiId, u8),
+    ) -> Result<()> {
         let winner = next.1 >= prev;
+
+        if winner {
+            details.payout += 1000
+        }
 
         details.seq.push('☝'.into());
 
-        if winner {
-            details.payout += 1000
-        } else {
+        if !winner {
             details.seq.push('❌'.into());
         }
 
@@ -50,6 +109,7 @@ impl HigherLower {
             details
                 .game_end::<Db, GameHandler, GoalsHandler, StatsHandler>(http, interaction, pool)
                 .await;
+
             return Ok(());
         }
 
@@ -70,7 +130,7 @@ impl HigherLower {
         Ok(())
     }
 
-    pub async fn lower<
+    async fn lower<
         Db: Database,
         GameHandler: GameManager<Db>,
         GoalsHandler: GoalsManager<Db>,
@@ -79,18 +139,19 @@ impl HigherLower {
         http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
+        mut details: Self,
+        prev: u8,
+        next: (EmojiId, u8),
     ) -> Result<()> {
-        let mut details = HigherLower::from(interaction);
-        let prev = details.prev();
-        let next = details.next();
-
         let winner = next.1 <= prev;
-
-        details.seq.push('👇'.into());
 
         if winner {
             details.payout += 1000
-        } else {
+        }
+
+        details.seq.push('👇'.into());
+
+        if !winner {
             details.seq.push('❌'.into());
         }
 
@@ -120,11 +181,11 @@ impl HigherLower {
         Ok(())
     }
 
-    fn next(&mut self) -> (EmojiId, u8) {
-        let emoji = self.deck.pop().unwrap();
+    fn next(&mut self) -> Option<(EmojiId, u8)> {
+        let emoji = self.deck.pop()?;
         let num = *CARD_TO_NUM.get(&emoji).unwrap();
 
-        (emoji, num)
+        Some((emoji, num))
     }
 
     fn prev(&self) -> u8 {
@@ -133,6 +194,14 @@ impl HigherLower {
             .name
             .parse()
             .unwrap()
+    }
+
+    fn new_deck(&mut self) {
+        let mut deck = CARD_DECK.to_vec();
+
+        deck.shuffle(&mut rng());
+
+        self.deck = deck;
     }
 
     async fn game_end<
@@ -157,13 +226,9 @@ impl HigherLower {
         let mut row = GameHandler::row(pool, interaction.user.id)
             .await
             .unwrap()
-            .unwrap();
+            .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         row.add_coins(self.payout);
-
-        if self.payout == 52_000 {
-            row.add_gems(1);
-        }
 
         let colour = if self.payout > 0 {
             Colour::DARK_GREEN
@@ -229,7 +294,7 @@ impl From<&ComponentInteraction> for HigherLower {
         let seq_line = lines.next().unwrap();
         let payout_line = lines.nth(1).unwrap();
 
-        let seq = seq_line
+        let seq = seq_line[2..]
             .split_whitespace()
             .map(String::from)
             .collect::<Vec<_>>();
