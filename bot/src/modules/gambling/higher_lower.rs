@@ -10,6 +10,7 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::{Component, SlashCommand};
 
+use crate::modules::gambling::GamblingTable;
 use crate::{CtxData, Error, Result};
 
 use super::{GameTable, GoalsTable, StatsTable};
@@ -66,28 +67,14 @@ impl Component<Error, Postgres> for HigherLower {
             return Ok(());
         };
 
-        match interaction.data.custom_id.as_str() {
-            "hol_higher" => {
-                gambling::components::HigherLower::higher::<
-                    Postgres,
-                    GameTable,
-                    GoalsTable,
-                    StatsTable,
-                >(&ctx.http, interaction, pool)
-                .await?;
-            }
-            "hol_lower" => {
-                gambling::components::HigherLower::lower::<
-                    Postgres,
-                    GameTable,
-                    GoalsTable,
-                    StatsTable,
-                >(&ctx.http, interaction, pool)
-                .await?;
-            }
-
-            id => unreachable!("Invalid custom_id: {id}"),
-        };
+        gambling::components::HigherLower::run_components::<
+            Postgres,
+            GamblingTable,
+            GameTable,
+            GoalsTable,
+            StatsTable,
+        >(&ctx.http, interaction, pool)
+        .await?;
 
         Ok(())
     }
