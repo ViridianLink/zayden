@@ -73,7 +73,7 @@ pub fn create_embed<'a>(seq: &str, payout: i64, winner: bool) -> CreateEmbed<'a>
     let payout = payout.format();
 
     let desc = if winner {
-        format!("{seq}\n\nCurrent Payout: {payout}\n\nGuess the next number!")
+        format!("# {seq}\n\nCurrent Payout: {payout}\n\nGuess the next number!")
     } else {
         format!("{seq}\n\nFinal Payout: {payout}")
     };
