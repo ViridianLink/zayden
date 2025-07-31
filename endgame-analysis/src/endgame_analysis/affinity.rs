@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Affinity {
+    None,
     Kinetic,
     Arc,
     Void,
@@ -17,6 +18,7 @@ impl FromStr for Affinity {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "" => Ok(Affinity::None),
             "Kinetic" => Ok(Affinity::Kinetic),
             "Arc" => Ok(Affinity::Arc),
             "Void" => Ok(Affinity::Void),
@@ -31,6 +33,7 @@ impl FromStr for Affinity {
 impl fmt::Display for Affinity {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Affinity::None => write!(f, ""),
             Affinity::Kinetic => write!(f, "Kinetic"),
             Affinity::Arc => write!(f, "Arc"),
             Affinity::Void => write!(f, "Void"),

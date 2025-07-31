@@ -5,7 +5,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Frame {
     Rapid,
-    Slug,
+    RapidSlug,
+    PinpointSlug,
     Aggressive,
     Lightweight,
     HeavyBurst,
@@ -25,6 +26,8 @@ pub enum Frame {
     LegacyPR55,
     TogetherForever,
     MIDASynergy,
+    HighImpactLongBow,
+    SpreadShot,
 }
 
 impl FromStr for Frame {
@@ -33,7 +36,8 @@ impl FromStr for Frame {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Rapid" => Ok(Frame::Rapid),
-            "Slug" => Ok(Frame::Slug),
+            "Rapid Slug" => Ok(Frame::RapidSlug),
+            "Pinpoint Slug" => Ok(Frame::PinpointSlug),
             "Aggressive" => Ok(Frame::Aggressive),
             "Lightweight" => Ok(Frame::Lightweight),
             "Heavy Burst" => Ok(Frame::HeavyBurst),
@@ -53,7 +57,12 @@ impl FromStr for Frame {
             "Legacy PR-55" => Ok(Frame::LegacyPR55),
             "Together Forever" => Ok(Frame::TogetherForever),
             "MIDA Synergy" => Ok(Frame::MIDASynergy),
-            _ => Err(()),
+            "High-Impact Longbow" => Ok(Frame::HighImpactLongBow),
+            "Spread Shot" => Ok(Frame::SpreadShot),
+            _ => {
+                eprintln!("Failed to parse: '{s}'");
+                Err(())
+            }
         }
     }
 }
@@ -62,7 +71,8 @@ impl fmt::Display for Frame {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Frame::Rapid => write!(f, "Rapid"),
-            Frame::Slug => write!(f, "Slug"),
+            Frame::RapidSlug => write!(f, "Rapid Slug"),
+            Frame::PinpointSlug => write!(f, "Pinpoint Slug"),
             Frame::Aggressive => write!(f, "Aggressive"),
             Frame::Lightweight => write!(f, "Lightweight"),
             Frame::HeavyBurst => write!(f, "Heavy Burst"),
@@ -82,6 +92,8 @@ impl fmt::Display for Frame {
             Frame::LegacyPR55 => write!(f, "Legacy PR-55"),
             Frame::TogetherForever => write!(f, "Together Forever"),
             Frame::MIDASynergy => write!(f, "MIDA Synergy"),
+            Frame::HighImpactLongBow => write!(f, "High-Impact Longbow"),
+            Frame::SpreadShot => write!(f, "Spread Shot"),
         }
     }
 }
