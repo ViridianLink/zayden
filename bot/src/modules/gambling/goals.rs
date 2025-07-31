@@ -23,7 +23,7 @@ impl GoalsManager<Postgres> for GoalsTable {
 
                 COALESCE(l.level, 0) AS level,
                 
-                m.prestige
+                COALESCE(m.prestige, 0) AS prestige
 
                 FROM gambling g
                 LEFT JOIN levels l ON g.id = l.id
