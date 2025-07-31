@@ -13,6 +13,7 @@ members = [
     "suggestions",
     "temp-voice",
     "ticket",
+    "web",
     "zayden-core",
 ]
 
@@ -26,11 +27,13 @@ reaction-roles = { path = "./reaction-roles" }
 suggestions = { path = "./suggestions" }
 temp-voice = { path = "./temp-voice" }
 ticket = { path = "./ticket" }
+web = { path = "./web" }
 zayden-core = { path = "./zayden-core" }
 
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
 
 async-trait = { version = "*", default-features = false }
+axum = { version = "*", default-features = false }
 bigdecimal = { version = "*", default-features = false }
 charming = { version = "*", default-features = false }
 chrono = { version = "*", default-features = false }
@@ -39,9 +42,11 @@ cron = { version = "*", default-features = false }
 dotenvy = { version = "*", default-features = false }
 futures = { version = "*", default-features = false }
 num-format = { version = "*", default-features = false }
+oauth2 = { version = "*", default-features = false }
 openai_api_rust = { version = "*", default-features = false }
 rand = { version = "*", default-features = false }
 rand_distr = { version = "*", default-features = false }
+reqwest = { version = "*", default-features = false }
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", default-features = false, features = [
@@ -50,6 +55,7 @@ serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", d
 ] }
 sqlx = { version = "*", default-features = false }
 tokio = { version = "*", default-features = false }
+tower-http = { version = "*", default-features = false }
 time = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 walkdir = { version = "*", default-features = false }

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #111827;
+        }
+    </style>
+</head>
+
+<body class="text-white">
+    <nav class="bg-gray-900 p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold">My Awesome Bot Dashboard</h1>
+        <a href="/dashboard.html" class="text-indigo-400 hover:underline">← Back to Servers</a>
+    </nav>
+
+    <main class="container mx-auto p-8">
+        <div id="server-header" class="flex items-center mb-8">
+            <!-- Server header populated by JS -->
+        </div>
+
+        <div class="bg-gray-900 p-8 rounded-lg">
+            <form id="settings-form">
+                <!-- Example Setting 1: Welcome Message -->
+                <div class="mb-6">
+                    <label for="welcome-enabled" class="flex items-center cursor-pointer">
+                        <span class="text-xl font-bold">Welcome Messages</span>
+                        <div class="relative ml-4">
+                            <input type="checkbox" id="welcome-enabled" class="sr-only peer">
+                            <div class="w-14 h-8 bg-gray-600 rounded-full peer-checked:bg-indigo-600 transition"></div>
+                            <div
+                                class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full transition transform peer-checked:translate-x-full">
+                            </div>
+                        </div>
+                    </label>
+                    <p class="text-gray-400 mt-2">Send a message when a new user joins.</p>
+                </div>
+
+                <div class="mb-6">
+                    <label for="welcome-channel" class="block text-gray-300 font-bold mb-2">Welcome Channel</label>
+                    <select id="welcome-channel"
+                        class="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-3 focus:outline-none focus:border-indigo-500">
+                        <!-- Channel options populated by JS -->
+                        <option value="12345">#general</option>
+                        <option value="67890">#welcomes</option>
+                    </select>
+                </div>
+
+                <div class="mb-6">
+                    <label for="welcome-message" class="block text-gray-300 font-bold mb-2">Welcome Message</label>
+                    <textarea id="welcome-message" rows="4"
+                        class="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-3 focus:outline-none focus:border-indigo-500"
+                        placeholder="Welcome {{user}} to {{server}}!"></textarea>
+                    <p class="text-gray-400 text-sm mt-1">Use {{user}} for username and {{server}} for server name.</p>
+                </div>
+
+                <!-- Save Button -->
+                <div class="mt-8 text-right">
+                    <button type="submit"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg transition duration-300">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // In a real app, you would fetch this data from your backend API
+        const mockServerDetails = {
+            id: '3',
+            name: 'My Dev Server',
+            icon: 'https://cdn.discordapp.com/embed/avatars/2.png'
+        };
+
+        function populateServerHeader(server) {
+            const header = document.getElementById('server-header');
+            header.innerHTML = `
+                <img src="${server.icon ? `https://cdn.discordapp.com/icons/${server.id}/${server.icon}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'}" alt="${server.name} icon" class="w-16 h-16 rounded-full mr-4">
+                <h2 class="text-4xl font-bold">${server.name}</h2>
+            `;
+        }
+
+        // On page load
+        // In a real app, fetch settings from `/api/settings/{guild_id}`
+        populateServerHeader(mockServerDetails);
+
+        document.getElementById('settings-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // In a real app, you would post this data to `/api/settings/{guild_id}`
+            alert('Settings saved! (Pretend)');
+            console.log('Saving settings...');
+        });
+    </script>
+</body>
+
+</html>
