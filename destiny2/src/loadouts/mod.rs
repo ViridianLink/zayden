@@ -11,13 +11,15 @@ use serenity::all::{
 
 mod prismatic_hunter;
 mod solar_titan;
+mod solar_warlock;
 use prismatic_hunter::PRISMATIC_HUNTER;
 use solar_titan::SOLAR_TITAN;
+use solar_warlock::SOLAR_WARLOCK;
 
 pub mod weapons;
 pub use weapons::{Perk, Weapon};
 
-const BUILDS: [Loadout; 2] = [PRISMATIC_HUNTER, SOLAR_TITAN];
+const BUILDS: [Loadout; 3] = [PRISMATIC_HUNTER, SOLAR_TITAN, SOLAR_WARLOCK];
 const DUPLICATE: EmojiId = EmojiId::new(1395743560388706374);
 
 #[derive(Clone, Copy)]
@@ -34,6 +36,10 @@ pub struct Loadout<'a> {
 
 impl Loadout<'_> {
     pub fn register<'a>() -> CreateCommand<'a> {
+        let mut warlock_builds =
+            CreateCommandOption::new(CommandOptionType::String, "build", "Select the build")
+                .required(true);
+
         let mut titan_builds =
             CreateCommandOption::new(CommandOptionType::String, "build", "Select the build")
                 .required(true);
@@ -47,7 +53,9 @@ impl Loadout<'_> {
             let value = name.to_lowercase().replace([' ', '|'], "_");
 
             match build.class {
-                DestinyClass::Warlock => todo!(),
+                DestinyClass::Warlock => {
+                    warlock_builds = warlock_builds.add_string_choice(name, value);
+                }
                 DestinyClass::Titan => {
                     titan_builds = titan_builds.add_string_choice(name, value);
                 }
@@ -59,6 +67,14 @@ impl Loadout<'_> {
 
         CreateCommand::new("builds")
             .description("Destiny 2 Builds")
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::SubCommand,
+                    "warlock",
+                    "Warlock Builds",
+                )
+                .add_sub_option(warlock_builds),
+            )
             .add_option(
                 CreateCommandOption::new(CommandOptionType::SubCommand, "titan", "Titan Builds")
                     .add_sub_option(titan_builds),
@@ -434,14 +450,18 @@ pub struct Abilities {
 pub enum Super {
     BurningMaul,
     GoldenGunMarksman,
+    SongOfFlame,
 }
 
 impl Debug for Super {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::BurningMaul => write!(f, "Burning Maul"),
-            Self::GoldenGunMarksman => write!(f, "Golden Gun: Marksman"),
-        }
+        let name = match self {
+            Self::BurningMaul => "Burning Maul",
+            Self::GoldenGunMarksman => "Golden Gun: Marksman",
+            Self::SongOfFlame => "Song of Flame",
+        };
+
+        write!(f, "{name}")
     }
 }
 
@@ -463,6 +483,7 @@ impl From<Super> for EmojiId {
         match value {
             Super::BurningMaul => EmojiId::new(1395756177563979869),
             Super::GoldenGunMarksman => EmojiId::new(1396093970161078272),
+            Super::SongOfFlame => EmojiId::new(1399525852567572610),
         }
     }
 }
@@ -471,13 +492,15 @@ impl From<Super> for EmojiId {
 pub enum ClassAbility {
     RallyBarricade,
     MarksmansDodge,
+    PhoenixDive,
 }
 
 impl Display for ClassAbility {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            ClassAbility::RallyBarricade => "rally_barricade",
-            ClassAbility::MarksmansDodge => "marksmans_dodge",
+            Self::RallyBarricade => "rally_barricade",
+            Self::MarksmansDodge => "marksmans_dodge",
+            Self::PhoenixDive => "phoenix_dive",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -489,6 +512,7 @@ impl From<ClassAbility> for EmojiId {
         match value {
             ClassAbility::RallyBarricade => EmojiId::new(1395888733152219256),
             ClassAbility::MarksmansDodge => EmojiId::new(1396094606575140884),
+            ClassAbility::PhoenixDive => EmojiId::new(1399526158252642496),
         }
     }
 }
@@ -496,14 +520,16 @@ impl From<ClassAbility> for EmojiId {
 #[derive(Clone, Copy)]
 pub enum Jump {
     CatapultLift,
-    TripleJump,
+    Triple,
+    BurstGlide,
 }
 
 impl Display for Jump {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Jump::CatapultLift => "catapult_lift",
-            Jump::TripleJump => "triple_jump",
+            Self::CatapultLift => "catapult_lift",
+            Self::Triple => "triple_jump",
+            Self::BurstGlide => "burst_glide",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -514,7 +540,8 @@ impl From<Jump> for EmojiId {
     fn from(value: Jump) -> Self {
         match value {
             Jump::CatapultLift => EmojiId::new(1395888809228369921),
-            Jump::TripleJump => EmojiId::new(1396094896104013884),
+            Jump::Triple => EmojiId::new(1396094896104013884),
+            Jump::BurstGlide => EmojiId::new(1399526487933190154),
         }
     }
 }
@@ -523,13 +550,15 @@ impl From<Jump> for EmojiId {
 pub enum Melee {
     ThrowingHammer,
     ThreadedSpike,
+    IncineratorSnap,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Melee::ThrowingHammer => "throwing_hammer",
-            Melee::ThreadedSpike => "threaded_spike",
+            Self::ThrowingHammer => "throwing_hammer",
+            Self::ThreadedSpike => "threaded_spike",
+            Self::IncineratorSnap => "incinerator_snap",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -541,21 +570,24 @@ impl From<Melee> for EmojiId {
         match value {
             Melee::ThrowingHammer => EmojiId::new(1395889006280970260),
             Melee::ThreadedSpike => EmojiId::new(1396095199934939166),
+            Melee::IncineratorSnap => EmojiId::new(1399527592532377670),
         }
     }
 }
 
 #[derive(Clone, Copy)]
 pub enum Grenade {
-    HealingGrenade,
+    Healing,
     Grapple,
+    Fusion,
 }
 
 impl Display for Grenade {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::HealingGrenade => "healing_grenade",
+            Self::Healing => "healing_grenade",
             Self::Grapple => "grapple",
+            Self::Fusion => "fusion_grenade",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -565,8 +597,9 @@ impl Display for Grenade {
 impl From<Grenade> for EmojiId {
     fn from(value: Grenade) -> Self {
         match value {
-            Grenade::HealingGrenade => EmojiId::new(1395889096768880691),
+            Grenade::Healing => EmojiId::new(1395889096768880691),
             Grenade::Grapple => EmojiId::new(1396095515027964057),
+            Grenade::Fusion => EmojiId::new(1399527741656924192),
         }
     }
 }
@@ -577,15 +610,19 @@ pub enum Aspect {
     SolInvictus,
     Ascension,
     GunpowderGamble,
+    TouchOfFlame,
+    Hellion,
 }
 
 impl Display for Aspect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Aspect::RoaringFlames => "roaring_flames",
-            Aspect::SolInvictus => "sol_invictus",
-            Aspect::Ascension => "ascension",
-            Aspect::GunpowderGamble => "gunpowder_gamble",
+            Self::RoaringFlames => "roaring_flames",
+            Self::SolInvictus => "sol_invictus",
+            Self::Ascension => "ascension",
+            Self::GunpowderGamble => "gunpowder_gamble",
+            Self::TouchOfFlame => "touch_of_flame",
+            Self::Hellion => "hellion",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -599,6 +636,8 @@ impl From<Aspect> for EmojiId {
             Aspect::SolInvictus => EmojiId::new(1395889685271806013),
             Aspect::Ascension => EmojiId::new(1396095931849375867),
             Aspect::GunpowderGamble => EmojiId::new(1396095943257886761),
+            Aspect::TouchOfFlame => EmojiId::new(1399528027435569344),
+            Aspect::Hellion => EmojiId::new(1399528095634948208),
         }
     }
 }
@@ -614,20 +653,22 @@ pub enum Fragment {
     FacetOfPurpose,
     FacetOfDawn,
     FacetOfBlessing,
+    EmberOfMercy,
 }
 
 impl Display for Fragment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Fragment::EmberOfAshes => "ember_of_ashes",
-            Fragment::EmberOfEmpyrean => "ember_of_empyrean",
-            Fragment::EmberOfSearing => "ember_of_searing",
-            Fragment::EmberOfTorches => "ember_of_torches",
-            Fragment::FacetOfHope => "facet_of_hope",
-            Fragment::FacetOfProtection => "facet_of_protection",
-            Fragment::FacetOfPurpose => "facet_of_purpose",
-            Fragment::FacetOfDawn => "facet_of_dawn",
-            Fragment::FacetOfBlessing => "facet_of_blessing",
+            Self::EmberOfAshes => "ember_of_ashes",
+            Self::EmberOfEmpyrean => "ember_of_empyrean",
+            Self::EmberOfSearing => "ember_of_searing",
+            Self::EmberOfTorches => "ember_of_torches",
+            Self::EmberOfMercy => "ember_of_mercy",
+            Self::FacetOfHope => "facet_of_hope",
+            Self::FacetOfProtection => "facet_of_protection",
+            Self::FacetOfPurpose => "facet_of_purpose",
+            Self::FacetOfDawn => "facet_of_dawn",
+            Self::FacetOfBlessing => "facet_of_blessing",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -641,6 +682,7 @@ impl From<Fragment> for EmojiId {
             Fragment::EmberOfEmpyrean => EmojiId::new(1395890268162625696),
             Fragment::EmberOfSearing => EmojiId::new(1395890300878323853),
             Fragment::EmberOfTorches => EmojiId::new(1395890327482667058),
+            Fragment::EmberOfMercy => EmojiId::new(1399528431661744379),
             Fragment::FacetOfHope => EmojiId::new(1396096661578842173),
             Fragment::FacetOfProtection => EmojiId::new(1396096705711046766),
             Fragment::FacetOfPurpose => EmojiId::new(1396096749038211184),
@@ -729,6 +771,21 @@ impl<'a> From<Armour<'a>> for CreateUnfurledMediaItem<'a> {
             "Last Discipline Strides" => {
                 "https://www.bungie.net/common/destiny2_content/icons/db74932fddacc7a8a98844f2480e4a7f.jpg"
             }
+            "Collective Psyche Cover" => {
+                "https://www.bungie.net/common/destiny2_content/icons/41157409d6cfd4da8f44f36f1f7d7e40.jpg"
+            }
+            "Collective Psyche Gloves" => {
+                "https://www.bungie.net/common/destiny2_content/icons/fec9d8ed57853226cc031d6ffed9a70c.jpg"
+            }
+            "Starfire Protocol" => {
+                "https://www.bungie.net/common/destiny2_content/icons/707703c3e72776cbf463a2d6427f5b43.jpg"
+            }
+            "Collective Psyche Boots" => {
+                "https://www.bungie.net/common/destiny2_content/icons/8d9a8b0ba16b2d0bc9fa5ab1266ecb9b.jpg"
+            }
+            "Collective Psyche Bond" => {
+                "https://www.bungie.net/common/destiny2_content/icons/19e70cd67f1f361003bcdaa59952fbab.jpg"
+            }
             name if name.starts_with("Relativism") => {
                 "https://www.bungie.net/common/destiny2_content/icons/e4acc5bd83081bcf82f8e7c8905b58c4.jpg"
             }
@@ -762,32 +819,36 @@ pub enum Mod {
     Invigoration,
     ClassFont,
     PowerfulAttraction,
+    Innervation,
+    StrandScavenger,
 }
 
 impl Display for Mod {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Mod::Empty => "empty",
-            Mod::HandsOn => "hands_on",
-            Mod::SpecialAmmoFinder => "special_ammo_finder",
-            Mod::HarmonicSiphon => "harmonic_siphone",
-            Mod::MeleeFont => "melee_font",
-            Mod::HeavyHanded => "heavy_handed",
-            Mod::StacksOnStacks => "stacks_on_stacks",
-            Mod::KineticScavenger => "kinetic_scavenger",
-            Mod::TimeDilation => "time_dilation",
-            Mod::Reaper => "reaper",
-            Mod::SpecialFinisher => "special_finisher",
-            Mod::AshesToAssets => "ashes_to_assets",
-            Mod::SuperFont => "super_font",
-            Mod::VoidSiphon => "void_siphon",
-            Mod::Firepower => "firepower",
-            Mod::GrenadeFont => "grenade_font",
-            Mod::FocusingStrike => "focusing_strike",
-            Mod::Recuperation => "recuperation",
-            Mod::Invigoration => "invigoration",
-            Mod::ClassFont => "class_font",
-            Mod::PowerfulAttraction => "powerful_attraction",
+            Self::Empty => "empty",
+            Self::HandsOn => "hands_on",
+            Self::SpecialAmmoFinder => "special_ammo_finder",
+            Self::HarmonicSiphon => "harmonic_siphone",
+            Self::MeleeFont => "melee_font",
+            Self::HeavyHanded => "heavy_handed",
+            Self::StacksOnStacks => "stacks_on_stacks",
+            Self::KineticScavenger => "kinetic_scavenger",
+            Self::TimeDilation => "time_dilation",
+            Self::Reaper => "reaper",
+            Self::SpecialFinisher => "special_finisher",
+            Self::AshesToAssets => "ashes_to_assets",
+            Self::SuperFont => "super_font",
+            Self::VoidSiphon => "void_siphon",
+            Self::Firepower => "firepower",
+            Self::GrenadeFont => "grenade_font",
+            Self::FocusingStrike => "focusing_strike",
+            Self::Recuperation => "recuperation",
+            Self::Invigoration => "invigoration",
+            Self::ClassFont => "class_font",
+            Self::PowerfulAttraction => "powerful_attraction",
+            Self::Innervation => "innervation",
+            Self::StrandScavenger => "strand_scavenger",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -818,6 +879,8 @@ impl From<Mod> for EmojiId {
             Mod::Invigoration => EmojiId::new(1396098080335466547),
             Mod::ClassFont => EmojiId::new(1396098129534652540),
             Mod::PowerfulAttraction => EmojiId::new(1396098159553286264),
+            Mod::Innervation => EmojiId::new(1399528773149528065),
+            Mod::StrandScavenger => EmojiId::new(1399528781030625340),
         }
     }
 }
@@ -874,23 +937,27 @@ pub enum ArtifactPerk {
     Shieldcrush,
     TangledWeb,
     AntiBarrierScoutAndPulse,
+    FeverAndChill,
+    CauterizedDarkness,
 }
 
 impl Display for ArtifactPerk {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            ArtifactPerk::DivinersDiscount => "diviners_discount",
-            ArtifactPerk::ReciprocalDraw => "reciprocal_draw",
-            ArtifactPerk::RefreshThreads => "refresh_threads",
-            ArtifactPerk::ElementalCoalescence => "elemental_coalescence",
-            ArtifactPerk::RadiantShrapnel => "radiant_shrapnel",
-            ArtifactPerk::ElementalOverdrive => "elemental_overdrive",
-            ArtifactPerk::TightlyWoven => "tightly_woven",
-            ArtifactPerk::RapidPrecisionRifling => "rapid_precision_rifling",
-            ArtifactPerk::ElementalBenevolence => "elemental_benevolence",
-            ArtifactPerk::Shieldcrush => "shieldcrush",
-            ArtifactPerk::TangledWeb => "tangled_web",
-            ArtifactPerk::AntiBarrierScoutAndPulse => "anti_barrier_scout_and_pulse",
+            Self::DivinersDiscount => "diviners_discount",
+            Self::ReciprocalDraw => "reciprocal_draw",
+            Self::RefreshThreads => "refresh_threads",
+            Self::ElementalCoalescence => "elemental_coalescence",
+            Self::RadiantShrapnel => "radiant_shrapnel",
+            Self::ElementalOverdrive => "elemental_overdrive",
+            Self::TightlyWoven => "tightly_woven",
+            Self::RapidPrecisionRifling => "rapid_precision_rifling",
+            Self::ElementalBenevolence => "elemental_benevolence",
+            Self::Shieldcrush => "shieldcrush",
+            Self::TangledWeb => "tangled_web",
+            Self::AntiBarrierScoutAndPulse => "anti_barrier_scout_and_pulse",
+            Self::FeverAndChill => "fever_and_chill",
+            Self::CauterizedDarkness => "cauterized_darkness",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -912,6 +979,8 @@ impl From<ArtifactPerk> for EmojiId {
             ArtifactPerk::Shieldcrush => EmojiId::new(1396099019796910180),
             ArtifactPerk::TangledWeb => EmojiId::new(1396098996459802704),
             ArtifactPerk::AntiBarrierScoutAndPulse => EmojiId::new(1396099011819339848),
+            ArtifactPerk::FeverAndChill => EmojiId::new(1399529292609753248),
+            ArtifactPerk::CauterizedDarkness => EmojiId::new(1399530731918725190),
         }
     }
 }

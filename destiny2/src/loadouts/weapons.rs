@@ -4,13 +4,6 @@ use serenity::all::{
     CreateSectionComponent, CreateTextDisplay, CreateThumbnail, CreateUnfurledMediaItem, EmojiId,
 };
 
-pub const PERFECT_PARADOX: Weapon = Weapon {
-    name: "Perfect Paradox",
-    affinity: Affinity::Kinetic,
-    archtype: "Legendary Shotgun",
-    perks: [Perk::ThreatDetector, Perk::OneTwoPunch],
-};
-
 pub const DEVILS_RUIN: Weapon = Weapon {
     name: "Devil's Ruin",
     affinity: Affinity::Solar,
@@ -18,11 +11,32 @@ pub const DEVILS_RUIN: Weapon = Weapon {
     perks: [Perk::Pyrogenesis, Perk::CloseTheGap],
 };
 
+pub const MINT_RETROGRADE: Weapon = Weapon {
+    name: "Mint Retrograde",
+    affinity: Affinity::Strand,
+    archtype: "Legendary Pulse Rifle",
+    perks: [Perk::RewindRounds, Perk::Slice],
+};
+
+pub const PERFECT_PARADOX: Weapon = Weapon {
+    name: "Perfect Paradox",
+    affinity: Affinity::Kinetic,
+    archtype: "Legendary Shotgun",
+    perks: [Perk::ThreatDetector, Perk::OneTwoPunch],
+};
+
 pub const THIRD_ITERATION: Weapon = Weapon {
     name: "Third Iteration",
     affinity: Affinity::Void,
     archtype: "Exotic Scout Rifle",
     perks: [Perk::AmalgamationRounds, Perk::TriPlanarMassDriver],
+};
+
+pub const SUNSHOT: Weapon = Weapon {
+    name: "Sunshot",
+    affinity: Affinity::Solar,
+    archtype: "Exotic Hand Cannon",
+    perks: [Perk::SunBlast, Perk::Sunburn],
 };
 
 #[derive(Clone, Copy)]
@@ -71,6 +85,12 @@ impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
             "Third Iteration" => {
                 "https://www.bungie.net/common/destiny2_content/icons/58975dd6281e30bac63e9e6b3c868865.jpg"
             }
+            "Mint Retrograde" => {
+                "https://www.bungie.net/common/destiny2_content/icons/fbf7032cc563c82757be6a7fe5e88713.jpg"
+            }
+            "Sunshot" => {
+                "https://www.bungie.net/common/destiny2_content/icons/b84b4aecd0b0b36b9b9bf247b290ba08.jpg"
+            }
             name => unimplemented!("Image URL for '{name}' not implemented"),
         };
 
@@ -90,14 +110,16 @@ pub enum Affinity {
 
 impl Display for Affinity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Affinity::Kinetic => write!(f, "kinetic"),
-            Affinity::Arc => todo!(),
-            Affinity::Void => write!(f, "void"),
-            Affinity::Solar => write!(f, "solar"),
-            Affinity::Stasis => todo!(),
-            Affinity::Strand => todo!(),
-        }
+        let name = match self {
+            Affinity::Kinetic => "kinetic",
+            Affinity::Arc => "arc",
+            Affinity::Void => "void",
+            Affinity::Solar => "solar",
+            Affinity::Stasis => "stasis",
+            Affinity::Strand => "strand",
+        };
+
+        write!(f, "{name}")
     }
 }
 
@@ -109,7 +131,7 @@ impl From<Affinity> for EmojiId {
             Affinity::Void => EmojiId::new(1396107597123293254),
             Affinity::Solar => EmojiId::new(1395737098220212345),
             Affinity::Stasis => todo!(),
-            Affinity::Strand => todo!(),
+            Affinity::Strand => EmojiId::new(1399543110157209765),
         }
     }
 }
@@ -122,6 +144,10 @@ pub enum Perk {
     OneTwoPunch,
     TriPlanarMassDriver,
     AmalgamationRounds,
+    RewindRounds,
+    Slice,
+    SunBlast,
+    Sunburn,
 }
 
 impl Display for Perk {
@@ -133,6 +159,10 @@ impl Display for Perk {
             Perk::OneTwoPunch => "one_two_punch",
             Perk::TriPlanarMassDriver => "tri_planar_mass_driver",
             Perk::AmalgamationRounds => "amalgamation_rounds",
+            Perk::RewindRounds => "rewind_rounds",
+            Perk::Slice => "slice",
+            Perk::SunBlast => "sun_blast",
+            Perk::Sunburn => "sunburn",
         };
 
         write!(f, "<:{name}:{}>", EmojiId::from(*self))
@@ -148,6 +178,10 @@ impl From<Perk> for EmojiId {
             Perk::OneTwoPunch => EmojiId::new(1395892237086490655),
             Perk::TriPlanarMassDriver => EmojiId::new(1396093613330665493),
             Perk::AmalgamationRounds => EmojiId::new(1396093652006211706),
+            Perk::RewindRounds => EmojiId::new(1399522910091214878),
+            Perk::Slice => EmojiId::new(1399522938805424341),
+            Perk::SunBlast => EmojiId::new(1399522958191493230),
+            Perk::Sunburn => EmojiId::new(1399522978131087511),
         }
     }
 }

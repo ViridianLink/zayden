@@ -40,7 +40,7 @@ const SUBCLASS: Subclass = Subclass {
 const ABILITIES: Abilities = Abilities {
     super_: Super::GoldenGunMarksman,
     class: ClassAbility::MarksmansDodge,
-    jump: Jump::TripleJump,
+    jump: Jump::Triple,
     melee: Melee::ThreadedSpike,
     grenade: Grenade::Grapple,
 };

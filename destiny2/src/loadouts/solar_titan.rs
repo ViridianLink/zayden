@@ -46,7 +46,7 @@ const ABILITIES: Abilities = Abilities {
     class: ClassAbility::RallyBarricade,
     jump: Jump::CatapultLift,
     melee: Melee::ThrowingHammer,
-    grenade: Grenade::HealingGrenade,
+    grenade: Grenade::Healing,
 };
 
 const GEAR: Gear = Gear {
