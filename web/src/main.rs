@@ -53,9 +53,10 @@ async fn main() {
     let state = AppState::new(client_secret);
 
     let app = Router::new()
+        .route("/invite", get(invite_handler))
         .route("/login", get(login_handler))
         .route("/auth/callback", get(auth_callback_handler))
-        .nest_service("/", ServeDir::new("web/public"))
+        .fallback_service(ServeDir::new("web/public"))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
@@ -65,7 +66,12 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-// Handler for the /login route
+async fn invite_handler() -> impl IntoResponse {
+    const INVITE_URL: &str = "https://discord.com/oauth2/authorize?client_id=787490197943091211&permissions=8&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2Fauth%2Fcallback&integration_type=0&scope=identify+bot+guilds+applications.commands";
+
+    Redirect::to(INVITE_URL)
+}
+
 async fn login_handler(State(state): State<AppState>) -> impl IntoResponse {
     let (auth_url, _csrf_token) = state
         .oauth_client
@@ -93,7 +99,6 @@ async fn auth_callback_handler(
     Query(query): Query<AuthCallbackQuery>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    // Exchange the authorization code for an access token
     let token_result = state
         .oauth_client
         .exchange_code(AuthorizationCode::new(query.code))
