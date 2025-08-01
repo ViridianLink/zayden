@@ -1,5 +1,5 @@
 use chrono::{DateTime, Days, NaiveTime, Utc};
-use serenity::all::EmojiId;
+use serenity::all::{EmojiId, Http, UserId};
 
 pub mod commands;
 pub mod components;
@@ -29,6 +29,7 @@ pub use models::{
 };
 pub use shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
 pub use stamina::{StaminaCron, StaminaManager};
+use tokio::sync::OnceCell;
 
 const START_AMOUNT: i64 = 1000;
 
@@ -163,6 +164,14 @@ const CHIP_5: EmojiId = EmojiId::new(1384310229029879898);
 const CHIP_10: EmojiId = EmojiId::new(1384310221744115835);
 const CHIP_50: EmojiId = EmojiId::new(1384310215398264965);
 const CHIP_100: EmojiId = EmojiId::new(1384310209077444648);
+
+static BOT_ID: OnceCell<UserId> = OnceCell::const_new();
+
+pub async fn bot_id(http: &Http) -> UserId {
+    *BOT_ID
+        .get_or_init(|| async { http.get_current_user().await.unwrap().id })
+        .await
+}
 
 fn tomorrow(now: Option<DateTime<Utc>>) -> i64 {
     now.unwrap_or_else(Utc::now)
