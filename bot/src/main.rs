@@ -23,6 +23,7 @@ pub const SUPER_USERS: [UserId; 1] = [
     UserId::new(211486447369322506), // oscarsix
 ];
 pub const BRADSTER_GUILD: GuildId = GuildId::new(1255957182457974875);
+pub const BOT_ID: UserId = UserId::new(787490197943091211);
 
 #[tokio::main]
 async fn main() -> Result<()> {

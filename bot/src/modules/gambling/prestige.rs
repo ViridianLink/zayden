@@ -8,7 +8,7 @@ use sqlx::types::Json;
 use sqlx::{PgPool, Postgres};
 use zayden_core::SlashCommand;
 
-use crate::{Error, Result};
+use crate::{BOT_ID, Error, Result};
 
 use super::stamina::MAX_STAMINA;
 
@@ -30,50 +30,9 @@ impl PrestigeManager<Postgres> for PrestigeTable {
     async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<PrestigeRow>> {
         let id = id.into();
 
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             PrestigeRow,
-            r#"SELECT
-                g.id,
-                g.coins,
-                g.gems,
-                g.stamina,
-                
-                (
-                SELECT jsonb_agg(
-                    jsonb_build_object(
-                        'quantity', inv.quantity,
-                        'item_id', inv.item_id
-                    )
-                )
-                FROM gambling_inventory inv
-                WHERE inv.user_id = g.id
-            ) as "inventory: Json<Vec<GamblingItem>>",
-                
-                m.miners,
-                m.mines,
-                m.land,
-                m.countries,
-                m.continents,
-                m.planets,
-                m.solar_systems,
-                m.galaxies,
-                m.universes,
-                m.prestige,
-                m.coal,
-                m.iron,
-                m.gold,
-                m.redstone,
-                m.lapis,
-                m.diamonds,
-                m.emeralds,
-                m.tech,
-                m.utility,
-                m.production
-
-                FROM gambling g
-                LEFT JOIN gambling_inventory i on g.id = i.id
-                LEFT JOIN gambling_mine m on g.id = m.id
-                WHERE g.id = $1;"#,
+            "./sql/gambling/PrestigeManager/row.sql",
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -81,11 +40,9 @@ impl PrestigeManager<Postgres> for PrestigeTable {
     }
 
     async fn lotto(pool: &PgPool, tickets: i64) -> sqlx::Result<PgQueryResult> {
-        const BOT_ID: i64 = 787490197943091211;
-
         sqlx::query_file!(
             "./sql/gambling/PrestigeManager/lotto.sql",
-            BOT_ID,
+            BOT_ID.get() as i64,
             LOTTO_TICKET.id,
             tickets,
         )
