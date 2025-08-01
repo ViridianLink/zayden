@@ -17,19 +17,15 @@ impl Handler {
         pool: &PgPool,
     ) -> Result<()> {
         match interaction {
-            Interaction::Command(command) => {
-                Handler::interaction_command(ctx, command, pool).await?
-            }
+            Interaction::Command(command) => Handler::interaction_command(ctx, command, pool).await,
             Interaction::Autocomplete(autocomplete) => {
-                Handler::interaction_autocomplete(ctx, autocomplete, pool).await?
+                Handler::interaction_autocomplete(ctx, autocomplete, pool).await
             }
             Interaction::Component(component) => {
-                Handler::interaction_component(ctx, component, pool).await?
+                Handler::interaction_component(ctx, component, pool).await
             }
-            Interaction::Modal(modal) => Handler::interaction_modal(ctx, modal, pool).await?,
+            Interaction::Modal(modal) => Handler::interaction_modal(ctx, modal, pool).await,
             _ => unimplemented!("Interaction not implemented: {:?}", interaction.kind()),
-        };
-
-        Ok(())
+        }
     }
 }

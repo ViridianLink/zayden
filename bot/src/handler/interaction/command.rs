@@ -1,5 +1,8 @@
 use chrono::Utc;
-use serenity::all::{CommandInteraction, Context, EditInteractionResponse};
+use serenity::all::{
+    CommandInteraction, Context, CreateInteractionResponse, CreateInteractionResponseMessage,
+    EditInteractionResponse,
+};
 use sqlx::PgPool;
 use zayden_core::{SlashCommand, get_option_str};
 
@@ -91,12 +94,22 @@ impl Handler {
         }
         .await;
 
-        if let Err(e) = result {
-            let msg = e.to_string();
-            let _ = interaction.defer_ephemeral(&ctx.http).await;
-
+        if let Err(e) = result
+            && interaction
+                .create_response(
+                    &ctx.http,
+                    CreateInteractionResponse::Message(
+                        CreateInteractionResponseMessage::new().content(e.to_string()),
+                    ),
+                )
+                .await
+                .is_err()
+        {
             interaction
-                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
+                .edit_response(
+                    &ctx.http,
+                    EditInteractionResponse::new().content(e.to_string()),
+                )
                 .await?;
         }
 
