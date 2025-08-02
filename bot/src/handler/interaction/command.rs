@@ -19,7 +19,7 @@ use crate::modules::gambling::{
 };
 use crate::modules::levels::{Levels, Rank, Xp};
 use crate::modules::lfg::Lfg;
-use crate::modules::misc::Random;
+use crate::modules::misc::{CustomMsg, Random};
 use crate::modules::reaction_roles::ReactionRoleCommand;
 use crate::modules::suggestions::FetchSuggestions;
 use crate::modules::temp_voice::Voice;
@@ -82,6 +82,7 @@ impl Handler {
             "voice" => Voice::run(ctx, interaction, options, pool),
             "raidguide" => RaidGuide::run(ctx, interaction, options, pool),
             "builds" => Loadout::run(ctx, interaction, options, pool),
+            "custom_msg" => CustomMsg::run(ctx, interaction, options, pool),
 
             // region: ticket
             "ticket" => TicketCommand::run(ctx, interaction, options, pool),

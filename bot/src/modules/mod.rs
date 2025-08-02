@@ -19,7 +19,7 @@ pub fn global_register(ctx: &Context) -> Vec<CreateCommand<'_>> {
     cmds.extend(gambling::register(ctx));
     cmds.extend(levels::register(ctx));
     cmds.push(lfg::Lfg::register(ctx).unwrap());
-    cmds.push(misc::register(ctx));
+    cmds.extend(misc::register(ctx));
     cmds.push(reaction_roles::register(ctx));
     cmds.push(suggestions::register(ctx));
     cmds.push(temp_voice::register(ctx));
