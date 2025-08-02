@@ -7,7 +7,10 @@ pub mod voice_channel_manager;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use serenity::all::{ChannelId, Guild, GuildChannel, GuildId, Http, UserId, VoiceState};
+use serenity::all::{
+    ChannelId, DiscordJsonError, ErrorResponse, Guild, GuildChannel, GuildId, Http, HttpError,
+    JsonErrorCode, UserId, VoiceState,
+};
 
 pub use commands::VoiceCommand;
 pub use error::Error;
@@ -86,9 +89,19 @@ pub async fn delete_voice_channel_if_inactive(
     match guild_id.get_user_voice_state(http, user_id).await {
         Ok(voice_state) if voice_state.channel_id == Some(vc.id) => false,
         _ => {
-            vc.delete(http, Some("Empty and inactive channel"))
-                .await
-                .unwrap();
+            match vc.delete(http, Some("Empty and inactive channel")).await {
+                Ok(_)
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                    error:
+                        DiscordJsonError {
+                            code: JsonErrorCode::UnknownChannel,
+                            ..
+                        },
+                    ..
+                }))) => {}
+                Err(e) => panic!("{e:?}"),
+            }
+
             true
         }
     }
