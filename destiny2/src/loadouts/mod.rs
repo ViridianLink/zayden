@@ -1,12 +1,12 @@
 use std::fmt::{Debug, Display};
 
 use serenity::all::{
-    ButtonStyle, CommandInteraction, CommandOptionType, CreateActionRow, CreateButton,
+    ButtonStyle, CommandInteraction, CommandOptionType, Context, CreateActionRow, CreateButton,
     CreateCommand, CreateCommandOption, CreateComponent, CreateContainer,
     CreateInteractionResponse, CreateInteractionResponseMessage, CreateSection,
     CreateSectionAccessory, CreateSectionComponent, CreateSeparator, CreateTextDisplay,
-    CreateThumbnail, CreateUnfurledMediaItem, EmojiId, Http, MessageFlags, ResolvedOption,
-    ResolvedValue, Spacing,
+    CreateThumbnail, CreateUnfurledMediaItem, EmojiId, MessageFlags, ResolvedOption, ResolvedValue,
+    Spacing,
 };
 
 mod prismatic_hunter;
@@ -17,7 +17,9 @@ use solar_titan::SOLAR_TITAN;
 use solar_warlock::SOLAR_WARLOCK;
 
 pub mod weapons;
+use tokio::sync::RwLock;
 pub use weapons::{Perk, Weapon};
+use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
 const BUILDS: [Loadout; 3] = [PRISMATIC_HUNTER, SOLAR_TITAN, SOLAR_WARLOCK];
 const DUPLICATE: EmojiId = EmojiId::new(1395743560388706374);
@@ -85,8 +87,8 @@ impl Loadout<'_> {
             )
     }
 
-    pub async fn run(
-        http: &Http,
+    pub async fn run<Data: EmojiCacheData>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
     ) {
@@ -111,11 +113,11 @@ impl Loadout<'_> {
 
         interaction
             .create_response(
-                http,
+                &ctx.http,
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
                         .flags(MessageFlags::IS_COMPONENTS_V2)
-                        .components(vec![build.into()]),
+                        .components(vec![build.into_component::<Data>(ctx).await]),
                 ),
             )
             .await
@@ -153,43 +155,47 @@ impl<'a> Loadout<'a> {
         self.artifact = artifact;
         self
     }
-}
 
-impl<'a> Display for Loadout<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} | {}", self.subclass.subclass, self.name)
-    }
-}
+    pub async fn into_component<Data: EmojiCacheData>(self, ctx: &Context) -> CreateComponent<'a> {
+        let data = ctx.data::<RwLock<Data>>();
+        let mut data = data.write().await;
+        let emoji_cache = data.get_mut();
 
-impl<'a> From<Loadout<'a>> for CreateComponent<'a> {
-    fn from(value: Loadout<'a>) -> Self {
+        let mut components = Vec::with_capacity(21);
+
+        let mut subclass_btn = self.subclass.subclass.into_button(emoji_cache);
+        while let Err(name) = subclass_btn {
+            emoji_cache.upload(ctx, &name).await;
+            subclass_btn = self.subclass.subclass.into_button(emoji_cache);
+        }
+
         let tags = CreateComponent::ActionRow(CreateActionRow::buttons(
-            [CreateButton::from(value.subclass.subclass)]
+            [subclass_btn.unwrap()]
                 .into_iter()
-                .chain([CreateButton::from(value.mode)])
-                .chain(value.tags.into_iter().flatten().map(CreateButton::from))
+                .chain([CreateButton::from(self.mode)])
+                .chain(self.tags.into_iter().flatten().map(CreateButton::from))
                 .collect::<Vec<_>>(),
         ));
 
         let heading1 = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
             "-# {} {} Build",
-            value.subclass.subclass, value.class
+            self.subclass.subclass, self.class
         )));
 
-        let mut details = format!("By {}", value.details.author);
-        if let Some(url) = value.details.video {
+        let mut details = format!("By {}", self.details.author);
+        if let Some(url) = self.details.video {
             details.push_str(&format!(" • [Video Guide]({url})"));
         }
 
         let heading2 = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
-            "# {}  •  {:?}  •  {}\n{details}",
-            value.class, value.subclass.abilities.super_, value.name
+            "# {}  •  {}  •  {}\n{details}",
+            self.class, self.subclass.abilities.super_, self.name
         )));
 
         let line_sep = CreateComponent::Separator(CreateSeparator::new(true));
 
         let dim_link = CreateComponent::ActionRow(CreateActionRow::buttons(vec![
-            CreateButton::new_link(value.details.dim_link)
+            CreateButton::new_link(self.details.dim_link)
                 .label("COPY DIM LINK")
                 .emoji(DUPLICATE),
         ]));
@@ -198,69 +204,115 @@ impl<'a> From<Loadout<'a>> for CreateComponent<'a> {
             "### SUBCLASS\nSuper       Abilities                                       Aspects",
         ));
 
-        let aspects = value.subclass.aspects.map(|a| a.to_string()).join(" ");
+        let mut aspects = self.aspects_str(emoji_cache);
+        while let Err(name) = aspects {
+            emoji_cache.upload(ctx, &name).await;
+            aspects = self.aspects_str(emoji_cache)
+        }
+
+        let super_emoji = match self.super_emoji(emoji_cache) {
+            Ok(emoji) => emoji,
+            Err(name) => {
+                emoji_cache.upload(ctx, &name).await;
+                self.super_emoji(emoji_cache).unwrap()
+            }
+        };
+
+        let class_emoji = match self.class_emoji(emoji_cache) {
+            Ok(emoji) => emoji,
+            Err(name) => {
+                emoji_cache.upload(ctx, &name).await;
+                self.class_emoji(emoji_cache).unwrap()
+            }
+        };
+
+        let jump_emoji = match self.jump_emoji(emoji_cache) {
+            Ok(emoji) => emoji,
+            Err(name) => {
+                emoji_cache.upload(ctx, &name).await;
+                self.jump_emoji(emoji_cache).unwrap()
+            }
+        };
+
+        let melee_emoji = match self.melee_emoji(emoji_cache) {
+            Ok(emoji) => emoji,
+            Err(name) => {
+                emoji_cache.upload(ctx, &name).await;
+                self.melee_emoji(emoji_cache).unwrap()
+            }
+        };
+
+        let grenade_emoji = match self.grenade_emoji(emoji_cache) {
+            Ok(emoji) => emoji,
+            Err(name) => {
+                emoji_cache.upload(ctx, &name).await;
+                self.grenade_emoji(emoji_cache).unwrap()
+            }
+        };
 
         let subclass = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
-            "# {}    {} {} {} {}    {aspects}\n\nFragments",
-            value.subclass.abilities.super_,
-            value.subclass.abilities.class,
-            value.subclass.abilities.jump,
-            value.subclass.abilities.melee,
-            value.subclass.abilities.grenade
+            "# {super_emoji}    {class_emoji} {jump_emoji} {melee_emoji} {grenade_emoji}    {}\n\nFragments",
+            aspects.unwrap()
         )));
+
+        let mut fragments = self.fragments_str(emoji_cache);
+        while let Err(name) = fragments {
+            emoji_cache.upload(ctx, &name).await;
+            fragments = self.fragments_str(emoji_cache)
+        }
 
         let fragments = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
             "#{}",
-            value
-                .subclass
-                .fragments
-                .into_iter()
-                .flatten()
-                .map(|f| format!(" {f}"))
-                .collect::<String>()
+            fragments.unwrap()
         )));
 
         let gear_and_mods_heading =
             CreateComponent::TextDisplay(CreateTextDisplay::new("### GEAR AND MODS"));
 
-        let weapons = value.gear.weapons.into_iter().flatten().map(|weapon| {
-            CreateComponent::Section(CreateSection::new(
-                vec![weapon.into()],
-                CreateSectionAccessory::Thumbnail(weapon.into()),
-            ))
-        });
+        let mut weapons = self.weapon_components(emoji_cache);
+        while let Err(name) = weapons {
+            emoji_cache.upload(ctx, &name).await;
+            weapons = self.weapon_components(emoji_cache)
+        }
 
-        let armour = value.gear.armour.map(|armour| {
-            CreateComponent::Section(CreateSection::new(
-                vec![armour.into()],
-                CreateSectionAccessory::Thumbnail(armour.into()),
-            ))
-        });
+        let mut weapons = self.weapon_components(emoji_cache);
+        while let Err(name) = weapons {
+            emoji_cache.upload(ctx, &name).await;
+            weapons = self.weapon_components(emoji_cache)
+        }
+
+        let mut armour = self.armour_components(emoji_cache);
+        while let Err(name) = armour {
+            emoji_cache.upload(ctx, &name).await;
+            armour = self.armour_components(emoji_cache)
+        }
+
+        let mut stat_prio = self.stat_prio_str(emoji_cache);
+        while let Err(name) = stat_prio {
+            emoji_cache.upload(ctx, &name).await;
+            stat_prio = self.stat_prio_str(emoji_cache)
+        }
+
+        let mut artifact = self.artifact_str(emoji_cache);
+        while let Err(name) = artifact {
+            emoji_cache.upload(ctx, &name).await;
+            artifact = self.artifact_str(emoji_cache)
+        }
 
         let mut misc_content = format!(
             "### Stats Priority\n#{}\n### ARTIFACT PERKS\n#{}",
-            value
-                .gear
-                .stats_priority
-                .into_iter()
-                .map(|f| format!(" {f}"))
-                .collect::<String>(),
-            value
-                .artifact
-                .into_iter()
-                .flatten()
-                .map(|f| format!(" {f}"))
-                .collect::<String>()
+            stat_prio.unwrap(),
+            artifact.unwrap()
         );
 
-        if let Some(how_it_works) = value.details.how_it_works {
+        if let Some(how_it_works) = self.details.how_it_works {
             misc_content.push_str("\n### HOW IT WORKS\n# ");
             misc_content.push_str(how_it_works);
         }
 
         let misc = CreateComponent::TextDisplay(CreateTextDisplay::new(misc_content));
 
-        let mut components = vec![
+        components.extend([
             heading1,
             heading2,
             tags,
@@ -272,16 +324,127 @@ impl<'a> From<Loadout<'a>> for CreateComponent<'a> {
             fragments,
             line_sep,
             gear_and_mods_heading,
-        ];
-
-        components.extend(weapons);
+        ]);
+        components.extend(weapons.unwrap());
         components.push(CreateComponent::Separator(
             CreateSeparator::new(false).spacing(Spacing::Large),
         ));
-        components.extend(armour);
+        components.extend(armour.unwrap());
         components.push(misc);
 
         CreateComponent::Container(CreateContainer::new(components))
+    }
+
+    fn weapon_components(self, emoji_cache: &EmojiCache) -> EmojiResult<Vec<CreateComponent<'a>>> {
+        self.gear
+            .weapons
+            .into_iter()
+            .flatten()
+            .map(|weapon| {
+                Ok(CreateComponent::Section(CreateSection::new(
+                    vec![weapon.into_section(emoji_cache)?],
+                    CreateSectionAccessory::Thumbnail(weapon.into()),
+                )))
+            })
+            .collect()
+    }
+
+    fn armour_components(self, emoji_cache: &EmojiCache) -> EmojiResult<Vec<CreateComponent<'a>>> {
+        self.gear
+            .armour
+            .into_iter()
+            .map(|armour| {
+                Ok(CreateComponent::Section(CreateSection::new(
+                    vec![armour.into_section(emoji_cache)?],
+                    CreateSectionAccessory::Thumbnail(armour.into()),
+                )))
+            })
+            .collect()
+    }
+
+    fn aspects_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        let s = self
+            .subclass
+            .aspects
+            .into_iter()
+            .map(|a| a.to_string())
+            .map(|s| emoji_cache.emoji_str(&s))
+            .collect::<Result<Vec<String>, String>>()?
+            .join(" ");
+
+        Ok(s)
+    }
+
+    fn super_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        emoji_cache.emoji_str(&format!("{:?}", self.subclass.abilities.super_))
+    }
+
+    fn class_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        emoji_cache.emoji_str(&self.subclass.abilities.class.to_string())
+    }
+
+    fn jump_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        emoji_cache.emoji_str(&self.subclass.abilities.jump.to_string())
+    }
+
+    fn melee_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        emoji_cache.emoji_str(&self.subclass.abilities.melee.to_string())
+    }
+
+    fn grenade_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        emoji_cache.emoji_str(&self.subclass.abilities.grenade.to_string())
+    }
+
+    fn fragments_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        let s = self
+            .subclass
+            .fragments
+            .into_iter()
+            .flatten()
+            .map(|f| f.to_string())
+            .map(|s| {
+                let emoji = emoji_cache.emoji_str(&s)?;
+                Ok(format!(" {emoji}"))
+            })
+            .collect::<Result<String, String>>()?;
+
+        Ok(s)
+    }
+
+    fn stat_prio_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        let s = self
+            .gear
+            .stats_priority
+            .into_iter()
+            .map(|s| s.to_string())
+            .map(|s| {
+                let emoji = emoji_cache.emoji_str(&s)?;
+                Ok(format!(" {emoji}"))
+            })
+            .collect::<Result<String, String>>()?;
+
+        Ok(s)
+    }
+
+    fn artifact_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+        let s = self
+            .artifact
+            .into_iter()
+            .flatten()
+            .map(|ap| ap.to_string())
+            .map(|s| {
+                let emoji = emoji_cache.emoji_str(&s)?;
+                Ok(format!(" {emoji}"))
+            })
+            .collect::<Result<String, String>>()?;
+
+        Ok(s)
+    }
+}
+
+impl<'a> Display for Loadout<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} | {}", self.subclass.subclass, self.name)
     }
 }
 
@@ -402,6 +565,21 @@ pub enum SubclassType {
     Prismatic,
 }
 
+impl SubclassType {
+    pub fn into_button<'a>(self, emoji_cache: &EmojiCache) -> EmojiResult<CreateButton<'a>> {
+        let name = self.to_string();
+
+        let emoji = emoji_cache.emoji(&name.to_lowercase())?;
+
+        let button = CreateButton::new(name.to_lowercase())
+            .label(name)
+            .emoji(emoji)
+            .style(ButtonStyle::Secondary);
+
+        Ok(button)
+    }
+}
+
 impl Display for SubclassType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -415,25 +593,16 @@ impl Display for SubclassType {
     }
 }
 
-impl From<SubclassType> for EmojiId {
-    fn from(value: SubclassType) -> Self {
-        match value {
-            SubclassType::Arc => todo!(),
-            SubclassType::Void => EmojiId::new(1396107597123293254),
-            SubclassType::Strand => todo!(),
-            SubclassType::Stasis => todo!(),
-            SubclassType::Solar => EmojiId::new(1395737098220212345),
-            SubclassType::Prismatic => EmojiId::new(1396109157312233483),
+impl Debug for SubclassType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Arc => write!(f, "arc"),
+            Self::Void => write!(f, "void"),
+            Self::Strand => write!(f, "strand"),
+            Self::Stasis => write!(f, "stasis"),
+            Self::Solar => write!(f, "solar"),
+            Self::Prismatic => write!(f, "prismatic"),
         }
-    }
-}
-
-impl<'a> From<SubclassType> for CreateButton<'a> {
-    fn from(value: SubclassType) -> Self {
-        CreateButton::new(format!("{value}"))
-            .label(format!("{value}"))
-            .emoji(EmojiId::from(value))
-            .style(ButtonStyle::Secondary)
     }
 }
 
@@ -453,7 +622,7 @@ pub enum Super {
     SongOfFlame,
 }
 
-impl Debug for Super {
+impl Display for Super {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
             Self::BurningMaul => "Burning Maul",
@@ -465,25 +634,12 @@ impl Debug for Super {
     }
 }
 
-impl Display for Super {
+impl Debug for Super {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = format!("{self:?}");
-
-        write!(
-            f,
-            "<:{}:{}>",
-            name.to_lowercase().replace([' ', ':'], "_"),
-            EmojiId::from(*self)
-        )
-    }
-}
-
-impl From<Super> for EmojiId {
-    fn from(value: Super) -> Self {
-        match value {
-            Super::BurningMaul => EmojiId::new(1395756177563979869),
-            Super::GoldenGunMarksman => EmojiId::new(1396093970161078272),
-            Super::SongOfFlame => EmojiId::new(1399525852567572610),
+        match self {
+            Self::BurningMaul => write!(f, "burning_maul"),
+            Self::GoldenGunMarksman => write!(f, "golden_gun__marksman"),
+            Self::SongOfFlame => write!(f, "song_of_flame"),
         }
     }
 }
@@ -503,17 +659,7 @@ impl Display for ClassAbility {
             Self::PhoenixDive => "phoenix_dive",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<ClassAbility> for EmojiId {
-    fn from(value: ClassAbility) -> Self {
-        match value {
-            ClassAbility::RallyBarricade => EmojiId::new(1395888733152219256),
-            ClassAbility::MarksmansDodge => EmojiId::new(1396094606575140884),
-            ClassAbility::PhoenixDive => EmojiId::new(1399526158252642496),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -532,17 +678,7 @@ impl Display for Jump {
             Self::BurstGlide => "burst_glide",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Jump> for EmojiId {
-    fn from(value: Jump) -> Self {
-        match value {
-            Jump::CatapultLift => EmojiId::new(1395888809228369921),
-            Jump::Triple => EmojiId::new(1396094896104013884),
-            Jump::BurstGlide => EmojiId::new(1399526487933190154),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -561,17 +697,7 @@ impl Display for Melee {
             Self::IncineratorSnap => "incinerator_snap",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Melee> for EmojiId {
-    fn from(value: Melee) -> Self {
-        match value {
-            Melee::ThrowingHammer => EmojiId::new(1395889006280970260),
-            Melee::ThreadedSpike => EmojiId::new(1396095199934939166),
-            Melee::IncineratorSnap => EmojiId::new(1399527592532377670),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -590,17 +716,7 @@ impl Display for Grenade {
             Self::Fusion => "fusion_grenade",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Grenade> for EmojiId {
-    fn from(value: Grenade) -> Self {
-        match value {
-            Grenade::Healing => EmojiId::new(1395889096768880691),
-            Grenade::Grapple => EmojiId::new(1396095515027964057),
-            Grenade::Fusion => EmojiId::new(1399527741656924192),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -625,20 +741,7 @@ impl Display for Aspect {
             Self::Hellion => "hellion",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Aspect> for EmojiId {
-    fn from(value: Aspect) -> Self {
-        match value {
-            Aspect::RoaringFlames => EmojiId::new(1395889677868732597),
-            Aspect::SolInvictus => EmojiId::new(1395889685271806013),
-            Aspect::Ascension => EmojiId::new(1396095931849375867),
-            Aspect::GunpowderGamble => EmojiId::new(1396095943257886761),
-            Aspect::TouchOfFlame => EmojiId::new(1399528027435569344),
-            Aspect::Hellion => EmojiId::new(1399528095634948208),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -671,24 +774,7 @@ impl Display for Fragment {
             Self::FacetOfBlessing => "facet_of_blessing",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Fragment> for EmojiId {
-    fn from(value: Fragment) -> Self {
-        match value {
-            Fragment::EmberOfAshes => EmojiId::new(1395890217734504508),
-            Fragment::EmberOfEmpyrean => EmojiId::new(1395890268162625696),
-            Fragment::EmberOfSearing => EmojiId::new(1395890300878323853),
-            Fragment::EmberOfTorches => EmojiId::new(1395890327482667058),
-            Fragment::EmberOfMercy => EmojiId::new(1399528431661744379),
-            Fragment::FacetOfHope => EmojiId::new(1396096661578842173),
-            Fragment::FacetOfProtection => EmojiId::new(1396096705711046766),
-            Fragment::FacetOfPurpose => EmojiId::new(1396096749038211184),
-            Fragment::FacetOfDawn => EmojiId::new(1396096787810488390),
-            Fragment::FacetOfBlessing => EmojiId::new(1396096821343948891),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -709,29 +795,31 @@ impl<'a> Armour<'a> {
     pub const fn new(name: &'a str, mods: [Mod; 3]) -> Self {
         Self { name, mods }
     }
-}
 
-impl<'a> From<Armour<'a>> for CreateSectionComponent<'a> {
-    fn from(value: Armour<'a>) -> Self {
-        CreateSectionComponent::TextDisplay(value.into())
-    }
-}
-
-impl<'a> From<Armour<'a>> for CreateTextDisplay<'a> {
-    fn from(value: Armour<'a>) -> Self {
-        let mods = value
+    pub fn into_text_display(self, emoji_cache: &EmojiCache) -> EmojiResult<CreateTextDisplay<'a>> {
+        let mods = self
             .mods
             .into_iter()
-            .map(|m| format!(" {m}"))
-            .collect::<String>();
+            .map(|m| m.to_string())
+            .map(|s| {
+                let emoji = emoji_cache.emoji_str(&s)?;
+                Ok(format!(" {emoji}"))
+            })
+            .collect::<EmojiResult<String>>()?;
 
         let content = if !mods.is_empty() {
-            format!("**{}**\n#{mods}", value.name)
+            format!("**{}**\n#{mods}", self.name)
         } else {
-            format!("**{}**", value.name)
+            format!("**{}**", self.name)
         };
 
-        CreateTextDisplay::new(content)
+        Ok(CreateTextDisplay::new(content))
+    }
+
+    pub fn into_section(self, emoji_cache: &EmojiCache) -> EmojiResult<CreateSectionComponent<'a>> {
+        Ok(CreateSectionComponent::TextDisplay(
+            self.into_text_display(emoji_cache)?,
+        ))
     }
 }
 
@@ -744,11 +832,14 @@ impl<'a> From<Armour<'a>> for CreateThumbnail<'a> {
 impl<'a> From<Armour<'a>> for CreateUnfurledMediaItem<'a> {
     fn from(value: Armour) -> Self {
         let url = match value.name {
-            "Bushido Helm" => {
-                "https://www.bungie.net/common/destiny2_content/icons/9879c7eda4c3bcb56712a964f57717e9.jpg"
-            }
             "Melas Panoplia" => {
                 "https://www.bungie.net/common/destiny2_content/icons/8546b88189f69d88f8efa3d258f67026.jpg"
+            }
+            "Wormgod Caress" => {
+                "https://www.bungie.net/common/destiny2_content/icons/f93fb202061de21b42138c9348359d27.jpg"
+            }
+            "Bushido Helm" => {
+                "https://www.bungie.net/common/destiny2_content/icons/9879c7eda4c3bcb56712a964f57717e9.jpg"
             }
             "Bushido Plate" => {
                 "https://www.bungie.net/common/destiny2_content/icons/35c2f575bf2584e4e9729bcbb5c62a85.jpg"
@@ -786,6 +877,18 @@ impl<'a> From<Armour<'a>> for CreateUnfurledMediaItem<'a> {
             "Collective Psyche Bond" => {
                 "https://www.bungie.net/common/destiny2_content/icons/19e70cd67f1f361003bcdaa59952fbab.jpg"
             }
+            "Lustrous Helm" => {
+                "https://www.bungie.net/common/destiny2_content/icons/67d2e115db35baf3509a7a54d2d620be.jpg"
+            }
+            "Lustrous Plate" => {
+                "https://www.bungie.net/common/destiny2_content/icons/b82af1a81e8fdf6f3101c3ec85116387.jpg"
+            }
+            "Lustrous Greaves" => {
+                "https://www.bungie.net/common/destiny2_content/icons/775e22c8c987b15e3834efcb35c84996.jpg"
+            }
+            "Lustrous Mark" => {
+                "https://www.bungie.net/common/destiny2_content/icons/7e2d5b6b4bfbc99b00f1447836ba6795.jpg"
+            }
             name if name.starts_with("Relativism") => {
                 "https://www.bungie.net/common/destiny2_content/icons/e4acc5bd83081bcf82f8e7c8905b58c4.jpg"
             }
@@ -821,15 +924,16 @@ pub enum Mod {
     PowerfulAttraction,
     Innervation,
     StrandScavenger,
+    Distribution,
 }
 
 impl Display for Mod {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::Empty => "empty",
+            Self::Empty => "empty_mod",
             Self::HandsOn => "hands_on",
             Self::SpecialAmmoFinder => "special_ammo_finder",
-            Self::HarmonicSiphon => "harmonic_siphone",
+            Self::HarmonicSiphon => "harmonic_siphon",
             Self::MeleeFont => "melee_font",
             Self::HeavyHanded => "heavy_handed",
             Self::StacksOnStacks => "stacks_on_stacks",
@@ -849,39 +953,10 @@ impl Display for Mod {
             Self::PowerfulAttraction => "powerful_attraction",
             Self::Innervation => "innervation",
             Self::StrandScavenger => "strand_scavenger",
+            Self::Distribution => "distribution",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Mod> for EmojiId {
-    fn from(value: Mod) -> Self {
-        match value {
-            Mod::Empty => EmojiId::new(1395896423953862778),
-            Mod::HandsOn => EmojiId::new(1395894177883095070),
-            Mod::SpecialAmmoFinder => EmojiId::new(1395894196006551552),
-            Mod::HarmonicSiphon => EmojiId::new(1395894270308647053),
-            Mod::MeleeFont => EmojiId::new(1395894286431686718),
-            Mod::HeavyHanded => EmojiId::new(1395894261072920637),
-            Mod::StacksOnStacks => EmojiId::new(1395894226012864523),
-            Mod::KineticScavenger => EmojiId::new(1395894235072430223),
-            Mod::TimeDilation => EmojiId::new(1395894187316088993),
-            Mod::Reaper => EmojiId::new(1395894278466834635),
-            Mod::SpecialFinisher => EmojiId::new(1395894202914832384),
-            Mod::AshesToAssets => EmojiId::new(1396097791998038067),
-            Mod::SuperFont => EmojiId::new(1396097835338043502),
-            Mod::VoidSiphon => EmojiId::new(1396097870834307193),
-            Mod::Firepower => EmojiId::new(1396097935363801118),
-            Mod::GrenadeFont => EmojiId::new(1396097966431010917),
-            Mod::FocusingStrike => EmojiId::new(1396098012509376553),
-            Mod::Recuperation => EmojiId::new(1396098046588227696),
-            Mod::Invigoration => EmojiId::new(1396098080335466547),
-            Mod::ClassFont => EmojiId::new(1396098129534652540),
-            Mod::PowerfulAttraction => EmojiId::new(1396098159553286264),
-            Mod::Innervation => EmojiId::new(1399528773149528065),
-            Mod::StrandScavenger => EmojiId::new(1399528781030625340),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -906,20 +981,7 @@ impl Display for Stat {
             Stat::Weapons => "weapons",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Stat> for EmojiId {
-    fn from(value: Stat) -> Self {
-        match value {
-            Stat::Health => EmojiId::new(1396955669063536751),
-            Stat::Melee => EmojiId::new(1396955747480375326),
-            Stat::Grenade => EmojiId::new(1396955787510939738),
-            Stat::Super => EmojiId::new(1396955844544954378),
-            Stat::Class => EmojiId::new(1396955885418447050),
-            Stat::Weapons => EmojiId::new(1396955919769800844),
-        }
+        write!(f, "{name}")
     }
 }
 
@@ -960,28 +1022,7 @@ impl Display for ArtifactPerk {
             Self::CauterizedDarkness => "cauterized_darkness",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<ArtifactPerk> for EmojiId {
-    fn from(value: ArtifactPerk) -> Self {
-        match value {
-            ArtifactPerk::DivinersDiscount => EmojiId::new(1395895452720955654),
-            ArtifactPerk::ReciprocalDraw => EmojiId::new(1395895519993139230),
-            ArtifactPerk::RefreshThreads => EmojiId::new(1395895483943223356),
-            ArtifactPerk::ElementalCoalescence => EmojiId::new(1395895708934209586),
-            ArtifactPerk::RadiantShrapnel => EmojiId::new(1395895735681286226),
-            ArtifactPerk::ElementalOverdrive => EmojiId::new(1395895790123094212),
-            ArtifactPerk::TightlyWoven => EmojiId::new(1396098977904066560),
-            ArtifactPerk::RapidPrecisionRifling => EmojiId::new(1396099003656966174),
-            ArtifactPerk::ElementalBenevolence => EmojiId::new(1396098986917629973),
-            ArtifactPerk::Shieldcrush => EmojiId::new(1396099019796910180),
-            ArtifactPerk::TangledWeb => EmojiId::new(1396098996459802704),
-            ArtifactPerk::AntiBarrierScoutAndPulse => EmojiId::new(1396099011819339848),
-            ArtifactPerk::FeverAndChill => EmojiId::new(1399529292609753248),
-            ArtifactPerk::CauterizedDarkness => EmojiId::new(1399530731918725190),
-        }
+        write!(f, "{name}")
     }
 }
 

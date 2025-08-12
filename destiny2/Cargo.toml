@@ -8,3 +8,4 @@ bungie-api = { workspace = true }
 zayden-core = { workspace = true }
 
 serenity = { workspace = true }
+tokio = { workspace = true }
