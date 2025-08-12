@@ -5,4 +5,4 @@ VALUES
 DO
 UPDATE
 SET
-    quantity = EXCLUDED.quantity + $1
+    quantity = EXCLUDED.quantity + $3
