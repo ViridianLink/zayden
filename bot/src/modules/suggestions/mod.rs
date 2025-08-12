@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serenity::all::{Context, CreateCommand, GuildId};
 use sqlx::{PgPool, Postgres};
 use suggestions::{SuggestionsGuildManager, SuggestionsGuildRow};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 pub mod slash_command;
 

@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result, sqlx_lib::GuildTable};
 
 pub struct FetchSuggestions;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for FetchSuggestions {
+impl ApplicationCommand<Error, Postgres> for FetchSuggestions {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

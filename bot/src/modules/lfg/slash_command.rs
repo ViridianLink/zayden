@@ -3,7 +3,7 @@ use serenity::all::{
     AutocompleteOption, CommandInteraction, Context, CreateCommand, ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::{Autocomplete, SlashCommand};
+use zayden_core::{Autocomplete, ApplicationCommand};
 
 use crate::{Error, Result};
 
@@ -12,7 +12,7 @@ use super::{PostTable, UsersTable};
 pub struct Lfg;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Lfg {
+impl ApplicationCommand<Error, Postgres> for Lfg {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

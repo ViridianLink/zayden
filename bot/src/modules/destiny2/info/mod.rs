@@ -5,14 +5,14 @@ use serenity::all::{
     EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
 pub struct Perk;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Perk {
+impl ApplicationCommand<Error, Postgres> for Perk {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

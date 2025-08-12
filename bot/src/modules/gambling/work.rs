@@ -4,7 +4,7 @@ use gambling::commands::work::{WorkManager, WorkRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::StaminaTable;
 use crate::{Error, Result};
@@ -80,7 +80,7 @@ impl WorkManager<Postgres> for WorkTable {
 pub struct Work;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Work {
+impl ApplicationCommand<Error, Postgres> for Work {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

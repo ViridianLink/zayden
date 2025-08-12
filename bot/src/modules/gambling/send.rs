@@ -4,7 +4,7 @@ use gambling::commands::send::{SendManager, SendRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::{GamblingTable, StaminaTable};
 use crate::{Error, Result};
@@ -62,7 +62,7 @@ impl SendManager<Postgres> for SendTable {
 pub struct Send;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Send {
+impl ApplicationCommand<Error, Postgres> for Send {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

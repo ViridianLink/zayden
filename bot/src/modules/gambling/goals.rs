@@ -4,7 +4,7 @@ use gambling::commands::goals::GoalsRow;
 use gambling::{Commands, GamblingGoalsRow, GoalsManager};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
@@ -103,7 +103,7 @@ impl GoalsManager<Postgres> for GoalsTable {
 pub struct Goals;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Goals {
+impl ApplicationCommand<Error, Postgres> for Goals {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

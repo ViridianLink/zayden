@@ -6,14 +6,14 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
 pub struct Random;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Random {
+impl ApplicationCommand<Error, Postgres> for Random {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

@@ -1,14 +1,14 @@
 use async_trait::async_trait;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
 pub struct RaidGuide;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for RaidGuide {
+impl ApplicationCommand<Error, Postgres> for RaidGuide {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

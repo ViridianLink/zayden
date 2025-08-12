@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{CtxData, Error, Result};
 
@@ -10,7 +10,7 @@ use super::LevelsTable;
 pub struct Levels;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Levels {
+impl ApplicationCommand<Error, Postgres> for Levels {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -30,7 +30,7 @@ impl SlashCommand<Error, Postgres> for Levels {
 pub struct Rank;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Rank {
+impl ApplicationCommand<Error, Postgres> for Rank {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -50,7 +50,7 @@ impl SlashCommand<Error, Postgres> for Rank {
 pub struct Xp;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Xp {
+impl ApplicationCommand<Error, Postgres> for Xp {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

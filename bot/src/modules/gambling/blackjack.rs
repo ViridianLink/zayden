@@ -5,7 +5,7 @@ use serenity::all::{
     ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::{Component, SlashCommand};
+use zayden_core::{Component, ApplicationCommand};
 
 use crate::{CtxData, Error, Result};
 
@@ -14,7 +14,7 @@ use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 pub struct Blackjack;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Blackjack {
+impl ApplicationCommand<Error, Postgres> for Blackjack {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

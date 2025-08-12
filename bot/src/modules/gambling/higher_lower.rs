@@ -8,7 +8,7 @@ use serenity::all::{
 };
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::{Component, SlashCommand};
+use zayden_core::{Component, ApplicationCommand};
 
 use crate::modules::gambling::GamblingTable;
 use crate::{CtxData, Error, Result};
@@ -37,7 +37,7 @@ impl HigherLowerManager<Postgres> for HigherLowerTable {
 pub struct HigherLower;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for HigherLower {
+impl ApplicationCommand<Error, Postgres> for HigherLower {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

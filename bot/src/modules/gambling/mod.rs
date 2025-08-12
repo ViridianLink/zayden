@@ -1,5 +1,5 @@
 use serenity::all::{Context, CreateCommand};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 mod blackjack;
 mod coinflip;

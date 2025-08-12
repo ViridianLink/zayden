@@ -4,7 +4,7 @@ use gambling::{Commands, commands::gift::SenderRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::{GamblingTable, GoalsTable};
 use crate::{Error, Result};
@@ -78,7 +78,7 @@ impl GiftManager<Postgres> for GiftTable {
 pub struct Gift;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Gift {
+impl ApplicationCommand<Error, Postgres> for Gift {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

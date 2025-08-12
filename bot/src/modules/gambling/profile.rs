@@ -4,7 +4,7 @@ use gambling::{Commands, GamblingItem};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::types::Json;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
@@ -51,7 +51,7 @@ impl ProfileManager<Postgres> for ProfileTable {
 pub struct Profile;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Profile {
+impl ApplicationCommand<Error, Postgres> for Profile {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

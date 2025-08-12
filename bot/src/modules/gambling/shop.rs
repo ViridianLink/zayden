@@ -5,7 +5,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, 
 use sqlx::postgres::PgQueryResult;
 use sqlx::types::Json;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::GoalsTable;
 use crate::{Error, Result};
@@ -197,7 +197,7 @@ impl ShopManager<Postgres> for ShopTable {
 pub struct Shop;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Shop {
+impl ApplicationCommand<Error, Postgres> for Shop {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

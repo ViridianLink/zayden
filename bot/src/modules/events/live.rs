@@ -5,14 +5,14 @@ use serenity::all::{
     Permissions, ResolvedOption, ScheduledEventType,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
 pub struct Live;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Live {
+impl ApplicationCommand<Error, Postgres> for Live {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

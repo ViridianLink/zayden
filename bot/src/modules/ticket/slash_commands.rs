@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
 use ticket::{Support, Ticket};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::sqlx_lib::GuildTable;
 use crate::{Error, Result};
@@ -12,7 +12,7 @@ use super::TicketTable;
 pub struct TicketCommand;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for TicketCommand {
+impl ApplicationCommand<Error, Postgres> for TicketCommand {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -33,7 +33,7 @@ impl SlashCommand<Error, Postgres> for TicketCommand {
 pub struct SupportCommand;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for SupportCommand {
+impl ApplicationCommand<Error, Postgres> for SupportCommand {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

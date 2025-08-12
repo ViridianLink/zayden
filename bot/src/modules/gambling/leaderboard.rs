@@ -8,7 +8,7 @@ use gambling::commands::leaderboard::{
 use gambling::shop::{EGGPLANT, LOTTO_TICKET, WEAPON_CRATE};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{CtxData, Error, Result};
 
@@ -321,7 +321,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 pub struct Leaderboard;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Leaderboard {
+impl ApplicationCommand<Error, Postgres> for Leaderboard {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

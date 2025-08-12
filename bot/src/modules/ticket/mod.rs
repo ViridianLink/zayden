@@ -7,7 +7,7 @@ use ticket::{
     support_guild_manager::TicketGuildRow,
     ticket_manager::{TicketManager, TicketRow},
 };
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::sqlx_lib::GuildTable;
 

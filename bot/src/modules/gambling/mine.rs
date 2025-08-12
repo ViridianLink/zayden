@@ -3,7 +3,7 @@ use gambling::Commands;
 use gambling::commands::mine::{MineManager, MineRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
@@ -25,7 +25,7 @@ impl MineManager<Postgres> for MineTable {
 pub struct Mine;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Mine {
+impl ApplicationCommand<Error, Postgres> for Mine {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

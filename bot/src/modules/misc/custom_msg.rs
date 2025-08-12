@@ -4,7 +4,7 @@ use serenity::all::{
     CreateInteractionResponseMessage, CreateMessage, ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
@@ -31,7 +31,7 @@ We don't condone actions of hacks, cheats or any behaviour that breaches Bungie'
 pub struct CustomMsg;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for CustomMsg {
+impl ApplicationCommand<Error, Postgres> for CustomMsg {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

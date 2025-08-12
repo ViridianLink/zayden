@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
@@ -10,7 +10,7 @@ use super::ReactionRolesTable;
 pub struct ReactionRoleCommand;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for ReactionRoleCommand {
+impl ApplicationCommand<Error, Postgres> for ReactionRoleCommand {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

@@ -20,7 +20,7 @@ pub mod format_num;
 pub use format_num::FormatNum;
 
 #[async_trait]
-pub trait SlashCommand<E: std::error::Error, Db: Database> {
+pub trait ApplicationCommand<E: std::error::Error, Db: Database> {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

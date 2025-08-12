@@ -5,7 +5,7 @@ use gambling::{
 };
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
@@ -51,7 +51,7 @@ impl DailyManager<Postgres> for DailyTable {
 pub struct Daily;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Daily {
+impl ApplicationCommand<Error, Postgres> for Daily {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

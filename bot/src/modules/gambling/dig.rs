@@ -4,7 +4,7 @@ use gambling::commands::dig::{DigManager, DigRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::StaminaTable;
 use crate::{Error, Result};
@@ -103,7 +103,7 @@ impl DigManager<Postgres> for DigTable {
 pub struct Dig;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Dig {
+impl ApplicationCommand<Error, Postgres> for Dig {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

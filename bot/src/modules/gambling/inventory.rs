@@ -4,7 +4,7 @@ use gambling::{Commands, GamblingItem};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::types::Json;
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::EffectsTable;
 use crate::{Error, Result};
@@ -95,7 +95,7 @@ impl InventoryManager<Postgres> for InventoryTable {
 pub struct Inventory;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Inventory {
+impl ApplicationCommand<Error, Postgres> for Inventory {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
 use temp_voice::VoiceCommand;
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::sqlx_lib::GuildTable;
 use crate::{CtxData, Error, Result};
@@ -12,7 +12,7 @@ use super::VoiceChannelTable;
 pub struct Voice;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Voice {
+impl ApplicationCommand<Error, Postgres> for Voice {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

@@ -1,21 +1,21 @@
 use async_trait::async_trait;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 pub struct Loadout;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Loadout {
+impl ApplicationCommand<Error, Postgres> for Loadout {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        destiny2::loadouts::Loadout::run(&ctx.http, interaction, options).await;
+        destiny2::loadouts::Loadout::run::<CtxData>(ctx, interaction, options).await;
 
         Ok(())
     }

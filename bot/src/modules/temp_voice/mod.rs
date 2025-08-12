@@ -9,7 +9,7 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use temp_voice::voice_channel_manager::VoiceChannelMode;
 use temp_voice::{TempVoiceGuildManager, TempVoiceRow, VoiceChannelManager, VoiceChannelRow};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::sqlx_lib::GuildTable;
 

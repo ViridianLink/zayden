@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use gambling::Commands;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{CtxData, Error, Result};
 
@@ -11,7 +11,7 @@ use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 pub struct Coinflip;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Coinflip {
+impl ApplicationCommand<Error, Postgres> for Coinflip {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

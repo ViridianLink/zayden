@@ -5,7 +5,7 @@ use gambling::{Commands, LottoManager, LottoRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::GamblingTable;
 use crate::{Error, Result};
@@ -62,7 +62,7 @@ impl LottoManager<Postgres> for LottoTable {
 pub struct Lotto;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Lotto {
+impl ApplicationCommand<Error, Postgres> for Lotto {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

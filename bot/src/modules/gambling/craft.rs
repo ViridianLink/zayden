@@ -4,7 +4,7 @@ use gambling::commands::craft::{CraftManager, CraftRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::{Error, Result};
 
@@ -53,7 +53,7 @@ impl CraftManager<Postgres> for CraftTable {
 pub struct Craft;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Craft {
+impl ApplicationCommand<Error, Postgres> for Craft {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,

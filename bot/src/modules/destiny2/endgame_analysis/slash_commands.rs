@@ -4,7 +4,7 @@ use serenity::all::{
     AutocompleteOption, CommandInteraction, Context, CreateCommand, ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::{Autocomplete, SlashCommand};
+use zayden_core::{ApplicationCommand, Autocomplete};
 
 use crate::{Error, Result};
 
@@ -13,7 +13,7 @@ use super::{DestinyPerkTable, DestinyWeaponTable};
 pub struct DimWishlist;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for DimWishlist {
+impl ApplicationCommand<Error, Postgres> for DimWishlist {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -39,7 +39,7 @@ impl SlashCommand<Error, Postgres> for DimWishlist {
 pub struct TierList;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for TierList {
+impl ApplicationCommand<Error, Postgres> for TierList {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -80,7 +80,7 @@ impl Autocomplete<Error, Postgres> for TierList {
 pub struct Weapon;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Weapon {
+impl ApplicationCommand<Error, Postgres> for Weapon {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
