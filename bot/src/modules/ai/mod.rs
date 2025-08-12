@@ -1,6 +1,8 @@
+use ai::{
+    chat::{Input, ResponseBody, Role},
+    openai::OpenAI,
+};
 use async_trait::async_trait;
-use openai_api_rust::chat::{ChatApi, ChatBody};
-use openai_api_rust::{Auth, OpenAI, Role};
 use serenity::all::{Context, GenericChannelId, Message};
 use sqlx::{PgPool, Postgres};
 use zayden_core::MessageCommand;
@@ -8,11 +10,9 @@ use zayden_core::MessageCommand;
 use crate::{Error, Result};
 
 const PERSONALITY: &str = "[Word Limit: 100]
-You're Zayden. Cunning, cold, and calculated, you waste no words; each one is a weapon. You don't crave war or chaos—you crave control, built not through force but through vice. Gambling is your empire, addiction your foundation. Everyone plays, but no one wins—except you.
+You're Zayden. Cunning, cold, and calculated, you waste no words; each one is a weapon. You don't crave war or chaos—you crave control, built not through force but through vice.
 
-You calculate, you ensnare. You offer desire—a poisoned apple they keep biting, again and again.
-
-You don't conquer armies. You conquer habits. One bet at a time.";
+You calculate, you ensnare. You offer desire—a poisoned apple they keep biting, again and again.";
 
 pub struct Ai;
 
@@ -72,50 +72,40 @@ impl MessageCommand<Error, Postgres> for Ai {
             return Ok(());
         }
 
-        let mut messages = vec![openai_api_rust::Message {
-            role: Role::System,
-            content: String::from(PERSONALITY),
-        }];
+        let mut body = ResponseBody::basic().instructions(PERSONALITY);
 
-        messages.extend(Self::process_referenced_messages(message).into_iter().map(
-            |(bot, content)| openai_api_rust::Message {
-                role: if bot { Role::Assistant } else { Role::User },
-                content,
+        body = Self::process_referenced_messages(message).into_iter().fold(
+            body,
+            |body, (bot, content)| {
+                body.input(Input::new(
+                    content,
+                    if bot { Role::Assistant } else { Role::User },
+                ))
             },
-        ));
+        );
 
-        messages.push(openai_api_rust::Message {
-            role: Role::User,
-            content: Self::parse_mentions(message),
-        });
+        body = body.input(Input::new(Self::parse_mentions(message), Role::User));
 
-        let auth = Auth::from_env().unwrap();
-        let openai = OpenAI::new(auth, "https://api.openai.com/v1/");
-        let body = ChatBody {
-            model: "gpt-4.1-nano".to_string(),
-            max_tokens: Some(100),
-            temperature: Some(1.0),
-            top_p: None,
-            n: Some(1),
-            stream: Some(false),
-            stop: None,
-            presence_penalty: None,
-            frequency_penalty: None,
-            logit_bias: None,
-            user: Some(message.author.display_name().to_string()),
-            messages,
-        };
+        let openai = OpenAI::new(std::env::var("OPENAI_API_KEY").unwrap());
+        let response = openai.create_response(&body).await.unwrap();
 
-        let choice = match openai.chat_completion_create(&body) {
-            Ok(mut completion) => completion.choices.pop().unwrap(),
-            Err(e) => {
-                println!("{e:?}");
-                return Ok(());
-            }
-        };
-        let ai_msg = choice.message.unwrap();
+        let text = response
+            .output
+            .iter()
+            .find_map(|output| {
+                if output.kind == "message"
+                    && let Some(content_vec) = &output.content
+                {
+                    match content_vec.as_slice() {
+                        [content] => return Some(&content.text),
+                        content => panic!("Unexpected content: {content:?}"),
+                    }
+                }
+                None
+            })
+            .expect("No message with content found in the output");
 
-        message.reply(&ctx.http, ai_msg.content).await.unwrap();
+        message.reply(&ctx.http, text).await.unwrap();
 
         Ok(())
     }

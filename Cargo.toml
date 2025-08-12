@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "ai",
     "bot",
     "destiny2",
     "endgame-analysis",
@@ -18,6 +19,7 @@ members = [
 ]
 
 [workspace.dependencies]
+ai = { path = "./ai" }
 destiny2 = { path = "./destiny2" }
 endgame-analysis = { path = "./endgame-analysis" }
 gambling = { path = "./gambling" }
