@@ -1,8 +1,9 @@
 use std::fmt::Display;
 
 use serenity::all::{
-    CreateSectionComponent, CreateTextDisplay, CreateThumbnail, CreateUnfurledMediaItem, EmojiId,
+    CreateSectionComponent, CreateTextDisplay, CreateThumbnail, CreateUnfurledMediaItem,
 };
+use zayden_core::EmojiCache;
 
 pub const DEVILS_RUIN: Weapon = Weapon {
     name: "Devil's Ruin",
@@ -22,7 +23,7 @@ pub const PERFECT_PARADOX: Weapon = Weapon {
     name: "Perfect Paradox",
     affinity: Affinity::Kinetic,
     archtype: "Legendary Shotgun",
-    perks: [Perk::ThreatDetector, Perk::OneTwoPunch],
+    perks: [Perk::FieldPrep, Perk::OneTwoPunch],
 };
 
 pub const THIRD_ITERATION: Weapon = Weapon {
@@ -47,23 +48,37 @@ pub struct Weapon<'a> {
     pub perks: [Perk; 2],
 }
 
-impl<'a> From<Weapon<'a>> for CreateSectionComponent<'a> {
-    fn from(value: Weapon<'a>) -> Self {
-        CreateSectionComponent::TextDisplay(value.into())
+impl Weapon<'_> {
+    pub fn into_text_display<'a>(
+        self,
+        emoji_cache: &EmojiCache,
+    ) -> Result<CreateTextDisplay<'a>, String> {
+        let perks = self
+            .perks
+            .into_iter()
+            .map(|p| p.to_string())
+            .map(|s| {
+                let emoji = emoji_cache.emoji_str(&s)?;
+                Ok(format!(" {emoji}"))
+            })
+            .collect::<Result<String, String>>()?;
+
+        let text_display = CreateTextDisplay::new(format!(
+            "**{}**\n{} {}\n#{perks}",
+            self.name,
+            emoji_cache.emoji_str(&self.affinity.to_string())?,
+            self.archtype,
+        ));
+
+        Ok(text_display)
     }
-}
 
-impl<'a> From<Weapon<'a>> for CreateTextDisplay<'a> {
-    fn from(value: Weapon<'a>) -> Self {
-        let perks = value.perks.map(|p| format!(" {p}")).join(" ");
-
-        CreateTextDisplay::new(format!(
-            "**{}**\n<:{}:{}> {}\n#{perks}",
-            value.name,
-            value.affinity,
-            EmojiId::from(value.affinity),
-            value.archtype,
-        ))
+    pub fn into_section<'a>(
+        self,
+        emoji_cache: &EmojiCache,
+    ) -> Result<CreateSectionComponent<'a>, String> {
+        self.into_text_display(emoji_cache)
+            .map(CreateSectionComponent::TextDisplay)
     }
 }
 
@@ -123,19 +138,6 @@ impl Display for Affinity {
     }
 }
 
-impl From<Affinity> for EmojiId {
-    fn from(value: Affinity) -> Self {
-        match value {
-            Affinity::Kinetic => EmojiId::new(1395891226393317456),
-            Affinity::Arc => todo!(),
-            Affinity::Void => EmojiId::new(1396107597123293254),
-            Affinity::Solar => EmojiId::new(1395737098220212345),
-            Affinity::Stasis => todo!(),
-            Affinity::Strand => EmojiId::new(1399543110157209765),
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub enum Perk {
     Pyrogenesis,
@@ -148,6 +150,7 @@ pub enum Perk {
     Slice,
     SunBlast,
     Sunburn,
+    FieldPrep,
 }
 
 impl Display for Perk {
@@ -163,25 +166,9 @@ impl Display for Perk {
             Perk::Slice => "slice",
             Perk::SunBlast => "sun_blast",
             Perk::Sunburn => "sunburn",
+            Perk::FieldPrep => "field_prep",
         };
 
-        write!(f, "<:{name}:{}>", EmojiId::from(*self))
-    }
-}
-
-impl From<Perk> for EmojiId {
-    fn from(value: Perk) -> Self {
-        match value {
-            Perk::Pyrogenesis => EmojiId::new(1395892081246998568),
-            Perk::CloseTheGap => EmojiId::new(1395892132887134279),
-            Perk::ThreatDetector => EmojiId::new(1395892185945215018),
-            Perk::OneTwoPunch => EmojiId::new(1395892237086490655),
-            Perk::TriPlanarMassDriver => EmojiId::new(1396093613330665493),
-            Perk::AmalgamationRounds => EmojiId::new(1396093652006211706),
-            Perk::RewindRounds => EmojiId::new(1399522910091214878),
-            Perk::Slice => EmojiId::new(1399522938805424341),
-            Perk::SunBlast => EmojiId::new(1399522958191493230),
-            Perk::Sunburn => EmojiId::new(1399522978131087511),
-        }
+        write!(f, "{name}")
     }
 }

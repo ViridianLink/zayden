@@ -21,10 +21,10 @@ pub const SOLAR_TITAN: Loadout = Loadout {
         None,
     ],
     details: Details {
-        author: "LlamaD2",
-        dim_link: "https://dim.gg/fwyxq3q/Solar",
+        author: "Bradley",
+        dim_link: "https://dim.gg/dundpfq/Throwing-Hammer",
         how_it_works: None,
-        video: Some("https://youtu.be/SnbhVWrP0OY"),
+        video: Some("https://youtu.be/17M4VhtDNqc"),
     },
 };
 
@@ -46,28 +46,28 @@ const ABILITIES: Abilities = Abilities {
     class: ClassAbility::RallyBarricade,
     jump: Jump::CatapultLift,
     melee: Melee::ThrowingHammer,
-    grenade: Grenade::Healing,
+    grenade: Grenade::Fusion,
 };
 
 const GEAR: Gear = Gear {
     weapons: [Some(PERFECT_PARADOX), Some(DEVILS_RUIN), None],
     armour: [
         Armour::new(
-            "Bushido Helm",
+            "Lustrous Helm",
             [Mod::HandsOn, Mod::SpecialAmmoFinder, Mod::HarmonicSiphon],
         ),
         Armour::new(
-            "Melas Panoplia",
+            "Wormgod Caress",
             [Mod::MeleeFont, Mod::MeleeFont, Mod::HeavyHanded],
         ),
-        Armour::new("Bushido Plate", [Mod::Empty, Mod::Empty, Mod::Empty]),
+        Armour::new("Lustrous Plate", [Mod::Empty; 3]),
         Armour::new(
-            "Bushido Greaves",
+            "Lustrous Greaves",
             [Mod::StacksOnStacks, Mod::KineticScavenger, Mod::Empty],
         ),
         Armour::new(
-            "Bushido Mark",
-            [Mod::TimeDilation, Mod::Reaper, Mod::SpecialFinisher],
+            "Lustrous Mark",
+            [Mod::TimeDilation, Mod::Distribution, Mod::SpecialFinisher],
         ),
     ],
     stats_priority: [
