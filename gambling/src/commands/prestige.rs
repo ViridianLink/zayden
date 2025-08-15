@@ -1,11 +1,8 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
-use futures::StreamExt;
 use serenity::all::{
-    ButtonStyle, CollectComponentInteractions, Colour, CommandInteraction, Context, CreateButton,
+    ButtonStyle, Colour, CommandInteraction, ComponentInteraction, Context, CreateButton,
     CreateCommand, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EditInteractionResponse, UserId,
+    EditInteractionResponse, MessageInteractionMetadata, UserId,
 };
 use sqlx::types::Json;
 use sqlx::{Database, FromRow, Pool};
@@ -61,22 +58,26 @@ pub struct PrestigeRow {
 
 impl PrestigeRow {
     pub fn req_miners(&self) -> i64 {
-        if self.prestige() >= 10 {
-            Self::solar_system_per_galaxies()
-                * Self::plants_per_solar_system()
-                * Self::continents_per_plant()
-                * Self::countries_per_continent()
-                * Self::land_per_country()
-                * Self::mines_per_land()
-                * Self::miners_per_mine()
-        } else {
-            Self::plants_per_solar_system()
-                * Self::continents_per_plant()
-                * Self::countries_per_continent()
-                * Self::land_per_country()
-                * Self::mines_per_land()
-                * Self::miners_per_mine()
+        let prestige = self.prestige();
+
+        let mut required_miners = Self::plants_per_solar_system()
+            * Self::continents_per_plant()
+            * Self::countries_per_continent()
+            * Self::land_per_country()
+            * Self::mines_per_land()
+            * Self::miners_per_mine();
+
+        if prestige >= 5 {
+            required_miners *= Self::solar_system_per_galaxies();
         }
+        if prestige >= 10 {
+            required_miners *= Self::galaxies_per_universe();
+        }
+        if prestige >= 15 {
+            required_miners *= self.universes;
+        }
+
+        required_miners
     }
 
     pub fn do_prestige(&mut self) {
@@ -234,16 +235,16 @@ impl Commands {
 
         let embed = CreateEmbed::new().description("Are you sure you want to prestige your mine?\n\nPrestiging will **reset your mine, coins, items and resources**, but you'll unlock powerful upgrades!").colour(Colour::TEAL);
 
-        let confirm = CreateButton::new("confirm")
+        let confirm = CreateButton::new("prestige_confirm")
             .label("Confirm")
             .emoji('✅')
             .style(ButtonStyle::Secondary);
-        let cancel = CreateButton::new("cancel")
+        let cancel = CreateButton::new("prestige_cancel")
             .label("Cancel")
             .emoji('❌')
             .style(ButtonStyle::Secondary);
 
-        let msg = interaction
+        interaction
             .edit_response(
                 &ctx.http,
                 EditInteractionResponse::new()
@@ -254,71 +255,82 @@ impl Commands {
             .await
             .unwrap();
 
-        let mut stream = msg
-            .id
-            .collect_component_interactions(ctx)
-            .author_id(interaction.user.id)
-            .timeout(Duration::from_secs(120))
-            .stream();
-
-        if let Some(component) = stream.next().await {
-            if component.data.custom_id == "confirm" {
-                let mut row = Manager::row(pool, interaction.user.id)
-                    .await
-                    .unwrap()
-                    .unwrap();
-
-                if row.miners < row.req_miners() {
-                    return Ok(());
-                }
-
-                Manager::lotto(
-                    pool,
-                    row.inventory
-                        .as_ref()
-                        .unwrap_or(&Json(Vec::new()))
-                        .iter()
-                        .find(|item| item.item_id == LOTTO_TICKET.id)
-                        .map(|item| item.quantity)
-                        .unwrap_or_default(),
-                )
-                .await
-                .unwrap();
-                row.do_prestige();
-
-                Manager::save(pool, row).await.unwrap();
-
-                component
-                    .create_response(
-                        &ctx.http,
-                        CreateInteractionResponse::UpdateMessage(
-                            CreateInteractionResponseMessage::new()
-                                .content("Done (message wip)")
-                                .embeds(Vec::new())
-                                .components(Vec::new()),
-                        ),
-                    )
-                    .await
-                    .unwrap();
-
-                return Ok(());
-            }
-
-            component
-                .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
-                .await
-                .unwrap();
-        }
-
-        msg.delete(&ctx.http, Some("User prestiged their mine"))
-            .await
-            .unwrap();
-
         Ok(())
     }
 
     pub fn register_prestige<'a>() -> CreateCommand<'a> {
         CreateCommand::new("prestige")
             .description("Prestige your mine or casino to get unique rewards!")
+    }
+
+    pub async fn confirm_prestige<Db: Database, Manager: PrestigeManager<Db>>(
+        ctx: &Context,
+        interaction: &ComponentInteraction,
+        pool: &Pool<Db>,
+    ) -> Result<()> {
+        let Some(MessageInteractionMetadata::Command(metadata)) =
+            interaction.message.interaction_metadata.as_deref()
+        else {
+            unreachable!("Message must be created from an command")
+        };
+
+        if interaction.user != metadata.user {
+            return Ok(());
+        };
+
+        let mut row = Manager::row(pool, interaction.user.id)
+            .await
+            .unwrap()
+            .unwrap();
+
+        if row.miners < row.req_miners() {
+            return Ok(());
+        }
+
+        Manager::lotto(
+            pool,
+            row.inventory
+                .as_ref()
+                .unwrap_or(&Json(Vec::new()))
+                .iter()
+                .find(|item| item.item_id == LOTTO_TICKET.id)
+                .map(|item| item.quantity)
+                .unwrap_or_default()
+                .min(100_000),
+        )
+        .await
+        .unwrap();
+        row.do_prestige();
+
+        Manager::save(pool, row).await.unwrap();
+
+        interaction
+            .create_response(
+                &ctx.http,
+                CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::new()
+                        .content("Done (message wip)")
+                        .embeds(Vec::new())
+                        .components(Vec::new()),
+                ),
+            )
+            .await
+            .unwrap();
+
+        Ok(())
+    }
+
+    pub async fn cancel_prestige(ctx: &Context, interaction: &ComponentInteraction) -> Result<()> {
+        if interaction.user.id != interaction.message.author.id {
+            return Ok(());
+        }
+
+        interaction
+            .message
+            .delete(&ctx.http, Some("User canceled prestige"))
+            .await
+            .unwrap();
+
+        Ok(())
     }
 }
