@@ -93,6 +93,21 @@ impl DestinyDatabaseManager {
                 {
                     item.display_properties.name.push_str(" (Brave)");
                 }
+
+                item
+            })
+            .map(|mut item| {
+                const RITE_OF_THE_NINE_WEAPONS: [u32; 12] = [
+                    // Sudden Death, Wilderflight, New Pacific Epitaph, Greasy Luck, Terminus Horizon, Cold Comfort,
+                    1904170910, 2982006965, 492673102, 1685406703, 2730671571, 2760833884,
+                    // Prosecutor, Judgment, Relentless, Long Arm, Liminal Vigil, No Survivors
+                    2129814338, 1773934241, 3681280908, 14929251, 1460079227, 4193602194,
+                ];
+
+                if RITE_OF_THE_NINE_WEAPONS.contains(&item.hash) {
+                    item.display_properties.name.push_str(" (RotN)");
+                }
+
                 item
             });
 

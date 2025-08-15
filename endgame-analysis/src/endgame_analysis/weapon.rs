@@ -77,9 +77,7 @@ pub struct WeaponBuilder {
 
 impl WeaponBuilder {
     pub fn new(name: impl Into<String>, archetype: impl Into<String>) -> Self {
-        let name = name.into();
-
-        let name = match name.as_str() {
+        let name = match name.into().as_str() {
             "Song of Ir Yut" => String::from("Song of Ir Yût"),
             "Fang of Ir Yut" => String::from("Fang of Ir Yût"),
             "Just In Case" => String::from("Just in Case"),
@@ -93,10 +91,12 @@ impl WeaponBuilder {
             "Jararaca-3SR" => String::from("Jararaca-3sr"),
             "Redback-5SI" => String::from("Redback-5si"),
             "Judgement" => String::from("Judgment"),
+            "Long Arm\nRotn version" => String::from("Long Arm (RotN)"),
             name => name
                 .trim()
                 .replace("\nBRAVE version", " (Brave)")
-                .replace(" (BRAVE version)", " (Brave)"),
+                .replace(" (BRAVE version)", " (Brave)")
+                .replace("\nRotN version", " (RotN)"),
         };
 
         WeaponBuilder {
@@ -181,9 +181,11 @@ impl WeaponBuilder {
         let reserves = data
             .remove("reserves")
             .map(|r| r.formatted_value.unwrap())
-            .filter(|s| s != "?")
-            .filter(|s| s != "N/A")
-            .map(|s| s.parse().unwrap());
+            .filter(|s| !matches!(s.as_str(), "?" | "N/A" | "TBA"))
+            .map(|s| {
+                s.parse()
+                    .unwrap_or_else(|_| panic!("Failed to parse: '{s}'"))
+            });
         let shield = data
             .remove("shield")
             .map(|r| r.formatted_value.unwrap())
