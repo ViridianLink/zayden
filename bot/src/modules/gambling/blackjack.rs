@@ -5,7 +5,7 @@ use serenity::all::{
     ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::{Component, ApplicationCommand};
+use zayden_core::{ApplicationCommand, Component};
 
 use crate::{CtxData, Error, Result};
 

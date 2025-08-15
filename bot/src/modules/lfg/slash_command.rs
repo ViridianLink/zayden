@@ -3,7 +3,7 @@ use serenity::all::{
     AutocompleteOption, CommandInteraction, Context, CreateCommand, ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
-use zayden_core::{Autocomplete, ApplicationCommand};
+use zayden_core::{ApplicationCommand, Autocomplete};
 
 use crate::{Error, Result};
 

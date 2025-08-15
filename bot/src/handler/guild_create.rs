@@ -1,7 +1,7 @@
 use serenity::all::{Context, Guild};
 use sqlx::{PgPool, Postgres};
 use tokio::sync::RwLock;
-use zayden_core::SlashCommand;
+use zayden_core::ApplicationCommand;
 
 use crate::ctx_data::CtxData;
 use crate::modules;

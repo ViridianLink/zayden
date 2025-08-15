@@ -8,7 +8,7 @@ use serenity::all::{
 };
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::{Component, ApplicationCommand};
+use zayden_core::{ApplicationCommand, Component};
 
 use crate::modules::gambling::GamblingTable;
 use crate::{CtxData, Error, Result};
