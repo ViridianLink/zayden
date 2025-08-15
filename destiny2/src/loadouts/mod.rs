@@ -15,23 +15,26 @@ mod general_prismatic_hunter;
 mod prismatic_titan;
 mod solar_titan;
 mod solar_warlock;
+mod strand_titan;
 use arc_hunter::ARC_HUNTER;
 use boss_prismatic_hunter::BOSS_PRISMATIC_HUNTER;
 use general_prismatic_hunter::GENERAL_PRISMATIC_HUNTER;
 use prismatic_titan::PRISMATIC_TITAN;
 use solar_titan::SOLAR_TITAN;
 use solar_warlock::SOLAR_WARLOCK;
+use strand_titan::STRAND_TITAN;
 
 pub mod weapons;
 use tokio::sync::RwLock;
 pub use weapons::{Perk, Weapon};
 use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
-const BUILDS: [Loadout; 6] = [
+const BUILDS: [Loadout; 7] = [
     ARC_HUNTER,
     GENERAL_PRISMATIC_HUNTER,
     BOSS_PRISMATIC_HUNTER,
     SOLAR_TITAN,
+    STRAND_TITAN,
     PRISMATIC_TITAN,
     SOLAR_WARLOCK,
 ];
@@ -635,6 +638,7 @@ pub enum Super {
     SongOfFlame,
     Thundercrash,
     GatheringStorm,
+    Bladefury,
 }
 
 impl Display for Super {
@@ -645,6 +649,7 @@ impl Display for Super {
             Super::SongOfFlame => "Song of Flame",
             Super::Thundercrash => "Thundercrash",
             Super::GatheringStorm => "Gathering Storm",
+            Super::Bladefury => "Bladefury",
         };
 
         write!(f, "{name}")
@@ -659,6 +664,7 @@ impl Debug for Super {
             Super::SongOfFlame => "song_of_flame",
             Super::Thundercrash => "thundercrash",
             Super::GatheringStorm => "gathering_storm",
+            Super::Bladefury => "bladefury",
         };
 
         write!(f, "{name}")
@@ -714,6 +720,7 @@ pub enum Melee {
     IncineratorSnap,
     Thunderclap,
     CombinationBlow,
+    FrenziedBlade,
 }
 
 impl Display for Melee {
@@ -724,6 +731,7 @@ impl Display for Melee {
             Melee::IncineratorSnap => "incinerator_snap",
             Melee::Thunderclap => "thunderclap",
             Melee::CombinationBlow => "combination_blow",
+            Melee::FrenziedBlade => "frenzied_blade",
         };
 
         write!(f, "{name}")
@@ -767,6 +775,8 @@ pub enum Aspect {
     FlowState,
     StylishExecutioner,
     WintersShroud,
+    BannerOfWar,
+    FlechetteStorm,
 }
 
 impl Display for Aspect {
@@ -784,6 +794,8 @@ impl Display for Aspect {
             Aspect::FlowState => "flow_state",
             Aspect::StylishExecutioner => "stylish_executioner",
             Aspect::WintersShroud => "winters_shroud",
+            Aspect::BannerOfWar => "banner_of_war",
+            Aspect::FlechetteStorm => "flechette_storm",
         };
 
         write!(f, "{name}")
@@ -809,6 +821,10 @@ pub enum Fragment {
     SparkOfAmplitude,
     SparkOfFrequency,
     SparkOfDischarge,
+    ThreadOfFury,
+    ThreadOfWarding,
+    ThreadOfTransmutation,
+    ThreadOfGeneration,
 }
 
 impl Display for Fragment {
@@ -831,6 +847,10 @@ impl Display for Fragment {
             Fragment::SparkOfAmplitude => "spark_of_amplitude",
             Fragment::SparkOfFrequency => "spark_of_frequency",
             Fragment::SparkOfDischarge => "spark_of_discharge",
+            Fragment::ThreadOfFury => "thread_of_fury",
+            Fragment::ThreadOfWarding => "thread_of_warding",
+            Fragment::ThreadOfTransmutation => "thread_of_transmutation",
+            Fragment::ThreadOfGeneration => "thread_of_generation",
         };
 
         write!(f, "{name}")
@@ -1005,6 +1025,8 @@ pub enum Mod {
     ArcWeaponSurge,
     StasisWeaponSurge,
     StrandSiphon,
+    Outreach,
+    KineticSiphon,
 }
 
 impl Display for Mod {
@@ -1040,6 +1062,8 @@ impl Display for Mod {
             Mod::ArcWeaponSurge => "arc_weapon_surge",
             Mod::StasisWeaponSurge => "stasis_weapon_surge",
             Mod::StrandSiphon => "strand_siphon",
+            Mod::Outreach => "outreach",
+            Mod::KineticSiphon => "kinetic_siphon",
         };
 
         write!(f, "{name}")
@@ -1090,6 +1114,7 @@ pub enum ArtifactPerk {
     OneWithFrost,
     FrostRenewal,
     FrigidGlare,
+    ThreadedBlast,
 }
 
 impl Display for ArtifactPerk {
@@ -1112,6 +1137,7 @@ impl Display for ArtifactPerk {
             ArtifactPerk::OneWithFrost => "one_with_frost",
             ArtifactPerk::FrostRenewal => "frost_renewal",
             ArtifactPerk::FrigidGlare => "frigid_glare",
+            ArtifactPerk::ThreadedBlast => "threaded_blast",
         };
 
         write!(f, "{name}")

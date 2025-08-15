@@ -68,6 +68,13 @@ pub const IKELOS_SG_V103: Weapon = Weapon {
     perks: [Perk::GraveRobber, Perk::OneTwoPunch],
 };
 
+pub const MONTE_CARLO: Weapon = Weapon {
+    name: "Monte Carlo",
+    affinity: Affinity::Kinetic,
+    archtype: "Exotic Auto Rifle",
+    perks: [Perk::MarkovChain, Perk::MonteCarloMethod],
+};
+
 #[derive(Clone, Copy)]
 pub struct Weapon<'a> {
     pub name: &'a str,
@@ -187,6 +194,8 @@ pub enum Perk {
     WeftCutter,
     ProtectiveWeave,
     GraveRobber,
+    MarkovChain,
+    MonteCarloMethod,
 }
 
 impl Display for Perk {
@@ -205,9 +214,11 @@ impl Display for Perk {
             Perk::FieldPrep => "field_prep",
             Perk::TemporalAnomaly => "temporal_anomaly",
             Perk::TemporalManipulation => "temporal_manipulation",
-            Perk::WeftCutter => "Weft Cutter",
-            Perk::ProtectiveWeave => "Protective Weave",
-            Perk::GraveRobber => "Grave Robber",
+            Perk::WeftCutter => "weft_cutter",
+            Perk::ProtectiveWeave => "protective_weave",
+            Perk::GraveRobber => "grave_robber",
+            Perk::MarkovChain => "markov_chain",
+            Perk::MonteCarloMethod => "monte_carlo_method",
         };
 
         write!(f, "{name}")
