@@ -64,7 +64,9 @@ impl Coins for LottoRow {
 
 #[inline]
 pub fn jackpot(tickets: i64) -> i64 {
-    (tickets * LOTTO_TICKET.coin_cost().unwrap()).max(1_000_000)
+    tickets
+        .saturating_mul(LOTTO_TICKET.coin_cost().unwrap())
+        .max(1_000_000)
 }
 
 pub struct Lotto;
