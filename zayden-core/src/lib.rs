@@ -8,6 +8,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 pub mod cache;
+pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
 
 pub mod cron;
 pub use cron::{ActionFn, CronJob, CronJobData};
