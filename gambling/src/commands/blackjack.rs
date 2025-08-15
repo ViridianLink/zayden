@@ -2,8 +2,7 @@ use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateActionRow, CreateCommand,
-    CreateCommandOption, CreateComponent, CreateInteractionResponse,
-    CreateInteractionResponseMessage, ResolvedOption, ResolvedValue,
+    CreateCommandOption, CreateComponent, EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -33,6 +32,8 @@ impl Commands {
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
+        interaction.defer(&ctx.http).await?;
+
         let Some(ResolvedValue::Integer(bet)) = options.pop().map(|opt| opt.value) else {
             unreachable!("bet is required")
         };
@@ -74,7 +75,7 @@ impl Commands {
             .await;
 
             interaction
-                .create_response(&ctx.http, response)
+                .edit_response(&ctx.http, response)
                 .await
                 .unwrap();
 
@@ -92,7 +93,7 @@ impl Commands {
                 .await;
 
             interaction
-                .create_response(&ctx.http, response)
+                .edit_response(&ctx.http, response)
                 .await
                 .unwrap();
 
@@ -108,13 +109,11 @@ impl Commands {
         ]));
 
         interaction
-            .create_response(
+            .edit_response(
                 &ctx.http,
-                CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new()
-                        .embed(embed)
-                        .components(vec![action_row]),
-                ),
+                EditInteractionResponse::new()
+                    .embed(embed)
+                    .components(vec![action_row]),
             )
             .await
             .unwrap();
