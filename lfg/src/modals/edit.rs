@@ -1,4 +1,7 @@
-use serenity::all::{Context, CreateInteractionResponse, EditThread, ModalInteraction};
+use serenity::all::{
+    Context, CreateInteractionResponse, DiscordJsonError, EditThread, ErrorResponse, HttpError,
+    JsonErrorCode, ModalInteraction,
+};
 use sqlx::{Database, Pool};
 use zayden_core::{CronJobData, parse_modal_data};
 
@@ -54,7 +57,7 @@ impl Edit {
 
         let thread = interaction.channel_id.expect_thread();
 
-        thread
+        match thread
             .edit(
                 &ctx.http,
                 EditThread::new().name(format!(
@@ -64,7 +67,19 @@ impl Edit {
                 )),
             )
             .await
-            .unwrap();
+        {
+            Ok(_) => {}
+            // Thread/Event deleted
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                error:
+                    DiscordJsonError {
+                        code: JsonErrorCode::UnknownChannel,
+                        ..
+                    },
+                ..
+            }))) => return Ok(()),
+            Err(e) => panic!("Unhandled error: {e:?}"),
+        }
 
         update_embeds::<DefaultTemplate>(&ctx.http, &post, interaction.user.display_name(), thread)
             .await;
