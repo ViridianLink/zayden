@@ -11,6 +11,7 @@ pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
 
 pub mod cron;
+pub mod templates;
 pub use cron::{ActionFn, CronJob, CronJobData};
 
 mod error;
