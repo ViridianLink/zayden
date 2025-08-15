@@ -101,28 +101,6 @@ impl Ticket {
         let open =
             CreateCommandOption::new(CommandOptionType::SubCommand, "open", "Open the ticket");
 
-        let remove = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "remove",
-            "Remove a ticket message",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::Integer,
-                "message",
-                "The message to remove",
-            )
-            .required(true),
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::Channel,
-                "channel",
-                "The channel to remove the message from",
-            )
-            .required(false),
-        );
-
         CreateCommand::new("ticket")
             .description("Ticket management commands")
             .default_member_permissions(Permissions::MANAGE_MESSAGES)
@@ -130,6 +108,7 @@ impl Ticket {
             .add_option(create)
             .add_option(fixed)
             .add_option(open)
-            .add_option(remove)
+
+        // CreateCommand::new("Ticket Remove").kind(CommandType::Message),
     }
 }
