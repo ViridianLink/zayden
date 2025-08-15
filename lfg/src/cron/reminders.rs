@@ -92,10 +92,8 @@ async fn reminder<Db: Database, Manager: PostManager<Db>>(
 ) {
     let post = match Manager::row(&pool, id).await {
         Ok(post) => post,
-        Err(sqlx::Error::RowNotFound) => {
-            println!("Post for '{id}' not found");
-            return;
-        }
+        // Post deleted
+        Err(sqlx::Error::RowNotFound) => return,
         Err(e) => panic!("{e:?}"),
     };
 
