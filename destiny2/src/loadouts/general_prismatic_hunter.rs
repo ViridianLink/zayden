@@ -4,7 +4,7 @@ use super::{
     Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super, Tag,
 };
 
-pub const PRISMATIC_HUNTER: Loadout = Loadout::new(
+pub const GENERAL_PRISMATIC_HUNTER: Loadout = Loadout::new(
     "Ascension",
     DestinyClass::Hunter,
     Mode::PvE,

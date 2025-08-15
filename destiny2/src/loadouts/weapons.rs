@@ -40,6 +40,34 @@ pub const SUNSHOT: Weapon = Weapon {
     perks: [Perk::SunBlast, Perk::Sunburn],
 };
 
+pub const PHONEUTRIA_FERA: Weapon = Weapon {
+    name: "Phoneutria Fera",
+    affinity: Affinity::Solar,
+    archtype: "Exotic Hand Cannon",
+    perks: [Perk::ThreatDetector, Perk::OneTwoPunch],
+};
+
+pub const GRAVITON_SPIKE: Weapon = Weapon {
+    name: "Graviton Spike",
+    affinity: Affinity::Arc,
+    archtype: "Exotic Hand Cannon",
+    perks: [Perk::TemporalAnomaly, Perk::TemporalManipulation],
+};
+
+pub const NAVIGATOR: Weapon = Weapon {
+    name: "Navigator",
+    affinity: Affinity::Strand,
+    archtype: "Exotic Trace Rifle",
+    perks: [Perk::WeftCutter, Perk::ProtectiveWeave],
+};
+
+pub const IKELOS_SG_V103: Weapon = Weapon {
+    name: "IKELOS_SG_v1.0.3",
+    affinity: Affinity::Solar,
+    archtype: "Legendary Shotgun",
+    perks: [Perk::GraveRobber, Perk::OneTwoPunch],
+};
+
 #[derive(Clone, Copy)]
 pub struct Weapon<'a> {
     pub name: &'a str,
@@ -106,6 +134,9 @@ impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
             "Sunshot" => {
                 "https://www.bungie.net/common/destiny2_content/icons/b84b4aecd0b0b36b9b9bf247b290ba08.jpg"
             }
+            "Phoneutria Fera" => {
+                "https://www.bungie.net/common/destiny2_content/icons/f028107777dd4286a213ec2cbd9544f5.jpg"
+            }
             name => unimplemented!("Image URL for '{name}' not implemented"),
         };
 
@@ -151,6 +182,11 @@ pub enum Perk {
     SunBlast,
     Sunburn,
     FieldPrep,
+    TemporalAnomaly,
+    TemporalManipulation,
+    WeftCutter,
+    ProtectiveWeave,
+    GraveRobber,
 }
 
 impl Display for Perk {
@@ -167,6 +203,11 @@ impl Display for Perk {
             Perk::SunBlast => "sun_blast",
             Perk::Sunburn => "sunburn",
             Perk::FieldPrep => "field_prep",
+            Perk::TemporalAnomaly => "temporal_anomaly",
+            Perk::TemporalManipulation => "temporal_manipulation",
+            Perk::WeftCutter => "Weft Cutter",
+            Perk::ProtectiveWeave => "Protective Weave",
+            Perk::GraveRobber => "Grave Robber",
         };
 
         write!(f, "{name}")

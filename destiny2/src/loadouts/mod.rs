@@ -9,10 +9,16 @@ use serenity::all::{
     Spacing,
 };
 
-mod prismatic_hunter;
+mod arc_hunter;
+mod boss_prismatic_hunter;
+mod general_prismatic_hunter;
+mod prismatic_titan;
 mod solar_titan;
 mod solar_warlock;
-use prismatic_hunter::PRISMATIC_HUNTER;
+use arc_hunter::ARC_HUNTER;
+use boss_prismatic_hunter::BOSS_PRISMATIC_HUNTER;
+use general_prismatic_hunter::GENERAL_PRISMATIC_HUNTER;
+use prismatic_titan::PRISMATIC_TITAN;
 use solar_titan::SOLAR_TITAN;
 use solar_warlock::SOLAR_WARLOCK;
 
@@ -21,7 +27,14 @@ use tokio::sync::RwLock;
 pub use weapons::{Perk, Weapon};
 use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
-const BUILDS: [Loadout; 3] = [PRISMATIC_HUNTER, SOLAR_TITAN, SOLAR_WARLOCK];
+const BUILDS: [Loadout; 6] = [
+    ARC_HUNTER,
+    GENERAL_PRISMATIC_HUNTER,
+    BOSS_PRISMATIC_HUNTER,
+    SOLAR_TITAN,
+    PRISMATIC_TITAN,
+    SOLAR_WARLOCK,
+];
 const DUPLICATE: EmojiId = EmojiId::new(1395743560388706374);
 
 #[derive(Clone, Copy)]
@@ -620,14 +633,18 @@ pub enum Super {
     BurningMaul,
     GoldenGunMarksman,
     SongOfFlame,
+    Thundercrash,
+    GatheringStorm,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::BurningMaul => "Burning Maul",
-            Self::GoldenGunMarksman => "Golden Gun: Marksman",
-            Self::SongOfFlame => "Song of Flame",
+            Super::BurningMaul => "Burning Maul",
+            Super::GoldenGunMarksman => "Golden Gun: Marksman",
+            Super::SongOfFlame => "Song of Flame",
+            Super::Thundercrash => "Thundercrash",
+            Super::GatheringStorm => "Gathering Storm",
         };
 
         write!(f, "{name}")
@@ -636,11 +653,15 @@ impl Display for Super {
 
 impl Debug for Super {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::BurningMaul => write!(f, "burning_maul"),
-            Self::GoldenGunMarksman => write!(f, "golden_gun__marksman"),
-            Self::SongOfFlame => write!(f, "song_of_flame"),
-        }
+        let name = match self {
+            Super::BurningMaul => "burning_maul",
+            Super::GoldenGunMarksman => "golden_gun__marksman",
+            Super::SongOfFlame => "song_of_flame",
+            Super::Thundercrash => "thundercrash",
+            Super::GatheringStorm => "gathering_storm",
+        };
+
+        write!(f, "{name}")
     }
 }
 
@@ -649,14 +670,18 @@ pub enum ClassAbility {
     RallyBarricade,
     MarksmansDodge,
     PhoenixDive,
+    Thruster,
+    GamblersDodge,
 }
 
 impl Display for ClassAbility {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::RallyBarricade => "rally_barricade",
-            Self::MarksmansDodge => "marksmans_dodge",
-            Self::PhoenixDive => "phoenix_dive",
+            ClassAbility::RallyBarricade => "rally_barricade",
+            ClassAbility::MarksmansDodge => "marksmans_dodge",
+            ClassAbility::PhoenixDive => "phoenix_dive",
+            ClassAbility::Thruster => "thruster",
+            ClassAbility::GamblersDodge => "gamblers_dodge",
         };
 
         write!(f, "{name}")
@@ -687,14 +712,18 @@ pub enum Melee {
     ThrowingHammer,
     ThreadedSpike,
     IncineratorSnap,
+    Thunderclap,
+    CombinationBlow,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::ThrowingHammer => "throwing_hammer",
-            Self::ThreadedSpike => "threaded_spike",
-            Self::IncineratorSnap => "incinerator_snap",
+            Melee::ThrowingHammer => "throwing_hammer",
+            Melee::ThreadedSpike => "threaded_spike",
+            Melee::IncineratorSnap => "incinerator_snap",
+            Melee::Thunderclap => "thunderclap",
+            Melee::CombinationBlow => "combination_blow",
         };
 
         write!(f, "{name}")
@@ -706,14 +735,18 @@ pub enum Grenade {
     Healing,
     Grapple,
     Fusion,
+    Shackle,
+    Flux,
 }
 
 impl Display for Grenade {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::Healing => "healing_grenade",
-            Self::Grapple => "grapple",
-            Self::Fusion => "fusion_grenade",
+            Grenade::Healing => "healing",
+            Grenade::Grapple => "grapple",
+            Grenade::Fusion => "fusion",
+            Grenade::Shackle => "shackle",
+            Grenade::Flux => "flux",
         };
 
         write!(f, "{name}")
@@ -728,17 +761,29 @@ pub enum Aspect {
     GunpowderGamble,
     TouchOfFlame,
     Hellion,
+    Knockout,
+    DiamondLance,
+    TempestStrike,
+    FlowState,
+    StylishExecutioner,
+    WintersShroud,
 }
 
 impl Display for Aspect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::RoaringFlames => "roaring_flames",
-            Self::SolInvictus => "sol_invictus",
-            Self::Ascension => "ascension",
-            Self::GunpowderGamble => "gunpowder_gamble",
-            Self::TouchOfFlame => "touch_of_flame",
-            Self::Hellion => "hellion",
+            Aspect::RoaringFlames => "roaring_flames",
+            Aspect::SolInvictus => "sol_invictus",
+            Aspect::Ascension => "ascension",
+            Aspect::GunpowderGamble => "gunpowder_gamble",
+            Aspect::TouchOfFlame => "touch_of_flame",
+            Aspect::Hellion => "hellion",
+            Aspect::Knockout => "knockout",
+            Aspect::DiamondLance => "diamond_lance",
+            Aspect::TempestStrike => "tempest_strike",
+            Aspect::FlowState => "flow_state",
+            Aspect::StylishExecutioner => "stylish_executioner",
+            Aspect::WintersShroud => "winters_shroud",
         };
 
         write!(f, "{name}")
@@ -757,21 +802,35 @@ pub enum Fragment {
     FacetOfDawn,
     FacetOfBlessing,
     EmberOfMercy,
+    FacetOfCourage,
+    FacetOfAwakening,
+    FacetOfSacrifice,
+    SparkOfResistance,
+    SparkOfAmplitude,
+    SparkOfFrequency,
+    SparkOfDischarge,
 }
 
 impl Display for Fragment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::EmberOfAshes => "ember_of_ashes",
-            Self::EmberOfEmpyrean => "ember_of_empyrean",
-            Self::EmberOfSearing => "ember_of_searing",
-            Self::EmberOfTorches => "ember_of_torches",
-            Self::EmberOfMercy => "ember_of_mercy",
-            Self::FacetOfHope => "facet_of_hope",
-            Self::FacetOfProtection => "facet_of_protection",
-            Self::FacetOfPurpose => "facet_of_purpose",
-            Self::FacetOfDawn => "facet_of_dawn",
-            Self::FacetOfBlessing => "facet_of_blessing",
+            Fragment::EmberOfAshes => "ember_of_ashes",
+            Fragment::EmberOfEmpyrean => "ember_of_empyrean",
+            Fragment::EmberOfSearing => "ember_of_searing",
+            Fragment::EmberOfTorches => "ember_of_torches",
+            Fragment::EmberOfMercy => "ember_of_mercy",
+            Fragment::FacetOfHope => "facet_of_hope",
+            Fragment::FacetOfProtection => "facet_of_protection",
+            Fragment::FacetOfPurpose => "facet_of_purpose",
+            Fragment::FacetOfDawn => "facet_of_dawn",
+            Fragment::FacetOfBlessing => "facet_of_blessing",
+            Fragment::FacetOfCourage => "facet_of_courage",
+            Fragment::FacetOfAwakening => "facet_of_awakening",
+            Fragment::FacetOfSacrifice => "facet_of_sacrifice",
+            Fragment::SparkOfResistance => "spark_of_resistance",
+            Fragment::SparkOfAmplitude => "spark_of_amplitude",
+            Fragment::SparkOfFrequency => "spark_of_frequency",
+            Fragment::SparkOfDischarge => "spark_of_discharge",
         };
 
         write!(f, "{name}")
@@ -889,6 +948,21 @@ impl<'a> From<Armour<'a>> for CreateUnfurledMediaItem<'a> {
             "Lustrous Mark" => {
                 "https://www.bungie.net/common/destiny2_content/icons/7e2d5b6b4bfbc99b00f1447836ba6795.jpg"
             }
+            "An Insurmountable Skullfort" => {
+                "https://www.bungie.net/common/destiny2_content/icons/b734daf76fba2c835ba58ebca84c1d61.jpg"
+            }
+            "Collective Psyche Gauntlets" => {
+                "https://www.bungie.net/common/destiny2_content/icons/98aeaf66c0dd814cb1d72ef4b1c725bc.jpg"
+            }
+            "Collective Psyche Plate" => {
+                "https://www.bungie.net/common/destiny2_content/icons/edbc60a615bd223bfe4cd30c46a58d49.jpg"
+            }
+            "Collective Psyche Greaves" => {
+                "https://www.bungie.net/common/destiny2_content/icons/d8a5bd616380eff7886b55cf5a496111.jpg"
+            }
+            "Collective Psyche Mark" => {
+                "https://www.bungie.net/common/destiny2_content/icons/845d32ecf59ca0eea8c54cf9e108eb3d.jpg"
+            }
             name if name.starts_with("Relativism") => {
                 "https://www.bungie.net/common/destiny2_content/icons/e4acc5bd83081bcf82f8e7c8905b58c4.jpg"
             }
@@ -925,35 +999,47 @@ pub enum Mod {
     Innervation,
     StrandScavenger,
     Distribution,
+    StasisSiphon,
+    ImpactInduction,
+    HarmonicLoader,
+    ArcWeaponSurge,
+    StasisWeaponSurge,
+    StrandSiphon,
 }
 
 impl Display for Mod {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::Empty => "empty_mod",
-            Self::HandsOn => "hands_on",
-            Self::SpecialAmmoFinder => "special_ammo_finder",
-            Self::HarmonicSiphon => "harmonic_siphon",
-            Self::MeleeFont => "melee_font",
-            Self::HeavyHanded => "heavy_handed",
-            Self::StacksOnStacks => "stacks_on_stacks",
-            Self::KineticScavenger => "kinetic_scavenger",
-            Self::TimeDilation => "time_dilation",
-            Self::Reaper => "reaper",
-            Self::SpecialFinisher => "special_finisher",
-            Self::AshesToAssets => "ashes_to_assets",
-            Self::SuperFont => "super_font",
-            Self::VoidSiphon => "void_siphon",
-            Self::Firepower => "firepower",
-            Self::GrenadeFont => "grenade_font",
-            Self::FocusingStrike => "focusing_strike",
-            Self::Recuperation => "recuperation",
-            Self::Invigoration => "invigoration",
-            Self::ClassFont => "class_font",
-            Self::PowerfulAttraction => "powerful_attraction",
-            Self::Innervation => "innervation",
-            Self::StrandScavenger => "strand_scavenger",
-            Self::Distribution => "distribution",
+            Mod::Empty => "empty_mod",
+            Mod::HandsOn => "hands_on",
+            Mod::SpecialAmmoFinder => "special_ammo_finder",
+            Mod::HarmonicSiphon => "harmonic_siphon",
+            Mod::MeleeFont => "melee_font",
+            Mod::HeavyHanded => "heavy_handed",
+            Mod::StacksOnStacks => "stacks_on_stacks",
+            Mod::KineticScavenger => "kinetic_scavenger",
+            Mod::TimeDilation => "time_dilation",
+            Mod::Reaper => "reaper",
+            Mod::SpecialFinisher => "special_finisher",
+            Mod::AshesToAssets => "ashes_to_assets",
+            Mod::SuperFont => "super_font",
+            Mod::VoidSiphon => "void_siphon",
+            Mod::Firepower => "firepower",
+            Mod::GrenadeFont => "grenade_font",
+            Mod::FocusingStrike => "focusing_strike",
+            Mod::Recuperation => "recuperation",
+            Mod::Invigoration => "invigoration",
+            Mod::ClassFont => "class_font",
+            Mod::PowerfulAttraction => "powerful_attraction",
+            Mod::Innervation => "innervation",
+            Mod::StrandScavenger => "strand_scavenger",
+            Mod::Distribution => "distribution",
+            Mod::StasisSiphon => "stasis_siphon",
+            Mod::ImpactInduction => "impact_induction",
+            Mod::HarmonicLoader => "harmonic_loader",
+            Mod::ArcWeaponSurge => "arc_weapon_surge",
+            Mod::StasisWeaponSurge => "stasis_weapon_surge",
+            Mod::StrandSiphon => "strand_siphon",
         };
 
         write!(f, "{name}")
@@ -1001,25 +1087,31 @@ pub enum ArtifactPerk {
     AntiBarrierScoutAndPulse,
     FeverAndChill,
     CauterizedDarkness,
+    OneWithFrost,
+    FrostRenewal,
+    FrigidGlare,
 }
 
 impl Display for ArtifactPerk {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Self::DivinersDiscount => "diviners_discount",
-            Self::ReciprocalDraw => "reciprocal_draw",
-            Self::RefreshThreads => "refresh_threads",
-            Self::ElementalCoalescence => "elemental_coalescence",
-            Self::RadiantShrapnel => "radiant_shrapnel",
-            Self::ElementalOverdrive => "elemental_overdrive",
-            Self::TightlyWoven => "tightly_woven",
-            Self::RapidPrecisionRifling => "rapid_precision_rifling",
-            Self::ElementalBenevolence => "elemental_benevolence",
-            Self::Shieldcrush => "shieldcrush",
-            Self::TangledWeb => "tangled_web",
-            Self::AntiBarrierScoutAndPulse => "anti_barrier_scout_and_pulse",
-            Self::FeverAndChill => "fever_and_chill",
-            Self::CauterizedDarkness => "cauterized_darkness",
+            ArtifactPerk::DivinersDiscount => "diviners_discount",
+            ArtifactPerk::ReciprocalDraw => "reciprocal_draw",
+            ArtifactPerk::RefreshThreads => "refresh_threads",
+            ArtifactPerk::ElementalCoalescence => "elemental_coalescence",
+            ArtifactPerk::RadiantShrapnel => "radiant_shrapnel",
+            ArtifactPerk::ElementalOverdrive => "elemental_overdrive",
+            ArtifactPerk::TightlyWoven => "tightly_woven",
+            ArtifactPerk::RapidPrecisionRifling => "rapid_precision_rifling",
+            ArtifactPerk::ElementalBenevolence => "elemental_benevolence",
+            ArtifactPerk::Shieldcrush => "shieldcrush",
+            ArtifactPerk::TangledWeb => "tangled_web",
+            ArtifactPerk::AntiBarrierScoutAndPulse => "anti_barrier_scout_and_pulse",
+            ArtifactPerk::FeverAndChill => "fever_and_chill",
+            ArtifactPerk::CauterizedDarkness => "cauterized_darkness",
+            ArtifactPerk::OneWithFrost => "one_with_frost",
+            ArtifactPerk::FrostRenewal => "frost_renewal",
+            ArtifactPerk::FrigidGlare => "frigid_glare",
         };
 
         write!(f, "{name}")
