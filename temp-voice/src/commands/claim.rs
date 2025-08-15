@@ -1,11 +1,9 @@
 use serenity::all::{ChannelId, EditInteractionResponse};
-use serenity::all::{
-    CommandInteraction, Context, PermissionOverwrite, PermissionOverwriteType, Permissions,
-};
+use serenity::all::{CommandInteraction, Context};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 
-use crate::{Error, VoiceChannelManager, VoiceChannelRow, VoiceStateCache};
+use crate::{Error, VoiceChannelManager, VoiceChannelRow, VoiceStateCache, owner_perms};
 
 pub async fn claim<Data: VoiceStateCache, Db: Database, Manager: VoiceChannelManager<Db>>(
     ctx: &Context,
@@ -37,11 +35,7 @@ pub async fn claim<Data: VoiceStateCache, Db: Database, Manager: VoiceChannelMan
     channel_id
         .create_permission(
             &ctx.http,
-            PermissionOverwrite {
-                allow: Permissions::all(),
-                deny: Permissions::empty(),
-                kind: PermissionOverwriteType::Member(interaction.user.id),
-            },
+            owner_perms(interaction.user.id),
             Some("Channel claimed"),
         )
         .await

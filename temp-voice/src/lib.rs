@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use serenity::all::{
     ChannelId, DiscordJsonError, ErrorResponse, Guild, GuildChannel, GuildId, Http, HttpError,
-    JsonErrorCode, UserId, VoiceState,
+    JsonErrorCode, PermissionOverwrite, PermissionOverwriteType, Permissions, UserId, VoiceState,
 };
 
 pub use commands::VoiceCommand;
@@ -104,5 +104,38 @@ pub async fn delete_voice_channel_if_inactive(
 
             true
         }
+    }
+}
+
+pub fn owner_perms(user: UserId) -> PermissionOverwrite {
+    PermissionOverwrite {
+        allow: Permissions::VIEW_CHANNEL
+            | Permissions::MANAGE_CHANNELS
+            | Permissions::CONNECT
+            | Permissions::SPEAK
+            | Permissions::USE_SOUNDBOARD
+            | Permissions::USE_EXTERNAL_SOUNDS
+            | Permissions::USE_VAD
+            | Permissions::PRIORITY_SPEAKER
+            | Permissions::MUTE_MEMBERS
+            | Permissions::DEAFEN_MEMBERS
+            | Permissions::MOVE_MEMBERS
+            | Permissions::SET_VOICE_CHANNEL_STATUS
+            | Permissions::SEND_MESSAGES
+            | Permissions::EMBED_LINKS
+            | Permissions::ATTACH_FILES
+            | Permissions::ADD_REACTIONS
+            | Permissions::USE_EXTERNAL_EMOJIS
+            | Permissions::USE_EXTERNAL_STICKERS
+            | Permissions::MANAGE_MESSAGES
+            | Permissions::READ_MESSAGE_HISTORY
+            | Permissions::SEND_TTS_MESSAGES
+            | Permissions::SEND_VOICE_MESSAGES
+            | Permissions::SEND_POLLS
+            | Permissions::USE_APPLICATION_COMMANDS
+            | Permissions::USE_EMBEDDED_ACTIVITIES
+            | Permissions::USE_EXTERNAL_APPS,
+        deny: Permissions::empty(),
+        kind: PermissionOverwriteType::Member(user),
     }
 }

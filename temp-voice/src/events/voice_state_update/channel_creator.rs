@@ -1,12 +1,12 @@
 use serenity::all::{
     ChannelType, CreateChannel, CreateMessage, DiscordJsonError, ErrorResponse, Http, HttpError,
-    JsonErrorCode, PermissionOverwrite, PermissionOverwriteType, Permissions, VoiceState,
+    JsonErrorCode, VoiceState,
 };
 use sqlx::{Database, Pool};
 
 use crate::{
     Result, TempVoiceGuildManager, VoiceChannelManager, VoiceChannelRow,
-    delete_voice_channel_if_inactive,
+    delete_voice_channel_if_inactive, owner_perms,
 };
 
 pub async fn channel_creator<
@@ -40,11 +40,7 @@ pub async fn channel_creator<
 
     let member = new.member.as_ref().expect("Should be in a guild");
 
-    let perms = vec![PermissionOverwrite {
-        allow: Permissions::all(),
-        deny: Permissions::empty(),
-        kind: PermissionOverwriteType::Member(member.user.id),
-    }];
+    let perms = vec![owner_perms(member.user.id)];
 
     let vc_builder = CreateChannel::new(format!("{}'s Channel", member.display_name()))
         .kind(ChannelType::Voice)

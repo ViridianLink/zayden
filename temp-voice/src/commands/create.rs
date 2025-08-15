@@ -10,7 +10,7 @@ use sqlx::{Database, Pool};
 
 use crate::{
     Error, TempVoiceGuildManager, VoiceChannelManager, VoiceChannelRow,
-    delete_voice_channel_if_inactive,
+    delete_voice_channel_if_inactive, owner_perms,
 };
 
 pub async fn create<
@@ -41,11 +41,7 @@ pub async fn create<
         _ => "visible",
     };
 
-    let mut perms = vec![PermissionOverwrite {
-        allow: Permissions::all(),
-        deny: Permissions::empty(),
-        kind: PermissionOverwriteType::Member(interaction.user.id),
-    }];
+    let mut perms = vec![owner_perms(interaction.user.id)];
 
     match privacy {
         "lock" => perms.push(PermissionOverwrite {

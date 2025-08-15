@@ -7,7 +7,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow};
+use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow, owner_perms};
 
 pub async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -33,11 +33,7 @@ pub async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
     row.save::<Db, Manager>(pool).await?;
 
     let perms = vec![
-        PermissionOverwrite {
-            allow: Permissions::all(),
-            deny: Permissions::empty(),
-            kind: PermissionOverwriteType::Member(interaction.user.id),
-        },
+        owner_perms(interaction.user.id),
         PermissionOverwrite {
             allow: Permissions::empty(),
             deny: Permissions::CONNECT,

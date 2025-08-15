@@ -1,13 +1,10 @@
 use std::collections::HashMap;
 
-use serenity::all::{
-    ChannelId, CommandInteraction, EditInteractionResponse, Http, PermissionOverwrite,
-    PermissionOverwriteType, Permissions, ResolvedValue,
-};
+use serenity::all::{ChannelId, CommandInteraction, EditInteractionResponse, Http, ResolvedValue};
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow};
+use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow, owner_perms};
 
 pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -32,15 +29,7 @@ pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
     row.save::<Db, Manager>(pool).await?;
 
     channel_id
-        .create_permission(
-            http,
-            PermissionOverwrite {
-                allow: Permissions::all(),
-                deny: Permissions::empty(),
-                kind: PermissionOverwriteType::Member(user.id),
-            },
-            Some("Channel transfered"),
-        )
+        .create_permission(http, owner_perms(user.id), Some("Channel transfered"))
         .await
         .unwrap();
 
