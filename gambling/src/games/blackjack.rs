@@ -6,8 +6,8 @@ use std::{
 
 use rand::{rng, seq::SliceRandom};
 use serenity::all::{
-    ButtonStyle, Colour, Context, CreateButton, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, EmojiId, GenericChannelId, UserId, parse_emoji,
+    ButtonStyle, Colour, Context, CreateButton, CreateEmbed, EditInteractionResponse, EmojiId,
+    GenericChannelId, UserId, parse_emoji,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -273,7 +273,7 @@ pub async fn game_end_draw<
     channel_id: GenericChannelId,
     game: GameDetails,
     dealer_hand: &[EmojiId],
-) -> CreateInteractionResponse<'a> {
+) -> EditInteractionResponse<'a> {
     let bet = game.bet();
     let dealer_value = sum_cards(dealer_hand);
 
@@ -302,11 +302,9 @@ pub async fn game_end_draw<
         ))
         .colour(Colour::DARKER_GREY);
 
-    CreateInteractionResponse::UpdateMessage(
-        CreateInteractionResponseMessage::new()
-            .embed(embed)
-            .components(Vec::new()),
-    )
+    EditInteractionResponse::new()
+        .embed(embed)
+        .components(Vec::new())
 }
 
 pub async fn game_end_blackjack<
@@ -323,7 +321,7 @@ pub async fn game_end_blackjack<
     channel_id: GenericChannelId,
     game: GameDetails,
     dealer_hand: &[EmojiId],
-) -> CreateInteractionResponse<'a> {
+) -> EditInteractionResponse<'a> {
     let bet = game.bet();
     let dealer_value = sum_cards(dealer_hand);
 
@@ -358,11 +356,9 @@ pub async fn game_end_blackjack<
         ))
         .colour(Colour::DARK_GREEN);
 
-    CreateInteractionResponse::UpdateMessage(
-        CreateInteractionResponseMessage::new()
-            .embed(embed)
-            .components(Vec::new()),
-    )
+    EditInteractionResponse::new()
+        .embed(embed)
+        .components(Vec::new())
 }
 
 pub fn game_end_desc(
