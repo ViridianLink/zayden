@@ -16,12 +16,12 @@ const GOOD_MORNINGS: [&str; 8] = [
 ];
 
 pub trait GoodMorningCache: Send + Sync + 'static {
-    fn insert_author(
+    fn insert(
         &mut self,
         channel_id: GenericChannelId,
         author: UserId,
         content: FixedString<u16>,
-    ) -> Option<UserId>;
+    ) -> Option<(UserId, FixedString<u16>)>;
 }
 
 pub struct GoodMorning;
@@ -31,7 +31,7 @@ impl GoodMorning {
         let prev_author = {
             let data = ctx.data::<RwLock<Data>>();
             let mut data = data.write().await;
-            data.insert_author(
+            data.insert(
                 message.channel_id,
                 message.author.id,
                 message.content.clone(),
@@ -45,7 +45,9 @@ impl GoodMorning {
             return;
         }
 
-        if prev_author.is_some_and(|last_author| last_author != message.author.id) {
+        if prev_author.is_some_and(|(last_author, content)| {
+            last_author != message.author.id && is_good_morning(&content)
+        }) {
             message
                 .channel_id
                 .send_message(
