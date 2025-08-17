@@ -860,22 +860,25 @@ impl Display for Fragment {
 #[derive(Clone, Copy)]
 pub struct Gear<'a> {
     weapons: [Option<Weapon<'a>>; 3],
-    armour: [Armour<'a>; 5],
+    armour: [Armour; 5],
     stats_priority: [Stat; 6],
 }
 
 #[derive(Clone, Copy)]
-pub struct Armour<'a> {
-    name: &'a str,
+pub struct Armour {
+    name: ArmourName,
     mods: [Mod; 3],
 }
 
-impl<'a> Armour<'a> {
-    pub const fn new(name: &'a str, mods: [Mod; 3]) -> Self {
+impl Armour {
+    pub const fn new(name: ArmourName, mods: [Mod; 3]) -> Self {
         Self { name, mods }
     }
 
-    pub fn into_text_display(self, emoji_cache: &EmojiCache) -> EmojiResult<CreateTextDisplay<'a>> {
+    pub fn into_text_display<'a>(
+        self,
+        emoji_cache: &EmojiCache,
+    ) -> EmojiResult<CreateTextDisplay<'a>> {
         let mods = self
             .mods
             .into_iter()
@@ -887,109 +890,223 @@ impl<'a> Armour<'a> {
             .collect::<EmojiResult<String>>()?;
 
         let content = if !mods.is_empty() {
-            format!("**{}**\n#{mods}", self.name)
+            format!("**{:?}**\n#{mods}", self.name)
         } else {
-            format!("**{}**", self.name)
+            format!("**{:?}**", self.name)
         };
 
         Ok(CreateTextDisplay::new(content))
     }
 
-    pub fn into_section(self, emoji_cache: &EmojiCache) -> EmojiResult<CreateSectionComponent<'a>> {
+    pub fn into_section<'a>(
+        self,
+        emoji_cache: &EmojiCache,
+    ) -> EmojiResult<CreateSectionComponent<'a>> {
         Ok(CreateSectionComponent::TextDisplay(
             self.into_text_display(emoji_cache)?,
         ))
     }
 }
 
-impl<'a> From<Armour<'a>> for CreateThumbnail<'a> {
-    fn from(value: Armour<'a>) -> Self {
+impl From<Armour> for CreateThumbnail<'_> {
+    fn from(value: Armour) -> Self {
         CreateThumbnail::new(value.into())
     }
 }
 
-impl<'a> From<Armour<'a>> for CreateUnfurledMediaItem<'a> {
+impl From<Armour> for CreateUnfurledMediaItem<'_> {
     fn from(value: Armour) -> Self {
-        let url = match value.name {
-            "Melas Panoplia" => {
+        CreateUnfurledMediaItem::new(value.name.to_string())
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum ArmourName {
+    MelasPanoplia,
+    WormgodCaress,
+    BushidoHelm,
+    BushidoPlate,
+    BushidoGreaves,
+    BushidoMark,
+    BushidoCowl,
+    BushidoGrips,
+    LastDisciplineVest,
+    LastDisciplineStrides,
+    CollectivePsycheCover,
+    CollectivePsycheGloves,
+    StarfireProtocol,
+    CollectivePsycheBoots,
+    CollectivePsycheBond,
+    LustrousHelm,
+    LustrousPlate,
+    LustrousGreaves,
+    LustrousMark,
+    AnInsurmountableSkullfort,
+    CollectivePsycheGauntlets,
+    CollectivePsychePlate,
+    CollectivePsycheGreaves,
+    CollectivePsycheMark,
+    MaskOfBakris,
+    Relativism((&'static str, &'static str)),
+    BushidoVest,
+    LastDisciplineCloak,
+    CollectivePsycheCasque,
+    CollectivePsycheCuirass,
+    CollectivePsycheSleeves,
+    CollectivePsycheStrides,
+    CollectivePsycheHelm,
+    WishfulIgnorance,
+}
+
+impl Display for ArmourName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let url = match self {
+            ArmourName::MelasPanoplia => {
                 "https://www.bungie.net/common/destiny2_content/icons/8546b88189f69d88f8efa3d258f67026.jpg"
             }
-            "Wormgod Caress" => {
+            ArmourName::WormgodCaress => {
                 "https://www.bungie.net/common/destiny2_content/icons/f93fb202061de21b42138c9348359d27.jpg"
             }
-            "Bushido Helm" => {
+            ArmourName::BushidoHelm => {
                 "https://www.bungie.net/common/destiny2_content/icons/9879c7eda4c3bcb56712a964f57717e9.jpg"
             }
-            "Bushido Plate" => {
+            ArmourName::BushidoPlate => {
                 "https://www.bungie.net/common/destiny2_content/icons/35c2f575bf2584e4e9729bcbb5c62a85.jpg"
             }
-            "Bushido Greaves" => {
+            ArmourName::BushidoGreaves => {
                 "https://www.bungie.net/common/destiny2_content/icons/aaab3065cf9f92898ef641da58b2585b.jpg"
             }
-            "Bushido Mark" => {
+            ArmourName::BushidoMark => {
                 "https://www.bungie.net/common/destiny2_content/icons/9376932f07459b7a5858dfa73730c84c.jpg"
             }
-            "Bushido Cowl" => {
+            ArmourName::BushidoCowl => {
                 "https://www.bungie.net/common/destiny2_content/icons/9c38bcbbb84005d4c1bd6b9184a58571.jpg"
             }
-            "Bushido Grips" => {
+            ArmourName::BushidoGrips => {
                 "https://www.bungie.net/common/destiny2_content/icons/8e948205999822eb4ba7933ef05ba56c.jpg"
             }
-            "Last Discipline Vest" => {
+            ArmourName::LastDisciplineVest => {
                 "https://www.bungie.net/common/destiny2_content/icons/1f3f5870b6e1163d589da044c48a20ca.jpg"
             }
-            "Last Discipline Strides" => {
+            ArmourName::LastDisciplineStrides => {
                 "https://www.bungie.net/common/destiny2_content/icons/db74932fddacc7a8a98844f2480e4a7f.jpg"
             }
-            "Collective Psyche Cover" => {
+            ArmourName::CollectivePsycheCover => {
                 "https://www.bungie.net/common/destiny2_content/icons/41157409d6cfd4da8f44f36f1f7d7e40.jpg"
             }
-            "Collective Psyche Gloves" => {
+            ArmourName::CollectivePsycheGloves => {
                 "https://www.bungie.net/common/destiny2_content/icons/fec9d8ed57853226cc031d6ffed9a70c.jpg"
             }
-            "Starfire Protocol" => {
+            ArmourName::StarfireProtocol => {
                 "https://www.bungie.net/common/destiny2_content/icons/707703c3e72776cbf463a2d6427f5b43.jpg"
             }
-            "Collective Psyche Boots" => {
+            ArmourName::CollectivePsycheBoots => {
                 "https://www.bungie.net/common/destiny2_content/icons/8d9a8b0ba16b2d0bc9fa5ab1266ecb9b.jpg"
             }
-            "Collective Psyche Bond" => {
+            ArmourName::CollectivePsycheBond => {
                 "https://www.bungie.net/common/destiny2_content/icons/19e70cd67f1f361003bcdaa59952fbab.jpg"
             }
-            "Lustrous Helm" => {
+            ArmourName::LustrousHelm => {
                 "https://www.bungie.net/common/destiny2_content/icons/67d2e115db35baf3509a7a54d2d620be.jpg"
             }
-            "Lustrous Plate" => {
+            ArmourName::LustrousPlate => {
                 "https://www.bungie.net/common/destiny2_content/icons/b82af1a81e8fdf6f3101c3ec85116387.jpg"
             }
-            "Lustrous Greaves" => {
+            ArmourName::LustrousGreaves => {
                 "https://www.bungie.net/common/destiny2_content/icons/775e22c8c987b15e3834efcb35c84996.jpg"
             }
-            "Lustrous Mark" => {
+            ArmourName::LustrousMark => {
                 "https://www.bungie.net/common/destiny2_content/icons/7e2d5b6b4bfbc99b00f1447836ba6795.jpg"
             }
-            "An Insurmountable Skullfort" => {
+            ArmourName::AnInsurmountableSkullfort => {
                 "https://www.bungie.net/common/destiny2_content/icons/b734daf76fba2c835ba58ebca84c1d61.jpg"
             }
-            "Collective Psyche Gauntlets" => {
+            ArmourName::CollectivePsycheGauntlets => {
                 "https://www.bungie.net/common/destiny2_content/icons/98aeaf66c0dd814cb1d72ef4b1c725bc.jpg"
             }
-            "Collective Psyche Plate" => {
+            ArmourName::CollectivePsychePlate => {
                 "https://www.bungie.net/common/destiny2_content/icons/edbc60a615bd223bfe4cd30c46a58d49.jpg"
             }
-            "Collective Psyche Greaves" => {
+            ArmourName::CollectivePsycheGreaves => {
                 "https://www.bungie.net/common/destiny2_content/icons/d8a5bd616380eff7886b55cf5a496111.jpg"
             }
-            "Collective Psyche Mark" => {
+            ArmourName::CollectivePsycheMark => {
                 "https://www.bungie.net/common/destiny2_content/icons/845d32ecf59ca0eea8c54cf9e108eb3d.jpg"
             }
-            name if name.starts_with("Relativism") => {
+            ArmourName::MaskOfBakris => {
+                "https://www.bungie.net/common/destiny2_content/icons/c753c91b8ff629cc60e835aebc8da958.jpg"
+            }
+            ArmourName::Relativism(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/e4acc5bd83081bcf82f8e7c8905b58c4.jpg"
             }
-            name => unimplemented!("Image URL for '{name}' not implemented"),
+            ArmourName::BushidoVest => {
+                "https://www.bungie.net/common/destiny2_content/icons/982d331f44b50ab074c856effdf4ac23.jpg"
+            }
+            ArmourName::LastDisciplineCloak => {
+                "https://www.bungie.net/common/destiny2_content/icons/da32491871e833d20955b2f055d59ab6.jpg"
+            }
+            ArmourName::CollectivePsycheCasque => {
+                "https://www.bungie.net/common/destiny2_content/icons/2ad2c64c11a5b3f86382cfb94517a561.jpg"
+            }
+            ArmourName::CollectivePsycheCuirass => {
+                "https://www.bungie.net/common/destiny2_content/icons/0aa178e78bb12e1962e183b2696f9f92.jpg"
+            }
+            ArmourName::CollectivePsycheSleeves => {
+                "https://www.bungie.net/common/destiny2_content/icons/f64ecc6277d8a4df49813adb071e4dbb.jpg"
+            }
+            ArmourName::CollectivePsycheStrides => {
+                "https://www.bungie.net/common/destiny2_content/icons/7b661a41864b375de2a3d4b299cd8a99.jpg"
+            }
+            ArmourName::CollectivePsycheHelm => {
+                "https://www.bungie.net/common/destiny2_content/icons/eded09222a4d5bab546ad3cf04d24bf3.jpg"
+            }
+            ArmourName::WishfulIgnorance => {
+                "https://www.bungie.net/common/destiny2_content/icons/4a0247f3edb22758ba945e6ba341721b.jpg"
+            }
         };
 
-        CreateUnfurledMediaItem::new(url)
+        write!(f, "{url}")
+    }
+}
+
+impl Debug for ArmourName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MelasPanoplia => write!(f, "Melas Panoplia"),
+            Self::WormgodCaress => write!(f, "Wormgod Caress"),
+            Self::BushidoHelm => write!(f, "Bushido Helm"),
+            Self::BushidoPlate => write!(f, "Bushido Plate"),
+            Self::BushidoGreaves => write!(f, "Bushido Greaves"),
+            Self::BushidoMark => write!(f, "Bushido Mark"),
+            Self::BushidoCowl => write!(f, "Bushido Cowl"),
+            Self::BushidoGrips => write!(f, "Bushido Grips"),
+            Self::LastDisciplineVest => write!(f, "Last Discipline Vest"),
+            Self::LastDisciplineStrides => write!(f, "Last Discipline Strides"),
+            Self::CollectivePsycheCover => write!(f, "Collective Psyche Cover"),
+            Self::CollectivePsycheGloves => write!(f, "Collective Psyche Gloves"),
+            Self::StarfireProtocol => write!(f, "Starfire Protocol"),
+            Self::CollectivePsycheBoots => write!(f, "Collective Psyche Boots"),
+            Self::CollectivePsycheBond => write!(f, "Collective PsycheBond"),
+            Self::LustrousHelm => write!(f, "Lustrous Helm"),
+            Self::LustrousPlate => write!(f, "Lustrous Plate"),
+            Self::LustrousGreaves => write!(f, "Lustrous Greaves"),
+            Self::LustrousMark => write!(f, "Lustrous Mark"),
+            Self::AnInsurmountableSkullfort => write!(f, "An Insurmountable Skullfort"),
+            Self::CollectivePsycheGauntlets => write!(f, "Collective Psyche Gauntlets"),
+            Self::CollectivePsychePlate => write!(f, "Collective Psyche Plate"),
+            Self::CollectivePsycheGreaves => write!(f, "Collective Psyche Greaves"),
+            Self::CollectivePsycheMark => write!(f, "Collective Psyche Mark"),
+            Self::MaskOfBakris => write!(f, "Mask of Bakris"),
+            Self::Relativism(perks) => write!(f, "Relativism ({} + {})", perks.0, perks.1),
+            Self::BushidoVest => write!(f, "Bushido Vest"),
+            Self::LastDisciplineCloak => write!(f, "Last Discipline Cloak"),
+            Self::CollectivePsycheCasque => write!(f, "Collective Psyche Casque"),
+            Self::CollectivePsycheCuirass => write!(f, "Collective Psyche Cuirass"),
+            Self::CollectivePsycheSleeves => write!(f, "Collective Psyche Sleeves"),
+            Self::CollectivePsycheStrides => write!(f, "Collective Psyche Strides"),
+            Self::CollectivePsycheHelm => write!(f, "Collective Psyche Helm"),
+            Self::WishfulIgnorance => write!(f, "Wishful Ignorance"),
+        }
     }
 }
 

@@ -1,7 +1,8 @@
 use super::weapons::PHONEUTRIA_FERA;
 use super::{
-    Abilities, Armour, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super, Tag,
+    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
+    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Tag,
 };
 
 pub const PRISMATIC_TITAN: Loadout = Loadout::new(
@@ -49,20 +50,20 @@ const GEAR: Gear = Gear {
     weapons: [None, Some(PHONEUTRIA_FERA), None],
     armour: [
         Armour::new(
-            "An Insurmountable Skullfort",
+            ArmourName::AnInsurmountableSkullfort,
             [Mod::HandsOn, Mod::HandsOn, Mod::Empty],
         ),
         Armour::new(
-            "Collective Psyche Gauntlets",
+            ArmourName::CollectivePsycheGauntlets,
             [Mod::HeavyHanded, Mod::MeleeFont, Mod::MeleeFont],
         ),
-        Armour::new("Collective Psyche Plate", [Mod::Empty; 3]),
+        Armour::new(ArmourName::CollectivePsychePlate, [Mod::Empty; 3]),
         Armour::new(
-            "Collective Psyche Greaves",
+            ArmourName::CollectivePsycheGreaves,
             [Mod::Innervation, Mod::StacksOnStacks, Mod::Empty],
         ),
         Armour::new(
-            "Collective Psyche Mark",
+            ArmourName::CollectivePsycheMark,
             [
                 Mod::TimeDilation,
                 Mod::PowerfulAttraction,

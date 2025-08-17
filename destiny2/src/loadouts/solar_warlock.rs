@@ -1,7 +1,7 @@
 use super::weapons::{MINT_RETROGRADE, SUNSHOT};
 use super::{
-    Abilities, Armour, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
+    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
 };
 
 pub const SOLAR_WARLOCK: Loadout = Loadout {
@@ -49,20 +49,20 @@ const GEAR: Gear = Gear {
     weapons: [Some(MINT_RETROGRADE), Some(SUNSHOT), None],
     armour: [
         Armour::new(
-            "Collective Psyche Cover",
+            ArmourName::CollectivePsycheCover,
             [Mod::HarmonicSiphon, Mod::SuperFont, Mod::AshesToAssets],
         ),
         Armour::new(
-            "Collective Psyche Gloves",
+            ArmourName::CollectivePsycheGloves,
             [Mod::GrenadeFont, Mod::GrenadeFont, Mod::Firepower],
         ),
-        Armour::new("Starfire Protocol", [Mod::Empty, Mod::Empty, Mod::Empty]),
+        Armour::new(ArmourName::StarfireProtocol, [Mod::Empty; 3]),
         Armour::new(
-            "Collective Psyche Boots",
+            ArmourName::CollectivePsycheBoots,
             [Mod::StacksOnStacks, Mod::Innervation, Mod::StrandScavenger],
         ),
         Armour::new(
-            "Collective Psyche Bond",
+            ArmourName::CollectivePsycheBond,
             [Mod::TimeDilation, Mod::Reaper, Mod::PowerfulAttraction],
         ),
     ],

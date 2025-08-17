@@ -144,6 +144,9 @@ impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
             "Phoneutria Fera" => {
                 "https://www.bungie.net/common/destiny2_content/icons/f028107777dd4286a213ec2cbd9544f5.jpg"
             }
+            "Graviton Spike" => {
+                "https://www.bungie.net/common/destiny2_content/icons/ac56ad66eb1ebb8a371f9d3d3c768c5a.jpg"
+            }
             name => unimplemented!("Image URL for '{name}' not implemented"),
         };
 

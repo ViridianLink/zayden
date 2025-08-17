@@ -1,7 +1,8 @@
 use super::weapons::THIRD_ITERATION;
 use super::{
-    Abilities, Armour, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super, Tag,
+    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
+    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Tag,
 };
 
 pub const GENERAL_PRISMATIC_HUNTER: Loadout = Loadout::new(
@@ -49,20 +50,23 @@ const GEAR: Gear = Gear {
     weapons: [None, Some(THIRD_ITERATION), None],
     armour: [
         Armour::new(
-            "Bushido Cowl",
+            ArmourName::BushidoCowl,
             [Mod::AshesToAssets, Mod::SuperFont, Mod::VoidSiphon],
         ),
         Armour::new(
-            "Bushido Grips",
+            ArmourName::BushidoGrips,
             [Mod::Firepower, Mod::GrenadeFont, Mod::FocusingStrike],
         ),
-        Armour::new("Last Discipline Vest", [Mod::Empty, Mod::Empty, Mod::Empty]),
         Armour::new(
-            "Last Discipline Strides",
+            ArmourName::LastDisciplineVest,
+            [Mod::Empty, Mod::Empty, Mod::Empty],
+        ),
+        Armour::new(
+            ArmourName::LastDisciplineStrides,
             [Mod::Recuperation, Mod::StacksOnStacks, Mod::Invigoration],
         ),
         Armour::new(
-            "Relativism (Inmost Light + Cyrtarachne)",
+            ArmourName::Relativism(("Inmost Light", "Cyrtarachne")),
             [Mod::TimeDilation, Mod::ClassFont, Mod::PowerfulAttraction],
         ),
     ],

@@ -1,7 +1,8 @@
 use super::weapons::MONTE_CARLO;
 use super::{
-    Abilities, Armour, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super, Tag,
+    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
+    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Tag,
 };
 
 pub const STRAND_TITAN: Loadout = Loadout::new(
@@ -48,20 +49,20 @@ const GEAR: Gear = Gear {
     weapons: [Some(MONTE_CARLO), None, None],
     armour: [
         Armour::new(
-            "Collective Psyche Helm",
+            ArmourName::CollectivePsycheHelm,
             [Mod::KineticSiphon, Mod::HandsOn, Mod::HandsOn],
         ),
         Armour::new(
-            "Wishful Ignorance",
+            ArmourName::WishfulIgnorance,
             [Mod::HeavyHanded, Mod::MeleeFont, Mod::MeleeFont],
         ),
-        Armour::new("Collective Psyche Plate", [Mod::Empty; 3]),
+        Armour::new(ArmourName::CollectivePsychePlate, [Mod::Empty; 3]),
         Armour::new(
-            "Collective Psyche Greaves",
+            ArmourName::CollectivePsycheGreaves,
             [Mod::Invigoration, Mod::Recuperation, Mod::StacksOnStacks],
         ),
         Armour::new(
-            "Collective Psyche Mark",
+            ArmourName::CollectivePsycheMark,
             [Mod::TimeDilation, Mod::Outreach, Mod::Reaper],
         ),
     ],

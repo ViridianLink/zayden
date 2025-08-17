@@ -1,7 +1,8 @@
 use super::weapons::{IKELOS_SG_V103, NAVIGATOR};
 use super::{
-    Abilities, Armour, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super, Tag,
+    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
+    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Tag,
 };
 
 pub const BOSS_PRISMATIC_HUNTER: Loadout = Loadout::new(
@@ -49,20 +50,20 @@ const GEAR: Gear = Gear {
     weapons: [Some(NAVIGATOR), Some(IKELOS_SG_V103), None],
     armour: [
         Armour::new(
-            "Collective Psyche Casque",
+            ArmourName::CollectivePsycheCasque,
             [Mod::AshesToAssets, Mod::StrandSiphon, Mod::Empty],
         ),
         Armour::new(
-            "Collective Psyche Sleeves",
+            ArmourName::CollectivePsycheSleeves,
             [Mod::GrenadeFont, Mod::GrenadeFont, Mod::HeavyHanded],
         ),
-        Armour::new("Collective Psyche Cuirass", [Mod::Empty; 3]),
+        Armour::new(ArmourName::CollectivePsycheCuirass, [Mod::Empty; 3]),
         Armour::new(
-            "Collective Psyche Strides",
+            ArmourName::CollectivePsycheStrides,
             [Mod::StrandScavenger, Mod::StacksOnStacks, Mod::Empty],
         ),
         Armour::new(
-            "Relativism (Inmost Light + Verity)",
+            ArmourName::Relativism(("Inmost Light", "Verity")),
             [
                 Mod::SpecialFinisher,
                 Mod::PowerfulAttraction,

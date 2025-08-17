@@ -1,7 +1,8 @@
 use super::weapons::{DEVILS_RUIN, PERFECT_PARADOX};
 use super::{
-    Abilities, Armour, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super, Tag,
+    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
+    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Tag,
 };
 
 pub const SOLAR_TITAN: Loadout = Loadout {
@@ -53,20 +54,20 @@ const GEAR: Gear = Gear {
     weapons: [Some(PERFECT_PARADOX), Some(DEVILS_RUIN), None],
     armour: [
         Armour::new(
-            "Lustrous Helm",
+            ArmourName::LustrousHelm,
             [Mod::HandsOn, Mod::SpecialAmmoFinder, Mod::HarmonicSiphon],
         ),
         Armour::new(
-            "Wormgod Caress",
+            ArmourName::WormgodCaress,
             [Mod::MeleeFont, Mod::MeleeFont, Mod::HeavyHanded],
         ),
-        Armour::new("Lustrous Plate", [Mod::Empty; 3]),
+        Armour::new(ArmourName::LustrousPlate, [Mod::Empty; 3]),
         Armour::new(
-            "Lustrous Greaves",
+            ArmourName::LustrousGreaves,
             [Mod::StacksOnStacks, Mod::KineticScavenger, Mod::Empty],
         ),
         Armour::new(
-            "Lustrous Mark",
+            ArmourName::LustrousMark,
             [Mod::TimeDilation, Mod::Distribution, Mod::SpecialFinisher],
         ),
     ],

@@ -1,7 +1,7 @@
 use super::weapons::GRAVITON_SPIKE;
 use super::{
-    Abilities, Armour, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
+    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
 };
 
 pub const ARC_HUNTER: Loadout = Loadout::new(
@@ -47,16 +47,16 @@ const GEAR: Gear = Gear {
     weapons: [None, Some(GRAVITON_SPIKE), None],
     armour: [
         Armour::new(
-            "Mask of Bakris",
+            ArmourName::MaskOfBakris,
             [Mod::HarmonicSiphon, Mod::StasisSiphon, Mod::SuperFont],
         ),
         Armour::new(
-            "Bushido Grips",
+            ArmourName::BushidoGrips,
             [Mod::HarmonicLoader, Mod::ImpactInduction, Mod::HeavyHanded],
         ),
-        Armour::new("Bushido Vest", [Mod::Empty; 3]),
+        Armour::new(ArmourName::BushidoVest, [Mod::Empty; 3]),
         Armour::new(
-            "Last Discipline Strides",
+            ArmourName::LastDisciplineStrides,
             [
                 Mod::Recuperation,
                 Mod::ArcWeaponSurge,
@@ -64,7 +64,7 @@ const GEAR: Gear = Gear {
             ],
         ),
         Armour::new(
-            "Last Discipline Cloak",
+            ArmourName::LastDisciplineCloak,
             [Mod::TimeDilation, Mod::PowerfulAttraction, Mod::Reaper],
         ),
     ],
