@@ -28,7 +28,10 @@ impl Tier {
 
 impl From<CellData> for Tier {
     fn from(value: CellData) -> Self {
-        let tier = value.formatted_value.unwrap().parse().unwrap();
+        let tier = value
+            .formatted_value
+            .map(|s| s.parse().unwrap())
+            .unwrap_or_default();
         let colour = value
             .effective_format
             .unwrap()

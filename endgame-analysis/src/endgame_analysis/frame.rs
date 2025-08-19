@@ -28,6 +28,7 @@ pub enum Frame {
     MIDASynergy,
     HighImpactLongBow,
     SpreadShot,
+    RocketAssisted,
 }
 
 impl FromStr for Frame {
@@ -59,6 +60,7 @@ impl FromStr for Frame {
             "MIDA Synergy" => Ok(Frame::MIDASynergy),
             "High-Impact Longbow" => Ok(Frame::HighImpactLongBow),
             "Spread Shot" => Ok(Frame::SpreadShot),
+            "Rocket-Assisted" => Ok(Frame::RocketAssisted),
             _ => {
                 eprintln!("Failed to parse: '{s}'");
                 Err(())
@@ -94,6 +96,7 @@ impl fmt::Display for Frame {
             Frame::MIDASynergy => write!(f, "MIDA Synergy"),
             Frame::HighImpactLongBow => write!(f, "High-Impact Longbow"),
             Frame::SpreadShot => write!(f, "Spread Shot"),
+            Frame::RocketAssisted => write!(f, "Rocket-Assisted"),
         }
     }
 }

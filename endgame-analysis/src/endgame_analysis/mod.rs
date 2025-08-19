@@ -53,6 +53,7 @@ impl EndgameAnalysisSheet {
                 primary_colour(&s.properties.tab_color)
                     || special_colour(&s.properties.tab_color)
                     || heavy_colour(&s.properties.tab_color)
+                    || s.properties.title == "Other"
             })
             .map(|mut sheet| (sheet.properties.title, sheet.data.pop().unwrap()));
 

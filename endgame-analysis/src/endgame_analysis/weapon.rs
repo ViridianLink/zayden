@@ -73,6 +73,7 @@ pub struct WeaponBuilder {
     pub origin_trait: String,
     pub rank: u8,
     pub tier: Tier,
+    pub notes: Option<String>,
 }
 
 impl WeaponBuilder {
@@ -156,6 +157,11 @@ impl WeaponBuilder {
         self
     }
 
+    pub fn notes(mut self, notes: impl Into<String>) -> Self {
+        self.notes = Some(notes.into());
+        self
+    }
+
     pub fn from_row_data(name: &str, header: &RowData, row: RowData) -> Option<Self> {
         let mut data = header
             .values
@@ -196,18 +202,27 @@ impl WeaponBuilder {
             "LMGs" => String::from("Machine Gun"),
             "LFRs" => String::from("Linear Fusion"),
             "HCs" => String::from("Hand Cannon"),
+            "Other" => String::from("Other"),
             s => String::from(&s[..s.len() - 1]),
         };
 
-        let weapon = Self::new(&weapon_name, archetype)
+        let mut weapon = Self::new(&weapon_name, archetype)
             .affinity(
                 data.remove("affinity")
-                    .unwrap()
+                    .or_else(|| data.remove("energy"))
+                    .unwrap_or_else(|| panic!("affinity or energy should exist on data: {data:?}"))
                     .formatted_value
                     .unwrap_or_default(),
             )
             .frame(data.remove("frame").map(|f| f.formatted_value.unwrap()))
-            .enhanceable(data.remove("enhance").unwrap().formatted_value.unwrap() == "Yes")
+            .enhanceable(
+                data.remove("enhance")
+                    .or_else(|| data.remove("⬆\u{fe0f}"))
+                    .unwrap_or_else(|| panic!("enhance should exist on data: {data:?}"))
+                    .formatted_value
+                    .unwrap()
+                    == "Yes",
+            )
             .shield(shield)
             .reserves(reserves)
             .column_1(data.remove("column 1").unwrap().formatted_value.unwrap())
@@ -222,11 +237,14 @@ impl WeaponBuilder {
                 data.remove("rank")
                     .unwrap()
                     .formatted_value
-                    .unwrap()
-                    .parse()
-                    .unwrap(),
+                    .map(|s| s.parse().unwrap())
+                    .unwrap_or_default(),
             )
             .tier(data.remove("tier").unwrap());
+
+        if let Some(notes) = data.remove("notes").and_then(|d| d.formatted_value) {
+            weapon = weapon.notes(notes);
+        }
 
         Some(weapon)
     }
@@ -250,6 +268,7 @@ impl WeaponBuilder {
             origin_trait: self.origin_trait,
             rank: self.rank,
             tier: self.tier,
+            notes: self.notes,
         };
 
         Ok(weapon)
@@ -270,6 +289,7 @@ pub struct Weapon {
     pub origin_trait: String,
     pub rank: u8,
     pub tier: Tier,
+    pub notes: Option<String>,
 }
 
 impl Weapon {
@@ -355,7 +375,7 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
             description.push_str(&format!("\nReserves: {reserves}"));
         }
 
-        CreateEmbed::new()
+        let mut embed = CreateEmbed::new()
             .author(CreateEmbedAuthor::new(format!(
                 "{} {}{}",
                 value.affinity,
@@ -384,7 +404,16 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
                     })
                     .map(|(i, p)| (format!("Perk {i}"), p.join("\n"), true)),
             )
-            .field("Origin Trait", value.origin_trait(), false)
+            .field("Origin Trait", value.origin_trait(), false);
+
+        if let Some(notes) = value.notes.as_deref() {
+            let mut chars = notes.chars();
+            let first_char = chars.next().unwrap();
+            let notes = first_char.to_uppercase().to_string() + chars.as_str();
+            embed = embed.field("Notes", notes, false);
+        }
+
+        embed
     }
 }
 
