@@ -10,6 +10,10 @@ use crate::{Error, Result};
 
 const DESC: &str = "- LIFE COMES FIRST. We won't kick you or get upset for things that are happening in your life. We'll be here when you can play! With that said, if you are removed from the clan due to inactivity, you will be kept in the discord, and are welcome to ask one of the admins for a re-invite when you become active again; you're always welcome back!
 
+- No Extreme Slurs or Targeted Discrimination, we do not allow the use of extreme slurs, hate speech, or language that attacks individuals or groups. This includes both direct harassment and indirect derogatory references.
+  - Messages that violate this rule will be removed, and repeat or severe offenses may result in timeouts or permanent removal from the community.
+  - Within VCs, we understand that especially within raids, words can be said. Just please know your audience, make sure that the people you are making these comments around will not take offence.
+
 - Don't be afraid to ask for help when needed; we are here to support you.
 We don't condone actions of hacks, cheats or any behaviour that breaches Bungie's Terms of Service, YOU WILL BE KICKED. This includes but is not limited to aim bots, distribution of 'cracked' clients, net limiting or tampered-with accounts. Discussing glitches and \"cheese strategies\" are exceptions to this rule.
 
@@ -38,7 +42,9 @@ impl ApplicationCommand<Error, Postgres> for CustomMsg {
         _options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        let embed = CreateEmbed::new().description(DESC);
+        let embed = CreateEmbed::new()
+            .title("Community Rules")
+            .description(DESC);
 
         interaction
             .channel_id
