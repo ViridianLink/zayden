@@ -8,7 +8,7 @@ use zayden_core::parse_options;
 use crate::models::Savable;
 use crate::templates::DefaultTemplate;
 use crate::utils::{Announcement, update_embeds};
-use crate::{Join, PostManager, PostRow, Result};
+use crate::{PostManager, PostRow, Result};
 
 pub struct JoinInteraction {
     thread: ThreadId,
@@ -53,8 +53,7 @@ pub async fn join<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>
 ) -> Result<String> {
     let interaction = interaction.into();
 
-    let mut row = Manager::row(pool, interaction.thread).await.unwrap();
-    row.join(interaction.user, alternative)?;
+    let row = Manager::join(pool, interaction.thread, interaction.user, alternative).await?;
 
     let owner = row.owner().to_user(http).await.unwrap();
 

@@ -11,7 +11,6 @@ pub enum Error {
     PermissionDenied(UserId),
     InvalidDateTime(String),
     TagRequired,
-    AlreadyJoined,
     InvalidChannel,
 
     Serenity(serenity::Error),
@@ -43,7 +42,6 @@ impl std::fmt::Display for Error {
                     "Unable to parse Activity and apply necessary tags. Please fix the Activity field and use the edit button to update after creating the post."
                 )
             }
-            Self::AlreadyJoined => write!(f, "You have already joined this LFG."),
             Self::InvalidChannel => write!(f, "Invalid LFG channel."),
             _ => write!(f, "Unhandled error"),
         }
