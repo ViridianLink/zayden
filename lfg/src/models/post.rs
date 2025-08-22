@@ -6,7 +6,7 @@ use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 
 use crate::templates::TemplateInfo;
-use crate::{Join, Leave, Result};
+use crate::{Join, Result};
 
 pub struct PostBuilder {
     id: ThreadId,
@@ -179,6 +179,12 @@ pub trait PostManager<Db: Database> {
         alternative: bool,
     ) -> Result<PostRow>;
 
+    async fn leave(
+        pool: &Pool<Db>,
+        id: impl Into<GenericChannelId> + Send,
+        user: impl Into<UserId> + Send,
+    ) -> sqlx::Result<PostRow>;
+
     async fn delete(
         pool: &Pool<Db>,
         id: impl Into<GenericChannelId> + Send,
@@ -211,16 +217,6 @@ impl PostRow {
 
     pub fn owner(&self) -> UserId {
         UserId::new(self.owner as u64)
-    }
-}
-
-impl Leave for PostRow {
-    fn fireteam_mut(&mut self) -> &mut Vec<i64> {
-        &mut self.fireteam
-    }
-
-    fn alternatives_mut(&mut self) -> &mut Vec<i64> {
-        &mut self.alternatives
     }
 }
 

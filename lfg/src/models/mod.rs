@@ -12,20 +12,7 @@ pub trait Savable<Db: Database, T> {
     async fn save(pool: &Pool<Db>, item: T) -> sqlx::Result<Db::QueryResult>;
 }
 
-pub trait Leave {
-    fn fireteam_mut(&mut self) -> &mut Vec<i64>;
-
-    fn alternatives_mut(&mut self) -> &mut Vec<i64>;
-
-    fn leave(&mut self, user: impl Into<UserId>) {
-        let user = user.into().get() as i64;
-
-        self.fireteam_mut().retain(|&id| id != user);
-        self.alternatives_mut().retain(|&id| id != user);
-    }
-}
-
-pub trait Join: Leave {
+pub trait Join {
     fn fireteam_size(&self) -> i16;
 
     fn fireteam(&self) -> impl Iterator<Item = UserId>;
@@ -35,6 +22,6 @@ pub trait Join: Leave {
     fn alternatives(&self) -> impl Iterator<Item = UserId>;
 
     fn is_full(&self) -> bool {
-        self.fireteam_len() == self.fireteam_size()
+        self.fireteam_len() >= self.fireteam_size()
     }
 }

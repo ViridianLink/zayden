@@ -6,7 +6,7 @@ use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
 use crate::{
-    Leave, PostManager, PostRow, Result,
+    PostManager, PostRow, Result,
     models::Savable,
     templates::DefaultTemplate,
     utils::{Announcement, update_embeds},
@@ -65,8 +65,9 @@ pub async fn leave<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>
 ) -> Result<String> {
     let interaction = interaction.into();
 
-    let mut row = Manager::row(pool, interaction.thread).await.unwrap();
-    row.leave(interaction.user);
+    let row = Manager::leave(pool, interaction.thread, interaction.user)
+        .await
+        .unwrap();
 
     let owner = row.owner().to_user(http).await.unwrap();
 
@@ -74,8 +75,6 @@ pub async fn leave<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>
     Announcement::Left(interaction.user)
         .send(http, interaction.thread)
         .await;
-
-    Manager::save(pool, row).await.unwrap();
 
     let content = if interaction.author == interaction.user {
         format!("You have left {}", interaction.thread.widen().mention())

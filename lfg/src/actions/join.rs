@@ -65,8 +65,6 @@ pub async fn join<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>
     .send(http, interaction.thread)
     .await;
 
-    Manager::save(pool, row).await.unwrap();
-
     Ok(format!(
         "You have joined {}",
         interaction.thread.widen().mention()

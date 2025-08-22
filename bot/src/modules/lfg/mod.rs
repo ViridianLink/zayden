@@ -71,9 +71,37 @@ impl PostManager<Postgres> for PostTable {
             .fetch_one(&mut *tx)
             .await?;
 
-        if !alternative && row.is_full() {
+        if !alternative && row.fireteam_len() > row.fireteam_size() {
             return Err(Error::FireteamFull);
         }
+
+        tx.commit().await?;
+
+        Ok(row)
+    }
+
+    async fn leave(
+        pool: &PgPool,
+        id: impl Into<GenericChannelId> + Send,
+        user: impl Into<UserId> + Send,
+    ) -> sqlx::Result<PostRow> {
+        let id = id.into();
+        let user = user.into();
+
+        let mut tx = pool.begin().await?;
+
+        sqlx::query_file_as!(
+            PostRow,
+            "sql/lfg/PostManager/leave.sql",
+            id.get() as i64,
+            user.get() as i64,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let row = sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/row.sql", id.get() as i64)
+            .fetch_one(&mut *tx)
+            .await?;
 
         tx.commit().await?;
 
