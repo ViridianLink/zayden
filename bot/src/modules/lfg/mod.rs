@@ -108,6 +108,20 @@ impl PostManager<Postgres> for PostTable {
         Ok(row)
     }
 
+    async fn edit(pool: &PgPool, post: &PostRow) -> sqlx::Result<PgQueryResult> {
+        sqlx::query_file!(
+            "sql/lfg/PostManager/edit.sql",
+            post.id,
+            post.owner,
+            post.activity,
+            post.start_time,
+            post.description,
+            post.fireteam_size,
+        )
+        .execute(pool)
+        .await
+    }
+
     async fn delete(
         pool: &PgPool,
         id: impl Into<GenericChannelId> + Send,

@@ -185,6 +185,8 @@ pub trait PostManager<Db: Database> {
         user: impl Into<UserId> + Send,
     ) -> sqlx::Result<PostRow>;
 
+    async fn edit(pool: &Pool<Db>, post: &PostRow) -> sqlx::Result<Db::QueryResult>;
+
     async fn delete(
         pool: &Pool<Db>,
         id: impl Into<GenericChannelId> + Send,

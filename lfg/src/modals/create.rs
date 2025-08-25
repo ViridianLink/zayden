@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use serenity::all::{
     AutoArchiveDuration, ChannelId, Context, CreateComponent, CreateForumPost,
     CreateInteractionResponse, CreateMessage, DiscordJsonError, ErrorResponse, GenericChannelId,
-    GuildId, HttpError, JsonErrorCode, Mentionable, ModalInteraction,
+    GuildId, HttpError, JsonErrorCode, Mentionable, ModalInteraction, RoleId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
@@ -24,6 +24,7 @@ pub trait GuildManager<Db: Database> {
 pub struct GuildRow {
     pub channel_id: i64,
     pub scheduled_thread_id: Option<i64>,
+    pub role_id: Option<i64>,
 }
 
 impl GuildRow {
@@ -34,6 +35,10 @@ impl GuildRow {
     pub fn scheduled_channel(&self) -> Option<GenericChannelId> {
         self.scheduled_thread_id
             .map(|id| GenericChannelId::new(id as u64))
+    }
+
+    pub fn role_id(&self) -> Option<RoleId> {
+        self.role_id.map(|id| RoleId::new(id as u64))
     }
 }
 
@@ -143,11 +148,13 @@ impl Create {
             r => r.unwrap(),
         };
 
+        let content = match lfg_guild.role_id() {
+            Some(role) => format!("{} {}", role.mention(), interaction.user.mention()),
+            None => interaction.user.mention().to_string(),
+        };
+
         thread
-            .send_message(
-                &ctx.http,
-                CreateMessage::new().content(interaction.user.mention().to_string()),
-            )
+            .send_message(&ctx.http, CreateMessage::new().content(content))
             .await
             .unwrap();
 

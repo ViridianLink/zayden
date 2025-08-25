@@ -53,7 +53,10 @@ impl Edit {
             .activity(activity)
             .fireteam_size(fireteam_size)
             .description(description)
-            .start(start_time);
+            .start(start_time)
+            .build();
+
+        Manager::edit(pool, &post).await.unwrap();
 
         let thread = interaction.channel_id.expect_thread();
 
@@ -84,10 +87,7 @@ impl Edit {
         update_embeds::<DefaultTemplate>(&ctx.http, &post, interaction.user.display_name(), thread)
             .await;
 
-        let post = post.build();
-
         create_reminders::<Data, Db, Manager>(ctx, &post).await;
-        Manager::save(pool, post).await.unwrap();
 
         interaction
             .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
