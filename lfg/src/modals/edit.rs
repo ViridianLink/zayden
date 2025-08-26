@@ -25,6 +25,11 @@ impl Edit {
         interaction: &ModalInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
+        interaction
+            .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
+            .await
+            .unwrap();
+
         let mut inputs = parse_modal_data(&interaction.data.components);
 
         let activity = inputs
@@ -88,11 +93,6 @@ impl Edit {
             .await;
 
         create_reminders::<Data, Db, Manager>(ctx, &post).await;
-
-        interaction
-            .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
-            .await
-            .unwrap();
 
         Ok(())
     }

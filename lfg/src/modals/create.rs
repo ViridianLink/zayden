@@ -23,8 +23,8 @@ pub trait GuildManager<Db: Database> {
 #[derive(FromRow)]
 pub struct GuildRow {
     pub channel_id: i64,
-    pub scheduled_thread_id: Option<i64>,
     pub role_id: Option<i64>,
+    pub scheduled_thread_id: Option<i64>,
 }
 
 impl GuildRow {
@@ -32,13 +32,13 @@ impl GuildRow {
         ChannelId::new(self.channel_id as u64)
     }
 
+    pub fn role_id(&self) -> Option<RoleId> {
+        self.role_id.map(|id| RoleId::new(id as u64))
+    }
+
     pub fn scheduled_channel(&self) -> Option<GenericChannelId> {
         self.scheduled_thread_id
             .map(|id| GenericChannelId::new(id as u64))
-    }
-
-    pub fn role_id(&self) -> Option<RoleId> {
-        self.role_id.map(|id| RoleId::new(id as u64))
     }
 }
 

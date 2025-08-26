@@ -316,7 +316,7 @@ impl GuildManager<Postgres> for GuildTable {
 
         sqlx::query_as!(
             GuildRow,
-            "SELECT channel_id, scheduled_thread_id FROM lfg_guilds WHERE id = $1",
+            "SELECT channel_id, role_id, scheduled_thread_id FROM lfg_guilds WHERE id = $1",
             id.get() as i64
         )
         .fetch_optional(pool)
