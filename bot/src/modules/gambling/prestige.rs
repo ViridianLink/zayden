@@ -2,13 +2,15 @@ use async_trait::async_trait;
 use gambling::commands::prestige::{PrestigeManager, PrestigeRow};
 use gambling::shop::LOTTO_TICKET;
 use gambling::{Commands, GamblingItem};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{
+    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption, UserId,
+};
 use sqlx::postgres::PgQueryResult;
 use sqlx::types::Json;
 use sqlx::{PgPool, Postgres};
-use zayden_core::SlashCommand;
+use zayden_core::{ApplicationCommand, Component};
 
-use crate::{BOT_ID, Error, Result};
+use crate::{Error, Result, ZAYDEN_ID};
 
 use super::stamina::MAX_STAMINA;
 
@@ -42,7 +44,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
     async fn lotto(pool: &PgPool, tickets: i64) -> sqlx::Result<PgQueryResult> {
         sqlx::query_file!(
             "./sql/gambling/PrestigeManager/lotto.sql",
-            BOT_ID.get() as i64,
+            ZAYDEN_ID.get() as i64,
             LOTTO_TICKET.id,
             tickets,
         )
@@ -147,7 +149,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
 pub struct Prestige;
 
 #[async_trait]
-impl SlashCommand<Error, Postgres> for Prestige {
+impl ApplicationCommand<Error, Postgres> for Prestige {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -160,5 +162,19 @@ impl SlashCommand<Error, Postgres> for Prestige {
 
     fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(Commands::register_prestige())
+    }
+}
+
+#[async_trait]
+impl Component<Error, Postgres> for Prestige {
+    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+        match interaction.data.custom_id.as_str() {
+            "prestige_confirm" => {
+                Commands::confirm_prestige::<Postgres, PrestigeTable>(ctx, interaction, pool).await
+            }
+            "prestige_cancel" => Commands::cancel_prestige(ctx, interaction).await,
+            id => unreachable!("Invalid component id: {id}"),
+        }
+        .map_err(Error::from)
     }
 }
