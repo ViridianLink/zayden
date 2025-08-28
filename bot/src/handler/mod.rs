@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicBool;
+
 use serenity::all::{EventHandler, FullEvent};
 use serenity::async_trait;
 use serenity::model::prelude::Interaction;
@@ -16,7 +18,9 @@ mod ready;
 mod thread_delete;
 mod voice_state_update;
 
-pub struct Handler;
+pub struct Handler {
+    pub started_cron: AtomicBool,
+}
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -49,7 +53,7 @@ impl EventHandler for Handler {
                 removed_reaction, ..
             } => Self::reaction_remove(ctx, removed_reaction, &pool).await,
             FullEvent::Ready { data_about_bot, .. } => {
-                Self::ready(ctx, data_about_bot, &pool).await
+                Self::ready(self, ctx, data_about_bot, &pool).await
             }
             FullEvent::VoiceStateUpdate { new, .. } => {
                 Self::voice_state_update(ctx, new, &pool).await
