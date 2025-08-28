@@ -3,6 +3,7 @@ use serenity::all::{Context, EditInteractionResponse, ModalInteraction};
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketModal;
+use zayden_core::parse_modal_data;
 
 use crate::modules::lfg::{PostTable, UsersTable};
 use crate::modules::ticket::TicketTable;
@@ -15,11 +16,14 @@ impl Handler {
         interaction: &ModalInteraction,
         pool: &PgPool,
     ) -> Result<()> {
+        let inputs = parse_modal_data(&interaction.data.components);
+
         println!(
-            "[{}] {} ran modal: {}",
+            "[{}] {} ran modal: {}{:?}",
             Utc::now().format("%Y-%m-%d %H:%M:%S"),
             interaction.user.name,
-            interaction.data.custom_id
+            interaction.data.custom_id,
+            inputs
         );
 
         let result = match interaction.data.custom_id.as_str() {
