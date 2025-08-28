@@ -107,6 +107,7 @@ impl Loadout<'_> {
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
+        parent_token: &str,
     ) {
         let ResolvedValue::SubCommand(options) = options.pop().unwrap().value else {
             unreachable!("Option must be a subcommand")
@@ -133,7 +134,7 @@ impl Loadout<'_> {
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
                         .flags(MessageFlags::IS_COMPONENTS_V2)
-                        .components(vec![build.into_component::<Data>(ctx).await]),
+                        .components(vec![build.into_component::<Data>(ctx, parent_token).await]),
                 ),
             )
             .await
@@ -172,7 +173,11 @@ impl<'a> Loadout<'a> {
         self
     }
 
-    pub async fn into_component<Data: EmojiCacheData>(self, ctx: &Context) -> CreateComponent<'a> {
+    pub async fn into_component<Data: EmojiCacheData>(
+        self,
+        ctx: &Context,
+        parent_token: &str,
+    ) -> CreateComponent<'a> {
         let data = ctx.data::<RwLock<Data>>();
         let mut data = data.write().await;
         let emoji_cache = data.get_mut();
@@ -181,7 +186,7 @@ impl<'a> Loadout<'a> {
 
         let mut subclass_btn = self.subclass.subclass.into_button(emoji_cache);
         while let Err(name) = subclass_btn {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             subclass_btn = self.subclass.subclass.into_button(emoji_cache);
         }
 
@@ -222,14 +227,14 @@ impl<'a> Loadout<'a> {
 
         let mut aspects = self.aspects_str(emoji_cache);
         while let Err(name) = aspects {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             aspects = self.aspects_str(emoji_cache)
         }
 
         let super_emoji = match self.super_emoji(emoji_cache) {
             Ok(emoji) => emoji,
             Err(name) => {
-                emoji_cache.upload(ctx, &name).await;
+                emoji_cache.upload(ctx, parent_token, &name).await;
                 self.super_emoji(emoji_cache).unwrap()
             }
         };
@@ -237,7 +242,7 @@ impl<'a> Loadout<'a> {
         let class_emoji = match self.class_emoji(emoji_cache) {
             Ok(emoji) => emoji,
             Err(name) => {
-                emoji_cache.upload(ctx, &name).await;
+                emoji_cache.upload(ctx, parent_token, &name).await;
                 self.class_emoji(emoji_cache).unwrap()
             }
         };
@@ -245,7 +250,7 @@ impl<'a> Loadout<'a> {
         let jump_emoji = match self.jump_emoji(emoji_cache) {
             Ok(emoji) => emoji,
             Err(name) => {
-                emoji_cache.upload(ctx, &name).await;
+                emoji_cache.upload(ctx, parent_token, &name).await;
                 self.jump_emoji(emoji_cache).unwrap()
             }
         };
@@ -253,7 +258,7 @@ impl<'a> Loadout<'a> {
         let melee_emoji = match self.melee_emoji(emoji_cache) {
             Ok(emoji) => emoji,
             Err(name) => {
-                emoji_cache.upload(ctx, &name).await;
+                emoji_cache.upload(ctx, parent_token, &name).await;
                 self.melee_emoji(emoji_cache).unwrap()
             }
         };
@@ -261,7 +266,7 @@ impl<'a> Loadout<'a> {
         let grenade_emoji = match self.grenade_emoji(emoji_cache) {
             Ok(emoji) => emoji,
             Err(name) => {
-                emoji_cache.upload(ctx, &name).await;
+                emoji_cache.upload(ctx, parent_token, &name).await;
                 self.grenade_emoji(emoji_cache).unwrap()
             }
         };
@@ -273,7 +278,7 @@ impl<'a> Loadout<'a> {
 
         let mut fragments = self.fragments_str(emoji_cache);
         while let Err(name) = fragments {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             fragments = self.fragments_str(emoji_cache)
         }
 
@@ -287,31 +292,31 @@ impl<'a> Loadout<'a> {
 
         let mut weapons = self.weapon_components(emoji_cache);
         while let Err(name) = weapons {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             weapons = self.weapon_components(emoji_cache)
         }
 
         let mut weapons = self.weapon_components(emoji_cache);
         while let Err(name) = weapons {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             weapons = self.weapon_components(emoji_cache)
         }
 
         let mut armour = self.armour_components(emoji_cache);
         while let Err(name) = armour {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             armour = self.armour_components(emoji_cache)
         }
 
         let mut stat_prio = self.stat_prio_str(emoji_cache);
         while let Err(name) = stat_prio {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             stat_prio = self.stat_prio_str(emoji_cache)
         }
 
         let mut artifact = self.artifact_str(emoji_cache);
         while let Err(name) = artifact {
-            emoji_cache.upload(ctx, &name).await;
+            emoji_cache.upload(ctx, parent_token, &name).await;
             artifact = self.artifact_str(emoji_cache)
         }
 
@@ -750,11 +755,11 @@ pub enum Grenade {
 impl Display for Grenade {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Grenade::Healing => "healing",
-            Grenade::Grapple => "grapple",
-            Grenade::Fusion => "fusion",
-            Grenade::Shackle => "shackle",
-            Grenade::Flux => "flux",
+            Grenade::Healing => "healing_grenade",
+            Grenade::Grapple => "grapple_grenade",
+            Grenade::Fusion => "fusion_grenade",
+            Grenade::Shackle => "shackle_grenade",
+            Grenade::Flux => "flux_grenade",
         };
 
         write!(f, "{name}")
