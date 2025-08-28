@@ -4,7 +4,7 @@ use serenity::all::{
     EditInteractionResponse,
 };
 use sqlx::PgPool;
-use zayden_core::{SlashCommand, get_option_str};
+use zayden_core::{ApplicationCommand, get_option_str};
 
 use crate::Result;
 use crate::handler::Handler;
