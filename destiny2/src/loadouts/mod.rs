@@ -536,27 +536,29 @@ pub enum Tag {
 
 impl Display for Tag {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Tag::EasyToPlay => todo!(),
-            Tag::BossDamage => todo!(),
-            Tag::AdClear => todo!(),
-            Tag::HighSurvivability => write!(f, "High Survivability"),
-            Tag::Support => todo!(),
-            Tag::AntiChampion => todo!(),
-            Tag::CasualPvP => todo!(),
-            Tag::CompetitivePvp => todo!(),
-            Tag::Raids => todo!(),
-            Tag::Dungeons => todo!(),
-            Tag::MasterContent => todo!(),
-            Tag::GrandmasterNightfall => todo!(),
-            Tag::Solo => todo!(),
-            Tag::SuperFocused => todo!(),
-            Tag::AbilityFocused => write!(f, "Ability Focused"),
-            Tag::WeaponFocused => todo!(),
-            Tag::HighDamage => todo!(),
-            Tag::EndGame => todo!(),
-            Tag::CrowdControl => todo!(),
-        }
+        let name = match self {
+            Tag::EasyToPlay => "Easy To Play",
+            Tag::BossDamage => "Boss Damage",
+            Tag::AdClear => "Ad Clear",
+            Tag::HighSurvivability => "High Survivability",
+            Tag::Support => "Support",
+            Tag::AntiChampion => "Anti-Champion",
+            Tag::CasualPvP => "Casual PvP",
+            Tag::CompetitivePvp => "Competitive PvP",
+            Tag::Raids => "Raids",
+            Tag::Dungeons => "Dungeons",
+            Tag::MasterContent => "Master Content",
+            Tag::GrandmasterNightfall => "Grandmaster Nightfall",
+            Tag::Solo => "Solo",
+            Tag::SuperFocused => "Super Focused",
+            Tag::AbilityFocused => "Ability Focused",
+            Tag::WeaponFocused => "Weapon Focused",
+            Tag::HighDamage => "High Damage",
+            Tag::EndGame => "End Game",
+            Tag::CrowdControl => "Crowd Control",
+        };
+
+        write!(f, "{name}")
     }
 }
 

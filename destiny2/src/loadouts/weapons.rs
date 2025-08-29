@@ -147,6 +147,15 @@ impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
             "Graviton Spike" => {
                 "https://www.bungie.net/common/destiny2_content/icons/ac56ad66eb1ebb8a371f9d3d3c768c5a.jpg"
             }
+            "Navigator" => {
+                "https://www.bungie.net/common/destiny2_content/icons/8e2b12633d1778a2e502148b0dcafacc.jpg"
+            }
+            "IKELOS_SG_v1.0.3" => {
+                "https://www.bungie.net/common/destiny2_content/icons/e74e5e3e2ee712563245c8ed25b5794c.jpg"
+            }
+            "Monte Carlo" => {
+                "https://www.bungie.net/common/destiny2_content/icons/ad75fa3374e2ce5a549db8d7f672098c.jpg"
+            }
             name => unimplemented!("Image URL for '{name}' not implemented"),
         };
 
