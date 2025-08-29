@@ -27,7 +27,8 @@ impl ApplicationCommand<Error, Postgres> for Loadout {
     ) -> Result<()> {
         let zayden_token = ZAYDEN_TOKEN.get_or_init(|| zayden_token(pool)).await;
 
-        destiny2::loadouts::Loadout::run::<CtxData>(ctx, interaction, options, zayden_token).await;
+        destiny2::loadouts::Loadout::run::<CtxData>(ctx, interaction, options, zayden_token)
+            .await?;
 
         Ok(())
     }

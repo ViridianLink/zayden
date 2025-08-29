@@ -108,7 +108,7 @@ impl Loadout<'_> {
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         parent_token: &str,
-    ) {
+    ) -> serenity::Result<()> {
         let ResolvedValue::SubCommand(options) = options.pop().unwrap().value else {
             unreachable!("Option must be a subcommand")
         };
@@ -137,8 +137,9 @@ impl Loadout<'_> {
                         .components(vec![build.into_component::<Data>(ctx, parent_token).await]),
                 ),
             )
-            .await
-            .unwrap()
+            .await?;
+
+        Ok(())
     }
 }
 
