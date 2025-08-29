@@ -501,7 +501,7 @@ const PLANET: ShopItem = ShopItem::new(
 .add_cost(1, ShopCurrency::Production);
 
 const SOLAR_SYSTEM: ShopItem = ShopItem::new(
-    "solarsystem",
+    "solar_system",
     "Solar System",
     Emoji::None,
     "Allows you to buy 10 extra planets per solar system",
