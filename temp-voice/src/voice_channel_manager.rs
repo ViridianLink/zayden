@@ -39,6 +39,18 @@ impl VoiceChannelRow {
         }
     }
 
+    pub fn new_persistent(id: impl Into<ChannelId>, owner_id: impl Into<UserId>) -> Self {
+        Self {
+            id: id.into().get() as i64,
+            owner_id: owner_id.into().get() as i64,
+            trusted_ids: Vec::new(),
+            invites: Vec::new(),
+            password: None,
+            persistent: true,
+            mode: VoiceChannelMode::Open,
+        }
+    }
+
     pub fn channel_id(&self) -> ChannelId {
         ChannelId::new(self.id as u64)
     }

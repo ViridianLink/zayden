@@ -1,4 +1,4 @@
-use serenity::all::{ChannelId, EditInteractionResponse};
+use serenity::all::{ChannelId, EditInteractionResponse, UserId};
 use serenity::all::{CommandInteraction, Context};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -22,7 +22,7 @@ pub async fn claim<Data: VoiceStateCache, Db: Database, Manager: VoiceChannelMan
 
             row
         }
-        None => VoiceChannelRow::new(channel_id, interaction.user.id),
+        None => VoiceChannelRow::new_persistent(channel_id, UserId::default()),
     };
 
     if !row.is_persistent() && is_claimable::<Data>(ctx, &row).await {
