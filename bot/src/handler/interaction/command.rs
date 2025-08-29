@@ -20,6 +20,7 @@ use crate::modules::gambling::{
 use crate::modules::levels::{Levels, Rank, Xp};
 use crate::modules::lfg::Lfg;
 use crate::modules::misc::{CustomMsg, Random};
+use crate::modules::music::Play;
 use crate::modules::reaction_roles::ReactionRoleCommand;
 use crate::modules::suggestions::FetchSuggestions;
 use crate::modules::temp_voice::Voice;
@@ -72,6 +73,10 @@ impl Handler {
             "shop" => Shop::run(ctx, interaction, options, pool),
             "tictactoe" => TicTacToe::run(ctx, interaction, options, pool),
             // endregion
+
+            //region music
+            "play" => Play::run(ctx, interaction, options, pool),
+            //endregion
             "levels" => Levels::run(ctx, interaction, options, pool),
             "random" => Random::run(ctx, interaction, options, pool),
             "fetch_suggestions" => FetchSuggestions::run(ctx, interaction, options, pool),

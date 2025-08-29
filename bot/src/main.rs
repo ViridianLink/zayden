@@ -49,6 +49,7 @@ async fn main() -> Result<()> {
         Token::from_env("DISCORD_TOKEN").unwrap(),
         GatewayIntents::all(),
     )
+    .voice_manager::<Songbird>(data.songbird())
     .data(Arc::new(RwLock::new(data)))
     .event_handler(handler::Handler)
     .await

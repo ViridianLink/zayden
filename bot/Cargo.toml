@@ -33,6 +33,7 @@ serenity = { workspace = true, features = [
     "transport_compression_zlib",
     "transport_compression_zstd",
 ] }
+songbird = { workspace = true, features = ["gateway", "serenity"] }
 sqlx = { workspace = true, features = [
     "macros",
     "bigdecimal",
