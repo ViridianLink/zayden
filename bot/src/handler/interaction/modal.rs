@@ -19,7 +19,7 @@ impl Handler {
         let inputs = parse_modal_data(&interaction.data.components);
 
         println!(
-            "[{}] {} ran modal: {}{:?}",
+            "[{}] {} ran modal: {} {:?}",
             Utc::now().format("%Y-%m-%d %H:%M:%S"),
             interaction.user.name,
             interaction.data.custom_id,
