@@ -1,8 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    str::FromStr,
-    sync::LazyLock,
-};
+use std::collections::HashSet;
 
 use rand::{rng, seq::SliceRandom};
 use serenity::all::{
@@ -11,30 +7,14 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::FormatNum;
+use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use crate::{
-    CARD_BACK, CARD_DECK, COIN, Coins, EffectsManager, GameCache, GameManager, GameRow,
-    GoalsManager,
+    CARD_DECK, CARD_TO_NUM, Coins, EffectsManager, GameCache, GameManager, GameRow, GoalsManager,
+    card_deck, card_to_num,
     ctx_data::GamblingData,
     events::{Dispatch, Event, GameEvent},
 };
-
-pub static CARD_TO_NUM: LazyLock<HashMap<EmojiId, u8>> = LazyLock::new(|| {
-    CARD_DECK
-        .iter()
-        .copied()
-        .zip(
-            (1u8..=13)
-                .cycle()
-                .map(|rank| match rank {
-                    11..=13 => 10,
-                    _ => rank,
-                })
-                .take(52),
-        )
-        .collect()
-});
 
 pub struct GameDetails {
     bet: i64,
@@ -65,16 +45,23 @@ impl GameDetails {
         &self.player_hand
     }
 
-    pub fn player_value(&self) -> u8 {
-        sum_cards(&self.player_hand)
+    pub fn player_value(&self, emojis: &EmojiCache) -> u8 {
+        sum_cards(emojis, &self.player_hand)
     }
 
-    pub fn player_hand_str(&self) -> String {
-        self.player_hand
-            .iter()
-            .map(|id| (*CARD_TO_NUM.get(id).unwrap(), id))
-            .map(|(num, id)| format!("<:{num}:{id}> "))
-            .collect()
+    pub fn player_hand_str(&self, emojis: &EmojiCache) -> String {
+        let mut s = String::new();
+
+        for id in &self.player_hand {
+            let num = *CARD_TO_NUM
+                .get_or_init(|| card_to_num(emojis))
+                .get(id)
+                .unwrap();
+
+            s.push_str(&format!("<:{num}:{id}> "));
+        }
+
+        s
     }
 
     pub fn add_card(&mut self) {
@@ -89,7 +76,7 @@ impl GameDetails {
         self.card_shoe.pop().unwrap()
     }
 
-    fn card_shoe(&self) -> Vec<EmojiId> {
+    fn card_shoe(&self, emojis: &EmojiCache) -> Vec<EmojiId> {
         let mut cards = self
             .player_hand
             .iter()
@@ -99,6 +86,7 @@ impl GameDetails {
         cards.insert(self.dealer_card);
 
         let mut shoe = CARD_DECK
+            .get_or_init(|| card_deck(emojis))
             .iter()
             .copied()
             .filter(|card| !cards.remove(card))
@@ -108,12 +96,8 @@ impl GameDetails {
 
         shoe
     }
-}
 
-impl FromStr for GameDetails {
-    type Err = ();
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    pub fn from_str(emojis: &EmojiCache, s: &str) -> Self {
         let mut lines = s.lines();
 
         let bet_line = lines.next().unwrap();
@@ -149,16 +133,18 @@ impl FromStr for GameDetails {
         let dealer_card = parse_emoji(dealer_card_str).unwrap().id;
 
         let mut game = GameDetails::new(bet, player_hand, dealer_card);
-        game.card_shoe = game.card_shoe();
+        game.card_shoe = game.card_shoe(emojis);
 
-        Ok(game)
+        game
     }
 }
 
-pub fn sum_cards(hand: &[EmojiId]) -> u8 {
+pub fn sum_cards(emojis: &EmojiCache, hand: &[EmojiId]) -> u8 {
+    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+
     let (aces, rest) = hand
         .iter()
-        .map(|id| *CARD_TO_NUM.get(id).unwrap())
+        .map(|id| *card_to_num.get(id).unwrap())
         .partition::<Vec<_>, _>(|num| *num == 1);
 
     let mut sum = rest.iter().sum();
@@ -174,19 +160,28 @@ pub fn sum_cards(hand: &[EmojiId]) -> u8 {
     sum
 }
 
-pub fn in_play_embed(bet: i64, player_hand: &[EmojiId], dealer_card: EmojiId) -> CreateEmbed<'_> {
-    let player_value = sum_cards(player_hand);
-    let dealer_value = sum_cards(&[dealer_card]);
+pub fn in_play_embed<'a>(
+    emojis: &EmojiCache,
+    bet: i64,
+    player_hand: &[EmojiId],
+    dealer_card: EmojiId,
+) -> CreateEmbed<'a> {
+    let player_value = sum_cards(emojis, player_hand);
+    let dealer_value = sum_cards(emojis, &[dealer_card]);
+
+    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let coin = emojis.emoji("heads").unwrap();
+    let card_back = emojis.emoji("card_back").unwrap();
 
     let desc = format!(
-        "Your bet: {} <:coin:{COIN}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n<:{}:{dealer_card}> <:blank:{CARD_BACK}> - {dealer_value}",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n<:{}:{dealer_card}> <:blank:{card_back}> - {dealer_value}",
         bet.format(),
         player_hand
             .iter()
-            .map(|id| (*CARD_TO_NUM.get(id).unwrap(), id))
+            .map(|id| (*card_to_num.get(id).unwrap(), id))
             .map(|(num, id)| format!("<:{num}:{id}> "))
             .collect::<String>(),
-        CARD_TO_NUM.get(&dealer_card).unwrap(),
+        card_to_num.get(&dealer_card).unwrap(),
     );
 
     CreateEmbed::new()
@@ -226,6 +221,7 @@ async fn game_end_common<
 >(
     ctx: &Context,
     pool: &Pool<Db>,
+    emojis: &EmojiCache,
     user_id: UserId,
     channel_id: GenericChannelId,
     bet: i64,
@@ -236,7 +232,7 @@ async fn game_end_common<
         .unwrap()
         .unwrap_or_else(|| GameRow::new(user_id));
 
-    let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool);
+    let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, emojis);
 
     dispatch
         .fire(
@@ -261,7 +257,7 @@ async fn game_end_common<
 
 pub async fn game_end_draw<
     'a,
-    Data: GamblingData,
+    Data: GamblingData + EmojiCacheData,
     Db: Database,
     GoalsHandler: GoalsManager<Db>,
     EffectsHandler: EffectsManager<Db> + Send,
@@ -269,27 +265,32 @@ pub async fn game_end_draw<
 >(
     ctx: &Context,
     pool: &Pool<Db>,
+    emojis: &EmojiCache,
     user_id: UserId,
     channel_id: GenericChannelId,
     game: GameDetails,
     dealer_hand: &[EmojiId],
 ) -> EditInteractionResponse<'a> {
     let bet = game.bet();
-    let dealer_value = sum_cards(dealer_hand);
+    let dealer_value = sum_cards(emojis, dealer_hand);
 
     let (_, coins) = game_end_common::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
-        ctx, pool, user_id, channel_id, bet, bet,
+        ctx, pool, emojis, user_id, channel_id, bet, bet,
     )
     .await;
 
+    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+
+    let coin = emojis.get("heads").unwrap();
+
     let desc = format!(
-        "Your bet: {} <:coin:{COIN}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{} - {dealer_value}",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{} - {dealer_value}",
         bet.format(),
-        game.player_hand_str(),
-        game.player_value(),
+        game.player_hand_str(emojis),
+        game.player_value(emojis),
         dealer_hand
             .iter()
-            .map(|id| (*CARD_TO_NUM.get(id).unwrap(), id))
+            .map(|id| (*card_to_num.get(id).unwrap(), id))
             .map(|(num, id)| format!("<:{num}:{id}> "))
             .collect::<String>(),
     );
@@ -297,7 +298,7 @@ pub async fn game_end_draw<
     let embed = CreateEmbed::new()
         .title("Blackjack - Draw!")
         .description(format!(
-            "{desc}\n\nDraw! Have your money back.\n\nYour coins: {} <:coin:{COIN}>",
+            "{desc}\n\nDraw! Have your money back.\n\nYour coins: {} <:coin:{coin}>",
             coins.format()
         ))
         .colour(Colour::DARKER_GREY);
@@ -317,17 +318,19 @@ pub async fn game_end_blackjack<
 >(
     ctx: &Context,
     pool: &Pool<Db>,
+    emojis: &EmojiCache,
     user_id: UserId,
     channel_id: GenericChannelId,
     game: GameDetails,
     dealer_hand: &[EmojiId],
 ) -> EditInteractionResponse<'a> {
     let bet = game.bet();
-    let dealer_value = sum_cards(dealer_hand);
+    let dealer_value = sum_cards(emojis, dealer_hand);
 
     let (payout, coins) = game_end_common::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
         ctx,
         pool,
+        emojis,
         user_id,
         channel_id,
         bet,
@@ -335,22 +338,27 @@ pub async fn game_end_blackjack<
     )
     .await;
 
+    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let coin = emojis.emoji("heads").unwrap();
+
     let desc = format!(
-        "Your bet: {} <:coin:{COIN}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{} - {dealer_value}",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{} - {dealer_value}",
         bet.format(),
-        game.player_hand_str(),
-        game.player_value(),
+        game.player_hand_str(emojis),
+        game.player_value(emojis),
         dealer_hand
             .iter()
-            .map(|id| (*CARD_TO_NUM.get(id).unwrap(), id))
-            .map(|(num, id)| format!("<:{num}:{id}> "))
+            .map(|id| {
+                let num = *card_to_num.get(id).unwrap();
+                format!("<:{num}:{id}> ")
+            })
             .collect::<String>(),
     );
 
     let embed = CreateEmbed::new()
         .title("Blackjack - You Won!")
         .description(format!(
-            "{desc}\n\nBLACKJACK!\n\nProfit: {} <:coin:{COIN}>\nYour coins: {} <:coin:{COIN}>",
+            "{desc}\n\nBLACKJACK!\n\nProfit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
             (payout - game.bet()).format(),
             coins.format()
         ))
@@ -362,27 +370,35 @@ pub async fn game_end_blackjack<
 }
 
 pub fn game_end_desc(
+    emojis: &EmojiCache,
     bet: i64,
     player_hand: &[EmojiId],
     dealer_hand: &[EmojiId],
     payout: i64,
     coins: i64,
 ) -> String {
-    let player_value = sum_cards(player_hand);
-    let dealer_value = sum_cards(dealer_hand);
+    let player_value = sum_cards(emojis, player_hand);
+    let dealer_value = sum_cards(emojis, dealer_hand);
+
+    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let coin = emojis.emoji("heads").unwrap();
 
     format!(
-        "Your bet: {} <:coin:{COIN}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{COIN}>\nYour coins: {} <:coin:{COIN}>",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
         bet.format(),
         player_hand
             .iter()
-            .map(|id| (*CARD_TO_NUM.get(id).unwrap(), id))
-            .map(|(num, id)| format!("<:{num}:{id}> "))
+            .map(|id| {
+                let num = *card_to_num.get(id).unwrap();
+                format!("<:{num}:{id}> ")
+            })
             .collect::<String>(),
         dealer_hand
             .iter()
-            .map(|id| (*CARD_TO_NUM.get(id).unwrap(), id))
-            .map(|(num, id)| format!("<:{num}:{id}> "))
+            .map(|id| {
+                let num = *card_to_num.get(id).unwrap();
+                format!("<:{num}:{id}> ")
+            })
             .collect::<String>(),
         (payout - bet).format(),
         coins.format()

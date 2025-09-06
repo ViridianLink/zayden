@@ -4,10 +4,11 @@ use rand::rng;
 use rand_distr::Distribution;
 use serenity::all::{ChannelId, CreateEmbed, CreateMessage, Mentionable, UserId};
 use sqlx::{Database, FromRow};
-use zayden_core::{CronJob, FormatNum};
+use tokio::sync::RwLock;
+use zayden_core::{CronJob, EmojiCacheData, FormatNum};
 
 use crate::shop::LOTTO_TICKET;
-use crate::{COIN, Coins, GamblingManager, bot_id};
+use crate::{Coins, GamblingManager, bot_id};
 
 const CHANNEL_ID: ChannelId = ChannelId::new(1383573049563156502);
 
@@ -34,7 +35,7 @@ pub struct LottoRow {
 
 impl LottoRow {
     pub fn new(id: impl Into<UserId> + Send) -> Self {
-        let id = id.into();
+        let id: UserId = id.into();
 
         Self {
             id: id.get() as i64,
@@ -73,6 +74,7 @@ pub struct Lotto;
 
 impl Lotto {
     pub fn cron_job<
+        Data: EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         LottoHandler: LottoManager<Db>,
@@ -112,6 +114,13 @@ impl Lotto {
 
             LottoHandler::delete_tickets(&mut *tx).await.unwrap();
 
+            let coin = {
+                let data = ctx.data::<RwLock<Data>>();
+                let data = data.read().await;
+                let cache = data.emojis();
+                cache.emoji("heads").unwrap()
+            };
+
             let mut lines = Vec::with_capacity(expected_winners);
 
             for (winner, payout) in winners {
@@ -120,7 +129,7 @@ impl Lotto {
                     .unwrap();
 
                 let line = format!(
-                    "{} ({}) has won {} <:coin:{COIN}> from the lottery!",
+                    "{} ({}) has won {} <:coin:{coin}> from the lottery!",
                     winner.mention(),
                     winner.to_user(&ctx).await.unwrap().display_name(),
                     payout.format()
@@ -133,7 +142,7 @@ impl Lotto {
 
             let embed = CreateEmbed::new()
                 .title(format!(
-                    "<:coin:{COIN}> <:coin:{COIN}> Lottery!! <:coin:{COIN}> <:coin:{COIN}>"
+                    "<:coin:{coin}> <:coin:{coin}> Lottery!! <:coin:{coin}> <:coin:{coin}>"
                 ))
                 .field(
                     "Tickets Bought",
@@ -142,7 +151,7 @@ impl Lotto {
                 )
                 .field(
                     "Jackpot Value",
-                    format!("{} <:coin:{COIN}>", jackpot.format()),
+                    format!("{} <:coin:{coin}>", jackpot.format()),
                     false,
                 );
 

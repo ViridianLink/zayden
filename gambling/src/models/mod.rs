@@ -15,7 +15,7 @@ pub use gambling_inventory::{GamblingItem, InventoryManager, InventoryRow};
 pub use gambling_stats::StatsManager;
 pub use game_row::{GameManager, GameRow};
 use sqlx::Database;
-use zayden_core::FormatNum;
+use zayden_core::{EmojiCache, FormatNum};
 
 use crate::shop::ShopCurrency;
 use crate::{Error, Result, StaminaCron, StaminaManager};
@@ -163,7 +163,7 @@ pub trait Mining {
         }
     }
 
-    fn resources(&self) -> String {
+    fn resources(&self, emojis: &EmojiCache) -> String {
         format!(
             "{} `{}` coal
         {} `{}` iron
@@ -172,33 +172,33 @@ pub trait Mining {
         {} `{}` lapis
         {} `{}` diamonds
         {} `{}` emeralds",
-            ShopCurrency::Coal,
+            ShopCurrency::Coal.emoji(emojis),
             self.coal().format(),
-            ShopCurrency::Iron,
+            ShopCurrency::Iron.emoji(emojis),
             self.iron().format(),
-            ShopCurrency::Gold,
+            ShopCurrency::Gold.emoji(emojis),
             self.gold().format(),
-            ShopCurrency::Redstone,
+            ShopCurrency::Redstone.emoji(emojis),
             self.redstone().format(),
-            ShopCurrency::Lapis,
+            ShopCurrency::Lapis.emoji(emojis),
             self.lapis().format(),
-            ShopCurrency::Diamonds,
+            ShopCurrency::Diamonds.emoji(emojis),
             self.diamonds().format(),
-            ShopCurrency::Emeralds,
+            ShopCurrency::Emeralds.emoji(emojis),
             self.emeralds().format(),
         )
     }
 
-    fn crafted(&self) -> String {
+    fn crafted(&self, emojis: &EmojiCache) -> String {
         format!(
             "{} `{}` tech packs
             {} `{}` utility packs
             {} `{}` production packs",
-            ShopCurrency::Tech,
+            ShopCurrency::Tech.emoji(emojis),
             self.tech().format(),
-            ShopCurrency::Utility,
+            ShopCurrency::Utility.emoji(emojis),
             self.utility().format(),
-            ShopCurrency::Production,
+            ShopCurrency::Production.emoji(emojis),
             self.production().format()
         )
     }

@@ -1,8 +1,9 @@
 use serenity::all::{
-    CommandInteraction, EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow, types::Json};
-use zayden_core::{FormatNum, parse_options_ref};
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
 use crate::{
     Coins, Error, Gems, GoalsManager, ItemInventory, MaxBet, MaxValues, Prestige, Result,
@@ -184,8 +185,13 @@ impl MaxBet for BuyRow {
     }
 }
 
-pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopManager<Db>>(
-    http: &Http,
+pub async fn buy<
+    Data: EmojiCacheData,
+    Db: Database,
+    GoalsHandler: GoalsManager<Db>,
+    BuyHandler: ShopManager<Db>,
+>(
+    ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     options: &[ResolvedOption<'_>],
@@ -260,7 +266,13 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
         edit_inv(&mut row, item, amount)
     };
 
-    Dispatch::<Db, GoalsHandler>::new(http, pool)
+    let emojis = {
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let data = data_lock.read().await;
+        data.emojis()
+    };
+
+    Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
         .fire(
             interaction.channel_id,
             &mut row,
@@ -272,12 +284,12 @@ pub async fn buy<Db: Database, GoalsHandler: GoalsManager<Db>, BuyHandler: ShopM
 
     let cost = costs
         .into_iter()
-        .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency))
+        .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency.emoji(&emojis)))
         .collect::<Vec<_>>();
 
     interaction
         .edit_response(
-            http,
+            &ctx.http,
             EditInteractionResponse::new().content(format!(
                 "You bought {} {item} for {}\nYou now have {}.",
                 amount.format(),

@@ -8,21 +8,20 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::parse_options;
+use zayden_core::{EmojiCacheData, parse_options};
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::gambling::GamblingManager;
 use crate::utils::{Emoji, GameResult, game_embed};
 use crate::{
-    COIN, Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager,
-    Result, TAILS,
+    Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager, Result,
 };
 
 use super::Commands;
 
 impl Commands {
     pub async fn coinflip<
-        Data: GamblingData,
+        Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalsHandler: GoalsManager<Db>,
@@ -68,7 +67,13 @@ impl Commands {
             _ => 0,
         };
 
-        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool)
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -100,6 +105,7 @@ impl Commands {
         };
 
         let embed = game_embed(
+            &emojis,
             title,
             prediction,
             "Coin landed on",
@@ -173,11 +179,11 @@ impl FromStr for CoinSide {
     }
 }
 
-impl From<CoinSide> for GameResult<'_> {
+impl From<CoinSide> for GameResult {
     fn from(value: CoinSide) -> Self {
         let emoji = match value {
-            CoinSide::Heads => Emoji::Id(COIN),
-            CoinSide::Tails => Emoji::Id(TAILS),
+            CoinSide::Heads => Emoji::Id("heads"),
+            CoinSide::Tails => Emoji::Id("tails"),
         };
 
         Self {

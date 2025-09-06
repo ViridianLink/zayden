@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
+    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse, UserId,
 };
 use sqlx::{Database, FromRow, Pool};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum};
 
-use crate::{COIN, MaxValues, MineHourly, Mining, Prestige, Result};
+use crate::{MaxValues, MineHourly, Mining, Prestige, Result};
 
 #[async_trait]
 pub trait MineManager<Db: Database> {
@@ -119,28 +120,34 @@ impl MineHourly for MineRow {
 use super::Commands;
 
 impl Commands {
-    pub async fn mine<Db: Database, Manager: MineManager<Db>>(
-        http: &Http,
+    pub async fn mine<Data: EmojiCacheData, Db: Database, Manager: MineManager<Db>>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await?;
+        interaction.defer(&ctx.http).await?;
 
         let row = Manager::row(pool, interaction.user.id)
             .await
             .unwrap()
             .unwrap_or_default();
 
+        let coin = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis().emoji("heads").unwrap()
+        };
+
         let embed = CreateEmbed::new()
             .field(
                 "Mine Income",
-                format!("{} <:coin:{COIN}> / hour", row.hourly().format()),
+                format!("{} <:coin:{coin}> / hour", row.hourly().format()),
                 false,
             )
             .field("Units", row.units(), false);
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

@@ -7,7 +7,7 @@ use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::StaminaTable;
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 use super::GoalsTable;
 
@@ -110,8 +110,12 @@ impl ApplicationCommand<Error, Postgres> for Dig {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::dig::<Postgres, StaminaTable, GoalsTable, DigTable>(&ctx.http, interaction, pool)
-            .await?;
+        Commands::dig::<CtxData, Postgres, StaminaTable, GoalsTable, DigTable>(
+            ctx,
+            interaction,
+            pool,
+        )
+        .await?;
         Ok(())
     }
 

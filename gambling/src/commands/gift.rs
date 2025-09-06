@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum};
 
 use crate::{
     Coins, Error, GamblingManager, Gems, GoalsManager, MaxBet, Prestige, Result, START_AMOUNT,
@@ -34,7 +35,7 @@ pub struct SenderRow {
     pub gems: i64,
     pub gift: NaiveDate,
     pub level: Option<i32>,
-    pub prestige: i64,
+    pub prestige: Option<i64>,
 }
 
 impl SenderRow {
@@ -47,7 +48,7 @@ impl SenderRow {
             gems: 0,
             gift: NaiveDate::default(),
             level: Some(0),
-            prestige: 0,
+            prestige: Some(0),
         }
     }
 }
@@ -74,7 +75,7 @@ impl Gems for SenderRow {
 
 impl Prestige for SenderRow {
     fn prestige(&self) -> i64 {
-        self.prestige
+        self.prestige.unwrap_or_default()
     }
 }
 
@@ -113,17 +114,18 @@ impl Coins for RecipientRow {
 
 impl Commands {
     pub async fn gift<
+        Data: EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalsHandler: GoalsManager<Db>,
         GiftHandler: GiftManager<Db>,
     >(
-        http: &Http,
+        ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let ResolvedValue::User(recipient, _) = options[0].value else {
             unreachable!("recipient is required")
@@ -144,7 +146,7 @@ impl Commands {
             return Err(Error::GiftUsed(tomorrow(Some(now))));
         }
 
-        let amount = GIFT_AMOUNT * (user_row.prestige + 1);
+        let amount = GIFT_AMOUNT * (user_row.prestige() + 1);
 
         let mut tx = pool.begin().await.unwrap();
 
@@ -154,7 +156,13 @@ impl Commands {
 
         tx.commit().await.unwrap();
 
-        Dispatch::<Db, GoalsHandler>::new(http, pool)
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut user_row,
@@ -173,7 +181,7 @@ impl Commands {
             .colour(Colour::GOLD);
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

@@ -1,11 +1,12 @@
 use async_trait::async_trait;
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
+    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+    CreateEmbed, EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
-use zayden_core::{FormatNum, parse_options};
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCache, EmojiCacheData, FormatNum, parse_options};
 
 use crate::shop::ShopCurrency;
 use crate::{Error, Result};
@@ -55,13 +56,19 @@ impl CraftRow {
 }
 
 impl Commands {
-    pub async fn craft<Db: Database, Manager: CraftManager<Db>>(
-        http: &Http,
+    pub async fn craft<Data: EmojiCacheData, Db: Database, Manager: CraftManager<Db>>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
+
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
 
         let mut row = Manager::row(pool, interaction.user.id)
             .await
@@ -71,11 +78,11 @@ impl Commands {
         let mut options = parse_options(options);
 
         if !options.contains_key("type") {
-            menu(http, interaction, row).await;
+            menu(&ctx.http, interaction, &emojis, row).await;
             return Ok(());
         }
 
-        let Some(ResolvedValue::String(type_)) = options.remove("type") else {
+        let Some(ResolvedValue::String(kind)) = options.remove("type") else {
             unreachable!("Type must be present")
         };
 
@@ -92,10 +99,10 @@ impl Commands {
             return Err(Error::ZeroAmount);
         }
 
-        let item: ShopCurrency = type_.parse().unwrap();
+        let item: ShopCurrency = kind.parse().unwrap();
 
         let costs = item
-            .craft_req()
+            .craft_req(&emojis)
             .into_iter()
             .flatten()
             .map(|(currency, cost)| (currency, cost as i64 * amount))
@@ -110,7 +117,7 @@ impl Commands {
                 ShopCurrency::Lapis => &mut row.lapis,
                 ShopCurrency::Diamonds => &mut row.diamonds,
                 ShopCurrency::Emeralds => &mut row.emeralds,
-                c => unreachable!("Invalid crafting currency: {c}"),
+                c => unreachable!("Invalid crafting currency: {c:?}"),
             };
 
             *fund -= cost;
@@ -135,21 +142,22 @@ impl Commands {
                 row.production += amount;
                 row.production
             }
-            c => unreachable!("Invalid item: {c}"),
+            c => unreachable!("Invalid item: {c:?}"),
         };
 
         Manager::save(pool, row).await.unwrap();
 
         let embed = CreateEmbed::new()
             .description(format!(
-                "Crafted {item} `{}` {item:?}s\nYou now  have {item} `{}` {item:?}s",
+                "Crafted {0} `{1}` {item:?}s\nYou now  have {0} `{2}` {item:?}s",
+                item.emoji(&emojis),
                 amount.format(),
                 quantity.format()
             ))
             .colour(Colour::ORANGE);
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
@@ -177,7 +185,7 @@ impl Commands {
     }
 }
 
-async fn menu(http: &Http, interaction: &CommandInteraction, row: CraftRow) {
+async fn menu(http: &Http, interaction: &CommandInteraction, emojis: &EmojiCache, row: CraftRow) {
     let mut desc = [
         ShopCurrency::Tech,
         ShopCurrency::Utility,
@@ -192,8 +200,9 @@ async fn menu(http: &Http, interaction: &CommandInteraction, row: CraftRow) {
     })
     .map(|(item, owned)| {
         format!(
-            "{item} **{item:?}**\nOwned: `{owned}`\n{}",
-            item.craft_req()
+            "{} **{item:?}**\nOwned: `{owned}`\n{}",
+            item.emoji(emojis),
+            item.craft_req(emojis)
                 .into_iter()
                 .flatten()
                 .map(|(currency, cost)| {
@@ -208,7 +217,10 @@ async fn menu(http: &Http, interaction: &CommandInteraction, row: CraftRow) {
                         _ => unreachable!("Invalid shop currency"),
                     }
                 })
-                .map(|(currency, cost, owned)| format!("(`{owned}`) `{cost}` {currency}"))
+                .map(|(currency, cost, owned)| format!(
+                    "(`{owned}`) `{cost}` {}",
+                    currency.emoji(emojis)
+                ))
                 .collect::<Vec<_>>()
                 .join("\n")
         )

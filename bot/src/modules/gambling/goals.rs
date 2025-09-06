@@ -6,7 +6,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, 
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 pub struct GoalsTable;
 
@@ -110,7 +110,7 @@ impl ApplicationCommand<Error, Postgres> for Goals {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::goals::<Postgres, GoalsTable>(&ctx.http, interaction, pool).await?;
+        Commands::goals::<CtxData, Postgres, GoalsTable>(ctx, interaction, pool).await?;
         Ok(())
     }
 

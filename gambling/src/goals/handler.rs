@@ -1,8 +1,9 @@
 use serenity::all::{Colour, CreateEmbed, CreateMessage, GenericChannelId, Http, UserId};
 use sqlx::{Database, Pool};
+use zayden_core::EmojiCache;
 
 use crate::events::{Event, EventRow};
-use crate::{COIN, GEM, GamblingGoalsRow, GoalsManager, tomorrow};
+use crate::{GEM, GamblingGoalsRow, GoalsManager, tomorrow};
 
 use super::GOAL_REGISTRY;
 
@@ -51,6 +52,7 @@ impl GoalHandler {
     pub async fn process_goals<Db: Database, Manager: GoalsManager<Db>>(
         http: &Http,
         pool: &Pool<Db>,
+        emojis: &EmojiCache,
         channel: GenericChannelId,
         row: &mut dyn EventRow,
         event: Event,
@@ -77,6 +79,8 @@ impl GoalHandler {
                 acc
             });
 
+        let coin = emojis.get("heads").unwrap();
+
         for &goal in changed.iter().filter(|goal| goal.is_complete()) {
             row.add_coins(5_000);
 
@@ -86,7 +90,7 @@ impl GoalHandler {
                     CreateMessage::new().embed(
                         CreateEmbed::new()
                             .description(format!(
-                                "**Daily goal completed:** {}\n**Reward:** 5,000 <:coin:{COIN}>",
+                                "**Daily goal completed:** {}\n**Reward:** 5,000 <:coin:{coin}>",
                                 goal.title()
                             ))
                             .colour(Colour::DARK_GREEN),

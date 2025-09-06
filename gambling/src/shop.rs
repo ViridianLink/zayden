@@ -3,11 +3,10 @@ use std::ops::Deref;
 use std::str::FromStr;
 use std::time::Duration;
 
+use zayden_core::EmojiCache;
+
 use crate::utils::Emoji;
-use crate::{
-    CHIP_2, CHIP_5, CHIP_10, CHIP_50, CHIP_100, COAL, COIN, DIAMOND, EMERALD, GOLD, GamblingItem,
-    IRON, LAPIS, PRODUCTION, REDSTONE, TECH, UTILITY,
-};
+use crate::{GEM, GamblingItem};
 
 pub const SALES_TAX: f64 = 0.1;
 
@@ -28,7 +27,7 @@ pub enum ShopCurrency {
 }
 
 impl ShopCurrency {
-    pub fn craft_req(&self) -> [Option<(Self, u16)>; 4] {
+    pub fn craft_req(&self, emojis: &EmojiCache) -> [Option<(Self, u16)>; 4] {
         match self {
             Self::Tech => [Some((Self::Coal, 10)), Some((Self::Iron, 5)), None, None],
             Self::Utility => [
@@ -43,7 +42,24 @@ impl ShopCurrency {
                 Some((Self::Redstone, 125)),
                 None,
             ],
-            c => unreachable!("Invalid currency {c}"),
+            c => unreachable!("Invalid currency {}", c.emoji(emojis)),
+        }
+    }
+
+    pub fn emoji(&self, emojis: &EmojiCache) -> String {
+        match self {
+            ShopCurrency::Coins => format!("<:coin:{}>", emojis.get("heads").unwrap()),
+            ShopCurrency::Gems => GEM.to_string(),
+            ShopCurrency::Tech => format!("<:tech:{}>", emojis.get("tech").unwrap()),
+            ShopCurrency::Utility => format!("<:utility:{}>", emojis.get("utility").unwrap()),
+            ShopCurrency::Production => format!("<:production:{}>", emojis.get("tech").unwrap()),
+            ShopCurrency::Coal => format!("<:coal:{}>", emojis.get("coal").unwrap()),
+            ShopCurrency::Iron => format!("<:iron:{}>", emojis.get("iron").unwrap()),
+            ShopCurrency::Gold => format!("<:gold:{}>", emojis.get("gold").unwrap()),
+            ShopCurrency::Redstone => format!("<:redstone:{}>", emojis.get("redstone").unwrap()),
+            ShopCurrency::Lapis => format!("<:lapis:{}>", emojis.get("lapis").unwrap()),
+            ShopCurrency::Diamonds => format!("<:diamond:{}>", emojis.get("diamond").unwrap()),
+            ShopCurrency::Emeralds => format!("<:emerald:{}>", emojis.get("emerald").unwrap()),
         }
     }
 }
@@ -63,25 +79,6 @@ impl Debug for ShopCurrency {
             Self::Lapis => write!(f, "Lapis"),
             Self::Diamonds => write!(f, "Diamonds"),
             Self::Emeralds => write!(f, "Emeralds"),
-        }
-    }
-}
-
-impl Display for ShopCurrency {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Coins => write!(f, "<:coin:{COIN}>"),
-            Self::Gems => write!(f, "💎"),
-            Self::Tech => write!(f, "<:tech:{TECH}>"),
-            Self::Utility => write!(f, "<:utility:{UTILITY}>"),
-            Self::Production => write!(f, "<:production:{PRODUCTION}>"),
-            Self::Coal => write!(f, "<:coal:{COAL}>"),
-            Self::Iron => write!(f, "<:iron:{IRON}>"),
-            Self::Gold => write!(f, "<:gold:{GOLD}>"),
-            Self::Redstone => write!(f, "<:redstone:{REDSTONE}>"),
-            Self::Lapis => write!(f, "<:lapis:{LAPIS}>"),
-            Self::Diamonds => write!(f, "<:diamond:{DIAMOND}>"),
-            Self::Emeralds => write!(f, "<:emerald:{EMERALD}>"),
         }
     }
 }
@@ -151,7 +148,7 @@ impl FromStr for ShopPage {
 pub struct ShopItem<'a> {
     pub id: &'a str,
     pub name: &'a str,
-    pub emoji: Emoji<'a>,
+    pub emoji: Emoji,
     pub description: &'a str,
     pub costs: [Option<(i64, ShopCurrency)>; 4],
     pub category: ShopPage,
@@ -165,7 +162,7 @@ impl<'a> ShopItem<'a> {
     const fn new(
         id: &'a str,
         name: &'a str,
-        emoji: Emoji<'a>,
+        emoji: Emoji,
         desc: &'a str,
         cost: i64,
         currency: ShopCurrency,
@@ -227,11 +224,11 @@ impl<'a> ShopItem<'a> {
         }
     }
 
-    pub fn cost_desc(&self) -> String {
+    pub fn cost_desc(&self, emojis: &EmojiCache) -> String {
         self.costs
             .iter()
             .filter_map(|cost| cost.as_ref())
-            .map(|(cost, currency)| format!("`{cost}` {currency}"))
+            .map(|(cost, currency)| format!("`{cost}` {}", currency.emoji(emojis)))
             .collect::<Vec<_>>()
             .join("\n")
     }
@@ -338,7 +335,7 @@ const RIGGED_LUCK: ShopItem = ShopItem::new(
 const PAYOUT_X2: ShopItem = ShopItem::new(
     "payout2x",
     "Payout x2",
-    Emoji::Id(CHIP_2),
+    Emoji::Id("chip_2"),
     "Double payout from winning | Duration: `+15 minute`",
     2,
     ShopCurrency::Gems,
@@ -357,7 +354,7 @@ const PAYOUT_X2: ShopItem = ShopItem::new(
 const PAYOUT_X5: ShopItem = ShopItem::new(
     "payout5x",
     "Payout x5",
-    Emoji::Id(CHIP_5),
+    Emoji::Id("chip_5"),
     "Five times payout from winning | Duration: `+10 minute`",
     5,
     ShopCurrency::Gems,
@@ -376,7 +373,7 @@ const PAYOUT_X5: ShopItem = ShopItem::new(
 const PAYOUT_X10: ShopItem = ShopItem::new(
     "payout10x",
     "Payout x10",
-    Emoji::Id(CHIP_10),
+    Emoji::Id("chip_10"),
     "Ten times payout from winning | Duration: `+5 minute`",
     10,
     ShopCurrency::Gems,
@@ -395,7 +392,7 @@ const PAYOUT_X10: ShopItem = ShopItem::new(
 const PAYOUT_X50: ShopItem = ShopItem::new(
     "payout50x",
     "Payout x50",
-    Emoji::Id(CHIP_50),
+    Emoji::Id("chip_50"),
     "Fifty times payout from winning | Duration: `+2 minute`",
     20,
     ShopCurrency::Gems,
@@ -414,7 +411,7 @@ const PAYOUT_X50: ShopItem = ShopItem::new(
 const PAYOUT_X100: ShopItem = ShopItem::new(
     "payout100x",
     "Payout x100",
-    Emoji::Id(CHIP_100),
+    Emoji::Id("chip_100"),
     "One hundered times payout from winning | Duration: `+1 minute`",
     25,
     ShopCurrency::Gems,

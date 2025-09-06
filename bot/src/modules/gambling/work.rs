@@ -7,7 +7,7 @@ use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::StaminaTable;
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 use super::goals::GoalsTable;
 
@@ -87,8 +87,8 @@ impl ApplicationCommand<Error, Postgres> for Work {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::work::<Postgres, StaminaTable, GoalsTable, WorkTable>(
-            &ctx.http,
+        Commands::work::<CtxData, Postgres, StaminaTable, GoalsTable, WorkTable>(
+            ctx,
             interaction,
             pool,
         )

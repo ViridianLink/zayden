@@ -1,21 +1,11 @@
-use std::{collections::HashMap, sync::LazyLock};
-
 use async_trait::async_trait;
-use serenity::all::{ChannelId, Colour, CreateEmbed, CreateMessage, EmojiId, Mentionable, UserId};
+use serenity::all::{ChannelId, Colour, CreateEmbed, CreateMessage, Mentionable, UserId};
 use sqlx::{Database, Transaction};
 use zayden_core::{CronJob, FormatNum};
 
-use crate::{CARD_DECK, GEM, GamblingManager};
+use crate::{GEM, GamblingManager};
 
 const CHANNEL_ID: ChannelId = ChannelId::new(1383573049563156502);
-
-pub static CARD_TO_NUM: LazyLock<HashMap<EmojiId, u8>> = LazyLock::new(|| {
-    CARD_DECK
-        .iter()
-        .copied()
-        .zip((1u8..=13).cycle().take(52))
-        .collect()
-});
 
 #[async_trait]
 pub trait HigherLowerManager<Db: Database> {

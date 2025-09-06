@@ -5,7 +5,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, 
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 pub struct MineTable;
 
@@ -32,7 +32,7 @@ impl ApplicationCommand<Error, Postgres> for Mine {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::mine::<Postgres, MineTable>(&ctx.http, interaction, pool).await?;
+        Commands::mine::<CtxData, Postgres, MineTable>(ctx, interaction, pool).await?;
 
         Ok(())
     }

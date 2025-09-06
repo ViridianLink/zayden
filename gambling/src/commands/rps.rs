@@ -8,20 +8,19 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{FormatNum, parse_options};
+use zayden_core::{EmojiCacheData, FormatNum, parse_options};
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::GamblingManager;
 use crate::{
-    COIN, Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager,
-    Result,
+    Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager, Result,
 };
 
 use super::Commands;
 
 impl Commands {
     pub async fn rps<
-        Data: GamblingData,
+        Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalHandler: GoalsManager<Db>,
@@ -68,7 +67,13 @@ impl Commands {
             0
         };
 
-        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool)
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -99,8 +104,10 @@ impl Commands {
             "Rock 🪨 Paper 🗞️ Scissors ✂ - You Tied!"
         };
 
+        let coin = emojis.emoji("heads").unwrap();
+
         let desc = format!(
-            "Your bet: {} <:coin:{COIN}>
+            "Your bet: {} <:coin:{coin}>
         
             **You picked:** {} ({user_choice})
             **Zayden picked:** {} ({computer_choice})

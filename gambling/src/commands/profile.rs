@@ -2,13 +2,14 @@ use async_trait::async_trait;
 use chrono::NaiveDateTime;
 use levels::{LevelsRow, level_up_xp};
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
+    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+    CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool, types::Json};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
-use crate::{COIN, Coins, GamblingItem, Gems, ItemInventory, MaxBet, Prestige, Result, ShopItem};
+use crate::{Coins, GamblingItem, Gems, ItemInventory, MaxBet, Prestige, Result, ShopItem};
 
 use super::Commands;
 
@@ -26,6 +27,47 @@ pub struct ProfileRow {
     pub xp: Option<i32>,
     pub level: Option<i32>,
     pub prestige: Option<i64>,
+}
+
+impl ProfileRow {
+    pub fn into_embed<'a>(self, emojis: &EmojiCache) -> CreateEmbed<'a> {
+        let mut betting_max = self.max_bet_str();
+        if self.prestige() != 0 {
+            betting_max.push_str(&format!("\n(Prestige Boost: +{}%)", 10 * self.prestige()));
+        }
+
+        let inventory = self.inventory();
+
+        let loot_str = if inventory.is_empty() {
+            String::from("You've got no loot, not even a 🥄")
+        } else {
+            inventory
+                .iter()
+                .filter(|item| item.quantity > 0)
+                .map(|inv| (inv, ShopItem::from(inv)))
+                .map(|(inv, item)| format!("{} {} {}s", item.emoji(), inv.quantity, item.name))
+                .collect::<Vec<_>>()
+                .join("\n")
+        };
+
+        let coin = emojis.emoji("heads").unwrap();
+
+        CreateEmbed::new()
+            .field(format!("Coins <:coin:{coin}>"), self.coins_str(), false)
+            .field("Gems 💎", self.gems_str(), false)
+            .field(
+                format!("Level {}", LevelsRow::level(&self).format()),
+                format!(
+                    "{} / {} xp",
+                    self.xp().format(),
+                    level_up_xp(LevelsRow::level(&self)).format()
+                ),
+                false,
+            )
+            .field("Betting Maximum", betting_max, false)
+            .field("Loot", loot_str, false)
+            .colour(Colour::TEAL)
+    }
 }
 
 impl Coins for ProfileRow {
@@ -99,53 +141,14 @@ impl MaxBet for ProfileRow {
     }
 }
 
-impl From<ProfileRow> for CreateEmbed<'_> {
-    fn from(value: ProfileRow) -> Self {
-        let mut betting_max = value.max_bet_str();
-        if value.prestige() != 0 {
-            betting_max.push_str(&format!("\n(Prestige Boost: +{}%)", 10 * value.prestige()));
-        }
-
-        let inventory = value.inventory();
-
-        let loot_str = if inventory.is_empty() {
-            String::from("You've got no loot, not even a 🥄")
-        } else {
-            inventory
-                .iter()
-                .filter(|item| item.quantity > 0)
-                .map(|inv| (inv, ShopItem::from(inv)))
-                .map(|(inv, item)| format!("{} {} {}s", item.emoji(), inv.quantity, item.name))
-                .collect::<Vec<_>>()
-                .join("\n")
-        };
-
-        CreateEmbed::new()
-            .field(format!("Coins <:coin:{COIN}>"), value.coins_str(), false)
-            .field("Gems 💎", value.gems_str(), false)
-            .field(
-                format!("Level {}", LevelsRow::level(&value).format()),
-                format!(
-                    "{} / {} xp",
-                    value.xp().format(),
-                    level_up_xp(LevelsRow::level(&value)).format()
-                ),
-                false,
-            )
-            .field("Betting Maximum", betting_max, false)
-            .field("Loot", loot_str, false)
-            .colour(Colour::TEAL)
-    }
-}
-
 impl Commands {
-    pub async fn profile<Db: Database, Manager: ProfileManager<Db>>(
-        http: &Http,
+    pub async fn profile<Data: EmojiCacheData, Db: Database, Manager: ProfileManager<Db>>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let user = match options.pop() {
             Some(option) => {
@@ -159,14 +162,20 @@ impl Commands {
 
         let row = Manager::row(pool, user.id).await?.unwrap_or_default();
 
-        let mut embed = CreateEmbed::from(row).title(user.display_name());
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        let mut embed = row.into_embed(&emojis).title(user.display_name());
 
         if let Some(avatar) = user.avatar_url() {
             embed = embed.thumbnail(avatar);
         }
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

@@ -2,18 +2,17 @@ use std::fmt::Display;
 
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+    CreateEmbed, EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
 use serenity::small_fixed_array::FixedArray;
 use sqlx::types::Json;
 use sqlx::{Database, Pool, prelude::FromRow};
-use zayden_core::parse_options;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, parse_options};
 
 use crate::shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
-use crate::{
-    COIN, Coins, EffectsManager, Error, GEM, GamblingItem, Gems, ItemInventory, Mining, Result,
-};
+use crate::{Coins, EffectsManager, Error, GEM, GamblingItem, Gems, ItemInventory, Mining, Result};
 
 use super::Commands;
 
@@ -188,28 +187,34 @@ impl Mining for InventoryRow {
 
 impl Commands {
     pub async fn inventory<
+        Data: EmojiCacheData,
         Db: Database,
         EffectsHandler: EffectsManager<Db>,
         InventoryHandler: InventoryManager<Db>,
     >(
-        http: &Http,
+        ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let subcommand = options.pop().unwrap();
 
         match subcommand.name {
-            "show" => show::<Db, InventoryHandler>(http, interaction, pool).await,
+            "show" => show::<Data, Db, InventoryHandler>(ctx, interaction, pool).await,
             "use" => {
                 let ResolvedValue::SubCommand(options) = subcommand.value else {
                     unreachable!("Option must be a subcommand")
                 };
 
-                use_item::<Db, EffectsHandler, InventoryHandler>(http, interaction, options, pool)
-                    .await
+                use_item::<Db, EffectsHandler, InventoryHandler>(
+                    &ctx.http,
+                    interaction,
+                    options,
+                    pool,
+                )
+                .await
             }
             _ => unreachable!("Invalid subcommand"),
         }
@@ -250,8 +255,8 @@ impl Commands {
     }
 }
 
-async fn show<Db: Database, Manager: InventoryManager<Db>>(
-    http: &Http,
+async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>(
+    ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
 ) -> Result<()> {
@@ -282,11 +287,18 @@ async fn show<Db: Database, Manager: InventoryManager<Db>>(
         })
         .partition::<Vec<_>, _>(|item| matches!(item.cost[0], Some((_, ShopCurrency::Coins))));
 
+    let emojis = {
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let data = data_lock.read().await;
+        data.emojis()
+    };
+    let coin = emojis.emoji("heads").unwrap();
+
     let mut embed = CreateEmbed::new()
         .field(
             "Currencies",
             format!(
-                "<:coin:{COIN}> {} coins\n{GEM} {} gems",
+                "<:coin:{coin}> {} coins\n{GEM} {} gems",
                 row.coins_str(),
                 row.gems_str()
             ),
@@ -310,8 +322,8 @@ async fn show<Db: Database, Manager: InventoryManager<Db>>(
                 .join("\n"),
             true,
         )
-        .field("Resources", row.resources(), true)
-        .field("Crafted", row.crafted(), false)
+        .field("Resources", row.resources(&emojis), true)
+        .field("Crafted", row.crafted(&emojis), false)
         .field(
             "Weapons",
             format!(
@@ -326,7 +338,7 @@ async fn show<Db: Database, Manager: InventoryManager<Db>>(
     }
 
     interaction
-        .edit_response(http, EditInteractionResponse::new().embed(embed))
+        .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
         .await
         .unwrap();
 

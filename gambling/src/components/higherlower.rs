@@ -3,16 +3,18 @@ use std::collections::HashSet;
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    Colour, ComponentInteraction, CreateEmbed, CreateInteractionResponse,
+    Colour, ComponentInteraction, Context, CreateEmbed, CreateInteractionResponse,
     CreateInteractionResponseMessage, EmojiId, Http, parse_emoji,
 };
 use sqlx::{Database, Pool};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use crate::events::{Dispatch, Event, GameEvent};
-use crate::games::higherlower::{CARD_TO_NUM, create_embed};
+use crate::games::higherlower::create_embed;
 use crate::{
-    CARD_DECK, Coins, GamblingManager, GameManager, GameRow, GoalsManager, Result, StatsManager,
+    CARD_DECK, CARD_TO_NUM, Coins, GamblingManager, GameManager, GameRow, GoalsManager, Result,
+    StatsManager, card_deck, card_to_num,
 };
 
 pub struct HigherLower {
@@ -23,19 +25,26 @@ pub struct HigherLower {
 
 impl HigherLower {
     pub async fn run_components<
+        Data: EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GameHandler: GameManager<Db>,
         GoalsHandler: GoalsManager<Db>,
         StatsHandler: StatsManager<Db>,
     >(
-        http: &Http,
+        ctx: &Context,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
         let mut details = HigherLower::from(interaction);
         let prev = details.prev();
-        let next = match details.next() {
+        let next = match details.next(&emojis) {
             Some(next) => next,
             None => {
                 let mut tx = pool.begin().await.unwrap();
@@ -44,17 +53,18 @@ impl HigherLower {
                     .unwrap();
                 tx.commit().await.unwrap();
 
-                details.new_deck();
-                details.next().unwrap()
+                details.new_deck(&emojis);
+                details.next(&emojis).unwrap()
             }
         };
 
         match interaction.data.custom_id.as_str() {
             "hol_higher" => {
                 Self::higher::<Db, GameHandler, GoalsHandler, StatsHandler>(
-                    http,
+                    &ctx.http,
                     interaction,
                     pool,
+                    &emojis,
                     details,
                     prev,
                     next,
@@ -63,9 +73,10 @@ impl HigherLower {
             }
             "hol_lower" => {
                 Self::lower::<Db, GameHandler, GoalsHandler, StatsHandler>(
-                    http,
+                    &ctx.http,
                     interaction,
                     pool,
+                    &emojis,
                     details,
                     prev,
                     next,
@@ -87,6 +98,7 @@ impl HigherLower {
         http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
+        emojis: &EmojiCache,
         mut details: Self,
         prev: u8,
         next: (EmojiId, u8),
@@ -107,7 +119,12 @@ impl HigherLower {
 
         if !winner {
             details
-                .game_end::<Db, GameHandler, GoalsHandler, StatsHandler>(http, interaction, pool)
+                .game_end::<Db, GameHandler, GoalsHandler, StatsHandler>(
+                    http,
+                    interaction,
+                    pool,
+                    emojis,
+                )
                 .await;
 
             return Ok(());
@@ -139,6 +156,7 @@ impl HigherLower {
         http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
+        emojis: &EmojiCache,
         mut details: Self,
         prev: u8,
         next: (EmojiId, u8),
@@ -159,7 +177,12 @@ impl HigherLower {
 
         if !winner {
             details
-                .game_end::<Db, GameHandler, GoalsHandler, StatsHandler>(http, interaction, pool)
+                .game_end::<Db, GameHandler, GoalsHandler, StatsHandler>(
+                    http,
+                    interaction,
+                    pool,
+                    emojis,
+                )
                 .await;
             return Ok(());
         }
@@ -181,9 +204,12 @@ impl HigherLower {
         Ok(())
     }
 
-    fn next(&mut self) -> Option<(EmojiId, u8)> {
+    fn next(&mut self, emojis: &EmojiCache) -> Option<(EmojiId, u8)> {
         let emoji = self.deck.pop()?;
-        let num = *CARD_TO_NUM.get(&emoji).unwrap();
+        let num = *CARD_TO_NUM
+            .get_or_init(|| card_to_num(emojis))
+            .get(&emoji)
+            .unwrap();
 
         Some((emoji, num))
     }
@@ -196,8 +222,8 @@ impl HigherLower {
             .unwrap()
     }
 
-    fn new_deck(&mut self) {
-        let mut deck = CARD_DECK.to_vec();
+    fn new_deck(&mut self, emojis: &EmojiCache) {
+        let mut deck = CARD_DECK.get_or_init(|| card_deck(emojis)).to_vec();
 
         deck.shuffle(&mut rng());
 
@@ -214,6 +240,7 @@ impl HigherLower {
         http: &Http,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
+        emojis: &EmojiCache,
     ) {
         let mut tx = pool.begin().await.unwrap();
 
@@ -238,7 +265,7 @@ impl HigherLower {
 
         let coins = row.coins_str();
 
-        Dispatch::<Db, GoalsHandler>::new(http, pool)
+        Dispatch::<Db, GoalsHandler>::new(http, pool, emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -313,6 +340,8 @@ impl From<&ComponentInteraction> for HigherLower {
             .collect::<HashSet<_>>();
 
         let mut deck = CARD_DECK
+            .get()
+            .expect("Deck should be initalised at this point")
             .iter()
             .copied()
             .filter(|id| !used_cards.contains(id))

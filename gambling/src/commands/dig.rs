@@ -5,15 +5,17 @@ use chrono::{NaiveDateTime, Utc};
 use rand::rng;
 use rand_distr::{Binomial, Distribution};
 use serenity::all::{
-    Colour, CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
+    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
+    UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum};
 
 use crate::events::{Dispatch, Event};
 use crate::models::{MineAmount, Prestige};
 use crate::shop::ShopCurrency;
-use crate::{COIN, Coins, Gems, GoalsManager, MaxBet, MineHourly, Result, Stamina, StaminaManager};
+use crate::{Coins, Gems, GoalsManager, MaxBet, MineHourly, Result, Stamina, StaminaManager};
 
 use super::Commands;
 
@@ -166,16 +168,17 @@ impl MineAmount for DigRow {
 
 impl Commands {
     pub async fn dig<
+        Data: EmojiCacheData,
         Db: Database,
         StaminaHandler: StaminaManager<Db>,
         GoalsHandler: GoalsManager<Db>,
         DigHandler: DigManager<Db>,
     >(
-        http: &Http,
+        ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await?;
+        interaction.defer(&ctx.http).await?;
 
         let mut row = DigHandler::row(pool, interaction.user.id)
             .await
@@ -219,7 +222,13 @@ impl Commands {
             s => unreachable!("Invalid resource: {s}"),
         });
 
-        Dispatch::<Db, GoalsHandler>::new(http, pool)
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -250,8 +259,12 @@ impl Commands {
                 "emeralds" => (ShopCurrency::Emeralds, v, k),
                 s => unreachable!("Invalid resource: {s}"),
             })
-            .map(|(currency, amount, name)| format!("{currency} `{}` {name}", amount.format()))
+            .map(|(currency, amount, name)| {
+                format!("{} `{}` {name}", currency.emoji(&emojis), amount.format())
+            })
             .collect::<Vec<_>>();
+
+        let coin = emojis.emoji("heads").unwrap();
 
         let embed = CreateEmbed::new()
             .description(format!(
@@ -268,7 +281,7 @@ impl Commands {
                         String::new()
                     } else {
                         format!(
-                            "\n\nWhile you were gone, your mine made:\n<:coin:{COIN}> `{}` coins",
+                            "\n\nWhile you were gone, your mine made:\n<:coin:{coin}> `{}` coins",
                             mine_amount.format()
                         )
                     }
@@ -277,7 +290,7 @@ impl Commands {
             .color(Colour::GOLD);
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

@@ -14,7 +14,7 @@ impl Handler {
 
         ctx.set_presence(None, OnlineStatus::Online);
 
-        CtxData::ready(ctx, ready).await;
+        CtxData::ready(ctx, ready, pool).await;
 
         if !self.started_cron.load(Ordering::Relaxed) {
             {

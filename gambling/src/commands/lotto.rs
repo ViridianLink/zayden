@@ -1,23 +1,25 @@
 use serenity::all::{
-    CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http,
+    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
 };
 use sqlx::{Database, Pool};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum};
 
 use crate::shop::LOTTO_TICKET;
-use crate::{COIN, Commands, GamblingManager, Lotto, LottoManager, LottoRow, Result, jackpot};
+use crate::{Commands, GamblingManager, Lotto, LottoManager, LottoRow, Result, jackpot};
 
 impl Commands {
     pub async fn lotto<
+        Data: EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         LottoHandler: LottoManager<Db>,
     >(
-        http: &Http,
+        ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let mut tx = pool.begin().await.unwrap();
 
@@ -34,7 +36,7 @@ impl Commands {
         let lotto_emoji = LOTTO_TICKET.emoji();
 
         let timestamp = {
-            Lotto::cron_job::<Db, GamblingHandler, LottoHandler>()
+            Lotto::cron_job::<Data, Db, GamblingHandler, LottoHandler>()
                 .schedule
                 .upcoming(chrono::Utc)
                 .next()
@@ -42,9 +44,15 @@ impl Commands {
                 .timestamp()
         };
 
+        let coin = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis().emoji("heads").unwrap()
+        };
+
         let embed = CreateEmbed::new()
             .title(format!(
-                "<:coin:{COIN}> <:coin:{COIN}> Lottery!! <:coin:{COIN}> <:coin:{COIN}>"
+                "<:coin:{coin}> <:coin:{coin}> Lottery!! <:coin:{coin}> <:coin:{coin}>"
             ))
             .description(format!("Draws are at <t:{timestamp}:F>"))
             .field(
@@ -54,7 +62,7 @@ impl Commands {
             )
             .field(
                 "Jackpot Value",
-                format!("{} <:coin:{COIN}>", jackpot(total_tickets).format()),
+                format!("{} <:coin:{coin}>", jackpot(total_tickets).format()),
                 false,
             )
             .field(
@@ -64,7 +72,7 @@ impl Commands {
             );
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

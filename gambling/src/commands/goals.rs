@@ -1,10 +1,12 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
+    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse, UserId,
 };
 use sqlx::{Database, FromRow, Pool};
+use tokio::sync::RwLock;
+use zayden_core::EmojiCacheData;
 
-use crate::{COIN, Coins, GamblingGoalsRow, Gems, GoalHandler, MaxBet, Prestige, Result, tomorrow};
+use crate::{Coins, GamblingGoalsRow, Gems, GoalHandler, MaxBet, Prestige, Result, tomorrow};
 
 use super::Commands;
 
@@ -64,12 +66,12 @@ impl MaxBet for GoalsRow {
 }
 
 impl Commands {
-    pub async fn goals<Db: Database, Manager: GoalsManager<Db>>(
-        http: &Http,
+    pub async fn goals<Data: EmojiCacheData, Db: Database, Manager: GoalsManager<Db>>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let row = Manager::row(pool, interaction.user.id)
             .await
@@ -84,15 +86,21 @@ impl Commands {
                 .map(|goal| format!("{}\n\n", goal.description()))
                 .collect::<String>();
 
+        let coin = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis().emoji("heads").unwrap()
+        };
+
         desc.push_str(&format!(
-            "Reward for completing __**each goals**__: 5,000 <:coin:{COIN}>\nReward for completing __**all goals**__: 1 💎\n\nGoals reset <t:{}:R>",
+            "Reward for completing __**each goals**__: 5,000 <:coin:{coin}>\nReward for completing __**all goals**__: 1 💎\n\nGoals reset <t:{}:R>",
             tomorrow(None)
         ));
 
         let embed = CreateEmbed::new().title("Daily Goals 📋").description(desc);
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

@@ -1,12 +1,14 @@
 use async_trait::async_trait;
 use chrono::{NaiveDate, Utc};
 use serenity::all::{
-    Colour, CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
+    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
+    UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum};
 
-use crate::{COIN, Coins, Error, Result, START_AMOUNT, tomorrow};
+use crate::{Coins, Error, Result, START_AMOUNT, tomorrow};
 
 use super::Commands;
 
@@ -49,12 +51,12 @@ impl Coins for DailyRow {
 }
 
 impl Commands {
-    pub async fn daily<Db: Database, Manager: DailyManager<Db>>(
-        http: &Http,
+    pub async fn daily<Data: EmojiCacheData, Db: Database, Manager: DailyManager<Db>>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let mut row = Manager::row(pool, interaction.user.id)
             .await
@@ -74,12 +76,18 @@ impl Commands {
 
         Manager::save(pool, row).await.unwrap();
 
+        let coin = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis().emoji("heads").unwrap()
+        };
+
         let embed = CreateEmbed::new()
-            .description(format!("Collected {} <:coin:{COIN}>", amount.format()))
+            .description(format!("Collected {} <:coin:{coin}>", amount.format()))
             .colour(Colour::GOLD);
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

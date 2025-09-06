@@ -6,7 +6,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::parse_options;
+use zayden_core::{EmojiCacheData, parse_options};
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::GamblingManager;
@@ -20,7 +20,7 @@ use super::Commands;
 
 impl Commands {
     pub async fn roll<
-        Data: GamblingData,
+        Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalHandler: GoalsManager<Db>,
@@ -73,7 +73,13 @@ impl Commands {
             ("🎲 Dice Roll 🎲 - You Lost!", 0)
         };
 
-        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool)
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -104,6 +110,7 @@ impl Commands {
         GameCache::update(data, interaction.user.id).await;
 
         let embed = game_embed(
+            &emojis,
             title,
             GameResult::new_with_str(prediction.to_string(), "🎲"),
             "Result",

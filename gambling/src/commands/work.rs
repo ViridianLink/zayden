@@ -1,16 +1,18 @@
 use async_trait::async_trait;
 use chrono::{NaiveDateTime, Utc};
 use serenity::all::{
-    Colour, CommandInteraction, CreateCommand, CreateEmbed, EditInteractionResponse, Http, UserId,
+    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
+    UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum};
 
 use crate::events::{Dispatch, Event};
 use crate::models::MineAmount;
 use crate::{
-    COIN, Coins, Gems, GoalsManager, MaxBet, MineHourly, Prestige, Result, Stamina, StaminaManager,
+    Coins, Gems, GoalsManager, MaxBet, MineHourly, Prestige, Result, Stamina, StaminaManager,
 };
 
 use super::Commands;
@@ -29,7 +31,7 @@ pub struct WorkRow {
 
 impl WorkRow {
     fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
+        let id: UserId = id.into();
 
         Self {
             id: id.get() as i64,
@@ -107,16 +109,17 @@ pub trait WorkManager<Db: Database> {
 
 impl Commands {
     pub async fn work<
+        Data: EmojiCacheData,
         Db: Database,
         StaminaHandler: StaminaManager<Db>,
         GoalHandler: GoalsManager<Db>,
         WorkHandler: WorkManager<Db>,
     >(
-        http: &Http,
+        ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let mut row = match WorkHandler::row(pool, interaction.user.id).await.unwrap() {
             Some(row) => row,
@@ -140,7 +143,13 @@ impl Commands {
 
         let coins = row.coins_str();
 
-        Dispatch::<Db, GoalHandler>::new(http, pool)
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -155,14 +164,16 @@ impl Commands {
 
         WorkHandler::save(pool, row).await.unwrap();
 
+        let coin = emojis.emoji("heads").unwrap();
+
         let embed = CreateEmbed::new()
             .description(format!(
-                "Collected {} <:coin:{COIN}> for working{gem_desc}\nYour coins: {coins}\nStamina: {stamina}", total_amount.format()
+                "Collected {} <:coin:{coin}> for working{gem_desc}\nYour coins: {coins}\nStamina: {stamina}", total_amount.format()
             ))
             .colour(Colour::GOLD);
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await?;
 
         Ok(())

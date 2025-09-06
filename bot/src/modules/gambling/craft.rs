@@ -6,7 +6,7 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 pub struct CraftTable;
 
@@ -60,7 +60,7 @@ impl ApplicationCommand<Error, Postgres> for Craft {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::craft::<Postgres, CraftTable>(&ctx.http, interaction, options, pool).await?;
+        Commands::craft::<CtxData, Postgres, CraftTable>(ctx, interaction, options, pool).await?;
 
         Ok(())
     }

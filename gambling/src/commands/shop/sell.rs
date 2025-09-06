@@ -1,13 +1,14 @@
 use serenity::all::{
-    CommandInteraction, EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
-use zayden_core::{FormatNum, parse_options_ref};
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
 use crate::commands::shop::ShopManager;
 use crate::shop::SALES_TAX;
-use crate::{COIN, Coins, Error, Result, SHOP_ITEMS};
+use crate::{Coins, Error, Result, SHOP_ITEMS};
 
 #[derive(FromRow)]
 pub struct SellRow {
@@ -40,8 +41,8 @@ impl Coins for SellRow {
     }
 }
 
-pub async fn sell<Db: Database, Manager: ShopManager<Db>>(
-    http: &Http,
+pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
+    ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     options: &[ResolvedOption<'_>],
@@ -89,11 +90,17 @@ pub async fn sell<Db: Database, Manager: ShopManager<Db>>(
 
     Manager::sell_save(pool, row).await.unwrap();
 
+    let coin = {
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let data = data_lock.read().await;
+        data.emojis().emoji("heads").unwrap()
+    };
+
     interaction
         .edit_response(
-            http,
+            &ctx.http,
             EditInteractionResponse::new().content(format!(
-                "You sold {} {item} for {} <:coin:{COIN}>\nYou now have {}.",
+                "You sold {} {item} for {} <:coin:{coin}>\nYou now have {}.",
                 amount.format(),
                 payment.format(),
                 quantity.format()

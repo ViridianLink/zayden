@@ -7,7 +7,7 @@ use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::{GamblingTable, GoalsTable};
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 pub struct GiftTable;
 
@@ -85,8 +85,8 @@ impl ApplicationCommand<Error, Postgres> for Gift {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::gift::<Postgres, GamblingTable, GoalsTable, GiftTable>(
-            &ctx.http,
+        Commands::gift::<CtxData, Postgres, GamblingTable, GoalsTable, GiftTable>(
+            ctx,
             interaction,
             options,
             pool,

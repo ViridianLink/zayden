@@ -68,12 +68,13 @@ impl Component<Error, Postgres> for HigherLower {
         };
 
         gambling::components::HigherLower::run_components::<
+            CtxData,
             Postgres,
             GamblingTable,
             GameTable,
             GoalsTable,
             StatsTable,
-        >(&ctx.http, interaction, pool)
+        >(ctx, interaction, pool)
         .await?;
 
         Ok(())

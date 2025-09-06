@@ -7,7 +7,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, 
 use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
 use zayden_core::ApplicationCommand;
 
-use crate::{Error, Result};
+use crate::{CtxData, Error, Result};
 
 pub struct DailyTable;
 
@@ -58,7 +58,7 @@ impl ApplicationCommand<Error, Postgres> for Daily {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::daily::<Postgres, DailyTable>(&ctx.http, interaction, pool).await?;
+        Commands::daily::<CtxData, Postgres, DailyTable>(ctx, interaction, pool).await?;
 
         Ok(())
     }

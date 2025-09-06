@@ -6,6 +6,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
+use zayden_core::EmojiCacheData;
 
 use crate::games::blackjack::{
     GameDetails, double_button, game_end_blackjack, game_end_draw, hit_button, in_play_embed,
@@ -14,13 +15,14 @@ use crate::games::blackjack::{
 use crate::models::gambling::GamblingManager;
 use crate::{
     CARD_DECK, EffectsManager, GamblingData, GameCache, GameManager, GoalsManager, Result,
+    card_deck,
 };
 
 use super::Commands;
 
 impl Commands {
     pub async fn blackjack<
-        Data: GamblingData,
+        Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GoalsHandler: GoalsManager<Db>,
@@ -52,14 +54,20 @@ impl Commands {
             .await
             .unwrap();
 
-        let mut card_shoe = CARD_DECK.to_vec();
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        let mut card_shoe = CARD_DECK.get_or_init(|| card_deck(&emojis)).to_vec();
 
         card_shoe.shuffle(&mut rng());
 
         let player_hand = vec![card_shoe.pop().unwrap(), card_shoe.pop().unwrap()];
-        let player_value = sum_cards(&player_hand);
+        let player_value = sum_cards(&emojis, &player_hand);
         let dealer_hand = [card_shoe.pop().unwrap(), card_shoe.pop().unwrap()];
-        let dealer_value = sum_cards(&dealer_hand);
+        let dealer_value = sum_cards(&emojis, &dealer_hand);
 
         let game = GameDetails::new(bet, player_hand, dealer_hand[0]);
 
@@ -67,6 +75,7 @@ impl Commands {
             let response = game_end_draw::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
                 ctx,
                 pool,
+                &emojis,
                 interaction.user.id,
                 interaction.channel_id,
                 game,
@@ -85,6 +94,7 @@ impl Commands {
                 game_end_blackjack::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
                     ctx,
                     pool,
+                    &emojis,
                     interaction.user.id,
                     interaction.channel_id,
                     game,
@@ -100,7 +110,7 @@ impl Commands {
             return Ok(());
         }
 
-        let embed = in_play_embed(bet, game.player_hand(), dealer_hand[0]);
+        let embed = in_play_embed(&emojis, bet, game.player_hand(), dealer_hand[0]);
 
         let action_row = CreateComponent::ActionRow(CreateActionRow::buttons(vec![
             hit_button(),

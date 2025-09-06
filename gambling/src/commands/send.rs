@@ -1,14 +1,15 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool};
-use zayden_core::{FormatNum, parse_options};
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCacheData, FormatNum, parse_options};
 
 use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
-    COIN, Coins, Commands, Error, GamblingManager, Gems, GoalsManager, MaxBet, Prestige, Result,
+    Coins, Commands, Error, GamblingManager, Gems, GoalsManager, MaxBet, Prestige, Result,
     ShopCurrency, Stamina, StaminaManager,
 };
 
@@ -87,18 +88,19 @@ pub trait SendManager<Db: Database> {
 
 impl Commands {
     pub async fn send<
+        Data: EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         StaminaHandler: StaminaManager<Db>,
         GoalHandler: GoalsManager<Db>,
         SendHandler: SendManager<Db>,
     >(
-        http: &Http,
+        ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await?;
+        interaction.defer(&ctx.http).await?;
 
         let mut options = parse_options(options);
 
@@ -149,7 +151,13 @@ impl Commands {
 
         let stamina = row.stamina_str();
 
-        Dispatch::<Db, GoalHandler>::new(http, pool)
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -160,14 +168,16 @@ impl Commands {
 
         SendHandler::save(pool, row).await?;
 
+        let coin = emojis.emoji("heads").unwrap();
+
         let embed = CreateEmbed::new().description(format!(
-            "You sent {} <:coin:{COIN}> to {}\nStamina: {stamina}",
+            "You sent {} <:coin:{coin}> to {}\nStamina: {stamina}",
             amount.format(),
             recipient.mention()
         ));
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 

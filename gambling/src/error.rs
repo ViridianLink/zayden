@@ -44,7 +44,7 @@ impl std::fmt::Display for Error {
             Error::PremiumRequired => write!(f, "Sorry, only supporters can use this option"),
             Error::InsufficientFunds { required, currency } => write!(
                 f,
-                "You do not have enough to make this.\nYou need the following resource: {} {currency}",
+                "You do not have enough to make this.\nYou need the following resource: {} {currency:?}",
                 required.format()
             ),
             Error::MinimumBetAmount(min) => {

@@ -12,6 +12,7 @@ pub mod sell;
 pub use buy::{BuyRow, buy};
 pub use list::list;
 pub use sell::{SellRow, sell};
+use zayden_core::EmojiCacheData;
 
 use crate::{GoalsManager, Result, SHOP_ITEMS, ShopPage};
 
@@ -35,6 +36,7 @@ pub trait ShopManager<Db: Database> {
 
 impl Commands {
     pub async fn shop<
+        Data: EmojiCacheData,
         Db: Database,
         GoalsHandler: GoalsManager<Db>,
         ShopHandler: ShopManager<Db>,
@@ -53,11 +55,11 @@ impl Commands {
         };
 
         match command.name {
-            "list" => list::<Db, ShopHandler>(ctx, interaction, pool, options).await?,
+            "list" => list::<Data, Db, ShopHandler>(ctx, interaction, pool, options).await?,
             "buy" => {
-                buy::<Db, GoalsHandler, ShopHandler>(&ctx.http, interaction, pool, options).await?
+                buy::<Data, Db, GoalsHandler, ShopHandler>(ctx, interaction, pool, options).await?
             }
-            "sell" => sell::<Db, ShopHandler>(&ctx.http, interaction, pool, options).await?,
+            "sell" => sell::<Data, Db, ShopHandler>(ctx, interaction, pool, options).await?,
             _ => unreachable!("Invalid subcommand name"),
         };
 

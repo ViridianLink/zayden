@@ -7,15 +7,16 @@ use serenity::all::{
     CreateInteractionResponseMessage, EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::FormatNum;
+use tokio::sync::RwLock;
+use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use crate::{
-    COIN, Coins, ItemInventory, Result, SHOP_ITEMS, ShopPage,
+    Coins, ItemInventory, Result, SHOP_ITEMS, ShopPage,
     commands::shop::{BuyRow, ShopManager},
     shop::SALES_TAX,
 };
 
-pub async fn list<Db: Database, Manager: ShopManager<Db>>(
+pub async fn list<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
     ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
@@ -31,7 +32,13 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
         None => BuyRow::new(interaction.user.id),
     };
 
-    let embed = create_embed(page, &row);
+    let emojis = {
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let data = data_lock.read().await;
+        data.emojis()
+    };
+
+    let embed = create_embed(&emojis, page, &row);
 
     let prev = CreateButton::new("shop_prev")
         .label("<")
@@ -63,9 +70,9 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
             .and_then(|embed| embed.title.as_deref());
 
         let (embed, components) = if interaction.data.custom_id == "shop_next" {
-            shop(&row, title, 1)
+            shop(&emojis, &row, title, 1)
         } else {
-            shop(&row, title, -1)
+            shop(&emojis, &row, title, -1)
         };
 
         interaction
@@ -91,6 +98,7 @@ pub async fn list<Db: Database, Manager: ShopManager<Db>>(
 }
 
 fn shop<'a>(
+    emojis: &EmojiCache,
     row: &'a BuyRow,
     title: Option<&str>,
     page_change: i8,
@@ -109,7 +117,7 @@ fn shop<'a>(
         .copied()
         .unwrap_or(ShopPage::Item);
 
-    let embed = create_embed(category, row);
+    let embed = create_embed(emojis, category, row);
 
     let prev = CreateButton::new("shop_prev")
         .label("<")
@@ -124,7 +132,7 @@ fn shop<'a>(
     )
 }
 
-fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed<'_> {
+fn create_embed<'a>(emojis: &EmojiCache, category: ShopPage, row: &BuyRow) -> CreateEmbed<'a> {
     let inv = row.inventory();
 
     let items = SHOP_ITEMS
@@ -134,7 +142,7 @@ fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed<'_> {
             let costs = item
                 .costs(1)
                 .into_iter()
-                .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency))
+                .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency.emoji(emojis)))
                 .collect::<Vec<_>>();
 
             let mut s = format!("**{item}**");
@@ -165,8 +173,10 @@ fn create_embed(category: ShopPage, row: &BuyRow) -> CreateEmbed<'_> {
         .collect::<Vec<_>>()
         .join("\n\n");
 
+    let coin = emojis.emoji("heads").unwrap();
+
     let desc = format!(
-        "Sales tax: {}%\nYour coins: {}  <:coin:{COIN}>\n--------------------\n{items}\n--------------------\nBuy with `/shop buy <item> <amount>`\nSell with `/shop sell <item> <amount>`",
+        "Sales tax: {}%\nYour coins: {}  <:coin:{coin}>\n--------------------\n{items}\n--------------------\nBuy with `/shop buy <item> <amount>`\nSell with `/shop sell <item> <amount>`",
         SALES_TAX * 100.0,
         row.coins_str()
     );
