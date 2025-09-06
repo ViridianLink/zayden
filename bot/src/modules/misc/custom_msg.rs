@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction, Context, CreateCommand, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, CreateMessage, ResolvedOption,
+    CreateInteractionResponseMessage, CreateMessage, Permissions, ResolvedOption,
 };
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
@@ -68,7 +68,9 @@ impl ApplicationCommand<Error, Postgres> for CustomMsg {
     }
 
     fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        let cmd = CreateCommand::new("custom_msg").description("Custom Messages");
+        let cmd = CreateCommand::new("custom_msg")
+            .description("Custom Messages")
+            .default_member_permissions(Permissions::ADMINISTRATOR);
 
         Ok(cmd)
     }
