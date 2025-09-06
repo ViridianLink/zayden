@@ -5,6 +5,13 @@ use serenity::all::{
 };
 use zayden_core::EmojiCache;
 
+pub const DEAD_MESSENGER: Weapon = Weapon {
+    name: "Dead Messenger",
+    affinity: Affinity::Void,
+    archtype: "Exotic Grenade Launcher",
+    perks: [Perk::TheFundamentals, Perk::HandLaidStock],
+};
+
 pub const DEVILS_RUIN: Weapon = Weapon {
     name: "Devil's Ruin",
     affinity: Affinity::Solar,
@@ -208,6 +215,8 @@ pub enum Perk {
     GraveRobber,
     MarkovChain,
     MonteCarloMethod,
+    TheFundamentals,
+    HandLaidStock,
 }
 
 impl Display for Perk {
@@ -231,6 +240,8 @@ impl Display for Perk {
             Perk::GraveRobber => "grave_robber",
             Perk::MarkovChain => "markov_chain",
             Perk::MonteCarloMethod => "monte_carlo_method",
+            Perk::TheFundamentals => "the_fundamentals",
+            Perk::HandLaidStock => "hand_laid_stock",
         };
 
         write!(f, "{name}")

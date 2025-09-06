@@ -72,11 +72,11 @@ const GEAR: Gear = Gear {
         ),
     ],
     stats_priority: [
-        Stat::Melee,
-        Stat::Super,
-        Stat::Grenade,
-        Stat::Weapons,
-        Stat::Health,
-        Stat::Class,
+        Stat::Melee(200),
+        Stat::Super(200),
+        Stat::Grenade(200),
+        Stat::Weapons(200),
+        Stat::Health(200),
+        Stat::Class(200),
     ],
 };

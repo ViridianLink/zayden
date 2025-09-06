@@ -16,6 +16,7 @@ mod prismatic_titan;
 mod solar_titan;
 mod solar_warlock;
 mod strand_titan;
+mod void_warlock;
 use arc_hunter::ARC_HUNTER;
 use boss_prismatic_hunter::BOSS_PRISMATIC_HUNTER;
 use general_prismatic_hunter::GENERAL_PRISMATIC_HUNTER;
@@ -23,13 +24,14 @@ use prismatic_titan::PRISMATIC_TITAN;
 use solar_titan::SOLAR_TITAN;
 use solar_warlock::SOLAR_WARLOCK;
 use strand_titan::STRAND_TITAN;
+use void_warlock::VOID_WARLOCK;
 
 pub mod weapons;
 use tokio::sync::RwLock;
 pub use weapons::{Perk, Weapon};
 use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
-const BUILDS: [Loadout; 7] = [
+const BUILDS: [Loadout; 8] = [
     ARC_HUNTER,
     GENERAL_PRISMATIC_HUNTER,
     BOSS_PRISMATIC_HUNTER,
@@ -37,6 +39,7 @@ const BUILDS: [Loadout; 7] = [
     STRAND_TITAN,
     PRISMATIC_TITAN,
     SOLAR_WARLOCK,
+    VOID_WARLOCK,
 ];
 const DUPLICATE: EmojiId = EmojiId::new(1395743560388706374);
 
@@ -179,9 +182,11 @@ impl<'a> Loadout<'a> {
         ctx: &Context,
         parent_token: &str,
     ) -> CreateComponent<'a> {
-        let data = ctx.data::<RwLock<Data>>();
-        let mut data = data.write().await;
-        let emoji_cache = data.get_mut();
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let mut data = data_lock.write().await;
+        let emoji_cache = data
+            .emojis_mut()
+            .expect("Only 1 references should exist here");
 
         let mut components = Vec::with_capacity(21);
 
@@ -438,10 +443,24 @@ impl<'a> Loadout<'a> {
             .gear
             .stats_priority
             .into_iter()
-            .map(|s| s.to_string())
-            .map(|s| {
-                let emoji = emoji_cache.emoji_str(&s)?;
-                Ok(format!(" {emoji}"))
+            .enumerate()
+            .map(|(i, stat)| {
+                let emoji = emoji_cache.emoji_str(&stat.to_string())?;
+                let value = stat.value();
+
+                let s = if value < 200 {
+                    format!("({value}) {emoji}")
+                } else {
+                    emoji.to_string()
+                };
+
+                let s = if i == 0 {
+                    format!(" {s}")
+                } else {
+                    format!(" → {s}")
+                };
+
+                Ok(s)
             })
             .collect::<Result<String, String>>()?;
 
@@ -647,6 +666,7 @@ pub enum Super {
     Thundercrash,
     GatheringStorm,
     Bladefury,
+    NovaBombCataclysm,
 }
 
 impl Display for Super {
@@ -658,6 +678,7 @@ impl Display for Super {
             Super::Thundercrash => "Thundercrash",
             Super::GatheringStorm => "Gathering Storm",
             Super::Bladefury => "Bladefury",
+            Super::NovaBombCataclysm => "Nova Bomb: Cataclysm",
         };
 
         write!(f, "{name}")
@@ -673,6 +694,7 @@ impl Debug for Super {
             Super::Thundercrash => "thundercrash",
             Super::GatheringStorm => "gathering_storm",
             Super::Bladefury => "bladefury",
+            Super::NovaBombCataclysm => "nova_bomb_cataclysm",
         };
 
         write!(f, "{name}")
@@ -686,6 +708,7 @@ pub enum ClassAbility {
     PhoenixDive,
     Thruster,
     GamblersDodge,
+    HealingRift,
 }
 
 impl Display for ClassAbility {
@@ -696,6 +719,7 @@ impl Display for ClassAbility {
             ClassAbility::PhoenixDive => "phoenix_dive",
             ClassAbility::Thruster => "thruster",
             ClassAbility::GamblersDodge => "gamblers_dodge",
+            ClassAbility::HealingRift => "healing_rift",
         };
 
         write!(f, "{name}")
@@ -729,6 +753,7 @@ pub enum Melee {
     Thunderclap,
     CombinationBlow,
     FrenziedBlade,
+    PocketSingularity,
 }
 
 impl Display for Melee {
@@ -740,6 +765,7 @@ impl Display for Melee {
             Melee::Thunderclap => "thunderclap",
             Melee::CombinationBlow => "combination_blow",
             Melee::FrenziedBlade => "frenzied_blade",
+            Melee::PocketSingularity => "pocket_singularity",
         };
 
         write!(f, "{name}")
@@ -753,6 +779,7 @@ pub enum Grenade {
     Fusion,
     Shackle,
     Flux,
+    Magnetic,
 }
 
 impl Display for Grenade {
@@ -763,6 +790,7 @@ impl Display for Grenade {
             Grenade::Fusion => "fusion_grenade",
             Grenade::Shackle => "shackle_grenade",
             Grenade::Flux => "flux_grenade",
+            Grenade::Magnetic => "magnetic_grenade",
         };
 
         write!(f, "{name}")
@@ -785,6 +813,8 @@ pub enum Aspect {
     WintersShroud,
     BannerOfWar,
     FlechetteStorm,
+    ChaosAccelerant,
+    FeedTheVoid,
 }
 
 impl Display for Aspect {
@@ -804,6 +834,8 @@ impl Display for Aspect {
             Aspect::WintersShroud => "winters_shroud",
             Aspect::BannerOfWar => "banner_of_war",
             Aspect::FlechetteStorm => "flechette_storm",
+            Aspect::ChaosAccelerant => "chaos_accelerant",
+            Aspect::FeedTheVoid => "feed_the_void",
         };
 
         write!(f, "{name}")
@@ -833,6 +865,12 @@ pub enum Fragment {
     ThreadOfWarding,
     ThreadOfTransmutation,
     ThreadOfGeneration,
+    SparkOfIons,
+    SparkOfFeedback,
+    EchoOfPersistence,
+    EchoOfInstability,
+    EchoOfExpulsion,
+    EchoOfVigilance,
 }
 
 impl Display for Fragment {
@@ -859,6 +897,12 @@ impl Display for Fragment {
             Fragment::ThreadOfWarding => "thread_of_warding",
             Fragment::ThreadOfTransmutation => "thread_of_transmutation",
             Fragment::ThreadOfGeneration => "thread_of_generation",
+            Fragment::SparkOfIons => "spark_of_ions",
+            Fragment::SparkOfFeedback => "spark_of_feedback",
+            Fragment::EchoOfPersistence => "echo_of_persistence",
+            Fragment::EchoOfInstability => "echo_of_instability",
+            Fragment::EchoOfExpulsion => "echo_of_expulsion",
+            Fragment::EchoOfVigilance => "echo_of_vigilance",
         };
 
         write!(f, "{name}")
@@ -964,6 +1008,16 @@ pub enum ArmourName {
     CollectivePsycheStrides,
     CollectivePsycheHelm,
     WishfulIgnorance,
+    GiftedConviction,
+    HunterHelmet,
+    HunterArms,
+    HunterLegs,
+    Cloak,
+    AionAdapterGloves,
+    AionAdapterRobes,
+    AionAdapterBoots,
+    AionAdapterBond,
+    VeritysBrow,
 }
 
 impl Display for ArmourName {
@@ -1071,6 +1125,36 @@ impl Display for ArmourName {
             ArmourName::WishfulIgnorance => {
                 "https://www.bungie.net/common/destiny2_content/icons/4a0247f3edb22758ba945e6ba341721b.jpg"
             }
+            ArmourName::GiftedConviction => {
+                "https://www.bungie.net/common/destiny2_content/icons/a8f8856e51daa04775b2d510b2ca12f1.jpg"
+            }
+            ArmourName::HunterHelmet => {
+                "https://www.bungie.net/common/destiny2_content/icons/d2abc2257f85934b8ff763e563f02cd9.jpg"
+            }
+            ArmourName::HunterArms => {
+                "https://www.bungie.net/common/destiny2_content/icons/1cfe58452f5dae674b7f6d0f816e9592.jpg"
+            }
+            ArmourName::HunterLegs => {
+                "https://www.bungie.net/common/destiny2_content/icons/9cc3f7461305a1ece9f91f5a25d9e7a9.jpg"
+            }
+            ArmourName::Cloak => {
+                "https://www.bungie.net/common/destiny2_content/icons/363fd4e1311408d0f5400f6d9579cf2f.jpg"
+            }
+            ArmourName::VeritysBrow => {
+                "https://www.bungie.net/common/destiny2_content/icons/1eaa3f087b696caa6e8308e65883fb22.jpg"
+            }
+            ArmourName::AionAdapterGloves => {
+                "https://www.bungie.net/common/destiny2_content/icons/3300af1f577f999d59651d10ee16df52.jpg"
+            }
+            ArmourName::AionAdapterRobes => {
+                "https://www.bungie.net/common/destiny2_content/icons/6e431ef7eb277ca27ac4204b32cf03a1.jpg"
+            }
+            ArmourName::AionAdapterBoots => {
+                "https://www.bungie.net/common/destiny2_content/icons/09a5ab08b8f9f258fe5357a67188a3c9.jpg"
+            }
+            ArmourName::AionAdapterBond => {
+                "https://www.bungie.net/common/destiny2_content/icons/ed84553c654e3c5a74c83efa5354ffd8.jpg"
+            }
         };
 
         write!(f, "{url}")
@@ -1079,42 +1163,54 @@ impl Display for ArmourName {
 
 impl Debug for ArmourName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::MelasPanoplia => write!(f, "Melas Panoplia"),
-            Self::WormgodCaress => write!(f, "Wormgod Caress"),
-            Self::BushidoHelm => write!(f, "Bushido Helm"),
-            Self::BushidoPlate => write!(f, "Bushido Plate"),
-            Self::BushidoGreaves => write!(f, "Bushido Greaves"),
-            Self::BushidoMark => write!(f, "Bushido Mark"),
-            Self::BushidoCowl => write!(f, "Bushido Cowl"),
-            Self::BushidoGrips => write!(f, "Bushido Grips"),
-            Self::LastDisciplineVest => write!(f, "Last Discipline Vest"),
-            Self::LastDisciplineStrides => write!(f, "Last Discipline Strides"),
-            Self::CollectivePsycheCover => write!(f, "Collective Psyche Cover"),
-            Self::CollectivePsycheGloves => write!(f, "Collective Psyche Gloves"),
-            Self::StarfireProtocol => write!(f, "Starfire Protocol"),
-            Self::CollectivePsycheBoots => write!(f, "Collective Psyche Boots"),
-            Self::CollectivePsycheBond => write!(f, "Collective PsycheBond"),
-            Self::LustrousHelm => write!(f, "Lustrous Helm"),
-            Self::LustrousPlate => write!(f, "Lustrous Plate"),
-            Self::LustrousGreaves => write!(f, "Lustrous Greaves"),
-            Self::LustrousMark => write!(f, "Lustrous Mark"),
-            Self::AnInsurmountableSkullfort => write!(f, "An Insurmountable Skullfort"),
-            Self::CollectivePsycheGauntlets => write!(f, "Collective Psyche Gauntlets"),
-            Self::CollectivePsychePlate => write!(f, "Collective Psyche Plate"),
-            Self::CollectivePsycheGreaves => write!(f, "Collective Psyche Greaves"),
-            Self::CollectivePsycheMark => write!(f, "Collective Psyche Mark"),
-            Self::MaskOfBakris => write!(f, "Mask of Bakris"),
-            Self::Relativism(perks) => write!(f, "Relativism ({} + {})", perks.0, perks.1),
-            Self::BushidoVest => write!(f, "Bushido Vest"),
-            Self::LastDisciplineCloak => write!(f, "Last Discipline Cloak"),
-            Self::CollectivePsycheCasque => write!(f, "Collective Psyche Casque"),
-            Self::CollectivePsycheCuirass => write!(f, "Collective Psyche Cuirass"),
-            Self::CollectivePsycheSleeves => write!(f, "Collective Psyche Sleeves"),
-            Self::CollectivePsycheStrides => write!(f, "Collective Psyche Strides"),
-            Self::CollectivePsycheHelm => write!(f, "Collective Psyche Helm"),
-            Self::WishfulIgnorance => write!(f, "Wishful Ignorance"),
-        }
+        let name = match self {
+            ArmourName::MelasPanoplia => "Melas Panoplia",
+            ArmourName::WormgodCaress => "Wormgod Caress",
+            ArmourName::BushidoHelm => "Bushido Helm",
+            ArmourName::BushidoPlate => "Bushido Plate",
+            ArmourName::BushidoGreaves => "Bushido Greaves",
+            ArmourName::BushidoMark => "Bushido Mark",
+            ArmourName::BushidoCowl => "Bushido Cowl",
+            ArmourName::BushidoGrips => "Bushido Grips",
+            ArmourName::LastDisciplineVest => "Last Discipline Vest",
+            ArmourName::LastDisciplineStrides => "Last Discipline Strides",
+            ArmourName::CollectivePsycheCover => "Collective Psyche Cover",
+            ArmourName::CollectivePsycheGloves => "Collective Psyche Gloves",
+            ArmourName::StarfireProtocol => "Starfire Protocol",
+            ArmourName::CollectivePsycheBoots => "Collective Psyche Boots",
+            ArmourName::CollectivePsycheBond => "Collective PsycheBond",
+            ArmourName::LustrousHelm => "Lustrous Helm",
+            ArmourName::LustrousPlate => "Lustrous Plate",
+            ArmourName::LustrousGreaves => "Lustrous Greaves",
+            ArmourName::LustrousMark => "Lustrous Mark",
+            ArmourName::AnInsurmountableSkullfort => "An Insurmountable Skullfort",
+            ArmourName::CollectivePsycheGauntlets => "Collective Psyche Gauntlets",
+            ArmourName::CollectivePsychePlate => "Collective Psyche Plate",
+            ArmourName::CollectivePsycheGreaves => "Collective Psyche Greaves",
+            ArmourName::CollectivePsycheMark => "Collective Psyche Mark",
+            ArmourName::MaskOfBakris => "Mask of Bakris",
+            ArmourName::Relativism(perks) => &format!("Relativism ({} + {})", perks.0, perks.1),
+            ArmourName::BushidoVest => "Bushido Vest",
+            ArmourName::LastDisciplineCloak => "Last Discipline Cloak",
+            ArmourName::CollectivePsycheCasque => "Collective Psyche Casque",
+            ArmourName::CollectivePsycheCuirass => "Collective Psyche Cuirass",
+            ArmourName::CollectivePsycheSleeves => "Collective Psyche Sleeves",
+            ArmourName::CollectivePsycheStrides => "Collective Psyche Strides",
+            ArmourName::CollectivePsycheHelm => "Collective Psyche Helm",
+            ArmourName::WishfulIgnorance => "Wishful Ignorance",
+            ArmourName::GiftedConviction => "Gifted Conviction",
+            ArmourName::HunterHelmet => "Any Helment",
+            ArmourName::HunterArms => "Any Arms",
+            ArmourName::HunterLegs => "Any Legs",
+            ArmourName::Cloak => "Any Cloak",
+            ArmourName::AionAdapterGloves => "Aion Adapter Gloves",
+            ArmourName::AionAdapterRobes => "Aion Adapter Robes",
+            ArmourName::AionAdapterBoots => "Aion Adapter Boots",
+            ArmourName::AionAdapterBond => "Aion Adapter Bond",
+            ArmourName::VeritysBrow => "Verity's Brow",
+        };
+
+        write!(f, "{name}")
     }
 }
 
@@ -1152,6 +1248,10 @@ pub enum Mod {
     StrandSiphon,
     Outreach,
     KineticSiphon,
+    VoidAmmoGeneration,
+    WeaponsFont,
+    VoidScavenger,
+    HarmonicScavenger,
 }
 
 impl Display for Mod {
@@ -1189,6 +1289,10 @@ impl Display for Mod {
             Mod::StrandSiphon => "strand_siphon",
             Mod::Outreach => "outreach",
             Mod::KineticSiphon => "kinetic_siphon",
+            Mod::VoidAmmoGeneration => "void_ammo_generation",
+            Mod::WeaponsFont => "weapons_font",
+            Mod::VoidScavenger => "void_scavenger",
+            Mod::HarmonicScavenger => "harmonic_scavenger",
         };
 
         write!(f, "{name}")
@@ -1197,23 +1301,36 @@ impl Display for Mod {
 
 #[derive(Clone, Copy)]
 pub enum Stat {
-    Health,
-    Melee,
-    Grenade,
-    Super,
-    Class,
-    Weapons,
+    Health(u8),
+    Melee(u8),
+    Grenade(u8),
+    Super(u8),
+    Class(u8),
+    Weapons(u8),
+}
+
+impl Stat {
+    pub fn value(&self) -> u8 {
+        match *self {
+            Stat::Health(v) => v,
+            Stat::Melee(v) => v,
+            Stat::Grenade(v) => v,
+            Stat::Super(v) => v,
+            Stat::Class(v) => v,
+            Stat::Weapons(v) => v,
+        }
+    }
 }
 
 impl Display for Stat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
-            Stat::Health => "health",
-            Stat::Melee => "melee",
-            Stat::Grenade => "grenade",
-            Stat::Super => "super",
-            Stat::Class => "class",
-            Stat::Weapons => "weapons",
+            Stat::Health(_) => "health",
+            Stat::Melee(_) => "melee",
+            Stat::Grenade(_) => "grenade",
+            Stat::Super(_) => "super",
+            Stat::Class(_) => "class",
+            Stat::Weapons(_) => "weapons",
         };
 
         write!(f, "{name}")

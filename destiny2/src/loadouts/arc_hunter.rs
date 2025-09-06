@@ -1,37 +1,38 @@
-use super::weapons::GRAVITON_SPIKE;
 use super::{
     Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
     Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Tag,
 };
 
 pub const ARC_HUNTER: Loadout = Loadout::new(
-    "Mask of Bakris",
+    "Gifted Conviction",
     DestinyClass::Hunter,
     Mode::PvE,
     SUBCLASS,
     GEAR,
-    Details::new("LlamaD2", "https://dim.gg/kdkiusy/Arc").video("https://youtu.be/FKY7N2cb5Zc"),
+    Details::new("LlamaD2", "").video("https://youtu.be/UDIJdVTl5SE"),
 )
+.tags([Some(Tag::EndGame), None, None])
 .artifact([
-    Some(ArtifactPerk::OneWithFrost),
-    Some(ArtifactPerk::FeverAndChill),
-    Some(ArtifactPerk::FrostRenewal),
+    Some(ArtifactPerk::ElementalBenevolence),
     Some(ArtifactPerk::RefreshThreads),
+    Some(ArtifactPerk::ElementalCoalescence),
     Some(ArtifactPerk::Shieldcrush),
-    Some(ArtifactPerk::FrigidGlare),
+    None,
+    None,
     None,
 ]);
 
 const SUBCLASS: Subclass = Subclass {
     subclass: SubclassType::Arc,
     abilities: ABILITIES,
-    aspects: [Aspect::TempestStrike, Aspect::FlowState],
+    aspects: [Aspect::TempestStrike, Aspect::Ascension],
     fragments: [
         Some(Fragment::SparkOfResistance),
         Some(Fragment::SparkOfAmplitude),
         Some(Fragment::SparkOfFrequency),
-        Some(Fragment::SparkOfDischarge),
-        None,
+        Some(Fragment::SparkOfIons),
+        Some(Fragment::SparkOfFeedback),
     ],
 };
 
@@ -44,36 +45,32 @@ const ABILITIES: Abilities = Abilities {
 };
 
 const GEAR: Gear = Gear {
-    weapons: [None, Some(GRAVITON_SPIKE), None],
+    weapons: [None, None, None],
     armour: [
         Armour::new(
-            ArmourName::MaskOfBakris,
-            [Mod::HarmonicSiphon, Mod::StasisSiphon, Mod::SuperFont],
+            ArmourName::HunterHelmet,
+            [Mod::HandsOn, Mod::HandsOn, Mod::HarmonicSiphon],
         ),
         Armour::new(
-            ArmourName::BushidoGrips,
-            [Mod::HarmonicLoader, Mod::ImpactInduction, Mod::HeavyHanded],
+            ArmourName::HunterArms,
+            [Mod::MeleeFont, Mod::MeleeFont, Mod::HeavyHanded],
         ),
-        Armour::new(ArmourName::BushidoVest, [Mod::Empty; 3]),
+        Armour::new(ArmourName::GiftedConviction, [Mod::Empty; 3]),
         Armour::new(
-            ArmourName::LastDisciplineStrides,
-            [
-                Mod::Recuperation,
-                Mod::ArcWeaponSurge,
-                Mod::StasisWeaponSurge,
-            ],
+            ArmourName::HunterLegs,
+            [Mod::StacksOnStacks, Mod::Empty, Mod::Empty],
         ),
         Armour::new(
-            ArmourName::LastDisciplineCloak,
+            ArmourName::Cloak,
             [Mod::TimeDilation, Mod::PowerfulAttraction, Mod::Reaper],
         ),
     ],
     stats_priority: [
-        Stat::Class,
-        Stat::Super,
-        Stat::Melee,
-        Stat::Grenade,
-        Stat::Health,
-        Stat::Weapons,
+        Stat::Class(70),
+        Stat::Melee(200),
+        Stat::Super(200),
+        Stat::Grenade(200),
+        Stat::Health(200),
+        Stat::Weapons(200),
     ],
 };
