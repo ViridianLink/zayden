@@ -12,6 +12,7 @@ chrono = { workspace = true }
 futures = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }
+regex = { workspace = true, features = ["unicode-perl"] }
 serde = { workspace = true }
 serenity = { workspace = true, features = [
     "rustls_backend",
