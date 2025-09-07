@@ -1,19 +1,25 @@
-use axum::Router;
-use axum::extract::{Query, State};
-use axum::response::{IntoResponse, Redirect};
+pub mod error;
+mod web;
+pub use error::{Error, Result};
+
+use axum::extract::State;
+use axum::http::{HeaderValue, Method, header};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
+use axum::{Router, middleware};
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EndpointSet, RedirectUrl, Scope,
-    TokenResponse, TokenUrl,
+    AuthUrl, ClientId, ClientSecret, CsrfToken, EndpointSet, RedirectUrl, Scope, TokenUrl,
 };
 use oauth2::{EndpointNotSet, basic::BasicClient};
-use serde::Deserialize;
 use std::net::SocketAddr;
+use std::path::Path;
 use tokio::net::TcpListener;
-use tower_http::services::ServeDir;
+use tower_cookies::CookieManagerLayer;
+use tower_http::cors::CorsLayer;
 
+const FRONTEND_URL: &str = "http://localhost:5173";
 const CLIENT_ID: &str = "787490197943091211";
-const REDIRECT_URI: &str = "http://127.0.0.1:3000/auth/callback";
+const REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 
 #[derive(Clone)]
 struct AppState {
@@ -41,10 +47,16 @@ impl AppState {
     }
 }
 
+async fn main_response_mapper(res: Response) -> Response {
+    println!("->> {:<12} - main_response_mapper", "RES_MAPPER");
+    println!();
+    res
+}
+
 #[tokio::main]
 async fn main() {
-    if dotenvy::dotenv().is_err() {
-        println!(".env file not found. Please make sure enviroment variables are set.")
+    if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv() {
+        dotenvy::from_path(Path::new("web-backend/.env")).unwrap()
     }
 
     let client_secret =
@@ -52,17 +64,32 @@ async fn main() {
 
     let state = AppState::new(client_secret);
 
+    let cors = CorsLayer::new()
+        .allow_origin(FRONTEND_URL.parse::<HeaderValue>().unwrap())
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::PATCH,
+            Method::OPTIONS,
+        ])
+        .allow_headers([header::ACCEPT, header::AUTHORIZATION, header::CONTENT_TYPE])
+        .allow_credentials(true);
+
     let app = Router::new()
         .route("/invite", get(invite_handler))
         .route("/login", get(login_handler))
-        .route("/auth/callback", get(auth_callback_handler))
-        .fallback_service(ServeDir::new("web/public"))
+        .merge(web::routes())
+        .layer(middleware::map_response(main_response_mapper))
+        .layer(cors)
+        .layer(CookieManagerLayer::new())
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     println!("Dashboard listening on http://{addr}");
 
-    let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -85,38 +112,4 @@ async fn login_handler(State(state): State<AppState>) -> impl IntoResponse {
         .url();
 
     Redirect::to(auth_url.as_str())
-}
-
-#[derive(Deserialize)]
-struct AuthCallbackQuery {
-    code: String,
-    #[allow(dead_code)]
-    state: String, // You should use and verify the CSRF token in a real app
-}
-
-// Handler for the Discord redirect
-async fn auth_callback_handler(
-    Query(query): Query<AuthCallbackQuery>,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
-    let token_result = state
-        .oauth_client
-        .exchange_code(AuthorizationCode::new(query.code))
-        .request_async(&state.http_client)
-        .await;
-
-    if let Ok(token) = token_result {
-        println!("Got token: {:?}", token.access_token().secret());
-
-        // You would now use this token to fetch user data from the Discord API.
-        // Then, you'd create a session (e.g., using a JWT or a session cookie)
-        // and store the user's info.
-        // For this example, we'll just redirect to the dashboard.
-
-        // This is where you would set a session cookie.
-        // Using a library like `axum-sessions` or `tower-cookies` is recommended.
-        Redirect::to("/dashboard.html")
-    } else {
-        Redirect::to("/?error=auth_failed")
-    }
 }

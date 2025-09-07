@@ -1,0 +1,21 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { workspace = true, features = [
+    "query",
+    "tokio",
+    "http2",
+    "json",
+], default-features = true }
+dotenvy = { workspace = true }
+oauth2 = { workspace = true, features = ["reqwest"] }
+reqwest = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+serenity = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+tower-cookies = { workspace = true, default-features = true }
+tower-http = { workspace = true, features = ["cors", "fs"] }
