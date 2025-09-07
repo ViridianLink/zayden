@@ -1,6 +1,6 @@
 use serenity::all::{
-    Context, CreateInteractionResponse, DiscordJsonError, EditThread, ErrorResponse, HttpError,
-    JsonErrorCode, ModalInteraction,
+    Context, CreateInteractionResponse, DiscordJsonError, EditMessage, EditThread, ErrorResponse,
+    HttpError, JsonErrorCode, ModalInteraction,
 };
 use sqlx::{Database, Pool};
 use zayden_core::{CronJobData, parse_modal_data};
@@ -89,10 +89,24 @@ impl Edit {
             Err(e) => panic!("Unhandled error: {e:?}"),
         }
 
-        update_embeds::<DefaultTemplate>(&ctx.http, &post, interaction.user.display_name(), thread)
-            .await;
+        let embed = update_embeds::<DefaultTemplate>(
+            &ctx.http,
+            &post,
+            interaction.user.display_name(),
+            thread,
+        )
+        .await;
 
         create_reminders::<Data, Db, Manager>(ctx, &post).await;
+
+        thread
+            .widen()
+            .edit_message(
+                &ctx.http,
+                thread.get().into(),
+                EditMessage::new().embed(embed),
+            )
+            .await?;
 
         Ok(())
     }

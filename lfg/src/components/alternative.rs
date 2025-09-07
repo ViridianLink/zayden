@@ -1,4 +1,4 @@
-use serenity::all::{ComponentInteraction, CreateInteractionResponse, Http};
+use serenity::all::{ComponentInteraction, EditInteractionResponse, Http};
 use sqlx::{Database, Pool};
 
 use crate::{PostManager, PostRow, Result, Savable, actions};
@@ -11,12 +11,13 @@ impl Components {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        actions::join::<Db, Manager>(http, interaction, pool, true).await?;
+        interaction.defer(http).await?;
+
+        let (_, embed) = actions::join::<Db, Manager>(http, interaction, pool, true).await?;
 
         interaction
-            .create_response(http, CreateInteractionResponse::Acknowledge)
-            .await
-            .unwrap();
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .await?;
 
         Ok(())
     }

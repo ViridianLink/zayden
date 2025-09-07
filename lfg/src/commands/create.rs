@@ -44,8 +44,7 @@ impl Command {
 
         interaction
             .create_response(http, CreateInteractionResponse::Modal(modal))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

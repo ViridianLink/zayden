@@ -1,4 +1,6 @@
-use serenity::all::{ComponentInteraction, CreateInteractionResponseMessage, Http};
+use serenity::all::{
+    ComponentInteraction, CreateInteractionResponseMessage, EditInteractionResponse, Http,
+};
 use serenity::all::{CreateInteractionResponse, CreateSelectMenu, CreateSelectMenuKind};
 use sqlx::Database;
 use sqlx::Pool;
@@ -53,14 +55,15 @@ impl KickComponent {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        actions::leave::<Db, Manager>(http, interaction, pool)
+        interaction.defer(http).await?;
+
+        let (_, embed) = actions::leave::<Db, Manager>(http, interaction, pool)
             .await
             .unwrap();
 
         interaction
-            .create_response(http, CreateInteractionResponse::Acknowledge)
-            .await
-            .unwrap();
+            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .await?;
 
         Ok(())
     }

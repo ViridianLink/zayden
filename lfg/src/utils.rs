@@ -1,27 +1,21 @@
 use std::fmt::Display;
 
 use serenity::all::{
-    CreateMessage, DiscordJsonError, EditMessage, ErrorResponse, Http, HttpError, JsonErrorCode,
-    Mentionable, ThreadId, UserId,
+    CreateEmbed, CreateMessage, DiscordJsonError, EditMessage, ErrorResponse, Http, HttpError,
+    JsonErrorCode, Mentionable, ThreadId, UserId,
 };
 
 use crate::templates::{Template, TemplateInfo};
 
-pub async fn update_embeds<T: Template>(
-    http: &Http,
+pub async fn update_embeds<'a, T: Template>(
+    http: &'a Http,
     row: &impl TemplateInfo,
     owner_name: &str,
     thread: impl Into<ThreadId>,
-) {
+) -> CreateEmbed<'a> {
     let thread = thread.into();
 
     let embed = T::thread_embed(row, owner_name);
-
-    thread
-        .widen()
-        .edit_message(http, thread.get().into(), EditMessage::new().embed(embed))
-        .await
-        .unwrap();
 
     if let (Some(channel), Some(message)) = (row.schedule_channel(), row.alt_message()) {
         let embed = T::message_embed(row, owner_name, thread);
@@ -42,6 +36,8 @@ pub async fn update_embeds<T: Template>(
             Err(e) => panic!("{e:?}"),
         };
     }
+
+    embed
 }
 
 pub enum Announcement {

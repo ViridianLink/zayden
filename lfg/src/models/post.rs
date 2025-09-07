@@ -193,7 +193,7 @@ pub trait PostManager<Db: Database> {
     ) -> sqlx::Result<Db::QueryResult>;
 }
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, Clone, FromRow)]
 
 pub struct PostRow {
     pub id: i64,

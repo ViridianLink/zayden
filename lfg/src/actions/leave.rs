@@ -1,6 +1,6 @@
 use serenity::all::{
-    CommandInteraction, ComponentInteraction, ComponentInteractionDataKind,
-    GenericInteractionChannel, Http, Mentionable, ResolvedValue, ThreadId, UserId,
+    CommandInteraction, ComponentInteraction, ComponentInteractionDataKind, CreateEmbed,
+    GenericInteractionChannel, Http, ResolvedValue, ThreadId, UserId,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -12,6 +12,7 @@ use crate::{
     utils::{Announcement, update_embeds},
 };
 
+#[allow(dead_code)]
 pub struct LeaveInteraction {
     thread: ThreadId,
     author: UserId,
@@ -58,11 +59,11 @@ impl From<&ComponentInteraction> for LeaveInteraction {
     }
 }
 
-pub async fn leave<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
-    http: &Http,
+pub async fn leave<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
+    http: &'a Http,
     interaction: impl Into<LeaveInteraction>,
     pool: &Pool<Db>,
-) -> Result<String> {
+) -> Result<(ThreadId, CreateEmbed<'a>)> {
     let interaction = interaction.into();
 
     let row = Manager::leave(pool, interaction.thread, interaction.user)
@@ -71,20 +72,13 @@ pub async fn leave<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>
 
     let owner = row.owner().to_user(http).await.unwrap();
 
-    update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread).await;
+    let embed =
+        update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread)
+            .await;
+
     Announcement::Left(interaction.user)
         .send(http, interaction.thread)
         .await;
 
-    let content = if interaction.author == interaction.user {
-        format!("You have left {}", interaction.thread.widen().mention())
-    } else {
-        format!(
-            "{} have left {}",
-            interaction.user.mention(),
-            interaction.thread.widen().mention()
-        )
-    };
-
-    Ok(content)
+    Ok((interaction.thread, embed))
 }

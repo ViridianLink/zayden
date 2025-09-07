@@ -1,5 +1,5 @@
 use serenity::all::{
-    CommandInteraction, ComponentInteraction, GenericInteractionChannel, Http, Mentionable,
+    CommandInteraction, ComponentInteraction, CreateEmbed, GenericInteractionChannel, Http,
     ResolvedValue, ThreadId, UserId,
 };
 use sqlx::{Database, Pool};
@@ -45,19 +45,22 @@ impl From<&CommandInteraction> for JoinInteraction {
     }
 }
 
-pub async fn join<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
-    http: &Http,
+pub async fn join<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
+    http: &'a Http,
     interaction: impl Into<JoinInteraction>,
     pool: &Pool<Db>,
     alternative: bool,
-) -> Result<String> {
+) -> Result<(ThreadId, CreateEmbed<'a>)> {
     let interaction = interaction.into();
 
     let row = Manager::join(pool, interaction.thread, interaction.user, alternative).await?;
 
     let owner = row.owner().to_user(http).await.unwrap();
 
-    update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread).await;
+    let embed =
+        update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread)
+            .await;
+
     Announcement::Joined {
         user: interaction.user,
         alternative,
@@ -65,8 +68,5 @@ pub async fn join<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>
     .send(http, interaction.thread)
     .await;
 
-    Ok(format!(
-        "You have joined {}",
-        interaction.thread.widen().mention()
-    ))
+    Ok((interaction.thread, embed))
 }

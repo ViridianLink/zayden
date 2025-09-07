@@ -22,10 +22,10 @@ pub trait TemplateInfo {
 }
 
 pub trait Template {
-    fn thread_embed<'a>(post: &'a impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a>;
+    fn thread_embed<'a>(post: &impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a>;
 
     fn message_embed<'a>(
-        post: &'a impl TemplateInfo,
+        post: &impl TemplateInfo,
         owner_name: &str,
         thread: ThreadId,
     ) -> CreateEmbed<'a>;
@@ -53,12 +53,12 @@ pub trait Template {
 pub struct DefaultTemplate;
 
 impl Template for DefaultTemplate {
-    fn thread_embed<'a>(post: &'a impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a> {
+    fn thread_embed<'a>(post: &impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a> {
         embed(post, owner_name, None)
     }
 
     fn message_embed<'a>(
-        post: &'a impl TemplateInfo,
+        post: &impl TemplateInfo,
         owner_name: &str,
         thread: ThreadId,
     ) -> CreateEmbed<'a> {
@@ -84,7 +84,7 @@ impl Template for DefaultTemplate {
 }
 
 fn embed<'a>(
-    post: &'a impl TemplateInfo,
+    post: &impl TemplateInfo,
     owner_name: &str,
     thread: Option<ThreadId>,
 ) -> CreateEmbed<'a> {
@@ -104,7 +104,7 @@ fn embed<'a>(
 
     let mut embed = CreateEmbed::new()
         .title(format!("{} - <t:{}>", post.activity(), timestamp))
-        .field("Activity", post.activity(), true)
+        .field("Activity", post.activity().to_string(), true)
         .field("Start Time", format!("<t:{timestamp}:R>"), true);
 
     if let Some(thread) = thread {
@@ -112,7 +112,7 @@ fn embed<'a>(
     }
 
     if !post.description().is_empty() {
-        embed = embed.field("Description", post.description(), false)
+        embed = embed.field("Description", post.description().to_string(), false)
     }
 
     embed = embed

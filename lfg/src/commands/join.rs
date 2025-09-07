@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use serenity::all::{CommandInteraction, EditInteractionResponse, Http, ResolvedValue};
+use serenity::all::{
+    CommandInteraction, EditInteractionResponse, EditMessage, Http, Mentionable, ResolvedValue,
+};
 use sqlx::{Database, Pool};
 
 use crate::{PostManager, PostRow, Result, Savable, actions};
@@ -21,10 +23,21 @@ impl Command {
             _ => false,
         };
 
-        let content = actions::join::<Db, Manager>(http, interaction, pool, alternative).await?;
+        let (thread, embed) =
+            actions::join::<Db, Manager>(http, interaction, pool, alternative).await?;
+
+        thread
+            .widen()
+            .edit_message(http, thread.get().into(), EditMessage::new().embed(embed))
+            .await
+            .unwrap();
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().content(content))
+            .edit_response(
+                http,
+                EditInteractionResponse::new()
+                    .content(format!("You have joined {}", thread.widen().mention())),
+            )
             .await
             .unwrap();
 
