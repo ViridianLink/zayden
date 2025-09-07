@@ -4,38 +4,46 @@ members = [
     "ai",
     "bot",
     "destiny2",
+    "destiny2-core",
     "endgame-analysis",
     "family",
     "gambling",
     "gold-star",
     "levels",
     "lfg",
+    "llamad2",
+    "music",
     "reaction-roles",
     "suggestions",
     "temp-voice",
     "ticket",
-    "web",
+    "verify",
+    "web-backend",
     "zayden-core",
 ]
 
 [workspace.dependencies]
 ai = { path = "./ai" }
 destiny2 = { path = "./destiny2" }
+destiny2-core = { path = "./destiny2-core" }
 endgame-analysis = { path = "./endgame-analysis" }
 gambling = { path = "./gambling" }
 levels = { path = "./levels" }
 lfg = { path = "./lfg" }
+llamad2 = { path = "./llamad2" }
+music = { path = "./music" }
 reaction-roles = { path = "./reaction-roles" }
 suggestions = { path = "./suggestions" }
 temp-voice = { path = "./temp-voice" }
 ticket = { path = "./ticket" }
-web = { path = "./web" }
+verify = { path = "./verify" }
 zayden-core = { path = "./zayden-core" }
 
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
 
 async-trait = { version = "*", default-features = false }
 axum = { version = "*", default-features = false }
+base64 = { version = "*", default-features = false }
 bigdecimal = { version = "*", default-features = false }
 charming = { version = "*", default-features = false }
 chrono = { version = "*", default-features = false }
@@ -45,9 +53,9 @@ dotenvy = { version = "*", default-features = false }
 futures = { version = "*", default-features = false }
 num-format = { version = "*", default-features = false }
 oauth2 = { version = "*", default-features = false }
-openai_api_rust = { version = "*", default-features = false }
 rand = { version = "*", default-features = false }
 rand_distr = { version = "*", default-features = false }
+regex = { version = "*", default-features = false }
 reqwest = { version = "*", default-features = false }
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
@@ -55,17 +63,20 @@ serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", d
     "transport_compression_zlib",
     "transport_compression_zstd",
 ] }
+songbird = { git = "https://github.com/serenity-rs/songbird", branch = "serenity-next", default-features = false }
 sqlx = { version = "*", default-features = false }
+symphonia = { version = "*", default-features = false }
 tokio = { version = "*", default-features = false }
+tower-cookies = { version = "*", default-features = false }
 tower-http = { version = "*", default-features = false }
 time = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 walkdir = { version = "*", default-features = false }
 
 
-[profile.release]
-opt-level = 3
-panic = "abort"
-strip = true
-codegen-units = 1
-lto = "fat"
+# [profile.release]
+# opt-level = 3
+# panic = "abort"
+# strip = true
+# codegen-units = 1
+# lto = "fat"

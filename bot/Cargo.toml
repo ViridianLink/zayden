@@ -4,15 +4,19 @@ version = "0.9.0"
 edition = "2024"
 
 [dependencies]
+ai = { workspace = true }
 destiny2 = { workspace = true }
 endgame-analysis = { workspace = true }
 gambling = { workspace = true }
 levels = { workspace = true }
 lfg = { workspace = true }
+llamad2 = { workspace = true }
+music = { workspace = true }
 reaction-roles = { workspace = true }
 suggestions = { workspace = true }
 temp-voice = { workspace = true }
 ticket = { workspace = true }
+verify = { workspace = true }
 zayden-core = { workspace = true }
 
 bungie-api = { workspace = true }
@@ -23,8 +27,8 @@ chrono = { workspace = true }
 chrono-tz = { workspace = true }
 dotenvy = { workspace = true }
 futures = { workspace = true, features = ["async-await"] }
-openai_api_rust = { workspace = true }
 rand = { workspace = true, features = ["thread_rng"] }
+reqwest = { workspace = true }
 serde_json = { workspace = true }
 serenity = { workspace = true, features = [
     "rustls_backend",
