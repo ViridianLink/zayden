@@ -1,13 +1,12 @@
+mod desert_perpetual;
 pub mod last_wish;
 pub mod weapons;
 
-use last_wish::LAST_WISH;
+use desert_perpetual::DESERT_PERPETUAL;
 use serenity::all::{
-    ButtonStyle, CommandInteraction, CreateActionRow, CreateButton, CreateCommand, CreateComponent,
-    CreateContainer, CreateFile, CreateInteractionResponse, CreateInteractionResponseMessage,
-    CreateMediaGallery, CreateMediaGalleryItem, CreateSection, CreateSectionAccessory,
-    CreateSectionComponent, CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption,
-    CreateSeparator, CreateTextDisplay, CreateThumbnail, CreateUnfurledMediaItem, Http,
+    CommandInteraction, CreateActionRow, CreateCommand, CreateComponent, CreateContainer,
+    CreateInteractionResponse, CreateInteractionResponseMessage, CreateSelectMenu,
+    CreateSelectMenuKind, CreateSelectMenuOption, CreateSeparator, CreateTextDisplay, Http,
     MessageFlags, Permissions,
 };
 pub use weapons::Weapon;
@@ -20,7 +19,7 @@ pub struct EncounterGuide<'a> {
     video_timestamp: Option<u8>,
     guide: &'a str,
     weapons: [Option<Weapon>; 2],
-    armour: [Option<&'a str>; 1],
+    armour: [Option<&'a str>; 3],
 }
 
 impl<'a> EncounterGuide<'a> {
@@ -32,7 +31,7 @@ impl<'a> EncounterGuide<'a> {
             video_timestamp: None,
             guide: "",
             weapons: [None; 2],
-            armour: [None; 1],
+            armour: [None; 3],
         }
     }
 
@@ -187,7 +186,7 @@ impl<const E: usize> RaidGuide<'_, E> {
             .placeholder("Select encounter"),
         ));
 
-        let encounter = LAST_WISH.encounters.first().unwrap().unwrap();
+        let encounter = DESERT_PERPETUAL.encounters.first().unwrap().unwrap();
 
         interaction
             .create_response(

@@ -11,7 +11,10 @@ const KALLI_LEGIT: EncounterGuide = EncounterGuide::new("Kalli, the Corrupted (L
     .video_timestamp(99)
     .guide(GUIDE)
     .add_weapon(Weapon::LordOfWolves)
-    .add_weapon(Weapon::Queenbreaker);
+    .add_weapon(Weapon::Queenbreaker)
+    .add_armour("Celestial Nighthawk")
+    .add_armour("Sanguine Alchemy")
+    .add_armour("Cuirass of the Falling Star");
 
 pub const LAST_WISH: RaidGuide<6> = RaidGuide::new("Last Wish")
     .video("https://www.youtube.com/watch?v=aBfVlF4X_Rw")
