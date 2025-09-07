@@ -80,7 +80,7 @@ impl TicketModal {
             .await
             .unwrap();
 
-        let mentions = if role_ids.is_empty() || true {
+        let mentions = if role_ids.is_empty() {
             let owner_id = guild_id.to_partial_guild(http).await.unwrap().owner_id;
             vec![interaction.user.mention(), owner_id.mention()]
         } else {
@@ -90,6 +90,8 @@ impl TicketModal {
                 .chain([interaction.user.mention()])
                 .collect::<Vec<_>>()
         };
+
+        let mentions = vec![interaction.user.mention()];
 
         send_support_message(http, thread.id, &mentions, messages)
             .await
