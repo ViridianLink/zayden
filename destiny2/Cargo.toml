@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bungie-api = { workspace = true }
+destiny2-core = { workspace = true }
 zayden-core = { workspace = true }
+
+bungie-api = { workspace = true }
 
 serenity = { workspace = true }
 tokio = { workspace = true }
