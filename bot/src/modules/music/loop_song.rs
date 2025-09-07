@@ -12,10 +12,10 @@ impl ApplicationCommand<Error, Postgres> for LoopSong {
     async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        music::commands::Loop::run::<CtxData>(ctx, interaction).await;
+        music::commands::Loop::run::<CtxData>(ctx, interaction, options).await;
 
         Ok(())
     }
