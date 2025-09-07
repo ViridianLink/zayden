@@ -50,7 +50,6 @@ pub async fn channel_creator<
     let vc = guild_id.create_channel(http, vc_builder).await?;
 
     match guild_id.move_member(http, member.user.id, vc.id).await {
-        // Target user is not connected to voice.
         Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
             error:
                 DiscordJsonError {
