@@ -91,8 +91,6 @@ impl TicketModal {
                 .collect::<Vec<_>>()
         };
 
-        let mentions = vec![interaction.user.mention()];
-
         send_support_message(http, thread.id, &mentions, messages)
             .await
             .unwrap();
