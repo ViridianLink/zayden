@@ -1,7 +1,9 @@
+use std::sync::Arc;
 use std::{collections::HashMap, ops::Deref};
 
 use base64::Engine;
 use base64::engine::general_purpose;
+// use futures::future;
 use reqwest::ClientBuilder;
 use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 use serde::Deserialize;
@@ -27,9 +29,9 @@ pub trait GuildMembersCache: Send + Sync + 'static {
 }
 
 pub trait EmojiCacheData: Send + Sync + 'static {
-    fn get(&self) -> &EmojiCache;
+    fn emojis(&self) -> Arc<EmojiCache>;
 
-    fn get_mut(&mut self) -> &mut EmojiCache;
+    fn emojis_mut(&mut self) -> Option<&mut EmojiCache>;
 }
 
 #[derive(Default)]
@@ -46,8 +48,62 @@ impl EmojiCache {
         ))
     }
 
+    pub async fn new_from_parent(ctx: &Context, parent_token: &str) -> serenity::Result<Self> {
+        let current_emojis = ctx.get_application_emojis().await?;
+        // let iter = current_emojis
+        //     .into_iter()
+        //     .map(|emoji| ctx.delete_application_emoji(emoji.id));
+        // future::join_all(iter).await;
+
+        let client = reqwest::Client::new();
+
+        let parent_emojis = Self::parent_emojis(parent_token).await;
+
+        let mut emojis = current_emojis
+            .into_iter()
+            .map(|emoji| (emoji.name, emoji.id))
+            .collect::<HashMap<_, _>>();
+
+        let missing_emojis = parent_emojis
+            .iter()
+            .filter(|(name, _)| !emojis.contains_key(*name))
+            .collect::<HashMap<_, _>>();
+
+        for (name, id) in missing_emojis {
+            let bytes = client
+                .get(format!("https://cdn.discordapp.com/emojis/{id}.webp"))
+                .send()
+                .await
+                .unwrap()
+                .bytes()
+                .await
+                .unwrap();
+
+            let base64 = general_purpose::STANDARD.encode(&bytes);
+
+            match ctx
+                .create_application_emoji(name, &format!("data:image/webp;base64,{base64}"))
+                .await
+            {
+                Ok(emoji) => {
+                    emojis.insert(emoji.name, emoji.id);
+                }
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                    error: DiscordJsonError { errors, .. },
+                    ..
+                }))) if errors
+                    .first()
+                    .is_some_and(|e| e.code == "APPLICATION_EMOJI_NAME_ALREADY_TAKEN") => {}
+
+                Err(e) => panic!("Unhandled error: {e:?}"),
+            }
+        }
+
+        Ok(Self(emojis))
+    }
+
     pub async fn upload(&mut self, ctx: &Context, parent_token: &str, name: &str) {
-        let zayden_emojis = Self::parent_emoji(parent_token).await;
+        let zayden_emojis = Self::parent_emojis(parent_token).await;
 
         let emoji_id = *zayden_emojis
             .get(name)
@@ -83,7 +139,7 @@ impl EmojiCache {
         };
     }
 
-    async fn parent_emoji(parent_token: &str) -> HashMap<FixedString, EmojiId> {
+    async fn parent_emojis(parent_token: &str) -> HashMap<FixedString, EmojiId> {
         #[derive(Deserialize)]
         struct ApplicationEmojis {
             items: Vec<Emoji>,
