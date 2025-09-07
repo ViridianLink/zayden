@@ -39,9 +39,9 @@ impl GameResult {
         }
     }
 
-    pub fn emoji(&self) -> String {
+    pub fn emoji(&self, emojis: &EmojiCache) -> String {
         match self.emoji {
-            Emoji::Id(id) => format!("<:{}:{id}>", self.name),
+            Emoji::Id(id) => format!("<:{}:{}>", self.name, emojis.emoji(id).unwrap()),
             Emoji::Str(emoji) => String::from(emoji),
             Emoji::None => String::new(),
         }
@@ -60,6 +60,7 @@ impl PartialEq for GameResult {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn game_embed<'a>(
     emojis: &EmojiCache,
     title: &'a str,
@@ -70,8 +71,8 @@ pub fn game_embed<'a>(
     payout: i64,
     coins: i64,
 ) -> CreateEmbed<'a> {
-    let prediction = prediction.into();
-    let outcome = outcome.into();
+    let prediction: GameResult = prediction.into();
+    let outcome: GameResult = outcome.into();
 
     let win = prediction == outcome;
 
@@ -89,8 +90,8 @@ pub fn game_embed<'a>(
         Your coins: {}",
         bet.format(),
         emojis.emoji("heads").unwrap(),
-        prediction.emoji(),
-        outcome.emoji(),
+        prediction.emoji(emojis),
+        outcome.emoji(emojis),
         coins.format()
     );
 
