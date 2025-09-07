@@ -13,6 +13,7 @@ pub mod reaction_roles;
 pub mod suggestions;
 pub mod temp_voice;
 pub mod ticket;
+pub mod verify;
 
 pub fn global_register(ctx: &Context) -> Vec<CreateCommand<'_>> {
     let mut cmds = destiny2::register(ctx).to_vec();
@@ -26,6 +27,7 @@ pub fn global_register(ctx: &Context) -> Vec<CreateCommand<'_>> {
     cmds.push(suggestions::register(ctx));
     cmds.push(temp_voice::register(ctx));
     cmds.extend(ticket::register(ctx));
+    cmds.push(verify::Panel::register(ctx).unwrap());
 
     cmds
 }

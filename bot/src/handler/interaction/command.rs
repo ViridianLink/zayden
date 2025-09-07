@@ -25,6 +25,7 @@ use crate::modules::reaction_roles::ReactionRoleCommand;
 use crate::modules::suggestions::FetchSuggestions;
 use crate::modules::temp_voice::Voice;
 use crate::modules::ticket::slash_commands::{SupportCommand, TicketCommand};
+use crate::modules::verify::Panel;
 
 impl Handler {
     pub async fn interaction_command(
@@ -42,7 +43,7 @@ impl Handler {
             get_option_str(&options)
         );
 
-        let result = match interaction.data.name.as_str() {
+        let result = match interaction.data.name.to_ascii_lowercase().as_str() {
             // region Destiny 2
             "weapon" => Weapon::run(ctx, interaction, options, pool),
             "dimwishlist" => DimWishlist::run(ctx, interaction, options, pool),
@@ -88,6 +89,7 @@ impl Handler {
             "raidguide" => RaidGuide::run(ctx, interaction, options, pool),
             "builds" => Loadout::run(ctx, interaction, options, pool),
             "custom_msg" => CustomMsg::run(ctx, interaction, options, pool),
+            "panel" => Panel::run(ctx, interaction, options, pool),
 
             // region: ticket
             "ticket" => TicketCommand::run(ctx, interaction, options, pool),

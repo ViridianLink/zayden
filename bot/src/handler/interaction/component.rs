@@ -8,9 +8,10 @@ use ticket::TicketComponent;
 use zayden_core::Component;
 
 use crate::handler::Handler;
-use crate::modules::gambling::{Blackjack, HigherLower, Prestige};
+use crate::modules::gambling::{Blackjack, HigherLower, Prestige, TicTacToe};
 use crate::modules::lfg::PostTable;
 use crate::modules::ticket::Ticket;
+use crate::modules::verify::Panel;
 use crate::sqlx_lib::GuildTable;
 use crate::{Error, Result};
 
@@ -35,6 +36,7 @@ impl Handler {
             id if id.starts_with("blackjack") => Blackjack::run(ctx, interaction, pool).await,
             id if id.starts_with("hol") => HigherLower::run(ctx, interaction, pool).await,
             id if id.starts_with("prestige") => Prestige::run(ctx, interaction, pool).await,
+            id if id.starts_with("ttt") => TicTacToe::run(ctx, interaction, pool).await,
             //endregion
 
             // region: Lfg
@@ -109,6 +111,10 @@ impl Handler {
                     .map_err(Error::from)
             }
             //endregion: Ticket
+
+            //region: Verify
+            "verify" => Panel::run(ctx, interaction, pool).await,
+            //endregion
             _ => interaction
                 .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
                 .await
