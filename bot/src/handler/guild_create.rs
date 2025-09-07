@@ -1,4 +1,4 @@
-use serenity::all::{Context, Guild};
+use serenity::all::{Context, DiscordJsonError, ErrorResponse, Guild, HttpError, JsonErrorCode};
 use sqlx::{PgPool, Postgres};
 use tokio::sync::RwLock;
 use zayden_core::ApplicationCommand;
@@ -17,12 +17,43 @@ impl Handler {
 
         let commands = modules::global_register(ctx);
 
-        let (_, _, commands) = tokio::join!(
+        let (_, _, commands_result) = tokio::join!(
             lfg::events::guild_create::<CtxData, Postgres, GuildTable, PostTable>(ctx, guild, pool),
             CtxData::guild_create(data, guild),
             guild.id.set_commands(&ctx.http, &commands),
         );
-        commands?;
+        match commands_result {
+            Ok(_) => {}
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                error:
+                    DiscordJsonError {
+                        code: JsonErrorCode::InvalidFormBody,
+                        errors,
+                        ..
+                    },
+                ..
+            }))) if errors
+                .first()
+                .is_some_and(|e| e.code == "BASE_TYPE_BAD_LENGTH") =>
+            {
+                let index = errors
+                    .first()
+                    .unwrap()
+                    .path
+                    .split_once('.')
+                    .unwrap()
+                    .0
+                    .parse::<usize>()
+                    .unwrap();
+
+                let command = commands.get(index).unwrap();
+
+                eprintln!("{errors:?} - {command:?}")
+            }
+            Err(e) => {
+                eprintln!("Unhandled command error: {e:?}")
+            }
+        }
 
         if guild.id == 1222360995700150443 {
             println!("Registered Zayden Guild")
