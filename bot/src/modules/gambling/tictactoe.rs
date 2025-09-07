@@ -1,8 +1,10 @@
 use async_trait::async_trait;
 use gambling::Commands;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
+use serenity::all::{
+    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption,
+};
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::{ApplicationCommand, Component};
 
 use crate::{CtxData, Error, Result};
 
@@ -31,5 +33,21 @@ impl ApplicationCommand<Error, Postgres> for TicTacToe {
 
     fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(Commands::register_tictactoe())
+    }
+}
+
+#[async_trait]
+impl Component<Error, Postgres> for TicTacToe {
+    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+        gambling::components::TicTacToe::run_component::<
+            CtxData,
+            Postgres,
+            GamblingTable,
+            EffectsTable,
+            GameTable,
+        >(ctx, interaction, pool)
+        .await?;
+
+        Ok(())
     }
 }
