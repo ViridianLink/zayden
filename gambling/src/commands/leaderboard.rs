@@ -6,11 +6,11 @@ use serenity::all::{
     CollectComponentInteractions, Colour, CommandInteraction, CommandOptionType,
     ComponentInteraction, Context, CreateButton, CreateCommand, CreateCommandOption, CreateEmbed,
     CreateEmbedFooter, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EditInteractionResponse, Http, Mentionable, Message, ResolvedOption, ResolvedValue, UserId,
+    EditInteractionResponse, Mentionable, Message, ResolvedOption, ResolvedValue, UserId,
 };
 use sqlx::{Database, Pool, prelude::FromRow};
 use tokio::sync::RwLock;
-use zayden_core::parse_options;
+use zayden_core::{EmojiCache, EmojiCacheData, parse_options};
 use zayden_core::{FormatNum, cache::GuildMembersCache};
 
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
@@ -183,7 +183,7 @@ pub struct WeeklyHigherLowerRow {
 
 impl Commands {
     pub async fn leaderboard<
-        Data: GuildMembersCache,
+        Data: GuildMembersCache + EmojiCacheData,
         Db: Database,
         Manager: LeaderboardManager<Db>,
     >(
@@ -222,10 +222,16 @@ impl Commands {
 
         let rows = get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), 1).await;
 
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
         let desc = rows
             .into_iter()
             .enumerate()
-            .map(|(i, row)| row.as_desc(i))
+            .map(|(i, row)| row.as_desc(&emojis, i))
             .collect::<Vec<_>>()
             .join("\n\n");
 
@@ -261,7 +267,7 @@ impl Commands {
             .stream();
 
         while let Some(component) = stream.next().await {
-            run_component::<Db, Manager>(&ctx.http, pool, users.as_deref(), &msg, component)
+            run_component::<Data, Db, Manager>(ctx, pool, users.as_deref(), &msg, component)
                 .await?;
         }
 
@@ -301,8 +307,8 @@ impl Commands {
     }
 }
 
-async fn run_component<Db: Database, Manager: LeaderboardManager<Db>>(
-    http: &Http,
+async fn run_component<Data: EmojiCacheData, Db: Database, Manager: LeaderboardManager<Db>>(
+    ctx: &Context,
     pool: &Pool<Db>,
     users: Option<&[i64]>,
     msg: &Message,
@@ -358,10 +364,16 @@ async fn run_component<Db: Database, Manager: LeaderboardManager<Db>>(
         return Ok(());
     }
 
+    let emojis = {
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let data = data_lock.read().await;
+        data.emojis()
+    };
+
     let desc = rows
         .into_iter()
         .enumerate()
-        .map(|(i, row)| row.as_desc(i + (page_number as usize - 1) * 10))
+        .map(|(i, row)| row.as_desc(&emojis, i + (page_number as usize - 1) * 10))
         .collect::<Vec<_>>()
         .join("\n\n");
 
@@ -371,7 +383,7 @@ async fn run_component<Db: Database, Manager: LeaderboardManager<Db>>(
 
     interaction
         .create_response(
-            http,
+            &ctx.http,
             CreateInteractionResponse::UpdateMessage(
                 CreateInteractionResponseMessage::new().embed(embed),
             ),
@@ -405,7 +417,7 @@ impl LeaderboardRow {
         }
     }
 
-    pub fn as_desc(&self, i: usize) -> String {
+    pub fn as_desc(&self, emojis: &EmojiCache, i: usize) -> String {
         let place = if i == 0 {
             "🥇".to_string()
         } else if i == 1 {
@@ -420,9 +432,9 @@ impl LeaderboardRow {
             Self::NetWorth(row) => row.networth.unwrap_or_default().format(),
             Self::Coins(row) => row.coins_str(),
             Self::Gems(row) => row.gems_str(),
-            Self::Eggplants(row) => format!("{} {}", row.quantity.format(), EGGPLANT.emoji()),
+            Self::Eggplants(row) => format!("{} {}", row.quantity.format(), EGGPLANT.emoji(emojis)),
             Self::LottoTickets(row) => {
-                format!("{} {}", row.quantity.format(), LOTTO_TICKET.emoji())
+                format!("{} {}", row.quantity.format(), LOTTO_TICKET.emoji(emojis))
             }
             Self::HigherLower(row) => row.higher_or_lower_score.to_string(),
             Self::WeeklyHigherLower(row) => row.weekly_higher_or_lower_score.to_string(),

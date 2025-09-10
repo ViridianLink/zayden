@@ -3,13 +3,13 @@ use std::fmt::Display;
 use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
 use serenity::small_fixed_array::FixedArray;
 use sqlx::types::Json;
 use sqlx::{Database, Pool, prelude::FromRow};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCacheData, parse_options};
+use zayden_core::{EmojiCache, EmojiCacheData, parse_options};
 
 use crate::shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
 use crate::{Coins, EffectsManager, Error, GEM, GamblingItem, Gems, ItemInventory, Mining, Result};
@@ -24,21 +24,21 @@ struct InventoryItem<'a> {
     quantity: i64,
 }
 
-impl Display for InventoryItem<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.emoji, self.name)
+impl<'a> InventoryItem<'a> {
+    pub fn from_shop_item(item: &ShopItem<'a>, emojis: &EmojiCache) -> Self {
+        Self {
+            id: item.id,
+            name: item.name,
+            emoji: item.emoji(emojis),
+            cost: item.costs,
+            quantity: 0,
+        }
     }
 }
 
-impl<'a> From<&ShopItem<'a>> for InventoryItem<'a> {
-    fn from(value: &ShopItem<'a>) -> Self {
-        Self {
-            id: value.id,
-            name: value.name,
-            emoji: value.emoji(),
-            cost: value.costs,
-            quantity: 0,
-        }
+impl Display for InventoryItem<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.emoji, self.name)
     }
 }
 
@@ -208,8 +208,8 @@ impl Commands {
                     unreachable!("Option must be a subcommand")
                 };
 
-                use_item::<Db, EffectsHandler, InventoryHandler>(
-                    &ctx.http,
+                use_item::<Data, Db, EffectsHandler, InventoryHandler>(
+                    ctx,
                     interaction,
                     options,
                     pool,
@@ -265,6 +265,12 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
         .unwrap()
         .unwrap_or_default();
 
+    let emojis = {
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let data = data_lock.read().await;
+        data.emojis()
+    };
+
     let (items, boosts) = SHOP_ITEMS
         .iter()
         .filter(|item| {
@@ -273,7 +279,7 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
                 ShopPage::Item | ShopPage::Boost1 | ShopPage::Boost2
             )
         })
-        .map(InventoryItem::from)
+        .map(|item| InventoryItem::from_shop_item(item, &emojis))
         .map(|mut item| {
             if let Some(inv_item) = row
                 .inventory()
@@ -287,11 +293,6 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
         })
         .partition::<Vec<_>, _>(|item| matches!(item.cost[0], Some((_, ShopCurrency::Coins))));
 
-    let emojis = {
-        let data_lock = ctx.data::<RwLock<Data>>();
-        let data = data_lock.read().await;
-        data.emojis()
-    };
     let coin = emojis.emoji("heads").unwrap();
 
     let mut embed = CreateEmbed::new()
@@ -346,11 +347,12 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
 }
 
 async fn use_item<
+    Data: EmojiCacheData,
     Db: Database,
     EffectsHandler: EffectsManager<Db>,
     InventoryHandler: InventoryManager<Db>,
 >(
-    http: &Http,
+    ctx: &Context,
     interaction: &CommandInteraction,
     options: FixedArray<ResolvedOption<'_>>,
     pool: &Pool<Db>,
@@ -395,12 +397,19 @@ async fn use_item<
 
     tx.commit().await.unwrap();
 
+    let emojis = {
+        let data_lock = ctx.data::<RwLock<Data>>();
+        let data = data_lock.read().await;
+        data.emojis()
+    };
+
     let embed = CreateEmbed::new().description(format!(
-        "Successfully activated item:\n**{item}**\nUses left:{quantity}"
+        "Successfully activated item:\n**{}**\nUses left:{quantity}",
+        item.as_str(&emojis)
     ));
 
     interaction
-        .edit_response(http, EditInteractionResponse::new().embed(embed))
+        .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
         .await
         .unwrap();
 

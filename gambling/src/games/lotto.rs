@@ -114,12 +114,13 @@ impl Lotto {
 
             LottoHandler::delete_tickets(&mut *tx).await.unwrap();
 
-            let coin = {
+            let emojis = {
                 let data = ctx.data::<RwLock<Data>>();
                 let data = data.read().await;
-                let cache = data.emojis();
-                cache.emoji("heads").unwrap()
+                data.emojis()
             };
+
+            let coin = emojis.emoji("heads").unwrap();
 
             let mut lines = Vec::with_capacity(expected_winners);
 
@@ -146,7 +147,7 @@ impl Lotto {
                 ))
                 .field(
                     "Tickets Bought",
-                    format!("{} {}", total_tickets.format(), LOTTO_TICKET.emoji()),
+                    format!("{} {}", total_tickets.format(), LOTTO_TICKET.emoji(&emojis)),
                     false,
                 )
                 .field(

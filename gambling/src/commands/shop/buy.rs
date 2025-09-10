@@ -291,8 +291,9 @@ pub async fn buy<
         .edit_response(
             &ctx.http,
             EditInteractionResponse::new().content(format!(
-                "You bought {} {item} for {}\nYou now have {}.",
+                "You bought {} {} for {}\nYou now have {}.",
                 amount.format(),
+                item.as_str(&emojis),
                 cost.join("\n"),
                 quantity.format()
             )),

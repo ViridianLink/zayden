@@ -33,7 +33,13 @@ impl Commands {
             None => LottoRow::new(interaction.user.id),
         };
 
-        let lotto_emoji = LOTTO_TICKET.emoji();
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        let lotto_emoji = LOTTO_TICKET.emoji(&emojis);
 
         let timestamp = {
             Lotto::cron_job::<Data, Db, GamblingHandler, LottoHandler>()
@@ -44,11 +50,7 @@ impl Commands {
                 .timestamp()
         };
 
-        let coin = {
-            let data_lock = ctx.data::<RwLock<Data>>();
-            let data = data_lock.read().await;
-            data.emojis().emoji("heads").unwrap()
-        };
+        let coin = emojis.emoji("heads").unwrap();
 
         let embed = CreateEmbed::new()
             .title(format!(

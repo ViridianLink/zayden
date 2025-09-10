@@ -216,9 +216,9 @@ impl<'a> ShopItem<'a> {
         self
     }
 
-    pub fn emoji(&self) -> String {
+    pub fn emoji(&self, emojis: &EmojiCache) -> String {
         match self.emoji {
-            Emoji::Id(id) => format!("<:{}:{id}>", self.id),
+            Emoji::Id(name) => emojis.emoji_str(name).unwrap(),
             Emoji::Str(emoji) => String::from(emoji),
             Emoji::None => String::new(),
         }
@@ -248,11 +248,9 @@ impl<'a> ShopItem<'a> {
         iter.map(|(cost, currency)| (cost * amount, currency))
             .collect()
     }
-}
 
-impl Display for ShopItem<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {}", self.emoji(), self.name)
+    pub fn as_str(&self, emojis: &EmojiCache) -> String {
+        format!("{} {}", self.emoji(emojis), self.name)
     }
 }
 

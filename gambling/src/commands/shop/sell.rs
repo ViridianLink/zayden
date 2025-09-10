@@ -90,18 +90,21 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
 
     Manager::sell_save(pool, row).await.unwrap();
 
-    let coin = {
+    let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
         let data = data_lock.read().await;
-        data.emojis().emoji("heads").unwrap()
+        data.emojis()
     };
+
+    let coin = emojis.emoji("heads").unwrap();
 
     interaction
         .edit_response(
             &ctx.http,
             EditInteractionResponse::new().content(format!(
-                "You sold {} {item} for {} <:coin:{coin}>\nYou now have {}.",
+                "You sold {} {} for {} <:coin:{coin}>\nYou now have {}.",
                 amount.format(),
+                item.as_str(&emojis),
                 payment.format(),
                 quantity.format()
             )),

@@ -45,7 +45,9 @@ impl ProfileRow {
                 .iter()
                 .filter(|item| item.quantity > 0)
                 .map(|inv| (inv, ShopItem::from(inv)))
-                .map(|(inv, item)| format!("{} {} {}s", item.emoji(), inv.quantity, item.name))
+                .map(|(inv, item)| {
+                    format!("{} {} {}s", item.emoji(emojis), inv.quantity, item.name)
+                })
                 .collect::<Vec<_>>()
                 .join("\n")
         };

@@ -145,7 +145,7 @@ fn create_embed<'a>(emojis: &EmojiCache, category: ShopPage, row: &BuyRow) -> Cr
                 .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency.emoji(emojis)))
                 .collect::<Vec<_>>();
 
-            let mut s = format!("**{item}**");
+            let mut s = format!("**{}**", item.as_str(emojis));
 
             if !item.description.is_empty() {
                 s.push('\n');
