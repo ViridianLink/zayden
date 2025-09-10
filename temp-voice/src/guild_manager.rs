@@ -34,7 +34,8 @@ impl TempVoiceRow {
         ChannelId::from(self.temp_voice_category.unwrap() as u64)
     }
 
-    pub fn creator_channel(&self) -> ChannelId {
-        ChannelId::from(self.temp_voice_creator_channel.unwrap() as u64)
+    pub fn creator_channel(&self) -> Option<ChannelId> {
+        self.temp_voice_creator_channel
+            .map(|id| ChannelId::from(id as u64))
     }
 }

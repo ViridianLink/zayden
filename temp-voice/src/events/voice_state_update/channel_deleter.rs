@@ -23,8 +23,8 @@ pub async fn channel_deleter<
         return Ok(());
     };
 
-    let channel_id = match old.channel_id {
-        Some(channel_id) if channel_id != guild_data.creator_channel() => channel_id,
+    let channel_id = match (old.channel_id, guild_data.creator_channel()) {
+        (Some(channel_id), Some(creator_channel)) if channel_id != creator_channel => channel_id,
         _ => return Ok(()),
     };
 
