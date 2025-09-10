@@ -1,4 +1,7 @@
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    sync::OnceLock,
+};
 
 use rand::{rng, seq::SliceRandom};
 use serenity::all::{
@@ -10,11 +13,29 @@ use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use crate::{
-    CARD_DECK, CARD_TO_NUM, Coins, EffectsManager, GameCache, GameManager, GameRow, GoalsManager,
-    card_deck, card_to_num,
+    CARD_DECK, Coins, EffectsManager, GameCache, GameManager, GameRow, GoalsManager, card_deck,
     ctx_data::GamblingData,
     events::{Dispatch, Event, GameEvent},
 };
+
+pub static CARD_VALUES: OnceLock<HashMap<EmojiId, u8>> = OnceLock::new();
+
+pub fn card_values(emojis: &EmojiCache) -> HashMap<EmojiId, u8> {
+    CARD_DECK
+        .get_or_init(|| card_deck(emojis))
+        .iter()
+        .copied()
+        .zip(
+            (1u8..=13)
+                .map(|rank| match rank {
+                    11..=13 => 10,
+                    _ => rank,
+                })
+                .cycle()
+                .take(52),
+        )
+        .collect()
+}
 
 pub struct GameDetails {
     bet: i64,
@@ -53,8 +74,8 @@ impl GameDetails {
         let mut s = String::new();
 
         for id in &self.player_hand {
-            let num = *CARD_TO_NUM
-                .get_or_init(|| card_to_num(emojis))
+            let num = *CARD_VALUES
+                .get_or_init(|| card_values(emojis))
                 .get(id)
                 .unwrap();
 
@@ -140,7 +161,7 @@ impl GameDetails {
 }
 
 pub fn sum_cards(emojis: &EmojiCache, hand: &[EmojiId]) -> u8 {
-    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
 
     let (aces, rest) = hand
         .iter()
@@ -169,7 +190,7 @@ pub fn in_play_embed<'a>(
     let player_value = sum_cards(emojis, player_hand);
     let dealer_value = sum_cards(emojis, &[dealer_card]);
 
-    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
     let coin = emojis.emoji("heads").unwrap();
     let card_back = emojis.emoji("card_back").unwrap();
 
@@ -279,7 +300,7 @@ pub async fn game_end_draw<
     )
     .await;
 
-    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
 
     let coin = emojis.get("heads").unwrap();
 
@@ -325,20 +346,15 @@ pub async fn game_end_blackjack<
     dealer_hand: &[EmojiId],
 ) -> EditInteractionResponse<'a> {
     let bet = game.bet();
+    let payout = bet + (3 * bet) / 2;
     let dealer_value = sum_cards(emojis, dealer_hand);
 
     let (payout, coins) = game_end_common::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
-        ctx,
-        pool,
-        emojis,
-        user_id,
-        channel_id,
-        bet,
-        (3 * bet) / 2,
+        ctx, pool, emojis, user_id, channel_id, bet, payout,
     )
     .await;
 
-    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
     let coin = emojis.emoji("heads").unwrap();
 
     let desc = format!(
@@ -380,7 +396,7 @@ pub fn game_end_desc(
     let player_value = sum_cards(emojis, player_hand);
     let dealer_value = sum_cards(emojis, dealer_hand);
 
-    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
     let coin = emojis.emoji("heads").unwrap();
 
     format!(

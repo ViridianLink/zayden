@@ -8,11 +8,12 @@ use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::blackjack::{
-    GameDetails, double_button, hit_button, in_play_embed, stand_button, sum_cards,
+    CARD_VALUES, GameDetails, card_values, double_button, hit_button, in_play_embed, stand_button,
+    sum_cards,
 };
 use crate::{
-    CARD_TO_NUM, Coins, EffectsManager, GamblingData, GamblingManager, GameCache, GameManager,
-    GameRow, GoalsManager, Result, card_to_num,
+    Coins, EffectsManager, GamblingData, GamblingManager, GameCache, GameManager, GameRow,
+    GoalsManager, Result,
 };
 
 pub struct Blackjack;
@@ -273,7 +274,7 @@ async fn game_end<
     GameHandler::save(pool, row).await.unwrap();
     GameCache::update(ctx.data::<RwLock<Data>>(), interaction.user.id).await;
 
-    let card_to_num = CARD_TO_NUM.get_or_init(|| card_to_num(emojis));
+    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
     let coin = emojis.emoji("heads").unwrap();
 
     let desc = format!(
@@ -376,8 +377,8 @@ async fn bust<
     let dealer_hand_str = dealer_hand
         .iter()
         .map(|id| {
-            let num = *CARD_TO_NUM
-                .get_or_init(|| card_to_num(emojis))
+            let num = *CARD_VALUES
+                .get_or_init(|| card_values(emojis))
                 .get(id)
                 .unwrap();
 
