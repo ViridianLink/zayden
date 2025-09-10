@@ -42,7 +42,7 @@ pub static CARD_DECK: OnceLock<Vec<EmojiId>> = OnceLock::new();
 pub fn card_deck(emojis: &EmojiCache) -> Vec<EmojiId> {
     const SUITS: [&str; 4] = ["clubs", "diamonds", "hearts", "spades"];
     const VALUES: [&str; 13] = [
-        "02", "03", "04", "05", "06", "07", "08", "09", "10", "J", "Q", "K", "A",
+        "A", "02", "03", "04", "05", "06", "07", "08", "09", "10", "J", "Q", "K",
     ];
 
     let emoji_names: Vec<String> = SUITS
@@ -63,15 +63,7 @@ fn card_to_num(emojis: &EmojiCache) -> HashMap<EmojiId, u8> {
         .get_or_init(|| card_deck(emojis))
         .iter()
         .copied()
-        .zip(
-            (1u8..=13)
-                .cycle()
-                .map(|rank| match rank {
-                    11..=13 => 10,
-                    _ => rank,
-                })
-                .take(52),
-        )
+        .zip((1u8..=13).cycle().take(52))
         .collect()
 }
 
