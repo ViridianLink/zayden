@@ -46,3 +46,5 @@ sqlx = { workspace = true, features = [
     "runtime-tokio-rustls",
 ] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["fmt"] }

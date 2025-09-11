@@ -1,3 +1,4 @@
+use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -22,11 +23,15 @@ pub use handler::Handler;
 use modules::destiny2::endgame_analysis::DestinyWeaponTable;
 use modules::destiny2::endgame_analysis::database_manager::DestinyDatabaseManager;
 use sqlx_lib::new_pool;
+use tracing_subscriber::{
+    Layer, Registry, filter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
+};
 
 pub const SUPER_USERS: [UserId; 1] = [
     UserId::new(211486447369322506), // oscarsix
 ];
 pub const BRADSTER_GUILD: GuildId = GuildId::new(1255957182457974875);
+pub const ZAYDEN_GUILD: GuildId = GuildId::new(1222360995700150443);
 pub const ZAYDEN_ID: UserId = UserId::new(787490197943091211);
 
 pub static ZAYDEN_TOKEN: OnceCell<String> = OnceCell::const_new();
@@ -40,6 +45,8 @@ async fn zayden_token(pool: &PgPool) -> String {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    logging();
+
     if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv() {
         dotenvy::from_path(Path::new("bot/.env")).unwrap()
     }
@@ -75,4 +82,21 @@ async fn main() -> Result<()> {
     client.start().await?;
 
     Ok(())
+}
+
+fn logging() {
+    let log_file = File::create("log.txt").expect("Failed to create log.txt");
+    let debug_log = fmt::layer()
+        .with_writer(log_file)
+        .with_filter(filter::LevelFilter::INFO);
+
+    // let traceback_file = File::create("traceback.txt").expect("Failed to create traceback.txt");
+    // let traceback_log = fmt::layer()
+    //     .with_writer(traceback_file)
+    //     .with_filter(filter::LevelFilter::TRACE);
+
+    Registry::default()
+        .with(debug_log)
+        // .with(traceback_log)
+        .init();
 }
