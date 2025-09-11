@@ -1,13 +1,12 @@
 use std::sync::atomic::AtomicBool;
 
-use serenity::all::{EventHandler, FullEvent};
+use serenity::all::{Event, EventHandler, FullEvent, GuildCreateEvent, RatelimitInfo};
 use serenity::async_trait;
 use serenity::model::prelude::Interaction;
 use serenity::prelude::Context;
 use sqlx::PgPool;
 
-use crate::ctx_data::CtxData;
-use crate::sqlx_lib::PostgresPool;
+use crate::{BRADSTER_GUILD, ZAYDEN_GUILD};
 
 mod guild_create;
 mod interaction;
@@ -25,6 +24,19 @@ pub struct Handler {
 
 #[async_trait]
 impl EventHandler for Handler {
+    fn filter_event(&self, _ctx: &Context, event: &Event) -> bool {
+        match event {
+            Event::GuildCreate(GuildCreateEvent { guild, .. })
+                if guild.id == BRADSTER_GUILD || guild.id == ZAYDEN_GUILD =>
+            {
+                println!("[{}] Registered {}", event.name(), guild.name);
+                true
+            }
+            Event::PresenceUpdate(_) | Event::TypingStart(_) | Event::MessageUpdate(_) => false,
+            _ => true,
+        }
+    }
+
     async fn dispatch(&self, ctx: &Context, ev: &FullEvent) {
         let event_name: &'static str = ev.into();
 
@@ -71,5 +83,9 @@ impl EventHandler for Handler {
 
             eprintln!("\n{msg}\n{ev:?}\n");
         }
+    }
+
+    async fn ratelimit(&self, data: RatelimitInfo) {
+        println!("{:?}", data)
     }
 }
