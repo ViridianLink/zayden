@@ -1,7 +1,6 @@
 use std::sync::atomic::Ordering;
 
 use serenity::all::{Context, OnlineStatus, Ready};
-use sqlx::PgPool;
 use tokio::sync::RwLock;
 
 use crate::cron::start_cron_jobs;
@@ -9,12 +8,16 @@ use crate::handler::Handler;
 use crate::{CtxData, Result, ZAYDEN_ID};
 
 impl Handler {
-    pub async fn ready(&self, ctx: &Context, ready: &Ready, pool: &PgPool) -> Result<()> {
-        println!("{} is connected!", ready.user.name);
+    pub async fn ready(&self, ctx: &Context, ready: &Ready) -> Result<()> {
+        println!(
+            "{} is connected and in {} guilds!",
+            ready.user.name,
+            ready.guilds.len()
+        );
 
         ctx.set_presence(None, OnlineStatus::Online);
 
-        CtxData::ready(ctx, ready, pool).await;
+        CtxData::ready(ctx, ready, &self.pool).await;
 
         if !self.started_cron.load(Ordering::Relaxed) {
             {
@@ -26,7 +29,7 @@ impl Handler {
             }
 
             let ctx = ctx.clone();
-            let pool = pool.clone();
+            let pool = self.pool.clone();
 
             tokio::spawn(async move { start_cron_jobs(ctx, pool).await });
 

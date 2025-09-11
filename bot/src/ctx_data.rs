@@ -15,11 +15,9 @@ use zayden_core::cache::GuildMembersCache;
 use zayden_core::{CronJob, CronJobData, EmojiCache, EmojiCacheData};
 
 use crate::modules::gambling::{GamblingTable, HigherLowerTable, LottoTable, StaminaTable};
-use crate::sqlx_lib::PostgresPool;
 use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
 pub struct CtxData {
-    pool: PgPool,
     http_client: HttpClient,
     songbird: Arc<Songbird>,
     emoji_cache: Arc<EmojiCache>,
@@ -32,21 +30,6 @@ pub struct CtxData {
 }
 
 impl CtxData {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            pool,
-            http_client: HttpClient::new(),
-            songbird: Songbird::serenity(),
-            emoji_cache: Arc::new(EmojiCache::default()),
-            cron_jobs: Vec::new(),
-            voice_stats: HashMap::new(),
-            guild_members: HashMap::new(),
-            gambling_cache: GameCache::default(),
-            last_messages: HashMap::new(),
-            music: HashMap::new(),
-        }
-    }
-
     pub fn setup_static_cron(&mut self) {
         self.cron_jobs = vec![
             StaminaCron::cron_job::<Postgres, StaminaTable>(),
@@ -79,9 +62,19 @@ impl CtxData {
     }
 }
 
-impl PostgresPool for CtxData {
-    fn pool(&self) -> &PgPool {
-        &self.pool
+impl Default for CtxData {
+    fn default() -> Self {
+        Self {
+            http_client: Default::default(),
+            songbird: Songbird::serenity(),
+            emoji_cache: Default::default(),
+            cron_jobs: Default::default(),
+            voice_stats: Default::default(),
+            guild_members: Default::default(),
+            gambling_cache: Default::default(),
+            last_messages: Default::default(),
+            music: Default::default(),
+        }
     }
 }
 

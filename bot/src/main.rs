@@ -57,7 +57,7 @@ async fn main() -> Result<()> {
             .unwrap();
     }
 
-    let data = CtxData::new(pool);
+    let data = CtxData::default();
 
     let mut client = ClientBuilder::new(
         Token::from_env("DISCORD_TOKEN").unwrap(),
@@ -66,6 +66,7 @@ async fn main() -> Result<()> {
     .voice_manager::<Songbird>(data.songbird())
     .data(Arc::new(RwLock::new(data)))
     .event_handler(Handler {
+        pool,
         started_cron: AtomicBool::new(false),
     })
     .await

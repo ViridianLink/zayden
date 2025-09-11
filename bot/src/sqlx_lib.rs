@@ -3,10 +3,6 @@ use std::env;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 
-pub trait PostgresPool {
-    fn pool(&self) -> &PgPool;
-}
-
 pub struct GuildTable;
 
 pub async fn new_pool() -> sqlx::Result<PgPool> {
