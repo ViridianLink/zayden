@@ -33,8 +33,6 @@ impl Handler {
             _ => {}
         }
 
-        println!("Registered {}", guild.name);
-
         Ok(())
     }
 }
