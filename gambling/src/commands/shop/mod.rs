@@ -1,7 +1,6 @@
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    ResolvedOption, ResolvedValue, UserId,
+    ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -9,30 +8,15 @@ pub mod buy;
 pub mod list;
 pub mod sell;
 
-pub use buy::{BuyRow, buy};
+pub use buy::buy;
 pub use list::list;
 pub use sell::{SellRow, sell};
 use zayden_core::EmojiCacheData;
 
-use crate::{GoalsManager, Result, SHOP_ITEMS, ShopPage};
+use crate::common::shop::ShopRow;
+use crate::{GoalsManager, Result, SHOP_ITEMS, ShopManager, ShopPage};
 
 use super::Commands;
-
-#[async_trait]
-pub trait ShopManager<Db: Database> {
-    async fn buy_row(pool: &Pool<Db>, id: impl Into<UserId> + Send)
-    -> sqlx::Result<Option<BuyRow>>;
-
-    async fn buy_save(pool: &Pool<Db>, row: BuyRow) -> sqlx::Result<Db::QueryResult>;
-
-    async fn sell_row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-        item_id: &str,
-    ) -> sqlx::Result<Option<SellRow>>;
-
-    async fn sell_save(pool: &Pool<Db>, row: SellRow) -> sqlx::Result<Db::QueryResult>;
-}
 
 impl Commands {
     pub async fn shop<

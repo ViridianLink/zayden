@@ -6,9 +6,8 @@ use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
-use crate::commands::shop::ShopManager;
 use crate::shop::SALES_TAX;
-use crate::{Coins, Error, Result, SHOP_ITEMS};
+use crate::{Coins, Error, Result, SHOP_ITEMS, ShopManager};
 
 #[derive(FromRow)]
 pub struct SellRow {

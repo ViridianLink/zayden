@@ -5,11 +5,9 @@ use chrono::NaiveDateTime;
 use serenity::all::UserId;
 use sqlx::{Database, Pool};
 
-use crate::{
-    Error, Result, ShopCurrency,
-    models::gambling::GamblingManager,
-    shop::{ALL_INS, LUCKY_CHIP, SHOP_ITEMS, ShopItem},
-};
+use crate::common::shop::{ALL_INS, LUCKY_CHIP, SHOP_ITEMS, ShopItem};
+use crate::models::gambling::GamblingManager;
+use crate::{Error, Result, ShopCurrency};
 
 #[async_trait]
 pub trait EffectsManager<Db: Database>: Send {

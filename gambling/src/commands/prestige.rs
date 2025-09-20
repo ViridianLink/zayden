@@ -8,7 +8,7 @@ use sqlx::types::Json;
 use sqlx::{Database, FromRow, Pool};
 use zayden_core::FormatNum;
 
-use crate::shop::LOTTO_TICKET;
+use crate::common::shop::LOTTO_TICKET;
 use crate::{
     Commands, GamblingItem, MaxValues, Mining, Prestige, Result, SHOP_ITEMS, START_AMOUNT,
 };

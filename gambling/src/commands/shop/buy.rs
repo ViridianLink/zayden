@@ -1,189 +1,17 @@
 use serenity::all::{
-    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
-use sqlx::{Database, Pool, prelude::FromRow, types::Json};
+use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
+use crate::commands::shop::{ShopManager, ShopRow};
+use crate::events::{Dispatch, Event, ShopPurchaseEvent};
+use crate::models::GamblingItem;
 use crate::{
-    Coins, Error, Gems, GoalsManager, ItemInventory, MaxBet, MaxValues, Prestige, Result,
-    SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage,
-    commands::shop::ShopManager,
-    events::{Dispatch, Event, ShopPurchaseEvent},
-    models::{GamblingItem, Mining},
+    Coins, Error, Gems, GoalsManager, ItemInventory, MaxValues, Result, SHOP_ITEMS, ShopCurrency,
+    ShopItem, ShopPage,
 };
-
-#[derive(FromRow)]
-pub struct BuyRow {
-    pub id: i64,
-    pub coins: i64,
-    pub gems: i64,
-    pub level: Option<i32>,
-    pub inventory: Option<Json<Vec<GamblingItem>>>,
-    pub miners: i64,
-    pub mines: i64,
-    pub land: i64,
-    pub countries: i64,
-    pub continents: i64,
-    pub planets: i64,
-    pub solar_systems: i64,
-    pub galaxies: i64,
-    pub universes: i64,
-    pub prestige: i64,
-    pub tech: i64,
-    pub utility: i64,
-    pub production: i64,
-}
-
-impl BuyRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
-        Self {
-            id: id.get() as i64,
-            coins: 0,
-            gems: 0,
-            level: Some(0),
-            inventory: Some(Json(Vec::new())),
-            miners: 0,
-            mines: 0,
-            land: 0,
-            countries: 0,
-            continents: 0,
-            planets: 0,
-            solar_systems: 0,
-            galaxies: 0,
-            universes: 0,
-            prestige: 0,
-            tech: 0,
-            utility: 0,
-            production: 0,
-        }
-    }
-}
-
-impl Coins for BuyRow {
-    fn coins(&self) -> i64 {
-        self.coins
-    }
-
-    fn coins_mut(&mut self) -> &mut i64 {
-        &mut self.coins
-    }
-}
-
-impl Gems for BuyRow {
-    fn gems(&self) -> i64 {
-        self.gems
-    }
-
-    fn gems_mut(&mut self) -> &mut i64 {
-        &mut self.gems
-    }
-}
-
-impl ItemInventory for BuyRow {
-    fn inventory(&self) -> &[GamblingItem] {
-        match self.inventory.as_ref() {
-            Some(vec_ref) => &vec_ref.0,
-            None => &[],
-        }
-    }
-
-    fn inventory_mut(&mut self) -> &mut Vec<GamblingItem> {
-        self.inventory.get_or_insert_with(|| Json(Vec::new()))
-    }
-}
-
-impl Mining for BuyRow {
-    fn miners(&self) -> i64 {
-        self.miners
-    }
-
-    fn mines(&self) -> i64 {
-        self.mines
-    }
-
-    fn land(&self) -> i64 {
-        self.land
-    }
-
-    fn countries(&self) -> i64 {
-        self.countries
-    }
-
-    fn continents(&self) -> i64 {
-        self.continents
-    }
-
-    fn planets(&self) -> i64 {
-        self.planets
-    }
-
-    fn solar_systems(&self) -> i64 {
-        self.solar_systems
-    }
-
-    fn galaxies(&self) -> i64 {
-        self.galaxies
-    }
-
-    fn universes(&self) -> i64 {
-        self.universes
-    }
-
-    fn tech(&self) -> i64 {
-        self.tech
-    }
-
-    fn utility(&self) -> i64 {
-        self.utility
-    }
-
-    fn production(&self) -> i64 {
-        self.production
-    }
-
-    fn coal(&self) -> i64 {
-        unimplemented!()
-    }
-
-    fn iron(&self) -> i64 {
-        unimplemented!()
-    }
-
-    fn gold(&self) -> i64 {
-        unimplemented!()
-    }
-
-    fn redstone(&self) -> i64 {
-        unimplemented!()
-    }
-
-    fn lapis(&self) -> i64 {
-        unimplemented!()
-    }
-
-    fn diamonds(&self) -> i64 {
-        unimplemented!()
-    }
-
-    fn emeralds(&self) -> i64 {
-        unimplemented!()
-    }
-}
-
-impl Prestige for BuyRow {
-    fn prestige(&self) -> i64 {
-        self.prestige
-    }
-}
-
-impl MaxBet for BuyRow {
-    fn level(&self) -> i32 {
-        self.level.unwrap_or_default()
-    }
-}
 
 pub async fn buy<
     Data: EmojiCacheData,
@@ -212,7 +40,7 @@ pub async fn buy<
 
     let mut row = match BuyHandler::buy_row(pool, interaction.user.id).await? {
         Some(row) => row,
-        None => BuyRow::new(interaction.user.id),
+        None => ShopRow::new(interaction.user.id),
     };
 
     let amount: i64 = match amount.parse() {
@@ -303,7 +131,7 @@ pub async fn buy<
     Ok(())
 }
 
-fn edit_inv(row: &mut BuyRow, item: &ShopItem<'_>, amount: i64) -> i64 {
+fn edit_inv(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> i64 {
     let inventory = row.inventory_mut();
 
     match inventory
@@ -323,7 +151,7 @@ fn edit_inv(row: &mut BuyRow, item: &ShopItem<'_>, amount: i64) -> i64 {
     }
 }
 
-fn edit_mine(row: &mut BuyRow, item: &ShopItem<'_>, amount: i64) -> Result<i64> {
+fn edit_mine(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> Result<i64> {
     let value = match item.id {
         "miner" => &mut row.miners,
         "mine" => &mut row.mines,
