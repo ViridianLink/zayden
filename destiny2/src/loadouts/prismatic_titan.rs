@@ -22,7 +22,7 @@ pub const PRISMATIC_TITAN: Loadout = Loadout::new(
     Some(ArtifactPerk::RadiantShrapnel),
     None,
     None,
-    None,
+    None, None
 ]);
 
 const SUBCLASS: Subclass = Subclass {

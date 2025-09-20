@@ -20,6 +20,7 @@ pub const SOLAR_TITAN: Loadout = Loadout {
         Some(ArtifactPerk::RadiantShrapnel),
         Some(ArtifactPerk::ElementalOverdrive),
         None,
+        None,
     ],
     details: Details {
         author: "Bradley",

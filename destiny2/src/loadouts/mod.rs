@@ -13,17 +13,21 @@ mod arc_hunter;
 mod boss_prismatic_hunter;
 mod general_prismatic_hunter;
 mod prismatic_titan;
+mod prismatic_warlock;
 mod solar_titan;
 mod solar_warlock;
 mod strand_titan;
+mod strand_warlock;
 mod void_warlock;
 use arc_hunter::ARC_HUNTER;
 use boss_prismatic_hunter::BOSS_PRISMATIC_HUNTER;
 use general_prismatic_hunter::GENERAL_PRISMATIC_HUNTER;
 use prismatic_titan::PRISMATIC_TITAN;
+use prismatic_warlock::PRISMATIC_WARLOCK;
 use solar_titan::SOLAR_TITAN;
 use solar_warlock::SOLAR_WARLOCK;
 use strand_titan::STRAND_TITAN;
+use strand_warlock::STRAND_WARLOCK;
 use void_warlock::VOID_WARLOCK;
 
 pub mod weapons;
@@ -31,14 +35,16 @@ use tokio::sync::RwLock;
 pub use weapons::{Perk, Weapon};
 use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
-const BUILDS: [Loadout; 8] = [
+const BUILDS: [Loadout; 10] = [
     ARC_HUNTER,
     GENERAL_PRISMATIC_HUNTER,
     BOSS_PRISMATIC_HUNTER,
     SOLAR_TITAN,
     STRAND_TITAN,
     PRISMATIC_TITAN,
+    PRISMATIC_WARLOCK,
     SOLAR_WARLOCK,
+    STRAND_WARLOCK,
     VOID_WARLOCK,
 ];
 const DUPLICATE: EmojiId = EmojiId::new(1395743560388706374);
@@ -51,7 +57,7 @@ pub struct Loadout<'a> {
     tags: [Option<Tag>; 3],
     subclass: Subclass,
     gear: Gear<'a>,
-    artifact: [Option<ArtifactPerk>; 7],
+    artifact: [Option<ArtifactPerk>; 8],
     details: Details<'a>,
 }
 
@@ -162,7 +168,7 @@ impl<'a> Loadout<'a> {
             tags: [None; 3],
             subclass,
             gear,
-            artifact: [None; 7],
+            artifact: [None; 8],
             details,
         }
     }
@@ -172,7 +178,7 @@ impl<'a> Loadout<'a> {
         self
     }
 
-    pub const fn artifact(mut self, artifact: [Option<ArtifactPerk>; 7]) -> Self {
+    pub const fn artifact(mut self, artifact: [Option<ArtifactPerk>; 8]) -> Self {
         self.artifact = artifact;
         self
     }
@@ -667,6 +673,7 @@ pub enum Super {
     GatheringStorm,
     Bladefury,
     NovaBombCataclysm,
+    Needlestorm,
 }
 
 impl Display for Super {
@@ -679,6 +686,7 @@ impl Display for Super {
             Super::GatheringStorm => "Gathering Storm",
             Super::Bladefury => "Bladefury",
             Super::NovaBombCataclysm => "Nova Bomb: Cataclysm",
+            Super::Needlestorm => "Needlestorm",
         };
 
         write!(f, "{name}")
@@ -695,6 +703,7 @@ impl Debug for Super {
             Super::GatheringStorm => "gathering_storm",
             Super::Bladefury => "bladefury",
             Super::NovaBombCataclysm => "nova_bomb_cataclysm",
+            Super::Needlestorm => "needlestorm",
         };
 
         write!(f, "{name}")
@@ -709,6 +718,7 @@ pub enum ClassAbility {
     Thruster,
     GamblersDodge,
     HealingRift,
+    EmpoweringRift,
 }
 
 impl Display for ClassAbility {
@@ -720,6 +730,7 @@ impl Display for ClassAbility {
             ClassAbility::Thruster => "thruster",
             ClassAbility::GamblersDodge => "gamblers_dodge",
             ClassAbility::HealingRift => "healing_rift",
+            ClassAbility::EmpoweringRift => "empowering_rift",
         };
 
         write!(f, "{name}")
@@ -754,6 +765,7 @@ pub enum Melee {
     CombinationBlow,
     FrenziedBlade,
     PocketSingularity,
+    ArcaneNeedle,
 }
 
 impl Display for Melee {
@@ -766,6 +778,7 @@ impl Display for Melee {
             Melee::CombinationBlow => "combination_blow",
             Melee::FrenziedBlade => "frenzied_blade",
             Melee::PocketSingularity => "pocket_singularity",
+            Melee::ArcaneNeedle => "arcane_needle",
         };
 
         write!(f, "{name}")
@@ -780,6 +793,8 @@ pub enum Grenade {
     Shackle,
     Flux,
     Magnetic,
+    Threadling,
+    Vortex,
 }
 
 impl Display for Grenade {
@@ -791,6 +806,8 @@ impl Display for Grenade {
             Grenade::Shackle => "shackle_grenade",
             Grenade::Flux => "flux_grenade",
             Grenade::Magnetic => "magnetic_grenade",
+            Grenade::Threadling => "threadling_grenade",
+            Grenade::Vortex => "vortex_grenade",
         };
 
         write!(f, "{name}")
@@ -815,6 +832,9 @@ pub enum Aspect {
     FlechetteStorm,
     ChaosAccelerant,
     FeedTheVoid,
+    Weavewalk,
+    WeaversCall,
+    LightningSurge,
 }
 
 impl Display for Aspect {
@@ -836,6 +856,9 @@ impl Display for Aspect {
             Aspect::FlechetteStorm => "flechette_storm",
             Aspect::ChaosAccelerant => "chaos_accelerant",
             Aspect::FeedTheVoid => "feed_the_void",
+            Aspect::Weavewalk => "weavewalk",
+            Aspect::WeaversCall => "weavers_call",
+            Aspect::LightningSurge => "lightning_surge",
         };
 
         write!(f, "{name}")
@@ -871,6 +894,9 @@ pub enum Fragment {
     EchoOfInstability,
     EchoOfExpulsion,
     EchoOfVigilance,
+    ThreadOfMind,
+    ThreadOfEvolution,
+    FacetOfDominance,
 }
 
 impl Display for Fragment {
@@ -889,6 +915,7 @@ impl Display for Fragment {
             Fragment::FacetOfCourage => "facet_of_courage",
             Fragment::FacetOfAwakening => "facet_of_awakening",
             Fragment::FacetOfSacrifice => "facet_of_sacrifice",
+            Fragment::FacetOfDominance => "facet_of_dominance",
             Fragment::SparkOfResistance => "spark_of_resistance",
             Fragment::SparkOfAmplitude => "spark_of_amplitude",
             Fragment::SparkOfFrequency => "spark_of_frequency",
@@ -897,6 +924,8 @@ impl Display for Fragment {
             Fragment::ThreadOfWarding => "thread_of_warding",
             Fragment::ThreadOfTransmutation => "thread_of_transmutation",
             Fragment::ThreadOfGeneration => "thread_of_generation",
+            Fragment::ThreadOfMind => "thread_of_mind",
+            Fragment::ThreadOfEvolution => "thread_of_evolution",
             Fragment::SparkOfIons => "spark_of_ions",
             Fragment::SparkOfFeedback => "spark_of_feedback",
             Fragment::EchoOfPersistence => "echo_of_persistence",
@@ -1018,6 +1047,15 @@ pub enum ArmourName {
     AionAdapterBoots,
     AionAdapterBond,
     VeritysBrow,
+    AionAdapterHood,
+    AIONRenewalRobes,
+    Swarmers,
+    AIONRenewalBond,
+    WarlockHood,
+    WarlockGloves,
+    WarlockRobes,
+    WarlockBoots,
+    Solipsism((&'static str, &'static str)),
 }
 
 impl Display for ArmourName {
@@ -1155,6 +1193,33 @@ impl Display for ArmourName {
             ArmourName::AionAdapterBond => {
                 "https://www.bungie.net/common/destiny2_content/icons/ed84553c654e3c5a74c83efa5354ffd8.jpg"
             }
+            ArmourName::AionAdapterHood => {
+                "https://www.bungie.net/common/destiny2_content/icons/fc6f5043c2e35c80fa87cf557e105cb7.jpg"
+            }
+            ArmourName::AIONRenewalRobes => {
+                "https://www.bungie.net/common/destiny2_content/icons/90c55f512d646cf5100af428a194fdd0.jpg"
+            }
+            ArmourName::Swarmers => {
+                "https://www.bungie.net/common/destiny2_content/icons/1267deeabc5cb6863332d4ec05b5afc8.jpg"
+            }
+            ArmourName::AIONRenewalBond => {
+                "https://www.bungie.net/common/destiny2_content/icons/2d4242012ce9246f3289dafddfa9dd60.jpg"
+            }
+            ArmourName::WarlockHood => {
+                "https://www.bungie.net/common/destiny2_content/icons/1cb2285f74ece98b03e170a3f8d9abdc.jpg"
+            }
+            ArmourName::WarlockGloves => {
+                "https://www.bungie.net/common/destiny2_content/icons/bfece8a540293e1ac584d894caaa7258.jpg"
+            }
+            ArmourName::WarlockRobes => {
+                "https://www.bungie.net/common/destiny2_content/icons/9fc0d6f0828aea5abe2f13354c6e63b5.jpg"
+            }
+            ArmourName::WarlockBoots => {
+                "https://www.bungie.net/common/destiny2_content/icons/1c3ae268b2f129c252f0609fe52b8028.jpg"
+            }
+            ArmourName::Solipsism(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/5d657945620203cc8a7b5ade47e6e12a.jpg"
+            }
         };
 
         write!(f, "{url}")
@@ -1208,6 +1273,15 @@ impl Debug for ArmourName {
             ArmourName::AionAdapterBoots => "Aion Adapter Boots",
             ArmourName::AionAdapterBond => "Aion Adapter Bond",
             ArmourName::VeritysBrow => "Verity's Brow",
+            ArmourName::AionAdapterHood => "AION Adapter Hood",
+            ArmourName::AIONRenewalRobes => "AION Renewal Robes",
+            ArmourName::Swarmers => "Swarmers",
+            ArmourName::AIONRenewalBond => "AION Renewal Bond",
+            ArmourName::WarlockHood => "Any Hood",
+            ArmourName::WarlockGloves => "Any Gloves",
+            ArmourName::WarlockRobes => "Any Robe",
+            ArmourName::WarlockBoots => "Any Boots",
+            ArmourName::Solipsism(perks) => &format!("Relativism ({} + {})", perks.0, perks.1),
         };
 
         write!(f, "{name}")
@@ -1252,6 +1326,9 @@ pub enum Mod {
     WeaponsFont,
     VoidScavenger,
     HarmonicScavenger,
+    MomentumTransfer,
+    StrandAmmoGeneration,
+    Absolution,
 }
 
 impl Display for Mod {
@@ -1293,6 +1370,9 @@ impl Display for Mod {
             Mod::WeaponsFont => "weapons_font",
             Mod::VoidScavenger => "void_scavenger",
             Mod::HarmonicScavenger => "harmonic_scavenger",
+            Mod::MomentumTransfer => "momentum_transfer",
+            Mod::StrandAmmoGeneration => "strand_ammo_generation",
+            Mod::Absolution => "absolution",
         };
 
         write!(f, "{name}")
@@ -1357,6 +1437,8 @@ pub enum ArtifactPerk {
     FrostRenewal,
     FrigidGlare,
     ThreadedBlast,
+    ThreadlingProliferation,
+    PackTactics,
 }
 
 impl Display for ArtifactPerk {
@@ -1380,6 +1462,8 @@ impl Display for ArtifactPerk {
             ArtifactPerk::FrostRenewal => "frost_renewal",
             ArtifactPerk::FrigidGlare => "frigid_glare",
             ArtifactPerk::ThreadedBlast => "threaded_blast",
+            ArtifactPerk::ThreadlingProliferation => "threadling_proliferation",
+            ArtifactPerk::PackTactics => "pack_tactics",
         };
 
         write!(f, "{name}")

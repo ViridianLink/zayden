@@ -5,6 +5,13 @@ use serenity::all::{
 };
 use zayden_core::EmojiCache;
 
+pub const CHOIR_OF_ONE: Weapon = Weapon {
+    name: "Choir of One",
+    affinity: Affinity::Void,
+    archtype: "Exotic Auto Rifle",
+    perks: [Perk::CommandFrame, Perk::FanaticalLance],
+};
+
 pub const DEAD_MESSENGER: Weapon = Weapon {
     name: "Dead Messenger",
     affinity: Affinity::Void,
@@ -24,6 +31,13 @@ pub const MINT_RETROGRADE: Weapon = Weapon {
     affinity: Affinity::Strand,
     archtype: "Legendary Pulse Rifle",
     perks: [Perk::RewindRounds, Perk::Slice],
+};
+
+pub const NEW_MALPAIS: Weapon = Weapon {
+    name: "New Malpais",
+    affinity: Affinity::Strand,
+    archtype: "Exotic Pulse Rifle",
+    perks: [Perk::SuspendingBlast, Perk::AtomizingRounds],
 };
 
 pub const PERFECT_PARADOX: Weapon = Weapon {
@@ -163,6 +177,15 @@ impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
             "Monte Carlo" => {
                 "https://www.bungie.net/common/destiny2_content/icons/ad75fa3374e2ce5a549db8d7f672098c.jpg"
             }
+            "New Malpais" => {
+                "https://www.bungie.net/common/destiny2_content/icons/d90d7a4fca9a90e3202ed402b87848dd.jpg"
+            }
+            "Dead Messenger" => {
+                "https://www.bungie.net/common/destiny2_content/icons/c2e44f40d97a0a9eb1af8d25fb8c0f03.jpg"
+            }
+            "Choir of One" => {
+                "https://www.bungie.net/common/destiny2_content/icons/e285e30c15aa9482df3f1f9c5810fe66.jpg"
+            }
             name => unimplemented!("Image URL for '{name}' not implemented"),
         };
 
@@ -217,6 +240,10 @@ pub enum Perk {
     MonteCarloMethod,
     TheFundamentals,
     HandLaidStock,
+    SuspendingBlast,
+    AtomizingRounds,
+    CommandFrame,
+    FanaticalLance,
 }
 
 impl Display for Perk {
@@ -242,6 +269,10 @@ impl Display for Perk {
             Perk::MonteCarloMethod => "monte_carlo_method",
             Perk::TheFundamentals => "the_fundamentals",
             Perk::HandLaidStock => "hand_laid_stock",
+            Perk::SuspendingBlast => "suspending_blast",
+            Perk::AtomizingRounds => "atomizing_rounds",
+            Perk::CommandFrame => "command_frame",
+            Perk::FanaticalLance => "fanatical_lance",
         };
 
         write!(f, "{name}")

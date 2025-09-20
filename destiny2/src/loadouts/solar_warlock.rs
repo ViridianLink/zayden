@@ -19,6 +19,7 @@ pub const SOLAR_WARLOCK: Loadout = Loadout {
         Some(ArtifactPerk::Shieldcrush),
         None,
         None,
+        None,
     ],
     details: Details::new("LlamaD2", "https://dim.gg/aelfwzq/Solar")
         .video("https://www.youtube.com/watch?v=AkDl3T_iIuc"),

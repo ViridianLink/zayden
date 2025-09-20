@@ -23,6 +23,7 @@ pub const GENERAL_PRISMATIC_HUNTER: Loadout = Loadout::new(
     Some(ArtifactPerk::ElementalCoalescence),
     Some(ArtifactPerk::Shieldcrush),
     Some(ArtifactPerk::TangledWeb),
+    None,
 ]);
 
 const SUBCLASS: Subclass = Subclass {

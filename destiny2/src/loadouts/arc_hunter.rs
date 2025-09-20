@@ -21,6 +21,7 @@ pub const ARC_HUNTER: Loadout = Loadout::new(
     None,
     None,
     None,
+    None,
 ]);
 
 const SUBCLASS: Subclass = Subclass {

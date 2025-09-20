@@ -19,6 +19,7 @@ pub const VOID_WARLOCK: Loadout = Loadout {
         None,
         None,
         None,
+        None,
     ],
     details: Details::new("LlamaD2", "https://dim.gg/fiauzci/Void")
         .video("https://youtu.be/TBbOiMWPIkE"),

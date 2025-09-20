@@ -23,6 +23,7 @@ pub const BOSS_PRISMATIC_HUNTER: Loadout = Loadout::new(
     None,
     None,
     None,
+    None,
 ]);
 
 const SUBCLASS: Subclass = Subclass {
