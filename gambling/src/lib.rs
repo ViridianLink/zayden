@@ -18,7 +18,9 @@ pub mod utils;
 
 pub use commands::Commands;
 pub use commands::goals::GoalsManager;
-pub use common::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopItems, ShopManager, ShopPage, ShopRow};
+pub use common::{
+    SHOP_ITEMS, ShopCurrency, ShopItem, ShopItems, ShopManager, ShopPage, ShopRow, shop,
+};
 pub use ctx_data::GamblingData;
 pub use error::Error;
 use error::Result;
