@@ -25,7 +25,7 @@ pub struct CtxData {
     voice_stats: HashMap<UserId, CachedState>,
     guild_members: HashMap<GuildId, Vec<UserId>>,
     gambling_cache: GameCache,
-    last_messages: HashMap<GenericChannelId, (UserId, FixedString<u16>)>,
+    good_morning_cache: HashMap<GenericChannelId, (UserId, bool)>,
     music: HashMap<GuildId, GuildMusic>,
 }
 
@@ -133,9 +133,10 @@ impl GoodMorningCache for CtxData {
         &mut self,
         channel_id: GenericChannelId,
         author: UserId,
-        content: FixedString<u16>,
-    ) -> Option<(UserId, FixedString<u16>)> {
-        self.last_messages.insert(channel_id, (author, content))
+        is_good_morning: bool,
+    ) -> Option<(UserId, bool)> {
+        self.good_morning_cache
+            .insert(channel_id, (author, is_good_morning))
     }
 }
 

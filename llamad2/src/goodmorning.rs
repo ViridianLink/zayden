@@ -1,5 +1,4 @@
 use serenity::all::{Context, CreateMessage, GenericChannelId, Message, UserId};
-use serenity::small_fixed_array::FixedString;
 use tokio::sync::RwLock;
 
 use crate::LLAMA_GUILD;
@@ -20,8 +19,8 @@ pub trait GoodMorningCache: Send + Sync + 'static {
         &mut self,
         channel_id: GenericChannelId,
         author: UserId,
-        content: FixedString<u16>,
-    ) -> Option<(UserId, FixedString<u16>)>;
+        is_good_morning: bool,
+    ) -> Option<(UserId, bool)>;
 }
 
 pub struct GoodMorning;
@@ -32,19 +31,19 @@ impl GoodMorning {
             return;
         }
 
+        let content = message.content.to_lowercase();
+
+        let is_good_morning = is_good_morning(&content);
+
         let prev_msg = {
             let data = ctx.data::<RwLock<Data>>();
             let mut data = data.write().await;
-            data.insert(
-                message.channel_id,
-                message.author.id,
-                message.content.clone(),
-            )
+            data.insert(message.channel_id, message.author.id, is_good_morning)
         };
 
-        if is_good_morning(&message.content)
-            && prev_msg.is_some_and(|(last_author, content)| {
-                last_author != message.author.id && is_good_morning(&content)
+        if is_good_morning
+            && prev_msg.is_some_and(|(last_author, is_good_morning)| {
+                last_author != message.author.id && is_good_morning
             })
         {
             message
