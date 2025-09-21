@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use gambling::commands::shop::{BuyRow, SellRow, ShopManager};
-use gambling::{Commands, GamblingItem};
+use gambling::commands::shop::SellRow;
+use gambling::{Commands, GamblingItem, ShopManager, ShopRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::types::Json;
@@ -14,10 +14,10 @@ pub struct ShopTable;
 
 #[async_trait]
 impl ShopManager<Postgres> for ShopTable {
-    async fn buy_row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<BuyRow>> {
+    async fn buy_row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<ShopRow>> {
         let id = id.into();
 
-        sqlx::query_as!(BuyRow,
+        sqlx::query_as!(ShopRow,
             r#"SELECT
             g.id,
             g.coins,
@@ -55,7 +55,7 @@ impl ShopManager<Postgres> for ShopTable {
         ).fetch_optional(pool).await
     }
 
-    async fn buy_save(pool: &PgPool, row: BuyRow) -> sqlx::Result<PgQueryResult> {
+    async fn buy_save(pool: &PgPool, row: ShopRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
