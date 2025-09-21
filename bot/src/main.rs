@@ -79,7 +79,7 @@ async fn main() -> Result<()> {
     .await
     .unwrap();
 
-    client.start().await?;
+    client.start_autosharded().await?;
 
     Ok(())
 }
