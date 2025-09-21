@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-zayden-core = { workspace = true }
-
-bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
-google-sheets-api = { git = "https://github.com/ViridianLink/google-sheets-api.git", branch = "main" }
-
 async-trait = { workspace = true }
+bungie-api = { workspace = true }
+destiny2-core = { workspace = true }
 futures = { workspace = true }
+google-sheets-api = { git = "https://github.com/ViridianLink/google-sheets-api.git", branch = "main" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 serenity = { workspace = true }
 sqlx = { workspace = true }
+tokio = { workspace = true }
+zayden-core = { workspace = true }
