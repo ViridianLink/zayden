@@ -30,7 +30,7 @@ impl Handler {
             .guilds
             .iter()
             .map(|guild| guild.id.set_commands(&ctx.http, &commands));
-        future::join_all(iter).await;
+        future::try_join_all(iter).await.unwrap();
 
         if !self.started_cron.load(Ordering::Relaxed) {
             {
