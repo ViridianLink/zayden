@@ -3,11 +3,12 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
+use destiny2_core::BungieClientData;
 use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
 use music::MusicData;
 use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Token, UserId};
 use songbird::Songbird;
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
 
 mod cron;
@@ -20,16 +21,13 @@ mod sqlx_lib;
 pub use ctx_data::CtxData;
 pub use error::{Error, Result};
 pub use handler::Handler;
-use modules::destiny2::endgame_analysis::DestinyWeaponTable;
 use modules::destiny2::endgame_analysis::database_manager::DestinyDatabaseManager;
 use sqlx_lib::new_pool;
 use tracing_subscriber::{
     Layer, Registry, filter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
-pub const SUPER_USERS: [UserId; 1] = [
-    UserId::new(211486447369322506), // oscarsix
-];
+pub const OSCAR_SIX: UserId = UserId::new(211486447369322506);
 pub const BRADSTER_GUILD: GuildId = GuildId::new(1255957182457974875);
 pub const ZAYDEN_GUILD: GuildId = GuildId::new(1222360995700150443);
 pub const ZAYDEN_ID: UserId = UserId::new(787490197943091211);
@@ -57,14 +55,21 @@ async fn main() -> Result<()> {
 
     let pool = new_pool().await.unwrap();
 
+    let data = CtxData::default();
+
     if !cfg!(debug_assertions) {
         DestinyDatabaseManager::update_dbs(&pool).await.unwrap();
-        EndgameAnalysisSheet::update::<Postgres, DestinyWeaponTable>(&pool)
-            .await
-            .unwrap();
-    }
 
-    let data = CtxData::default();
+        let item_manifest = {
+            let client = data.bungie_client();
+            let manifest = client.destiny_manifest().await.unwrap();
+            client
+                .destiny_inventory_item_definition(&manifest, "en")
+                .await
+                .unwrap()
+        };
+        EndgameAnalysisSheet::update(&item_manifest).await.unwrap();
+    }
 
     let mut client = ClientBuilder::new(
         Token::from_env("DISCORD_TOKEN").unwrap(),

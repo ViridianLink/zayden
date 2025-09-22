@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 ai = { workspace = true }
 destiny2 = { workspace = true }
+destiny2-core = { workspace = true }
 endgame-analysis = { workspace = true }
 gambling = { workspace = true }
 levels = { workspace = true }

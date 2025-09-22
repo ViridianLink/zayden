@@ -6,9 +6,7 @@ use serenity::all::{
 use sqlx::{PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Autocomplete};
 
-use crate::{Error, Result};
-
-use super::{DestinyPerkTable, DestinyWeaponTable};
+use crate::{CtxData, Error, Result};
 
 pub struct DimWishlist;
 
@@ -18,15 +16,9 @@ impl ApplicationCommand<Error, Postgres> for DimWishlist {
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
+        _pool: &PgPool,
     ) -> Result<()> {
-        DimWishlistCommand::run::<Postgres, DestinyWeaponTable, DestinyPerkTable>(
-            &ctx.http,
-            interaction,
-            options,
-            pool,
-        )
-        .await;
+        DimWishlistCommand::run::<CtxData>(ctx, interaction, options).await;
 
         Ok(())
     }
@@ -44,10 +36,9 @@ impl ApplicationCommand<Error, Postgres> for TierList {
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
+        _pool: &PgPool,
     ) -> Result<()> {
-        TierListCommand::run::<Postgres, DestinyWeaponTable>(&ctx.http, interaction, options, pool)
-            .await?;
+        TierListCommand::run::<CtxData>(ctx, interaction, options).await?;
 
         Ok(())
     }
@@ -63,15 +54,9 @@ impl Autocomplete<Error, Postgres> for TierList {
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
-        pool: &PgPool,
+        _pool: &PgPool,
     ) -> Result<()> {
-        TierListCommand::autocomplete::<Postgres, DestinyWeaponTable>(
-            &ctx.http,
-            interaction,
-            option,
-            pool,
-        )
-        .await?;
+        TierListCommand::autocomplete::<CtxData>(ctx, interaction, option).await?;
 
         Ok(())
     }
@@ -85,9 +70,9 @@ impl ApplicationCommand<Error, Postgres> for Weapon {
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
+        _pool: &PgPool,
     ) -> Result<()> {
-        WeaponCommand::run::<Postgres, DestinyWeaponTable>(&ctx.http, interaction, pool).await?;
+        WeaponCommand::run::<CtxData>(ctx, interaction).await?;
 
         Ok(())
     }
@@ -103,15 +88,9 @@ impl Autocomplete<Error, Postgres> for Weapon {
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
-        pool: &PgPool,
+        _pool: &PgPool,
     ) -> Result<()> {
-        WeaponCommand::autocomplete::<Postgres, DestinyWeaponTable>(
-            &ctx.http,
-            interaction,
-            option,
-            pool,
-        )
-        .await?;
+        WeaponCommand::autocomplete::<CtxData>(ctx, interaction, option).await?;
 
         Ok(())
     }

@@ -1,29 +1,22 @@
-use futures::{StreamExt, future, stream};
+use destiny2_core::BungieClientData;
+use futures::future;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateAttachment, CreateCommand, CreateCommandOption,
-    EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
+    CommandInteraction, CommandOptionType, Context, CreateAttachment, CreateCommand,
+    CreateCommandOption, EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 
-use crate::{
-    DestinyPerkManager, DestinyWeaponManager,
-    endgame_analysis::{EndgameAnalysisSheet, Weapon},
-};
+use crate::endgame_analysis::{EndgameAnalysisSheet, Weapon};
 
 pub struct DimWishlistCommand;
 
 impl DimWishlistCommand {
-    pub async fn run<
-        Db: Database,
-        WeaponManager: DestinyWeaponManager<Db>,
-        PerkManager: DestinyPerkManager<Db>,
-    >(
-        http: &Http,
+    pub async fn run<Data: BungieClientData>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
     ) {
-        interaction.defer_ephemeral(http).await.unwrap();
+        interaction.defer_ephemeral(&ctx.http).await.unwrap();
 
         let strict = match options.pop().map(|o| o.value) {
             Some(ResolvedValue::String(strict)) => strict,
@@ -40,29 +33,35 @@ impl DimWishlistCommand {
             _ => unreachable!(),
         };
 
+        let (item_manifest, perk_manifest) = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            let client = data.bungie_client();
+            let manifest = client.destiny_manifest().await.unwrap();
+            future::try_join(
+                client.destiny_inventory_item_definition(&manifest, "en"),
+                client.destiny_plug_set_definition(&manifest, "en"),
+            )
+            .await
+        }
+        .unwrap();
+
         let weapons = match std::fs::read_to_string("weapons.json") {
             Ok(weapons) => weapons,
             Err(_) => {
-                EndgameAnalysisSheet::update::<Db, WeaponManager>(pool)
-                    .await
-                    .unwrap();
+                EndgameAnalysisSheet::update(&item_manifest).await.unwrap();
                 std::fs::read_to_string("weapons.json").unwrap()
             }
         };
         let weapons: Vec<Weapon> = serde_json::from_str(&weapons).unwrap();
 
-        let wishlist = stream::iter(weapons)
-            .filter(|weapon| future::ready(tier.contains(&weapon.tier.tier().as_str())))
-            .then(|weapon| {
-                let pool = pool.clone();
-                async move {
-                    weapon
-                        .as_wishlist::<Db, WeaponManager, PerkManager>(&pool)
-                        .await
-                }
+        let wishlist = weapons
+            .into_iter()
+            .filter(|weapon| {
+                tier.contains(&weapon.tier.tier().as_str()) || weapon.tier.tier() == "None"
             })
-            .collect::<Vec<_>>()
-            .await;
+            .map(|weapon| weapon.as_wishlist(&item_manifest, &perk_manifest))
+            .collect::<Vec<_>>();
 
         let wishlist = format!("title: DIM Wishlist\n\n{}", wishlist.join("\n\n"));
 
@@ -70,7 +69,7 @@ impl DimWishlistCommand {
 
         interaction
             .edit_response(
-                http,
+                &ctx.http,
                 EditInteractionResponse::new()
                     .new_attachment(file)
                     .content(format!("PVE Wishlist ({strict}):")),

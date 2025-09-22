@@ -1,10 +1,10 @@
+use std::collections::HashMap;
 use std::env;
 
-use futures::{StreamExt, future, stream};
+use bungie_api::DestinyInventoryItemDefinition;
 use google_sheets_api::SheetsClientBuilder;
 use google_sheets_api::types::common::Color;
 use google_sheets_api::types::sheet::GridData;
-use sqlx::{Database, Pool};
 
 pub mod affinity;
 pub mod frame;
@@ -17,7 +17,7 @@ pub use tier::Tier;
 pub use tier::{TIERS, TierLabel};
 pub use weapon::{Weapon, WeaponBuilder};
 
-use crate::{DestinyWeaponManager, Result};
+use crate::Result;
 
 const ENDGAME_ANALYSIS_ID: &str = "1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY";
 
@@ -36,16 +36,14 @@ fn heavy_colour(color: &Color) -> bool {
 pub struct EndgameAnalysisSheet;
 
 impl EndgameAnalysisSheet {
-    pub async fn update<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        pool: &Pool<Db>,
-    ) -> Result<()> {
+    pub async fn update(manifest: &HashMap<String, DestinyInventoryItemDefinition>) -> Result<()> {
         let api_key = env::var("GOOGLE_API_KEY").unwrap();
 
         let client = SheetsClientBuilder::new(api_key).build().unwrap();
 
         let spreadsheet = client.spreadsheet(ENDGAME_ANALYSIS_ID, true).await.unwrap();
 
-        let iter = spreadsheet
+        let weapons = spreadsheet
             .sheets
             .into_iter()
             .filter(|s| !s.properties.hidden)
@@ -55,15 +53,16 @@ impl EndgameAnalysisSheet {
                     || heavy_colour(&s.properties.tab_color)
                     || s.properties.title == "Other"
             })
-            .map(|mut sheet| (sheet.properties.title, sheet.data.pop().unwrap()));
+            .map(|mut sheet| (sheet.properties.title, sheet.data.pop().unwrap()))
+            .flat_map(|(name, data)| {
+                let item = manifest
+                    .values()
+                    .find(|item| item.display_properties.name.eq_ignore_ascii_case(&name))
+                    .unwrap_or_else(|| panic!("Missing weapon: {}", name));
 
-        let weapons = stream::iter(iter)
-            .then(|(name, data)| async {
-                Self::parse_weapon_data::<Db, Manager>(pool, name, data).await
+                Self::parse_weapon_data(item, name, data)
             })
-            .flat_map(stream::iter)
-            .collect::<Vec<_>>()
-            .await;
+            .collect::<Vec<_>>();
 
         let json = serde_json::to_string(&weapons).unwrap();
         std::fs::write("weapons.json", json).unwrap();
@@ -71,8 +70,8 @@ impl EndgameAnalysisSheet {
         Ok(())
     }
 
-    async fn parse_weapon_data<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        pool: &Pool<Db>,
+    fn parse_weapon_data(
+        item: &DestinyInventoryItemDefinition,
         name: impl Into<String>,
         data: GridData,
     ) -> Vec<Weapon> {
@@ -80,13 +79,11 @@ impl EndgameAnalysisSheet {
 
         let mut iter = data.row_data.into_iter().skip(1);
         let header = iter.next().unwrap();
-        let iter = iter.filter_map(|r| WeaponBuilder::from_row_data(&name, &header, r));
-
-        stream::iter(iter)
-            .then(|builder| async {
+        iter.filter_map(|r| WeaponBuilder::from_row_data(&name, &header, r))
+            .filter_map(|builder| {
                 let name = builder.name.clone();
 
-                match builder.build::<Db, Manager>(pool).await {
+                match builder.build(item) {
                     Ok(weapon) => Some(weapon),
                     Err(_) => {
                         eprintln!("Missing weapon {name}");
@@ -94,8 +91,6 @@ impl EndgameAnalysisSheet {
                     }
                 }
             })
-            .filter_map(future::ready)
             .collect()
-            .await
     }
 }

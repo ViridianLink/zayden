@@ -14,13 +14,6 @@ pub use weapon::WeaponCommand;
 pub use error::Error;
 use error::Result;
 
-#[async_trait]
-pub trait DestinyWeaponManager<Db: Database> {
-    async fn get(pool: &Pool<Db>, name: &str) -> sqlx::Result<DestinyWeapon>;
-
-    async fn get_by_prefix(pool: &Pool<Db>, name: &str) -> sqlx::Result<Vec<DestinyWeapon>>;
-}
-
 #[derive(FromRow)]
 pub struct DestinyWeapon {
     pub id: i64,

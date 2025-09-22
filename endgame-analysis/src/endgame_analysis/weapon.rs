@@ -1,12 +1,15 @@
-use std::{collections::HashMap, ops::Deref};
+use std::{collections::HashMap, fmt::Write, ops::Deref};
 
+use bungie_api::{
+    DestinyInventoryItemDefinition, DestinyPlugSetDefinition, types::destiny::DestinyItemType,
+};
 use futures::{StreamExt, stream};
 use google_sheets_api::types::sheet::{CellData, RowData};
 use serde::{Deserialize, Serialize};
 use serenity::all::{AutocompleteChoice, CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter};
 use sqlx::{Database, Pool};
 
-use crate::{DestinyPerkManager, DestinyWeaponManager};
+use crate::DestinyPerkManager;
 
 use super::{Affinity, Frame, Tier};
 
@@ -77,31 +80,31 @@ pub struct WeaponBuilder {
 }
 
 impl WeaponBuilder {
-    pub fn new(name: impl Into<String>, archetype: impl Into<String>) -> Self {
-        let name = match name.into().as_str() {
-            "Song of Ir Yut" => String::from("Song of Ir Yût"),
-            "Fang of Ir Yut" => String::from("Fang of Ir Yût"),
-            "Just In Case" => String::from("Just in Case"),
-            "Braytech Osprey" => String::from("BrayTech Osprey"),
-            "Braytech Werewolf" => String::from("BrayTech Werewolf"),
-            "Arsenic Bite-4B" => String::from("Arsenic Bite-4b"),
-            "Lunulata-4B" => String::from("Lunulata-4b"),
-            "IKELOS_HC_V1.0.3" => String::from("IKELOS_HC_v1.0.3"),
-            "IKELOS_SMG_V1.0.3" => String::from("IKELOS_SMG_v1.0.3"),
-            "Elsie's Rifle" => String::from("Elsie's Rifle (Brave)"),
-            "Jararaca-3SR" => String::from("Jararaca-3sr"),
-            "Redback-5SI" => String::from("Redback-5si"),
-            "Judgement" => String::from("Judgment"),
-            "Long Arm\nRotn version" => String::from("Long Arm (RotN)"),
+    pub fn new(name: &str, archetype: impl Into<String>) -> Self {
+        let name = match name {
+            "Song of Ir Yut" => "Song of Ir Yût",
+            "Fang of Ir Yut" => "Fang of Ir Yût",
+            "Just In Case" => "Just in Case",
+            "Braytech Osprey" => "BrayTech Osprey",
+            "Braytech Werewolf" => "BrayTech Werewolf",
+            "Arsenic Bite-4B" => "Arsenic Bite-4b",
+            "Lunulata-4B" => "Lunulata-4b",
+            "IKELOS_HC_V1.0.3" => "IKELOS_HC_v1.0.3",
+            "IKELOS_SMG_V1.0.3" => "IKELOS_SMG_v1.0.3",
+            "Elsie's Rifle" => "Elsie's Rifle",
+            "Jararaca-3SR" => "Jararaca-3sr",
+            "Redback-5SI" => "Redback-5si",
+            "Judgement" => "Judgment",
+            "Long Arm\nRotn version" => "Long Arm",
             name => name
                 .trim()
-                .replace("\nBRAVE version", " (Brave)")
-                .replace(" (BRAVE version)", " (Brave)")
-                .replace("\nRotN version", " (RotN)"),
+                .trim_end_matches("\nBRAVE version")
+                .trim_end_matches(" (BRAVE version)")
+                .trim_end_matches("\nRotN version"),
         };
 
         WeaponBuilder {
-            name,
+            name: name.to_string(),
             archetype: archetype.into(),
             ..Default::default()
         }
@@ -249,14 +252,15 @@ impl WeaponBuilder {
         Some(weapon)
     }
 
-    pub async fn build<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        self,
-        pool: &Pool<Db>,
-    ) -> sqlx::Result<Weapon> {
-        let icon = Manager::get(pool, &self.name).await?.icon;
+    pub fn build(self, item: &DestinyInventoryItemDefinition) -> sqlx::Result<Weapon> {
+        let icon = item
+            .display_properties
+            .icon
+            .as_ref()
+            .unwrap_or_else(|| panic!("No icon for: {}", self.name));
 
         let weapon = Weapon {
-            icon,
+            icon: icon.clone(),
             name: self.name,
             archetype: self.archetype,
             affinity: self.affinity.parse().unwrap(),
@@ -312,50 +316,149 @@ impl Weapon {
         &self.origin_trait
     }
 
-    pub async fn as_api<
-        Db: Database,
-        WeaponManager: DestinyWeaponManager<Db>,
-        PerkManager: DestinyPerkManager<Db>,
-    >(
+    pub fn as_api(
         &self,
-        pool: &Pool<Db>,
+        item_manifest: &HashMap<String, DestinyInventoryItemDefinition>,
+        plug_manifest: &HashMap<String, DestinyPlugSetDefinition>,
     ) -> Vec<ApiWeapon> {
-        let name = self.name();
+        let name = self.name().to_lowercase();
 
-        let weapons = WeaponManager::get_by_prefix(pool, name).await.unwrap();
+        let mut weapons = item_manifest
+            .values()
+            .filter(|item| {
+                !matches!(
+                    item.item_type,
+                    DestinyItemType::None | DestinyItemType::Pattern | DestinyItemType::Dummy
+                )
+            })
+            .filter(|item| {
+                item.display_properties
+                    .name
+                    .to_lowercase()
+                    .starts_with(&name)
+            })
+            .filter(|item| {
+                item.inventory
+                    .tier_type_name
+                    .as_ref()
+                    .is_some_and(|tier| tier.eq_ignore_ascii_case("Legendary"))
+            })
+            .filter_map(|item| item.sockets.as_ref().map(|sockets| (item, sockets)))
+            .map(|(item, sockets)| {
+                let plug_items = sockets.socket_entries.iter().map(|socket| {
+                    match (
+                        socket.randomized_plug_set_hash,
+                        socket.reusable_plug_set_hash,
+                        socket.reusable_plug_items.as_slice(),
+                    ) {
+                        (Some(hash), None, items) => {
+                            let plug_set = plug_manifest.get(&hash.to_string()).unwrap();
 
-        if weapons.is_empty() {
-            panic!("No weapon found for {name}");
-        }
+                            plug_set
+                                .reusable_plug_items
+                                .iter()
+                                .map(|item| item.plug_item_hash)
+                                .chain(items.iter().map(|item| item.plug_item_hash))
+                                .collect::<Vec<_>>()
+                        }
+                        (None, Some(hash), items) => {
+                            let plug_set = plug_manifest.get(&hash.to_string()).unwrap();
 
-        let api_perks = self.perks().as_api::<Db, PerkManager>(pool).await;
+                            plug_set
+                                .reusable_plug_items
+                                .iter()
+                                .map(|item| item.plug_item_hash)
+                                .chain(items.iter().map(|item| item.plug_item_hash))
+                                .collect::<Vec<_>>()
+                        }
+                        (Some(random_hash), Some(reusable_hash), items) => {
+                            let random_plug_set =
+                                plug_manifest.get(&random_hash.to_string()).unwrap();
+                            let reusable_hash =
+                                plug_manifest.get(&reusable_hash.to_string()).unwrap();
+
+                            random_plug_set
+                                .reusable_plug_items
+                                .iter()
+                                .map(|item| item.plug_item_hash)
+                                .chain(
+                                    reusable_hash
+                                        .reusable_plug_items
+                                        .iter()
+                                        .map(|item| item.plug_item_hash),
+                                )
+                                .chain(items.iter().map(|item| item.plug_item_hash))
+                                .collect::<Vec<_>>()
+                        }
+                        (None, None, items) => items
+                            .iter()
+                            .map(|item| item.plug_item_hash)
+                            .collect::<Vec<_>>(),
+                    }
+                });
+
+                (item, plug_items)
+            })
+            .peekable();
+
+        assert!(
+            weapons.peek().is_some(),
+            "At least 1 weapon should match: {name}"
+        );
+
+        let weapons = weapons
+            .map(|(item, plug_items)| {
+                let perks = plug_items
+                    .map(|traits| {
+                        let items = traits
+                            .iter()
+                            .map(|hash| hash.to_string())
+                            .map(|hash| item_manifest.get(&hash).unwrap())
+                            .filter(|item| !item.display_properties.name.is_empty())
+                            .collect::<Vec<_>>();
+
+                        items
+                            .into_iter()
+                            .filter(|perk_item| {
+                                self.perks().0.iter().flatten().any(|perk| {
+                                    perk_item.display_properties.name.eq_ignore_ascii_case(perk)
+                                })
+                            })
+                            .map(|perk| perk.hash)
+                            .collect::<Vec<_>>()
+                    })
+                    .filter(|perks| !perks.is_empty())
+                    .collect::<Vec<_>>();
+
+                (item.hash, perks)
+            })
+            .filter(|(_, perks)| !perks.is_empty())
+            .map(|(hash, perks)| ApiWeapon {
+                hash,
+                perks: ApiPerks(perks),
+            })
+            .collect::<Vec<_>>();
+
+        assert!(!weapons.is_empty(), "No weapon found for {name}");
 
         weapons
-            .into_iter()
-            .map(|w| ApiWeapon {
-                hash: w.id as u32,
-                perks: api_perks.clone(),
-            })
-            .collect()
     }
 
-    pub async fn as_wishlist<
-        Db: Database,
-        WeaponManager: DestinyWeaponManager<Db>,
-        PerkManager: DestinyPerkManager<Db>,
-    >(
+    pub fn as_wishlist(
         &self,
-        pool: &Pool<Db>,
+        item_manifest: &HashMap<String, DestinyInventoryItemDefinition>,
+        perk_manifest: &HashMap<String, DestinyPlugSetDefinition>,
     ) -> String {
-        let weapons = self.as_api::<Db, WeaponManager, PerkManager>(pool).await;
+        let weapons = self.as_api(item_manifest, perk_manifest);
 
-        let mut s = format!("// {}\n//notes: tags:pve", self.name);
+        let mut s = format!("// {}\n//notes: tags:pve\n", self.name);
 
-        let perks = stream::iter(weapons)
-            .then(|w| async move { w.perks.as_wishlist(w.hash).await })
+        let perks = weapons
+            .into_iter()
+            .map(|weapon| weapon.perks.as_wishlist(weapon.hash))
             .collect::<Vec<_>>()
-            .await
             .join("\n");
+
         s.push_str(&perks);
 
         s
@@ -474,43 +577,48 @@ pub struct ApiWeapon {
 pub struct ApiPerks(Vec<Vec<u32>>);
 
 impl ApiPerks {
-    pub async fn as_wishlist(&self, item_hash: u32) -> String {
-        fn generate_wishlist(
-            item_hash: u32,
-            perks: &[Vec<u32>],
-            s: &mut String,
-            current_perks: &mut Vec<u32>,
-            depth: usize,
-        ) {
-            if depth == perks.len() {
-                s.push_str("\ndimwishlist:item=");
-                s.push_str(&item_hash.to_string());
-                s.push_str("&perks=");
-                s.push_str(
-                    &current_perks
-                        .iter()
-                        .copied()
-                        .map(|p| p.to_string())
-                        .collect::<Vec<_>>()
-                        .join(","),
-                );
-            } else {
-                for perk in &perks[depth] {
-                    current_perks.push(*perk);
-                    generate_wishlist(item_hash, perks, s, current_perks, depth + 1);
-                    current_perks.pop();
-                }
-            }
-        }
+    pub fn as_wishlist(&self, item_hash: u32) -> String {
+        create_combinations_string(&self.0, item_hash)
+    }
+}
 
-        let mut s = String::new();
-        match self.0.len() {
-            0 => String::new(),
-            len => {
-                let mut current_perks = Vec::with_capacity(len);
-                generate_wishlist(item_hash, &self.0, &mut s, &mut current_perks, 0);
-                s
-            }
+pub fn create_combinations_string(data: &[Vec<u32>], item_hash: u32) -> String {
+    if data.is_empty() {
+        return String::new();
+    }
+
+    let mut result = String::new();
+    let mut current_combination = Vec::with_capacity(data.len());
+
+    generate_combinations_iterative(data, 0, &mut current_combination, &mut result, item_hash);
+
+    result
+}
+
+fn generate_combinations_iterative(
+    data: &[Vec<u32>],
+    depth: usize,
+    current_combination: &mut Vec<u32>,
+    output: &mut String,
+    item_hash: u32,
+) {
+    if depth == data.len() {
+        if !output.is_empty() {
+            output.push('\n');
         }
+        write!(output, "dimwishlist:item={}&perks=", item_hash).unwrap();
+        for (i, &num) in current_combination.iter().enumerate() {
+            if i > 0 {
+                output.push(',');
+            }
+            write!(output, "{}", num).unwrap();
+        }
+        return;
+    }
+
+    for &num in &data[depth] {
+        current_combination.push(num);
+        generate_combinations_iterative(data, depth + 1, current_combination, output, item_hash);
+        current_combination.pop();
     }
 }

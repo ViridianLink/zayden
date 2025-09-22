@@ -1,30 +1,30 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
+use destiny2_core::BungieClientData;
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType,
+    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
     CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateEmbed, CreateEmbedFooter,
-    CreateInteractionResponse, EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
+    CreateInteractionResponse, EditInteractionResponse, ResolvedOption, ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
+use crate::Result;
 use crate::endgame_analysis::EndgameAnalysisSheet;
 use crate::endgame_analysis::weapon::Weapon;
-use crate::{DestinyWeaponManager, Result};
 
 use super::endgame_analysis::tier::TIERS;
 
 pub struct TierListCommand;
 
 impl TierListCommand {
-    pub async fn run<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        http: &Http,
+    pub async fn run<Data: BungieClientData>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let mut options = parse_options(options);
 
@@ -49,7 +49,18 @@ impl TierListCommand {
         let weapons: Vec<Weapon> = if let Ok(w) = fs::read_to_string("weapons.json") {
             serde_json::from_str(&w).unwrap()
         } else {
-            EndgameAnalysisSheet::update::<Db, Manager>(pool).await?;
+            let item_manifest = {
+                let data_lock = ctx.data::<RwLock<Data>>();
+                let data = data_lock.read().await;
+                let client = data.bungie_client();
+                let manifest = client.destiny_manifest().await.unwrap();
+                client
+                    .destiny_inventory_item_definition(&manifest, "en")
+                    .await
+                    .unwrap()
+            };
+
+            EndgameAnalysisSheet::update(&item_manifest).await?;
             let w = fs::read_to_string("weapons.json").unwrap();
             serde_json::from_str(&w).unwrap()
         };
@@ -90,7 +101,7 @@ impl TierListCommand {
             }));
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(embed))
+            .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
             .await
             .unwrap();
 
@@ -126,16 +137,26 @@ impl TierListCommand {
             ))
     }
 
-    pub async fn autocomplete<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        http: &Http,
+    pub async fn autocomplete<Data: BungieClientData>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
-        pool: &Pool<Db>,
     ) -> Result<()> {
         let weapons: Vec<Weapon> = match std::fs::read_to_string("weapons.json") {
             Ok(weapons) => serde_json::from_str(&weapons).unwrap(),
             Err(_) => {
-                EndgameAnalysisSheet::update::<Db, Manager>(pool).await?;
+                let item_manifest = {
+                    let data_lock = ctx.data::<RwLock<Data>>();
+                    let data = data_lock.read().await;
+                    let client = data.bungie_client();
+                    let manifest = client.destiny_manifest().await.unwrap();
+                    client
+                        .destiny_inventory_item_definition(&manifest, "en")
+                        .await
+                        .unwrap()
+                };
+
+                EndgameAnalysisSheet::update(&item_manifest).await?;
                 let weapons = std::fs::read_to_string("weapons.json").unwrap();
                 serde_json::from_str(&weapons).unwrap()
             }
@@ -161,7 +182,7 @@ impl TierListCommand {
 
         interaction
             .create_response(
-                http,
+                &ctx.http,
                 CreateInteractionResponse::Autocomplete(
                     CreateAutocompleteResponse::new().set_choices(choices),
                 ),

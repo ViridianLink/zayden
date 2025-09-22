@@ -1,14 +1,15 @@
 use std::fs;
 
+use destiny2_core::BungieClientData;
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType,
+    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
     CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateInteractionResponse,
-    EditInteractionResponse, Http, ResolvedValue,
+    EditInteractionResponse, ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
-use crate::{DestinyWeaponManager, Error, Result};
+use crate::{Error, Result};
 
 use super::endgame_analysis::EndgameAnalysisSheet;
 use super::endgame_analysis::weapon::Weapon;
@@ -16,12 +17,11 @@ use super::endgame_analysis::weapon::Weapon;
 pub struct WeaponCommand;
 
 impl WeaponCommand {
-    pub async fn run<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        http: &Http,
+    pub async fn run<Data: BungieClientData>(
+        ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(http).await.unwrap();
+        interaction.defer(&ctx.http).await.unwrap();
 
         let options = interaction.data.options();
         let options = parse_options(options);
@@ -34,7 +34,18 @@ impl WeaponCommand {
         let weapons: Vec<Weapon> = if let Ok(w) = fs::read_to_string("weapons.json") {
             serde_json::from_str(&w).unwrap()
         } else {
-            EndgameAnalysisSheet::update::<Db, Manager>(pool).await?;
+            let item_manifest = {
+                let data_lock = ctx.data::<RwLock<Data>>();
+                let data = data_lock.read().await;
+                let client = data.bungie_client();
+                let manifest = client.destiny_manifest().await.unwrap();
+                client
+                    .destiny_inventory_item_definition(&manifest, "en")
+                    .await
+                    .unwrap()
+            };
+
+            EndgameAnalysisSheet::update(&item_manifest).await?;
             let w = fs::read_to_string("weapons.json").unwrap();
             serde_json::from_str(&w).unwrap()
         };
@@ -45,7 +56,10 @@ impl WeaponCommand {
             .ok_or_else(|| Error::WeaponNotFound(name.to_string()))?;
 
         interaction
-            .edit_response(http, EditInteractionResponse::new().embed(weapon.into()))
+            .edit_response(
+                &ctx.http,
+                EditInteractionResponse::new().embed(weapon.into()),
+            )
             .await
             .unwrap();
 
@@ -66,16 +80,26 @@ impl WeaponCommand {
             )
     }
 
-    pub async fn autocomplete<Db: Database, Manager: DestinyWeaponManager<Db>>(
-        http: &Http,
+    pub async fn autocomplete<Data: BungieClientData>(
+        ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
-        pool: &Pool<Db>,
     ) -> Result<()> {
         let weapons = match std::fs::read_to_string("weapons.json") {
             Ok(weapons) => weapons,
             Err(_) => {
-                EndgameAnalysisSheet::update::<Db, Manager>(pool).await?;
+                let item_manifest = {
+                    let data_lock = ctx.data::<RwLock<Data>>();
+                    let data = data_lock.read().await;
+                    let client = data.bungie_client();
+                    let manifest = client.destiny_manifest().await.unwrap();
+                    client
+                        .destiny_inventory_item_definition(&manifest, "en")
+                        .await
+                        .unwrap()
+                };
+
+                EndgameAnalysisSheet::update(&item_manifest).await?;
                 std::fs::read_to_string("weapons.json").unwrap()
             }
         };
@@ -93,7 +117,7 @@ impl WeaponCommand {
 
         interaction
             .create_response(
-                http,
+                &ctx.http,
                 CreateInteractionResponse::Autocomplete(
                     CreateAutocompleteResponse::new().set_choices(weapons),
                 ),

@@ -1,12 +1,14 @@
 use std::collections::HashMap;
+use std::env;
 use std::sync::Arc;
 
+use bungie_api::{BungieClient, BungieClientBuilder};
+use destiny2_core::BungieClientData;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
 use music::{GuildMusic, MusicData};
 use reqwest::Client as HttpClient;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
-use serenity::small_fixed_array::FixedString;
 use songbird::Songbird;
 use sqlx::{PgPool, Postgres};
 use temp_voice::{CachedState, VoiceStateCache};
@@ -19,6 +21,7 @@ use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
 pub struct CtxData {
     http_client: HttpClient,
+    bungie_client: BungieClient,
     songbird: Arc<Songbird>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
@@ -64,17 +67,27 @@ impl CtxData {
 
 impl Default for CtxData {
     fn default() -> Self {
+        let api_key = env::var("BUNGIE_API_KEY").unwrap();
+        let bungie_client = BungieClientBuilder::new(api_key).build().unwrap();
+
         Self {
             http_client: Default::default(),
+            bungie_client,
             songbird: Songbird::serenity(),
             emoji_cache: Default::default(),
             cron_jobs: Default::default(),
             voice_stats: Default::default(),
             guild_members: Default::default(),
             gambling_cache: Default::default(),
-            last_messages: Default::default(),
+            good_morning_cache: Default::default(),
             music: Default::default(),
         }
+    }
+}
+
+impl BungieClientData for CtxData {
+    fn bungie_client(&self) -> &BungieClient {
+        &self.bungie_client
     }
 }
 
