@@ -10,7 +10,7 @@ pub const ARC_HUNTER: Loadout = Loadout::new(
     Mode::PvE,
     SUBCLASS,
     GEAR,
-    Details::new("LlamaD2", "").video("https://youtu.be/UDIJdVTl5SE"),
+    Details::new("LlamaD2", "https://dim.gg/5e6byba/Arc").video("https://youtu.be/UDIJdVTl5SE"),
 )
 .tags([Some(Tag::EndGame), None, None])
 .artifact([
