@@ -86,6 +86,9 @@ impl EventHandler for Handler {
     }
 
     async fn ratelimit(&self, data: RatelimitInfo) {
-        println!("{:?}", data)
+        // trace: all ratelimit
+        if !data.path.ends_with("commands") {
+            println!("{:?}", data)
+        }
     }
 }
