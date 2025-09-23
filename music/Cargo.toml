@@ -15,5 +15,6 @@ songbird = { workspace = true, features = [
 serenity = { workspace = true }
 symphonia = { workspace = true, features = ["aac", "mkv"] }
 tokio = { workspace = true }
+tracing = { workspace = true }
 reqwest = { workspace = true }
 url = { workspace = true }

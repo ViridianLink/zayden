@@ -82,6 +82,27 @@ impl Component<Error, Postgres> for Blackjack {
                 >(ctx, interaction, pool)
                 .await?
             }
+            "blackjack_split" => {
+                gambling::components::Blackjack::split::<
+                    CtxData,
+                    Postgres,
+                    GamblingTable,
+                    GoalsTable,
+                    EffectsTable,
+                    GameTable,
+                >(ctx, interaction, pool)
+                .await?
+            }
+            "blackjack_surrender" => {
+                gambling::components::Blackjack::surrender::<
+                    CtxData,
+                    Postgres,
+                    GoalsTable,
+                    EffectsTable,
+                    GameTable,
+                >(ctx, interaction, pool)
+                .await?
+            }
 
             id => unreachable!("Invalid custom_id: {id}"),
         }

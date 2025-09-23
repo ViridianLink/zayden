@@ -4,6 +4,7 @@ use std::sync::atomic::Ordering;
 use futures::future;
 use serenity::all::{Context, OnlineStatus, Ready};
 use tokio::sync::RwLock;
+use tracing::info;
 
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
@@ -11,7 +12,7 @@ use crate::{CtxData, Result, ZAYDEN_ID, modules};
 
 impl Handler {
     pub async fn ready(&self, ctx: &Context, ready: &Ready) -> Result<()> {
-        println!(
+        info!(
             "{} is connected ({} shards) and in {} guilds!",
             ready.user.name,
             ready
@@ -31,7 +32,7 @@ impl Handler {
             .iter()
             .map(|guild| guild.id.set_commands(&ctx.http, &commands));
         future::try_join_all(iter).await.unwrap();
-        println!("Updated all commands");
+        info!("Updated commands");
 
         if !self.started_cron.load(Ordering::Relaxed) {
             {

@@ -1,6 +1,7 @@
 use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize};
+use tracing::warn;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Frame {
@@ -62,7 +63,7 @@ impl FromStr for Frame {
             "Spread Shot" => Ok(Frame::SpreadShot),
             "Rocket-Assisted" => Ok(Frame::RocketAssisted),
             _ => {
-                eprintln!("Failed to parse: '{s}'");
+                warn!("Failed to parse: '{s}'");
                 Err(())
             }
         }

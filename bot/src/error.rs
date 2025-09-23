@@ -22,8 +22,6 @@ pub enum Error {
 #[allow(clippy::print_in_format_impl)]
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        println!("Error: {self:?}");
-
         match self {
             Error::MissingGuildId => ZaydenError::MissingGuildId.fmt(f),
             Error::NotInteractionAuthor => write!(f, "You are not the author of this interaction."),

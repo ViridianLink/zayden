@@ -1,9 +1,9 @@
-use chrono::Utc;
 use serenity::all::{
     CommandInteraction, Context, CreateInteractionResponse, CreateInteractionResponseMessage,
     EditInteractionResponse,
 };
 use sqlx::PgPool;
+use tracing::{info, warn};
 use zayden_core::{ApplicationCommand, get_option_str};
 
 use crate::Result;
@@ -35,9 +35,8 @@ impl Handler {
     ) -> Result<()> {
         let options = interaction.data.options();
 
-        println!(
-            "[{}] {} ran command: {}{}",
-            Utc::now().format("%Y-%m-%d %H:%M:%S"),
+        info!(
+            "{} ran command: {}{}",
             interaction.user.name,
             interaction.data.name,
             get_option_str(&options)
@@ -96,13 +95,13 @@ impl Handler {
             "support" => SupportCommand::run(ctx, interaction, options, pool),
             // endregion: ticket
             _ => {
-                println!("Unknown command: {}", interaction.data.name);
+                warn!("Unknown command: {}", interaction.data.name);
                 return Ok(());
             }
         }
         .await;
 
-        if let Err(e) = result
+        if let Err(e) = result.as_ref()
             && interaction
                 .create_response(
                     &ctx.http,
@@ -121,6 +120,6 @@ impl Handler {
                 .await?;
         }
 
-        Ok(())
+        result
     }
 }

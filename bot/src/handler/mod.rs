@@ -5,6 +5,7 @@ use serenity::async_trait;
 use serenity::model::prelude::Interaction;
 use serenity::prelude::Context;
 use sqlx::PgPool;
+use tracing::{error, info, trace, warn};
 
 use crate::{BRADSTER_GUILD, ZAYDEN_GUILD};
 
@@ -29,7 +30,7 @@ impl EventHandler for Handler {
             Event::GuildCreate(GuildCreateEvent { guild, .. })
                 if guild.id == BRADSTER_GUILD || guild.id == ZAYDEN_GUILD =>
             {
-                println!("[{}] Registered {}", event.name(), guild.name);
+                info!("[{}] Registered {}", event.name(), guild.name);
                 true
             }
             Event::PresenceUpdate(_) | Event::TypingStart(_) | Event::MessageUpdate(_) => false,
@@ -81,14 +82,15 @@ impl EventHandler for Handler {
                 format!("Error handling {event_name} | {ev_command_name}: {e:?}")
             };
 
-            eprintln!("\n{msg}\n{ev:?}\n");
+            error!("\n{msg}\n{ev:?}\n");
         }
     }
 
     async fn ratelimit(&self, data: RatelimitInfo) {
-        // trace: all ratelimit
         if !data.path.ends_with("commands") {
-            println!("{:?}", data)
+            warn!("{:?}", data)
+        } else {
+            trace!("{:?}", data)
         }
     }
 }

@@ -1,10 +1,10 @@
-use chrono::Utc;
 use serenity::all::{
     ComponentInteraction, Context, CreateInteractionResponse, EditInteractionResponse,
 };
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketComponent;
+use tracing::info;
 use zayden_core::Component;
 
 use crate::handler::Handler;
@@ -23,12 +23,9 @@ impl Handler {
     ) -> Result<()> {
         let custom_id = &interaction.data.custom_id;
 
-        println!(
-            "[{}] {} ran component: {} - {}",
-            Utc::now().format("%Y-%m-%d %H:%M:%S"),
-            interaction.user.name,
-            custom_id,
-            interaction.message.id,
+        info!(
+            "{} ran component: {} - {}",
+            interaction.user.name, custom_id, interaction.message.id,
         );
 
         let result = match custom_id.as_str() {
@@ -121,7 +118,7 @@ impl Handler {
                 .map_err(Error::from),
         };
 
-        if let Err(e) = result {
+        if let Err(e) = result.as_ref() {
             let msg = e.to_string();
 
             let _ = interaction.defer_ephemeral(&ctx.http).await;
@@ -132,6 +129,6 @@ impl Handler {
                 .unwrap();
         }
 
-        Ok(())
+        result
     }
 }

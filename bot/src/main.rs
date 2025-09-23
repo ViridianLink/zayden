@@ -22,6 +22,7 @@ pub use ctx_data::CtxData;
 pub use error::{Error, Result};
 pub use handler::Handler;
 use sqlx_lib::new_pool;
+use tracing::warn;
 use tracing_subscriber::{
     Layer, Registry, filter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
 };
@@ -44,13 +45,11 @@ async fn zayden_token(pool: &PgPool) -> String {
 async fn main() -> Result<()> {
     logging();
 
-    if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv() {
-        dotenvy::from_path(Path::new("bot/.env")).unwrap()
+    if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv()
+        && dotenvy::from_path(Path::new("bot/.env")).is_err()
+    {
+        warn!(".env file not found. Please make sure enviroment variables are set.")
     }
-
-    // if dotenvy::from_path(Path::new("bot/.env")).is_err() {
-    //     println!(".env file not found. Please make sure enviroment variables are set.")
-    // }
 
     let pool = new_pool().await.unwrap();
 
@@ -93,6 +92,11 @@ fn logging() {
         .with_writer(log_file)
         .with_filter(filter::LevelFilter::INFO);
 
+    // A layer for logging to standard output
+    let stdout_log = fmt::layer()
+        .with_writer(std::io::stdout)
+        .with_filter(filter::LevelFilter::INFO);
+
     // let traceback_file = File::create("traceback.txt").expect("Failed to create traceback.txt");
     // let traceback_log = fmt::layer()
     //     .with_writer(traceback_file)
@@ -100,6 +104,7 @@ fn logging() {
 
     Registry::default()
         .with(debug_log)
+        .with(stdout_log)
         // .with(traceback_log)
         .init();
 }

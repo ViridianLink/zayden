@@ -3,6 +3,7 @@ use serenity::all::{Context, GuildId, UserId};
 use songbird::tracks::Track;
 use songbird::{Event, EventContext, EventHandler, Songbird, TrackEvent};
 use tokio::sync::RwLock;
+use tracing::error;
 
 use crate::MusicData;
 
@@ -38,7 +39,7 @@ impl EventHandler for TrackErrorNotifier {
     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
         if let EventContext::Track(track_list) = ctx {
             for (state, handle) in *track_list {
-                println!(
+                error!(
                     "Track {:?} encountered an error: {:?}",
                     handle.uuid(),
                     state.playing

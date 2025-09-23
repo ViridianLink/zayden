@@ -1,8 +1,8 @@
-use chrono::Utc;
 use serenity::all::{Context, EditInteractionResponse, ModalInteraction};
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketModal;
+use tracing::info;
 use zayden_core::parse_modal_data;
 
 use crate::modules::lfg::{PostTable, UsersTable};
@@ -18,12 +18,9 @@ impl Handler {
     ) -> Result<()> {
         let inputs = parse_modal_data(&interaction.data.components);
 
-        println!(
-            "[{}] {} ran modal: {} {:?}",
-            Utc::now().format("%Y-%m-%d %H:%M:%S"),
-            interaction.user.name,
-            interaction.data.custom_id,
-            inputs
+        info!(
+            "{} ran modal: {} {:?}",
+            interaction.user.name, interaction.data.custom_id, inputs
         );
 
         let result = match interaction.data.custom_id.as_str() {
@@ -67,7 +64,7 @@ impl Handler {
             _ => unimplemented!("Modal not implemented: {}", interaction.data.custom_id),
         };
 
-        if let Err(e) = result {
+        if let Err(e) = result.as_ref() {
             let msg = e.to_string();
 
             let _ = interaction.defer_ephemeral(&ctx.http).await;
@@ -78,6 +75,6 @@ impl Handler {
                 .unwrap();
         }
 
-        Ok(())
+        result
     }
 }

@@ -938,6 +938,7 @@ dependencies = [
  "serde_json",
  "serenity",
  "tokio",
+ "tracing",
  "zayden-core",
 ]
 
@@ -1981,6 +1982,7 @@ dependencies = [
  "songbird",
  "symphonia",
  "tokio",
+ "tracing",
  "url",
 ]
 

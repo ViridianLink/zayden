@@ -1,16 +1,17 @@
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateActionRow, CreateCommand,
-    CreateCommandOption, CreateComponent, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    Colour, CommandInteraction, CommandOptionType, Context, CreateActionRow, CreateCommand,
+    CreateCommandOption, CreateComponent, CreateContainer, EditInteractionResponse, MessageFlags,
+    ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
 use crate::games::blackjack::{
-    GameDetails, double_button, game_end_blackjack, game_end_draw, hit_button, in_play_embed,
-    stand_button, sum_cards,
+    GameDetails, double_button, game_end_blackjack, game_end_draw, hit_button, in_play_text,
+    split_button, stand_button, sum_cards, surrender_button,
 };
 use crate::models::gambling::GamblingManager;
 use crate::{
@@ -110,20 +111,26 @@ impl Commands {
             return Ok(());
         }
 
-        let embed = in_play_embed(&emojis, bet, game.player_hand(), dealer_hand[0]);
+        let text = in_play_text(&emojis, bet, game.player_hand(), dealer_hand[0]);
 
         let action_row = CreateComponent::ActionRow(CreateActionRow::buttons(vec![
             hit_button(),
             stand_button(),
-            double_button(coins, bet),
+            double_button().disabled(coins < bet * 2),
+            split_button().disabled(true), //.disabled(coins < bet * 2),
+            surrender_button(),
         ]));
+
+        let container = CreateComponent::Container(
+            CreateContainer::new(vec![text, action_row]).accent_colour(Colour::TEAL),
+        );
 
         interaction
             .edit_response(
                 &ctx.http,
                 EditInteractionResponse::new()
-                    .embed(embed)
-                    .components(vec![action_row]),
+                    .flags(MessageFlags::IS_COMPONENTS_V2)
+                    .components(vec![container]),
             )
             .await
             .unwrap();

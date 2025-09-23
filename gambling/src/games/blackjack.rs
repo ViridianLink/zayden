@@ -1,13 +1,13 @@
-use std::{
-    collections::{HashMap, HashSet},
-    sync::OnceLock,
-};
+use std::collections::{HashMap, HashSet};
+use std::sync::OnceLock;
 
-use rand::{rng, seq::SliceRandom};
+use rand::rng;
+use rand::seq::SliceRandom;
 use serenity::all::{
-    ButtonStyle, Colour, Context, CreateButton, CreateEmbed, EditInteractionResponse, EmojiId,
-    GenericChannelId, UserId, parse_emoji,
+    ButtonStyle, Colour, Context, CreateButton, CreateComponent, CreateEmbed, CreateTextDisplay,
+    EditInteractionResponse, EmojiId, GenericChannelId, ReactionType, UserId, parse_emoji,
 };
+use serenity::small_fixed_array::FixedString;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
@@ -119,7 +119,7 @@ impl GameDetails {
     }
 
     pub fn from_str(emojis: &EmojiCache, s: &str) -> Self {
-        let mut lines = s.lines();
+        let mut lines = s.lines().skip(1);
 
         let bet_line = lines.next().unwrap();
         let bet = bet_line
@@ -181,12 +181,12 @@ pub fn sum_cards(emojis: &EmojiCache, hand: &[EmojiId]) -> u8 {
     sum
 }
 
-pub fn in_play_embed<'a>(
+pub fn in_play_text<'a>(
     emojis: &EmojiCache,
     bet: i64,
     player_hand: &[EmojiId],
     dealer_card: EmojiId,
-) -> CreateEmbed<'a> {
+) -> CreateComponent<'a> {
     let player_value = sum_cards(emojis, player_hand);
     let dealer_value = sum_cards(emojis, &[dealer_card]);
 
@@ -205,10 +205,7 @@ pub fn in_play_embed<'a>(
         card_to_num.get(&dealer_card).unwrap(),
     );
 
-    CreateEmbed::new()
-        .title("Blackjack")
-        .description(desc)
-        .colour(Colour::TEAL)
+    CreateComponent::TextDisplay(CreateTextDisplay::new(format!("### Blackjack\n{desc}")))
 }
 
 pub fn hit_button<'a>() -> CreateButton<'a> {
@@ -225,12 +222,25 @@ pub fn stand_button<'a>() -> CreateButton<'a> {
         .style(ButtonStyle::Secondary)
 }
 
-pub fn double_button<'a>(coins: i64, bet: i64) -> CreateButton<'a> {
+pub fn double_button<'a>() -> CreateButton<'a> {
     CreateButton::new("blackjack_double")
         .emoji('⏫')
         .label("Double Down")
         .style(ButtonStyle::Secondary)
-        .disabled(coins < bet * 2)
+}
+
+pub fn split_button<'a>() -> CreateButton<'a> {
+    CreateButton::new("blackjack_split")
+        .emoji(ReactionType::Unicode(FixedString::from_static_trunc("✂️")))
+        .label("Split")
+        .style(ButtonStyle::Secondary)
+}
+
+pub fn surrender_button<'a>() -> CreateButton<'a> {
+    CreateButton::new("blackjack_surrender")
+        .emoji(ReactionType::Unicode(FixedString::from_static_trunc("🏳️")))
+        .label("Surrender")
+        .style(ButtonStyle::Danger)
 }
 
 async fn game_end_common<
