@@ -20,7 +20,7 @@ use crate::modules::gambling::{
 use crate::modules::levels::{Levels, Rank, Xp};
 use crate::modules::lfg::Lfg;
 use crate::modules::misc::{CustomMsg, Random};
-use crate::modules::music::Play;
+use crate::modules::music::{Disconnect, Play};
 use crate::modules::reaction_roles::ReactionRoleCommand;
 use crate::modules::suggestions::FetchSuggestions;
 use crate::modules::temp_voice::Voice;
@@ -76,6 +76,7 @@ impl Handler {
 
             //region music
             "play" => Play::run(ctx, interaction, options, pool),
+            "disconnect" => Disconnect::run(ctx, interaction, options, pool),
             //endregion
             "levels" => Levels::run(ctx, interaction, options, pool),
             "random" => Random::run(ctx, interaction, options, pool),
