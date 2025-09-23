@@ -31,6 +31,7 @@ impl Handler {
             .iter()
             .map(|guild| guild.id.set_commands(&ctx.http, &commands));
         future::try_join_all(iter).await.unwrap();
+        println!("Updated all commands");
 
         if !self.started_cron.load(Ordering::Relaxed) {
             {
