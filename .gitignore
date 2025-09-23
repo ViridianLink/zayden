@@ -13,6 +13,7 @@ target/
 .env
 .env.dev
 weapons.json
+perks.json
 
 # Old files kept for reference
 Dockerfile

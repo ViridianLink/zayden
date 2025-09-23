@@ -21,7 +21,6 @@ mod sqlx_lib;
 pub use ctx_data::CtxData;
 pub use error::{Error, Result};
 pub use handler::Handler;
-use modules::destiny2::endgame_analysis::database_manager::DestinyDatabaseManager;
 use sqlx_lib::new_pool;
 use tracing_subscriber::{
     Layer, Registry, filter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
@@ -58,8 +57,6 @@ async fn main() -> Result<()> {
     let data = CtxData::default();
 
     if !cfg!(debug_assertions) {
-        DestinyDatabaseManager::update_dbs(&pool).await.unwrap();
-
         let item_manifest = {
             let client = data.bungie_client();
             let manifest = client.destiny_manifest().await.unwrap();
@@ -69,6 +66,7 @@ async fn main() -> Result<()> {
                 .unwrap()
         };
         EndgameAnalysisSheet::update(&item_manifest).await.unwrap();
+        destiny2::compendium::update().await;
     }
 
     let mut client = ClientBuilder::new(

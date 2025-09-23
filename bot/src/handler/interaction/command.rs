@@ -8,8 +8,8 @@ use zayden_core::{ApplicationCommand, get_option_str};
 
 use crate::Result;
 use crate::handler::Handler;
+use crate::modules::destiny2::Perk;
 use crate::modules::destiny2::endgame_analysis::slash_commands::{DimWishlist, TierList, Weapon};
-use crate::modules::destiny2::info::Perk;
 use crate::modules::destiny2::loadouts::Loadout;
 use crate::modules::destiny2::raid_guide::RaidGuide;
 use crate::modules::events::live::Live;

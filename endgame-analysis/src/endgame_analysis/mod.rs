@@ -54,14 +54,7 @@ impl EndgameAnalysisSheet {
                     || s.properties.title == "Other"
             })
             .map(|mut sheet| (sheet.properties.title, sheet.data.pop().unwrap()))
-            .flat_map(|(name, data)| {
-                let item = manifest
-                    .values()
-                    .find(|item| item.display_properties.name.eq_ignore_ascii_case(&name))
-                    .unwrap_or_else(|| panic!("Missing weapon: {}", name));
-
-                Self::parse_weapon_data(item, name, data)
-            })
+            .flat_map(|(title, data)| Self::parse_weapon_data(manifest, title, data))
             .collect::<Vec<_>>();
 
         let json = serde_json::to_string(&weapons).unwrap();
@@ -71,25 +64,24 @@ impl EndgameAnalysisSheet {
     }
 
     fn parse_weapon_data(
-        item: &DestinyInventoryItemDefinition,
-        name: impl Into<String>,
+        manifest: &HashMap<String, DestinyInventoryItemDefinition>,
+        title: String,
         data: GridData,
     ) -> Vec<Weapon> {
-        let name = name.into();
-
         let mut iter = data.row_data.into_iter().skip(1);
         let header = iter.next().unwrap();
-        iter.filter_map(|r| WeaponBuilder::from_row_data(&name, &header, r))
-            .filter_map(|builder| {
-                let name = builder.name.clone();
+        iter.filter_map(|r| WeaponBuilder::from_row(&title, &header, r))
+            .map(|builder| {
+                let item = manifest
+                    .values()
+                    .find(|item| {
+                        item.display_properties
+                            .name
+                            .eq_ignore_ascii_case(&builder.name)
+                    })
+                    .unwrap_or_else(|| panic!("Missing item: {}", builder.name));
 
-                match builder.build(item) {
-                    Ok(weapon) => Some(weapon),
-                    Err(_) => {
-                        eprintln!("Missing weapon {name}");
-                        None
-                    }
-                }
+                builder.build(item)
             })
             .collect()
     }

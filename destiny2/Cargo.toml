@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-destiny2-core = { workspace = true }
-zayden-core = { workspace = true }
-
 bungie-api = { workspace = true }
-
+destiny2-core = { workspace = true }
+google-sheets-api = { git = "https://github.com/ViridianLink/google-sheets-api.git", branch = "main" }
+serde = { workspace = true }
+serde_json = { workspace = true }
 serenity = { workspace = true }
 tokio = { workspace = true }
+zayden-core = { workspace = true }

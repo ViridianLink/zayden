@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use zayden_core::Autocomplete;
 
 use crate::handler::Handler;
+use crate::modules::destiny2::Perk;
 use crate::modules::destiny2::endgame_analysis::slash_commands::{TierList, Weapon};
 use crate::modules::lfg::Lfg;
 use crate::{Error, Result};
@@ -19,6 +20,7 @@ impl Handler {
 
         let result = match interaction.data.name.as_str() {
             "lfg" => Lfg::autocomplete(ctx, interaction, option, pool).await,
+            "perk" => Perk::autocomplete(ctx, interaction, option, pool).await,
             "weapon" => Weapon::autocomplete(ctx, interaction, option, pool).await,
             "tierlist" => TierList::autocomplete(ctx, interaction, option, pool).await,
             _ => {

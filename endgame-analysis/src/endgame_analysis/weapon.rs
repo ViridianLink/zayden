@@ -3,13 +3,9 @@ use std::{collections::HashMap, fmt::Write, ops::Deref};
 use bungie_api::{
     DestinyInventoryItemDefinition, DestinyPlugSetDefinition, types::destiny::DestinyItemType,
 };
-use futures::{StreamExt, stream};
 use google_sheets_api::types::sheet::{CellData, RowData};
 use serde::{Deserialize, Serialize};
 use serenity::all::{AutocompleteChoice, CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter};
-use sqlx::{Database, Pool};
-
-use crate::DestinyPerkManager;
 
 use super::{Affinity, Frame, Tier};
 
@@ -165,7 +161,7 @@ impl WeaponBuilder {
         self
     }
 
-    pub fn from_row_data(name: &str, header: &RowData, row: RowData) -> Option<Self> {
+    pub fn from_row(name: &str, header: &RowData, row: RowData) -> Option<Self> {
         let mut data = header
             .values
             .iter()
@@ -252,14 +248,14 @@ impl WeaponBuilder {
         Some(weapon)
     }
 
-    pub fn build(self, item: &DestinyInventoryItemDefinition) -> sqlx::Result<Weapon> {
+    pub fn build(self, item: &DestinyInventoryItemDefinition) -> Weapon {
         let icon = item
             .display_properties
             .icon
             .as_ref()
             .unwrap_or_else(|| panic!("No icon for: {}", self.name));
 
-        let weapon = Weapon {
+        Weapon {
             icon: icon.clone(),
             name: self.name,
             archetype: self.archetype,
@@ -273,9 +269,7 @@ impl WeaponBuilder {
             rank: self.rank,
             tier: self.tier,
             notes: self.notes,
-        };
-
-        Ok(weapon)
+        }
     }
 }
 
@@ -527,37 +521,6 @@ impl From<Weapon> for AutocompleteChoice<'_> {
 }
 
 pub struct Perks<'a>([Vec<&'a str>; 2]);
-
-impl Perks<'_> {
-    pub async fn as_api<Db: Database, Manager: DestinyPerkManager<Db>>(
-        &self,
-        pool: &Pool<Db>,
-    ) -> ApiPerks {
-        async fn get_perk_ids<Db: Database, Manager: DestinyPerkManager<Db>>(
-            pool: &Pool<Db>,
-            perks: Vec<String>,
-        ) -> Vec<u32> {
-            let perk_records = Manager::get_all(pool, &perks).await.unwrap();
-
-            perk_records
-                .into_iter()
-                .map(|perk| perk.id as u32)
-                .collect()
-        }
-
-        let iter = self
-            .0
-            .iter()
-            .map(|p| p.iter().map(|s| s.to_string()).collect::<Vec<_>>());
-
-        let api_perks = stream::iter(iter)
-            .then(|perks| get_perk_ids::<Db, Manager>(pool, perks))
-            .collect::<Vec<_>>()
-            .await;
-
-        ApiPerks(api_perks)
-    }
-}
 
 impl<'a> Deref for Perks<'a> {
     type Target = [Vec<&'a str>; 2];
