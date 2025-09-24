@@ -71,9 +71,7 @@ tower-cookies = { version = "*", default-features = false }
 tower-http = { version = "*", default-features = false }
 time = { version = "*", default-features = false }
 tracing = { version = "*", default-features = false }
-tracing-subscriber = { version = "*", default-features = false, features = [
-    "ansi",
-] }
+tracing-subscriber = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 walkdir = { version = "*", default-features = false }
 

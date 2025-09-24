@@ -82,7 +82,7 @@ impl EventHandler for Handler {
                 format!("Error handling {event_name} | {ev_command_name}: {e:?}")
             };
 
-            error!("\n{msg}\n{ev:?}\n");
+            error!("{msg}\n{ev:?}\n");
         }
     }
 

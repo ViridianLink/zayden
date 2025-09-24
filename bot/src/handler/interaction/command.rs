@@ -1,9 +1,6 @@
-use serenity::all::{
-    CommandInteraction, Context, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EditInteractionResponse,
-};
+use serenity::all::{CommandInteraction, Context, EditInteractionResponse};
 use sqlx::PgPool;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use zayden_core::{ApplicationCommand, get_option_str};
 
 use crate::Result;
@@ -102,23 +99,21 @@ impl Handler {
         }
         .await;
 
-        if let Err(e) = result.as_ref()
-            && interaction
-                .create_response(
-                    &ctx.http,
-                    CreateInteractionResponse::Message(
-                        CreateInteractionResponseMessage::new().content(e.to_string()),
-                    ),
-                )
-                .await
-                .is_err()
-        {
-            interaction
-                .edit_response(
-                    &ctx.http,
-                    EditInteractionResponse::new().content(e.to_string()),
-                )
-                .await?;
+        if let Err(e) = result.as_ref() {
+            let msg = e.to_string();
+
+            if !msg.is_empty() {
+                debug!("Sent error: {e:?}\n{interaction:?}");
+
+                let _ = interaction.defer_ephemeral(&ctx.http).await;
+
+                interaction
+                    .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
+                    .await
+                    .unwrap();
+
+                return Ok(());
+            }
         }
 
         result
