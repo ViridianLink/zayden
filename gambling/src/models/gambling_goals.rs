@@ -1,11 +1,12 @@
 use chrono::{NaiveDate, Utc};
+use serde::Deserialize;
 use serenity::all::UserId;
 use sqlx::FromRow;
 use zayden_core::FormatNum;
 
 use crate::goals::GOAL_REGISTRY;
 
-#[derive(FromRow)]
+#[derive(FromRow, Deserialize)]
 pub struct GamblingGoalsRow {
     pub user_id: i64,
     pub goal_id: String,

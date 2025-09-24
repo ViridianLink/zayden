@@ -4,17 +4,24 @@ use serenity::all::{
     Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
     UserId,
 };
-use sqlx::{Database, Pool, prelude::FromRow};
+use sqlx::types::Json;
+use sqlx::{Database, FromRow, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
 
-use crate::{Coins, Error, Result, START_AMOUNT, tomorrow};
+use crate::{
+    Coins, Error, GamblingGoalsRow, Gems, GoalHandler, GoalsManager, MaxBet, Prestige, Result,
+    START_AMOUNT, tomorrow,
+};
 
 use super::Commands;
 
 #[async_trait]
 pub trait DailyManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<DailyRow>>;
+    async fn daily_row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<DailyRow>>;
 
     async fn save(pool: &Pool<Db>, row: DailyRow) -> sqlx::Result<Db::QueryResult>;
 }
@@ -25,6 +32,7 @@ pub struct DailyRow {
     pub coins: i64,
     pub daily: NaiveDate,
     pub prestige: Option<i64>,
+    pub goals: Json<Vec<GamblingGoalsRow>>,
 }
 
 impl DailyRow {
@@ -36,7 +44,27 @@ impl DailyRow {
             coins: 0,
             daily: NaiveDate::default(),
             prestige: Some(0),
+            goals: Json(Vec::new()),
         }
+    }
+
+    fn user_id(&self) -> UserId {
+        UserId::new(self.id as u64)
+    }
+
+    pub async fn goals<Db: Database, Manager: GoalsManager<Db>>(
+        &mut self,
+        pool: &Pool<Db>,
+    ) -> &[GamblingGoalsRow] {
+        if self.goals.is_empty() || !self.goals[0].is_today() {
+            self.goals = Json(
+                GoalHandler::daily_reset::<Db, Manager>(pool, self.user_id(), self)
+                    .await
+                    .unwrap(),
+            );
+        }
+
+        &self.goals
     }
 }
 
@@ -50,15 +78,41 @@ impl Coins for DailyRow {
     }
 }
 
+impl Gems for DailyRow {
+    fn gems(&self) -> i64 {
+        todo!()
+    }
+
+    fn gems_mut(&mut self) -> &mut i64 {
+        todo!()
+    }
+}
+
+impl Prestige for DailyRow {
+    fn prestige(&self) -> i64 {
+        todo!()
+    }
+}
+
+impl MaxBet for DailyRow {
+    fn level(&self) -> i32 {
+        todo!()
+    }
+}
+
 impl Commands {
-    pub async fn daily<Data: EmojiCacheData, Db: Database, Manager: DailyManager<Db>>(
+    pub async fn daily<
+        Data: EmojiCacheData,
+        Db: Database,
+        Manager: DailyManager<Db> + GoalsManager<Db>,
+    >(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await.unwrap();
 
-        let mut row = Manager::row(pool, interaction.user.id)
+        let mut row = Manager::daily_row(pool, interaction.user.id)
             .await
             .unwrap()
             .unwrap_or_else(|| DailyRow::new(interaction.user.id));
@@ -73,6 +127,23 @@ impl Commands {
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);
 
         *row.coins_mut() += amount;
+        let goals = row
+            .goals::<Db, Manager>(pool)
+            .await
+            .iter()
+            .map(|goal| {
+                if goal.is_complete() {
+                    format!("\n- ~~{}~~", goal.title())
+                } else {
+                    format!(
+                        "\n- {} (`{}/{}`)",
+                        goal.title(),
+                        goal.progress.format(),
+                        goal.target.format()
+                    )
+                }
+            })
+            .collect::<String>();
 
         Manager::save(pool, row).await.unwrap();
 
@@ -83,7 +154,10 @@ impl Commands {
         };
 
         let embed = CreateEmbed::new()
-            .description(format!("Collected {} <:coin:{coin}>", amount.format()))
+            .description(format!(
+                "**Collected {} <:coin:{coin}>**\n\n__Daily Goals__: {goals}",
+                amount.format()
+            ))
             .colour(Colour::GOLD);
 
         interaction
