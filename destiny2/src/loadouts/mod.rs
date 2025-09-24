@@ -455,7 +455,7 @@ impl<'a> Loadout<'a> {
                 let value = stat.value();
 
                 let s = if value < 200 {
-                    format!("({value}) {emoji}")
+                    format!("`{value}` {emoji}")
                 } else {
                     emoji.to_string()
                 };
