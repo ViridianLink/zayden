@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serenity::all::{
     AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
-    CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateEmbed,
+    CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateEmbed, CreateEmbedFooter,
     CreateInteractionResponse, EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
 };
 
@@ -49,7 +49,8 @@ impl Perk {
 
         let embed = CreateEmbed::new()
             .title(perk.name)
-            .description(perk.description);
+            .description(perk.description)
+            .footer(CreateEmbedFooter::new("From 'Destiny Data Compendium'"));
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
