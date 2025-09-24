@@ -403,10 +403,12 @@ async fn use_item<
         data.emojis()
     };
 
-    let embed = CreateEmbed::new().description(format!(
-        "Successfully activated item:\n**{}**\nUses left:{quantity}",
-        item.as_str(&emojis)
-    ));
+    let mut description = format!("Successfully activated item:\n**{}**", item.as_str(&emojis));
+    if let Some(duration) = item.effect_duration {
+        description.push_str(&format!("(<t:{}:R>)", duration.as_secs()));
+    }
+
+    let embed = CreateEmbed::new().description(format!("{description}\nUses left:{quantity}"));
 
     interaction
         .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
