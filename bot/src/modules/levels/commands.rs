@@ -1,7 +1,9 @@
 use async_trait::async_trait;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
+use serenity::all::{
+    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption,
+};
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::{ApplicationCommand, Component};
 
 use crate::{CtxData, Error, Result};
 
@@ -24,6 +26,16 @@ impl ApplicationCommand<Error, Postgres> for Levels {
 
     fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
         Ok(levels::Levels::register())
+    }
+}
+
+#[async_trait]
+impl Component<Error, Postgres> for Levels {
+    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+        levels::Levels::run_components::<CtxData, Postgres, LevelsTable>(ctx, interaction, pool)
+            .await;
+
+        Ok(())
     }
 }
 

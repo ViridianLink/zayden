@@ -9,6 +9,7 @@ use zayden_core::Component;
 
 use crate::handler::Handler;
 use crate::modules::gambling::{Blackjack, HigherLower, Leaderboard, Prestige, TicTacToe};
+use crate::modules::levels::Levels;
 use crate::modules::lfg::PostTable;
 use crate::modules::ticket::Ticket;
 use crate::modules::verify::Panel;
@@ -35,6 +36,10 @@ impl Handler {
             id if id.starts_with("leaderboard") => Leaderboard::run(ctx, interaction, pool).await,
             id if id.starts_with("prestige") => Prestige::run(ctx, interaction, pool).await,
             id if id.starts_with("ttt") => TicTacToe::run(ctx, interaction, pool).await,
+            //endregion
+
+            //region: levels
+            id if id.starts_with("levels") => Levels::run(ctx, interaction, pool).await,
             //endregion
 
             // region: Lfg

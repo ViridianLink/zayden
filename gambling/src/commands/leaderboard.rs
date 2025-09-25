@@ -1,7 +1,7 @@
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateButton, CreateCommand,
-    CreateCommandOption, CreateEmbed, CreateEmbedFooter, EditInteractionResponse, ResolvedOption,
-    ResolvedValue,
+    ButtonStyle, Colour, CommandInteraction, CommandOptionType, Context, CreateButton,
+    CreateCommand, CreateCommandOption, CreateEmbed, CreateEmbedFooter, EditInteractionResponse,
+    ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -78,21 +78,31 @@ impl Commands {
             .footer(CreateEmbedFooter::new("Page 1"))
             .colour(Colour::TEAL);
 
-        let mut response = EditInteractionResponse::new()
-            .embed(embed)
-            .button(CreateButton::new("leaderboard_previous").label("<"));
+        let mut response = EditInteractionResponse::new().embed(embed).button(
+            CreateButton::new("leaderboard_previous")
+                .label("<")
+                .style(ButtonStyle::Secondary),
+        );
 
         if get_row_number::<Db, Manager>(leaderboard, pool, users.as_deref(), interaction.user.id)
             .await
             .is_some()
         {
-            response = response.button(CreateButton::new("leaderboard_user").emoji('🎯'));
+            response = response.button(
+                CreateButton::new("leaderboard_user")
+                    .emoji('🎯')
+                    .style(ButtonStyle::Secondary),
+            );
         }
 
         interaction
             .edit_response(
                 &ctx.http,
-                response.button(CreateButton::new("leaderboard_next").label(">")),
+                response.button(
+                    CreateButton::new("leaderboard_next")
+                        .label(">")
+                        .style(ButtonStyle::Secondary),
+                ),
             )
             .await
             .unwrap();
