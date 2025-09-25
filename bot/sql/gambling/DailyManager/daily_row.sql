@@ -3,6 +3,7 @@ SELECT
     g.coins,
     g.daily,
     m.prestige,
+    l.level,
     COALESCE(
         jsonb_agg(
             DISTINCT jsonb_build_object(
@@ -27,8 +28,10 @@ FROM
     gambling g
     LEFT JOIN gambling_mine m on g.id = m.id
     LEFT JOIN gambling_goals gg ON g.id = gg.user_id
+    LEFT JOIN levels AS l ON g.id = l.id
 WHERE
     g.id = $1
 GROUP BY
     g.id,
-    m.prestige
+    m.prestige,
+    l.level

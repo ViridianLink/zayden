@@ -32,6 +32,7 @@ pub struct DailyRow {
     pub coins: i64,
     pub daily: NaiveDate,
     pub prestige: Option<i64>,
+    pub level: Option<i32>,
     pub goals: Json<Vec<GamblingGoalsRow>>,
 }
 
@@ -44,6 +45,7 @@ impl DailyRow {
             coins: 0,
             daily: NaiveDate::default(),
             prestige: Some(0),
+            level: Some(0),
             goals: Json(Vec::new()),
         }
     }
@@ -90,13 +92,13 @@ impl Gems for DailyRow {
 
 impl Prestige for DailyRow {
     fn prestige(&self) -> i64 {
-        todo!()
+        self.prestige.unwrap_or_default()
     }
 }
 
 impl MaxBet for DailyRow {
     fn level(&self) -> i32 {
-        todo!()
+        self.level.unwrap_or_default()
     }
 }
 
