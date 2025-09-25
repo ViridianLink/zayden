@@ -86,3 +86,5 @@ fn tomorrow(now: Option<DateTime<Utc>>) -> i64 {
         .unwrap()
         .timestamp()
 }
+
+pub struct Leaderboard;

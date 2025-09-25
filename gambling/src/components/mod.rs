@@ -1,5 +1,6 @@
 pub mod blackjack;
 pub mod higherlower;
+pub mod leaderboard;
 pub mod shop;
 pub mod tictactoe;
 
