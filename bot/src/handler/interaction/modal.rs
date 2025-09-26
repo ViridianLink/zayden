@@ -2,7 +2,7 @@ use serenity::all::{Context, EditInteractionResponse, ModalInteraction};
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketModal;
-use tracing::info;
+use tracing::{debug, info};
 use zayden_core::parse_modal_data;
 
 use crate::modules::lfg::{PostTable, UsersTable};
@@ -67,12 +67,18 @@ impl Handler {
         if let Err(e) = result.as_ref() {
             let msg = e.to_string();
 
-            let _ = interaction.defer_ephemeral(&ctx.http).await;
+            if !msg.is_empty() {
+                debug!("Sent error: {e:?}\n{interaction:?}");
 
-            interaction
-                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
-                .await
-                .unwrap();
+                let _ = interaction.defer_ephemeral(&ctx.http).await;
+
+                interaction
+                    .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
+                    .await
+                    .unwrap();
+
+                return Ok(());
+            }
         }
 
         result
