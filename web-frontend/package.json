@@ -9,13 +9,16 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
   },
+  "dependencies": {
+    "js-cookie": "latest"
+  },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "latest",
     "@tsconfig/svelte": "latest",
     "svelte": "latest",
     "svelte-check": "latest",
+    "svelte-routing": "latest",
     "typescript": "latest",
-    "vite": "latest",
-    "svelte-routing": "latest"
+    "vite": "latest"
   }
 }

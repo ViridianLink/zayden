@@ -1,62 +1,32 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import NavBar from "../lib/NavBar.svelte";
   import serversIcon from "../assets/servers_icon.svg";
   import settingsIcon from "../assets/settings_icon.svg";
-  import { BASE_URL } from "../lib/variables";
+  import { BASE_URL, discordBaseUrl } from "../lib/variables";
+  import Cookies from "js-cookie";
+  import { avatar, icon, type Guild, type User } from "../discord-types";
 
-  const allCookies = document.cookie;
-  console.log(allCookies);
+  async function user(authToken: String): Promise<User> {
+    const response = await fetch(`${discordBaseUrl}/users/@me`, {
+      headers: { authorization: `Bearer ${authToken}` },
+    });
 
-  fetch(`${BASE_URL}/dashboard`, { credentials: "include" }).then((x) =>
-    console.log(x)
-  );
+    return await response.json();
+  }
 
-  // In a real application, this data would be fetched from a backend API.
-  // For this example, we'll define it directly.
-  const userData = {
-    name: "OscarSix",
-    handle: "@oscarsix",
-    avatar: "/images/avatar.png",
-  };
+  async function guilds(authToken: String): Promise<Guild[]> {
+    const response = await fetch(`${discordBaseUrl}/users/@me/guilds`, {
+      headers: { authorization: `Bearer ${authToken}` },
+    });
 
-  const serverList = [
-    { id: 1, name: "REDACTED", icon: "/images/servers/redacted.png" },
-    { id: 2, name: "Zayden's Server", icon: "/images/servers/zayden.png" },
-    { id: 3, name: "Bradster", icon: "/images/servers/bradster.png" },
-    { id: 4, name: "Quiet Space", icon: "/images/servers/quiet-space.png" },
-    {
-      id: 5,
-      name: "Underground Railroad",
-      icon: "/images/servers/underground-railroad.png",
-    },
-    {
-      id: 6,
-      name: "Gay Balls Club",
-      icon: "/images/servers/gay-balls-club.png",
-    },
-    {
-      id: 7,
-      name: "Autists Anonymous",
-      icon: "/images/servers/autists-anonymous.png",
-    },
-    { id: 8, name: "chiara's server", icon: "/images/servers/chiara.png" },
-    {
-      id: 9,
-      name: "Deep Stone Therapy",
-      icon: "/images/servers/deep-stone-therapy.png",
-    },
-    {
-      id: 10,
-      name: "Shroomie's server",
-      icon: "/images/servers/shroomie.png",
-    },
-    { id: 11, name: "The Circus", icon: "/images/servers/the-circus.png" },
-    {
-      id: 12,
-      name: "Moon Patrollers",
-      icon: "/images/servers/moon-patrollers.png",
-    },
-  ];
+    return await response.json();
+  }
+
+  const authToken = Cookies.get("auth-token");
+
+  const userPromise = user(authToken);
+  const guildsPromise = guilds(authToken);
 </script>
 
 <svelte:head>
@@ -66,13 +36,15 @@
 <NavBar />
 
 <main class="dashboard">
-  <header class="profile-header">
-    <img src={userData.avatar} alt="User Avatar" class="avatar" />
-    <div class="user-details">
-      <h1 class="username">{userData.name}</h1>
-      <p class="handle">{userData.handle}</p>
-    </div>
-  </header>
+  {#await userPromise then user}
+    <header class="profile-header">
+      <img src={avatar(user)} alt="User Avatar" class="avatar" />
+      <div class="user-details">
+        <h1 class="username">{user.global_name}</h1>
+        <p class="handle">{user.username}</p>
+      </div>
+    </header>
+  {/await}
 
   <!-- Navigation Tabs -->
   <nav class="main-nav">
@@ -89,21 +61,27 @@
 
   <!-- Servers Grid -->
   <div class="servers-section">
-    <div class="servers-header">
-      <h2>
-        Servers
-        <small class="server-count">(48)</small>
-      </h2>
-    </div>
+    {#await guildsPromise then guilds}
+      <div class="servers-header">
+        <h2>
+          Servers
+          <small class="server-count">(48)</small>
+        </h2>
+      </div>
 
-    <div class="server-grid">
-      {#each serverList as server (server.id)}
-        <div class="server-card">
-          <img src={server.icon} alt="{server.name} icon" class="server-icon" />
-          <p class="server-name">{server.name}</p>
-        </div>
-      {/each}
-    </div>
+      <div class="server-grid">
+        {#each guilds as guild}
+          <div class="server-card">
+            <img
+              src={icon(guild)}
+              alt="{guild.name} icon"
+              class="server-icon"
+            />
+            <p class="server-name">{guild.name}</p>
+          </div>
+        {/each}
+      </div>
+    {/await}
   </div>
 </main>
 
