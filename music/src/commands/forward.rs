@@ -23,7 +23,7 @@ impl Forward {
         };
 
         let secs = time.parse::<u64>().unwrap();
-        let position = Duration::from_secs(secs);
+        let forward = Duration::from_secs(secs);
 
         let guild = interaction.guild_id.unwrap();
 
@@ -36,7 +36,7 @@ impl Forward {
             }
         };
 
-        todo!("Add time to current position");
+        let position = handle.get_info().await.unwrap().position + forward;
 
         handle.seek(position).result().unwrap();
 
