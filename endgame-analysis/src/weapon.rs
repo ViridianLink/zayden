@@ -21,7 +21,7 @@ impl WeaponCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let options = interaction.data.options();
         let options = parse_options(options);
