@@ -65,7 +65,9 @@ async fn main() -> Result<()> {
                 .unwrap()
         };
         EndgameAnalysisSheet::update(&item_manifest).await.unwrap();
-        destiny2::compendium::update().await;
+        if let Err(e) = destiny2::compendium::update().await {
+            warn!(error = ?e, "Failed to update Destiny 2 compendium");
+        };
     }
 
     let mut client = ClientBuilder::new(

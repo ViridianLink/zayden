@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::env;
 
-use google_sheets_api::SheetsClientBuilder;
+use google_sheets_api::{Error, SheetsClientBuilder};
 use serde::{Deserialize, Serialize};
 
 const COMPENDIUM_ID: &str = "1WaxvbLx7UoSZaBqdFr1u32F2uWVLo-CJunJB4nlGUE4";
@@ -12,12 +12,12 @@ pub struct PerkInfo {
     pub description: String,
 }
 
-pub async fn update() {
+pub async fn update() -> Result<(), Error> {
     let api_key = env::var("GOOGLE_API_KEY").unwrap();
 
     let client = SheetsClientBuilder::new(api_key).build().unwrap();
 
-    let spreadsheet = client.spreadsheet(COMPENDIUM_ID, true).await.unwrap();
+    let spreadsheet = client.spreadsheet(COMPENDIUM_ID, true).await?;
     let mut perks_sheet = spreadsheet
         .sheets
         .into_iter()
@@ -47,4 +47,6 @@ pub async fn update() {
 
     let json = serde_json::to_string(&perks).unwrap();
     std::fs::write("perks.json", json).unwrap();
+
+    Ok(())
 }
