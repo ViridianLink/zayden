@@ -1,267 +1,259 @@
 <script lang="ts">
-    import NavBar from "../lib/NavBar.svelte";
-    import serversIcon from "../assets/servers_icon.svg";
-    import settingsIcon from "../assets/settings_icon.svg";
-    import { BASE_URL } from "../lib/variables";
+  import NavBar from "../lib/NavBar.svelte";
+  import serversIcon from "../assets/servers_icon.svg";
+  import settingsIcon from "../assets/settings_icon.svg";
+  import { BASE_URL } from "../lib/variables";
 
-    const allCookies = document.cookie;
-    console.log(allCookies);
+  const allCookies = document.cookie;
+  console.log(allCookies);
 
-    fetch(`${BASE_URL}/dashboard`, { credentials: "include" }).then((x) =>
-        console.log(x),
-    );
+  fetch(`${BASE_URL}/dashboard`, { credentials: "include" }).then((x) =>
+    console.log(x)
+  );
 
-    // In a real application, this data would be fetched from a backend API.
-    // For this example, we'll define it directly.
-    const userData = {
-        name: "OscarSix",
-        handle: "@oscarsix",
-        avatar: "/images/avatar.png",
-    };
+  // In a real application, this data would be fetched from a backend API.
+  // For this example, we'll define it directly.
+  const userData = {
+    name: "OscarSix",
+    handle: "@oscarsix",
+    avatar: "/images/avatar.png",
+  };
 
-    const serverList = [
-        { id: 1, name: "REDACTED", icon: "/images/servers/redacted.png" },
-        { id: 2, name: "Zayden's Server", icon: "/images/servers/zayden.png" },
-        { id: 3, name: "Bradster", icon: "/images/servers/bradster.png" },
-        { id: 4, name: "Quiet Space", icon: "/images/servers/quiet-space.png" },
-        {
-            id: 5,
-            name: "Underground Railroad",
-            icon: "/images/servers/underground-railroad.png",
-        },
-        {
-            id: 6,
-            name: "Gay Balls Club",
-            icon: "/images/servers/gay-balls-club.png",
-        },
-        {
-            id: 7,
-            name: "Autists Anonymous",
-            icon: "/images/servers/autists-anonymous.png",
-        },
-        { id: 8, name: "chiara's server", icon: "/images/servers/chiara.png" },
-        {
-            id: 9,
-            name: "Deep Stone Therapy",
-            icon: "/images/servers/deep-stone-therapy.png",
-        },
-        {
-            id: 10,
-            name: "Shroomie's server",
-            icon: "/images/servers/shroomie.png",
-        },
-        { id: 11, name: "The Circus", icon: "/images/servers/the-circus.png" },
-        {
-            id: 12,
-            name: "Moon Patrollers",
-            icon: "/images/servers/moon-patrollers.png",
-        },
-    ];
+  const serverList = [
+    { id: 1, name: "REDACTED", icon: "/images/servers/redacted.png" },
+    { id: 2, name: "Zayden's Server", icon: "/images/servers/zayden.png" },
+    { id: 3, name: "Bradster", icon: "/images/servers/bradster.png" },
+    { id: 4, name: "Quiet Space", icon: "/images/servers/quiet-space.png" },
+    {
+      id: 5,
+      name: "Underground Railroad",
+      icon: "/images/servers/underground-railroad.png",
+    },
+    {
+      id: 6,
+      name: "Gay Balls Club",
+      icon: "/images/servers/gay-balls-club.png",
+    },
+    {
+      id: 7,
+      name: "Autists Anonymous",
+      icon: "/images/servers/autists-anonymous.png",
+    },
+    { id: 8, name: "chiara's server", icon: "/images/servers/chiara.png" },
+    {
+      id: 9,
+      name: "Deep Stone Therapy",
+      icon: "/images/servers/deep-stone-therapy.png",
+    },
+    {
+      id: 10,
+      name: "Shroomie's server",
+      icon: "/images/servers/shroomie.png",
+    },
+    { id: 11, name: "The Circus", icon: "/images/servers/the-circus.png" },
+    {
+      id: 12,
+      name: "Moon Patrollers",
+      icon: "/images/servers/moon-patrollers.png",
+    },
+  ];
 </script>
 
 <svelte:head>
-    <title>Servers - Zayden</title>
+  <title>Servers - Zayden</title>
 </svelte:head>
 
 <NavBar />
 
 <main class="dashboard">
-    <header class="profile-header">
-        <img src={userData.avatar} alt="User Avatar" class="avatar" />
-        <div class="user-details">
-            <h1 class="username">{userData.name}</h1>
-            <p class="handle">{userData.handle}</p>
-        </div>
-    </header>
-
-    <!-- Navigation Tabs -->
-    <nav class="main-nav">
-        <button class="nav-button active">
-            <img src={serversIcon} height="16" width="16" alt="Servers Icon" />
-            Servers
-        </button>
-
-        <button class="nav-button">
-            <img
-                src={settingsIcon}
-                height="16"
-                width="16"
-                alt="Settings Icon"
-            />
-            Settings
-        </button>
-    </nav>
-
-    <!-- Servers Grid -->
-    <div class="servers-section">
-        <div class="servers-header">
-            <h2>Servers</h2>
-            <p class="subtitle">Servers you're in (48 servers)</p>
-        </div>
-
-        <div class="server-grid">
-            {#each serverList as server (server.id)}
-                <div class="server-card">
-                    <img
-                        src={server.icon}
-                        alt="{server.name} icon"
-                        class="server-icon"
-                    />
-                    <p class="server-name">{server.name}</p>
-                </div>
-            {/each}
-        </div>
+  <header class="profile-header">
+    <img src={userData.avatar} alt="User Avatar" class="avatar" />
+    <div class="user-details">
+      <h1 class="username">{userData.name}</h1>
+      <p class="handle">{userData.handle}</p>
     </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="main-nav">
+    <button class="nav-button active">
+      <img src={serversIcon} height="16" width="16" alt="Servers Icon" />
+      Servers
+    </button>
+
+    <button class="nav-button">
+      <img src={settingsIcon} height="16" width="16" alt="Settings Icon" />
+      Settings
+    </button>
+  </nav>
+
+  <!-- Servers Grid -->
+  <div class="servers-section">
+    <div class="servers-header">
+      <h2>
+        Servers
+        <small class="server-count">(48)</small>
+      </h2>
+    </div>
+
+    <div class="server-grid">
+      {#each serverList as server (server.id)}
+        <div class="server-card">
+          <img src={server.icon} alt="{server.name} icon" class="server-icon" />
+          <p class="server-name">{server.name}</p>
+        </div>
+      {/each}
+    </div>
+  </div>
 </main>
 
 <style>
-    :root {
-        --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-            Helvetica, Arial, sans-serif;
-        --bg-surface: #27282b;
-        --bg-nav-inactive: #2c2d31;
-        --bg-nav-active: #1c1d22; /* Same as main background to blend in */
-        --border-color: #3a3b40;
-        --text-primary: #eaeaea;
-        --text-secondary: #8e9297;
-        --text-handle: #e44b23;
-        --premium-color: #e5a443;
-        --settings-color: #30a46c;
-    }
+  :root {
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+    --bg-surface: #27282b;
+    --bg-nav-inactive: #2c2d31;
+    --bg-nav-active: #1c1d22; /* Same as main background to blend in */
+    --border-color: #3a3b40;
+    --text-primary: #eaeaea;
+    --text-secondary: #8e9297;
+    --text-handle: #e44b23;
+    --premium-color: #e5a443;
+    --settings-color: #30a46c;
+  }
 
-    .dashboard {
-        color: var(--text-primary);
-        font-family: var(--font-family);
-        padding: 24px;
-        border-radius: 8px;
-        max-width: 800px;
-        width: 100%;
-        margin: 0 auto;
-        margin-top: 80px;
-    }
+  .dashboard {
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    padding: 24px;
+    border-radius: 8px;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    margin-top: 80px;
+  }
 
-    /* Profile Header */
-    .profile-header {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
+  /* Profile Header */
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
 
-    .avatar {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        border: 3px solid var(--bg-surface);
-    }
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--bg-surface);
+  }
 
-    .username {
-        font-size: 2.25rem;
-        font-weight: 600;
-        margin: 0;
-    }
+  .username {
+    font-size: 2.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
 
-    .handle {
-        font-size: 1rem;
-        color: var(--text-handle);
-        margin: 0;
-    }
+  .handle {
+    font-size: 1rem;
+    color: var(--text-handle);
+    margin: 0;
+  }
 
-    /* Navigation */
-    .main-nav {
-        display: flex;
-        margin-top: 24px;
-        background-color: var(--bg-nav-inactive);
-        border-radius: 8px;
-        overflow: hidden;
-        border: 1px solid var(--border-color);
-    }
+  /* Navigation */
+  .main-nav {
+    display: flex;
+    margin-top: 24px;
+    background-color: var(--bg-nav-inactive);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+  }
 
-    .nav-button {
-        flex: 1;
-        padding: 12px 16px;
-        background-color: transparent;
-        border: none;
-        color: var(--text-secondary);
-        font-size: 0.95rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition:
-            background-color 0.2s,
-            color 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
+  .nav-button {
+    flex: 1;
+    padding: 12px 16px;
+    background-color: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
 
-    .nav-button:not(:last-child) {
-        border-right: 1px solid var(--border-color);
-    }
+  .nav-button:not(:last-child) {
+    border-right: 1px solid var(--border-color);
+  }
 
-    .nav-button.active {
-        background-color: var(--bg-nav-active);
-        color: var(--text-primary);
-        border-bottom: 1px solid var(--bg-nav-active); /* Hide bottom border */
-        margin-bottom: -1px; /* Pull content up */
-    }
+  .nav-button.active {
+    background-color: var(--bg-nav-active);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--bg-nav-active); /* Hide bottom border */
+    margin-bottom: -1px; /* Pull content up */
+  }
 
-    .nav-button:not(.active):hover {
-        background-color: #3a3b40;
-    }
+  .nav-button:not(.active):hover {
+    background-color: #3a3b40;
+  }
 
-    .nav-button:nth-child(2) img {
-        stroke: var(--settings-color);
-    }
+  .nav-button:nth-child(2) img {
+    stroke: var(--settings-color);
+  }
 
-    .nav-button img {
-        filter: invert(100%) brightness(2);
-    }
+  .nav-button img {
+    filter: invert(100%) brightness(2);
+  }
 
-    /* Servers Section */
-    .servers-section {
-        background-color: var(--color-bg-nav);
-        margin-top: 5px;
-        padding: 24px;
-        border-radius: 8px;
-    }
+  /* Servers Section */
+  .servers-section {
+    background-color: var(--color-bg-nav);
+    margin-top: 5px;
+    padding: 24px;
+    border-radius: 8px;
+  }
 
-    .servers-header h2 {
-        font-size: 2rem;
-        font-weight: 600;
-        margin: 0;
-    }
+  .servers-header h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0;
+  }
 
-    .subtitle {
-        color: var(--text-secondary);
-        margin-top: 4px;
-    }
+  .server-count {
+    color: var(--text-secondary);
+  }
 
-    /* Grid */
-    .server-grid {
-        margin-top: 24px;
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 24px;
-    }
+  /* Grid */
+  .server-grid {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 24px;
+  }
 
-    .server-card {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 12px;
-    }
+  .server-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
 
-    .server-icon {
-        width: 100%;
-        aspect-ratio: 1 / 1;
-        border-radius: 16px;
-        object-fit: cover;
-        background-color: var(--bg-surface);
-    }
+  .server-icon {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 16px;
+    object-fit: cover;
+    background-color: var(--bg-surface);
+  }
 
-    .server-name {
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: var(--text-secondary);
-    }
+  .server-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
 </style>
