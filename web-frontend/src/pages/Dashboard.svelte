@@ -3,12 +3,12 @@
   import NavBar from "../lib/NavBar.svelte";
   import serversIcon from "../assets/servers_icon.svg";
   import settingsIcon from "../assets/settings_icon.svg";
-  import { BASE_URL, discordBaseUrl } from "../lib/variables";
+  import * as vars from "../lib/variables";
   import Cookies from "js-cookie";
   import { avatar, icon, type Guild, type User } from "../discord-types";
 
   async function user(authToken: String): Promise<User> {
-    const response = await fetch(`${discordBaseUrl}/users/@me`, {
+    const response = await fetch(`${vars.discordBaseUrl}/users/@me`, {
       headers: { authorization: `Bearer ${authToken}` },
     });
 
@@ -16,7 +16,7 @@
   }
 
   async function guilds(authToken: String): Promise<Guild[]> {
-    const response = await fetch(`${discordBaseUrl}/users/@me/guilds`, {
+    const response = await fetch(`${vars.discordBaseUrl}/users/@me/guilds`, {
       headers: { authorization: `Bearer ${authToken}` },
     });
 
@@ -65,7 +65,7 @@
       <div class="servers-header">
         <h2>
           Servers
-          <small class="server-count">(48)</small>
+          <small class="server-count">({guilds.length})</small>
         </h2>
       </div>
 
