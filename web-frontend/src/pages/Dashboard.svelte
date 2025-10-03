@@ -9,6 +9,28 @@
         type Guild,
         type User,
     } from "../lib/discord-types";
+    import Cookies from "js-cookie";
+
+    function set_auth_cookie() {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        const token = params.get("token");
+
+        console.log(token);
+        console.log(hash);
+
+        if (token) {
+            Cookies.set("auth-token", token);
+
+            window.history.replaceState(
+                {},
+                document.title,
+                window.location.pathname + window.location.search,
+            );
+        }
+    }
+
+    set_auth_cookie();
 
     const userPromise = get<User>("/users/@me");
     const guildsPromise = get<Guild[]>("/users/@me/guilds");
