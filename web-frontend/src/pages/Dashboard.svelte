@@ -1,50 +1,17 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import NavBar from "../lib/NavBar.svelte";
     import serversIcon from "../assets/servers_icon.svg";
-    import settingsIcon from "../assets/settings_icon.svg";
-    import * as vars from "../lib/variables";
-    import { navigate } from "svelte-routing";
-    import Cookies from "js-cookie";
-    import { avatar, icon, type Guild, type User } from "../discord-types";
+    import { Link } from "svelte-routing";
+    import {
+        avatar,
+        get,
+        icon,
+        type Guild,
+        type User,
+    } from "../lib/discord-types";
 
-    function authFail(): never {
-        console.log("No auth token, redirecting to login");
-        navigate("/login");
-        throw new Error("authFail");
-    }
-
-    async function user(authToken: string): Promise<User> {
-        const response = await fetch(`${vars.discordBaseUrl}/users/@me`, {
-            headers: { authorization: `Bearer ${authToken}` },
-        });
-
-        if (response.status == 401) {
-            authFail();
-        }
-
-        return await response.json();
-    }
-
-    async function guilds(authToken: string): Promise<Guild[]> {
-        const response = await fetch(
-            `${vars.discordBaseUrl}/users/@me/guilds`,
-            {
-                headers: { authorization: `Bearer ${authToken}` },
-            },
-        );
-
-        return await response.json();
-    }
-
-    const authToken = Cookies.get("auth-token");
-
-    if (!authToken) {
-        authFail();
-    }
-
-    const userPromise = user(authToken);
-    const guildsPromise = guilds(authToken);
+    const userPromise = get<User>("/users/@me");
+    const guildsPromise = get<Guild[]>("/users/@me/guilds");
 </script>
 
 <svelte:head>
@@ -71,7 +38,7 @@
             Servers
         </button>
 
-        <button class="nav-button">
+        <!-- <button class="nav-button">
             <img
                 src={settingsIcon}
                 height="16"
@@ -79,7 +46,7 @@
                 alt="Settings Icon"
             />
             Settings
-        </button>
+        </button> -->
     </nav>
 
     <!-- Servers Grid -->
@@ -94,14 +61,14 @@
 
             <div class="server-grid">
                 {#each guilds as guild}
-                    <div class="server-card">
+                    <Link to={`/manage/${guild.id}`} class="server-card">
                         <img
                             src={icon(guild)}
                             alt="{guild.name} icon"
                             class="server-icon"
                         />
                         <p class="server-name">{guild.name}</p>
-                    </div>
+                    </Link>
                 {/each}
             </div>
         {/await}
