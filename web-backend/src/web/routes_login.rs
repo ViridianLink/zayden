@@ -33,7 +33,10 @@ pub async fn discord_auth_callback_handler(
 
         Response::builder()
             .status(StatusCode::SEE_OTHER)
-            .header(header::LOCATION, format!("{FRONTEND_URL}/dashboard"))
+            .header(
+                header::LOCATION,
+                format!("{FRONTEND_URL}/dashboard#token={token}"),
+            )
             .header(header::SET_COOKIE, cookie.to_string())
     } else {
         Response::builder().status(StatusCode::SEE_OTHER).header(
