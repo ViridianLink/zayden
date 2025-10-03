@@ -24,7 +24,12 @@ use tracing_subscriber::{Layer, Registry, filter, fmt};
 
 const FRONTEND_URL: &str = "http://localhost:5173";
 const CLIENT_ID: &str = "787490197943091211";
-const REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
+
+const REDIRECT_URI: &str = if cfg!(debug_assertions) {
+    "http://localhost:3000/auth/callback"
+} else {
+    "http://145.40.184.89:80/auth/callback"
+};
 
 #[derive(Clone)]
 struct AppState {
