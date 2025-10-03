@@ -1,6 +1,6 @@
 import Cookies from "js-cookie";
 
-export const baseUrl = "http://127.0.0.1:3000";
+export const baseUrl = "http://145.40.184.89:80";
 
 export async function get<T>(endpoint: string): Promise<T> {
     const authToken = Cookies.get("auth-token");
