@@ -8,10 +8,20 @@
     import Cookies from "js-cookie";
     import { avatar, icon, type Guild, type User } from "../discord-types";
 
+    function authFail(): never {
+        console.log("No auth token, redirecting to login");
+        navigate("/login");
+        throw new Error("authFail");
+    }
+
     async function user(authToken: string): Promise<User> {
         const response = await fetch(`${vars.discordBaseUrl}/users/@me`, {
             headers: { authorization: `Bearer ${authToken}` },
         });
+
+        if (response.status == 401) {
+            authFail();
+        }
 
         return await response.json();
     }
@@ -30,12 +40,11 @@
     const authToken = Cookies.get("auth-token");
 
     if (!authToken) {
-        navigate("/login");
-        console.log("No auth token, redirecting to login");
+        authFail();
     }
 
-    const userPromise = user(authToken as string);
-    const guildsPromise = guilds(authToken as string);
+    const userPromise = user(authToken);
+    const guildsPromise = guilds(authToken);
 </script>
 
 <svelte:head>
