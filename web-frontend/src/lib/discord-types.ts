@@ -1,5 +1,6 @@
 import { navigate } from "svelte-routing";
 import Cookies from "js-cookie";
+import { baseUrl } from "./backend-types";
 
 export const InviteUrl =
     "https://discord.com/oauth2/authorize?client_id=787490197943091211&permissions=8&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2Fauth%2Fcallback&integration_type=0&scope=identify+bot+guilds+applications.commands";
@@ -26,7 +27,7 @@ export async function get<T>(endpoint: string): Promise<T> {
 
 function authFail(): never {
     console.log("No auth token, redirecting to login");
-    navigate("/login");
+    window.location.href = `${baseUrl}/login`;
     throw new Error("authFail");
 }
 
