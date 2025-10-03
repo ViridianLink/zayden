@@ -1,15 +1,13 @@
-use axum::Json;
 use axum::extract::{Query, State};
 use axum::http::header;
-use axum::response::{IntoResponse, Redirect, Response};
+use axum::response::{IntoResponse, Response};
 use oauth2::{AuthorizationCode, TokenResponse};
 use reqwest::StatusCode;
 use serde::Deserialize;
-use tower_cookies::cookie::SameSite;
-use tower_cookies::{Cookie, Cookies};
+use tower_cookies::Cookie;
 
 use crate::web::AUTH_TOKEN;
-use crate::{AppState, Error, FRONTEND_URL, Result};
+use crate::{AppState, FRONTEND_URL};
 
 #[derive(Deserialize)]
 pub struct DiscordAuthCallback {
@@ -19,12 +17,9 @@ pub struct DiscordAuthCallback {
 }
 
 pub async fn discord_auth_callback_handler(
-    cookies: Cookies,
     Query(query): Query<DiscordAuthCallback>,
     State(state): State<AppState>,
 ) -> impl IntoResponse {
-    println!("code: {}", query.code);
-
     let token_result = state
         .oauth_client
         .exchange_code(AuthorizationCode::new(query.code))
@@ -33,7 +28,6 @@ pub async fn discord_auth_callback_handler(
 
     if let Ok(token) = token_result {
         let token = token.access_token().secret();
-        println!("Got token: {:?}", token);
 
         let cookie = Cookie::build((AUTH_TOKEN, token.clone())).path("/");
 

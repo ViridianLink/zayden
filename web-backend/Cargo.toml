@@ -9,13 +9,15 @@ axum = { workspace = true, features = [
     "tokio",
     "http2",
     "json",
+    "macros",
 ], default-features = true }
 dotenvy = { workspace = true }
 oauth2 = { workspace = true, features = ["reqwest"] }
 reqwest = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-serenity = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
-tower-cookies = { workspace = true, default-features = true }
+tower-cookies = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "fs"] }
+twilight-http = { workspace = true, default-features = true }
+twilight-model = { workspace = true }
