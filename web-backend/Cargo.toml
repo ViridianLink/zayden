@@ -19,5 +19,7 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower-cookies = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "fs"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["ansi", "fmt"] }
 twilight-http = { workspace = true, default-features = true }
 twilight-model = { workspace = true }

@@ -11,11 +11,16 @@ use oauth2::{
     AuthUrl, ClientId, ClientSecret, CsrfToken, EndpointSet, RedirectUrl, Scope, TokenUrl,
 };
 use oauth2::{EndpointNotSet, basic::BasicClient};
+use reqwest::header::AUTHORIZATION;
 use std::net::SocketAddr;
 use std::path::Path;
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{Any, CorsLayer};
+use tracing::warn;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::{Layer, Registry, filter, fmt};
 
 const FRONTEND_URL: &str = "http://localhost:5173";
 const CLIENT_ID: &str = "787490197943091211";
@@ -55,8 +60,12 @@ async fn main_response_mapper(res: Response) -> Response {
 
 #[tokio::main]
 async fn main() {
-    if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv() {
-        dotenvy::from_path(Path::new("web-backend/.env")).unwrap()
+    logging();
+
+    if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv()
+        && dotenvy::from_path(Path::new("web-backend/.env")).is_err()
+    {
+        warn!(".env file not found. Please make sure enviroment variables are set.")
     }
 
     let client_secret =
@@ -65,17 +74,9 @@ async fn main() {
     let state = AppState::new(client_secret);
 
     let cors = CorsLayer::new()
-        .allow_origin(FRONTEND_URL.parse::<HeaderValue>().unwrap())
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::PUT,
-            Method::DELETE,
-            Method::PATCH,
-            Method::OPTIONS,
-        ])
-        .allow_headers([header::ACCEPT, header::AUTHORIZATION, header::CONTENT_TYPE])
-        .allow_credentials(true);
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers([AUTHORIZATION]);
 
     let app = Router::new()
         .route("/invite", get(invite_handler))
@@ -97,6 +98,14 @@ async fn main() {
 
     let listener = TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+fn logging() {
+    let stdout_log = fmt::layer()
+        .with_writer(std::io::stdout)
+        .with_filter(filter::LevelFilter::INFO);
+
+    Registry::default().with(stdout_log).init();
 }
 
 async fn invite_handler() -> impl IntoResponse {
