@@ -15,6 +15,7 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "latest",
     "@tsconfig/svelte": "latest",
+    "@types/js-cookie": "^3.0.6",
     "svelte": "latest",
     "svelte-check": "latest",
     "svelte-routing": "latest",
