@@ -1,33 +1,32 @@
-FROM rust:latest as builder
+# ---- Planner Stage ----
+FROM rust:latest AS planner
+WORKDIR /app
+RUN cargo install --locked cargo-chef
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Create a new empty shell project
-WORKDIR /usr/src/zayden-backend
-RUN cargo new --bin app
-WORKDIR /usr/src/zayden-backend/app
+FROM rust:latest AS builder
+WORKDIR /app
+RUN cargo install --locked cargo-chef
+# Copy the dependency recipe from the planner stage.
+COPY --from=planner /app/recipe.json recipe.json
 
-# Copy over your manifests
-COPY ./web-backend/Cargo.lock ./Cargo.lock
-COPY ./web-backend/Cargo.toml ./Cargo.toml
+RUN apt-get update && apt-get install -y cmake pkg-config build-essential
 
-# Build the dependencies to cache them
-RUN cargo build --release
-RUN rm src/*.rs
+# Build dependencies based on the recipe. This layer is cached heavily.
+RUN cargo chef cook --release --recipe-path recipe.json
 
-# Copy your actual source code
-COPY ./web-backend/src ./src
-
-# Build for release
-RUN rm ./target/release/deps/app*
-RUN cargo build --release
+# Copy your application source code and build it.
+# This is the only part that will re-run on code changes.
+COPY . .
+RUN cargo build --release --bin web
 
 # ---- Final Stage ----
 FROM debian:trixie-slim
 
-# Copy the built binary from the builder stage
-COPY --from=builder /usr/src/zayden-backend/app/target/release/web /usr/local/bin/web
+COPY --from=builder /app/target/release/web /usr/local/bin/web
 
-# Expose the port your app runs on
+RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
+
 EXPOSE 3000
-
-# Set the startup command to run your binary
 CMD ["web"]
