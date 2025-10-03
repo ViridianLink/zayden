@@ -26,9 +26,9 @@
 				<span class="navbar__name">Zayden</span>
 
 				<div class="navbar__links">
-					<div class="link">
-						<Link to="/">Home</Link>
-					</div>
+					<Link to="/">
+						<div class="link">Home</div>
+					</Link>
 					<a
 						href="https://discord.gg/sMHquCbPbv"
 						class="link"
@@ -37,14 +37,12 @@
 					>
 						Join Our Discord
 					</a>
-					<div class="link">
-						<Link to="/commands">Commands</Link>
-					</div>
-					<div class="link">
-						<Link to="/premium" class="link premium"
-							>Get Premium</Link
-						>
-					</div>
+					<Link to="/commands">
+						<div class="link">Commands</div>
+					</Link>
+					<Link to="/premium" class="link premium">
+						<div class="link">Get Premium</div>
+					</Link>
 				</div>
 			</div>
 

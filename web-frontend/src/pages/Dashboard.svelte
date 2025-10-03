@@ -3,7 +3,6 @@
 	import NavBar from "../lib/NavBar.svelte";
 	import serversIcon from "../assets/servers_icon.svg";
 	import settingsIcon from "../assets/settings_icon.svg";
-	import userCircle from "../assets/user_circle.svg";
 	import * as vars from "../lib/variables";
 	import { navigate } from "svelte-routing";
 	import Cookies from "js-cookie";
