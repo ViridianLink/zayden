@@ -86,7 +86,13 @@ async fn main() {
         .layer(CookieManagerLayer::new())
         .with_state(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let ip = if cfg!(debug_assertions) {
+        [127, 0, 0, 1]
+    } else {
+        [0, 0, 0, 0]
+    };
+
+    let addr = SocketAddr::from((ip, 3000));
     println!("Dashboard listening on http://{addr}");
 
     let listener = TcpListener::bind(addr).await.unwrap();

@@ -15,9 +15,6 @@ target/
 weapons.json
 perks.json
 
-# Old files kept for reference
-Dockerfile
-
 # Frontend
 # Logs
 logs
