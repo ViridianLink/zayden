@@ -209,6 +209,7 @@
         flex-direction: column;
         align-items: center;
         gap: 12px;
+        text-align: center;
     }
 
     .server-icon {
