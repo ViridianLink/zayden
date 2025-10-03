@@ -1,4 +1,4 @@
-import { discordImageUrl } from "./lib/variables";
+import * as vars from "./lib/variables";
 
 export type Snowflake = string;
 
@@ -14,7 +14,7 @@ export function display_name(user: User): string {
 }
 
 export function avatar(user: User): string {
-    return `${discordImageUrl}/avatars/${user.id}/${user.avatar}.webp`
+    return `${vars.discordImageUrl}/avatars/${user.id}/${user.avatar}.webp`
 }
 
 export interface Guild {
@@ -24,5 +24,5 @@ export interface Guild {
 }
 
 export function icon(guild: Guild): string {
-    return `${discordImageUrl}/icons/${guild.id}/${guild.icon}.png`
+    return `${vars.discordImageUrl}/icons/${guild.id}/${guild.icon}.png`
 }
