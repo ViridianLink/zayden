@@ -16,6 +16,9 @@
                         categories.push(channel);
                         break;
 
+                    case ChannelType.GUILD_MEDIA:
+                    case ChannelType.GUILD_FORUM:
+                    case ChannelType.GUILD_NEWS:
                     case ChannelType.GUILD_TEXT:
                         text.push(channel);
                         break;
@@ -37,7 +40,9 @@
 </script>
 
 <svelte:head>
-    <title>Servers - Zayden</title>
+    {#await guildPromise then guild}
+        <title>{guild.name} - Zayden</title>
+    {/await}
 </svelte:head>
 
 <NavBar />
