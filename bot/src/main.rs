@@ -5,9 +5,7 @@ use std::sync::atomic::AtomicBool;
 
 use destiny2_core::BungieClientData;
 use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
-use music::MusicData;
 use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Token, UserId};
-use songbird::Songbird;
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
 
@@ -72,7 +70,6 @@ async fn main() -> Result<()> {
         Token::from_env("DISCORD_TOKEN").unwrap(),
         GatewayIntents::all(),
     )
-    .voice_manager::<Songbird>(data.songbird())
     .data(Arc::new(RwLock::new(data)))
     .event_handler(Handler {
         pool,

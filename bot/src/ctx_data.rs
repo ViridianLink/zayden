@@ -6,10 +6,7 @@ use bungie_api::{BungieClient, BungieClientBuilder};
 use destiny2_core::BungieClientData;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
-use music::{GuildMusic, MusicData};
-use reqwest::Client as HttpClient;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
-use songbird::Songbird;
 use sqlx::{PgPool, Postgres};
 use temp_voice::{CachedState, VoiceStateCache};
 use tokio::sync::RwLock;
@@ -20,16 +17,13 @@ use crate::modules::gambling::{GamblingTable, HigherLowerTable, LottoTable, Stam
 use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
 pub struct CtxData {
-    http_client: HttpClient,
     bungie_client: BungieClient,
-    songbird: Arc<Songbird>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
     voice_stats: HashMap<UserId, CachedState>,
     guild_members: HashMap<GuildId, Vec<UserId>>,
     gambling_cache: GameCache,
     good_morning_cache: HashMap<GenericChannelId, (UserId, bool)>,
-    music: HashMap<GuildId, GuildMusic>,
 }
 
 impl CtxData {
@@ -71,16 +65,13 @@ impl Default for CtxData {
         let bungie_client = BungieClientBuilder::new(api_key).build().unwrap();
 
         Self {
-            http_client: Default::default(),
             bungie_client,
-            songbird: Songbird::serenity(),
             emoji_cache: Default::default(),
             cron_jobs: Default::default(),
             voice_stats: Default::default(),
             guild_members: Default::default(),
             gambling_cache: Default::default(),
             good_morning_cache: Default::default(),
-            music: Default::default(),
         }
     }
 }
@@ -150,23 +141,5 @@ impl GoodMorningCache for CtxData {
     ) -> Option<(UserId, bool)> {
         self.good_morning_cache
             .insert(channel_id, (author, is_good_morning))
-    }
-}
-
-impl MusicData for CtxData {
-    fn http(&self) -> HttpClient {
-        self.http_client.clone()
-    }
-
-    fn songbird(&self) -> Arc<Songbird> {
-        Arc::clone(&self.songbird)
-    }
-
-    fn guild_music(&self, guild: GuildId) -> Option<&GuildMusic> {
-        self.music.get(&guild)
-    }
-
-    fn guild_music_mut(&mut self, guild: GuildId) -> &mut GuildMusic {
-        self.music.entry(guild).or_default()
     }
 }
