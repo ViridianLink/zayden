@@ -2,14 +2,10 @@
     import NavBar from "../lib/NavBar.svelte";
     import serversIcon from "../assets/servers_icon.svg";
     import { Link } from "svelte-routing";
-    import {
-        avatar,
-        get,
-        icon,
-        type Guild,
-        type User,
-    } from "../lib/discord-types";
     import Cookies from "js-cookie";
+    import { get } from "../lib/discord-types/common";
+    import { avatar, type User } from "../lib/discord-types/user";
+    import { icon, type Guild } from "../lib/discord-types/guild";
 
     function set_auth_cookie() {
         const hash = window.location.hash.substring(1);
