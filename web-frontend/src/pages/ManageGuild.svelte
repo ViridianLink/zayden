@@ -1,11 +1,39 @@
 <script lang="ts">
     import { get } from "../lib/backend-types";
-    import { icon, type Guild } from "../lib/discord-types";
+    import { ChannelType, type Channel } from "../lib/discord-types/channel";
+    import { icon, type Guild } from "../lib/discord-types/guild";
     import NavBar from "../lib/NavBar.svelte";
 
     export let id;
 
-    const guildPromise = get<Guild>(`/manage/${id}`);
+    function partition_channels(
+        channels: Channel[],
+    ): [Channel[], Channel[], Channel[]] {
+        return channels.reduce<[Channel[], Channel[], Channel[]]>(
+            ([categories, text, voice], channel) => {
+                switch (channel.type) {
+                    case ChannelType.GUILD_CATEGORY:
+                        categories.push(channel);
+                        break;
+
+                    case ChannelType.GUILD_TEXT:
+                        text.push(channel);
+                        break;
+
+                    case ChannelType.GUILD_STAGE_VOICE:
+                    case ChannelType.GUILD_VOICE:
+                        voice.push(channel);
+                        break;
+                }
+
+                return [categories, text, voice];
+            },
+            [[], [], []],
+        );
+    }
+
+    const guildPromise = get<Guild>(`/guild/${id}`);
+    const channelsPromise = get<Channel[]>(`/guild/${id}/channels`);
 </script>
 
 <svelte:head>
@@ -16,9 +44,6 @@
 
 <main class="container server-info">
     {#await guildPromise then guild}
-        <!-- <pre>{JSON.stringify(guild, null, 2)}</pre> -->
-
-        <!-- Header -->
         <header class="server-header">
             <img class="server-logo" src={icon(guild)} alt="Server Logo" />
             <h1 class="server-title">{guild.name}</h1>
@@ -28,12 +53,38 @@
         <section class="server-stats">
             <h2 class="section-title">SERVER INFO</h2>
             <div class="stats-grid">
-                <!-- {#each Object.entries(server.stats) as [label, value]}
+                <div class="stat-card">
+                    <p class="stat-label">Members</p>
+                    <p class="stat-value">
+                        {guild.approximate_member_count ?? 0}
+                    </p>
+                </div>
+
+                {#await channelsPromise then channels}
+                    {@const [categories, text, voice] =
+                        partition_channels(channels)}
+
                     <div class="stat-card">
-                        <p class="stat-label">{label}</p>
-                        <p class="stat-value">{value}</p>
+                        <p class="stat-label">Categories</p>
+                        <p class="stat-value">
+                            {categories.length}
+                        </p>
                     </div>
-                {/each} -->
+
+                    <div class="stat-card">
+                        <p class="stat-label">Text Channels</p>
+                        <p class="stat-value">{text.length}</p>
+                    </div>
+
+                    <div class="stat-card">
+                        <p class="stat-label">Voice Channels</p>
+                        <p class="stat-value">{voice.length}</p>
+                    </div>
+                {/await}
+                <div class="stat-card">
+                    <p class="stat-label">Roles</p>
+                    <p class="stat-value">{guild.roles.length}</p>
+                </div>
             </div>
         </section>
     {/await}
