@@ -59,3 +59,10 @@ export interface Role {
      */
     // tags?: RoleTags;
 }
+
+export function hasPermission(
+    userPermissions: bigint,
+    permission: bigint
+): boolean {
+    return (userPermissions & permission) === permission;
+}

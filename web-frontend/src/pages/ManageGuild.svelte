@@ -2,6 +2,11 @@
     import { get } from "../lib/backend-types";
     import { ChannelType, type Channel } from "../lib/discord-types/channel";
     import { icon, type Guild } from "../lib/discord-types/guild";
+    import {
+        displayName,
+        type GuildMember,
+    } from "../lib/discord-types/guild-member";
+    import { hasPermission, type Role } from "../lib/discord-types/role";
     import NavBar from "../lib/NavBar.svelte";
 
     export let id;
@@ -35,8 +40,29 @@
         );
     }
 
+    function managerRoles(roles: Role[]): Role[] {
+        return roles.filter((role) => {
+            return hasPermission(BigInt(role.permissions), 1n << 50n);
+        });
+    }
+
+    const modules = [
+        "destiny2",
+        "family",
+        "gambling",
+        "gold star",
+        "levels",
+        "lfg",
+        "reaction roles",
+        "suggestions",
+        "temp voice",
+        "ticket",
+        "verify",
+    ];
+
     const guildPromise = get<Guild>(`/guild/${id}`);
     const channelsPromise = get<Channel[]>(`/guild/${id}/channels`);
+    const zaydenPromise = get<GuildMember>(`/users/@me/guilds/${id}/member`);
 </script>
 
 <svelte:head>
@@ -92,7 +118,32 @@
                 </div>
             </div>
         </section>
+
+        <!-- Global bot setting -->
+        <section>
+            {#await zaydenPromise then zayden}
+                <p>Nickname: {displayName(zayden)}</p>
+            {/await}
+
+            <div>
+                <p>Manager Roles:</p>
+                {#each managerRoles(guild.roles) as role}
+                    <p>{role.name}</p>
+                {/each}
+            </div>
+
+            <p>Updates channel: Coming soon</p>
+            <p>Timezone: Coming soon</p>
+        </section>
     {/await}
+
+    <!-- Modules -->
+    <section>
+        <h2>Modules</h2>
+        {#each modules as module}
+            <p>{module} : ENABLED | Settings</p>
+        {/each}
+    </section>
 </main>
 
 <style>

@@ -140,10 +140,69 @@ export interface User {
     authenticator_types?: number;
 }
 
-export function display_name(user: User): string {
+export function displayName(user: User): string {
     return user.global_name ?? user.username;
 }
 
 export function avatar(user: User): string {
     return `${IMAGE_URL}/avatars/${user.id}/${user.avatar}.webp`;
+}
+
+export interface PartialUser {
+    /**
+     * The ID of the user
+     */
+    id: Snowflake;
+    /**
+     * The user's username, may be unique across the platform (2-32 characters)
+     */
+    username: string;
+    /**
+     * The user's stringified 4-digit Discord tag
+     */
+    discriminator: string;
+    /**
+     * The user's display name (1-32 characters)
+     */
+    global_name?: string | null;
+    /**
+     * The user's avatar hash
+     */
+    avatar: string | null;
+    /**
+     * The user's avatar decoration
+     */
+    // avatar_decoration_data?: AvatarDecorationData | null;
+    /**
+     * The user's equipped collectibles
+     */
+    // collectibles?: Collectibles | null;
+    /**
+     * The user's display name style
+     */
+    // display_name_styles?: DisplayNameStyle | null;
+    /**
+     * The primary guild of the user
+     */
+    // primary_guild?: PrimaryGuild | null;
+    /**
+     * Whether the user is a bot account
+     */
+    bot?: boolean;
+    /**
+     * Whether the user is an official Discord System user (part of the urgent message system)
+     */
+    system?: boolean;
+    /**
+     * The user's banner hash
+     */
+    banner?: string | null;
+    /**
+     * The user's banner color encoded as an integer representation of a hexadecimal color code
+     */
+    accent_color?: number | null;
+    /**
+     * The public flags on a user's account
+     */
+    public_flags?: number;
 }
