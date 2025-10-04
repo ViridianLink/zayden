@@ -14,6 +14,7 @@ use oauth2::{EndpointNotSet, basic::BasicClient};
 use reqwest::header::AUTHORIZATION;
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::Arc;
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
 use tower_http::cors::{Any, CorsLayer};
@@ -36,10 +37,11 @@ struct AppState {
     http_client: reqwest::Client,
     oauth_client:
         BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>,
+    discord_client: Arc<twilight_http::Client>,
 }
 
 impl AppState {
-    pub fn new(client_secret: String) -> Self {
+    pub fn new(client_secret: String, discord_token: String) -> Self {
         let http_client = reqwest::ClientBuilder::new().build().unwrap();
 
         let oauth_client = BasicClient::new(ClientId::new(CLIENT_ID.to_string()))
@@ -50,9 +52,14 @@ impl AppState {
             )
             .set_redirect_uri(RedirectUrl::new(REDIRECT_URI.to_string()).unwrap());
 
+        let discord_client = twilight_http::Client::builder()
+            .token(discord_token)
+            .build();
+
         Self {
             http_client,
             oauth_client,
+            discord_client: Arc::new(discord_client),
         }
     }
 }
@@ -76,7 +83,9 @@ async fn main() {
     let client_secret =
         std::env::var("DISCORD_CLIENT_SECRET").expect("Missing DISCORD_CLIENT_SECRET");
 
-    let state = AppState::new(client_secret);
+    let discord_token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN");
+
+    let state = AppState::new(client_secret, discord_token);
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
