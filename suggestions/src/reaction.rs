@@ -57,7 +57,7 @@ impl Suggestions {
         if (pos_count - neg_count) >= 20 {
             while let Some(mut msg) = messages.try_next().await.unwrap() {
                 if let Some(embed) = msg.embeds.first()
-                    && embed.url.as_deref() == Some(message.link().as_str())
+                    && embed.url.as_deref() == Some(message.link().to_string().as_str())
                 {
                     let embed = create_embed(
                         &channel,
@@ -98,7 +98,7 @@ impl Suggestions {
                 .unwrap();
         } else if (neg_count - pos_count) <= 15 {
             while let Some(msg) = messages.try_next().await.unwrap() {
-                if msg.embeds[0].url.as_deref() == Some(message.link().as_str()) {
+                if msg.embeds[0].url.as_deref() == Some(message.link().to_string().as_str()) {
                     msg.delete(http, Some("Positive delta fell below 15"))
                         .await
                         .unwrap();
@@ -119,7 +119,7 @@ fn create_embed<'a>(
 ) -> CreateEmbed<'a> {
     let mut embed = CreateEmbed::new()
         .title(&channel.base.name)
-        .url(message.link())
+        .url(message.link().to_string())
         .description(&message.content)
         .author(CreateEmbedAuthor::new(&message.author.name))
         .footer(CreateEmbedFooter::new(format!(
