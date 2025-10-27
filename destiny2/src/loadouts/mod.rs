@@ -10,6 +10,7 @@ use serenity::all::{
 };
 
 mod arc_hunter;
+mod arc_warlock;
 mod boss_prismatic_hunter;
 mod general_prismatic_hunter;
 mod prismatic_titan;
@@ -20,6 +21,7 @@ mod strand_titan;
 mod strand_warlock;
 mod void_warlock;
 use arc_hunter::ARC_HUNTER;
+use arc_warlock::ARC_WARLOCK;
 use boss_prismatic_hunter::BOSS_PRISMATIC_HUNTER;
 use general_prismatic_hunter::GENERAL_PRISMATIC_HUNTER;
 use prismatic_titan::PRISMATIC_TITAN;
@@ -35,7 +37,7 @@ use tokio::sync::RwLock;
 pub use weapons::{Perk, Weapon};
 use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
-const BUILDS: [Loadout; 10] = [
+const BUILDS: [Loadout; 11] = [
     ARC_HUNTER,
     GENERAL_PRISMATIC_HUNTER,
     BOSS_PRISMATIC_HUNTER,
@@ -46,6 +48,7 @@ const BUILDS: [Loadout; 10] = [
     SOLAR_WARLOCK,
     STRAND_WARLOCK,
     VOID_WARLOCK,
+    ARC_WARLOCK,
 ];
 const DUPLICATE: EmojiId = EmojiId::new(1395743560388706374);
 
@@ -674,6 +677,7 @@ pub enum Super {
     Bladefury,
     NovaBombCataclysm,
     Needlestorm,
+    ChaosReach,
 }
 
 impl Display for Super {
@@ -687,6 +691,7 @@ impl Display for Super {
             Super::Bladefury => "Bladefury",
             Super::NovaBombCataclysm => "Nova Bomb: Cataclysm",
             Super::Needlestorm => "Needlestorm",
+            Super::ChaosReach => "Chaos Reach",
         };
 
         write!(f, "{name}")
@@ -704,6 +709,7 @@ impl Debug for Super {
             Super::Bladefury => "bladefury",
             Super::NovaBombCataclysm => "nova_bomb_cataclysm",
             Super::Needlestorm => "needlestorm",
+            Super::ChaosReach => "chaos_reach",
         };
 
         write!(f, "{name}")
@@ -766,6 +772,7 @@ pub enum Melee {
     FrenziedBlade,
     PocketSingularity,
     ArcaneNeedle,
+    BallLightning,
 }
 
 impl Display for Melee {
@@ -779,6 +786,7 @@ impl Display for Melee {
             Melee::FrenziedBlade => "frenzied_blade",
             Melee::PocketSingularity => "pocket_singularity",
             Melee::ArcaneNeedle => "arcane_needle",
+            Melee::BallLightning => "ball_lightning",
         };
 
         write!(f, "{name}")
@@ -795,6 +803,7 @@ pub enum Grenade {
     Magnetic,
     Threadling,
     Vortex,
+    Pulse,
 }
 
 impl Display for Grenade {
@@ -808,6 +817,7 @@ impl Display for Grenade {
             Grenade::Magnetic => "magnetic_grenade",
             Grenade::Threadling => "threadling_grenade",
             Grenade::Vortex => "vortex_grenade",
+            Grenade::Pulse => "pulse_grenade",
         };
 
         write!(f, "{name}")
@@ -835,6 +845,8 @@ pub enum Aspect {
     Weavewalk,
     WeaversCall,
     LightningSurge,
+    ArcSoul,
+    IonicSentry,
 }
 
 impl Display for Aspect {
@@ -859,6 +871,8 @@ impl Display for Aspect {
             Aspect::Weavewalk => "weavewalk",
             Aspect::WeaversCall => "weavers_call",
             Aspect::LightningSurge => "lightning_surge",
+            Aspect::ArcSoul => "arc_soul",
+            Aspect::IonicSentry => "ionic_sentry",
         };
 
         write!(f, "{name}")
@@ -897,6 +911,8 @@ pub enum Fragment {
     ThreadOfMind,
     ThreadOfEvolution,
     FacetOfDominance,
+    SparkOfShock,
+    SparkOfBeacons,
 }
 
 impl Display for Fragment {
@@ -932,6 +948,8 @@ impl Display for Fragment {
             Fragment::EchoOfInstability => "echo_of_instability",
             Fragment::EchoOfExpulsion => "echo_of_expulsion",
             Fragment::EchoOfVigilance => "echo_of_vigilance",
+            Fragment::SparkOfShock => "spark_of_shock",
+            Fragment::SparkOfBeacons => "spark_of_beacons",
         };
 
         write!(f, "{name}")
@@ -1056,6 +1074,10 @@ pub enum ArmourName {
     WarlockRobes,
     WarlockBoots,
     Solipsism((&'static str, &'static str)),
+    TechsecGloves,
+    TechsecVestment,
+    TwofoldCrownBoots,
+    TwofoldCrownBond,
 }
 
 impl Display for ArmourName {
@@ -1220,6 +1242,18 @@ impl Display for ArmourName {
             ArmourName::Solipsism(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/5d657945620203cc8a7b5ade47e6e12a.jpg"
             }
+            ArmourName::TechsecGloves => {
+                "https://www.bungie.net/common/destiny2_content/icons/fe1fcf9002c3148bd933801a43613102.jpg"
+            }
+            ArmourName::TechsecVestment => {
+                "https://www.bungie.net/common/destiny2_content/icons/2e53661958423ed5bfd1fcdd3d2f0ec9.jpg"
+            }
+            ArmourName::TwofoldCrownBoots => {
+                "https://www.bungie.net/common/destiny2_content/icons/190b1833593db2263bf8318e59f1db31.jpg"
+            }
+            ArmourName::TwofoldCrownBond => {
+                "https://www.bungie.net/common/destiny2_content/icons/efcc8e332f9d5a3c8ef4b4d0511f7673.jpg"
+            }
         };
 
         write!(f, "{url}")
@@ -1282,6 +1316,10 @@ impl Debug for ArmourName {
             ArmourName::WarlockRobes => "Any Robe",
             ArmourName::WarlockBoots => "Any Boots",
             ArmourName::Solipsism(perks) => &format!("Relativism ({} + {})", perks.0, perks.1),
+            ArmourName::TechsecGloves => "Techsec Gloves",
+            ArmourName::TechsecVestment => "Techsec Vestment",
+            ArmourName::TwofoldCrownBoots => "Twofold Crown Boots",
+            ArmourName::TwofoldCrownBond => "Twofold Crown Bond",
         };
 
         write!(f, "{name}")
@@ -1329,6 +1367,8 @@ pub enum Mod {
     MomentumTransfer,
     StrandAmmoGeneration,
     Absolution,
+    BolsteringDetonation,
+    HarmonicAmmoGeneration,
 }
 
 impl Display for Mod {
@@ -1373,6 +1413,8 @@ impl Display for Mod {
             Mod::MomentumTransfer => "momentum_transfer",
             Mod::StrandAmmoGeneration => "strand_ammo_generation",
             Mod::Absolution => "absolution",
+            Mod::BolsteringDetonation => "bolstering_detonation",
+            Mod::HarmonicAmmoGeneration => "harmonic_ammo_generation",
         };
 
         write!(f, "{name}")

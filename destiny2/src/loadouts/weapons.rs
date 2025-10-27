@@ -19,6 +19,13 @@ pub const DEAD_MESSENGER: Weapon = Weapon {
     perks: [Perk::TheFundamentals, Perk::HandLaidStock],
 };
 
+pub const DELICATE_TOMB: Weapon = Weapon {
+    name: "Delicate Tomb",
+    affinity: Affinity::Arc,
+    archtype: "Exotic Fusion Rifle",
+    perks: [Perk::TempestCascade, Perk::TraitorsVessel],
+};
+
 pub const DEVILS_RUIN: Weapon = Weapon {
     name: "Devil's Ruin",
     affinity: Affinity::Solar,
@@ -244,6 +251,8 @@ pub enum Perk {
     AtomizingRounds,
     CommandFrame,
     FanaticalLance,
+    TempestCascade,
+    TraitorsVessel,
 }
 
 impl Display for Perk {
@@ -273,6 +282,8 @@ impl Display for Perk {
             Perk::AtomizingRounds => "atomizing_rounds",
             Perk::CommandFrame => "command_frame",
             Perk::FanaticalLance => "fanatical_lance",
+            Perk::TempestCascade => "tempest_cascade",
+            Perk::TraitorsVessel => "traitors_vessel",
         };
 
         write!(f, "{name}")
