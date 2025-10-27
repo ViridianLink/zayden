@@ -80,9 +80,15 @@ impl Lotto {
         LottoHandler: LottoManager<Db>,
     >() -> CronJob<Db> {
         CronJob::new("lotto", "0 0 17 * * Fri *").set_action(|ctx, pool| async move {
+            let bot_id = bot_id(&ctx.http).await;
+
             let mut tx: sqlx::Transaction<'static, Db> = pool.begin().await.unwrap();
 
             let mut rows = LottoHandler::rows(&mut *tx).await.unwrap();
+
+            let total_tickets: i64 = rows.iter().map(|row| row.quantity()).sum();
+
+            rows.retain(|row| row.id as u64 != bot_id.get());
 
             let prize_share = [0.5, 0.3, 0.2];
 
@@ -91,12 +97,6 @@ impl Lotto {
             if rows.len() < expected_winners {
                 return;
             }
-
-            let total_tickets: i64 = rows.iter().map(|row| row.quantity()).sum();
-
-            let bot_id = bot_id(&ctx.http).await;
-
-            rows.retain(|row| row.id as u64 != bot_id.get());
 
             let mut dist = WeightedIndex::new(rows.iter().map(|row| row.quantity())).unwrap();
 
