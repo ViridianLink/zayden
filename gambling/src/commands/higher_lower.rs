@@ -51,8 +51,7 @@ impl Commands {
                         .button(lower_btn),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         GameCache::update(data_lock, interaction.user.id).await;
 
