@@ -20,18 +20,20 @@ impl LottoManager<Postgres> for LottoTable {
     ) -> sqlx::Result<Option<LottoRow>> {
         let id = id.into();
 
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             LottoRow,
-            "SELECT g.id, g.coins, COALESCE(i.quantity, 0) AS quantity FROM gambling g LEFT JOIN gambling_inventory i ON g.id = i.user_id AND i.item_id = $2 WHERE g.id = $1",
+            "sql/gambling/LottoManager/row.sql",
             id.get() as i64,
             LOTTO_TICKET.id
-        ).fetch_optional(conn).await
+        )
+        .fetch_optional(conn)
+        .await
     }
 
     async fn rows(conn: &mut PgConnection) -> sqlx::Result<Vec<LottoRow>> {
-        sqlx::query_as!(
+        sqlx::query_file_as!(
             LottoRow,
-            "SELECT g.id, g.coins, i.quantity AS quantity FROM gambling g LEFT JOIN gambling_inventory i ON g.id = i.user_id AND i.item_id = $1",
+            "sql/gambling/LottoManager/rows.sql",
             LOTTO_TICKET.id
         )
         .fetch_all(conn)
@@ -39,8 +41,8 @@ impl LottoManager<Postgres> for LottoTable {
     }
 
     async fn total_tickets(conn: &mut PgConnection) -> sqlx::Result<i64> {
-        sqlx::query_scalar!(
-            "SELECT SUM(quantity) FROM gambling_inventory WHERE item_id = $1",
+        sqlx::query_file_scalar!(
+            "sql/gambling/LottoManager/total_tickets.sql",
             LOTTO_TICKET.id
         )
         .fetch_one(conn)
@@ -50,8 +52,8 @@ impl LottoManager<Postgres> for LottoTable {
     }
 
     async fn delete_tickets(conn: &mut PgConnection) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            "DELETE FROM gambling_inventory WHERE item_id = $1",
+        sqlx::query_file!(
+            "sql/gambling/LottoManager/delete_tickets.sql",
             LOTTO_TICKET.id
         )
         .execute(conn)
