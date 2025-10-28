@@ -1,6 +1,6 @@
 use serenity::all::{
     Colour, Component, ComponentInteraction, Context, CreateActionRow, CreateComponent,
-    CreateContainer, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
+    CreateContainer, CreateInteractionResponse, CreateInteractionResponseMessage,
     CreateTextDisplay, MessageFlags, TextDisplay,
 };
 use sqlx::{Database, Pool};

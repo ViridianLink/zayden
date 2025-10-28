@@ -28,6 +28,7 @@ use tracing_subscriber::{
 pub const OSCAR_SIX: UserId = UserId::new(211486447369322506);
 pub const BRADSTER_GUILD: GuildId = GuildId::new(1255957182457974875);
 pub const ZAYDEN_GUILD: GuildId = GuildId::new(1222360995700150443);
+pub const LLAMAD2_GUILD: GuildId = GuildId::new(1133034263579734037);
 pub const ZAYDEN_ID: UserId = UserId::new(787490197943091211);
 
 pub static ZAYDEN_TOKEN: OnceCell<String> = OnceCell::const_new();

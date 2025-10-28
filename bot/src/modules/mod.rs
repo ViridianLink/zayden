@@ -7,6 +7,7 @@ pub mod events;
 pub mod gambling;
 pub mod levels;
 pub mod lfg;
+pub mod llamad2;
 pub mod misc;
 pub mod reaction_roles;
 pub mod suggestions;

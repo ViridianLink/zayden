@@ -16,6 +16,9 @@ use crate::modules::gambling::{
 };
 use crate::modules::levels::{Levels, Rank, Xp};
 use crate::modules::lfg::Lfg;
+use crate::modules::llamad2::{
+    DungeonReport, Goof, Hello, Playlist, RaidReport, Sensitivity, Socials,
+};
 use crate::modules::misc::{CustomMsg, Random};
 use crate::modules::reaction_roles::ReactionRoleCommand;
 use crate::modules::suggestions::FetchSuggestions;
@@ -69,12 +72,25 @@ impl Handler {
             "shop" => Shop::run(ctx, interaction, options, pool),
             "tictactoe" => TicTacToe::run(ctx, interaction, options, pool),
             // endregion
+
+            //region levels
             "levels" => Levels::run(ctx, interaction, options, pool),
+            "rank" => Rank::run(ctx, interaction, options, pool),
+            "xp" => Xp::run(ctx, interaction, options, pool),
+            //endregion
+
+            //region llamad2
+            "dunegon_report" => DungeonReport::run(ctx, interaction, options, pool),
+            "goof" => Goof::run(ctx, interaction, options, pool),
+            "hello" => Hello::run(ctx, interaction, options, pool),
+            "playlist" => Playlist::run(ctx, interaction, options, pool),
+            "raidreport" => RaidReport::run(ctx, interaction, options, pool),
+            "sensitivity" => Sensitivity::run(ctx, interaction, options, pool),
+            "socials" => Socials::run(ctx, interaction, options, pool),
+            //endregion
             "random" => Random::run(ctx, interaction, options, pool),
             "fetch_suggestions" => FetchSuggestions::run(ctx, interaction, options, pool),
             "live" => Live::run(ctx, interaction, options, pool),
-            "rank" => Rank::run(ctx, interaction, options, pool),
-            "xp" => Xp::run(ctx, interaction, options, pool),
             "reaction_role" => ReactionRoleCommand::run(ctx, interaction, options, pool),
             "voice" => Voice::run(ctx, interaction, options, pool),
             "raidguide" => RaidGuide::run(ctx, interaction, options, pool),

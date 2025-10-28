@@ -21,7 +21,9 @@ impl Handler {
             levels::message_create::<Postgres, LevelsTable>(msg, pool).map(Result::Ok),
             Ai::run(ctx, msg, pool),
             support(&ctx.http, msg, pool),
-            llamad2::GoodMorning::run::<CtxData>(ctx, msg).map(Result::Ok)
+            llamad2::GoodMorning::run::<CtxData>(ctx, msg).map(Result::Ok),
+            llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
+            llamad2::CountingFail::run(ctx, msg).map(Result::Ok)
         )?;
 
         if let Some(level) = new_level {
