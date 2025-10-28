@@ -12,6 +12,7 @@ use crate::{BRADSTER_GUILD, ZAYDEN_GUILD};
 mod guild_create;
 mod interaction;
 mod message_create;
+mod presence_update;
 mod reaction_add;
 mod reaction_remove;
 mod ready;
@@ -62,6 +63,10 @@ impl EventHandler for Handler {
             FullEvent::ReactionRemove {
                 removed_reaction, ..
             } => Self::reaction_remove(ctx, removed_reaction, &self.pool).await,
+            FullEvent::PresenceUpdate { new_data, .. } => {
+                Self::presence_update(self, ctx, new_data).await
+            }
+
             FullEvent::Ready { data_about_bot, .. } => Self::ready(self, ctx, data_about_bot).await,
             FullEvent::VoiceStateUpdate { new, .. } => {
                 Self::voice_state_update(ctx, new, &self.pool).await
@@ -72,6 +77,7 @@ impl EventHandler for Handler {
             FullEvent::ThreadDelete { thread, .. } => {
                 Self::thread_delete(ctx, thread, &self.pool).await
             }
+
             _ => Ok(()),
         };
 
