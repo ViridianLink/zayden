@@ -21,7 +21,8 @@ pub const STRAND_TITAN: Loadout = Loadout::new(
     Some(ArtifactPerk::Shieldcrush),
     Some(ArtifactPerk::TangledWeb),
     None,
-    None, None
+    None,
+    None,
 ]);
 
 const SUBCLASS: Subclass = Subclass {
