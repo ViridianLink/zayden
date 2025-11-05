@@ -1,4 +1,5 @@
 use serenity::all::CreateCommand;
+use zayden_core::ApplicationCommand;
 
 mod dungeon_report;
 mod goof;
@@ -18,12 +19,12 @@ pub use socials::Socials;
 
 pub fn register() -> [CreateCommand<'static>; 7] {
     [
-        llamad2::DungeonReport::register(),
-        llamad2::Goof::register(),
-        llamad2::Hello::register(),
-        llamad2::Playlist::register(),
-        llamad2::RaidReport::register(),
-        llamad2::Sensitivity::register(),
-        llamad2::Socials::register(),
+        DungeonReport {}.command(),
+        Goof {}.command(),
+        Hello {}.command(),
+        Playlist {}.command(),
+        RaidReport {}.command(),
+        Sensitivity {}.command(),
+        Socials {}.command(),
     ]
 }

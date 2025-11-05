@@ -22,6 +22,6 @@ impl ApplicationCommand<Error, Postgres> for Sensitivity {
     }
 
     fn command(&self) -> CreateCommand<'_> {
-        unimplemented!()
+        llamad2::Sensitivity::register()
     }
 }

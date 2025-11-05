@@ -22,7 +22,19 @@ impl Handler {
 
         let mut commands = APPLICATION_COMMANDS
             .iter()
-            .filter(|(name, _)| *name != "live")
+            .filter(|(name, _)| {
+                ![
+                    "live",
+                    "dungeonreport",
+                    "goof",
+                    "hello",
+                    "playlist",
+                    "raidreport",
+                    "sensitivity",
+                    "socials",
+                ]
+                .contains(&name.as_str())
+            })
             .map(|(_, cmd)| cmd.command())
             .collect::<Vec<_>>();
 

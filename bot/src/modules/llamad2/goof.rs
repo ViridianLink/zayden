@@ -22,6 +22,6 @@ impl ApplicationCommand<Error, Postgres> for Goof {
     }
 
     fn command(&self) -> CreateCommand<'_> {
-        unimplemented!()
+        llamad2::Goof::register()
     }
 }

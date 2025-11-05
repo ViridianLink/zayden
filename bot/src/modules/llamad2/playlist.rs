@@ -22,6 +22,6 @@ impl ApplicationCommand<Error, Postgres> for Playlist {
     }
 
     fn command(&self) -> CreateCommand<'_> {
-        unimplemented!()
+        llamad2::Playlist::register()
     }
 }

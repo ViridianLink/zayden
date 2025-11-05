@@ -60,6 +60,6 @@ impl ApplicationCommand<Error, Postgres> for Live {
     }
 
     fn command(&self) -> CreateCommand<'_> {
-        unimplemented!()
+        CreateCommand::new("live").description("Notify the server that Brad is live on Twitch")
     }
 }

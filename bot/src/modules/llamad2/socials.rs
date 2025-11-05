@@ -22,6 +22,6 @@ impl ApplicationCommand<Error, Postgres> for Socials {
     }
 
     fn command(&self) -> CreateCommand<'_> {
-        unimplemented!()
+        llamad2::Socials::register()
     }
 }

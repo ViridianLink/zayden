@@ -36,10 +36,21 @@ pub async fn guild_create<
 
     let lfg_channel = guild_row.channel_id();
 
-    let archived_threads = lfg_channel
+    let archived_threads = match lfg_channel
         .get_archived_public_threads(&ctx.http, None, Some(100))
         .await
-        .unwrap();
+    {
+        Ok(threads) => threads,
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+            error:
+                DiscordJsonError {
+                    code: JsonErrorCode::UnknownChannel,
+                    ..
+                },
+            ..
+        }))) => return,
+        Err(e) => panic!("Error: {e}"),
+    };
 
     let threads = guild
         .threads
