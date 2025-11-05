@@ -13,6 +13,7 @@ pub struct RockPaperScissors;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for RockPaperScissors {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -29,7 +30,7 @@ impl ApplicationCommand<Error, Postgres> for RockPaperScissors {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_rps())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_rps()
     }
 }

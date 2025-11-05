@@ -1,4 +1,7 @@
-use std::{fs::OpenOptions, io::BufReader};
+use std::{
+    fs::OpenOptions,
+    io::{BufReader, Write},
+};
 
 use serde::{Deserialize, Serialize};
 use serenity::all::{
@@ -22,17 +25,19 @@ impl Goof {
             return;
         }
 
-        let file = OpenOptions::new()
+        let mut file = OpenOptions::new()
             .create(true)
             .read(true)
             .truncate(false)
+            .write(true)
             .open(FILE_NAME)
             .unwrap();
-        let data = BufReader::new(file);
+        let data = BufReader::new(&file);
 
         let mut data = serde_json::from_slice::<GoofData>(data.buffer()).unwrap_or_default();
         data.dumb_count += 1;
-        std::fs::write(FILE_NAME, serde_json::to_string(&data).unwrap()).unwrap();
+        file.write_all(serde_json::to_string(&data).unwrap().as_bytes())
+            .unwrap();
 
         interaction
             .create_response(

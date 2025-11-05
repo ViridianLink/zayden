@@ -6,16 +6,13 @@ use zayden_core::ApplicationCommand;
 
 use crate::modules::events::Live;
 use crate::modules::lfg::{GuildTable, PostTable};
-use crate::{BRADSTER_GUILD, CtxData, LLAMAD2_GUILD, Result, ZAYDEN_GUILD, modules};
+use crate::modules::{APPLICATION_COMMANDS, llamad2};
+use crate::{BRADSTER_GUILD, CtxData, LLAMAD2_GUILD, Result};
 
 use super::Handler;
 
 impl Handler {
-    pub async fn guild_create(ctx: &Context, guild: &Guild, pool: &PgPool) -> Result<()> {
-        if guild.id == BRADSTER_GUILD || guild.id == ZAYDEN_GUILD {
-            info!("Registered {}", guild.name);
-        }
-
+    pub async fn guild_create(&self, ctx: &Context, guild: &Guild, pool: &PgPool) -> Result<()> {
         let data = ctx.data::<RwLock<CtxData>>();
 
         let _ = tokio::join!(
@@ -23,19 +20,33 @@ impl Handler {
             CtxData::guild_create(data, guild),
         );
 
+        let mut commands = APPLICATION_COMMANDS
+            .iter()
+            .filter(|(name, _)| *name != "live")
+            .map(|(_, cmd)| cmd.command())
+            .collect::<Vec<_>>();
+
         match guild.id {
             BRADSTER_GUILD => {
-                BRADSTER_GUILD
-                    .create_command(&ctx.http, Live::register(ctx).unwrap())
-                    .await?;
+                commands.push(Live {}.command());
+
+                BRADSTER_GUILD.set_commands(&ctx.http, &commands).await?;
+
+                info!("Registered {}", guild.name);
             }
             LLAMAD2_GUILD => {
-                let iter = modules::llamad2::register(ctx)
-                    .map(|c| LLAMAD2_GUILD.create_command(&ctx.http, c));
+                commands.extend(llamad2::register());
 
-                futures::future::join_all(iter).await;
+                LLAMAD2_GUILD
+                    .set_commands(&ctx.http, &commands)
+                    .await
+                    .unwrap();
+
+                info!("Registered {}", guild.name);
             }
-            _ => {}
+            id => {
+                id.set_commands(&ctx.http, &commands).await.unwrap();
+            }
         }
 
         Ok(())

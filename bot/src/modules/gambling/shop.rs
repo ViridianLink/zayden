@@ -199,6 +199,7 @@ pub struct Shop;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Shop {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -209,7 +210,7 @@ impl ApplicationCommand<Error, Postgres> for Shop {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_shop())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_shop()
     }
 }

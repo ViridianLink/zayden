@@ -41,7 +41,7 @@ impl EventHandler for Handler {
 
         let result = match ev {
             FullEvent::GuildCreate { guild, .. } => {
-                Self::guild_create(ctx, guild, &self.pool).await
+                Self::guild_create(self, ctx, guild, &self.pool).await
             }
             FullEvent::Message { new_message, .. } => {
                 Self::message_create(ctx, new_message, &self.pool).await

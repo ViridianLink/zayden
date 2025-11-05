@@ -97,6 +97,7 @@ pub struct Inventory;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Inventory {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -113,7 +114,7 @@ impl ApplicationCommand<Error, Postgres> for Inventory {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_inventory())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_inventory()
     }
 }

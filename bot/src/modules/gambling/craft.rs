@@ -55,6 +55,7 @@ pub struct Craft;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Craft {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -65,7 +66,7 @@ impl ApplicationCommand<Error, Postgres> for Craft {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_craft())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_craft()
     }
 }

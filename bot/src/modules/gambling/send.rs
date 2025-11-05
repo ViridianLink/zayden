@@ -64,6 +64,7 @@ pub struct Send;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Send {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -79,7 +80,7 @@ impl ApplicationCommand<Error, Postgres> for Send {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_send())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_send()
     }
 }

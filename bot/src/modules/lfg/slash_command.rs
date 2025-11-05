@@ -14,6 +14,7 @@ pub struct Lfg;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Lfg {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -25,8 +26,8 @@ impl ApplicationCommand<Error, Postgres> for Lfg {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(lfg::Command::register())
+    fn command(&self) -> CreateCommand<'_> {
+        lfg::Command::register()
     }
 }
 

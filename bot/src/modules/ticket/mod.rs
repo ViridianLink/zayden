@@ -1,26 +1,17 @@
 use async_trait::async_trait;
-use serenity::all::{Context, CreateCommand, GuildId, MessageId};
-use slash_commands::{SupportCommand, TicketCommand};
+use serenity::all::{GuildId, MessageId};
 use sqlx::{PgPool, Postgres};
 use ticket::{
     TicketGuildManager,
     support_guild_manager::TicketGuildRow,
     ticket_manager::{TicketManager, TicketRow},
 };
-use zayden_core::ApplicationCommand;
 
 use crate::sqlx_lib::GuildTable;
 
 pub mod components;
 pub mod message_commands;
 pub mod slash_commands;
-
-pub fn register(ctx: &Context) -> [CreateCommand<'_>; 2] {
-    [
-        TicketCommand::register(ctx).unwrap(),
-        SupportCommand::register(ctx).unwrap(),
-    ]
-}
 
 pub struct Ticket;
 

@@ -4,17 +4,8 @@ pub use commands::{Levels, Rank, Xp};
 
 use async_trait::async_trait;
 use levels::{FullLevelRow, LeaderboardRow, LevelsManager, RankRow, XpRow};
-use serenity::all::{Context, CreateCommand, UserId};
+use serenity::all::UserId;
 use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
-use zayden_core::ApplicationCommand;
-
-pub fn register(ctx: &Context) -> [CreateCommand<'_>; 3] {
-    [
-        Levels::register(ctx).unwrap(),
-        Rank::register(ctx).unwrap(),
-        Xp::register(ctx).unwrap(),
-    ]
-}
 
 pub struct LevelsTable;
 

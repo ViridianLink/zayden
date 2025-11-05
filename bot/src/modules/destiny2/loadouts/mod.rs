@@ -10,6 +10,7 @@ pub struct Loadout;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Loadout {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -23,7 +24,7 @@ impl ApplicationCommand<Error, Postgres> for Loadout {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(destiny2::loadouts::Loadout::register())
+    fn command(&self) -> CreateCommand<'_> {
+        destiny2::loadouts::Loadout::register()
     }
 }

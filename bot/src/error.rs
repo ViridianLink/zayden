@@ -19,7 +19,6 @@ pub enum Error {
     ZaydenCore(ZaydenError),
 }
 
-#[allow(clippy::print_in_format_impl)]
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {

@@ -105,6 +105,7 @@ pub struct Dig;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Dig {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -119,7 +120,7 @@ impl ApplicationCommand<Error, Postgres> for Dig {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_dig())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_dig()
     }
 }

@@ -14,6 +14,7 @@ pub struct Levels;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Levels {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -24,8 +25,8 @@ impl ApplicationCommand<Error, Postgres> for Levels {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(levels::Levels::register())
+    fn command(&self) -> CreateCommand<'_> {
+        levels::Levels::register()
     }
 }
 
@@ -44,6 +45,7 @@ pub struct Rank;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Rank {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -54,8 +56,8 @@ impl ApplicationCommand<Error, Postgres> for Rank {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(levels::Rank::register())
+    fn command(&self) -> CreateCommand<'_> {
+        levels::Rank::register()
     }
 }
 
@@ -64,6 +66,7 @@ pub struct Xp;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Xp {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -74,7 +77,7 @@ impl ApplicationCommand<Error, Postgres> for Xp {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(levels::Xp::register())
+    fn command(&self) -> CreateCommand<'_> {
+        levels::Xp::register()
     }
 }

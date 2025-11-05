@@ -14,6 +14,7 @@ pub struct TicketCommand;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for TicketCommand {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -25,8 +26,8 @@ impl ApplicationCommand<Error, Postgres> for TicketCommand {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Ticket::register())
+    fn command(&self) -> CreateCommand<'_> {
+        Ticket::register()
     }
 }
 
@@ -35,6 +36,7 @@ pub struct SupportCommand;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for SupportCommand {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -45,7 +47,7 @@ impl ApplicationCommand<Error, Postgres> for SupportCommand {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Support::register())
+    fn command(&self) -> CreateCommand<'_> {
+        Support::register()
     }
 }

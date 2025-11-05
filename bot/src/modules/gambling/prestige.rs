@@ -151,6 +151,7 @@ pub struct Prestige;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Prestige {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -160,8 +161,8 @@ impl ApplicationCommand<Error, Postgres> for Prestige {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_prestige())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_prestige()
     }
 }
 

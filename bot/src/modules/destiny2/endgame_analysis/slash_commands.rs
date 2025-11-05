@@ -13,6 +13,7 @@ pub struct DimWishlist;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for DimWishlist {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -23,8 +24,8 @@ impl ApplicationCommand<Error, Postgres> for DimWishlist {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(DimWishlistCommand::register())
+    fn command(&self) -> CreateCommand<'_> {
+        DimWishlistCommand::register()
     }
 }
 
@@ -33,6 +34,7 @@ pub struct TierList;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for TierList {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -43,8 +45,8 @@ impl ApplicationCommand<Error, Postgres> for TierList {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(TierListCommand::register())
+    fn command(&self) -> CreateCommand<'_> {
+        TierListCommand::register()
     }
 }
 
@@ -67,6 +69,7 @@ pub struct Weapon;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Weapon {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -77,8 +80,8 @@ impl ApplicationCommand<Error, Postgres> for Weapon {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(WeaponCommand::register())
+    fn command(&self) -> CreateCommand<'_> {
+        WeaponCommand::register()
     }
 }
 

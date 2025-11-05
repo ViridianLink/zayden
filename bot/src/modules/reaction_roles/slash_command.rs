@@ -12,6 +12,7 @@ pub struct ReactionRoleCommand;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for ReactionRoleCommand {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -27,7 +28,7 @@ impl ApplicationCommand<Error, Postgres> for ReactionRoleCommand {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(reaction_roles::ReactionRoleCommand::register())
+    fn command(&self) -> CreateCommand<'_> {
+        reaction_roles::ReactionRoleCommand::register()
     }
 }

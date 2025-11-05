@@ -21,7 +21,7 @@ pub struct RulesCommand;
 
 #[async_trait]
 impl SlashCommand<Error, Postgres> for RulesCommand {
-    async fn run(
+    async fn run(&self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,

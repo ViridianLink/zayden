@@ -10,6 +10,7 @@ pub struct Socials;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Socials {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -20,7 +21,7 @@ impl ApplicationCommand<Error, Postgres> for Socials {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(llamad2::Socials::register())
+    fn command(&self) -> CreateCommand<'_> {
+        unimplemented!()
     }
 }

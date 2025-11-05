@@ -13,6 +13,7 @@ pub struct Roll;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Roll {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -29,7 +30,7 @@ impl ApplicationCommand<Error, Postgres> for Roll {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_roll())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_roll()
     }
 }

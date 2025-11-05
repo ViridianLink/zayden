@@ -4,18 +4,13 @@ pub use commands::Voice;
 pub mod events;
 
 use async_trait::async_trait;
-use serenity::all::{ChannelId, Context, CreateCommand, GuildId, UserId};
+use serenity::all::{ChannelId, GuildId, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use temp_voice::voice_channel_manager::VoiceChannelMode;
 use temp_voice::{TempVoiceGuildManager, TempVoiceRow, VoiceChannelManager, VoiceChannelRow};
-use zayden_core::ApplicationCommand;
 
 use crate::sqlx_lib::GuildTable;
-
-pub fn register(ctx: &Context) -> CreateCommand<'_> {
-    Voice::register(ctx).unwrap()
-}
 
 #[async_trait]
 impl TempVoiceGuildManager<Postgres> for GuildTable {

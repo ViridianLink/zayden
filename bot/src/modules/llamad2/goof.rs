@@ -10,6 +10,7 @@ pub struct Goof;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Goof {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -20,7 +21,7 @@ impl ApplicationCommand<Error, Postgres> for Goof {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(llamad2::Goof::register())
+    fn command(&self) -> CreateCommand<'_> {
+        unimplemented!()
     }
 }

@@ -105,6 +105,7 @@ pub struct Goals;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Goals {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -114,7 +115,7 @@ impl ApplicationCommand<Error, Postgres> for Goals {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_goals())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_goals()
     }
 }

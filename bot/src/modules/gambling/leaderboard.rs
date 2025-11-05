@@ -276,6 +276,7 @@ pub struct Leaderboard;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Leaderboard {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -292,8 +293,8 @@ impl ApplicationCommand<Error, Postgres> for Leaderboard {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_leaderboard())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_leaderboard()
     }
 }
 

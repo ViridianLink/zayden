@@ -82,6 +82,7 @@ pub struct Work;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Work {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -97,7 +98,7 @@ impl ApplicationCommand<Error, Postgres> for Work {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_work())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_work()
     }
 }

@@ -6,7 +6,7 @@ use bungie_api::{BungieClient, BungieClientBuilder};
 use destiny2_core::BungieClientData;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
-use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
+use serenity::all::{Context, CreateCommand, GenericChannelId, Guild, GuildId, Ready, UserId};
 use sqlx::{PgPool, Postgres};
 use temp_voice::{CachedState, VoiceStateCache};
 use tokio::sync::RwLock;

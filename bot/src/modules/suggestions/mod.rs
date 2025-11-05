@@ -1,18 +1,13 @@
 use async_trait::async_trait;
-use serenity::all::{Context, CreateCommand, GuildId};
+use serenity::all::GuildId;
 use sqlx::{PgPool, Postgres};
 use suggestions::{SuggestionsGuildManager, SuggestionsGuildRow};
-use zayden_core::ApplicationCommand;
 
 pub mod slash_command;
 
 pub use slash_command::FetchSuggestions;
 
 use crate::sqlx_lib::GuildTable;
-
-pub fn register(ctx: &Context) -> CreateCommand<'_> {
-    FetchSuggestions::register(ctx).unwrap()
-}
 
 #[async_trait]
 impl SuggestionsGuildManager<Postgres> for GuildTable {

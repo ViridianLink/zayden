@@ -11,9 +11,18 @@ use crate::{Error, Result};
 
 pub struct Live;
 
+impl Live {
+    pub fn register() -> CreateCommand<'static> {
+        CreateCommand::new("live")
+            .description("Notify the server that Brad is live on Twitch")
+            .default_member_permissions(Permissions::CREATE_EVENTS)
+    }
+}
+
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Live {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -50,11 +59,7 @@ impl ApplicationCommand<Error, Postgres> for Live {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        let cmd = CreateCommand::new("live")
-            .description("Notify the server that Brad is live on Twitch")
-            .default_member_permissions(Permissions::CREATE_EVENTS);
-
-        Ok(cmd)
+    fn command(&self) -> CreateCommand<'_> {
+        unimplemented!()
     }
 }

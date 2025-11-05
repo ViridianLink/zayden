@@ -1,14 +1,13 @@
 use std::num::NonZeroU16;
 use std::sync::atomic::Ordering;
 
-use futures::future;
 use serenity::all::{Context, OnlineStatus, Ready};
 use tokio::sync::RwLock;
 use tracing::info;
 
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
-use crate::{CtxData, Result, ZAYDEN_ID, modules};
+use crate::{CtxData, Result, ZAYDEN_ID};
 
 impl Handler {
     pub async fn ready(&self, ctx: &Context, ready: &Ready) -> Result<()> {
@@ -23,16 +22,7 @@ impl Handler {
         );
 
         ctx.set_presence(None, OnlineStatus::Online);
-
         CtxData::ready(ctx, ready, &self.pool).await;
-
-        let commands = modules::global_register(ctx);
-        let iter = ready
-            .guilds
-            .iter()
-            .map(|guild| guild.id.set_commands(&ctx.http, &commands));
-        future::try_join_all(iter).await.unwrap();
-        info!("Updated commands");
 
         if !self.started_cron.load(Ordering::Relaxed) {
             {

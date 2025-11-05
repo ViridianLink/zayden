@@ -10,6 +10,7 @@ pub struct FetchSuggestions;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for FetchSuggestions {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -26,7 +27,7 @@ impl ApplicationCommand<Error, Postgres> for FetchSuggestions {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(suggestions::FetchSuggestions::register())
+    fn command(&self) -> CreateCommand<'_> {
+        suggestions::FetchSuggestions::register()
     }
 }

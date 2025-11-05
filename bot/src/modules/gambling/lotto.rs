@@ -66,6 +66,7 @@ pub struct Lotto;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Lotto {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -76,7 +77,7 @@ impl ApplicationCommand<Error, Postgres> for Lotto {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_lotto())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_lotto()
     }
 }

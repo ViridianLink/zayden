@@ -10,6 +10,7 @@ pub struct Sensitivity;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Sensitivity {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -20,7 +21,7 @@ impl ApplicationCommand<Error, Postgres> for Sensitivity {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(llamad2::Sensitivity::register())
+    fn command(&self) -> CreateCommand<'_> {
+        unimplemented!()
     }
 }

@@ -13,6 +13,7 @@ pub struct Panel;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Panel {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -22,8 +23,8 @@ impl ApplicationCommand<Error, Postgres> for Panel {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(verify::Panel::register())
+    fn command(&self) -> CreateCommand<'_> {
+        verify::Panel::register()
     }
 }
 
@@ -40,6 +41,7 @@ pub struct ManVerify;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for ManVerify {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
@@ -69,15 +71,13 @@ impl ApplicationCommand<Error, Postgres> for ManVerify {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        let cmd = CreateCommand::new("manverify")
+    fn command(&self) -> CreateCommand<'_> {
+        CreateCommand::new("manverify")
             .default_member_permissions(Permissions::ADMINISTRATOR)
             .description("Manually verifies a user")
             .add_option(
                 CreateCommandOption::new(CommandOptionType::User, "user", "User to verify")
                     .required(true),
-            );
-
-        Ok(cmd)
+            )
     }
 }

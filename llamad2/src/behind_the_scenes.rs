@@ -53,6 +53,8 @@ impl BehindTheScenes {
                 .reply(&ctx.http, "Incorrect codeword, please try again!")
                 .await
                 .unwrap();
+
+            return;
         }
 
         ctx.http

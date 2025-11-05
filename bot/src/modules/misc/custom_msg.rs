@@ -37,6 +37,7 @@ pub struct CustomMsg;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for CustomMsg {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -67,11 +68,9 @@ impl ApplicationCommand<Error, Postgres> for CustomMsg {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        let cmd = CreateCommand::new("custom_msg")
+    fn command(&self) -> CreateCommand<'_> {
+        CreateCommand::new("custom_msg")
             .description("Custom Messages")
-            .default_member_permissions(Permissions::ADMINISTRATOR);
-
-        Ok(cmd)
+            .default_member_permissions(Permissions::ADMINISTRATOR)
     }
 }

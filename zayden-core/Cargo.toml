@@ -11,6 +11,7 @@ cron = { workspace = true }
 futures = { workspace = true }
 serenity = { workspace = true, features = ["rustls_backend", "gateway"] }
 serde = { workspace = true }
+serde_json = { workspace = true }
 sqlx = { workspace = true }
 tokio = { workspace = true }
 reqwest = { workspace = true }

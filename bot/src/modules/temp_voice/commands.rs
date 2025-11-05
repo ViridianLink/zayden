@@ -14,6 +14,7 @@ pub struct Voice;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Voice {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -29,7 +30,7 @@ impl ApplicationCommand<Error, Postgres> for Voice {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(VoiceCommand::register())
+    fn command(&self) -> CreateCommand<'_> {
+        VoiceCommand::register()
     }
 }

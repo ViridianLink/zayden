@@ -10,6 +10,7 @@ pub struct RaidGuide;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for RaidGuide {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -20,7 +21,7 @@ impl ApplicationCommand<Error, Postgres> for RaidGuide {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(destiny2::raid_guides::RaidGuide::<0>::register())
+    fn command(&self) -> CreateCommand<'_> {
+        destiny2::raid_guides::RaidGuide::<0>::register()
     }
 }

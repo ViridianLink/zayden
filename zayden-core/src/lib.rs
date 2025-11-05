@@ -3,9 +3,12 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serenity::all::{
     ActionRow, ActionRowComponent, AutocompleteOption, CommandInteraction, ComponentInteraction,
-    Context, CreateCommand, Message, ModalInteraction, ResolvedOption, ResolvedValue,
+    Context, Message, ModalInteraction, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
+
+mod application_command;
+pub use application_command::ApplicationCommand;
 
 pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
@@ -20,18 +23,6 @@ pub use error::Error;
 pub mod events;
 pub mod format_num;
 pub use format_num::FormatNum;
-
-#[async_trait]
-pub trait ApplicationCommand<E: std::error::Error, Db: Database> {
-    async fn run(
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
-    ) -> Result<(), E>;
-
-    fn register(ctx: &Context) -> Result<CreateCommand<'_>, E>;
-}
 
 #[async_trait]
 pub trait Autocomplete<E: std::error::Error, Db: Database> {
@@ -55,6 +46,7 @@ pub trait Component<E: std::error::Error, Db: Database> {
 #[async_trait]
 pub trait Modal<E: std::error::Error, Db: Database> {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &ModalInteraction,
         components: &[ActionRow],

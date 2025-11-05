@@ -53,6 +53,7 @@ pub struct Profile;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Profile {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -64,7 +65,7 @@ impl ApplicationCommand<Error, Postgres> for Profile {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_profile())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_profile()
     }
 }

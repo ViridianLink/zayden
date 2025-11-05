@@ -15,6 +15,7 @@ pub struct TicTacToe;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for TicTacToe {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -31,8 +32,8 @@ impl ApplicationCommand<Error, Postgres> for TicTacToe {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_tictactoe())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_tictactoe()
     }
 }
 

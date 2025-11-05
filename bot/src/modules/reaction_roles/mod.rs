@@ -1,17 +1,12 @@
 use async_trait::async_trait;
 use reaction_roles::ReactionRolesManager;
 use reaction_roles::reaction_roles_manager::ReactionRole;
-use serenity::all::{Context, CreateCommand, GenericChannelId, GuildId, MessageId, RoleId};
+use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId};
 use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
-use zayden_core::ApplicationCommand;
 
 pub use slash_command::ReactionRoleCommand;
 
 pub mod slash_command;
-
-pub fn register(ctx: &Context) -> CreateCommand<'_> {
-    ReactionRoleCommand::register(ctx).unwrap()
-}
 
 pub struct ReactionRolesTable;
 

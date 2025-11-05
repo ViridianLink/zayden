@@ -6,6 +6,7 @@ use serenity::all::{
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
+use tracing::warn;
 use zayden_core::{CronJobData, parse_modal_data};
 
 use crate::cron::create_reminders;
@@ -162,12 +163,15 @@ impl Create {
             let embed =
                 DefaultTemplate::message_embed(&post, interaction.user.display_name(), thread.id);
 
-            let msg = channel_id
+            match channel_id
                 .send_message(&ctx.http, CreateMessage::new().embed(embed))
                 .await
-                .unwrap();
-
-            post = post.schedule_channel(channel_id).alt_message(msg.id)
+            {
+                Ok(msg) => post = post.schedule_channel(channel_id).alt_message(msg.id),
+                Err(e) => {
+                    warn!("Error posting scheduled message: {e}")
+                }
+            }
         }
 
         let post = post.id(thread.id).build();

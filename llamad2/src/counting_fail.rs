@@ -1,4 +1,7 @@
-use std::{fs::OpenOptions, io::BufReader};
+use std::{
+    fs::OpenOptions,
+    io::{BufReader, Write},
+};
 
 use serde::{Deserialize, Serialize};
 use serenity::all::{ChannelId, Context, CreateMessage, EmojiId, Message, ReactionType};
@@ -23,18 +26,20 @@ impl CountingFail {
             return;
         }
 
-        let file = OpenOptions::new()
+        let mut file = OpenOptions::new()
             .create(true)
             .read(true)
             .truncate(false)
+            .write(true)
             .open(FILE_NAME)
             .unwrap();
-        let data = BufReader::new(file);
+        let data = BufReader::new(&file);
 
         let mut data =
             serde_json::from_slice::<CountingFailData>(data.buffer()).unwrap_or_default();
         data.counting_fails += 1;
-        std::fs::write(FILE_NAME, serde_json::to_string(&data).unwrap()).unwrap();
+        file.write_all(serde_json::to_string(&data).unwrap().as_bytes())
+            .unwrap();
 
         message
             .channel_id

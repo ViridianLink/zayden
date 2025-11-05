@@ -112,6 +112,7 @@ pub struct Daily;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Daily {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         _options: Vec<ResolvedOption<'_>>,
@@ -122,7 +123,7 @@ impl ApplicationCommand<Error, Postgres> for Daily {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_daily())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_daily()
     }
 }

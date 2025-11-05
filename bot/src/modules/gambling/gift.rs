@@ -80,6 +80,7 @@ pub struct Gift;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Gift {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -96,7 +97,7 @@ impl ApplicationCommand<Error, Postgres> for Gift {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(Commands::register_gift())
+    fn command(&self) -> CreateCommand<'_> {
+        Commands::register_gift()
     }
 }

@@ -14,7 +14,7 @@ pub struct Logs;
 
 #[async_trait]
 impl SlashCommand<Error, Postgres> for Logs {
-    async fn run(
+    async fn run(&self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,

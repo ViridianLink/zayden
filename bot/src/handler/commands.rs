@@ -1,47 +1,3 @@
-pub mod ai;
-
-pub mod destiny2;
-use destiny2::Perk;
-use destiny2::endgame_analysis::slash_commands::{DimWishlist, TierList, Weapon};
-use destiny2::loadouts::Loadout;
-use destiny2::raid_guide::RaidGuide;
-
-pub mod events;
-use events::Live;
-
-pub mod gambling;
-use gambling::{
-    Blackjack, Coinflip, Craft, Daily, Dig, Gift, Goals, HigherLower, Inventory, Leaderboard,
-    Lotto, Mine, Prestige, Profile, RockPaperScissors, Roll, Send, Shop, TicTacToe, Work,
-};
-
-pub mod levels;
-use levels::{Levels, Rank, Xp};
-
-pub mod lfg;
-use lfg::Lfg;
-
-pub mod llamad2;
-use llamad2::{DungeonReport, Goof, Hello, Playlist, RaidReport, Sensitivity, Socials};
-
-pub mod misc;
-use misc::{CustomMsg, Random};
-
-pub mod reaction_roles;
-use reaction_roles::ReactionRoleCommand;
-
-pub mod suggestions;
-use suggestions::FetchSuggestions;
-
-pub mod temp_voice;
-use temp_voice::Voice;
-
-pub mod ticket;
-use ticket::slash_commands::{SupportCommand, TicketCommand};
-
-pub mod verify;
-use verify::Panel;
-
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
@@ -49,6 +5,26 @@ use sqlx::Postgres;
 use zayden_core::{ApplicationCommand, application_commands};
 
 use crate::Error;
+use crate::modules::destiny2::Perk;
+use crate::modules::destiny2::endgame_analysis::slash_commands::{DimWishlist, TierList, Weapon};
+use crate::modules::destiny2::loadouts::Loadout;
+use crate::modules::destiny2::raid_guide::RaidGuide;
+use crate::modules::events::live::Live;
+use crate::modules::gambling::{
+    Blackjack, Coinflip, Craft, Daily, Dig, Gift, Goals, HigherLower, Inventory, Leaderboard,
+    Lotto, Mine, Prestige, Profile, RockPaperScissors, Roll, Send, Shop, TicTacToe, Work,
+};
+use crate::modules::levels::{Levels, Rank, Xp};
+use crate::modules::lfg::Lfg;
+use crate::modules::llamad2::{
+    DungeonReport, Goof, Hello, Playlist, RaidReport, Sensitivity, Socials,
+};
+use crate::modules::misc::{CustomMsg, Random};
+use crate::modules::reaction_roles::ReactionRoleCommand;
+use crate::modules::suggestions::FetchSuggestions;
+use crate::modules::temp_voice::Voice;
+use crate::modules::ticket::slash_commands::{SupportCommand, TicketCommand};
+use crate::modules::verify::Panel;
 
 pub static APPLICATION_COMMANDS: LazyLock<
     HashMap<String, Box<dyn ApplicationCommand<Error, Postgres>>>,

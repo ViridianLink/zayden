@@ -15,6 +15,7 @@ pub struct Random;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Random {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -44,8 +45,8 @@ impl ApplicationCommand<Error, Postgres> for Random {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        let cmd = CreateCommand::new("random")
+    fn command(&self) -> CreateCommand<'_> {
+        CreateCommand::new("random")
             .description("A command demonstrating the maximum number of options (25).")
             .add_option(
                 CreateCommandOption::new(CommandOptionType::String, "1", "Option 1").required(true),
@@ -167,8 +168,6 @@ impl ApplicationCommand<Error, Postgres> for Random {
                 CommandOptionType::String,
                 "25",
                 "The twenty-fifth optional string input.",
-            ));
-
-        Ok(cmd)
+            ))
     }
 }

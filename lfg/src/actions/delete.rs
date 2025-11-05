@@ -43,7 +43,7 @@ pub async fn delete<Db: Database, Manager: PostManager<Db>>(
             | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
                 error:
                     DiscordJsonError {
-                        code: JsonErrorCode::UnknownMessage,
+                        code: JsonErrorCode::UnknownMessage | JsonErrorCode::UnknownChannel,
                         ..
                     },
                 ..

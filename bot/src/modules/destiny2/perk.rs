@@ -12,6 +12,7 @@ pub struct Perk;
 #[async_trait]
 impl ApplicationCommand<Error, Postgres> for Perk {
     async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -24,8 +25,8 @@ impl ApplicationCommand<Error, Postgres> for Perk {
         Ok(())
     }
 
-    fn register(_ctx: &Context) -> Result<CreateCommand<'_>> {
-        Ok(destiny2::slash_commands::perk::Perk::register())
+    fn command(&self) -> CreateCommand<'_> {
+        destiny2::slash_commands::perk::Perk::register()
     }
 }
 
