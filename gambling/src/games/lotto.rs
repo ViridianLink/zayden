@@ -5,6 +5,7 @@ use rand_distr::Distribution;
 use serenity::all::{ChannelId, CreateEmbed, CreateMessage, Mentionable, UserId};
 use sqlx::{Database, FromRow};
 use tokio::sync::RwLock;
+use tracing::error;
 use zayden_core::{CronJob, EmojiCacheData, FormatNum};
 
 use crate::shop::LOTTO_TICKET;
@@ -125,9 +126,10 @@ impl Lotto {
             let mut lines = Vec::with_capacity(expected_winners);
 
             for (winner, payout) in winners {
-                GamblingHandler::add_coins(&mut *tx, winner, payout)
-                    .await
-                    .unwrap();
+                if let Err(e) = GamblingHandler::add_coins(&mut *tx, winner, payout).await {
+                    error!("Lotto job crashed: {e}");
+                    return;
+                }
 
                 let line = format!(
                     "{} ({}) has won {} <:coin:{coin}> from the lottery!",
