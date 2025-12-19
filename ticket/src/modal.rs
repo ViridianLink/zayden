@@ -4,7 +4,7 @@ use serenity::all::{
     ModalInteraction,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_modal_data;
+use zayden_core::parse_components;
 
 use crate::{
     Result, TicketGuildManager, send_support_message, thread_name, ticket_manager::TicketManager,
@@ -31,7 +31,7 @@ impl TicketModal {
         let ticket_row = Manager::get(pool, message.id).await.unwrap();
         let role_ids = ticket_row.role_ids();
 
-        let mut data = parse_modal_data(&interaction.data.components);
+        let mut data = parse_components(&interaction.data.components);
         let content = data.remove("issue").unwrap();
 
         let thread_name = thread_name(

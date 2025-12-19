@@ -1,10 +1,9 @@
-use std::{
-    fs::OpenOptions,
-    io::{BufReader, Write},
-};
+use std::fs::OpenOptions;
+use std::io::{Read, Write};
 
 use serde::{Deserialize, Serialize};
 use serenity::all::{ChannelId, Context, CreateMessage, EmojiId, Message, ReactionType};
+use tracing::error;
 
 use crate::LLAMA_GUILD;
 
@@ -33,11 +32,20 @@ impl CountingFail {
             .write(true)
             .open(FILE_NAME)
             .unwrap();
-        let data = BufReader::new(&file);
 
-        let mut data =
-            serde_json::from_slice::<CountingFailData>(data.buffer()).unwrap_or_default();
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer).unwrap();
+
+        let mut data = match serde_json::from_str::<CountingFailData>(&buffer) {
+            Ok(data) => data,
+            Err(e) => {
+                error!("Serde error: {e}");
+                CountingFailData::default()
+            }
+        };
+
         data.counting_fails += 1;
+        file.set_len(0).unwrap();
         file.write_all(serde_json::to_string(&data).unwrap().as_bytes())
             .unwrap();
 

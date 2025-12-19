@@ -7,7 +7,7 @@ use serenity::all::{
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tracing::warn;
-use zayden_core::{CronJobData, parse_modal_data};
+use zayden_core::{CronJobData, parse_components};
 
 use crate::cron::create_reminders;
 use crate::templates::{DefaultTemplate, Template};
@@ -59,7 +59,7 @@ impl Create {
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
-        let mut inputs = parse_modal_data(&interaction.data.components);
+        let mut inputs = parse_components(&interaction.data.components);
 
         let activity = inputs
             .remove("activity")

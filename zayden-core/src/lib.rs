@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use serenity::all::{
-    ActionRow, ActionRowComponent, AutocompleteOption, CommandInteraction, ComponentInteraction,
-    Context, Message, ModalInteraction, ResolvedOption, ResolvedValue,
+    ActionRow, ActionRowComponent, AutocompleteOption, CommandInteraction,
+    Component as SerenityComponent, ComponentInteraction, Context, Message, ModalInteraction,
+    ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -108,19 +109,23 @@ pub fn get_option_str(options: &[ResolvedOption<'_>]) -> String {
     s
 }
 
-pub fn parse_modal_data(components: &[ActionRow]) -> HashMap<&str, &str> {
+pub fn parse_components(components: &[SerenityComponent]) -> HashMap<&str, &str> {
     components
         .iter()
-        .flat_map(|action_row| &action_row.components)
-        .filter_map(|component| {
-            if let ActionRowComponent::InputText(input) = component {
-                input
-                    .value
-                    .as_deref()
-                    .map(|value| (input.custom_id.as_str(), value))
-            } else {
-                None
+        .filter_map(|component| match component {
+            SerenityComponent::ActionRow(action_row) => {
+                // action_row
+                //     .components
+                //     .iter()
+                //     .filter_map(|component| todo!("Parse select menu"));
+
+                todo!("Parse select menu")
             }
+            SerenityComponent::Section(section) => todo!("Parse TextDisplay"),
+            SerenityComponent::MediaGallery(media_gallery) => todo!("Parse MediaGallery"),
+            SerenityComponent::File(file_component) => todo!("Parse FileComponent"),
+            SerenityComponent::Label(label) => todo!("Parse Label"),
+            _ => None,
         })
         .collect()
 }

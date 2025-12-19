@@ -1,8 +1,8 @@
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    ComponentInteraction, ComponentInteractionDataKind, CreateActionRow, CreateEmbed,
-    CreateInputText, CreateInteractionResponse, CreateInteractionResponseMessage, CreateModal,
-    EditThread, Http, InputTextStyle,
+    ComponentInteraction, ComponentInteractionDataKind, CreateEmbed, CreateInputText,
+    CreateInteractionResponse, CreateInteractionResponseMessage, CreateLabel, CreateModal,
+    CreateModalComponent, EditThread, Http, InputTextStyle,
 };
 use sqlx::{Database, Pool};
 
@@ -14,16 +14,18 @@ impl TicketComponent {
     pub async fn ticket_create(
         http: &Http,
         interaction: &ComponentInteraction,
-        components: impl IntoIterator<Item = CreateInputText<'_>>,
+        components: impl IntoIterator<Item = CreateModalComponent<'_>>,
     ) -> Result<()> {
-        let issue_input = CreateInputText::new(InputTextStyle::Paragraph, "Issue", "issue")
-            .placeholder("Describe the issue you're experiencing");
+        let issue_input = CreateModalComponent::Label(CreateLabel::input_text(
+            "Issue",
+            CreateInputText::new(InputTextStyle::Paragraph, "issue")
+                .placeholder("Describe the issue you're experiencing"),
+        ));
 
         let modal = CreateModal::new("create_ticket", "Ticket").components(
             [issue_input]
                 .into_iter()
                 .chain(components)
-                .map(CreateActionRow::InputText)
                 .collect::<Vec<_>>(),
         );
 

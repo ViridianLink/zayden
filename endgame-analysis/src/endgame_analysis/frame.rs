@@ -1,7 +1,7 @@
 use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Serialize};
-use tracing::warn;
+use tracing::error;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Frame {
@@ -30,6 +30,9 @@ pub enum Frame {
     HighImpactLongBow,
     SpreadShot,
     RocketAssisted,
+    BalancedHeat(u16),
+    DynamicHeat(u16),
+    Disruption,
 }
 
 impl FromStr for Frame {
@@ -62,8 +65,17 @@ impl FromStr for Frame {
             "High-Impact Longbow" => Ok(Frame::HighImpactLongBow),
             "Spread Shot" => Ok(Frame::SpreadShot),
             "Rocket-Assisted" => Ok(Frame::RocketAssisted),
+            "Balanced (260RPM)" => Ok(Frame::BalancedHeat(260)),
+            "Balanced (450RPM)" => Ok(Frame::BalancedHeat(450)),
+            "Balanced (540RPM)" => Ok(Frame::BalancedHeat(540)),
+            "Balanced (900RPM)" => Ok(Frame::BalancedHeat(900)),
+            "Dynamic (140RPM)" => Ok(Frame::DynamicHeat(140)),
+            "Dynamic (180RPM)" => Ok(Frame::DynamicHeat(180)),
+            "Dynamic (360RPM)" => Ok(Frame::DynamicHeat(360)),
+            "Dynamic (540RPM)" => Ok(Frame::DynamicHeat(540)),
+            "Disruption" => Ok(Frame::Disruption),
             _ => {
-                warn!("Failed to parse: '{s}'");
+                error!("Failed to parse: '{s}'");
                 Err(())
             }
         }
@@ -98,6 +110,9 @@ impl fmt::Display for Frame {
             Frame::HighImpactLongBow => write!(f, "High-Impact Longbow"),
             Frame::SpreadShot => write!(f, "Spread Shot"),
             Frame::RocketAssisted => write!(f, "Rocket-Assisted"),
+            Frame::BalancedHeat(rpm) => write!(f, "Balanced Heat ({rpm}RPM)"),
+            Frame::DynamicHeat(rpm) => write!(f, "Dynamic Heat ({rpm}RPM)"),
+            Frame::Disruption => write!(f, "Disruption"),
         }
     }
 }

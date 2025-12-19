@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::env;
 
 use bungie_api::DestinyInventoryItemDefinition;
+use destiny2_core::BungieClientData;
 use google_sheets_api::SheetsClientBuilder;
 use google_sheets_api::types::common::Color;
 use google_sheets_api::types::sheet::GridData;
@@ -15,6 +16,7 @@ pub use affinity::Affinity;
 pub use frame::Frame;
 pub use tier::Tier;
 pub use tier::{TIERS, TierLabel};
+use tracing::error;
 pub use weapon::{Weapon, WeaponBuilder};
 
 use crate::Result;
@@ -36,6 +38,30 @@ fn heavy_colour(color: &Color) -> bool {
 pub struct EndgameAnalysisSheet;
 
 impl EndgameAnalysisSheet {
+    pub async fn item_manifest<Data: BungieClientData>(
+        data: &Data,
+    ) -> HashMap<String, DestinyInventoryItemDefinition> {
+        let client = data.bungie_client();
+        let manifest = match client.destiny_manifest().await {
+            Ok(manifest) => manifest,
+            Err(e) => {
+                error!("Destiny Manifest Error: {e}");
+                return HashMap::new();
+            }
+        };
+
+        match client
+            .destiny_inventory_item_definition(&manifest, "en")
+            .await
+        {
+            Ok(manifest) => manifest,
+            Err(e) => {
+                error!("Destiny item definition error: {e}");
+                HashMap::new()
+            }
+        }
+    }
+
     pub async fn update(manifest: &HashMap<String, DestinyInventoryItemDefinition>) -> Result<()> {
         let api_key = env::var("GOOGLE_API_KEY").unwrap();
 
@@ -72,14 +98,17 @@ impl EndgameAnalysisSheet {
         let header = iter.next().unwrap();
         iter.filter_map(|r| WeaponBuilder::from_row(&title, &header, r))
             .map(|builder| {
-                let item = manifest
-                    .values()
-                    .find(|item| {
-                        item.display_properties
-                            .name
-                            .eq_ignore_ascii_case(&builder.name)
-                    })
-                    .unwrap_or_else(|| panic!("Missing item: {}", builder.name));
+                let item = match manifest.values().find(|item| {
+                    item.display_properties
+                        .name
+                        .eq_ignore_ascii_case(&builder.name)
+                }) {
+                    Some(item) => item,
+                    None => {
+                        error!("Missing item: {}", builder.name);
+                        &DestinyInventoryItemDefinition::default()
+                    }
+                };
 
                 builder.build(item)
             })

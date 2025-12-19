@@ -3,7 +3,6 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use destiny2_core::BungieClientData;
 use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
 use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Token, UserId};
 use sqlx::PgPool;
@@ -55,15 +54,8 @@ async fn main() -> Result<()> {
     let data = CtxData::default();
 
     if !cfg!(debug_assertions) {
-        let item_manifest = {
-            let client = data.bungie_client();
-            let manifest = client.destiny_manifest().await.unwrap();
-            client
-                .destiny_inventory_item_definition(&manifest, "en")
-                .await
-                .unwrap()
-        };
-        EndgameAnalysisSheet::update(&item_manifest).await.unwrap();
+        let manifest = EndgameAnalysisSheet::item_manifest(&data).await;
+        EndgameAnalysisSheet::update(&manifest).await.unwrap();
         destiny2::compendium::update().await;
     }
 

@@ -8,8 +8,8 @@ use reqwest::ClientBuilder;
 use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 use serde::Deserialize;
 use serenity::all::{
-    ApplicationId, Context, DiscordJsonError, Emoji, EmojiId, ErrorResponse, Guild, GuildId,
-    HttpError, UserId,
+    ApplicationId, Context, DataUri, DiscordJsonError, Emoji, EmojiId, ErrorResponse, Guild,
+    GuildId, HttpError, UserId,
 };
 use serenity::small_fixed_array::FixedString;
 
@@ -82,7 +82,11 @@ impl EmojiCache {
             let base64 = general_purpose::STANDARD.encode(&bytes);
 
             match ctx
-                .create_application_emoji(name, &format!("data:image/webp;base64,{base64}"))
+                .create_application_emoji(
+                    name,
+                    DataUri::from_base64(format!("data:image/webp;base64,{base64}"))
+                        .expect("Should be valid base64"),
+                )
                 .await
             {
                 Ok(emoji) => {
@@ -119,7 +123,11 @@ impl EmojiCache {
         let base64 = general_purpose::STANDARD.encode(&bytes);
 
         match ctx
-            .create_application_emoji(name, &format!("data:image/webp;base64,{base64}"))
+            .create_application_emoji(
+                name,
+                DataUri::from_base64(format!("data:image/webp;base64,{base64}"))
+                    .expect("Should be valid base64"),
+            )
             .await
         {
             Ok(emoji) => {

@@ -44,7 +44,7 @@ pub async fn guild_create<
         Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
             error:
                 DiscordJsonError {
-                    code: JsonErrorCode::UnknownChannel,
+                    code: JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
                     ..
                 },
             ..

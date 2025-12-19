@@ -3,7 +3,7 @@ use serenity::all::{
     HttpError, JsonErrorCode, ModalInteraction,
 };
 use sqlx::{Database, Pool};
-use zayden_core::{CronJobData, parse_modal_data};
+use zayden_core::{CronJobData, parse_components};
 
 use crate::cron::create_reminders;
 use crate::templates::DefaultTemplate;
@@ -30,7 +30,7 @@ impl Edit {
             .await
             .unwrap();
 
-        let mut inputs = parse_modal_data(&interaction.data.components);
+        let mut inputs = parse_components(&interaction.data.components);
 
         let activity = inputs
             .remove("activity")

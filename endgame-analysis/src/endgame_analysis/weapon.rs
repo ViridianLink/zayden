@@ -249,14 +249,10 @@ impl WeaponBuilder {
     }
 
     pub fn build(self, item: &DestinyInventoryItemDefinition) -> Weapon {
-        let icon = item
-            .display_properties
-            .icon
-            .as_ref()
-            .unwrap_or_else(|| panic!("No icon for: {}", self.name));
+        let icon = item.display_properties.icon.clone();
 
         Weapon {
-            icon: icon.clone(),
+            icon,
             name: self.name,
             archetype: self.archetype,
             affinity: self.affinity.parse().unwrap(),
@@ -275,7 +271,7 @@ impl WeaponBuilder {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Weapon {
-    pub icon: String,
+    pub icon: Option<String>,
     pub name: String,
     pub archetype: String,
     pub affinity: Affinity,
@@ -480,7 +476,6 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
                 value.archetype(),
             )))
             .title(value.name.to_string())
-            .thumbnail(format!("https://www.bungie.net{}", value.icon))
             .footer(CreateEmbedFooter::new("From 'Destiny 2: Endgame Analysis'"))
             .colour(value.tier.colour)
             .description(description)
@@ -502,6 +497,10 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
                     .map(|(i, p)| (format!("Perk {i}"), p.join("\n"), true)),
             )
             .field("Origin Trait", value.origin_trait(), false);
+
+        if let Some(icon) = value.icon.as_deref() {
+            embed = embed.thumbnail(icon);
+        }
 
         if let Some(notes) = value.notes.as_deref() {
             let mut chars = notes.chars();
