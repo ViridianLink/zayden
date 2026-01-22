@@ -1,7 +1,7 @@
 use serenity::all::{
-    Colour, Component, ComponentInteraction, Context, CreateActionRow, CreateComponent,
-    CreateContainer, CreateInteractionResponse, CreateInteractionResponseMessage,
-    CreateTextDisplay, MessageFlags, TextDisplay,
+    Colour, Component, ComponentInteraction, ContainerComponent, Context, CreateActionRow,
+    CreateComponent, CreateContainer, CreateContainerComponent, CreateInteractionResponse,
+    CreateInteractionResponseMessage, CreateTextDisplay, MessageFlags, TextDisplay,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -39,9 +39,7 @@ impl Blackjack {
 
         let text = text(interaction);
 
-        unimplemented!("text is broken with latest update");
-
-        let mut game = GameDetails::from_str(&emojis, "&text");
+        let mut game = GameDetails::from_str(&emojis, text.expect("Text should be present"));
 
         game.add_card();
 
@@ -143,9 +141,8 @@ impl Blackjack {
         };
 
         let text = text(interaction);
-        unimplemented!("text broken in latest update");
 
-        let mut game = GameDetails::from_str(&emojis, "&text.content");
+        let mut game = GameDetails::from_str(&emojis, text.expect("Text should be present"));
 
         GamblingHandler::bet(pool, interaction.user.id, game.bet())
             .await
@@ -199,9 +196,8 @@ impl Blackjack {
         };
 
         let text = text(interaction);
-        unimplemented!("text broken in latest update");
 
-        let mut game = GameDetails::from_str(&emojis, "&text.content");
+        let mut game = GameDetails::from_str(&emojis, text.expect("Text should be present"));
 
         let player_value = game.player_value(&emojis);
 
@@ -283,7 +279,7 @@ impl Blackjack {
     }
 }
 
-fn text(interaction: &ComponentInteraction) -> &TextDisplay {
+fn text(interaction: &ComponentInteraction) -> Option<&str> {
     let Some(Component::Container(container)) = interaction.message.as_ref().components.first()
     else {
         unreachable!("Message must have a container component")
@@ -293,7 +289,7 @@ fn text(interaction: &ComponentInteraction) -> &TextDisplay {
         unreachable!("First component must be text")
     };
 
-    text
+    text.content.as_deref()
 }
 
 async fn game_end<

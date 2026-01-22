@@ -1,8 +1,9 @@
+use std::borrow::Cow;
+
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    ComponentInteraction, ComponentInteractionDataKind, CreateEmbed, CreateInputText,
-    CreateInteractionResponse, CreateInteractionResponseMessage, CreateLabel, CreateModal,
-    CreateModalComponent, EditThread, Http, InputTextStyle,
+    ComponentInteraction, ComponentInteractionDataKind, CreateEmbed, CreateInteractionResponse,
+    CreateInteractionResponseMessage, CreateModal, CreateModalComponent, EditThread, Http,
 };
 use sqlx::{Database, Pool};
 
@@ -11,23 +12,12 @@ use crate::{Error, Result, TicketGuildManager};
 pub struct TicketComponent;
 
 impl TicketComponent {
-    pub async fn ticket_create(
+    pub async fn ticket_create<'a>(
         http: &Http,
         interaction: &ComponentInteraction,
-        components: impl IntoIterator<Item = CreateModalComponent<'_>>,
+        components: impl Into<Cow<'a, [CreateModalComponent<'a>]>>,
     ) -> Result<()> {
-        let issue_input = CreateModalComponent::Label(CreateLabel::input_text(
-            "Issue",
-            CreateInputText::new(InputTextStyle::Paragraph, "issue")
-                .placeholder("Describe the issue you're experiencing"),
-        ));
-
-        let modal = CreateModal::new("create_ticket", "Ticket").components(
-            components
-                .into_iter()
-                .chain(components)
-                .collect::<Vec<_>>(),
-        );
+        let modal = CreateModal::new("create_ticket", "Ticket").components(components);
 
         interaction
             .create_response(http, CreateInteractionResponse::Modal(modal))

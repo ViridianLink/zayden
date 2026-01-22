@@ -4,7 +4,7 @@ use serenity::all::{
     ModalInteraction,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_components;
+use zayden_core::parse_text_components;
 
 use crate::{
     Result, TicketGuildManager, send_support_message, thread_name, ticket_manager::TicketManager,
@@ -31,8 +31,12 @@ impl TicketModal {
         let ticket_row = Manager::get(pool, message.id).await.unwrap();
         let role_ids = ticket_row.role_ids();
 
-        let mut data = parse_components(&interaction.data.components);
-        let content = data.remove("issue").unwrap();
+        let mut data = parse_text_components(&interaction.data.components);
+        let content = data
+            .remove("ticket_body")
+            .expect("Issue is a required field")
+            .pop()
+            .expect("At least one value is required");
 
         let thread_name = thread_name(
             guild_row.thread_id,
@@ -42,25 +46,29 @@ impl TicketModal {
 
         let mut issue = CreateEmbed::new().title("Issue").description(content);
 
-        if let Some(version) = data.remove("version") {
-            issue = issue.footer(CreateEmbedFooter::new(version));
+        if let Some(mut version) = data.remove("version") {
+            issue = issue.footer(CreateEmbedFooter::new(
+                version.pop().expect("At least one value is required"),
+            ));
         }
 
         let mut messages: Vec<CreateMessage> = vec![CreateMessage::new().embed(issue)];
 
         data.drain()
             .filter(|(_, v)| !v.is_empty())
-            .for_each(|(k, v)| {
+            .for_each(|(k, mut v)| {
                 let title = to_title_case(&k);
-                let embed = CreateEmbed::new().title(title).description(v);
+                let embed = CreateEmbed::new()
+                    .title(title)
+                    .description(v.pop().expect("At least one value is required"));
                 messages.push(CreateMessage::new().embed(embed));
             });
 
-        let additional = data.remove("additional").unwrap_or_default();
+        let mut additional = data.remove("additional").unwrap_or_default();
         if !additional.is_empty() {
             let additional = CreateEmbed::new()
                 .title("Additional Information")
-                .description(additional);
+                .description(additional.pop().expect("At least one value is required"));
 
             messages[1] = CreateMessage::new().embed(additional);
         }

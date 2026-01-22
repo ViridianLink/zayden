@@ -1,4 +1,4 @@
-use serenity::all::{ChannelId, EditInteractionResponse, UserId};
+use serenity::all::{ChannelId, EditInteractionResponse};
 use serenity::all::{CommandInteraction, Context};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -10,20 +10,13 @@ pub async fn claim<Data: VoiceStateCache, Db: Database, Manager: VoiceChannelMan
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     channel_id: ChannelId,
-    row: Option<VoiceChannelRow>,
+    mut row: VoiceChannelRow,
 ) -> Result<(), Error> {
     interaction.defer_ephemeral(&ctx.http).await.unwrap();
 
-    let mut row = match row {
-        Some(row) => {
-            if row.is_owner(interaction.user.id) {
-                return Err(Error::UserIsOwner);
-            }
-
-            row
-        }
-        None => VoiceChannelRow::new_persistent(channel_id, UserId::default()),
-    };
+    if row.is_owner(interaction.user.id) {
+        return Err(Error::UserIsOwner);
+    }
 
     if !row.is_persistent() && is_claimable::<Data>(ctx, &row).await {
         return Err(Error::OwnerInChannel);

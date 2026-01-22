@@ -1,4 +1,7 @@
-use serenity::all::{Colour, CreateEmbed, CreateMessage, GenericChannelId, Http, UserId};
+use serenity::all::{
+    Colour, CreateEmbed, CreateMessage, DiscordJsonError, ErrorResponse, GenericChannelId, Http,
+    HttpError, JsonErrorCode, UserId,
+};
 use sqlx::{Database, Pool};
 use zayden_core::EmojiCache;
 
@@ -84,7 +87,7 @@ impl GoalHandler {
         for &goal in changed.iter().filter(|goal| goal.is_complete()) {
             row.add_coins(5_000);
 
-            channel
+            match channel
                 .send_message(
                     http,
                     CreateMessage::new().embed(
@@ -97,7 +100,19 @@ impl GoalHandler {
                     ),
                 )
                 .await
-                .unwrap();
+            {
+                Ok(_)
+                // Missing "Send Message" permission, ignore error
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+                    error:
+                        DiscordJsonError {
+                            code: JsonErrorCode::MissingAccess,
+                            ..
+                        },
+                    ..
+                }))) => {}
+                Err(e) => panic!("Unhandled serenity error: {e}"),
+            };
         }
 
         if !changed.is_empty() {

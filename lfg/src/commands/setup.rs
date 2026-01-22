@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use serenity::all::{
-    ChannelId, CommandInteraction, EditInteractionResponse, GenericInteractionChannel, GuildId,
-    Http, ResolvedValue, RoleId,
+    CommandInteraction, EditInteractionResponse, GenericChannelId, GuildId, Http, ResolvedValue,
+    RoleId,
 };
 use sqlx::{Database, Pool};
 
@@ -16,7 +16,7 @@ pub trait SetupManager<Db: Database> {
     async fn insert(
         pool: &Pool<Db>,
         id: impl Into<GuildId> + Send,
-        channel: impl Into<ChannelId> + Send,
+        channel: impl Into<GenericChannelId> + Send,
         role: Option<impl Into<RoleId> + Send>,
     ) -> sqlx::Result<Db::QueryResult>;
 }
@@ -32,9 +32,7 @@ impl Command {
 
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
-        let Some(ResolvedValue::Channel(GenericInteractionChannel::Channel(channel))) =
-            options.remove("channel")
-        else {
+        let Some(ResolvedValue::Channel(channel)) = options.remove("channel") else {
             unreachable!("Channel is required");
         };
 
@@ -43,7 +41,7 @@ impl Command {
             _ => None,
         };
 
-        Manager::insert(pool, guild_id, channel.id, role)
+        Manager::insert(pool, guild_id, channel.id(), role)
             .await
             .unwrap();
 

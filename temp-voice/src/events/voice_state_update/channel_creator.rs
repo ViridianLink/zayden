@@ -31,12 +31,23 @@ pub async fn channel_creator<
         _ => return Ok(()),
     };
 
-    let creator_category = creator_channel_id
+    let creator_category = match creator_channel_id
         .to_guild_channel(http, new.guild_id)
         .await
-        .unwrap()
-        .parent_id
-        .expect("Should be in a category");
+    {
+        Ok(channel) => channel.parent_id.expect("Should be in a category"),
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
+            error:
+                DiscordJsonError {
+                    code: JsonErrorCode::MissingAccess,
+                    ..
+                },
+            ..
+        }))) => {
+            return Ok(());
+        }
+        Err(e) => panic!("Unhandled serenity error: {e:?}"),
+    };
 
     let member = new.member.as_ref().expect("Should be in a guild");
 

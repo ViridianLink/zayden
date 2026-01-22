@@ -43,7 +43,7 @@ use untrust::untrust;
 
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    ResolvedValue,
+    EditInteractionResponse, ResolvedValue,
 };
 use zayden_core::parse_options;
 
@@ -102,16 +102,24 @@ impl VoiceCommand {
                 .ok_or(Error::MemberNotInVoiceChannel)?,
         };
 
-        let row = ChannelManager::get(pool, channel_id).await.unwrap();
-
-        if command.name == "claim" {
-            claim::<Data, Db, ChannelManager>(ctx, interaction, pool, channel_id, row).await?;
-            return Ok(());
-        }
-
-        let row = row.ok_or(Error::ChannelNotFound(channel_id))?;
+        let row = match ChannelManager::get(pool, channel_id).await {
+            Ok(Some(row)) => row,
+            Ok(None) => {
+                // TODO: If user has "ManageChannel" permission then add the channel to the DB
+                interaction.edit_response(
+                    &ctx.http,
+                    EditInteractionResponse::new()
+                        .content("This channel isn’t eligible for voice commands."),
+                );
+                return Ok(());
+            }
+            Err(e) => panic!("Unhandled sqlx error: {e}"),
+        };
 
         match command.name {
+            "claim" => {
+                claim::<Data, Db, ChannelManager>(ctx, interaction, pool, channel_id, row).await?;
+            }
             "join" => {
                 join(&ctx.http, interaction, options, guild_id, channel_id, &row).await?;
             }

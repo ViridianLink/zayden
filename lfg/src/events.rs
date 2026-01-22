@@ -1,7 +1,7 @@
 use chrono::{Duration, Utc};
 use serenity::all::{
     Context, DiscordJsonError, EditThread, ErrorResponse, Guild, Http, HttpError, JsonErrorCode,
-    PartialGuildThread, ThreadsData,
+    PartialGuildThread,
 };
 use sqlx::{Database, Pool};
 use zayden_core::CronJobData;
@@ -49,7 +49,7 @@ pub async fn guild_create<
                 },
             ..
         }))) => return,
-        Err(e) => panic!("Error: {e}"),
+        Err(e) => panic!("Error: {e:?}"),
     };
 
     let threads = guild

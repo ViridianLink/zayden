@@ -3,23 +3,25 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serenity::all::{
     ActionRow, ActionRowComponent, AutocompleteOption, CommandInteraction,
-    Component as SerenityComponent, ComponentInteraction, Context, Message, ModalInteraction,
-    ResolvedOption, ResolvedValue,
+    Component as SerenityComponent, ComponentInteraction, Context, CreateCommand, Message,
+    ModalInteraction, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use tracing::warn;
 
-mod application_command;
+pub mod application_command;
 pub use application_command::ApplicationCommand;
 
 pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
 
-mod modals;
-pub use modals::parse_components;
-
 pub mod cron;
-pub mod templates;
 pub use cron::{ActionFn, CronJob, CronJobData};
+
+pub mod modals;
+pub use modals::parse_text_components;
+
+pub mod templates;
 
 mod error;
 pub use error::Error;
@@ -50,7 +52,6 @@ pub trait Component<E: std::error::Error, Db: Database> {
 #[async_trait]
 pub trait Modal<E: std::error::Error, Db: Database> {
     async fn run(
-        &self,
         ctx: &Context,
         interaction: &ModalInteraction,
         components: &[ActionRow],
@@ -110,25 +111,4 @@ pub fn get_option_str(options: &[ResolvedOption<'_>]) -> String {
     }
 
     s
-}
-
-pub fn parse_components(components: &[SerenityComponent]) -> HashMap<&str, &str> {
-    components
-        .iter()
-        .filter_map(|component| match component {
-            SerenityComponent::ActionRow(action_row) => {
-                // action_row
-                //     .components
-                //     .iter()
-                //     .filter_map(|component| todo!("Parse select menu"));
-
-                todo!("Parse select menu")
-            }
-            SerenityComponent::Section(section) => todo!("Parse TextDisplay"),
-            SerenityComponent::MediaGallery(media_gallery) => todo!("Parse MediaGallery"),
-            SerenityComponent::File(file_component) => todo!("Parse FileComponent"),
-            SerenityComponent::Label(label) => todo!("Parse Label"),
-            _ => None,
-        })
-        .collect()
 }

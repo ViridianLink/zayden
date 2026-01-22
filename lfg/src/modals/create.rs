@@ -1,13 +1,14 @@
 use async_trait::async_trait;
 use serenity::all::{
     AutoArchiveDuration, ChannelId, Context, CreateComponent, CreateForumPost,
-    CreateInteractionResponse, CreateMessage, DiscordJsonError, ErrorResponse, GenericChannelId,
-    GuildId, HttpError, JsonErrorCode, Mentionable, ModalInteraction, RoleId,
+    CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, DiscordJsonError,
+    ErrorResponse, GenericChannelId, GuildId, HttpError, JsonErrorCode, Mentionable,
+    ModalInteraction, RoleId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tracing::warn;
-use zayden_core::{CronJobData, parse_components};
+use zayden_core::{CronJobData, parse_text_components};
 
 use crate::cron::create_reminders;
 use crate::templates::{DefaultTemplate, Template};
@@ -59,29 +60,58 @@ impl Create {
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
-        let mut inputs = parse_components(&interaction.data.components);
+        let mut inputs = parse_text_components(&interaction.data.components);
 
         let activity = inputs
             .remove("activity")
-            .expect("Activity should exist as it's required");
+            .expect("Activity should exist as it's required")
+            .pop()
+            .expect("At least one value is required");
         let fireteam_size = inputs
-            .remove("fireteam size")
+            .remove("fireteam_size")
             .expect("Fireteam size should exist as it's required")
+            .pop()
+            .expect("At least one value is required")
             .parse::<i16>()
             .unwrap();
         let description = match inputs.remove("description") {
-            Some(description) => description.chars().take(1024).collect::<String>(),
+            Some(mut description) => description
+                .pop()
+                .expect("At least one value is required")
+                .chars()
+                .take(1024)
+                .collect::<String>(),
             None => activity.to_string(),
         };
         let start_time_str = inputs
-            .remove("start time")
-            .expect("Start time should exist as it's required");
+            .remove("start_time")
+            .expect("Start time should exist as it's required")
+            .pop()
+            .expect("At least one value is required");
 
         let timezone = TzManager::get(pool, interaction.user.id, &interaction.locale)
             .await
             .unwrap();
 
-        let start_time = start_time(timezone, &start_time_str)?;
+        let start_time = match start_time(timezone, &start_time_str) {
+            Ok(time) => time,
+            Err(Error::InvalidDateTime(f)) => {
+                interaction
+                    .create_response(
+                        &ctx.http,
+                        CreateInteractionResponse::Message(
+                            CreateInteractionResponseMessage::new()
+                                .content(format!(
+                                    "Bot currently only accepts {f} for dates and time."
+                                ))
+                                .ephemeral(true),
+                        ),
+                    )
+                    .await?;
+                return Ok(());
+            }
+            Err(e) => panic!("Unhandled error: {e}"),
+        };
 
         let mut post = PostBuilder::new(
             interaction.user.id,
