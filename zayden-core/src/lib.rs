@@ -2,12 +2,10 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use serenity::all::{
-    ActionRow, ActionRowComponent, AutocompleteOption, CommandInteraction,
-    Component as SerenityComponent, ComponentInteraction, Context, CreateCommand, Message,
+    ActionRow, AutocompleteOption, CommandInteraction, ComponentInteraction, Context, Message,
     ModalInteraction, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use tracing::warn;
 
 pub mod application_command;
 pub use application_command::ApplicationCommand;
@@ -19,7 +17,7 @@ pub mod cron;
 pub use cron::{ActionFn, CronJob, CronJobData};
 
 pub mod modals;
-pub use modals::parse_text_components;
+pub use modals::{parse_modal_components, parse_text_components};
 
 pub mod templates;
 

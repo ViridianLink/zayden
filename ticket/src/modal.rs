@@ -4,7 +4,7 @@ use serenity::all::{
     ModalInteraction,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_text_components;
+use zayden_core::parse_modal_components;
 
 use crate::{
     Result, TicketGuildManager, send_support_message, thread_name, ticket_manager::TicketManager,
@@ -31,7 +31,7 @@ impl TicketModal {
         let ticket_row = Manager::get(pool, message.id).await.unwrap();
         let role_ids = ticket_row.role_ids();
 
-        let mut data = parse_text_components(&interaction.data.components);
+        let mut data = parse_modal_components(interaction.data.components.as_slice());
         let content = data
             .remove("ticket_body")
             .expect("Issue is a required field")

@@ -106,11 +106,13 @@ impl VoiceCommand {
             Ok(Some(row)) => row,
             Ok(None) => {
                 // TODO: If user has "ManageChannel" permission then add the channel to the DB
-                interaction.edit_response(
-                    &ctx.http,
-                    EditInteractionResponse::new()
-                        .content("This channel isn’t eligible for voice commands."),
-                );
+                interaction
+                    .edit_response(
+                        &ctx.http,
+                        EditInteractionResponse::new()
+                            .content("This channel isn’t eligible for voice commands."),
+                    )
+                    .await?;
                 return Ok(());
             }
             Err(e) => panic!("Unhandled sqlx error: {e}"),

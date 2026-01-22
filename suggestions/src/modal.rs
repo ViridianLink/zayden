@@ -1,7 +1,6 @@
 use serenity::all::{
-    ActionRowComponent, Component, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, CreateMessage, EditThread, Http, LabelComponent,
-    ModalInteraction, ThreadId,
+    CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage,
+    EditThread, Http, LabelComponent, ModalComponent, ModalInteraction, ThreadId,
 };
 
 use crate::Suggestions;
@@ -9,7 +8,7 @@ use crate::Suggestions;
 impl Suggestions {
     pub async fn modal(http: &Http, modal: &ModalInteraction, accepted: bool) {
         let response = match modal.data.components.first() {
-            Some(Component::Label(label)) => match &label.component {
+            Some(ModalComponent::Label(label)) => match &label.component {
                 LabelComponent::InputText(input_text) => {
                     input_text.value.as_deref().unwrap_or_default()
                 }
