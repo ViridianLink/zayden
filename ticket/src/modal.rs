@@ -37,7 +37,7 @@ impl TicketModal {
         let thread_name = thread_name(
             guild_row.thread_id,
             interaction.member.as_ref().unwrap().display_name(),
-            content,
+            &content,
         );
 
         let mut issue = CreateEmbed::new().title("Issue").description(content);
@@ -51,7 +51,7 @@ impl TicketModal {
         data.drain()
             .filter(|(_, v)| !v.is_empty())
             .for_each(|(k, v)| {
-                let title = to_title_case(k);
+                let title = to_title_case(&k);
                 let embed = CreateEmbed::new().title(title).description(v);
                 messages.push(CreateMessage::new().embed(embed));
             });

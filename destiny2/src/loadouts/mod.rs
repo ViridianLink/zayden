@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 
 use serenity::all::{
     ButtonStyle, CommandInteraction, CommandOptionType, Context, CreateActionRow, CreateButton,
-    CreateCommand, CreateCommandOption, CreateComponent, CreateContainer,
+    CreateCommand, CreateCommandOption, CreateComponent, CreateContainer, CreateContainerComponent,
     CreateInteractionResponse, CreateInteractionResponseMessage, CreateSection,
     CreateSectionAccessory, CreateSectionComponent, CreateSeparator, CreateTextDisplay,
     CreateThumbnail, CreateUnfurledMediaItem, EmojiId, MessageFlags, ResolvedOption, ResolvedValue,
@@ -205,7 +205,7 @@ impl<'a> Loadout<'a> {
             subclass_btn = self.subclass.subclass.into_button(emoji_cache);
         }
 
-        let tags = CreateComponent::ActionRow(CreateActionRow::buttons(
+        let tags = CreateContainerComponent::ActionRow(CreateActionRow::buttons(
             [subclass_btn.unwrap()]
                 .into_iter()
                 .chain([CreateButton::from(self.mode)])
@@ -213,7 +213,7 @@ impl<'a> Loadout<'a> {
                 .collect::<Vec<_>>(),
         ));
 
-        let heading1 = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
+        let heading1 = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
             "-# {} {} Build",
             self.subclass.subclass, self.class
         )));
@@ -223,20 +223,20 @@ impl<'a> Loadout<'a> {
             details.push_str(&format!(" • [Video Guide]({url})"));
         }
 
-        let heading2 = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
+        let heading2 = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
             "# {}  •  {}  •  {}\n{details}",
             self.class, self.subclass.abilities.super_, self.name
         )));
 
-        let line_sep = CreateComponent::Separator(CreateSeparator::new(true));
+        let line_sep = CreateContainerComponent::Separator(CreateSeparator::new(true));
 
-        let dim_link = CreateComponent::ActionRow(CreateActionRow::buttons(vec![
+        let dim_link = CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
             CreateButton::new_link(self.details.dim_link)
                 .label("COPY DIM LINK")
                 .emoji(DUPLICATE),
         ]));
 
-        let subclass_heading = CreateComponent::TextDisplay(CreateTextDisplay::new(
+        let subclass_heading = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
             "### SUBCLASS\nSuper       Abilities                                       Aspects",
         ));
 
@@ -286,7 +286,7 @@ impl<'a> Loadout<'a> {
             }
         };
 
-        let subclass = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
+        let subclass = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
             "# {super_emoji}    {class_emoji} {jump_emoji} {melee_emoji} {grenade_emoji}    {}\n\nFragments",
             aspects.unwrap()
         )));
@@ -297,13 +297,13 @@ impl<'a> Loadout<'a> {
             fragments = self.fragments_str(emoji_cache)
         }
 
-        let fragments = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
+        let fragments = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
             "#{}",
             fragments.unwrap()
         )));
 
         let gear_and_mods_heading =
-            CreateComponent::TextDisplay(CreateTextDisplay::new("### GEAR AND MODS"));
+            CreateContainerComponent::TextDisplay(CreateTextDisplay::new("### GEAR AND MODS"));
 
         let mut weapons = self.weapon_components(emoji_cache);
         while let Err(name) = weapons {
@@ -346,7 +346,7 @@ impl<'a> Loadout<'a> {
             misc_content.push_str(how_it_works);
         }
 
-        let misc = CreateComponent::TextDisplay(CreateTextDisplay::new(misc_content));
+        let misc = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(misc_content));
 
         components.extend([
             heading1,
@@ -362,7 +362,7 @@ impl<'a> Loadout<'a> {
             gear_and_mods_heading,
         ]);
         components.extend(weapons.unwrap());
-        components.push(CreateComponent::Separator(
+        components.push(CreateContainerComponent::Separator(
             CreateSeparator::new(false).spacing(Spacing::Large),
         ));
         components.extend(armour.unwrap());
@@ -371,13 +371,16 @@ impl<'a> Loadout<'a> {
         CreateComponent::Container(CreateContainer::new(components))
     }
 
-    fn weapon_components(self, emoji_cache: &EmojiCache) -> EmojiResult<Vec<CreateComponent<'a>>> {
+    fn weapon_components(
+        self,
+        emoji_cache: &EmojiCache,
+    ) -> EmojiResult<Vec<CreateContainerComponent<'a>>> {
         self.gear
             .weapons
             .into_iter()
             .flatten()
             .map(|weapon| {
-                Ok(CreateComponent::Section(CreateSection::new(
+                Ok(CreateContainerComponent::Section(CreateSection::new(
                     vec![weapon.into_section(emoji_cache)?],
                     CreateSectionAccessory::Thumbnail(weapon.into()),
                 )))
@@ -385,12 +388,15 @@ impl<'a> Loadout<'a> {
             .collect()
     }
 
-    fn armour_components(self, emoji_cache: &EmojiCache) -> EmojiResult<Vec<CreateComponent<'a>>> {
+    fn armour_components(
+        self,
+        emoji_cache: &EmojiCache,
+    ) -> EmojiResult<Vec<CreateContainerComponent<'a>>> {
         self.gear
             .armour
             .into_iter()
             .map(|armour| {
-                Ok(CreateComponent::Section(CreateSection::new(
+                Ok(CreateContainerComponent::Section(CreateSection::new(
                     vec![armour.into_section(emoji_cache)?],
                     CreateSectionAccessory::Thumbnail(armour.into()),
                 )))

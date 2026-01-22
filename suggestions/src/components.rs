@@ -1,13 +1,13 @@
 use serenity::all::{
-    ComponentInteraction, CreateActionRow, CreateInputText, CreateInteractionResponse, CreateModal,
-    Http, InputTextStyle,
+    ComponentInteraction, CreateInputText, CreateInteractionResponse, CreateLabel, CreateModal,
+    CreateModalComponent, Http, InputTextStyle,
 };
 
 use crate::Suggestions;
 
 impl Suggestions {
     pub async fn components(http: &Http, interaction: &ComponentInteraction, accepted: bool) {
-        let response = CreateInputText::new(InputTextStyle::Paragraph, "Response", "response")
+        let response = CreateInputText::new(InputTextStyle::Paragraph, "response")
             .placeholder("Response to the suggestion");
 
         let id = if accepted {
@@ -16,8 +16,9 @@ impl Suggestions {
             "suggestions_reject"
         };
 
-        let modal = CreateModal::new(id, "Suggestion Response")
-            .components(vec![CreateActionRow::InputText(response)]);
+        let modal = CreateModal::new(id, "Suggestion Response").components(vec![
+            CreateModalComponent::Label(CreateLabel::input_text("Response", response)),
+        ]);
 
         interaction
             .create_response(http, CreateInteractionResponse::Modal(modal))

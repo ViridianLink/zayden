@@ -23,7 +23,7 @@ impl TicketComponent {
         ));
 
         let modal = CreateModal::new("create_ticket", "Ticket").components(
-            [issue_input]
+            components
                 .into_iter()
                 .chain(components)
                 .collect::<Vec<_>>(),

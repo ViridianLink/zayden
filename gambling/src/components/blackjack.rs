@@ -39,7 +39,9 @@ impl Blackjack {
 
         let text = text(interaction);
 
-        let mut game = GameDetails::from_str(&emojis, &text.content);
+        unimplemented!("text is broken with latest update");
+
+        let mut game = GameDetails::from_str(&emojis, "&text");
 
         game.add_card();
 
@@ -63,7 +65,7 @@ impl Blackjack {
             game.dealer_hand()[0],
         );
 
-        let action_row = CreateComponent::ActionRow(CreateActionRow::buttons(vec![
+        let action_row = CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
             hit_button(),
             stand_button(),
             split_button().disabled(true),
@@ -108,13 +110,14 @@ impl Blackjack {
         };
 
         let text = text(interaction);
+        unimplemented!("text broken in latest update");
 
         game_end::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx,
             interaction,
             pool,
             &emojis,
-            GameDetails::from_str(&emojis, &text.content),
+            GameDetails::from_str(&emojis, "&text.content"),
         )
         .await;
 
@@ -140,8 +143,9 @@ impl Blackjack {
         };
 
         let text = text(interaction);
+        unimplemented!("text broken in latest update");
 
-        let mut game = GameDetails::from_str(&emojis, &text.content);
+        let mut game = GameDetails::from_str(&emojis, "&text.content");
 
         GamblingHandler::bet(pool, interaction.user.id, game.bet())
             .await
@@ -195,8 +199,9 @@ impl Blackjack {
         };
 
         let text = text(interaction);
+        unimplemented!("text broken in latest update");
 
-        let mut game = GameDetails::from_str(&emojis, &text.content);
+        let mut game = GameDetails::from_str(&emojis, "&text.content");
 
         let player_value = game.player_value(&emojis);
 
@@ -261,7 +266,7 @@ impl Blackjack {
                     CreateInteractionResponseMessage::new()
                         .flags(MessageFlags::IS_COMPONENTS_V2)
                         .components(vec![CreateComponent::Container(CreateContainer::new(
-                            vec![CreateComponent::TextDisplay(CreateTextDisplay::new(
+                            vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
                                 format!(
                                     "### Blackjack - Surrender!\n{desc}\n\nYou surrender!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
                                     (payout - game.bet()).format(),
@@ -284,7 +289,7 @@ fn text(interaction: &ComponentInteraction) -> &TextDisplay {
         unreachable!("Message must have a container component")
     };
 
-    let Some(Component::TextDisplay(text)) = container.components.first() else {
+    let Some(ContainerComponent::TextDisplay(text)) = container.components.first() else {
         unreachable!("First component must be text")
     };
 
@@ -331,7 +336,7 @@ async fn game_end<
                 CreateInteractionResponse::UpdateMessage(
                     CreateInteractionResponseMessage::new().components(vec![
                         CreateComponent::Container(
-                            CreateContainer::new(vec![CreateComponent::TextDisplay(
+                            CreateContainer::new(vec![CreateContainerComponent::TextDisplay(
                                 CreateTextDisplay::new(format!(
                                     "### Blackjack - You Lost!\n{desc}"
                                 )),
@@ -404,17 +409,17 @@ async fn game_end<
     );
 
     let container = if win == Some(true) {
-        CreateContainer::new(vec![CreateComponent::TextDisplay(CreateTextDisplay::new(
+        CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
             format!("### Blackjack - You Won!\n{desc}\n\nProfit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>", (payout - game.bet()).format(), coins.format()),
         ))])
         .accent_colour(Colour::DARK_GREEN)
     } else if win == Some(false) {
-        CreateContainer::new(vec![CreateComponent::TextDisplay(CreateTextDisplay::new(
+        CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
             format!("### Blackjack - You Lost!\n{desc}\n\nDealer wins!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>", (payout - game.bet()).format(), coins.format()),
         ))])
         .accent_colour(Colour::RED)
     } else {
-        CreateContainer::new(vec![CreateComponent::TextDisplay(CreateTextDisplay::new(
+        CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
             format!("### Blackjack - Draw!\n{desc}\n\nDraw! Have your money back.\n\nYour coins: {} <:coin:{coin}>", coins.format()),
         ))])
         .accent_colour(Colour::DARKER_GREY)

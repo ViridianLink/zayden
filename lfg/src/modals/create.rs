@@ -70,8 +70,8 @@ impl Create {
             .parse::<i16>()
             .unwrap();
         let description = match inputs.remove("description") {
-            Some(description) => &description.chars().take(1024).collect::<String>(),
-            None => activity,
+            Some(description) => description.chars().take(1024).collect::<String>(),
+            None => activity.to_string(),
         };
         let start_time_str = inputs
             .remove("start time")
@@ -81,11 +81,11 @@ impl Create {
             .await
             .unwrap();
 
-        let start_time = start_time(timezone, start_time_str)?;
+        let start_time = start_time(timezone, &start_time_str)?;
 
         let mut post = PostBuilder::new(
             interaction.user.id,
-            activity,
+            activity.to_string(),
             start_time,
             description,
             fireteam_size as i16,

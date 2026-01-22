@@ -2,8 +2,8 @@ use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
     Colour, CommandInteraction, CommandOptionType, Context, CreateActionRow, CreateCommand,
-    CreateCommandOption, CreateComponent, CreateContainer, EditInteractionResponse, MessageFlags,
-    ResolvedOption, ResolvedValue,
+    CreateCommandOption, CreateComponent, CreateContainer, CreateContainerComponent,
+    EditInteractionResponse, MessageFlags, ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -113,7 +113,7 @@ impl Commands {
 
         let text = in_play_text(&emojis, bet, game.player_hand(), dealer_hand[0]);
 
-        let action_row = CreateComponent::ActionRow(CreateActionRow::buttons(vec![
+        let action_row = CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
             hit_button(),
             stand_button(),
             double_button().disabled(coins < bet * 2),

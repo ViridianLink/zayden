@@ -6,7 +6,9 @@ pub use edit::Edit;
 
 use chrono::{DateTime, NaiveDateTime, TimeZone};
 use chrono_tz::Tz;
-use serenity::all::{CreateActionRow, CreateInputText, InputTextStyle};
+use serenity::all::{
+    CreateActionRow, CreateInputText, CreateLabel, CreateModalComponent, InputTextStyle,
+};
 
 use crate::{Error, Result};
 
@@ -15,32 +17,28 @@ pub fn modal_components<'a>(
     start_time: DateTime<Tz>,
     fireteam_size: i16,
     description: Option<&'a str>,
-) -> Vec<CreateActionRow<'a>> {
+) -> Vec<CreateModalComponent<'a>> {
     let mut desc_input =
-        CreateInputText::new(InputTextStyle::Paragraph, "Description", "description")
-            .required(false);
+        CreateInputText::new(InputTextStyle::Paragraph, "description").required(false);
     desc_input = match description {
         Some(description) => desc_input.value(description),
         None => desc_input.placeholder(activity),
     };
 
+    let activity = CreateInputText::new(InputTextStyle::Short, "activity").value(activity);
+    let start_time_input = CreateInputText::new(InputTextStyle::Short, "start_time")
+        .value(format!("{}", start_time.format("%Y-%m-%d %H:%M")));
+    let fireteam_size = CreateInputText::new(InputTextStyle::Short, "fireteam_size")
+        .value(fireteam_size.to_string());
+
     vec![
-        CreateActionRow::InputText(
-            CreateInputText::new(InputTextStyle::Short, "Activity", "activity").value(activity),
-        ),
-        CreateActionRow::InputText(
-            CreateInputText::new(
-                InputTextStyle::Short,
-                format!("Start Time ({})", start_time.format("%Z")),
-                "start time",
-            )
-            .value(format!("{}", start_time.format("%Y-%m-%d %H:%M"))),
-        ),
-        CreateActionRow::InputText(
-            CreateInputText::new(InputTextStyle::Short, "Fireteam Size", "fireteam size")
-                .value(fireteam_size.to_string()),
-        ),
-        CreateActionRow::InputText(desc_input),
+        CreateModalComponent::Label(CreateLabel::input_text("Activity", activity)),
+        CreateModalComponent::Label(CreateLabel::input_text(
+            format!("Start Time ({})", start_time.format("%Z")),
+            start_time_input,
+        )),
+        CreateModalComponent::Label(CreateLabel::input_text("Fireteam Size", fireteam_size)),
+        CreateModalComponent::Label(CreateLabel::input_text("Description", desc_input)),
     ]
 }
 

@@ -14,6 +14,9 @@ pub use application_command::ApplicationCommand;
 pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
 
+mod modals;
+pub use modals::parse_components;
+
 pub mod cron;
 pub mod templates;
 pub use cron::{ActionFn, CronJob, CronJobData};

@@ -1,7 +1,7 @@
 use chrono::{Duration, Utc};
 use serenity::all::{
     Context, DiscordJsonError, EditThread, ErrorResponse, Guild, Http, HttpError, JsonErrorCode,
-    PartialGuildThread,
+    PartialGuildThread, ThreadsData,
 };
 use sqlx::{Database, Pool};
 use zayden_core::CronJobData;

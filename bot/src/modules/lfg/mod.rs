@@ -7,7 +7,7 @@ use lfg::components::{EditManager, EditRow};
 use lfg::modals::create::{GuildManager, GuildRow};
 use lfg::models::timezone_manager::LOCALE_TO_TIMEZONE;
 use lfg::{Error, Join, JoinedRow, PostManager, PostRow, Savable, TimezoneManager}; // PostRow
-use serenity::all::{ChannelId, GenericChannelId, GuildId, MessageId, RoleId, UserId};
+use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 
@@ -179,7 +179,7 @@ impl SetupManager<Postgres> for PostTable {
     async fn insert(
         pool: &PgPool,
         id: impl Into<GuildId> + Send,
-        channel: impl Into<ChannelId> + Send,
+        channel: impl Into<GenericChannelId> + Send,
         role: Option<impl Into<RoleId> + Send>,
     ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();

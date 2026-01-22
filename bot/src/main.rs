@@ -18,11 +18,12 @@ mod sqlx_lib;
 pub use ctx_data::CtxData;
 pub use error::{Error, Result};
 pub use handler::Handler;
-use sqlx_lib::new_pool;
 use tracing::warn;
 use tracing_subscriber::{
     Layer, Registry, filter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
 };
+
+use crate::sqlx_lib::new_pool_with_retry;
 
 pub const OSCAR_SIX: UserId = UserId::new(211486447369322506);
 pub const BRADSTER_GUILD: GuildId = GuildId::new(1255957182457974875);
@@ -49,7 +50,9 @@ async fn main() -> Result<()> {
         warn!(".env file not found. Please make sure enviroment variables are set.")
     }
 
-    let pool = new_pool().await.unwrap();
+    let pool = new_pool_with_retry()
+        .await
+        .expect("Failed to connect to database.");
 
     let data = CtxData::default();
 
@@ -64,10 +67,10 @@ async fn main() -> Result<()> {
         GatewayIntents::all(),
     )
     .data(Arc::new(RwLock::new(data)))
-    .event_handler(Handler {
+    .event_handler(Arc::new(Handler {
         pool,
         started_cron: AtomicBool::new(false),
-    })
+    }))
     .await
     .unwrap();
 

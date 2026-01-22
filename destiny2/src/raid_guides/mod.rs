@@ -5,9 +5,9 @@ pub mod weapons;
 use desert_perpetual::DESERT_PERPETUAL;
 use serenity::all::{
     CommandInteraction, CreateActionRow, CreateCommand, CreateComponent, CreateContainer,
-    CreateInteractionResponse, CreateInteractionResponseMessage, CreateSelectMenu,
-    CreateSelectMenuKind, CreateSelectMenuOption, CreateSeparator, CreateTextDisplay, Http,
-    MessageFlags, Permissions,
+    CreateContainerComponent, CreateInteractionResponse, CreateInteractionResponseMessage,
+    CreateSelectMenu, CreateSelectMenuKind, CreateSelectMenuOption, CreateSeparator,
+    CreateTextDisplay, Http, MessageFlags, Permissions,
 };
 pub use weapons::Weapon;
 
@@ -85,11 +85,12 @@ impl<'a> From<EncounterGuide<'a>> for CreateComponent<'a> {
             _ => format!("# {}\n## {}", value.raid, value.encounter),
         };
 
-        let top_text = CreateComponent::TextDisplay(CreateTextDisplay::new(content));
-        let seperator = CreateComponent::Separator(CreateSeparator::new(true));
-        let guide = CreateComponent::TextDisplay(CreateTextDisplay::new(value.guide));
+        let top_text = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(content));
+        let seperator = CreateContainerComponent::Separator(CreateSeparator::new(true));
+        let guide = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(value.guide));
 
-        let weapons_heading = CreateComponent::TextDisplay(CreateTextDisplay::new("__Weapons:__"));
+        let weapons_heading =
+            CreateContainerComponent::TextDisplay(CreateTextDisplay::new("__Weapons:__"));
 
         let weapons = value
             .weapons
@@ -98,9 +99,11 @@ impl<'a> From<EncounterGuide<'a>> for CreateComponent<'a> {
             .map(|&weapon| format!("{weapon} "))
             .collect::<String>();
 
-        let weapons = CreateComponent::TextDisplay(CreateTextDisplay::new(format!("# {weapons}")));
+        let weapons =
+            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!("# {weapons}")));
 
-        let armour_heading = CreateComponent::TextDisplay(CreateTextDisplay::new("__Armour:__"));
+        let armour_heading =
+            CreateContainerComponent::TextDisplay(CreateTextDisplay::new("__Armour:__"));
 
         let armour = value
             .armour
@@ -109,7 +112,7 @@ impl<'a> From<EncounterGuide<'a>> for CreateComponent<'a> {
             .map(|&armour| format!("{armour} "))
             .collect::<String>();
 
-        let armour = CreateComponent::TextDisplay(CreateTextDisplay::new(format!(
+        let armour = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
             "Recommended Armour: {armour}"
         )));
 

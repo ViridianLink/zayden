@@ -4,8 +4,9 @@ use std::sync::OnceLock;
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    ButtonStyle, Colour, Context, CreateButton, CreateComponent, CreateEmbed, CreateTextDisplay,
-    EditInteractionResponse, EmojiId, GenericChannelId, ReactionType, UserId, parse_emoji,
+    ButtonStyle, Colour, Context, CreateButton, CreateComponent, CreateContainerComponent,
+    CreateEmbed, CreateTextDisplay, EditInteractionResponse, EmojiId, GenericChannelId,
+    ReactionType, UserId, parse_emoji,
 };
 use serenity::small_fixed_array::FixedString;
 use sqlx::{Database, Pool};
@@ -186,7 +187,7 @@ pub fn in_play_text<'a>(
     bet: i64,
     player_hand: &[EmojiId],
     dealer_card: EmojiId,
-) -> CreateComponent<'a> {
+) -> CreateContainerComponent<'a> {
     let player_value = sum_cards(emojis, player_hand);
     let dealer_value = sum_cards(emojis, &[dealer_card]);
 
@@ -205,7 +206,7 @@ pub fn in_play_text<'a>(
         card_to_num.get(&dealer_card).unwrap(),
     );
 
-    CreateComponent::TextDisplay(CreateTextDisplay::new(format!("### Blackjack\n{desc}")))
+    CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!("### Blackjack\n{desc}")))
 }
 
 pub fn hit_button<'a>() -> CreateButton<'a> {

@@ -1,25 +1,22 @@
 use serenity::all::{
-    ActionRowComponent, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-    CreateMessage, EditThread, Http, ModalInteraction, ThreadId,
+    ActionRowComponent, Component, CreateEmbed, CreateInteractionResponse,
+    CreateInteractionResponseMessage, CreateMessage, EditThread, Http, LabelComponent,
+    ModalInteraction, ThreadId,
 };
 
 use crate::Suggestions;
 
 impl Suggestions {
     pub async fn modal(http: &Http, modal: &ModalInteraction, accepted: bool) {
-        let ActionRowComponent::InputText(text) = &modal
-            .data
-            .components
-            .first()
-            .unwrap()
-            .components
-            .first()
-            .unwrap()
-        else {
-            unreachable!("InputText is required");
+        let response = match modal.data.components.first() {
+            Some(Component::Label(label)) => match &label.component {
+                LabelComponent::InputText(input_text) => {
+                    input_text.value.as_deref().unwrap_or_default()
+                }
+                _ => unimplemented!("InputText must be the component"),
+            },
+            _ => unreachable!("Label is a required component"),
         };
-
-        let response = text.value.as_deref().unwrap();
 
         let old_embed = modal.message.as_ref().unwrap().embeds.first().unwrap();
         let old_url = old_embed.url.as_deref().unwrap();

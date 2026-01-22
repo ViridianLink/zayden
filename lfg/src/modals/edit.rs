@@ -41,8 +41,8 @@ impl Edit {
             .parse::<i16>()
             .unwrap();
         let description = match inputs.remove("description") {
-            Some(description) => description,
-            _ => activity,
+            Some(description) => description.to_string(),
+            _ => activity.to_string(),
         };
         let start_time_str = inputs
             .remove("start time")
@@ -52,10 +52,10 @@ impl Edit {
             .await
             .unwrap();
 
-        let start_time = start_time(timezone, start_time_str)?;
+        let start_time = start_time(timezone, &start_time_str)?;
 
         let post = PostBuilder::from(Manager::row(pool, interaction.channel_id).await.unwrap())
-            .activity(activity)
+            .activity(activity.to_string())
             .fireteam_size(fireteam_size)
             .description(description)
             .start(start_time)
