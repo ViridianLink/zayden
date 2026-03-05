@@ -1,41 +1,22 @@
 [workspace]
 resolver = "3"
-members = [
-  "ai",
-  "bot",
-  "destiny2",
-  "destiny2-core",
-  "endgame-analysis",
-  "family",
-  "gambling",
-  "gold-star",
-  "levels",
-  "lfg",
-  "llamad2",
-  "reaction-roles",
-  "suggestions",
-  "temp-voice",
-  "ticket",
-  "verify",
-  "web-backend",
-  "zayden-core",
-]
+members = ["bot", "web-backend", "bot-modules/*"]
 
 [workspace.dependencies]
-ai = { path = "./ai" }
-destiny2 = { path = "./destiny2" }
-destiny2-core = { path = "./destiny2-core" }
-endgame-analysis = { path = "./endgame-analysis" }
-gambling = { path = "./gambling" }
-levels = { path = "./levels" }
-lfg = { path = "./lfg" }
-llamad2 = { path = "./llamad2" }
-reaction-roles = { path = "./reaction-roles" }
-suggestions = { path = "./suggestions" }
-temp-voice = { path = "./temp-voice" }
-ticket = { path = "./ticket" }
-verify = { path = "./verify" }
-zayden-core = { path = "./zayden-core" }
+ai = { path = "./bot-modules/ai" }
+destiny2 = { path = "./bot-modules/destiny2" }
+destiny2-core = { path = "./bot-modules/destiny2-core" }
+endgame-analysis = { path = "./bot-modules/endgame-analysis" }
+gambling = { path = "./bot-modules/gambling" }
+levels = { path = "./bot-modules/levels" }
+lfg = { path = "./bot-modules/lfg" }
+llamad2 = { path = "./bot-modules/llamad2" }
+reaction-roles = { path = "./bot-modules/reaction-roles" }
+suggestions = { path = "./bot-modules/suggestions" }
+temp-voice = { path = "./bot-modules/temp-voice" }
+ticket = { path = "./bot-modules/ticket" }
+verify = { path = "./bot-modules/verify" }
+zayden-core = { path = "./bot-modules/zayden-core" }
 
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
 
