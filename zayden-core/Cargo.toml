@@ -7,13 +7,9 @@ edition = "2024"
 [dependencies]
 async-trait = { workspace = true }
 base64 = { workspace = true }
-cron = { workspace = true }
+jiff-cron = { workspace = true }
 futures = { workspace = true }
-serenity = { workspace = true, features = [
-  "rustls_backend",
-  "gateway",
-  "unstable",
-] }
+serenity = { workspace = true, features = ["rustls_backend", "gateway"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }

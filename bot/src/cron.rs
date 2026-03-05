@@ -1,5 +1,6 @@
-use chrono::{DateTime, Utc};
 use futures::future;
+use jiff::tz::TimeZone;
+use jiff::{SignedDuration, Timestamp, Zoned};
 use serenity::all::Context;
 use sqlx::{PgPool, Postgres};
 use std::cmp::Ordering;
@@ -26,20 +27,19 @@ async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
             Some((target_wakeup_time, _)) => {
                 info!("Next Job: {target_wakeup_time:?}");
 
-                let now = Utc::now();
+                let now = Timestamp::now().to_zoned(TimeZone::UTC);
                 if *target_wakeup_time > now {
-                    (*target_wakeup_time - now)
-                        .to_std()
-                        .unwrap_or(Duration::ZERO)
+                    target_wakeup_time.duration_since(&now)
                 } else {
-                    Duration::ZERO
+                    SignedDuration::new(0, 0)
                 }
             }
-            None => Duration::from_secs(60),
+            None => SignedDuration::new(60, 0),
         };
 
-        if sleep_duration > Duration::from_millis(50) {
-            sleep(sleep_duration).await;
+        if sleep_duration > SignedDuration::new(1, 0) {
+            let std_duration = sleep_duration.try_into().expect("Span should be fixed");
+            sleep(std_duration).await;
         }
 
         if !pending_jobs.is_empty() {
@@ -54,40 +54,33 @@ async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
     }
 }
 
-async fn pending_jobs(ctx: &Context) -> Vec<(DateTime<Utc>, ActionFn<Postgres>)> {
-    let mut pending_jobs: Vec<(DateTime<Utc>, ActionFn<Postgres>)> = Vec::new();
-    let mut earliest_time = None;
+async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
+    let mut pending_jobs: Vec<(Zoned, ActionFn<Postgres>)> = Vec::new();
 
     let data = ctx.data::<RwLock<CtxData>>();
 
     {
         let mut data = data.write().await;
         data.jobs_mut()
-            .retain(|job| job.schedule.upcoming(Utc).next().is_some());
+            .retain(|job| job.schedule.upcoming(TimeZone::UTC).next().is_some());
     }
 
     let data = data.read().await;
     let jobs = data.jobs().iter().filter_map(|job| {
         job.schedule
-            .upcoming(Utc)
+            .upcoming(TimeZone::UTC)
             .next()
             .map(|run_time| (job, run_time))
     });
 
     for (job, run_time) in jobs {
-        match earliest_time {
-            Some(time) => match run_time.cmp(&time) {
-                Ordering::Less => {
-                    earliest_time = Some(run_time);
-                    pending_jobs = vec![(run_time, job.action_fn.clone())]
-                }
-                Ordering::Equal => pending_jobs.push((run_time, job.action_fn.clone())),
-                Ordering::Greater => {}
-            },
-            None => {
-                earliest_time = Some(run_time);
+        let cmp = pending_jobs.first().map(|(t, _)| run_time.cmp(t));
+        match cmp {
+            Some(Ordering::Less) | None => {
                 pending_jobs = vec![(run_time, job.action_fn.clone())];
             }
+            Some(Ordering::Equal) => pending_jobs.push((run_time, job.action_fn.clone())),
+            Some(Ordering::Greater) => {}
         }
     }
 

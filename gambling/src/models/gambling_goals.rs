@@ -1,16 +1,16 @@
-use chrono::{NaiveDate, Utc};
-use serde::Deserialize;
+use jiff::tz::TimeZone;
+use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::UserId;
 use sqlx::FromRow;
 use zayden_core::FormatNum;
 
 use crate::goals::GOAL_REGISTRY;
 
-#[derive(FromRow, Deserialize)]
+#[derive(FromRow)]
 pub struct GamblingGoalsRow {
     pub user_id: i64,
     pub goal_id: String,
-    pub day: NaiveDate,
+    pub day: Timestamp,
     pub progress: i64,
     pub target: i64,
 }
@@ -22,7 +22,7 @@ impl GamblingGoalsRow {
         Self {
             user_id: user_id.get() as i64,
             goal_id: goal_id.into(),
-            day: Utc::now().date_naive(),
+            day: jiff::Timestamp::now().to_sqlx(),
             progress: 0,
             target,
         }
@@ -33,7 +33,8 @@ impl GamblingGoalsRow {
     }
 
     pub fn is_today(&self) -> bool {
-        self.day == Utc::now().date_naive()
+        self.day.to_jiff().to_zoned(TimeZone::UTC).date()
+            == jiff::Timestamp::now().to_zoned(TimeZone::UTC).date()
     }
 
     pub fn update_progress(&mut self, value: i64) {

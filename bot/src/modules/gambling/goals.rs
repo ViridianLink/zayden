@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use chrono::NaiveDate;
 use gambling::commands::goals::GoalsRow;
 use gambling::{Commands, GamblingGoalsRow, GoalsManager};
+use jiff_sqlx::Timestamp;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
@@ -43,7 +43,7 @@ impl GoalsManager<Postgres> for GoalsTable {
 
         sqlx::query_as!(
             GamblingGoalsRow,
-            "SELECT user_id, goal_id, day, progress, target FROM gambling_goals WHERE user_id = $1",
+            r#"SELECT user_id, goal_id, day as "day: jiff_sqlx::Timestamp", progress, target FROM gambling_goals WHERE user_id = $1"#,
             id.get() as i64
         )
         .fetch_all(pool)
@@ -68,7 +68,7 @@ impl GoalsManager<Postgres> for GoalsTable {
         let num_rows = rows.len();
         let mut user_ids: Vec<i64> = Vec::with_capacity(num_rows);
         let mut goal_ids: Vec<String> = Vec::with_capacity(num_rows);
-        let mut days: Vec<NaiveDate> = Vec::with_capacity(num_rows);
+        let mut days: Vec<Timestamp> = Vec::with_capacity(num_rows);
         let mut progresses: Vec<i64> = Vec::with_capacity(num_rows);
         let mut targets: Vec<i64> = Vec::with_capacity(num_rows);
 
@@ -82,12 +82,12 @@ impl GoalsManager<Postgres> for GoalsTable {
 
         let rows = sqlx::query_as!(
             GamblingGoalsRow,
-            "INSERT INTO gambling_goals (user_id, goal_id, day, progress, target)
+            r#"INSERT INTO gambling_goals (user_id, goal_id, day, progress, target)
             SELECT * FROM UNNEST($1::bigint[], $2::text[], $3::date[], $4::bigint[], $5::bigint[])
-            RETURNING user_id, goal_id, day, progress, target;",
+            RETURNING user_id, goal_id, day as "day: jiff_sqlx::Timestamp", progress, target;"#,
             &user_ids,
             &goal_ids,
-            &days,
+            &days as &[Timestamp],
             &progresses,
             &targets
         )

@@ -1,3 +1,4 @@
+use jiff::tz::TimeZone;
 use serenity::all::{
     CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
 };
@@ -44,7 +45,7 @@ impl Commands {
         let timestamp = {
             Lotto::cron_job::<Data, Db, GamblingHandler, LottoHandler>()
                 .schedule
-                .upcoming(chrono::Utc)
+                .upcoming(TimeZone::UTC)
                 .next()
                 .unwrap_or_default()
                 .timestamp()

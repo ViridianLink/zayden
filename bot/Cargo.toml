@@ -23,26 +23,26 @@ bungie-api = { workspace = true }
 
 async-trait = { workspace = true }
 bigdecimal = { workspace = true }
-chrono = { workspace = true }
-chrono-tz = { workspace = true }
 dotenvy = { workspace = true }
 futures = { workspace = true, features = ["async-await"] }
+jiff = { workspace = true }
+jiff-sqlx = { workspace = true, features = ["postgres"] }
 rand = { workspace = true, features = ["thread_rng"] }
 serde_json = { workspace = true }
 serenity = { workspace = true, features = [
-    "rustls_backend",
-    "builder",
-    "gateway",
-    "transport_compression_zlib",
-    "transport_compression_zstd",
+  "rustls_backend",
+  "builder",
+  "gateway",
+  "transport_compression_zlib",
+  "transport_compression_zstd",
 ] }
 sqlx = { workspace = true, features = [
-    "macros",
-    "bigdecimal",
-    "chrono",
-    "postgres",
-    "runtime-tokio-rustls",
-    "json",
+  "macros",
+  "bigdecimal",
+  "postgres",
+  "tls-rustls-aws-lc-rs",
+  "runtime-tokio",
+  "json",
 ] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tracing = { workspace = true }

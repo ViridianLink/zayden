@@ -1,7 +1,7 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 
-use chrono_tz::Tz;
+use jiff::tz;
+use jiff::tz::TimeZone;
 use serenity::all::{CommandInteraction, EditInteractionResponse, Http, ResolvedValue};
 use sqlx::{Database, Pool};
 
@@ -22,15 +22,18 @@ impl Command {
             unreachable!("Region is required");
         };
 
-        let tz = Tz::from_str(region).unwrap();
+        let tz = tz::db().get(region).unwrap_or(TimeZone::UTC);
+        let tz_name = tz.iana_name().unwrap_or(region);
 
-        Manager::save(pool, interaction.user.id, tz).await.unwrap();
+        Manager::save(pool, interaction.user.id, tz_name)
+            .await
+            .unwrap();
 
         interaction
             .edit_response(
                 http,
                 EditInteractionResponse::new()
-                    .content(format!("Your timezone has been set to {}", tz.name())),
+                    .content(format!("Your timezone has been set to {tz_name}")),
             )
             .await
             .unwrap();

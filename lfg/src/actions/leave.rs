@@ -63,10 +63,12 @@ pub async fn leave<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, Post
     http: &'a Http,
     interaction: impl Into<LeaveInteraction>,
     pool: &Pool<Db>,
+    user: impl Into<UserId>,
 ) -> Result<(ThreadId, CreateEmbed<'a>)> {
     let interaction = interaction.into();
+    let user = user.into();
 
-    let row = Manager::leave(pool, interaction.thread, interaction.user)
+    let row = Manager::leave(pool, interaction.thread, user)
         .await
         .unwrap();
 
@@ -76,7 +78,7 @@ pub async fn leave<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, Post
         update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread)
             .await;
 
-    Announcement::Left(interaction.user)
+    Announcement::Left(user)
         .send(http, interaction.thread)
         .await;
 

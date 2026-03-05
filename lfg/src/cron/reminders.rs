@@ -1,5 +1,5 @@
-use chrono::{Datelike, Duration, Timelike};
 use futures::future;
+use jiff::{Span, tz::TimeZone};
 use serenity::all::{Colour, Context, CreateEmbed, CreateMessage, Http, Mentionable, ThreadId};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -12,10 +12,11 @@ pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: Post
     row: &PostRow,
 ) {
     let post_id = row.thread();
+    let start_time = row.start_time.to_jiff().to_zoned(TimeZone::UTC);
 
-    let week = row.start_time - Duration::days(7);
-    let day = row.start_time - Duration::hours(24);
-    let mins_30 = row.start_time - Duration::minutes(30);
+    let week = &start_time - Span::new().days(7);
+    let day = &start_time - Span::new().hours(24);
+    let mins_30 = &start_time - Span::new().minutes(30);
 
     let week_job = CronJob::<Db>::new(
         format!("lfg_{post_id}"),
@@ -66,11 +67,11 @@ pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: Post
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
-            row.start_time.minute(),
-            row.start_time.hour(),
-            row.start_time.day(),
-            row.start_time.month(),
-            row.start_time.year()
+            start_time.minute(),
+            start_time.hour(),
+            start_time.day(),
+            start_time.month(),
+            start_time.year()
         ),
     )
     .set_action(move |ctx, pool| async move {
@@ -97,7 +98,7 @@ async fn reminder<Db: Database, Manager: PostManager<Db>>(
         Err(e) => panic!("{e:?}"),
     };
 
-    let timestamp = post.start_time.timestamp();
+    let timestamp = post.start_time.to_jiff();
 
     let embed = CreateEmbed::new()
         .title(format!("{} - <t:{timestamp}>", &post.activity))

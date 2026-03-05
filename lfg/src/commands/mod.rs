@@ -1,6 +1,7 @@
 mod create;
 mod join;
 mod joined;
+mod kick;
 mod leave;
 mod setup;
 mod tags;
@@ -47,6 +48,7 @@ impl Command {
             "join" => Self::join::<Db, PostHandler>(http, interaction, pool, options).await?,
             "leave" => Self::leave::<Db, PostHandler>(http, interaction, pool).await?,
             "joined" => Self::joined::<Db, PostHandler>(http, interaction, pool).await,
+            "kick" => Self::kick::<Db, PostHandler>(http, interaction, pool, options).await?,
             "timezone" => Self::timezone::<Db, TzManager>(http, interaction, pool, options).await?,
             _ => unreachable!("Invalid subcommand"),
         }
@@ -151,6 +153,21 @@ impl Command {
             "View all the posts you have joined",
         );
 
+        let kick = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "kick",
+            "Kick a user from the LFG post",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(CommandOptionType::User, "user", "The user to kick")
+                .required(true),
+        )
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::Channel,
+            "thread",
+            "The LFG thread",
+        ));
+
         let timezone = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "timezone",
@@ -170,6 +187,7 @@ impl Command {
             .add_option(join)
             .add_option(leave)
             .add_option(joined)
+            .add_option(kick)
             .add_option(timezone)
     }
 
@@ -190,11 +208,11 @@ impl Command {
                 .map(|activity| AutocompleteChoice::new(activity.name, activity.name))
                 .collect::<Vec<_>>(),
 
-            "timezone" => chrono_tz::TZ_VARIANTS
-                .iter()
-                .filter(|tz| tz.name().to_lowercase().contains(&opt_value))
+            "timezone" => jiff::tz::db()
+                .available()
+                .filter(|tz| tz.as_str().to_lowercase().contains(&opt_value))
                 .take(25)
-                .map(|tz| AutocompleteChoice::new(tz.name(), tz.name()))
+                .map(|tz| AutocompleteChoice::new(tz.as_str().to_string(), tz.as_str().to_string()))
                 .collect::<Vec<_>>(),
             _ => return Ok(()),
         };

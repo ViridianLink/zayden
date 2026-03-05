@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::work::{WorkManager, WorkRow};
+use jiff_sqlx::Timestamp;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
@@ -20,7 +21,7 @@ impl WorkManager<Postgres> for WorkTable {
 
         sqlx::query_as!(
             WorkRow,
-            "SELECT
+            r#"SELECT
                 g.id,
                 g.coins,
                 g.gems,
@@ -30,12 +31,12 @@ impl WorkManager<Postgres> for WorkTable {
                 
                 COALESCE(m.miners, 0) AS miners,
                 COALESCE(m.prestige, 0) AS prestige,
-                COALESCE(m.mine_activity, now()::TIMESTAMP) AS mine_activity
+                COALESCE(m.mine_activity, now()::TIMESTAMP) AS "mine_activity: jiff_sqlx::Timestamp"
 
                 FROM gambling g
                 LEFT JOIN levels l ON g.id = l.id
                 LEFT JOIN gambling_mine m on g.id = m.id
-                WHERE g.id = $1;",
+                WHERE g.id = $1;"#,
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -64,7 +65,7 @@ impl WorkManager<Postgres> for WorkTable {
             ON CONFLICT (id) DO UPDATE SET
             mine_activity = EXCLUDED.mine_activity;",
             row.id,
-            row.mine_activity,
+            row.mine_activity as Option<Timestamp>,
         )
         .execute(&mut *tx)
         .await?;

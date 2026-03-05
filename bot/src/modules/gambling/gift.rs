@@ -21,11 +21,11 @@ impl GiftManager<Postgres> for GiftTable {
 
         sqlx::query_as!(
             SenderRow,
-            "SELECT
+            r#"SELECT
                 g.id,
                 g.coins,
                 g.gems,
-                g.gift,
+                g.gift as "gift: jiff_sqlx::Timestamp",
 
                 COALESCE(l.level, 0) AS level,
                 
@@ -34,7 +34,7 @@ impl GiftManager<Postgres> for GiftTable {
                 FROM gambling g
                 LEFT JOIN levels l ON g.id = l.id
                 LEFT JOIN gambling_mine m on g.id = m.id
-                WHERE g.id = $1;",
+                WHERE g.id = $1;"#,
             id.get() as i64
         )
         .fetch_optional(pool)

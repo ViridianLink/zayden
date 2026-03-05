@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use jiff::Timestamp;
 use levels::{LevelsRow, level_up_xp};
 use serenity::all::{
     Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
@@ -126,7 +126,7 @@ impl LevelsRow for ProfileRow {
         unimplemented!()
     }
 
-    fn last_xp(&self) -> NaiveDateTime {
+    fn last_xp(&self) -> Timestamp {
         unimplemented!()
     }
 }

@@ -8,17 +8,19 @@ zayden-core = { workspace = true }
 levels = { workspace = true }
 
 async-trait = { workspace = true }
-chrono = { workspace = true }
+jiff = { workspace = true }
+jiff-cron = { workspace = true }
+jiff-sqlx = { workspace = true }
 futures = { workspace = true }
 rand = { workspace = true }
 rand_distr = { workspace = true }
 regex = { workspace = true, features = ["unicode-perl"] }
 serde = { workspace = true }
 serenity = { workspace = true, features = [
-    "rustls_backend",
-    "builder",
-    "gateway",
-    "collector",
+  "rustls_backend",
+  "builder",
+  "gateway",
+  "collector",
 
 ] }
 sqlx = { workspace = true, features = ["json"] }

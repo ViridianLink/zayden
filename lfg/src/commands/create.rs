@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::Utc;
+use jiff::Timestamp;
 use serenity::all::{
     CommandInteraction, CreateInteractionResponse, CreateModal, Http, ResolvedValue,
 };
@@ -30,7 +30,7 @@ impl Command {
         let timezone = Manager::get(pool, interaction.user.id, &interaction.locale)
             .await
             .unwrap();
-        let now = Utc::now().with_timezone(&timezone);
+        let now = Timestamp::now().to_zoned(timezone);
 
         let fireteam_size = match ACTIVITIES.iter().find(|a| a.name == activity) {
             Some(activity) => activity.fireteam_size,

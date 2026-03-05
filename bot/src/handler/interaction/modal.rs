@@ -3,7 +3,7 @@ use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketModal;
 use tracing::info;
-use zayden_core::parse_text_components;
+use zayden_core::parse_modal_components;
 
 use crate::modules::lfg::{PostTable, UsersTable};
 use crate::modules::ticket::TicketTable;
@@ -16,7 +16,7 @@ impl Handler {
         interaction: &ModalInteraction,
         pool: &PgPool,
     ) -> Result<()> {
-        let inputs = parse_text_components(&interaction.data.components);
+        let inputs = parse_modal_components(interaction.data.components.as_slice());
 
         info!(
             "{} ran modal: {} {:?}",

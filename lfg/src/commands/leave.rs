@@ -13,9 +13,10 @@ impl Command {
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await.unwrap();
 
-        let (thread, embed) = actions::leave::<Db, Manager>(http, interaction, pool)
-            .await
-            .unwrap();
+        let (thread, embed) =
+            actions::leave::<Db, Manager>(http, interaction, pool, &interaction.user)
+                .await
+                .unwrap();
 
         thread
             .widen()

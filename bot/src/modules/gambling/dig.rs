@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::dig::{DigManager, DigRow};
+use jiff_sqlx::Timestamp;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
@@ -20,7 +21,7 @@ impl DigManager<Postgres> for DigTable {
 
         sqlx::query_as!(
             DigRow,
-            "SELECT
+            r#"SELECT
                 g.id,
                 g.coins,
                 g.gems,
@@ -37,12 +38,12 @@ impl DigManager<Postgres> for DigTable {
                 COALESCE(m.diamonds, 0) AS diamonds,
                 COALESCE(m.emeralds, 0) AS emeralds,
                 COALESCE(m.prestige, 0) AS prestige,
-                COALESCE(m.mine_activity, now()::TIMESTAMP) AS mine_activity
+                COALESCE(m.mine_activity, now()::TIMESTAMP) AS "mine_activity: jiff_sqlx::Timestamp"
                 
             FROM gambling g
             LEFT JOIN levels l ON g.id = l.id
             LEFT JOIN gambling_mine m ON g.id = m.id
-            WHERE g.id = $1;",
+            WHERE g.id = $1;"#,
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -87,7 +88,7 @@ impl DigManager<Postgres> for DigTable {
             row.lapis,
             row.diamonds,
             row.emeralds,
-            row.mine_activity
+            row.mine_activity as Option<Timestamp>
         )
         .execute(&mut *tx)
         .await?;

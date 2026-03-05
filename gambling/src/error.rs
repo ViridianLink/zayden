@@ -1,3 +1,4 @@
+use jiff::Timestamp;
 use zayden_core::Error as ZaydenError;
 use zayden_core::FormatNum;
 
@@ -19,7 +20,7 @@ pub enum Error {
     MaximumBetAmount(i64),
     MaximumSendAmount(i64),
     DailyClaimed(i64),
-    OutOfStamina(i64),
+    OutOfStamina(Timestamp),
     GiftUsed(i64),
     SelfGift,
     SelfSend,

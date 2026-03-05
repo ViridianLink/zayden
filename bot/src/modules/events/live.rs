@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::{Duration, Utc};
+use jiff::{Span, Timestamp};
 use serenity::all::{
     CommandInteraction, Context, CreateCommand, CreateScheduledEvent, EditInteractionResponse,
     Permissions, ResolvedOption, ScheduledEventType,
@@ -30,7 +30,10 @@ impl ApplicationCommand<Error, Postgres> for Live {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await.unwrap();
 
-        let now = Utc::now();
+        let now = Timestamp::now();
+
+        let in_one_min = now + Span::new().minutes(1);
+        let in_seven_hours = now + Span::new().hours(7);
 
         interaction
             .guild_id
@@ -40,10 +43,14 @@ impl ApplicationCommand<Error, Postgres> for Live {
                 CreateScheduledEvent::new(
                     ScheduledEventType::External,
                     "Brad is LIVE",
-                    now + Duration::minutes(1),
+                    serenity::all::Timestamp::from_unix_timestamp(in_one_min.as_second())
+                        .expect("Timestamp should be in bounds"),
                 )
                 .location("https://www.twitch.tv/bradleythebradster")
-                .end_time(now + Duration::hours(7)),
+                .end_time(
+                    serenity::all::Timestamp::from_unix_timestamp(in_seven_hours.as_second())
+                        .expect("Timestamp should be in bounds"),
+                ),
             )
             .await
             .unwrap();

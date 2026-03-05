@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use chrono::{NaiveDate, Utc};
+use jiff::tz::TimeZone;
+use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{
     Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
@@ -33,7 +34,7 @@ pub struct SenderRow {
     pub id: i64,
     pub coins: i64,
     pub gems: i64,
-    pub gift: NaiveDate,
+    pub gift: Timestamp,
     pub level: Option<i32>,
     pub prestige: Option<i64>,
 }
@@ -46,7 +47,7 @@ impl SenderRow {
             id: id.get() as i64,
             coins: 0,
             gems: 0,
-            gift: NaiveDate::default(),
+            gift: jiff::Timestamp::default().to_sqlx(),
             level: Some(0),
             prestige: Some(0),
         }
@@ -140,10 +141,10 @@ impl Commands {
             .unwrap()
             .unwrap_or_else(|| SenderRow::new(interaction.user.id));
 
-        let now = Utc::now();
+        let now = jiff::Timestamp::now().to_zoned(TimeZone::UTC);
 
-        if user_row.gift == now.naive_utc().date() {
-            return Err(Error::GiftUsed(tomorrow(Some(now))));
+        if user_row.gift.to_jiff().to_zoned(TimeZone::UTC).date() == now.date() {
+            return Err(Error::GiftUsed(tomorrow(Some(now.timestamp()))));
         }
 
         let amount = GIFT_AMOUNT * (user_row.prestige() + 1);

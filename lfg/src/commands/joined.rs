@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use jiff_sqlx::Timestamp;
 use serenity::all::{
     ChannelId, CommandInteraction, CreateEmbed, EditInteractionResponse, Http, Mentionable, UserId,
 };
@@ -19,7 +19,7 @@ pub trait JoinedManager<Db: Database> {
 pub struct JoinedRow {
     pub id: i64,
     pub activity: String,
-    pub start_time: DateTime<Utc>,
+    pub start_time: Timestamp,
     pub fireteam: Vec<i64>,
 }
 
@@ -32,8 +32,8 @@ impl JoinedRow {
         &self.activity
     }
 
-    pub fn timestamp(&self) -> i64 {
-        self.start_time.timestamp()
+    pub fn timestamp(&self) -> jiff::Timestamp {
+        self.start_time.to_jiff()
     }
 
     pub fn fireteam(&self) -> impl Iterator<Item = UserId> {

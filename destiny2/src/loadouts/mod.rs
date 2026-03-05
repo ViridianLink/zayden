@@ -6,7 +6,7 @@ use serenity::all::{
     CreateInteractionResponse, CreateInteractionResponseMessage, CreateSection,
     CreateSectionAccessory, CreateSectionComponent, CreateSeparator, CreateTextDisplay,
     CreateThumbnail, CreateUnfurledMediaItem, EmojiId, MessageFlags, ResolvedOption, ResolvedValue,
-    Spacing,
+    SeparatorSpacingSize,
 };
 
 mod arc_hunter;
@@ -228,7 +228,7 @@ impl<'a> Loadout<'a> {
             self.class, self.subclass.abilities.super_, self.name
         )));
 
-        let line_sep = CreateContainerComponent::Separator(CreateSeparator::new(true));
+        let line_sep = CreateContainerComponent::Separator(CreateSeparator::new().divider(true));
 
         let dim_link = CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
             CreateButton::new_link(self.details.dim_link)
@@ -363,7 +363,7 @@ impl<'a> Loadout<'a> {
         ]);
         components.extend(weapons.unwrap());
         components.push(CreateContainerComponent::Separator(
-            CreateSeparator::new(false).spacing(Spacing::Large),
+            CreateSeparator::new().spacing(SeparatorSpacingSize::Large),
         ));
         components.extend(armour.unwrap());
         components.push(misc);

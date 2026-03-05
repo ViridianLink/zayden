@@ -4,15 +4,14 @@ pub use create::{Create, GuildManager};
 pub mod edit;
 pub use edit::Edit;
 
-use chrono::{DateTime, NaiveDateTime, TimeZone};
-use chrono_tz::Tz;
+use jiff::{Zoned, tz::TimeZone};
 use serenity::all::{CreateInputText, CreateLabel, CreateModalComponent, InputTextStyle};
 
 use crate::{Error, Result};
 
 pub fn modal_components<'a>(
     activity: &'a str,
-    start_time: DateTime<Tz>,
+    start_time: Zoned,
     fireteam_size: i16,
     description: Option<&'a str>,
 ) -> Vec<CreateModalComponent<'a>> {
@@ -25,14 +24,14 @@ pub fn modal_components<'a>(
 
     let activity = CreateInputText::new(InputTextStyle::Short, "activity").value(activity);
     let start_time_input = CreateInputText::new(InputTextStyle::Short, "start_time")
-        .value(format!("{}", start_time.format("%Y-%m-%d %H:%M")));
+        .value(format!("{}", start_time.strftime("%Y-%m-%d %H:%M")));
     let fireteam_size = CreateInputText::new(InputTextStyle::Short, "fireteam_size")
         .value(fireteam_size.to_string());
 
     vec![
         CreateModalComponent::Label(CreateLabel::input_text("Activity", activity)),
         CreateModalComponent::Label(CreateLabel::input_text(
-            format!("Start Time ({})", start_time.format("%Z")),
+            format!("Start Time ({})", start_time.strftime("%Z")),
             start_time_input,
         )),
         CreateModalComponent::Label(CreateLabel::input_text("Fireteam Size", fireteam_size)),
@@ -40,14 +39,14 @@ pub fn modal_components<'a>(
     ]
 }
 
-fn start_time(timezone: Tz, start_time_str: &str) -> Result<DateTime<Tz>> {
-    let naive_dt = NaiveDateTime::parse_from_str(start_time_str, "%Y-%m-%d %H:%M")
+fn start_time(timezone: TimeZone, start_time_str: &str) -> Result<Zoned> {
+    let naive_dt = jiff::fmt::strtime::parse("%Y-%m-%d %H:%M", start_time_str)
+        .and_then(|bdt| bdt.to_datetime())
         .map_err(|_| Error::InvalidDateTime("YYYY-MM-DD HH:MM".to_string()))?;
 
-    let st = timezone
-        .from_local_datetime(&naive_dt)
-        .single()
-        .expect("Invalid date time");
+    let st = naive_dt
+        .to_zoned(timezone)
+        .map_err(|_| Error::InvalidDateTime("Date invalid in this timezone".to_string()))?;
 
     Ok(st)
 }

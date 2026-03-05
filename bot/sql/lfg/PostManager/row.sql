@@ -2,7 +2,7 @@ SELECT
     p.id,
     p.owner,
     p.activity,
-    p.start_time,
+    p.start_time as "start_time: jiff_sqlx::Timestamp",
     p.description,
     p.fireteam_size,
     COALESCE(

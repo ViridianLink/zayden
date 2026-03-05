@@ -57,7 +57,9 @@ impl KickComponent {
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        let (_, embed) = actions::leave::<Db, Manager>(http, interaction, pool)
+        todo!("Parse kick component");
+
+        let (_, embed) = actions::leave::<Db, Manager>(http, interaction, pool, &interaction.user)
             .await
             .unwrap();
 

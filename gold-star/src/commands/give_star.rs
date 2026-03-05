@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use jiff::{Span, Timestamp};
 use serenity::all::{
     CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
     EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue,
@@ -37,12 +37,16 @@ impl GiveStar {
             None => GoldStarRow::new(target_user.id),
         };
 
-        let next_free_star = author_row.last_free_star + Duration::hours(24);
+        let next_free_star = author_row
+            .last_free_star
+            .to_jiff()
+            .checked_add(Span::new().hours(24))
+            .expect("Timestamp should be within legal range");
 
-        let free_star = next_free_star <= Utc::now();
+        let free_star = next_free_star <= Timestamp::now();
 
         if author_row.number_of_stars < 1 && !free_star {
-            return Err(Error::NoStars(next_free_star.timestamp()));
+            return Err(Error::NoStars(next_free_star.as_second()));
         }
 
         if free_star {

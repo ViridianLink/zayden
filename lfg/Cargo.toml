@@ -7,10 +7,10 @@ edition = "2024"
 zayden-core = { workspace = true }
 
 async-trait = { workspace = true }
-chrono = { workspace = true }
-chrono-tz = { workspace = true }
+jiff = { workspace = true }
+jiff-sqlx = { workspace = true }
 futures = { workspace = true }
-serenity = { workspace = true, features = ["chrono"] }
+serenity = { workspace = true }
 sqlx = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

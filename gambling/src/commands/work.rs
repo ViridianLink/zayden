@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::{NaiveDateTime, Utc};
+use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{
     Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
     UserId,
@@ -26,7 +26,7 @@ pub struct WorkRow {
     pub level: Option<i32>,
     pub miners: Option<i64>,
     pub prestige: Option<i64>,
-    pub mine_activity: Option<NaiveDateTime>,
+    pub mine_activity: Option<Timestamp>,
 }
 
 impl WorkRow {
@@ -41,7 +41,7 @@ impl WorkRow {
             level: Some(0),
             miners: Some(0),
             prestige: Some(0),
-            mine_activity: Some(Utc::now().naive_utc()),
+            mine_activity: Some(jiff::Timestamp::now().to_sqlx()),
         }
     }
 }
@@ -89,8 +89,10 @@ impl MineHourly for WorkRow {
 }
 
 impl MineAmount for WorkRow {
-    fn mine_activity(&self) -> NaiveDateTime {
-        self.mine_activity.unwrap_or_else(|| Utc::now().naive_utc())
+    fn mine_activity(&self) -> jiff::Timestamp {
+        self.mine_activity
+            .map(|t| t.to_jiff())
+            .unwrap_or_else(|| jiff::Timestamp::now())
     }
 }
 
@@ -158,7 +160,7 @@ impl Commands {
             .await?;
 
         row.done_work();
-        row.mine_activity = Some(Utc::now().naive_utc());
+        row.mine_activity = Some(jiff::Timestamp::now().to_sqlx());
 
         let stamina = row.stamina_str();
 

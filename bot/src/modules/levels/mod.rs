@@ -77,7 +77,7 @@ impl LevelsManager<Postgres> for LevelsTable {
 
         sqlx::query_as!(
             FullLevelRow,
-            "SELECT * FROM levels WHERE id = $1",
+            r#"SELECT id, xp, level, total_xp, message_count, last_xp as "last_xp: jiff_sqlx::Timestamp" FROM levels WHERE id = $1"#,
             id.get() as i64
         )
         .fetch_optional(pool)

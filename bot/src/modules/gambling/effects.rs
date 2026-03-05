@@ -21,7 +21,7 @@ impl EffectsManager<Postgres> for EffectsTable {
 
         sqlx::query_as!(
             EffectsRow,
-            "SELECT DISTINCT ON (item_id) id, item_id, expiry FROM gambling_effects WHERE user_id = $1",
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1"#,
             user_id.get() as i64,
         )
         .fetch(conn).map_ok(|row| (row.item_id, row.id)).try_collect()
@@ -37,7 +37,7 @@ impl EffectsManager<Postgres> for EffectsTable {
 
         sqlx::query_as!(
             EffectsRow,
-            "SELECT DISTINCT ON (item_id) id, item_id, expiry FROM gambling_effects WHERE user_id = $1 AND item_id = $2",
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1 AND item_id = $2"#,
             user_id.get() as i64,
             effect
         )

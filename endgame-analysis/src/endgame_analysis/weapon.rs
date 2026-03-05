@@ -9,55 +9,6 @@ use serenity::all::{AutocompleteChoice, CreateEmbed, CreateEmbedAuthor, CreateEm
 
 use super::{Affinity, Frame, Tier};
 
-// const IDEAL_SHOTGUN_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::BarrelShroud,
-//     column_2: Column2::TacticalMag,
-// };
-// const IDEAL_SNIPER_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::FlutedBarrel,
-//     column_2: Column2::TacticalMag,
-// };
-// const IDEAL_FUSION_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::FlutedBarrel,
-//     column_2: Column2::AcceleratedCoils,
-// };
-// const IDEAL_BGL_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::QuickLaunch,
-//     column_2: Column2::SpikeGrenades,
-// };
-// const IDEAL_GLAIVE_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::None,
-//     column_2: Column2::None,
-// };
-// const IDEAL_TRACE_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::Fluted Barrel,
-//     column_2: Column2::Light Battery,
-// };
-// const IDEAL_ROCKET_SIDEARM_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::VolatileLaunch,
-//     column_2: Column2::HighExplosiveOrdnance,
-// };
-// const IDEAL_LMG_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::FlutedBarrel,
-//     column_2: Column2::ExtendedMag,
-// };
-// const IDEAL_HGL_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::QuickLaunch,
-//     column_2: Column2::SpikeGrenades,
-// };
-// const IDEAL_SWORD_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::JaggedEdge,
-//     column_2: Column2::SwordmastersGuard,
-// };
-// const IDEAL_ROCKET_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::QuickLaunch,
-//     column_2: Column2::ImpactCasing,
-// };
-// const IDEAL_LFR_COLUMN: IdealWeaponColumns = IdealWeaponColumns {
-//     column_1: Column1::FlutedBarrel,
-//     column_2: Column2::AcceleratedCoils,
-// };
-
 #[derive(Default)]
 pub struct WeaponBuilder {
     pub name: String,
@@ -67,8 +18,10 @@ pub struct WeaponBuilder {
     pub enhanceable: bool,
     pub shield: Option<u8>,
     pub reserves: Option<u16>,
-    pub column_1: String,
-    pub column_2: String,
+    pub barrel: String,
+    pub magazine: String,
+    pub perk_1: String,
+    pub perk_2: String,
     pub origin_trait: String,
     pub rank: u8,
     pub tier: Tier,
@@ -131,13 +84,23 @@ impl WeaponBuilder {
         self
     }
 
-    pub fn column_1(mut self, column_1: impl Into<String>) -> Self {
-        self.column_1 = column_1.into();
+    pub fn barrel(mut self, barrel: impl Into<String>) -> Self {
+        self.barrel = barrel.into();
         self
     }
 
-    pub fn column_2(mut self, column_2: impl Into<String>) -> Self {
-        self.column_2 = column_2.into();
+    pub fn magazine(mut self, magazine: impl Into<String>) -> Self {
+        self.magazine = magazine.into();
+        self
+    }
+
+    pub fn perk_1(mut self, column_1: impl Into<String>) -> Self {
+        self.perk_1 = column_1.into();
+        self
+    }
+
+    pub fn perk_2(mut self, column_2: impl Into<String>) -> Self {
+        self.perk_2 = column_2.into();
         self
     }
 
@@ -224,8 +187,36 @@ impl WeaponBuilder {
             )
             .shield(shield)
             .reserves(reserves)
-            .column_1(data.remove("column 1").unwrap().formatted_value.unwrap())
-            .column_2(data.remove("column 2").unwrap().formatted_value.unwrap())
+            .barrel(
+                data.remove("barrel")
+                    .expect("'barrel' should exist on data")
+                    .formatted_value
+                    .unwrap_or_default(),
+            )
+            .magazine(
+                data.remove("mag")
+                    .expect("'mag' should exist on data")
+                    .formatted_value
+                    .unwrap_or_default(),
+            )
+            .perk_1(
+                data.remove("column 1")
+                    .unwrap_or_else(|| {
+                        data.remove("perk 1")
+                            .expect("Data should contain either 'perk' or 'column' headers")
+                    })
+                    .formatted_value
+                    .unwrap(),
+            )
+            .perk_2(
+                data.remove("column 2")
+                    .unwrap_or_else(|| {
+                        data.remove("perk 2")
+                            .expect("Data should contain either 'perk' or 'column' headers")
+                    })
+                    .formatted_value
+                    .unwrap(),
+            )
             .origin_trait(
                 data.remove("origin trait")
                     .unwrap()
@@ -256,11 +247,15 @@ impl WeaponBuilder {
             name: self.name,
             archetype: self.archetype,
             affinity: self.affinity.parse().unwrap(),
-            frame: self.frame.map(|f| f.parse().unwrap()),
+            frame: self
+                .frame
+                .map(|f| f.parse().expect("Failed to parse weapon frame")),
             enhanceable: self.enhanceable,
             reserves: self.reserves,
-            column_1: self.column_1,
-            column_2: self.column_2,
+            barrel: self.barrel,
+            magazine: self.magazine,
+            perk_1: self.perk_1,
+            perk_2: self.perk_2,
             origin_trait: self.origin_trait,
             rank: self.rank,
             tier: self.tier,
@@ -278,8 +273,10 @@ pub struct Weapon {
     pub frame: Option<Frame>,
     pub enhanceable: bool,
     pub reserves: Option<u16>,
-    column_1: String,
-    column_2: String,
+    pub barrel: String,
+    pub magazine: String,
+    pub perk_1: String,
+    pub perk_2: String,
     pub origin_trait: String,
     pub rank: u8,
     pub tier: Tier,
@@ -287,6 +284,12 @@ pub struct Weapon {
 }
 
 impl Weapon {
+    pub fn icon(&self) -> Option<String> {
+        self.icon
+            .as_deref()
+            .map(|icon| format!("https://www.bungie.net{icon}"))
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -296,10 +299,12 @@ impl Weapon {
     }
 
     pub fn perks(&self) -> Perks<'_> {
-        let column_1 = self.column_1.split('\n').collect::<Vec<_>>();
-        let column_2 = self.column_2.split('\n').collect::<Vec<_>>();
+        let barrel = self.barrel.split('\n').collect();
+        let mag = self.magazine.split('\n').collect();
+        let perk_1 = self.perk_1.split('\n').collect::<Vec<_>>();
+        let perk_2 = self.perk_2.split('\n').collect::<Vec<_>>();
 
-        Perks([column_1, column_2])
+        Perks([barrel, mag, perk_1, perk_2])
     }
 
     pub fn origin_trait(&self) -> &str {
@@ -479,26 +484,37 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
             .footer(CreateEmbedFooter::new("From 'Destiny 2: Endgame Analysis'"))
             .colour(value.tier.colour)
             .description(description)
-            .fields(
-                value
-                    .perks()
+            .fields(value.perks().iter().enumerate().flat_map(|(i, p)| {
+                let title = match i {
+                    0 => "Barrel",
+                    1 => "Mag",
+                    2 => "Perk 1",
+                    3 => "Perk 2",
+                    _ => "Perk", // Fallback for unexpected indices
+                };
+
+                let content = p
                     .iter()
                     .enumerate()
-                    .map(|(i, p)| (i + 1, p))
-                    .map(|(i, p)| {
-                        (
-                            i,
-                            p.iter()
-                                .enumerate()
-                                .map(|(i, line)| format!("{}. {}", i + 1, line))
-                                .collect::<Vec<_>>(),
-                        )
-                    })
-                    .map(|(i, p)| (format!("Perk {i}"), p.join("\n"), true)),
-            )
+                    .map(|(j, line)| format!("{}. {}", j + 1, line))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                let field = (title, content, true);
+
+                if (i + 1) % 2 == 0 {
+                    vec![
+                        field,
+                        // Name/Value: Zero Width Space
+                        ("\u{200b}", "\u{200b}".to_string(), true),
+                    ]
+                } else {
+                    vec![field]
+                }
+            }))
             .field("Origin Trait", value.origin_trait(), false);
 
-        if let Some(icon) = value.icon.as_deref() {
+        if let Some(icon) = value.icon() {
             embed = embed.thumbnail(icon);
         }
 
@@ -519,10 +535,10 @@ impl From<Weapon> for AutocompleteChoice<'_> {
     }
 }
 
-pub struct Perks<'a>([Vec<&'a str>; 2]);
+pub struct Perks<'a>([Vec<&'a str>; 4]);
 
 impl<'a> Deref for Perks<'a> {
-    type Target = [Vec<&'a str>; 2];
+    type Target = [Vec<&'a str>; 4];
 
     fn deref(&self) -> &Self::Target {
         &self.0

@@ -113,6 +113,8 @@ impl Create {
             Err(e) => panic!("Unhandled error: {e}"),
         };
 
+        let str_time = start_time.strftime("%d %b %H:%M %Z");
+
         let mut post = PostBuilder::new(
             interaction.user.id,
             activity.to_string(),
@@ -155,7 +157,7 @@ impl Create {
             .create_forum_post(
                 &ctx.http,
                 CreateForumPost::new(
-                    format!("{} - {}", activity, start_time.format("%d %b %H:%M %Z")),
+                    format!("{} - {}", activity, str_time),
                     CreateMessage::new()
                         .embed(embed)
                         .components(vec![CreateComponent::ActionRow(row)]),

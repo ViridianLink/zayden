@@ -7,6 +7,7 @@ edition = "2021"
 zayden-core = { workspace = true }
 
 async-trait = { workspace = true }
-chrono = { workspace = true }
+jiff = { workspace = true }
+jiff-sqlx = { workspace = true }
 serenity = { workspace = true }
 sqlx = { workspace = true }

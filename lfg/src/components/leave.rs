@@ -13,7 +13,8 @@ impl Components {
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        let (_, embed) = actions::leave::<Db, Manager>(http, interaction, pool).await?;
+        let (_, embed) =
+            actions::leave::<Db, Manager>(http, interaction, pool, &interaction.user).await?;
 
         interaction
             .edit_response(http, EditInteractionResponse::new().embed(embed))

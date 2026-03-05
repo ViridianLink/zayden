@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
+use jiff::Zoned;
+use jiff::tz::TimeZone;
+use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{GenericChannelId, MessageId, ThreadId, UserId};
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
@@ -12,7 +13,7 @@ pub struct PostBuilder {
     id: ThreadId,
     owner: UserId,
     activity: String,
-    start_time: DateTime<Tz>,
+    start_time: Zoned,
     description: String,
     fireteam_size: i16,
     fireteam: Vec<UserId>,
@@ -25,7 +26,7 @@ impl PostBuilder {
     pub fn new(
         owner: impl Into<UserId>,
         activity: impl Into<String>,
-        start: DateTime<Tz>,
+        start: Zoned,
         desc: impl Into<String>,
         fireteam_size: i16,
     ) -> Self {
@@ -65,7 +66,7 @@ impl PostBuilder {
         self
     }
 
-    pub fn start(mut self, start: DateTime<Tz>) -> Self {
+    pub fn start(mut self, start: Zoned) -> Self {
         self.start_time = start;
         self
     }
@@ -85,7 +86,7 @@ impl PostBuilder {
             id: self.id.get() as i64,
             owner: self.owner.get() as i64,
             activity: self.activity,
-            start_time: self.start_time.with_timezone(&Utc),
+            start_time: self.start_time.timestamp().to_sqlx(),
             description: self.description,
             fireteam_size: self.fireteam_size,
             fireteam: self
@@ -109,7 +110,7 @@ impl TemplateInfo for PostBuilder {
         &self.activity
     }
 
-    fn timestamp(&self) -> i64 {
+    fn timestamp(&self) -> jiff::Timestamp {
         self.start_time.timestamp()
     }
 
@@ -144,7 +145,7 @@ impl From<PostRow> for PostBuilder {
             id: ThreadId::new(value.id as u64),
             owner: UserId::new(value.owner as u64),
             activity: value.activity,
-            start_time: value.start_time.with_timezone(&Tz::UTC),
+            start_time: value.start_time.to_jiff().to_zoned(TimeZone::UTC),
             description: value.description,
             fireteam_size: value.fireteam_size,
             fireteam: value
@@ -199,7 +200,7 @@ pub struct PostRow {
     pub id: i64,
     pub owner: i64,
     pub activity: String,
-    pub start_time: DateTime<Utc>,
+    pub start_time: Timestamp,
     pub description: String,
     pub fireteam_size: i16,
     pub fireteam: Vec<i64>,
@@ -245,8 +246,8 @@ impl TemplateInfo for PostRow {
         &self.activity
     }
 
-    fn timestamp(&self) -> i64 {
-        self.start_time.timestamp()
+    fn timestamp(&self) -> jiff::Timestamp {
+        self.start_time.to_jiff()
     }
 
     fn description(&self) -> &str {

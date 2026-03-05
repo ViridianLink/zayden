@@ -6,7 +6,7 @@ use serenity::all::{
 pub trait TemplateInfo {
     fn activity(&self) -> &str;
 
-    fn timestamp(&self) -> i64;
+    fn timestamp(&self) -> jiff::Timestamp;
 
     fn description(&self) -> &str;
 

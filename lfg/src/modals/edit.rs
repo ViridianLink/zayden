@@ -81,6 +81,8 @@ impl Edit {
             Err(e) => panic!("Unhandled error: {e}"),
         };
 
+        let str_time = start_time.strftime("%d %b %H:%M %Z");
+
         let post = PostBuilder::from(Manager::row(pool, interaction.channel_id).await.unwrap())
             .activity(activity.to_string())
             .fireteam_size(fireteam_size)
@@ -95,11 +97,7 @@ impl Edit {
         match thread
             .edit(
                 &ctx.http,
-                EditThread::new().name(format!(
-                    "{} - {}",
-                    activity,
-                    start_time.format("%d %b %H:%M %Z")
-                )),
+                EditThread::new().name(format!("{} - {}", activity, str_time)),
             )
             .await
         {

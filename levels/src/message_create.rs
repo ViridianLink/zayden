@@ -1,4 +1,4 @@
-use chrono::{TimeDelta, Utc};
+use jiff::{Span, Timestamp};
 use serenity::all::Message;
 use sqlx::{Database, Pool};
 
@@ -17,9 +17,12 @@ pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
         .unwrap()
         .unwrap_or_else(|| FullLevelRow::new(message.author.id));
 
-    let xp_cooldown = row.last_xp() + TimeDelta::minutes(1);
+    let xp_cooldown = row
+        .last_xp()
+        .checked_add(Span::new().minutes(1))
+        .expect("Timestamp should be within legal range");
 
-    if xp_cooldown > Utc::now().naive_utc() {
+    if xp_cooldown > Timestamp::now() {
         return None;
     }
 

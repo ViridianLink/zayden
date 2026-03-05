@@ -86,7 +86,7 @@ impl<'a> From<EncounterGuide<'a>> for CreateComponent<'a> {
         };
 
         let top_text = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(content));
-        let seperator = CreateContainerComponent::Separator(CreateSeparator::new(true));
+        let seperator = CreateContainerComponent::Separator(CreateSeparator::new().divider(true));
         let guide = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(value.guide));
 
         let weapons_heading =

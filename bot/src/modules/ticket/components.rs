@@ -20,6 +20,7 @@ impl Ticket {
                             CreateSelectMenuOption::new("Complaint", "complaint"),
                             CreateSelectMenuOption::new("General question", "general_question"),
                             CreateSelectMenuOption::new("Role Application", "role_application"),
+                            CreateSelectMenuOption::new("Suggestion", "suggestion"),
                         ]
                         .into(),
                     },

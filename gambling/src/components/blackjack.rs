@@ -1,7 +1,7 @@
 use serenity::all::{
     Colour, Component, ComponentInteraction, ContainerComponent, Context, CreateActionRow,
     CreateComponent, CreateContainer, CreateContainerComponent, CreateInteractionResponse,
-    CreateInteractionResponseMessage, CreateTextDisplay, MessageFlags, TextDisplay,
+    CreateInteractionResponseMessage, CreateTextDisplay, MessageFlags,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -37,9 +37,7 @@ impl Blackjack {
             data.emojis()
         };
 
-        let text = text(interaction);
-
-        let mut game = GameDetails::from_str(&emojis, text.expect("Text should be present"));
+        let mut game = GameDetails::from_str(&emojis, text(interaction));
 
         game.add_card();
 
@@ -107,15 +105,12 @@ impl Blackjack {
             data.emojis()
         };
 
-        let text = text(interaction);
-        unimplemented!("text broken in latest update");
-
         game_end::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx,
             interaction,
             pool,
             &emojis,
-            GameDetails::from_str(&emojis, "&text.content"),
+            GameDetails::from_str(&emojis, text(interaction)),
         )
         .await;
 
@@ -140,9 +135,7 @@ impl Blackjack {
             data.emojis()
         };
 
-        let text = text(interaction);
-
-        let mut game = GameDetails::from_str(&emojis, text.expect("Text should be present"));
+        let mut game = GameDetails::from_str(&emojis, text(interaction));
 
         GamblingHandler::bet(pool, interaction.user.id, game.bet())
             .await
@@ -195,9 +188,7 @@ impl Blackjack {
             data.emojis()
         };
 
-        let text = text(interaction);
-
-        let mut game = GameDetails::from_str(&emojis, text.expect("Text should be present"));
+        let mut game = GameDetails::from_str(&emojis, text(interaction));
 
         let player_value = game.player_value(&emojis);
 
@@ -279,7 +270,7 @@ impl Blackjack {
     }
 }
 
-fn text(interaction: &ComponentInteraction) -> Option<&str> {
+fn text(interaction: &ComponentInteraction) -> &str {
     let Some(Component::Container(container)) = interaction.message.as_ref().components.first()
     else {
         unreachable!("Message must have a container component")
@@ -289,7 +280,7 @@ fn text(interaction: &ComponentInteraction) -> Option<&str> {
         unreachable!("First component must be text")
     };
 
-    text.content.as_deref()
+    text.content.as_str()
 }
 
 async fn game_end<

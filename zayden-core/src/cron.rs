@@ -3,7 +3,7 @@ use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use cron::Schedule;
+use jiff_cron::Schedule;
 use serenity::all::Context;
 use sqlx::{Database, Pool};
 

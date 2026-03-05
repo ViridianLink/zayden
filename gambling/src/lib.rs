@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::OnceLock};
 
-use chrono::{DateTime, Days, NaiveTime, Utc};
+use jiff::{Timestamp, tz::TimeZone};
 use serenity::all::{EmojiId, Http, UserId};
 
 pub mod commands;
@@ -78,13 +78,17 @@ pub async fn bot_id(http: &Http) -> UserId {
         .unwrap()
 }
 
-fn tomorrow(now: Option<DateTime<Utc>>) -> i64 {
-    now.unwrap_or_else(Utc::now)
-        .checked_add_days(Days::new(1))
-        .unwrap()
-        .with_time(NaiveTime::MIN)
-        .unwrap()
+fn tomorrow(now: Option<Timestamp>) -> i64 {
+    now.unwrap_or_else(Timestamp::now)
+        .to_zoned(TimeZone::UTC)
+        .date()
+        .tomorrow()
+        .expect("Date should be within bounds")
+        .at(0, 0, 0, 0)
+        .to_zoned(TimeZone::UTC)
+        .expect("UTC timezone mapping should be infallible")
         .timestamp()
+        .as_second()
 }
 
 pub struct Leaderboard;

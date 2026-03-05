@@ -33,6 +33,7 @@ pub enum Frame {
     BalancedHeat(u16),
     DynamicHeat(u16),
     Disruption,
+    ShotPackage,
 }
 
 impl FromStr for Frame {
@@ -74,6 +75,7 @@ impl FromStr for Frame {
             "Dynamic (360RPM)" => Ok(Frame::DynamicHeat(360)),
             "Dynamic (540RPM)" => Ok(Frame::DynamicHeat(540)),
             "Disruption" => Ok(Frame::Disruption),
+            "Shot Package" => Ok(Frame::ShotPackage),
             _ => {
                 error!("Failed to parse: '{s}'");
                 Err(())
@@ -113,6 +115,7 @@ impl fmt::Display for Frame {
             Frame::BalancedHeat(rpm) => write!(f, "Balanced Heat ({rpm}RPM)"),
             Frame::DynamicHeat(rpm) => write!(f, "Dynamic Heat ({rpm}RPM)"),
             Frame::Disruption => write!(f, "Disruption"),
+            Frame::ShotPackage => write!(f, "Shot Package"),
         }
     }
 }

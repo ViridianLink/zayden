@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::UserId;
 use sqlx::{prelude::FromRow, Database, Pool};
 
@@ -44,7 +44,7 @@ pub trait LevelsRow {
 
     fn message_count(&self) -> i64;
 
-    fn last_xp(&self) -> NaiveDateTime;
+    fn last_xp(&self) -> jiff::Timestamp;
 }
 
 #[derive(FromRow)]
@@ -76,7 +76,7 @@ impl LevelsRow for LeaderboardRow {
         self.message_count
     }
 
-    fn last_xp(&self) -> NaiveDateTime {
+    fn last_xp(&self) -> jiff::Timestamp {
         unimplemented!()
     }
 }
@@ -114,7 +114,7 @@ impl LevelsRow for RankRow {
         unimplemented!()
     }
 
-    fn last_xp(&self) -> NaiveDateTime {
+    fn last_xp(&self) -> jiff::Timestamp {
         unimplemented!()
     }
 }
@@ -157,7 +157,7 @@ impl LevelsRow for XpRow {
         unimplemented!()
     }
 
-    fn last_xp(&self) -> NaiveDateTime {
+    fn last_xp(&self) -> jiff::Timestamp {
         unimplemented!()
     }
 }
@@ -169,7 +169,7 @@ pub struct FullLevelRow {
     pub level: i32,
     pub total_xp: i64,
     pub message_count: i64,
-    pub last_xp: NaiveDateTime,
+    pub last_xp: Timestamp,
 }
 
 impl FullLevelRow {
@@ -182,7 +182,7 @@ impl FullLevelRow {
             level: 0,
             total_xp: 0,
             message_count: 0,
-            last_xp: NaiveDateTime::default(),
+            last_xp: jiff::Timestamp::default().to_sqlx(),
         }
     }
 
@@ -225,7 +225,7 @@ impl LevelsRow for FullLevelRow {
         self.message_count
     }
 
-    fn last_xp(&self) -> NaiveDateTime {
-        self.last_xp
+    fn last_xp(&self) -> jiff::Timestamp {
+        self.last_xp.to_jiff()
     }
 }

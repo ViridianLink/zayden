@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::LazyLock};
 
 use async_trait::async_trait;
-use chrono::{NaiveDateTime, Utc};
+use jiff_sqlx::{Timestamp, ToSqlx};
 use rand::rng;
 use rand_distr::{Binomial, Distribution};
 use serenity::all::{
@@ -63,7 +63,7 @@ pub struct DigRow {
     pub diamonds: Option<i64>,
     pub emeralds: Option<i64>,
     pub prestige: Option<i64>,
-    pub mine_activity: Option<NaiveDateTime>,
+    pub mine_activity: Option<Timestamp>,
 }
 
 impl DigRow {
@@ -85,7 +85,7 @@ impl DigRow {
             diamonds: Some(0),
             emeralds: Some(0),
             prestige: Some(0),
-            mine_activity: Some(Utc::now().naive_utc()),
+            mine_activity: Some(jiff::Timestamp::now().to_sqlx()),
         }
     }
 
@@ -161,8 +161,10 @@ impl MineHourly for DigRow {
 }
 
 impl MineAmount for DigRow {
-    fn mine_activity(&self) -> NaiveDateTime {
-        self.mine_activity.unwrap_or_else(|| Utc::now().naive_utc())
+    fn mine_activity(&self) -> jiff::Timestamp {
+        self.mine_activity
+            .map(|t| t.to_jiff())
+            .unwrap_or_else(|| jiff::Timestamp::now())
     }
 }
 
@@ -240,7 +242,7 @@ impl Commands {
         *row.coins_mut() += mine_amount;
 
         row.done_work();
-        row.mine_activity = Some(Utc::now().naive_utc());
+        row.mine_activity = Some(jiff::Timestamp::now().to_sqlx());
 
         let stamina = row.stamina_str();
 

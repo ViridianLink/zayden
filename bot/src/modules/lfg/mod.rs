@@ -1,11 +1,13 @@
 mod slash_command;
 
 use async_trait::async_trait;
-use chrono_tz::Tz;
+use jiff::tz;
+use jiff::tz::TimeZone;
+use jiff_sqlx::Timestamp;
 use lfg::commands::{JoinedManager, SetupManager};
 use lfg::components::{EditManager, EditRow};
 use lfg::modals::create::{GuildManager, GuildRow};
-use lfg::models::timezone_manager::LOCALE_TO_TIMEZONE;
+use lfg::models::timezone_manager::locale_to_timezone;
 use lfg::{Error, Join, JoinedRow, PostManager, PostRow, Savable, TimezoneManager}; // PostRow
 use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId, UserId};
 use sqlx::postgres::PgQueryResult;
@@ -114,7 +116,7 @@ impl PostManager<Postgres> for PostTable {
             post.id,
             post.owner,
             post.activity,
-            post.start_time,
+            post.start_time as Timestamp,
             post.description,
             post.fireteam_size,
         )
@@ -142,7 +144,7 @@ async fn save_post(pool: &PgPool, row: PostRow) -> sqlx::Result<PgQueryResult> {
         row.id,
         row.owner,
         row.activity,
-        row.start_time,
+        row.start_time as Timestamp,
         row.description,
         row.fireteam_size,
         &row.fireteam,
@@ -218,7 +220,7 @@ impl JoinedManager<Postgres> for PostTable {
             SELECT
                 p.id,
                 p.activity,
-                p.start_time,
+                p.start_time as "start_time: jiff_sqlx::Timestamp",
             
                 COALESCE(
                     (SELECT array_agg(f.user_id) FROM lfg_fireteam f WHERE f.post = p.id),
@@ -249,7 +251,7 @@ impl EditManager<Postgres> for PostTable {
             SELECT
                 p.owner,
                 p.activity,
-                p.start_time,
+                p.start_time as "start_time: jiff_sqlx::Timestamp",
                 p.description,
                 p.fireteam_size,
                 u.timezone AS "timezone?"
@@ -271,37 +273,33 @@ pub struct UsersTable;
 
 #[async_trait]
 impl TimezoneManager<Postgres> for UsersTable {
-    async fn get(pool: &PgPool, id: impl Into<UserId> + Send, local: &str) -> sqlx::Result<Tz> {
-        let id = id.into();
-
-        let tz = sqlx::query!(
+    async fn get(pool: &PgPool, id: UserId, locale: &str) -> sqlx::Result<TimeZone> {
+        let row = sqlx::query!(
             "SELECT timezone FROM lfg_users WHERE id = $1",
             id.get() as i64
         )
         .fetch_optional(pool)
         .await?;
 
-        match tz {
-            Some(tz) => Ok(tz.timezone.parse().unwrap_or(chrono_tz::UTC)),
-            None => Ok(LOCALE_TO_TIMEZONE
-                .get(local)
-                .copied()
-                .unwrap_or(chrono_tz::UTC)),
-        }
+        let tz_name = match row {
+            Some(row) => row.timezone,
+            None => locale_to_timezone(locale).to_string(),
+        };
+
+        Ok(tz::db().get(&tz_name).unwrap_or(TimeZone::UTC))
     }
 
     async fn save(
         pool: &PgPool,
         id: impl Into<UserId> + Send,
-        tz: Tz,
+        tz_name: &str,
     ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
 
         sqlx::query!(
             "INSERT INTO lfg_users (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
             id.get() as i64,
-            tz.name()
-        )
+        tz_name)
         .execute(pool)
         .await
     }

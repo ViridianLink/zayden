@@ -1,5 +1,6 @@
 use async_trait::async_trait;
-use chrono::{NaiveDate, Utc};
+use jiff::tz::TimeZone;
+use jiff_sqlx::{Date, ToSqlx};
 use serenity::all::{
     Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
     UserId,
@@ -30,7 +31,7 @@ pub trait DailyManager<Db: Database> {
 pub struct DailyRow {
     pub id: i64,
     pub coins: i64,
-    pub daily: NaiveDate,
+    pub daily: Date,
     pub prestige: Option<i64>,
     pub level: Option<i32>,
     pub goals: Json<Vec<GamblingGoalsRow>>,
@@ -43,7 +44,7 @@ impl DailyRow {
         Self {
             id: id.get() as i64,
             coins: 0,
-            daily: NaiveDate::default(),
+            daily: jiff::civil::Date::default().to_sqlx(),
             prestige: Some(0),
             level: Some(0),
             goals: Json(Vec::new()),
@@ -119,10 +120,10 @@ impl Commands {
             .unwrap()
             .unwrap_or_else(|| DailyRow::new(interaction.user.id));
 
-        let now = Utc::now();
-        let today = now.naive_utc().date();
+        let now = jiff::Timestamp::now();
+        let today = now.to_zoned(TimeZone::UTC).date();
 
-        if row.daily == today {
+        if row.daily.to_jiff() == today {
             return Err(Error::DailyClaimed(tomorrow(Some(now))));
         }
 

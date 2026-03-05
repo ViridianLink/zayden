@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use jiff_sqlx::{Timestamp, ToSqlx};
 use sqlx::{Database, FromRow, Pool};
 
 #[async_trait]
@@ -12,13 +12,13 @@ pub trait GoldStarManager<Db: Database> {
     async fn save_row(pool: &Pool<Db>, row: &GoldStarRow) -> sqlx::Result<()>;
 }
 
-#[derive(Default, FromRow)]
+#[derive(FromRow)]
 pub struct GoldStarRow {
     pub id: i64,
     pub number_of_stars: i32,
     pub given_stars: i32,
     pub received_stars: i32,
-    pub last_free_star: DateTime<Utc>,
+    pub last_free_star: Timestamp,
 }
 
 impl GoldStarRow {
@@ -28,7 +28,7 @@ impl GoldStarRow {
             number_of_stars: 0,
             given_stars: 0,
             received_stars: 0,
-            last_free_star: DateTime::default(),
+            last_free_star: jiff::Timestamp::default().to_sqlx(),
         }
     }
 
@@ -42,7 +42,7 @@ impl GoldStarRow {
 
     pub fn give_free_star(&mut self, reciever: &mut GoldStarRow) {
         self.given_stars += 1;
-        self.last_free_star = Utc::now();
+        self.last_free_star = jiff::Timestamp::now().to_sqlx();
 
         reciever.number_of_stars += 1;
         reciever.received_stars += 1;

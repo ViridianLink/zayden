@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use jiff_sqlx::Timestamp;
 use serenity::all::UserId;
 use sqlx::{Database, Pool};
 
@@ -119,5 +119,5 @@ pub trait EffectsManager<Db: Database>: Send {
 pub struct EffectsRow {
     pub id: i32,
     pub item_id: String,
-    pub expiry: Option<NaiveDateTime>,
+    pub expiry: Option<Timestamp>,
 }

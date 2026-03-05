@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
+use jiff::Zoned;
+use jiff::tz::{self, TimeZone};
+use jiff_sqlx::Timestamp;
 use serenity::all::{
     ComponentInteraction, CreateInteractionResponse, CreateModal, Http, MessageId, UserId,
 };
@@ -21,7 +22,7 @@ pub trait EditManager<Db: Database> {
 pub struct EditRow {
     pub owner: i64,
     pub activity: String,
-    pub start_time: DateTime<Utc>,
+    pub start_time: Timestamp,
     pub description: String,
     pub fireteam_size: i16,
     pub timezone: Option<String>,
@@ -32,13 +33,14 @@ impl EditRow {
         UserId::new(self.owner as u64)
     }
 
-    pub fn start_time(&self) -> DateTime<Tz> {
-        let tz = match self.timezone.as_deref() {
-            Some(tz) => tz.parse().unwrap_or(Tz::UTC),
-            None => Tz::UTC,
-        };
+    pub fn start_time(&self) -> Zoned {
+        let tz = self
+            .timezone
+            .as_deref()
+            .and_then(|s| tz::db().get(s).ok())
+            .unwrap_or(TimeZone::UTC);
 
-        self.start_time.with_timezone(&tz)
+        self.start_time.to_jiff().to_zoned(tz)
     }
 }
 

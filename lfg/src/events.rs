@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use jiff::{Span, Timestamp, tz::TimeZone};
 use serenity::all::{
     Context, DiscordJsonError, EditThread, ErrorResponse, Guild, Http, HttpError, JsonErrorCode,
     PartialGuildThread,
@@ -59,12 +59,15 @@ pub async fn guild_create<
         .chain(archived_threads.threads.iter())
         .cloned();
 
-    let now = Utc::now();
-    let week_ago = now - Duration::days(7);
-    let month_ago = now - Duration::days(30);
+    let now = Timestamp::now().to_zoned(TimeZone::UTC);
+    let week_ago = &now - Span::new().days(7);
+    let month_ago = &now - Span::new().days(30);
 
     for mut thread in threads {
-        let created_at = *thread.base.last_message_id.unwrap().created_at();
+        let time_dt = *thread.base.last_message_id.unwrap().created_at();
+        let created_at = Timestamp::from_second(time_dt.unix_timestamp())
+            .expect("Should be a valid timestamp")
+            .to_zoned(TimeZone::UTC);
 
         if created_at < month_ago {
             match thread
@@ -108,11 +111,13 @@ pub async fn guild_create<
             Err(_) => continue,
         };
 
-        if post.start_time > now {
+        let start_time = post.start_time.to_jiff().to_zoned(TimeZone::UTC);
+
+        if start_time > now {
             create_reminders::<Data, Db, PostHandler>(ctx, &post).await;
         }
 
-        if post.start_time < now
+        if start_time < now
             && let (Some(channel), Some(message)) = (post.schedule_channel(), post.alt_message())
         {
             match channel
@@ -132,7 +137,7 @@ pub async fn guild_create<
             };
         }
 
-        if post.start_time + Duration::hours(2) < now {
+        if start_time + Span::new().hours(2) < now {
             match post
                 .thread()
                 .edit(&ctx.http, EditThread::new().archived(true))

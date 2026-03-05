@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use chrono::{DateTime, Duration, Utc};
+use jiff::{Span, Timestamp};
 use serenity::all::UserId;
 use tokio::sync::RwLock;
 
@@ -9,7 +9,7 @@ use crate::ctx_data::GamblingData;
 use crate::{Error, Result};
 
 #[derive(Default)]
-pub struct GameCache(HashMap<UserId, DateTime<Utc>>);
+pub struct GameCache(HashMap<UserId, Timestamp>);
 
 impl GameCache {
     pub async fn can_play<D: GamblingData>(
@@ -21,10 +21,10 @@ impl GameCache {
         let data = data.read().await;
 
         if let Some(last_played) = data.game_cache().0.get(&id) {
-            let cooldown_over = *last_played + Duration::seconds(5);
+            let cooldown_over = *last_played + Span::new().seconds(5);
 
-            if cooldown_over >= Utc::now() {
-                return Err(Error::Cooldown(cooldown_over.timestamp()));
+            if cooldown_over >= Timestamp::now() {
+                return Err(Error::Cooldown(cooldown_over.as_second()));
             }
         }
 
@@ -36,6 +36,6 @@ impl GameCache {
 
         let cache = data.game_cache_mut();
 
-        cache.0.insert(id.into(), Utc::now());
+        cache.0.insert(id.into(), Timestamp::now());
     }
 }

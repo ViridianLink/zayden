@@ -7,13 +7,14 @@ pub mod gambling_inventory;
 pub mod gambling_stats;
 mod game_row;
 
-use chrono::{NaiveDateTime, Timelike, Utc};
 pub use gambling::GamblingManager;
 pub use gambling_effects::{EffectsManager, EffectsRow};
 pub use gambling_goals::GamblingGoalsRow;
 pub use gambling_inventory::{GamblingItem, InventoryManager, InventoryRow};
 pub use gambling_stats::StatsManager;
 pub use game_row::{GameManager, GameRow};
+use jiff::tz::TimeZone;
+use jiff::{Timestamp, Unit};
 use sqlx::Database;
 use zayden_core::{EmojiCache, FormatNum};
 
@@ -75,7 +76,7 @@ pub trait Stamina {
         if self.stamina() <= 0 {
             let next_timestamp = StaminaCron::cron_job::<Db, Manager>()
                 .schedule
-                .upcoming(chrono::Utc)
+                .upcoming(TimeZone::UTC)
                 .next()
                 .unwrap_or_default()
                 .timestamp();
@@ -352,19 +353,24 @@ pub trait MaxBet: Prestige {
 }
 
 pub trait MineAmount: MineHourly {
-    fn mine_activity(&self) -> NaiveDateTime;
+    fn mine_activity(&self) -> Timestamp;
 
     fn mine_amount(&self) -> i64 {
-        let mine_activity = self.mine_activity();
+        let mine_activity = self.mine_activity().to_zoned(TimeZone::UTC);
 
         let mine_hour = mine_activity
             .date()
-            .and_hms_opt(mine_activity.hour(), 0, 0)
-            .unwrap()
-            .and_utc();
+            .at(mine_activity.hour(), 0, 0, 0)
+            .to_zoned(TimeZone::UTC)
+            .expect("UTC timezone lookup should be infallible")
+            .timestamp();
 
-        let duration = Utc::now() - mine_hour;
+        let duration = Timestamp::now()
+            .since((Unit::Hour, mine_hour))
+            .expect("Span should be within bounds");
 
-        duration.num_hours().min(24) * self.hourly()
+        let hours_passed = duration.get_hours().max(0).min(24) as i64;
+
+        hours_passed * self.hourly()
     }
 }
