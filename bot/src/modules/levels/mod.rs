@@ -20,7 +20,7 @@ impl LevelsManager<Postgres> for LevelsTable {
 
         sqlx::query_as!(
             LeaderboardRow,
-            "SELECT id, xp, level, message_count FROM levels WHERE id = ANY($1) ORDER BY level DESC, xp DESC LIMIT 10 OFFSET $2",
+            "SELECT user_id, xp, level, message_count FROM levels WHERE user_id = ANY($1) ORDER BY level DESC, xp DESC LIMIT 10 OFFSET $2",
             users,
             offset
         )
@@ -35,7 +35,7 @@ impl LevelsManager<Postgres> for LevelsTable {
         let id = user_id.into().get() as i64;
 
         sqlx::query_scalar!(
-    "SELECT row_number FROM (SELECT id, ROW_NUMBER() OVER (ORDER BY level DESC, xp DESC) FROM levels) AS ranked WHERE id = $1",
+    "SELECT row_number FROM (SELECT user_id, ROW_NUMBER() OVER (ORDER BY level DESC, xp DESC) FROM levels) AS ranked WHERE user_id = $1",
     id
 )
         .fetch_one(pool)
@@ -50,7 +50,7 @@ impl LevelsManager<Postgres> for LevelsTable {
 
         sqlx::query_as!(
             RankRow,
-            "SELECT xp, level FROM levels WHERE id = $1",
+            "SELECT xp, level FROM levels WHERE user_id = $1",
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -62,7 +62,7 @@ impl LevelsManager<Postgres> for LevelsTable {
 
         sqlx::query_as!(
             XpRow,
-            "SELECT xp, level, total_xp FROM levels WHERE id = $1",
+            "SELECT xp, level, total_xp FROM levels WHERE user_id = $1",
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -77,7 +77,7 @@ impl LevelsManager<Postgres> for LevelsTable {
 
         sqlx::query_as!(
             FullLevelRow,
-            r#"SELECT id, xp, level, total_xp, message_count, last_xp as "last_xp: jiff_sqlx::Timestamp" FROM levels WHERE id = $1"#,
+            r#"SELECT user_id, xp, level, total_xp, message_count, last_xp as "last_xp: jiff_sqlx::Timestamp" FROM levels WHERE user_id = $1"#,
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -86,15 +86,22 @@ impl LevelsManager<Postgres> for LevelsTable {
 
     async fn save(pool: &PgPool, row: FullLevelRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO levels (id, xp, total_xp, level, message_count, last_xp)
+            "INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+            row.user_id
+        )
+        .execute(pool)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO levels (user_id, xp, total_xp, level, message_count, last_xp)
             VALUES ($1, $2, $3, $4, $5, now())
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (user_id) DO UPDATE
             SET xp = EXCLUDED.xp,
                 total_xp = EXCLUDED.total_xp,
                 level = EXCLUDED.level,
                 message_count = EXCLUDED.message_count,
                 last_xp = now();",
-            row.id,
+            row.user_id,
             row.xp,
             row.total_xp as i32,
             row.level,

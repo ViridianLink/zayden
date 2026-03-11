@@ -1,10 +1,10 @@
 use async_trait::async_trait;
+use gambling::commands::inventory::{InventoryManager, InventoryRow};
 use gambling::commands::shop::SellRow;
-use gambling::{Commands, GamblingItem, ShopManager, ShopRow};
+use gambling::{Commands, GamblingItem, GamblingItems, ShopManager, ShopRow};
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
-use sqlx::types::Json;
-use sqlx::{PgPool, Postgres};
+use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::GoalsTable;
@@ -19,22 +19,11 @@ impl ShopManager<Postgres> for ShopTable {
 
         sqlx::query_as!(ShopRow,
             r#"SELECT
-            g.id,
+            g.user_id,
             g.coins,
             g.gems,
             
             COALESCE(l.level, 0) AS level,
-
-            (
-                SELECT jsonb_agg(
-                    jsonb_build_object(
-                        'quantity', inv.quantity,
-                        'item_id', inv.item_id
-                    )
-                )
-                FROM gambling_inventory inv
-                WHERE inv.user_id = g.id
-            ) as "inventory: Json<Vec<GamblingItem>>",
 
             COALESCE(m.miners, 0) AS "miners!",
             COALESCE(m.mines, 0) AS "mines!",
@@ -50,7 +39,7 @@ impl ShopManager<Postgres> for ShopTable {
             COALESCE(m.utility, 0) AS "utility!",
             COALESCE(m.production, 0) AS "production!"
 
-            FROM gambling g LEFT JOIN levels l ON g.id = l.id LEFT JOIN gambling_mine m ON g.id = m.id WHERE g.id = $1;"#,
+            FROM gambling g LEFT JOIN levels l ON g.user_id = l.user_id LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1;"#,
             id.get() as i64
         ).fetch_optional(pool).await
     }
@@ -59,37 +48,21 @@ impl ShopManager<Postgres> for ShopTable {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
-            "INSERT INTO gambling (id, coins, gems)
+            "INSERT INTO gambling (user_id, coins, gems)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins, gems = EXCLUDED.gems;",
-            row.id,
+            row.user_id,
             row.coins,
             row.gems,
         )
         .execute(&mut *tx)
         .await?;
 
-        for item in row.inventory.unwrap_or_default().0 {
-            let result2 = sqlx::query!(
-                "INSERT INTO gambling_inventory (user_id, item_id, quantity)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (user_id, item_id) DO UPDATE
-                SET quantity = EXCLUDED.quantity",
-                row.id,
-                item.item_id,
-                item.quantity
-            )
-            .execute(&mut *tx)
-            .await?;
-
-            result.extend([result2]);
-        }
-
         let result3 = sqlx::query!(
-            "INSERT INTO gambling_mine (id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, tech, utility, production)
+            "INSERT INTO gambling_mine (user_id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, tech, utility, production)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (user_id) DO UPDATE
             SET
             miners = EXCLUDED.miners,
             mines = EXCLUDED.mines,
@@ -103,7 +76,7 @@ impl ShopManager<Postgres> for ShopTable {
             tech = EXCLUDED.tech,
             utility = EXCLUDED.utility,
             production = EXCLUDED.production;",
-            row.id,
+            row.user_id,
             row.miners,
             row.mines,
             row.land,
@@ -125,6 +98,32 @@ impl ShopManager<Postgres> for ShopTable {
         Ok(result)
     }
 
+    async fn save_inventory(
+        pool: &PgPool,
+        user_id: UserId,
+        rows: GamblingItems,
+    ) -> sqlx::Result<PgQueryResult> {
+        let mut item_ids = Vec::with_capacity(rows.0.len());
+        let mut quantities = Vec::with_capacity(rows.0.len());
+
+        for item in rows.0 {
+            item_ids.push(item.item_id);
+            quantities.push(item.quantity);
+        }
+
+        sqlx::query!(
+            "INSERT INTO gambling_inventory (user_id, item_id, quantity)
+            SELECT $1, * FROM UNNEST($2::text[], $3::bigint[])
+            ON CONFLICT (user_id, item_id) DO UPDATE
+            SET quantity = EXCLUDED.quantity",
+            user_id.get() as i64,
+            &item_ids,
+            &quantities
+        )
+        .execute(pool)
+        .await
+    }
+
     async fn sell_row(
         pool: &PgPool,
         id: impl Into<UserId> + Send,
@@ -136,7 +135,7 @@ impl ShopManager<Postgres> for ShopTable {
             SellRow,
             r#"
             SELECT
-                g.id,
+                g.user_id,
                 g.coins,
 
                 i.id AS "item_row_id?",
@@ -144,9 +143,9 @@ impl ShopManager<Postgres> for ShopTable {
             FROM
                 gambling g
             LEFT JOIN
-                gambling_inventory i ON g.id = i.user_id AND i.item_id = $2
+                gambling_inventory i ON g.user_id = i.user_id AND i.item_id = $2
             WHERE
-                g.id = $1
+                g.user_id = $1
             "#,
             id.get() as i64,
             item_id
@@ -159,11 +158,11 @@ impl ShopManager<Postgres> for ShopTable {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
-            "INSERT INTO gambling (id, coins)
+            "INSERT INTO gambling (user_id, coins)
             VALUES ($1, $2)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins;",
-            row.id,
+            row.user_id,
             row.coins,
         )
         .execute(&mut *tx)
@@ -191,6 +190,35 @@ impl ShopManager<Postgres> for ShopTable {
         tx.commit().await?;
 
         Ok(result)
+    }
+}
+
+#[async_trait]
+impl InventoryManager<Postgres> for ShopTable {
+    async fn gambling_row(_pool: &PgPool, _id: UserId) -> sqlx::Result<Option<InventoryRow>> {
+        unimplemented!()
+    }
+    async fn inventory_items(pool: &PgPool, id: UserId) -> sqlx::Result<GamblingItems> {
+        let items = sqlx::query_as!(
+            GamblingItem,
+            r#"SELECT item_id, quantity
+            FROM gambling_inventory
+            WHERE user_id = $1"#,
+            id.get() as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(GamblingItems(items))
+    }
+
+    async fn edit_item_quantity(
+        _conn: &mut PgConnection,
+        _id: impl Into<UserId> + Send,
+        _item_id: &str,
+        _amount: i64,
+    ) -> sqlx::Result<i64> {
+        unimplemented!()
     }
 }
 

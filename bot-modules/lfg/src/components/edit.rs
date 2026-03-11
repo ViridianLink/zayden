@@ -20,7 +20,7 @@ pub trait EditManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct EditRow {
-    pub owner: i64,
+    pub owner_id: i64,
     pub activity: String,
     pub start_time: Timestamp,
     pub description: String,
@@ -30,7 +30,7 @@ pub struct EditRow {
 
 impl EditRow {
     pub fn owner(&self) -> UserId {
-        UserId::new(self.owner as u64)
+        UserId::new(self.owner_id as u64)
     }
 
     pub fn start_time(&self) -> Zoned {

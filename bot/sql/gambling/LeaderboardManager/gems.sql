@@ -1,14 +1,15 @@
 SELECT
-    id,
+    user_id,
     gems
 FROM
     gambling
 WHERE
     ($1 IS TRUE)
-    OR id = ANY ($2)
+    OR user_id = ANY($2)
 ORDER BY
     gems DESC
 LIMIT
     $3
-OFFSET
+    OFFSET
     $4
+

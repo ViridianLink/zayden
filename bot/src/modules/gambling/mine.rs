@@ -16,7 +16,7 @@ impl MineManager<Postgres> for MineTable {
 
         sqlx::query_as!(
             MineRow,
-            "SELECT miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige FROM gambling_mine WHERE id = $1",
+            "SELECT miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige FROM gambling_mine WHERE user_id = $1",
             id.get() as i64
         ).fetch_optional(pool).await
     }

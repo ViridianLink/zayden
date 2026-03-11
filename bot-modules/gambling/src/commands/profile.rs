@@ -5,11 +5,14 @@ use serenity::all::{
     Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
     CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
 };
-use sqlx::{Database, Pool, types::Json};
+use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
-use crate::{Coins, GamblingItem, Gems, ItemInventory, MaxBet, Prestige, Result, ShopItem};
+use crate::{
+    Coins, GamblingItems, Gems, MaxBet, Prestige, Result, ShopItem,
+    commands::inventory::InventoryManager,
+};
 
 use super::Commands;
 
@@ -23,25 +26,23 @@ pub trait ProfileManager<Db: Database> {
 pub struct ProfileRow {
     pub coins: i64,
     pub gems: i64,
-    pub inventory: Option<Json<Vec<GamblingItem>>>,
     pub xp: Option<i32>,
     pub level: Option<i32>,
     pub prestige: Option<i64>,
 }
 
 impl ProfileRow {
-    pub fn into_embed<'a>(self, emojis: &EmojiCache) -> CreateEmbed<'a> {
+    pub fn into_embed<'a>(self, inventory: GamblingItems, emojis: &EmojiCache) -> CreateEmbed<'a> {
         let mut betting_max = self.max_bet_str();
         if self.prestige() != 0 {
             betting_max.push_str(&format!("\n(Prestige Boost: +{}%)", 10 * self.prestige()));
         }
 
-        let inventory = self.inventory();
-
-        let loot_str = if inventory.is_empty() {
+        let loot_str = if inventory.0.is_empty() {
             String::from("You've got no loot, not even a 🥄")
         } else {
             inventory
+                .0
                 .iter()
                 .filter(|item| item.quantity > 0)
                 .map(|inv| (inv, ShopItem::from(inv)))
@@ -92,19 +93,6 @@ impl Gems for ProfileRow {
     }
 }
 
-impl ItemInventory for ProfileRow {
-    fn inventory(&self) -> &[GamblingItem] {
-        match self.inventory.as_ref() {
-            Some(vec_ref) => &vec_ref.0,
-            None => &[],
-        }
-    }
-
-    fn inventory_mut(&mut self) -> &mut Vec<GamblingItem> {
-        self.inventory.get_or_insert_with(|| Json(Vec::new()))
-    }
-}
-
 impl LevelsRow for ProfileRow {
     fn user_id(&self) -> UserId {
         unimplemented!()
@@ -144,7 +132,11 @@ impl MaxBet for ProfileRow {
 }
 
 impl Commands {
-    pub async fn profile<Data: EmojiCacheData, Db: Database, Manager: ProfileManager<Db>>(
+    pub async fn profile<
+        Data: EmojiCacheData,
+        Db: Database,
+        Manager: ProfileManager<Db> + InventoryManager<Db>,
+    >(
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
@@ -163,6 +155,7 @@ impl Commands {
         };
 
         let row = Manager::row(pool, user.id).await?.unwrap_or_default();
+        let inventory_row = Manager::inventory_items(pool, user.id).await.unwrap();
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -170,7 +163,9 @@ impl Commands {
             data.emojis()
         };
 
-        let mut embed = row.into_embed(&emojis).title(user.display_name());
+        let mut embed = row
+            .into_embed(inventory_row, &emojis)
+            .title(user.display_name());
 
         if let Some(avatar) = user.avatar_url() {
             embed = embed.thumbnail(avatar);

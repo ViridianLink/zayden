@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serenity::all::UserId;
 use sqlx::{Database, FromRow};
 
-use crate::ShopItem;
+use crate::{ItemInventory, SHOP_ITEMS, ShopItem, shop::LOTTO_TICKET};
 
 #[async_trait]
 pub trait InventoryManager<Db: Database> {
@@ -34,5 +34,28 @@ impl From<&ShopItem<'_>> for GamblingItem {
             quantity: 0,
             item_id: value.id.to_string(),
         }
+    }
+}
+
+pub struct GamblingItems(pub Vec<GamblingItem>);
+
+impl GamblingItems {
+    pub fn do_prestige(&mut self) {
+        self.0.retain(|item| {
+            let is_sellable = SHOP_ITEMS
+                .get(&item.item_id)
+                .is_some_and(|shop_item_data| shop_item_data.sellable);
+
+            item.item_id != LOTTO_TICKET.id && !is_sellable
+        });
+    }
+}
+impl ItemInventory for GamblingItems {
+    fn inventory(&self) -> &[GamblingItem] {
+        &self.0
+    }
+
+    fn inventory_mut(&mut self) -> &mut Vec<GamblingItem> {
+        &mut self.0
     }
 }

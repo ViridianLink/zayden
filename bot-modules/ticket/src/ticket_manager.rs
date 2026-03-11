@@ -10,13 +10,13 @@ pub trait TicketManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct TicketRow {
-    pub id: i64,
+    pub thread_id: i64,
     pub role_ids: Vec<i64>,
 }
 
 impl TicketRow {
     pub fn message_id(&self) -> MessageId {
-        MessageId::new(self.id as u64)
+        MessageId::new(self.thread_id as u64)
     }
 
     pub fn role_ids(&self) -> Vec<RoleId> {

@@ -1,5 +1,5 @@
 SELECT
-    g.id,
+    g.user_id,
     g.coins,
     g.gems,
 
@@ -9,8 +9,11 @@ SELECT
 FROM
     gambling AS g
 LEFT JOIN
-    levels AS l ON g.id = l.id
+    levels AS l
+    ON g.user_id = l.user_id
 LEFT JOIN
-    gambling_mine AS m ON g.id = m.id
+    gambling_mine AS m
+    ON g.user_id = m.user_id
 WHERE
-    g.id = $1;
+    g.user_id = $1;
+

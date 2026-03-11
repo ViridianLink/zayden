@@ -2,11 +2,11 @@ use async_trait::async_trait;
 use serenity::all::{
     ButtonStyle, CreateActionRow, CreateButton, CreateComponent, CreateEmbed, UserId,
 };
-use sqlx::{Database, FromRow, Pool, types::Json};
+use sqlx::{Database, FromRow, Pool};
 use zayden_core::{EmojiCache, FormatNum};
 
 use crate::commands::shop::SellRow;
-use crate::{Coins, GamblingItem, Gems, ItemInventory, MaxBet, Mining, Prestige};
+use crate::{Coins, GamblingItems, Gems, MaxBet, Mining, Prestige};
 
 pub mod currency;
 pub mod items;
@@ -27,6 +27,12 @@ pub trait ShopManager<Db: Database> {
 
     async fn buy_save(pool: &Pool<Db>, row: ShopRow) -> sqlx::Result<Db::QueryResult>;
 
+    async fn save_inventory(
+        pool: &Pool<Db>,
+        user_id: UserId,
+        row: GamblingItems,
+    ) -> sqlx::Result<Db::QueryResult>;
+
     async fn sell_row(
         pool: &Pool<Db>,
         id: impl Into<UserId> + Send,
@@ -38,11 +44,10 @@ pub trait ShopManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct ShopRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub gems: i64,
     pub level: Option<i32>,
-    pub inventory: Option<Json<Vec<GamblingItem>>>,
     pub miners: i64,
     pub mines: i64,
     pub land: i64,
@@ -63,11 +68,10 @@ impl ShopRow {
         let id = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             gems: 0,
             level: Some(0),
-            inventory: Some(Json(Vec::new())),
             miners: 0,
             mines: 0,
             land: 0,
@@ -102,19 +106,6 @@ impl Gems for ShopRow {
 
     fn gems_mut(&mut self) -> &mut i64 {
         &mut self.gems
-    }
-}
-
-impl ItemInventory for ShopRow {
-    fn inventory(&self) -> &[GamblingItem] {
-        match self.inventory.as_ref() {
-            Some(vec_ref) => &vec_ref.0,
-            None => &[],
-        }
-    }
-
-    fn inventory_mut(&mut self) -> &mut Vec<GamblingItem> {
-        self.inventory.get_or_insert_with(|| Json(Vec::new()))
     }
 }
 
@@ -211,6 +202,7 @@ impl MaxBet for ShopRow {
 pub fn shop_response<'a>(
     emojis: &EmojiCache,
     row: &'a ShopRow,
+    inventory: GamblingItems,
     title: Option<&str>,
     page_change: i8,
 ) -> (CreateEmbed<'a>, CreateComponent<'a>) {
@@ -228,7 +220,7 @@ pub fn shop_response<'a>(
         .copied()
         .unwrap_or(ShopPage::Item);
 
-    let embed = create_embed(emojis, category, row);
+    let embed = create_embed(emojis, category, row, inventory);
 
     let prev = CreateButton::new("shop_prev")
         .label("<")
@@ -243,9 +235,12 @@ pub fn shop_response<'a>(
     )
 }
 
-fn create_embed<'a>(emojis: &EmojiCache, category: ShopPage, row: &ShopRow) -> CreateEmbed<'a> {
-    let inv = row.inventory();
-
+fn create_embed<'a>(
+    emojis: &EmojiCache,
+    category: ShopPage,
+    row: &ShopRow,
+    inventory: GamblingItems,
+) -> CreateEmbed<'a> {
     let items = SHOP_ITEMS
         .iter()
         .filter(|item| item.category == category)
@@ -265,7 +260,9 @@ fn create_embed<'a>(emojis: &EmojiCache, category: ShopPage, row: &ShopRow) -> C
 
             s.push_str(&format!(
                 "\nOwned: `{}`\nCost:",
-                inv.iter()
+                inventory
+                    .0
+                    .iter()
                     .find(|inv_item| inv_item.item_id == item.id)
                     .map(|item| item.quantity)
                     .unwrap_or_default()

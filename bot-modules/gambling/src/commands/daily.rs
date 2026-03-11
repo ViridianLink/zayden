@@ -5,7 +5,6 @@ use serenity::all::{
     Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
     UserId,
 };
-use sqlx::types::Json;
 use sqlx::{Database, FromRow, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
@@ -23,18 +22,17 @@ pub trait DailyManager<Db: Database> {
         pool: &Pool<Db>,
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<DailyRow>>;
-
+    async fn goal_rows(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Vec<GamblingGoalsRow>>;
     async fn save(pool: &Pool<Db>, row: DailyRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
 pub struct DailyRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub daily: Date,
     pub prestige: Option<i64>,
     pub level: Option<i32>,
-    pub goals: Json<Vec<GamblingGoalsRow>>,
 }
 
 impl DailyRow {
@@ -42,32 +40,12 @@ impl DailyRow {
         let id = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             daily: jiff::civil::Date::default().to_sqlx(),
             prestige: Some(0),
             level: Some(0),
-            goals: Json(Vec::new()),
         }
-    }
-
-    fn user_id(&self) -> UserId {
-        UserId::new(self.id as u64)
-    }
-
-    pub async fn goals<Db: Database, Manager: GoalsManager<Db>>(
-        &mut self,
-        pool: &Pool<Db>,
-    ) -> &[GamblingGoalsRow] {
-        if self.goals.is_empty() || !self.goals[0].is_today() {
-            self.goals = Json(
-                GoalHandler::daily_reset::<Db, Manager>(pool, self.user_id(), self)
-                    .await
-                    .unwrap(),
-            );
-        }
-
-        &self.goals
     }
 }
 
@@ -130,9 +108,14 @@ impl Commands {
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);
 
         *row.coins_mut() += amount;
-        let goals = row
-            .goals::<Db, Manager>(pool)
-            .await
+        let mut goals = Manager::goal_rows(pool, interaction.user.id).await.unwrap();
+        if goals.is_empty() || !goals[0].is_today() {
+            goals = GoalHandler::daily_reset::<Db, Manager>(pool, interaction.user.id, &row)
+                .await
+                .unwrap();
+        }
+
+        let goals_str = goals
             .iter()
             .map(|goal| {
                 if goal.is_complete() {
@@ -158,7 +141,7 @@ impl Commands {
 
         let embed = CreateEmbed::new()
             .description(format!(
-                "**Collected {} <:coin:{coin}>**\n\n__Daily Goals__: {goals}",
+                "**Collected {} <:coin:{coin}>**\n\n__Daily Goals__: {goals_str}",
                 amount.format()
             ))
             .colour(Colour::GOLD);

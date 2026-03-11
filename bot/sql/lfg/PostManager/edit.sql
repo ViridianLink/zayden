@@ -1,6 +1,6 @@
 UPDATE lfg_posts
 SET
-    owner = $2,
+    owner_id = $2,
     activity = $3,
     start_time = $4,
     description = $5,

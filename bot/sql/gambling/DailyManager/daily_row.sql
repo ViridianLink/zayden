@@ -1,37 +1,14 @@
 SELECT
-    g.id,
+    g.user_id,
     g.coins,
-    g.daily,
-    m.prestige,
-    l.level,
-    COALESCE(
-        jsonb_agg(
-            DISTINCT jsonb_build_object(
-                'user_id',
-                gg.user_id,
-                'goal_id',
-                gg.goal_id,
-                'day',
-                gg.day,
-                'progress',
-                gg.progress,
-                'target',
-                gg.target
-            )
-        ) FILTER (
-            WHERE
-                gg.user_id IS NOT NULL
-        ),
-        '[]'::jsonb
-    ) as "goals!: Json<Vec<GamblingGoalsRow>>"
+    g.daily AS "daily: jiff_sqlx::Date",
+    gm.prestige,
+    l.level
 FROM
     gambling g
-    LEFT JOIN gambling_mine m on g.id = m.id
-    LEFT JOIN gambling_goals gg ON g.id = gg.user_id
-    LEFT JOIN levels AS l ON g.id = l.id
+JOIN gambling_mine gm
+    ON g.user_id = gm.user_id
+JOIN levels l
+    ON g.user_id = l.user_id
 WHERE
-    g.id = $1
-GROUP BY
-    g.id,
-    m.prestige,
-    l.level
+    g.user_id = $1

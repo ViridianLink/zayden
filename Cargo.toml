@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["bot", "web-backend", "bot-modules/*"]
+members = ["bot", "bot-modules/*"]
 
 [workspace.dependencies]
 ai = { path = "./bot-modules/ai" }

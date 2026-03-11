@@ -1,5 +1,5 @@
 use jiff::tz::TimeZone;
-use jiff_sqlx::{Timestamp, ToSqlx};
+use jiff_sqlx::{Date, ToSqlx};
 use serenity::all::UserId;
 use sqlx::FromRow;
 use zayden_core::FormatNum;
@@ -10,7 +10,7 @@ use crate::goals::GOAL_REGISTRY;
 pub struct GamblingGoalsRow {
     pub user_id: i64,
     pub goal_id: String,
-    pub day: Timestamp,
+    pub day: Date,
     pub progress: i64,
     pub target: i64,
 }
@@ -22,7 +22,7 @@ impl GamblingGoalsRow {
         Self {
             user_id: user_id.get() as i64,
             goal_id: goal_id.into(),
-            day: jiff::Timestamp::now().to_sqlx(),
+            day: jiff::civil::Date::default().to_sqlx(),
             progress: 0,
             target,
         }
@@ -33,8 +33,7 @@ impl GamblingGoalsRow {
     }
 
     pub fn is_today(&self) -> bool {
-        self.day.to_jiff().to_zoned(TimeZone::UTC).date()
-            == jiff::Timestamp::now().to_zoned(TimeZone::UTC).date()
+        self.day.to_jiff() == jiff::Timestamp::now().to_zoned(TimeZone::UTC).date()
     }
 
     pub fn update_progress(&mut self, value: i64) {

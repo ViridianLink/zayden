@@ -83,12 +83,16 @@ impl Edit {
 
         let str_time = start_time.strftime("%d %b %H:%M %Z");
 
-        let post = PostBuilder::from(Manager::row(pool, interaction.channel_id).await.unwrap())
-            .activity(activity.to_string())
-            .fireteam_size(fireteam_size)
-            .description(description)
-            .start(start_time)
-            .build();
+        let post = PostBuilder::from(
+            Manager::post_row(pool, interaction.channel_id)
+                .await
+                .unwrap(),
+        )
+        .activity(activity.to_string())
+        .fireteam_size(fireteam_size)
+        .description(description)
+        .start(start_time)
+        .build();
 
         Manager::edit(pool, &post).await.unwrap();
 

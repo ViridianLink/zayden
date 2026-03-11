@@ -22,7 +22,7 @@ pub trait CraftManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct CraftRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coal: i64,
     pub iron: i64,
     pub gold: i64,
@@ -40,7 +40,7 @@ impl CraftRow {
         let id = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coal: 0,
             iron: 0,
             gold: 0,

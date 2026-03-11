@@ -14,7 +14,7 @@ use crate::{
 };
 
 pub struct SendRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub gems: i64,
     pub stamina: i32,
@@ -27,7 +27,7 @@ impl SendRow {
         let id = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             gems: 0,
             stamina: 0,

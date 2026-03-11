@@ -42,7 +42,6 @@ sqlx = { workspace = true, features = [
   "postgres",
   "tls-rustls-aws-lc-rs",
   "runtime-tokio",
-  "json",
 ] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tracing = { workspace = true }

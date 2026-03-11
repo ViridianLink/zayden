@@ -4,14 +4,12 @@ use serenity::all::{
     CreateCommand, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
     EditInteractionResponse, MessageInteractionMetadata, UserId,
 };
-use sqlx::types::Json;
 use sqlx::{Database, FromRow, Pool};
 use zayden_core::FormatNum;
 
+use crate::commands::inventory::InventoryManager;
 use crate::common::shop::LOTTO_TICKET;
-use crate::{
-    Commands, GamblingItem, MaxValues, Mining, Prestige, Result, SHOP_ITEMS, START_AMOUNT,
-};
+use crate::{Commands, MaxValues, Mining, Prestige, Result, START_AMOUNT};
 
 #[async_trait]
 pub trait PrestigeManager<Db: Database> {
@@ -29,11 +27,10 @@ pub trait PrestigeManager<Db: Database> {
 
 #[derive(FromRow, Default)]
 pub struct PrestigeRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub gems: i64,
     pub stamina: i64,
-    pub inventory: Option<Json<Vec<GamblingItem>>>,
     pub miners: i64,
     pub mines: i64,
     pub land: i64,
@@ -85,16 +82,7 @@ impl PrestigeRow {
         self.coins = START_AMOUNT;
         self.gems += self.prestige;
         self.stamina = 3;
-        self.inventory
-            .as_mut()
-            .unwrap_or(&mut Json(Vec::new()))
-            .retain(|item| {
-                let is_sellable = SHOP_ITEMS
-                    .get(&item.item_id)
-                    .is_some_and(|shop_item_data| shop_item_data.sellable);
 
-                item.item_id != LOTTO_TICKET.id && !is_sellable
-            });
         self.miners = 0;
         self.mines = 0;
         self.land = 0;
@@ -263,7 +251,10 @@ impl Commands {
             .description("Prestige your mine or casino to get unique rewards!")
     }
 
-    pub async fn confirm_prestige<Db: Database, Manager: PrestigeManager<Db>>(
+    pub async fn confirm_prestige<
+        Db: Database,
+        Manager: PrestigeManager<Db> + InventoryManager<Db>,
+    >(
         ctx: &Context,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
@@ -278,20 +269,23 @@ impl Commands {
             return Ok(());
         };
 
-        let mut row = Manager::row(pool, interaction.user.id)
+        let mut prestige_row = Manager::row(pool, interaction.user.id)
             .await
             .unwrap()
             .unwrap();
 
-        if row.miners < row.req_miners() {
+        if prestige_row.miners < prestige_row.req_miners() {
             return Ok(());
         }
 
+        let mut inventory_row = Manager::inventory_items(pool, interaction.user.id)
+            .await
+            .unwrap();
+
         Manager::lotto(
             pool,
-            row.inventory
-                .as_ref()
-                .unwrap_or(&Json(Vec::new()))
+            inventory_row
+                .0
                 .iter()
                 .find(|item| item.item_id == LOTTO_TICKET.id)
                 .map(|item| item.quantity)
@@ -300,9 +294,10 @@ impl Commands {
         )
         .await
         .unwrap();
-        row.do_prestige();
+        prestige_row.do_prestige();
+        inventory_row.do_prestige();
 
-        Manager::save(pool, row).await.unwrap();
+        Manager::save(pool, prestige_row).await.unwrap();
 
         interaction
             .create_response(

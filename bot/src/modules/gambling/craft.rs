@@ -15,14 +15,20 @@ impl CraftManager<Postgres> for CraftTable {
     async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<CraftRow>> {
         let id = id.into();
 
-        sqlx::query_as!(CraftRow, "SELECT id, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production FROM gambling_mine WHERE id = $1", id.get() as i64).fetch_optional(pool).await
+        sqlx::query_file_as!(
+            CraftRow,
+            "sql/gambling/CraftManager/craft-row.sql",
+            id.get() as i64
+        )
+        .fetch_optional(pool)
+        .await
     }
 
     async fn save(pool: &PgPool, row: CraftRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO gambling_mine (id, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
+            "INSERT INTO gambling_mine (user_id, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coal = EXCLUDED.coal,
             iron = EXCLUDED.iron,
             gold = EXCLUDED.gold,
@@ -33,7 +39,7 @@ impl CraftManager<Postgres> for CraftTable {
             tech = EXCLUDED.tech,
             utility = EXCLUDED.utility,
             production = EXCLUDED.production;",
-            row.id,
+            row.user_id,
             row.coal,
             row.iron,
             row.gold,

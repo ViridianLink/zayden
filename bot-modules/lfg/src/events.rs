@@ -34,7 +34,9 @@ pub async fn guild_create<
         return;
     };
 
-    let lfg_channel = guild_row.channel_id();
+    let Some(lfg_channel) = guild_row.channel_id() else {
+        return;
+    };
 
     let archived_threads = match lfg_channel
         .get_archived_public_threads(&ctx.http, None, Some(100))
@@ -106,7 +108,7 @@ pub async fn guild_create<
             }
         }
 
-        let post = match PostHandler::row(pool, thread.id).await {
+        let post = match PostHandler::post_row(pool, thread.id).await {
             Ok(post) => post,
             Err(_) => continue,
         };

@@ -22,7 +22,7 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
     ) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             r#"
-            INSERT INTO guilds (id, temp_voice_category, temp_voice_creator_channel)
+            INSERT INTO guild_config (id, temp_voice_category, temp_voice_creator_channel)
             VALUES ($1, $2, $3)
             ON CONFLICT (id) DO UPDATE
             SET temp_voice_category = $2, temp_voice_creator_channel = $3
@@ -38,7 +38,7 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
     async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<TempVoiceRow> {
         sqlx::query_as!(
             TempVoiceRow,
-            r#"SELECT id, temp_voice_category, temp_voice_creator_channel FROM guilds WHERE id = $1"#,
+            r#"SELECT id, temp_voice_category, temp_voice_creator_channel FROM guild_config WHERE id = $1"#,
             id.get() as i64
         )
         .fetch_one(pool)
@@ -47,7 +47,7 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
 
     async fn get_category(pool: &PgPool, id: GuildId) -> sqlx::Result<ChannelId> {
         let category = sqlx::query_scalar!(
-            r#"SELECT temp_voice_category FROM guilds WHERE id = $1"#,
+            r#"SELECT temp_voice_category FROM guild_config WHERE id = $1"#,
             id.get() as i64
         )
         .fetch_one(pool)
@@ -58,7 +58,7 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
 
     async fn get_creator_channel(pool: &PgPool, id: GuildId) -> sqlx::Result<Option<ChannelId>> {
         let row = sqlx::query!(
-            r#"SELECT temp_voice_creator_channel FROM guilds WHERE id = $1"#,
+            r#"SELECT temp_voice_creator_channel FROM guild_config WHERE id = $1"#,
             id.get() as i64
         )
         .fetch_one(pool)
@@ -95,7 +95,22 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
     async fn get(pool: &PgPool, id: ChannelId) -> sqlx::Result<Option<VoiceChannelRow>> {
         let row = sqlx::query_as!(
             VoiceChannelRow,
-            r#"SELECT id, owner_id, trusted_ids, invites, password, persistent, mode AS "mode: TempVoiceMode" FROM voice_channels WHERE id = $1"#,
+            r#"SELECT 
+                vc.id, 
+                vc.owner_id, 
+                COALESCE(
+                    (SELECT array_agg(user_id) FROM voice_channel_trusted_users WHERE channel_id = vc.id), 
+                    ARRAY[]::int[]
+                ) AS "trusted_ids!", 
+                COALESCE(
+                    (SELECT array_agg(user_id) FROM voice_channel_invites WHERE channel_id = vc.id), 
+                    ARRAY[]::int[]
+                ) AS "invites!", 
+                vc.password, 
+                vc.persistent, 
+                vc.mode AS "mode: TempVoiceMode" 
+            FROM voice_channels vc
+            WHERE vc.id = $1;"#,
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -119,23 +134,57 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
     async fn save(pool: &PgPool, row: VoiceChannelRow) -> sqlx::Result<PgQueryResult> {
         let mode = TempVoiceMode::from(row.mode);
 
-        sqlx::query!(
+        let mut tx = pool.begin().await?;
+
+        let mut result = sqlx::query!(
             r#"
-            INSERT INTO voice_channels (id, owner_id, trusted_ids, password, persistent, invites, mode)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO voice_channels (id, owner_id, password, persistent, mode)
+            VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (id) DO UPDATE
-            SET owner_id = $2, trusted_ids = $3, password = $4, persistent = $5, invites = $6, mode = $7
+            SET owner_id = $2, password = $3, persistent = $4, mode = $5
             "#,
             row.id,
             row.owner_id,
-            &row.trusted_ids,
             row.password,
             row.persistent,
-            &row.invites,
             mode as TempVoiceMode
         )
-        .execute(pool)
-        .await
+        .execute(&mut *tx)
+        .await?;
+
+        let result2 = sqlx::query!(
+            r#"
+            WITH deleted AS (
+                DELETE FROM voice_channel_trusted_users WHERE channel_id = $1
+            )
+            INSERT INTO voice_channel_trusted_users (channel_id, user_id)
+            SELECT $1, * FROM UNNEST($2::bigint[])
+            "#,
+            row.id,
+            &row.trusted_ids
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let result3 = sqlx::query!(
+            r#"
+            WITH deleted AS (
+                DELETE FROM voice_channel_invites WHERE channel_id = $1
+            )
+            INSERT INTO voice_channel_invites (channel_id, user_id)
+            SELECT $1, * FROM UNNEST($2::bigint[])
+            "#,
+            row.id,
+            &row.invites
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        result.extend([result2, result3]);
+
+        Ok(result)
     }
 
     async fn delete(pool: &PgPool, id: ChannelId) -> sqlx::Result<PgQueryResult> {

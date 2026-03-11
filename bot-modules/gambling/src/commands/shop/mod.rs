@@ -13,6 +13,7 @@ pub use list::list;
 pub use sell::{SellRow, sell};
 use zayden_core::EmojiCacheData;
 
+use crate::commands::inventory::InventoryManager;
 use crate::common::shop::ShopRow;
 use crate::{GoalsManager, Result, SHOP_ITEMS, ShopManager, ShopPage};
 
@@ -23,7 +24,7 @@ impl Commands {
         Data: EmojiCacheData,
         Db: Database,
         GoalsHandler: GoalsManager<Db>,
-        ShopHandler: ShopManager<Db>,
+        ShopHandler: ShopManager<Db> + InventoryManager<Db>,
     >(
         ctx: &Context,
         interaction: &CommandInteraction,

@@ -6,13 +6,13 @@ use serenity::all::{
     CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
 };
 use serenity::small_fixed_array::FixedArray;
-use sqlx::types::Json;
 use sqlx::{Database, Pool, prelude::FromRow};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, parse_options};
 
+use crate::models::gambling_inventory::GamblingItems;
 use crate::shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
-use crate::{Coins, EffectsManager, Error, GEM, GamblingItem, Gems, ItemInventory, Mining, Result};
+use crate::{Coins, EffectsManager, Error, GEM, Gems, ItemInventory, Mining, Result};
 
 use super::Commands;
 
@@ -44,10 +44,9 @@ impl Display for InventoryItem<'_> {
 
 #[async_trait]
 pub trait InventoryManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<InventoryRow>>;
+    async fn gambling_row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<InventoryRow>>;
+
+    async fn inventory_items(pool: &Pool<Db>, id: UserId) -> sqlx::Result<GamblingItems>;
 
     async fn edit_item_quantity(
         conn: &mut Db::Connection,
@@ -61,7 +60,6 @@ pub trait InventoryManager<Db: Database> {
 pub struct InventoryRow {
     pub coins: i64,
     pub gems: i64,
-    pub inventory: Option<Json<Vec<GamblingItem>>>,
     pub tech: i64,
     pub utility: i64,
     pub production: i64,
@@ -91,19 +89,6 @@ impl Gems for InventoryRow {
 
     fn gems_mut(&mut self) -> &mut i64 {
         &mut self.gems
-    }
-}
-
-impl ItemInventory for InventoryRow {
-    fn inventory(&self) -> &[GamblingItem] {
-        match self.inventory.as_ref() {
-            Some(vec_ref) => &vec_ref.0,
-            None => &[],
-        }
-    }
-
-    fn inventory_mut(&mut self) -> &mut Vec<GamblingItem> {
-        self.inventory.get_or_insert_with(|| Json(Vec::new()))
     }
 }
 
@@ -260,10 +245,14 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
 ) -> Result<()> {
-    let row = Manager::row(pool, interaction.user.id)
+    let gambling_row = Manager::gambling_row(pool, interaction.user.id)
         .await
         .unwrap()
         .unwrap_or_default();
+
+    let inventory_items = Manager::inventory_items(pool, interaction.user.id)
+        .await
+        .unwrap();
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -281,7 +270,7 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
         })
         .map(|item| InventoryItem::from_shop_item(item, &emojis))
         .map(|mut item| {
-            if let Some(inv_item) = row
+            if let Some(inv_item) = inventory_items
                 .inventory()
                 .iter()
                 .find(|inv_item| inv_item.item_id == item.id)
@@ -300,8 +289,8 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
             "Currencies",
             format!(
                 "<:coin:{coin}> {} coins\n{GEM} {} gems",
-                row.coins_str(),
-                row.gems_str()
+                gambling_row.coins_str(),
+                gambling_row.gems_str()
             ),
             false,
         )
@@ -323,8 +312,8 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
                 .join("\n"),
             true,
         )
-        .field("Resources", row.resources(&emojis), true)
-        .field("Crafted", row.crafted(&emojis), false)
+        .field("Resources", gambling_row.resources(&emojis), true)
+        .field("Crafted", gambling_row.crafted(&emojis), false)
         .field(
             "Weapons",
             format!(

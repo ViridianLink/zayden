@@ -24,22 +24,22 @@ pub trait GuildManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct GuildRow {
-    pub channel_id: i64,
-    pub role_id: Option<i64>,
-    pub scheduled_thread_id: Option<i64>,
+    pub lfg_channel_id: Option<i64>,
+    pub lfg_role_id: Option<i64>,
+    pub lfg_scheduled_thread_id: Option<i64>,
 }
 
 impl GuildRow {
-    pub fn channel_id(&self) -> ChannelId {
-        ChannelId::new(self.channel_id as u64)
+    pub fn channel_id(&self) -> Option<ChannelId> {
+        self.lfg_channel_id.map(|id| ChannelId::new(id as u64))
     }
 
     pub fn role_id(&self) -> Option<RoleId> {
-        self.role_id.map(|id| RoleId::new(id as u64))
+        self.lfg_role_id.map(|id| RoleId::new(id as u64))
     }
 
     pub fn scheduled_channel(&self) -> Option<GenericChannelId> {
-        self.scheduled_thread_id
+        self.lfg_scheduled_thread_id
             .map(|id| GenericChannelId::new(id as u64))
     }
 }
@@ -131,11 +131,13 @@ impl Create {
             .unwrap()
             .ok_or(Error::MissingSetup)?;
 
-        let channel = lfg_guild
-            .channel_id()
-            .to_guild_channel(&ctx.http, Some(guild_id))
-            .await
-            .unwrap();
+        let channel = match lfg_guild.channel_id() {
+            Some(id) => id
+                .to_guild_channel(&ctx.http, Some(guild_id))
+                .await
+                .unwrap(),
+            None => return Err(Error::MissingSetup),
+        };
 
         let tags = channel
             .available_tags

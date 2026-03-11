@@ -5,11 +5,12 @@ use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
+use crate::commands::inventory::InventoryManager;
 use crate::commands::shop::{ShopManager, ShopRow};
 use crate::events::{Dispatch, Event, ShopPurchaseEvent};
 use crate::models::GamblingItem;
 use crate::{
-    Coins, Error, Gems, GoalsManager, ItemInventory, MaxValues, Result, SHOP_ITEMS, ShopCurrency,
+    Coins, Error, GamblingItems, Gems, GoalsManager, MaxValues, Result, SHOP_ITEMS, ShopCurrency,
     ShopItem, ShopPage,
 };
 
@@ -17,7 +18,7 @@ pub async fn buy<
     Data: EmojiCacheData,
     Db: Database,
     GoalsHandler: GoalsManager<Db>,
-    BuyHandler: ShopManager<Db>,
+    BuyHandler: ShopManager<Db> + InventoryManager<Db>,
 >(
     ctx: &Context,
     interaction: &CommandInteraction,
@@ -91,7 +92,17 @@ pub async fn buy<
     let quantity = if matches!(item.category, ShopPage::Mine1 | ShopPage::Mine2) {
         edit_mine(&mut row, item, amount)?
     } else {
-        edit_inv(&mut row, item, amount)
+        let mut inventory = BuyHandler::inventory_items(pool, interaction.user.id)
+            .await
+            .unwrap();
+
+        let quantity = edit_inv(&mut inventory, item, amount);
+
+        BuyHandler::save_inventory(pool, interaction.user.id, inventory)
+            .await
+            .unwrap();
+
+        quantity
     };
 
     let emojis = {
@@ -131,10 +142,9 @@ pub async fn buy<
     Ok(())
 }
 
-fn edit_inv(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> i64 {
-    let inventory = row.inventory_mut();
-
+fn edit_inv(inventory: &mut GamblingItems, item: &ShopItem<'_>, amount: i64) -> i64 {
     match inventory
+        .0
         .iter_mut()
         .find(|inv_item| inv_item.item_id == item.id)
     {
@@ -145,7 +155,7 @@ fn edit_inv(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> i64 {
         None => {
             let mut item = GamblingItem::from(item);
             item.quantity = amount;
-            inventory.push(item);
+            inventory.0.push(item);
             amount
         }
     }

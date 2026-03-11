@@ -84,7 +84,7 @@ impl PostBuilder {
     pub fn build(self) -> PostRow {
         PostRow {
             id: self.id.get() as i64,
-            owner: self.owner.get() as i64,
+            owner_id: self.owner.get() as i64,
             activity: self.activity,
             start_time: self.start_time.timestamp().to_sqlx(),
             description: self.description,
@@ -143,7 +143,7 @@ impl From<PostRow> for PostBuilder {
     fn from(value: PostRow) -> Self {
         Self {
             id: ThreadId::new(value.id as u64),
-            owner: UserId::new(value.owner as u64),
+            owner: value.owner(),
             activity: value.activity,
             start_time: value.start_time.to_jiff().to_zoned(TimeZone::UTC),
             description: value.description,
@@ -171,7 +171,10 @@ pub trait PostManager<Db: Database> {
     async fn owner(pool: &Pool<Db>, id: impl Into<GenericChannelId> + Send)
     -> sqlx::Result<UserId>;
 
-    async fn row(pool: &Pool<Db>, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<PostRow>;
+    async fn post_row(
+        pool: &Pool<Db>,
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<PostRow>;
 
     async fn join(
         pool: &Pool<Db>,
@@ -198,7 +201,7 @@ pub trait PostManager<Db: Database> {
 
 pub struct PostRow {
     pub id: i64,
-    pub owner: i64,
+    pub owner_id: i64,
     pub activity: String,
     pub start_time: Timestamp,
     pub description: String,
@@ -219,7 +222,7 @@ impl PostRow {
     }
 
     pub fn owner(&self) -> UserId {
-        UserId::new(self.owner as u64)
+        UserId::new(self.owner_id as u64)
     }
 }
 

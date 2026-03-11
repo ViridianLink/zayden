@@ -95,7 +95,7 @@ pub trait LeaderboardManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct CoinsRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
 }
 
@@ -111,7 +111,7 @@ impl Coins for CoinsRow {
 
 #[derive(FromRow)]
 pub struct GemsRow {
-    pub id: i64,
+    pub user_id: i64,
     pub gems: i64,
 }
 
@@ -161,8 +161,8 @@ pub enum LeaderboardRow {
 impl LeaderboardRow {
     pub fn user_id(&self) -> UserId {
         match self {
-            Self::Coins(row) => UserId::new(row.id as u64),
-            Self::Gems(row) => UserId::new(row.id as u64),
+            Self::Coins(row) => UserId::new(row.user_id as u64),
+            Self::Gems(row) => UserId::new(row.user_id as u64),
             Self::Eggplants(row) => UserId::new(row.user_id as u64),
             Self::LottoTickets(row) => UserId::new(row.user_id as u64),
             Self::HigherLower(row) => UserId::new(row.user_id as u64),

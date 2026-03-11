@@ -19,7 +19,7 @@ impl SuggestionsGuildManager<Postgres> for GuildTable {
 
         let row = sqlx::query_as!(
             SuggestionsGuildRow,
-            r#"SELECT id, suggestions_channel_id, review_channel_id FROM guilds WHERE id = $1"#,
+            r#"SELECT id, suggestions_channel_id, review_channel_id FROM guild_config WHERE id = $1"#,
             id.get() as i64
         )
         .fetch_optional(pool)

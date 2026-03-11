@@ -49,7 +49,7 @@ pub trait LevelsRow {
 
 #[derive(FromRow)]
 pub struct LeaderboardRow {
-    pub id: i64,
+    pub user_id: i64,
     pub xp: i32,
     pub level: i32,
     pub message_count: i64,
@@ -57,7 +57,7 @@ pub struct LeaderboardRow {
 
 impl LevelsRow for LeaderboardRow {
     fn user_id(&self) -> UserId {
-        UserId::new(self.id as u64)
+        UserId::new(self.user_id as u64)
     }
 
     fn xp(&self) -> i32 {
@@ -164,7 +164,7 @@ impl LevelsRow for XpRow {
 
 #[derive(FromRow)]
 pub struct FullLevelRow {
-    pub id: i64,
+    pub user_id: i64,
     pub xp: i32,
     pub level: i32,
     pub total_xp: i64,
@@ -177,7 +177,7 @@ impl FullLevelRow {
         let id = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             xp: 0,
             level: 0,
             total_xp: 0,
@@ -206,7 +206,7 @@ impl FullLevelRow {
 
 impl LevelsRow for FullLevelRow {
     fn user_id(&self) -> UserId {
-        UserId::new(self.id as u64)
+        UserId::new(self.user_id as u64)
     }
 
     fn xp(&self) -> i32 {

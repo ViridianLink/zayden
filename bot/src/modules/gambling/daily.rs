@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use gambling::commands::daily::{DailyManager, DailyRow};
 use gambling::commands::goals::GoalsRow;
 use gambling::{Commands, GamblingGoalsRow, GoalsManager};
-use jiff_sqlx::Timestamp;
+use jiff_sqlx::Date;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
@@ -20,24 +20,32 @@ impl DailyManager<Postgres> for DailyTable {
     ) -> sqlx::Result<Option<DailyRow>> {
         let id = id.into();
 
-        todo!("Refactor database")
+        sqlx::query_file_as!(
+            DailyRow,
+            "sql/gambling/DailyManager/daily_row.sql",
+            id.get() as i64
+        )
+        .fetch_optional(pool)
+        .await
+    }
 
-        // sqlx::query_file_as!(
-        //     DailyRow,
-        //     "sql/gambling/DailyManager/daily_row.sql",
-        //     id.get() as i64
-        // )
-        // .fetch_optional(pool)
-        // .await
+    async fn goal_rows(pool: &PgPool, id: UserId) -> sqlx::Result<Vec<GamblingGoalsRow>> {
+        sqlx::query_file_as!(
+            GamblingGoalsRow,
+            "sql/gambling/DailyManager/goal_rows.sql",
+            id.get() as i64
+        )
+        .fetch_all(pool)
+        .await
     }
 
     async fn save(pool: &PgPool, row: DailyRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO gambling (id, coins, daily)
+            "INSERT INTO gambling (user_id, coins, daily)
             VALUES ($1, $2, now())
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins, daily = EXCLUDED.daily;",
-            row.id,
+            row.user_id,
             row.coins,
         )
         .execute(pool)
@@ -76,7 +84,7 @@ impl GoalsManager<Postgres> for DailyTable {
         let num_rows = rows.len();
         let mut user_ids: Vec<i64> = Vec::with_capacity(num_rows);
         let mut goal_ids: Vec<String> = Vec::with_capacity(num_rows);
-        let mut days: Vec<Timestamp> = Vec::with_capacity(num_rows);
+        let mut days: Vec<Date> = Vec::with_capacity(num_rows);
         let mut progresses: Vec<i64> = Vec::with_capacity(num_rows);
         let mut targets: Vec<i64> = Vec::with_capacity(num_rows);
 
@@ -92,10 +100,10 @@ impl GoalsManager<Postgres> for DailyTable {
             GamblingGoalsRow,
             r#"INSERT INTO gambling_goals (user_id, goal_id, day, progress, target)
             SELECT * FROM UNNEST($1::bigint[], $2::text[], $3::date[], $4::bigint[], $5::bigint[])
-            RETURNING user_id, goal_id, day as "day: jiff_sqlx::Timestamp", progress, target;"#,
+            RETURNING user_id, goal_id, day as "day: jiff_sqlx::Date", progress, target;"#,
             &user_ids,
             &goal_ids,
-            &days as &[Timestamp],
+            &days as &[Date],
             &progresses,
             &targets
         )

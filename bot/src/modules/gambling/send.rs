@@ -24,7 +24,7 @@ impl SendManager<Postgres> for SendTable {
         sqlx::query_as!(
             SendRow,
             "SELECT
-                g.id,
+                g.user_id,
                 g.coins,
                 g.gems,
                 g.stamina,
@@ -34,9 +34,9 @@ impl SendManager<Postgres> for SendTable {
                 m.prestige
 
                 FROM gambling g
-                LEFT JOIN levels l ON g.id = l.id
-                LEFT JOIN gambling_mine m on g.id = m.id
-                WHERE g.id = $1;",
+                LEFT JOIN levels l ON g.user_id = l.user_id
+                LEFT JOIN gambling_mine m on g.user_id = m.user_id
+                WHERE g.user_id = $1;",
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -45,11 +45,11 @@ impl SendManager<Postgres> for SendTable {
 
     async fn save(pool: &PgPool, row: SendRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO gambling (id, coins, gems, stamina)
+            "INSERT INTO gambling (user_id, coins, gems, stamina)
             VALUES ($1, $2, $3, $4)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
-            row.id,
+            row.user_id,
             row.coins,
             row.gems,
             row.stamina

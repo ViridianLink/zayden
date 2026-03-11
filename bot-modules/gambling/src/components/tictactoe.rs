@@ -233,10 +233,20 @@ async fn accept<
     let mut p1_row = state.p1_row::<Db, GameHandler>(pool).await;
     let mut p2_row = state.p2_row::<Db, GameHandler>(pool).await;
 
-    EffectsHandler::bet_limit::<GamblingHandler>(pool, p1_row.id as u64, state.bet, p1_row.coins())
-        .await?;
-    EffectsHandler::bet_limit::<GamblingHandler>(pool, p2_row.id as u64, state.bet, p2_row.coins())
-        .await?;
+    EffectsHandler::bet_limit::<GamblingHandler>(
+        pool,
+        p1_row.user_id as u64,
+        state.bet,
+        p1_row.coins(),
+    )
+    .await?;
+    EffectsHandler::bet_limit::<GamblingHandler>(
+        pool,
+        p2_row.user_id as u64,
+        state.bet,
+        p2_row.coins(),
+    )
+    .await?;
 
     state.current_turn = *state.players.choose(&mut rng()).unwrap();
 

@@ -1,8 +1,9 @@
 INSERT INTO
-    gambling (id, gems)
+gambling (user_id, gems)
 VALUES
-    ($1, $2) ON CONFLICT (id)
+($1, $2) ON CONFLICT (user_id)
 DO
 UPDATE
-SET
-    gems = gambling.gems + $2
+    SET
+        gems = gambling.gems + $2
+

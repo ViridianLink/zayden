@@ -34,16 +34,22 @@ impl PostManager<Postgres> for PostTable {
     async fn owner(pool: &PgPool, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<UserId> {
         let id = id.into();
 
-        sqlx::query_scalar!("SELECT owner from lfg_posts WHERE id = $1", id.get() as i64)
-            .fetch_one(pool)
-            .await
-            .map(|id| UserId::new(id as u64))
+        sqlx::query_scalar!(
+            "SELECT owner_id from lfg_posts WHERE id = $1",
+            id.get() as i64
+        )
+        .fetch_one(pool)
+        .await
+        .map(|id| UserId::new(id as u64))
     }
 
-    async fn row(pool: &PgPool, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<PostRow> {
+    async fn post_row(
+        pool: &PgPool,
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<PostRow> {
         let id = id.into();
 
-        sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/row.sql", id.get() as i64)
+        sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/post_row.sql", id.get() as i64)
             .fetch_one(pool)
             .await
     }
@@ -69,9 +75,10 @@ impl PostManager<Postgres> for PostTable {
         .execute(&mut *tx)
         .await?;
 
-        let row = sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/row.sql", id.get() as i64)
-            .fetch_one(&mut *tx)
-            .await?;
+        let row =
+            sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/post_row.sql", id.get() as i64)
+                .fetch_one(&mut *tx)
+                .await?;
 
         if !alternative && row.fireteam_len() > row.fireteam_size() {
             return Err(Error::FireteamFull);
@@ -101,9 +108,10 @@ impl PostManager<Postgres> for PostTable {
         .execute(&mut *tx)
         .await?;
 
-        let row = sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/row.sql", id.get() as i64)
-            .fetch_one(&mut *tx)
-            .await?;
+        let row =
+            sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/post_row.sql", id.get() as i64)
+                .fetch_one(&mut *tx)
+                .await?;
 
         tx.commit().await?;
 
@@ -114,7 +122,7 @@ impl PostManager<Postgres> for PostTable {
         sqlx::query_file!(
             "sql/lfg/PostManager/edit.sql",
             post.id,
-            post.owner,
+            post.owner_id,
             post.activity,
             post.start_time as Timestamp,
             post.description,
@@ -142,7 +150,7 @@ async fn save_post(pool: &PgPool, row: PostRow) -> sqlx::Result<PgQueryResult> {
     let main_result = sqlx::query_file!(
         "sql/lfg/PostManager/save_post.sql",
         row.id,
-        row.owner,
+        row.owner_id,
         row.activity,
         row.start_time as Timestamp,
         row.description,
@@ -155,7 +163,7 @@ async fn save_post(pool: &PgPool, row: PostRow) -> sqlx::Result<PgQueryResult> {
 
     if let (Some(channel), Some(message)) = (row.alt_channel, row.alt_message) {
         sqlx::query!(
-            "INSERT INTO lfg_messages (id, message, channel) VALUES ($1, $2, $3) ON CONFLICT (id) DO NOTHING",
+            "INSERT INTO lfg_messages (post_id, message_id, channel_id) VALUES ($1, $2, $3) ON CONFLICT (post_id) DO NOTHING",
             row.id,
             message,
             channel,
@@ -190,12 +198,12 @@ impl SetupManager<Postgres> for PostTable {
 
         sqlx::query!(
             r#"
-            INSERT INTO lfg_guilds (id, channel_id, role_id)
+            INSERT INTO guild_config (id, lfg_channel_id, lfg_role_id)
             VALUES ($1, $2, $3)
             ON CONFLICT (id) DO UPDATE
             SET
-                channel_id = EXCLUDED.channel_id,
-                role_id = EXCLUDED.role_id;
+                lfg_channel_id = EXCLUDED.lfg_channel_id,
+                lfg_role_id = EXCLUDED.lfg_role_id;
             "#,
             id.get() as i64,
             channel.get() as i64,
@@ -223,13 +231,13 @@ impl JoinedManager<Postgres> for PostTable {
                 p.start_time as "start_time: jiff_sqlx::Timestamp",
             
                 COALESCE(
-                    (SELECT array_agg(f.user_id) FROM lfg_fireteam f WHERE f.post = p.id),
+                    (SELECT array_agg(f.user_id) FROM lfg_fireteam f WHERE f.post_id = p.id),
                     '{}'
                 ) AS "fireteam!"
             
             FROM
                 lfg_posts p
-            JOIN lfg_fireteam f ON p.id = f.post
+            JOIN lfg_fireteam f ON p.id = f.post_id
             WHERE
                 f.user_id = $1
             "#,
@@ -249,7 +257,7 @@ impl EditManager<Postgres> for PostTable {
             EditRow,
             r#"
             SELECT
-                p.owner,
+                p.owner_id,
                 p.activity,
                 p.start_time as "start_time: jiff_sqlx::Timestamp",
                 p.description,
@@ -258,7 +266,7 @@ impl EditManager<Postgres> for PostTable {
             FROM
                 lfg_posts AS p
             LEFT JOIN
-                lfg_users AS u ON p.owner = u.id
+                lfg_user_config AS u ON p.owner_id = u.id
             WHERE
                 p.id = $1
             "#,
@@ -275,7 +283,7 @@ pub struct UsersTable;
 impl TimezoneManager<Postgres> for UsersTable {
     async fn get(pool: &PgPool, id: UserId, locale: &str) -> sqlx::Result<TimeZone> {
         let row = sqlx::query!(
-            "SELECT timezone FROM lfg_users WHERE id = $1",
+            "SELECT timezone FROM lfg_user_config WHERE id = $1",
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -297,7 +305,7 @@ impl TimezoneManager<Postgres> for UsersTable {
         let id = id.into();
 
         sqlx::query!(
-            "INSERT INTO lfg_users (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
+            "INSERT INTO lfg_user_config (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
             id.get() as i64,
         tz_name)
         .execute(pool)
@@ -314,10 +322,10 @@ impl GuildManager<Postgres> for GuildTable {
 
         sqlx::query_as!(
             GuildRow,
-            "SELECT channel_id, role_id, scheduled_thread_id FROM lfg_guilds WHERE id = $1",
+            "SELECT lfg_channel_id, lfg_role_id, lfg_scheduled_thread_id FROM guild_config WHERE id = $1",
             id.get() as i64
         )
-        .fetch_optional(pool)
+        .fetch_optional(pool )
         .await
     }
 }

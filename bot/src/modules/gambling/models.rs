@@ -35,9 +35,9 @@ impl GamblingManager<Postgres> for GamblingTable {
             FROM
                 levels l
             LEFT JOIN
-                gambling_mine m ON l.id = m.id
+                gambling_mine m ON l.user_id = m.user_id
             WHERE
-                l.id = $1
+                l.user_id = $1
             "#,
             id.get() as i64
         )
@@ -117,11 +117,11 @@ impl GameManager<Postgres> for GameTable {
 
     async fn save(pool: &PgPool, row: GameRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO gambling (id, coins, gems)
+            "INSERT INTO gambling (user_id, coins, gems)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins, gems = EXCLUDED.gems;",
-            row.id,
+            row.user_id,
             row.coins,
             row.gems,
         )

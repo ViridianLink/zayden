@@ -22,19 +22,19 @@ impl GiftManager<Postgres> for GiftTable {
         sqlx::query_as!(
             SenderRow,
             r#"SELECT
-                g.id,
+                g.user_id,
                 g.coins,
                 g.gems,
                 g.gift as "gift: jiff_sqlx::Timestamp",
 
-                COALESCE(l.level, 0) AS level,
+                COALESCE(l.level, 0) AS "level!",
                 
                 m.prestige
 
                 FROM gambling g
-                LEFT JOIN levels l ON g.id = l.id
-                LEFT JOIN gambling_mine m on g.id = m.id
-                WHERE g.id = $1;"#,
+                LEFT JOIN levels l ON g.user_id = l.user_id
+                LEFT JOIN gambling_mine m on g.user_id = m.user_id
+                WHERE g.user_id = $1;"#,
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -45,11 +45,11 @@ impl GiftManager<Postgres> for GiftTable {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
-            "INSERT INTO gambling (id, coins, gems, gift)
+            "INSERT INTO gambling (user_id, coins, gems, gift)
             VALUES ($1, $2, $3, now())
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins, gems = EXCLUDED.gems, gift = EXCLUDED.gift;",
-            row.id,
+            row.user_id,
             row.coins,
             row.gems,
         )
@@ -57,11 +57,11 @@ impl GiftManager<Postgres> for GiftTable {
         .await?;
 
         let result2 = sqlx::query!(
-            "INSERT INTO levels (id, level)
+            "INSERT INTO levels (user_id, level)
             VALUES ($1, $2)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             level = EXCLUDED.level;",
-            row.id,
+            row.user_id,
             row.level,
         )
         .execute(&mut *tx)

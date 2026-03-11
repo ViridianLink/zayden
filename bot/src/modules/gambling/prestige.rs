@@ -1,13 +1,13 @@
 use async_trait::async_trait;
+use gambling::commands::inventory::{InventoryManager, InventoryRow};
 use gambling::commands::prestige::{PrestigeManager, PrestigeRow};
 use gambling::shop::LOTTO_TICKET;
-use gambling::{Commands, GamblingItem};
+use gambling::{Commands, GamblingItem, GamblingItems};
 use serenity::all::{
     CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption, UserId,
 };
 use sqlx::postgres::PgQueryResult;
-use sqlx::types::Json;
-use sqlx::{PgPool, Postgres};
+use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Component};
 
 use crate::{Error, Result, ZAYDEN_ID};
@@ -22,7 +22,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         let id = id.into();
 
         sqlx::query_scalar!(
-            "SELECT miners FROM gambling_mine WHERE id = $1;",
+            "SELECT miners FROM gambling_mine WHERE user_id = $1;",
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -56,11 +56,11 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
-            "INSERT INTO gambling (id, coins, gems, stamina)
+            "INSERT INTO gambling (user_id, coins, gems, stamina)
             VALUES ($1, $2, $3, $4)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
-            row.id,
+            row.user_id,
             row.coins,
             row.gems,
             MAX_STAMINA,
@@ -71,29 +71,15 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         let result2 = sqlx::query!(
             "DELETE FROM gambling_inventory
             WHERE user_id = $1;",
-            row.id,
+            row.user_id,
         )
         .execute(&mut *tx)
         .await?;
 
         let result3 = sqlx::query!(
-            "INSERT INTO gambling_inventory (user_id, item_id, quantity)
-            SELECT
-                $1 AS user_id,
-                (elem->>'item_id')::TEXT AS item_id,
-                (elem->>'quantity')::INTEGER AS quantity
-            FROM
-                jsonb_array_elements($2::JSONB) AS elem;",
-            row.id,
-            serde_json::to_value(row.inventory.unwrap_or_default().0).unwrap()
-        )
-        .execute(&mut *tx)
-        .await?;
-
-        let result4 = sqlx::query!(
-            "INSERT INTO gambling_mine (id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
+            "INSERT INTO gambling_mine (user_id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
                 miners = EXCLUDED.miners,
                 mines = EXCLUDED.mines,
                 land = EXCLUDED.land,
@@ -114,7 +100,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
                 tech = EXCLUDED.tech,
                 utility = EXCLUDED.utility,
                 production = EXCLUDED.production;",
-                row.id,
+                row.user_id,
                 row.miners,
                 row.mines,
                 row.land,
@@ -140,9 +126,38 @@ impl PrestigeManager<Postgres> for PrestigeTable {
 
         tx.commit().await?;
 
-        result.extend([result2, result3, result4]);
+        result.extend([result2, result3]);
 
         Ok(result)
+    }
+}
+
+#[async_trait]
+impl InventoryManager<Postgres> for PrestigeTable {
+    async fn gambling_row(_pool: &PgPool, _id: UserId) -> sqlx::Result<Option<InventoryRow>> {
+        unimplemented!()
+    }
+    async fn inventory_items(pool: &PgPool, id: UserId) -> sqlx::Result<GamblingItems> {
+        let items = sqlx::query_as!(
+            GamblingItem,
+            r#"SELECT item_id, quantity
+            FROM gambling_inventory
+            WHERE user_id = $1"#,
+            id.get() as i64
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(GamblingItems(items))
+    }
+
+    async fn edit_item_quantity(
+        _conn: &mut PgConnection,
+        _id: impl Into<UserId> + Send,
+        _item_id: &str,
+        _amount: i64,
+    ) -> sqlx::Result<i64> {
+        unimplemented!()
     }
 }
 

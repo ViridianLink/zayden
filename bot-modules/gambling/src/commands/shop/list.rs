@@ -5,10 +5,15 @@ use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
+use crate::commands::inventory::InventoryManager;
 use crate::shop::shop_response;
 use crate::{Result, ShopManager, ShopPage, ShopRow};
 
-pub async fn list<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
+pub async fn list<
+    Data: EmojiCacheData,
+    Db: Database,
+    Manager: ShopManager<Db> + InventoryManager<Db>,
+>(
     ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
@@ -24,6 +29,10 @@ pub async fn list<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
         None => ShopRow::new(interaction.user.id),
     };
 
+    let inventory = Manager::inventory_items(pool, interaction.user.id)
+        .await
+        .unwrap();
+
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
         let data = data_lock.read().await;
@@ -32,7 +41,7 @@ pub async fn list<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
 
     let title = format!("{page} Shop");
 
-    let (embed, components) = shop_response(&emojis, &row, Some(&title), 0);
+    let (embed, components) = shop_response(&emojis, &row, inventory, Some(&title), 0);
 
     interaction
         .edit_response(

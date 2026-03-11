@@ -21,7 +21,6 @@ serenity = { workspace = true, features = [
   "builder",
   "gateway",
   "collector",
-
 ] }
 sqlx = { workspace = true, features = ["json"] }
 tokio = { workspace = true }

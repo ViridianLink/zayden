@@ -1,18 +1,9 @@
 SELECT
-    g.id,
+    g.user_id,
     g.coins,
     g.gems,
     g.stamina,
-    (
-        SELECT
-            jsonb_agg(
-                jsonb_build_object('quantity', inv.quantity, 'item_id', inv.item_id)
-            )
-        FROM
-            gambling_inventory inv
-        WHERE
-            inv.user_id = g.id
-    ) as "inventory: Json<Vec<GamblingItem>>",
+
     m.miners,
     m.mines,
     m.land,
@@ -35,7 +26,7 @@ SELECT
     m.production
 FROM
     gambling g
-    LEFT JOIN gambling_inventory i on g.id = i.id
-    LEFT JOIN gambling_mine m on g.id = m.id
+LEFT JOIN gambling_mine m ON g.user_id = m.user_id
 WHERE
-    g.id = $1;
+    g.user_id = $1;
+

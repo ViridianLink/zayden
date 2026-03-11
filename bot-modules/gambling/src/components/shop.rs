@@ -6,12 +6,17 @@ use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
 use crate::Result;
+use crate::commands::inventory::InventoryManager;
 use crate::common::shop::{ShopManager, ShopRow, shop_response};
 
 pub struct Shop;
 
 impl Shop {
-    pub async fn run_components<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
+    pub async fn run_components<
+        Data: EmojiCacheData,
+        Db: Database,
+        Manager: ShopManager<Db> + InventoryManager<Db>,
+    >(
         ctx: &Context,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
@@ -33,10 +38,14 @@ impl Shop {
             None => ShopRow::new(interaction.user.id),
         };
 
+        let inventory = Manager::inventory_items(pool, interaction.user.id)
+            .await
+            .unwrap();
+
         let (embed, components) = if interaction.data.custom_id == "shop_next" {
-            shop_response(&emojis, &row, title, 1)
+            shop_response(&emojis, &row, inventory, title, 1)
         } else {
-            shop_response(&emojis, &row, title, -1)
+            shop_response(&emojis, &row, inventory, title, -1)
         };
 
         interaction

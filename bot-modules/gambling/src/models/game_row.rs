@@ -15,7 +15,7 @@ pub trait GameManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct GameRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub gems: i64,
     pub level: Option<i32>,
@@ -27,7 +27,7 @@ impl GameRow {
         let id = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             gems: 0,
             level: Some(0),

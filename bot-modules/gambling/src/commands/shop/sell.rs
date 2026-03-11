@@ -11,7 +11,7 @@ use crate::{Coins, Error, Result, SHOP_ITEMS, ShopManager};
 
 #[derive(FromRow)]
 pub struct SellRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub item_row_id: Option<i32>,
     pub item_quantity: Option<i64>,
@@ -22,7 +22,7 @@ impl SellRow {
         let id = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             item_row_id: None,
             item_quantity: None,

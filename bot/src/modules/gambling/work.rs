@@ -22,7 +22,7 @@ impl WorkManager<Postgres> for WorkTable {
         sqlx::query_as!(
             WorkRow,
             r#"SELECT
-                g.id,
+                g.user_id,
                 g.coins,
                 g.gems,
                 g.stamina,
@@ -34,9 +34,9 @@ impl WorkManager<Postgres> for WorkTable {
                 COALESCE(m.mine_activity, now()::TIMESTAMP) AS "mine_activity: jiff_sqlx::Timestamp"
 
                 FROM gambling g
-                LEFT JOIN levels l ON g.id = l.id
-                LEFT JOIN gambling_mine m on g.id = m.id
-                WHERE g.id = $1;"#,
+                LEFT JOIN levels l ON g.user_id = l.user_id
+                LEFT JOIN gambling_mine m on g.user_id = m.user_id
+                WHERE g.user_id = $1;"#,
             id.get() as i64
         )
         .fetch_optional(pool)
@@ -47,11 +47,11 @@ impl WorkManager<Postgres> for WorkTable {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
-            "INSERT INTO gambling (id, coins, gems, stamina)
+            "INSERT INTO gambling (user_id, coins, gems, stamina)
             VALUES ($1, $2, $3, $4)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
-            row.id,
+            row.user_id,
             row.coins,
             row.gems,
             row.stamina
@@ -60,11 +60,11 @@ impl WorkManager<Postgres> for WorkTable {
         .await?;
 
         let result2 = sqlx::query!(
-            "INSERT INTO gambling_mine (id, mine_activity)
+            "INSERT INTO gambling_mine (user_id, mine_activity)
             VALUES ($1, $2)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (user_id) DO UPDATE SET
             mine_activity = EXCLUDED.mine_activity;",
-            row.id,
+            row.user_id,
             row.mine_activity as Option<Timestamp>,
         )
         .execute(&mut *tx)

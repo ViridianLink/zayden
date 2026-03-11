@@ -1,8 +1,9 @@
 INSERT INTO
-    lfg_fireteam (post, user_id, alternative)
+lfg_fireteam (post_id, user_id, alternative)
 VALUES
-    ($1, $2, $3) ON CONFLICT (post, user_id)
+($1, $2, $3) ON CONFLICT (post_id, user_id)
 DO
 UPDATE
-SET
-    alternative = EXCLUDED.alternative
+    SET
+        alternative = excluded.alternative
+

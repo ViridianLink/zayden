@@ -35,7 +35,7 @@ pub trait EmojiCacheData: Send + Sync + 'static {
 }
 
 #[derive(Default)]
-pub struct EmojiCache(HashMap<FixedString, EmojiId>);
+pub struct EmojiCache(HashMap<FixedString<u8>, EmojiId>);
 
 impl EmojiCache {
     pub async fn new(ctx: &Context) -> serenity::Result<Self> {
@@ -66,7 +66,7 @@ impl EmojiCache {
 
         let missing_emojis = parent_emojis
             .iter()
-            .filter(|(name, _)| !emojis.contains_key(*name))
+            .filter(|(name, _)| !emojis.contains_key(name.as_str()))
             .collect::<HashMap<_, _>>();
 
         for (name, id) in missing_emojis {
@@ -147,7 +147,7 @@ impl EmojiCache {
         };
     }
 
-    async fn parent_emojis(parent_token: &str) -> HashMap<FixedString, EmojiId> {
+    async fn parent_emojis(parent_token: &str) -> HashMap<FixedString<u8>, EmojiId> {
         #[derive(Deserialize)]
         struct ApplicationEmojis {
             items: Vec<Emoji>,
@@ -199,7 +199,7 @@ impl EmojiCache {
 }
 
 impl Deref for EmojiCache {
-    type Target = HashMap<FixedString, EmojiId>;
+    type Target = HashMap<FixedString<u8>, EmojiId>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

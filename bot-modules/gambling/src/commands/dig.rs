@@ -44,71 +44,47 @@ static CHANCES: LazyLock<HashMap<&str, f64>> = LazyLock::new(|| {
 pub trait DigManager<Db: Database> {
     async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<DigRow>>;
 
-    async fn save(pool: &Pool<Db>, row: DigRow) -> sqlx::Result<Db::QueryResult>;
+    async fn save(pool: &Pool<Db>, row: &DigRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(Debug, FromRow)]
 pub struct DigRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub gems: i64,
     pub stamina: i32,
-    pub level: Option<i32>,
-    pub miners: Option<i64>,
-    pub coal: Option<i64>,
-    pub iron: Option<i64>,
-    pub gold: Option<i64>,
-    pub redstone: Option<i64>,
-    pub lapis: Option<i64>,
-    pub diamonds: Option<i64>,
-    pub emeralds: Option<i64>,
-    pub prestige: Option<i64>,
-    pub mine_activity: Option<Timestamp>,
+    pub level: i32,
+    pub miners: i64,
+    pub coal: i64,
+    pub iron: i64,
+    pub gold: i64,
+    pub redstone: i64,
+    pub lapis: i64,
+    pub diamonds: i64,
+    pub emeralds: i64,
+    pub prestige: i64,
+    pub mine_activity: Timestamp,
 }
 
 impl DigRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    pub fn new(id: UserId) -> Self {
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             gems: 0,
             stamina: 0,
-            level: Some(0),
-            miners: Some(0),
-            coal: Some(0),
-            iron: Some(0),
-            gold: Some(0),
-            redstone: Some(0),
-            lapis: Some(0),
-            diamonds: Some(0),
-            emeralds: Some(0),
-            prestige: Some(0),
-            mine_activity: Some(jiff::Timestamp::now().to_sqlx()),
+            level: 0,
+            miners: 0,
+            coal: 0,
+            iron: 0,
+            gold: 0,
+            redstone: 0,
+            lapis: 0,
+            diamonds: 0,
+            emeralds: 0,
+            prestige: 0,
+            mine_activity: jiff::Timestamp::now().to_sqlx(),
         }
-    }
-
-    fn coal_mut(&mut self) -> &mut i64 {
-        self.coal.get_or_insert_default()
-    }
-    fn iron_mut(&mut self) -> &mut i64 {
-        self.iron.get_or_insert_default()
-    }
-    fn gold_mut(&mut self) -> &mut i64 {
-        self.gold.get_or_insert_default()
-    }
-    fn redstone_mut(&mut self) -> &mut i64 {
-        self.redstone.get_or_insert_default()
-    }
-    fn lapis_mut(&mut self) -> &mut i64 {
-        self.lapis.get_or_insert_default()
-    }
-    fn diamonds_mut(&mut self) -> &mut i64 {
-        self.diamonds.get_or_insert_default()
-    }
-    fn emeralds_mut(&mut self) -> &mut i64 {
-        self.emeralds.get_or_insert_default()
     }
 }
 
@@ -144,27 +120,25 @@ impl Stamina for DigRow {
 
 impl Prestige for DigRow {
     fn prestige(&self) -> i64 {
-        self.prestige.unwrap_or_default()
+        self.prestige
     }
 }
 
 impl MaxBet for DigRow {
     fn level(&self) -> i32 {
-        self.level.unwrap_or_default()
+        self.level
     }
 }
 
 impl MineHourly for DigRow {
     fn miners(&self) -> i64 {
-        self.miners.unwrap_or_default()
+        self.miners
     }
 }
 
 impl MineAmount for DigRow {
     fn mine_activity(&self) -> jiff::Timestamp {
-        self.mine_activity
-            .map(|t| t.to_jiff())
-            .unwrap_or_else(|| jiff::Timestamp::now())
+        self.mine_activity.to_jiff()
     }
 }
 
@@ -214,13 +188,13 @@ impl Commands {
         }
 
         resources.iter().for_each(|(&k, &v)| match k {
-            "coal" => *row.coal_mut() += v,
-            "iron" => *row.iron_mut() += v,
-            "gold" => *row.gold_mut() += v,
-            "redstone" => *row.redstone_mut() += v,
-            "lapis" => *row.lapis_mut() += v,
-            "diamonds" => *row.diamonds_mut() += v,
-            "emeralds" => *row.emeralds_mut() += v,
+            "coal" => row.coal += v,
+            "iron" => row.iron += v,
+            "gold" => row.gold += v,
+            "redstone" => row.redstone += v,
+            "lapis" => row.lapis += v,
+            "diamonds" => row.diamonds += v,
+            "emeralds" => row.emeralds += v,
             s => unreachable!("Invalid resource: {s}"),
         });
 
@@ -242,11 +216,11 @@ impl Commands {
         *row.coins_mut() += mine_amount;
 
         row.done_work();
-        row.mine_activity = Some(jiff::Timestamp::now().to_sqlx());
+        row.mine_activity = jiff::Timestamp::now().to_sqlx();
 
         let stamina = row.stamina_str();
 
-        DigHandler::save(pool, row).await.unwrap();
+        DigHandler::save(pool, &row).await.unwrap();
 
         let found = resources
             .drain()

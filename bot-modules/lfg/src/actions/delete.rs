@@ -12,7 +12,7 @@ pub async fn delete<Db: Database, Manager: PostManager<Db>>(
 ) -> Result<()> {
     let channel = channel.into();
 
-    let Ok(post) = Manager::row(pool, channel).await else {
+    let Ok(post) = Manager::post_row(pool, channel).await else {
         return Ok(());
     };
 

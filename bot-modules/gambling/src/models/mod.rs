@@ -10,7 +10,7 @@ mod game_row;
 pub use gambling::GamblingManager;
 pub use gambling_effects::{EffectsManager, EffectsRow};
 pub use gambling_goals::GamblingGoalsRow;
-pub use gambling_inventory::{GamblingItem, InventoryManager, InventoryRow};
+pub use gambling_inventory::{GamblingItem, GamblingItems, InventoryManager, InventoryRow};
 pub use gambling_stats::StatsManager;
 pub use game_row::{GameManager, GameRow};
 use jiff::tz::TimeZone;
@@ -369,7 +369,7 @@ pub trait MineAmount: MineHourly {
             .since((Unit::Hour, mine_hour))
             .expect("Span should be within bounds");
 
-        let hours_passed = duration.get_hours().max(0).min(24) as i64;
+        let hours_passed = duration.get_hours().clamp(0, 24) as i64;
 
         hours_passed * self.hourly()
     }

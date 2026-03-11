@@ -19,7 +19,7 @@ use super::Commands;
 
 #[derive(Debug, FromRow)]
 pub struct WorkRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub gems: i64,
     pub stamina: i32,
@@ -34,7 +34,7 @@ impl WorkRow {
         let id: UserId = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             gems: 0,
             stamina: 3,

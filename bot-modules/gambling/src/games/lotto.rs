@@ -29,7 +29,7 @@ pub trait LottoManager<Db: Database> {
 
 #[derive(FromRow)]
 pub struct LottoRow {
-    pub id: i64,
+    pub user_id: i64,
     pub coins: i64,
     pub quantity: Option<i64>,
 }
@@ -39,14 +39,14 @@ impl LottoRow {
         let id: UserId = id.into();
 
         Self {
-            id: id.get() as i64,
+            user_id: id.get() as i64,
             coins: 0,
             quantity: Some(0),
         }
     }
 
     fn user_id(&self) -> UserId {
-        UserId::new(self.id as u64)
+        UserId::new(self.user_id as u64)
     }
 
     pub fn quantity(&self) -> i64 {
@@ -89,7 +89,7 @@ impl Lotto {
 
             let total_tickets: i64 = rows.iter().map(|row| row.quantity()).sum();
 
-            rows.retain(|row| row.id as u64 != bot_id.get());
+            rows.retain(|row| row.user_id as u64 != bot_id.get());
 
             let prize_share = [0.5, 0.3, 0.2];
 

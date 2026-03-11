@@ -28,9 +28,9 @@ pub use game_cache::GameCache;
 pub use games::{HigherLower, Lotto, LottoManager, LottoRow, jackpot};
 pub use goals::GoalHandler;
 pub use models::{
-    Coins, EffectsManager, EffectsRow, GamblingGoalsRow, GamblingItem, GamblingManager,
-    GameManager, GameRow, Gems, ItemInventory, MaxBet, MaxValues, MineHourly, Mining, Prestige,
-    Stamina, StatsManager,
+    Coins, EffectsManager, EffectsRow, GamblingGoalsRow, GamblingItem, GamblingItems,
+    GamblingManager, GameManager, GameRow, Gems, ItemInventory, MaxBet, MaxValues, MineHourly,
+    Mining, Prestige, Stamina, StatsManager,
 };
 pub use stamina::{StaminaCron, StaminaManager};
 use tokio::sync::OnceCell;

@@ -1,6 +1,6 @@
-SELECT
-    coins
+SELECT coins
 FROM
     gambling
 WHERE
-    id = $1
+    user_id = $1
+
