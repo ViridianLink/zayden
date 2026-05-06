@@ -188,7 +188,7 @@ impl GoalRegistry {
     }
 
     pub fn select_daily_goal(&self) -> Vec<GoalDefinition> {
-        self.0.values().copied().choose_multiple(&mut rng(), 3)
+        self.0.values().copied().sample(&mut rng(), 3)
     }
 }
 

@@ -88,7 +88,7 @@ fn embed<'a>(
     owner_name: &str,
     thread: Option<ThreadId>,
 ) -> CreateEmbed<'a> {
-    let timestamp = post.timestamp();
+    let timestamp = post.timestamp().as_second();
 
     let fireteam = post
         .fireteam()
@@ -103,7 +103,7 @@ fn embed<'a>(
     let fireteam_str = fireteam.join("\n");
 
     let mut embed = CreateEmbed::new()
-        .title(format!("{} - <t:{}>", post.activity(), timestamp))
+        .title(format!("{} - <t:{timestamp}>", post.activity()))
         .field("Activity", post.activity().to_string(), true)
         .field("Start Time", format!("<t:{timestamp}:R>"), true);
 

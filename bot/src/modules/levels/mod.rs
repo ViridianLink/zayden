@@ -86,7 +86,7 @@ impl LevelsManager<Postgres> for LevelsTable {
 
     async fn save(pool: &PgPool, row: FullLevelRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+            "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",
             row.user_id
         )
         .execute(pool)

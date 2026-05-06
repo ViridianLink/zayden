@@ -63,7 +63,7 @@ impl FetchSuggestions {
             .collect::<Vec<_>>()
             .await;
 
-        reaction_counts.sort_by(|a, b| b.1.cmp(&a.1));
+        reaction_counts.sort_by_key(|b| std::cmp::Reverse(b.1));
 
         let elapsed_time = start_time.elapsed();
 

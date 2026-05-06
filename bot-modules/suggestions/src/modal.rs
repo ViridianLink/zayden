@@ -9,9 +9,7 @@ impl Suggestions {
     pub async fn modal(http: &Http, modal: &ModalInteraction, accepted: bool) {
         let response = match modal.data.components.first() {
             Some(ModalComponent::Label(label)) => match &label.component {
-                LabelComponent::InputText(input_text) => {
-                    input_text.value.as_deref().unwrap_or_default()
-                }
+                LabelComponent::InputText(input_text) => &input_text.value,
                 _ => unimplemented!("InputText must be the component"),
             },
             _ => unreachable!("Label is a required component"),

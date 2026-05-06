@@ -215,7 +215,14 @@ impl Create {
         PostHandler::save(pool, post).await.unwrap();
 
         interaction
-            .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
+            .create_response(
+                &ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .content("Successfully created post.")
+                        .ephemeral(true),
+                ),
+            )
             .await
             .unwrap();
 

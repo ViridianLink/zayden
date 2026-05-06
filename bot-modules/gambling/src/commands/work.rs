@@ -92,7 +92,7 @@ impl MineAmount for WorkRow {
     fn mine_activity(&self) -> jiff::Timestamp {
         self.mine_activity
             .map(|t| t.to_jiff())
-            .unwrap_or_else(|| jiff::Timestamp::now())
+            .unwrap_or_else(jiff::Timestamp::now)
     }
 }
 

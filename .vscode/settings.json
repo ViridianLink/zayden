@@ -1,8 +1,0 @@
-{
-    "files.exclude": {
-        "family/": true,
-        "gold-star/": true,
-        "reaction-roles/": true,
-        "**/Cargo.lock": true
-    },
-}

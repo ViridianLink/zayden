@@ -54,7 +54,7 @@ fn parse_action_row(components: &[ActionRowComponent]) -> Vec<(Cow<'_, str>, Vec
         .iter()
         .filter_map(|c| match c {
             ActionRowComponent::Button(_) => None,
-            ActionRowComponent::SelectMenu(select_menu) => {
+            ActionRowComponent::SelectMenu(_select_menu) => {
                 todo!("Select menu can have multiple values which breaks current function")
             }
             c => {
@@ -78,7 +78,7 @@ fn parse_section(components: &[SectionComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<
         .collect()
 }
 
-fn parse_container(components: &[ContainerComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
+fn parse_container(_components: &[ContainerComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
     todo!()
 }
 
@@ -86,19 +86,13 @@ fn parse_label(component: &LabelComponent) -> (Cow<'_, str>, Vec<Cow<'_, str>>) 
     match component {
         LabelComponent::SelectMenu(select_menu) => (
             Cow::Borrowed(&select_menu.custom_id),
-            select_menu
-                .values
-                .iter()
-                .map(Cow::from) // Creates Cow::Borrowed(&str)
-                .collect(),
+            select_menu.values.iter().map(Cow::from).collect(),
         ),
         LabelComponent::InputText(input_text) => (
             Cow::Borrowed(&input_text.custom_id),
-            vec![Cow::Borrowed(
-                input_text.value.as_deref().unwrap_or_default(),
-            )],
+            vec![Cow::Borrowed(&input_text.value)],
         ),
-        LabelComponent::FileUpload(file_upload) => {
+        LabelComponent::FileUpload(_file_upload) => {
             panic!("File upload uses a non-text format");
         }
         c => {

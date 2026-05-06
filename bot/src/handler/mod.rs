@@ -24,8 +24,11 @@ pub struct Handler {
 
 #[async_trait]
 impl EventHandler for Handler {
-    fn filter_event(&self, _ctx: &Context, event: &Event) -> bool {
-        !matches!(event, Event::TypingStart(_) | Event::MessageUpdate(_))
+    fn filter_event(&self, _context: &Context, event: Box<Event>) -> Option<Box<Event>> {
+        match &*event {
+            Event::TypingStart(_) | Event::MessageUpdate(_) => None,
+            _ => Some(event),
+        }
     }
 
     async fn dispatch(&self, ctx: &Context, ev: &FullEvent) {
