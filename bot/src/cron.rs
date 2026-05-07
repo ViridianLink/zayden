@@ -67,7 +67,7 @@ async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
             job.schedule
                 .upcoming(TimeZone::UTC)
                 .next()
-                .map(|t| t > now)
+                .map(|t| t > now && job.schedule.includes(t))
                 .unwrap_or(false)
         });
     }
@@ -77,7 +77,7 @@ async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
         job.schedule
             .upcoming(TimeZone::UTC)
             .next()
-            .filter(|t| *t > now)
+            .filter(|t| *t > now && job.schedule.includes(t.clone()))
             .map(|run_time| (job, run_time))
     });
 
