@@ -59,10 +59,17 @@ async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
 
     let data = ctx.data::<RwLock<CtxData>>();
 
+    let now = Timestamp::now().to_zoned(TimeZone::UTC);
+
     {
         let mut data = data.write().await;
-        data.jobs_mut()
-            .retain(|job| job.schedule.upcoming(TimeZone::UTC).next().is_some());
+        data.jobs_mut().retain(|job| {
+            job.schedule
+                .upcoming(TimeZone::UTC)
+                .next()
+                .map(|t| t > now)
+                .unwrap_or(false)
+        });
     }
 
     let data = data.read().await;
@@ -70,6 +77,7 @@ async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
         job.schedule
             .upcoming(TimeZone::UTC)
             .next()
+            .filter(|t| *t > now)
             .map(|run_time| (job, run_time))
     });
 
