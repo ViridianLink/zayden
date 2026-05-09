@@ -74,21 +74,26 @@ impl EventHandler for Handler {
         };
 
         if let Err(e) = result {
-            let msg = if ev_command_name.is_empty() {
-                format!("Error handling {event_name}: {e:?}")
-            } else {
-                format!("Error handling {event_name} | {ev_command_name}: {e:?}")
-            };
-
-            error!("{msg}\n{ev:?}\n");
+            error!(
+                error = ?e,
+                event = event_name,
+                command = ev_command_name,
+                "error handling event",
+            );
         }
     }
 
     async fn ratelimit(&self, data: RatelimitInfo) {
         if !data.path.ends_with("commands") {
-            warn!("{:?}", data)
+            warn!(
+                path = %data.path,
+                method = ?data.method,
+                limit = data.limit,
+                timeout_ms = data.timeout.as_millis() as u64,
+                "rate limited",
+            );
         } else {
-            trace!("{:?}", data)
+            trace!(?data, "rate limited (commands)");
         }
     }
 }

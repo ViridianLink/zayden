@@ -2,7 +2,8 @@ use serenity::all::{Context, EditInteractionResponse, ModalInteraction};
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketModal;
-use tracing::info;
+use tracing::{error, info, warn};
+use zayden_core::error::Respond;
 use zayden_core::parse_modal_components;
 
 use crate::modules::lfg::{PostTable, UsersTable};
@@ -23,7 +24,7 @@ impl Handler {
             interaction.user.name, interaction.data.custom_id, inputs
         );
 
-        let result = match interaction.data.custom_id.as_str() {
+        let result: Result<()> = match interaction.data.custom_id.as_str() {
             // region LFG
             "lfg_edit" => lfg::modals::Edit::run::<CtxData, Postgres, PostTable, UsersTable>(
                 ctx,
@@ -61,20 +62,53 @@ impl Handler {
                 Ok(())
             }
 
-            _ => unimplemented!("Modal not implemented: {}", interaction.data.custom_id),
+            unknown => {
+                warn!(
+                    custom_id = unknown,
+                    user = interaction.user.name.as_str(),
+                    "modal not implemented",
+                );
+                Ok(())
+            }
         };
 
-        if let Err(e) = result.as_ref() {
-            let msg = e.to_string();
-
-            let _ = interaction.defer_ephemeral(&ctx.http).await;
-
-            interaction
-                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
-                .await
-                .unwrap();
+        if let Err(err) = result {
+            report(ctx, interaction, err).await;
         }
 
-        result
+        Ok(())
+    }
+}
+
+async fn report(ctx: &Context, interaction: &ModalInteraction, err: Error) {
+    let custom_id = interaction.data.custom_id.as_str();
+    let user = interaction.user.name.as_str();
+
+    match err.user_message() {
+        Some(msg) => {
+            let _ = interaction.defer_ephemeral(&ctx.http).await;
+            if let Err(send_err) = interaction
+                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
+                .await
+            {
+                error!(
+                    error = ?err,
+                    send_err = ?send_err,
+                    custom_id = custom_id,
+                    user = user,
+                    "failed to deliver user error message",
+                );
+            }
+        }
+        None => {
+            error!(
+                error = ?err,
+                custom_id = custom_id,
+                user = user,
+                channel_id = %interaction.channel_id,
+                guild_id = ?interaction.guild_id,
+                "internal error in modal handler",
+            );
+        }
     }
 }

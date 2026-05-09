@@ -77,6 +77,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Serenity(e) => Some(e),
+            Self::Sqlx(e) => Some(e),
             _ => None,
         }
     }

@@ -111,7 +111,19 @@ impl Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Serenity(e) => Some(e),
+            Self::SerenityTimestamp(e) => Some(e),
+            Self::Sqlx(e) => Some(e),
+            Self::EnvVar(e) => Some(e),
+            Self::ParseIntError(e) => Some(e),
+            Self::ReactionConversionError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl From<serenity::Error> for Error {
     fn from(e: serenity::Error) -> Self {

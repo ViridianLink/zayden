@@ -21,7 +21,14 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Zayden(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl Respond for Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {

@@ -43,7 +43,7 @@ impl std::fmt::Display for Error {
             Self::TagRequired => {
                 write!(
                     f,
-                    "Unable to parse Activity and apply necessary tags. Please fix the Activity field and use the edit button to update after creating the post."
+                    "Couldn't create the post: the activity name didn't match any known category, so the required forum tag couldn't be applied. Please use a recognised activity name and try again."
                 )
             }
             Self::InvalidChannel => write!(f, "Invalid LFG channel."),

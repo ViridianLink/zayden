@@ -4,8 +4,9 @@ use serenity::all::{
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketComponent;
-use tracing::{debug, info};
+use tracing::{error, info};
 use zayden_core::Component;
+use zayden_core::error::Respond;
 
 use crate::handler::Handler;
 use crate::modules::gambling::{Blackjack, HigherLower, Leaderboard, Prestige, TicTacToe};
@@ -29,7 +30,7 @@ impl Handler {
             interaction.user.name, custom_id, interaction.message.id,
         );
 
-        let result = match custom_id.as_str() {
+        let result: Result<()> = match custom_id.as_str() {
             //region: Gambling
             id if id.starts_with("blackjack") => Blackjack::run(ctx, interaction, pool).await,
             id if id.starts_with("hol") => HigherLower::run(ctx, interaction, pool).await,
@@ -124,23 +125,44 @@ impl Handler {
                 .map_err(Error::from),
         };
 
-        if let Err(e) = result.as_ref() {
-            let msg = e.to_string();
-
-            if !msg.is_empty() {
-                debug!("Sent error: {e:?}\n{interaction:?}");
-
-                let _ = interaction.defer_ephemeral(&ctx.http).await;
-
-                interaction
-                    .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
-                    .await
-                    .unwrap();
-
-                return Ok(());
-            }
+        if let Err(err) = result {
+            report(ctx, interaction, err).await;
         }
 
-        result
+        Ok(())
+    }
+}
+
+async fn report(ctx: &Context, interaction: &ComponentInteraction, err: Error) {
+    let custom_id = interaction.data.custom_id.as_str();
+    let user = interaction.user.name.as_str();
+
+    match err.user_message() {
+        Some(msg) => {
+            let _ = interaction.defer_ephemeral(&ctx.http).await;
+            if let Err(send_err) = interaction
+                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
+                .await
+            {
+                error!(
+                    error = ?err,
+                    send_err = ?send_err,
+                    custom_id = custom_id,
+                    user = user,
+                    "failed to deliver user error message",
+                );
+            }
+        }
+        None => {
+            error!(
+                error = ?err,
+                custom_id = custom_id,
+                user = user,
+                channel_id = %interaction.channel_id,
+                guild_id = ?interaction.guild_id,
+                message_id = %interaction.message.id,
+                "internal error in component handler",
+            );
+        }
     }
 }

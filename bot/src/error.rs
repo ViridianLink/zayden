@@ -37,7 +37,21 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::EndgameAnalysis(e) => Some(e),
+            Self::Gambling(e) => Some(e),
+            Self::Lfg(e) => Some(e),
+            Self::ReactionRole(e) => Some(e),
+            Self::Ticket(e) => Some(e),
+            Self::Suggestions(e) => Some(e),
+            Self::TempVoice(e) => Some(e),
+            Self::ZaydenCore(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 impl Respond for Error {
     fn user_message(&self) -> Option<std::borrow::Cow<'_, str>> {

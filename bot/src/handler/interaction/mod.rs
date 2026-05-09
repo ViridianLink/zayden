@@ -1,5 +1,6 @@
 use serenity::all::{Context, Interaction};
 use sqlx::PgPool;
+use tracing::warn;
 
 mod autocomplete;
 mod command;
@@ -28,7 +29,10 @@ impl Handler {
                 Handler::interaction_component(ctx, component, pool).await
             }
             Interaction::Modal(modal) => Handler::interaction_modal(ctx, modal, pool).await,
-            _ => unimplemented!("Interaction not implemented: {:?}", interaction.kind()),
+            other => {
+                warn!(kind = ?other.kind(), "interaction kind not handled");
+                Ok(())
+            }
         }
     }
 }
