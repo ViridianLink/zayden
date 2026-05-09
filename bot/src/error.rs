@@ -21,8 +21,10 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::NotInteractionAuthor => write!(f, ""),
-            Error::NegativeHours => write!(f, ""),
+            Error::NotInteractionAuthor => {
+                write!(f, "You are not the author of this interaction.")
+            }
+            Error::NegativeHours => write!(f, "Hours must be a positive number."),
 
             Error::ZaydenCore(e) => e.fmt(f),
 
@@ -56,12 +58,9 @@ impl std::error::Error for Error {
 impl Respond for Error {
     fn user_message(&self) -> Option<std::borrow::Cow<'_, str>> {
         match self {
-            Self::NotInteractionAuthor => Some(std::borrow::Cow::Borrowed(
-                "You are not the author of this interaction.",
-            )),
-            Self::NegativeHours => Some(std::borrow::Cow::Borrowed(
-                "Hours must be a positive number.",
-            )),
+            Self::NotInteractionAuthor | Self::NegativeHours => {
+                Some(std::borrow::Cow::Owned(self.to_string()))
+            }
 
             Self::EndgameAnalysis(e) => e.user_message(),
             Self::Gambling(e) => e.user_message(),

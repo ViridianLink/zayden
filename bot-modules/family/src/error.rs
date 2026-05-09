@@ -1,6 +1,8 @@
+use std::borrow::Cow;
 use std::fmt::Display;
 
 use serenity::all::{Mentionable, UserId};
+use zayden_core::error::Respond;
 
 use crate::relationships::Relationships;
 
@@ -106,7 +108,24 @@ impl Display for Error {
                     user_id.mention()
                 )
             }
-            e => unimplemented!("Unhandled Error Display: {e:?}"),
+            other => write!(f, "{other:?}"),
+        }
+    }
+}
+
+impl Respond for Error {
+    fn user_message(&self) -> Option<Cow<'_, str>> {
+        match self {
+            Self::UserSelfMarry
+            | Self::Bot
+            | Self::Zayden
+            | Self::AlreadyRelated { .. }
+            | Self::MaxPartners
+            | Self::UnauthorisedUser
+            | Self::SameUser(_)
+            | Self::UserSelfAdopt
+            | Self::AlreadyAdopted(_) => Some(Cow::Owned(self.to_string())),
+            _ => None,
         }
     }
 }

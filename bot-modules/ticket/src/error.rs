@@ -37,11 +37,10 @@ impl std::error::Error for Error {
 impl Respond for Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
+            Self::NotInSupportChannel | Self::SupportNotFound => {
+                Some(Cow::Owned(self.to_string()))
+            }
             Self::ZaydenCore(e) => e.user_message(),
-            Error::NotInSupportChannel => Some(Cow::Borrowed(
-                "This command only works in the support channel.",
-            )),
-            Error::SupportNotFound => Some(Cow::Borrowed("Support message not found")),
         }
     }
 }

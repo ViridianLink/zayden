@@ -1,4 +1,7 @@
+use std::borrow::Cow;
 use std::fmt::Display;
+
+use zayden_core::error::Respond;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -21,3 +24,9 @@ impl Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl Respond for Error {
+    fn user_message(&self) -> Option<Cow<'_, str>> {
+        Some(Cow::Owned(self.to_string()))
+    }
+}

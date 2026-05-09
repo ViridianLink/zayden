@@ -15,7 +15,7 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::WeaponNotFound(_) => write!(f, ""),
+            Self::WeaponNotFound(weapon) => write!(f, "Weapon {weapon} not found"),
             Self::ZaydenCore(e) => e.fmt(f),
         }
     }
@@ -33,7 +33,7 @@ impl std::error::Error for Error {
 impl Respond for Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::WeaponNotFound(weapon) => Some(Cow::Owned(format!("Weapon {weapon} not found"))),
+            Self::WeaponNotFound(_) => Some(Cow::Owned(self.to_string())),
             Self::ZaydenCore(e) => e.user_message(),
         }
     }
