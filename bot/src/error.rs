@@ -4,7 +4,6 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    MissingGuildId,
     NotInteractionAuthor,
     NegativeHours,
 
@@ -22,9 +21,8 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Error::MissingGuildId => ZaydenError::MissingGuildId.fmt(f),
-            Error::NotInteractionAuthor => write!(f, "You are not the author of this interaction."),
-            Error::NegativeHours => write!(f, "Hours must be a positive number."),
+            Error::NotInteractionAuthor => write!(f, ""),
+            Error::NegativeHours => write!(f, ""),
 
             Error::ZaydenCore(e) => e.fmt(f),
 
@@ -44,8 +42,22 @@ impl std::error::Error for Error {}
 impl Respond for Error {
     fn user_message(&self) -> Option<std::borrow::Cow<'_, str>> {
         match self {
+            Self::NotInteractionAuthor => Some(std::borrow::Cow::Borrowed(
+                "You are not the author of this interaction.",
+            )),
+            Self::NegativeHours => Some(std::borrow::Cow::Borrowed(
+                "Hours must be a positive number.",
+            )),
+
+            Self::EndgameAnalysis(e) => e.user_message(),
             Self::Gambling(e) => e.user_message(),
-            e => unimplemented!("User message not implemented for {e:?}"),
+            Self::Lfg(e) => e.user_message(),
+            Self::ReactionRole(e) => e.user_message(),
+            Self::Ticket(e) => e.user_message(),
+            Self::Suggestions(e) => e.user_message(),
+            Self::TempVoice(e) => e.user_message(),
+
+            Self::ZaydenCore(e) => e.user_message(),
         }
     }
 }
@@ -93,7 +105,6 @@ impl From<temp_voice::Error> for Error {
 impl From<ticket::Error> for Error {
     fn from(value: ticket::Error) -> Self {
         match value {
-            ticket::Error::MissingGuildId => Self::MissingGuildId,
             ticket::Error::ZaydenCore(e) => Self::ZaydenCore(e),
             value => Self::Ticket(value),
         }
@@ -103,7 +114,7 @@ impl From<ticket::Error> for Error {
 impl From<suggestions::Error> for Error {
     fn from(value: suggestions::Error) -> Self {
         match value {
-            suggestions::Error::MissingGuildId => Self::MissingGuildId,
+            suggestions::Error::Zayden(e) => Self::ZaydenCore(e),
             value => Self::Suggestions(value),
         }
     }

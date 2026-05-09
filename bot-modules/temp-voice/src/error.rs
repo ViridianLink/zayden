@@ -1,4 +1,7 @@
+use std::borrow::Cow;
+
 use serenity::all::{ChannelId, Mentionable};
+use zayden_core::error::Respond;
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
@@ -18,8 +21,11 @@ pub enum Error {
     MaxChannels,
     MissingPermissions(PermissionError),
     ChannelNotFound(ChannelId),
+    AdministratorRequired,
+    IneligibleChannel,
 
     Serenity(serenity::Error),
+    Sqlx(sqlx::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -55,15 +61,45 @@ impl std::fmt::Display for Error {
                 "Channel not found: {}\nTry using `/voice claim` to claim the channel.",
                 id.mention()
             ),
-            Self::Serenity(_) => unimplemented!("Serenity errors should be handled in application"),
+            Error::AdministratorRequired => {
+                write!(f, "You must be an administrator to run this command.")
+            }
+            Error::IneligibleChannel => {
+                write!(f, "This channel isn't eligible for voice commands.")
+            }
+            Self::Serenity(e) => write!(f, "serenity: {e:?}"),
+            Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
         }
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Serenity(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl Respond for Error {
+    fn user_message(&self) -> Option<Cow<'_, str>> {
+        match self {
+            Self::Serenity(_) => None,
+            Self::Sqlx(_) => None,
+            _ => Some(Cow::Owned(self.to_string())),
+        }
+    }
+}
 
 impl From<serenity::Error> for Error {
     fn from(value: serenity::Error) -> Self {
         Self::Serenity(value)
+    }
+}
+
+impl From<sqlx::Error> for Error {
+    fn from(value: sqlx::Error) -> Self {
+        Self::Sqlx(value)
     }
 }

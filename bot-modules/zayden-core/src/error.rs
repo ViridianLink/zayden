@@ -67,9 +67,9 @@ impl std::fmt::Display for Error {
                 JsonErrorCode::OperationOnArchivedThread => {
                     write!(f, "This thread has already been closed and archived.")
                 }
-                _ => unimplemented!("Unhandled Discord error: {self:?}"),
+                _ => write!(f, "serenity: {self:?}"),
             },
-            Self::Serenity(e) => unimplemented!("Unhandled Serenity error: {e:?}"),
+            Self::Serenity(e) => write!(f, "serenity: {e:?}"),
 
             Self::Sqlx(sqlx::Error::PoolTimedOut) => write!(
                 f,
@@ -83,7 +83,59 @@ impl std::fmt::Display for Error {
                     "Unexpected null found at {index}, please contact OscarSix to resolve."
                 )
             }
-            Self::Sqlx(e) => unimplemented!("Unhandled Sqlx error: {e:?}"),
+            Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Serenity(e) => Some(e),
+            Self::Sqlx(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl Respond for Error {
+    fn user_message(&self) -> Option<Cow<'_, str>> {
+        match self {
+            Self::MissingGuildId | Self::NotInteractionAuthor | Self::MessageConflict => {
+                Some(Cow::Owned(self.to_string()))
+            }
+
+            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                ErrorResponse {
+                    status_code: StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE,
+                    ..
+                },
+            ))) => Some(Cow::Owned(self.to_string())),
+
+            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                ErrorResponse {
+                    error: DiscordJsonError { code, .. },
+                    ..
+                },
+            ))) => match *code {
+                JsonErrorCode::UnknownChannel
+                | JsonErrorCode::UnknownMessage
+                | JsonErrorCode::UnknownWebhook
+                | JsonErrorCode::UnknownInteraction
+                | JsonErrorCode::MissingAccess
+                | JsonErrorCode::LackPermissionsForAction
+                | JsonErrorCode::OperationOnArchivedThread => Some(Cow::Owned(self.to_string())),
+                _ => None,
+            },
+            Self::Serenity(_) => None,
+
+            Self::Sqlx(sqlx::Error::PoolTimedOut) => Some(Cow::Owned(self.to_string())),
+            Self::Sqlx(sqlx::Error::ColumnDecode { source, .. })
+                if source.is::<sqlx::error::UnexpectedNullError>() =>
+            {
+                Some(Cow::Owned(self.to_string()))
+            }
+            Self::Sqlx(_) => None,
         }
     }
 }

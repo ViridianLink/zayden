@@ -6,8 +6,9 @@ use serenity::all::{
     CreateInteractionResponseMessage, CreateModal, CreateModalComponent, EditThread, Http,
 };
 use sqlx::{Database, Pool};
+use zayden_core::Error as ZaydenError;
 
-use crate::{Error, Result, TicketGuildManager};
+use crate::{Result, TicketGuildManager};
 
 pub struct TicketComponent;
 
@@ -56,7 +57,7 @@ impl TicketComponent {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
+        let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
         let index = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => {

@@ -6,7 +6,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::{Result, guild_manager::TempVoiceGuildManager};
+use crate::{Error, Result, guild_manager::TempVoiceGuildManager};
 
 pub async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
     http: &Http,
@@ -25,15 +25,7 @@ pub async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
         .unwrap()
         .administrator()
     {
-        interaction
-            .edit_response(
-                http,
-                EditInteractionResponse::new()
-                    .content("You must be an administrator to run this command."),
-            )
-            .await
-            .unwrap();
-        return Ok(());
+        return Err(Error::AdministratorRequired);
     }
 
     let category = match options.remove("category") {

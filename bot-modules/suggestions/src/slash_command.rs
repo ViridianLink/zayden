@@ -7,7 +7,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_options;
+use zayden_core::{Error as ZaydenError, parse_options};
 
 use crate::{Error, Result, SuggestionsGuildManager};
 
@@ -22,7 +22,7 @@ impl FetchSuggestions {
     ) -> Result<()> {
         let start_time = time::Instant::now();
 
-        let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
+        let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
         let mut options = parse_options(options);
 

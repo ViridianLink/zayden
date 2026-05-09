@@ -1,5 +1,8 @@
+use std::borrow::Cow;
+
 use serenity::all::{Mentionable, UserId};
 use zayden_core::Error as ZaydenError;
+use zayden_core::error::Respond;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -12,6 +15,7 @@ pub enum Error {
     InvalidDateTime(String),
     TagRequired,
     InvalidChannel,
+    ThreadNotFound,
 
     Serenity(serenity::Error),
     Sqlx(sqlx::Error),
@@ -34,7 +38,7 @@ impl std::fmt::Display for Error {
                 id.mention()
             ),
             Self::InvalidDateTime(format) => {
-                write!(f, "Invalid date time. Expected format: {format}")
+                write!(f, "Bot currently only accepts {format} for dates and time.")
             }
             Self::TagRequired => {
                 write!(
@@ -43,12 +47,34 @@ impl std::fmt::Display for Error {
                 )
             }
             Self::InvalidChannel => write!(f, "Invalid LFG channel."),
-            _ => write!(f, "Unhandled error"),
+            Self::ThreadNotFound => write!(
+                f,
+                "Unable to find the requested thread. Make sure you're running this command in an LFG thread or supplying one with the `thread:` option."
+            ),
+            Self::Serenity(e) => write!(f, "serenity: {e:?}"),
+            Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
         }
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Serenity(e) => Some(e),
+            Self::Sqlx(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl Respond for Error {
+    fn user_message(&self) -> Option<Cow<'_, str>> {
+        match self {
+            Self::Serenity(_) | Self::Sqlx(_) => None,
+            _ => Some(Cow::Owned(self.to_string())),
+        }
+    }
+}
 
 impl From<serenity::Error> for Error {
     fn from(value: serenity::Error) -> Self {

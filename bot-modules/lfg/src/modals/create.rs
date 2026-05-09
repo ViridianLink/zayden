@@ -93,25 +93,7 @@ impl Create {
             .await
             .unwrap();
 
-        let start_time = match start_time(timezone, &start_time_str) {
-            Ok(time) => time,
-            Err(Error::InvalidDateTime(f)) => {
-                interaction
-                    .create_response(
-                        &ctx.http,
-                        CreateInteractionResponse::Message(
-                            CreateInteractionResponseMessage::new()
-                                .content(format!(
-                                    "Bot currently only accepts {f} for dates and time."
-                                ))
-                                .ephemeral(true),
-                        ),
-                    )
-                    .await?;
-                return Ok(());
-            }
-            Err(e) => panic!("Unhandled error: {e}"),
-        };
+        let start_time = start_time(timezone, &start_time_str)?;
 
         let str_time = start_time.strftime("%d %b %H:%M %Z");
 

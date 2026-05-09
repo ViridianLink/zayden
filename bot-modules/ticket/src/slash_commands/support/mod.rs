@@ -6,9 +6,9 @@ use serenity::all::{
     ResolvedOption, ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_options;
+use zayden_core::{Error as ZaydenError, parse_options};
 
-use crate::{Error, Result, Support, TicketGuildManager};
+use crate::{Result, Support, TicketGuildManager};
 
 impl Support {
     pub async fn run<Db: Database, GuildManager: TicketGuildManager<Db>>(
@@ -17,7 +17,7 @@ impl Support {
         pool: &Pool<Db>,
         mut options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
-        let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
+        let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
         let command = options.remove(0);
 

@@ -1,6 +1,6 @@
 use serenity::all::{
-    Context, CreateInteractionResponse, CreateInteractionResponseMessage, DiscordJsonError,
-    EditMessage, EditThread, ErrorResponse, HttpError, JsonErrorCode, ModalInteraction,
+    Context, CreateInteractionResponse, DiscordJsonError, EditMessage, EditThread, ErrorResponse,
+    HttpError, JsonErrorCode, ModalInteraction,
 };
 use sqlx::{Database, Pool};
 use zayden_core::{CronJobData, parse_modal_components};
@@ -8,7 +8,7 @@ use zayden_core::{CronJobData, parse_modal_components};
 use crate::cron::create_reminders;
 use crate::templates::DefaultTemplate;
 use crate::utils::update_embeds;
-use crate::{Error, PostBuilder, PostManager, PostRow, Result, Savable, TimezoneManager};
+use crate::{PostBuilder, PostManager, PostRow, Result, Savable, TimezoneManager};
 
 use super::start_time;
 
@@ -61,25 +61,7 @@ impl Edit {
             .await
             .unwrap();
 
-        let start_time = match start_time(timezone, &start_time_str) {
-            Ok(time) => time,
-            Err(Error::InvalidDateTime(f)) => {
-                interaction
-                    .create_response(
-                        &ctx.http,
-                        CreateInteractionResponse::Message(
-                            CreateInteractionResponseMessage::new()
-                                .content(format!(
-                                    "Bot currently only accepts {f} for dates and time."
-                                ))
-                                .ephemeral(true),
-                        ),
-                    )
-                    .await?;
-                return Ok(());
-            }
-            Err(e) => panic!("Unhandled error: {e}"),
-        };
+        let start_time = start_time(timezone, &start_time_str)?;
 
         let str_time = start_time.strftime("%d %b %H:%M %Z");
 

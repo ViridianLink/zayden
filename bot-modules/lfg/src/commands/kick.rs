@@ -27,14 +27,8 @@ impl Command {
 
         let owner = match Manager::owner(pool, thread).await {
             Ok(owner) => owner,
-            Err(sqlx::Error::RowNotFound) => {
-                interaction
-                    .edit_response(http, EditInteractionResponse::new().content("I couldn't find the requested thread. Make sure you're running this command in an LFG thread or supplying one with the `thread:` option."))
-                    .await
-                    .expect("Message response shouldn't error.");
-                return Ok(());
-            }
-            Err(e) => unimplemented!("Unhandled sqlx error: {e}"),
+            Err(sqlx::Error::RowNotFound) => return Err(Error::ThreadNotFound),
+            Err(e) => return Err(Error::Sqlx(e)),
         };
         if interaction.user.id != owner {
             return Err(Error::PermissionDenied(owner));

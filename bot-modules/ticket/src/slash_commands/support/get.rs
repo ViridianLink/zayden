@@ -6,7 +6,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::{Result, Support, TicketGuildManager};
+use crate::{Error, Result, Support, TicketGuildManager};
 
 impl Support {
     pub(super) async fn get<Db: Database, GuildManager: TicketGuildManager<Db>>(
@@ -52,13 +52,6 @@ impl Support {
             }
         }
 
-        interaction
-            .edit_response(
-                http,
-                EditInteractionResponse::new().content("Support message not found"),
-            )
-            .await?;
-
-        Ok(())
+        Err(Error::SupportNotFound)
     }
 }
