@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
-use tracing::{error, info};
+use tracing::{debug, error};
 use zayden_core::{ActionFn, CronJobData};
 
 use crate::Result;
@@ -25,7 +25,7 @@ async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
 
         let sleep_duration = match pending_jobs.first() {
             Some((target_wakeup_time, _)) => {
-                info!("Next Job: {target_wakeup_time:?}");
+                debug!("Next Job: {target_wakeup_time:?}");
 
                 let now = Timestamp::now().to_zoned(TimeZone::UTC);
                 if *target_wakeup_time > now {
