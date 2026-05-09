@@ -21,7 +21,7 @@ pub use modals::{parse_modal_components, parse_text_components};
 
 pub mod templates;
 
-mod error;
+pub mod error;
 pub use error::Error;
 
 pub mod events;

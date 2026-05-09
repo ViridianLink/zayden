@@ -1,6 +1,9 @@
+use std::borrow::Cow;
+
 use jiff::Timestamp;
 use zayden_core::Error as ZaydenError;
 use zayden_core::FormatNum;
+use zayden_core::error::Respond;
 
 use crate::ShopCurrency;
 
@@ -87,17 +90,28 @@ impl std::fmt::Display for Error {
                 quantity.format()
             ),
 
-            Error::Serenity(e) => unimplemented!("Unhandled Serenity error: {e:?}"),
-            Error::Sqlx(e) => unimplemented!("Unhandled SQLx error: {e:?}"),
+            Error::Serenity(e) => write!(f, "serenity: {e:?}"),
+            Error::Sqlx(e) => write!(f, "sqlx: {e:?}"),
         }
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Serenity(e) => Some(e),
+            Self::Sqlx(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
-impl From<zayden_core::Error> for Error {
-    fn from(_value: zayden_core::Error) -> Self {
-        Self::MessageConflict
+impl Respond for Error {
+    fn user_message(&self) -> Option<std::borrow::Cow<'_, str>> {
+        match self {
+            Self::Serenity(_) | Self::Sqlx(_) => None,
+            _ => Some(Cow::Owned(self.to_string())),
+        }
     }
 }
 

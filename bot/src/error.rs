@@ -1,4 +1,4 @@
-use zayden_core::Error as ZaydenError;
+use zayden_core::{Error as ZaydenError, error::Respond};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -40,6 +40,15 @@ impl std::fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl Respond for Error {
+    fn user_message(&self) -> Option<std::borrow::Cow<'_, str>> {
+        match self {
+            Self::Gambling(e) => e.user_message(),
+            e => unimplemented!("User message not implemented for {e:?}"),
+        }
+    }
+}
 
 impl From<endgame_analysis::Error> for Error {
     fn from(e: endgame_analysis::Error) -> Self {

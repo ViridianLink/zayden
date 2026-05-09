@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
-use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Token, UserId};
+use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Http, Token, UserId};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
 
@@ -14,6 +14,7 @@ mod error;
 mod handler;
 pub mod modules;
 mod sqlx_lib;
+mod webhook_logger;
 
 pub use ctx_data::CtxData;
 pub use error::{Error, Result};
@@ -23,7 +24,7 @@ use tracing_subscriber::{
     Layer, Registry, filter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
 };
 
-use crate::sqlx_lib::new_pool_with_retry;
+use crate::{sqlx_lib::new_pool_with_retry, webhook_logger::WebhookLogger};
 
 pub const OSCAR_SIX: UserId = UserId::new(211486447369322506);
 pub const BRADSTER_GUILD: GuildId = GuildId::new(1255957182457974875);
@@ -42,8 +43,6 @@ async fn zayden_token(pool: &PgPool) -> String {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    logging();
-
     if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv()
         && dotenvy::from_path(Path::new("bot/.env")).is_err()
     {
@@ -74,12 +73,14 @@ async fn main() -> Result<()> {
     .await
     .unwrap();
 
+    logging(Arc::clone(&client.http)).await;
+
     client.start_autosharded().await?;
 
     Ok(())
 }
 
-fn logging() {
+async fn logging(http: Arc<Http>) {
     let log_file = File::create("log.txt").expect("Failed to create log.txt");
     let debug_log = fmt::layer()
         .with_writer(log_file)
@@ -90,14 +91,11 @@ fn logging() {
         .with_writer(std::io::stdout)
         .with_filter(filter::LevelFilter::INFO);
 
-    // let traceback_file = File::create("traceback.txt").expect("Failed to create traceback.txt");
-    // let traceback_log = fmt::layer()
-    //     .with_writer(traceback_file)
-    //     .with_filter(filter::LevelFilter::TRACE);
+    let webhook_log = WebhookLogger::new(http).await;
 
     Registry::default()
         .with(debug_log)
         .with(stdout_log)
-        // .with(traceback_log)
+        .with(webhook_log)
         .init();
 }

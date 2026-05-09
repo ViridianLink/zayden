@@ -1,4 +1,12 @@
+use std::borrow::Cow;
+
 use serenity::all::{DiscordJsonError, ErrorResponse, HttpError, JsonErrorCode, StatusCode};
+
+pub trait Respond: std::error::Error {
+    fn user_message(&self) -> Option<Cow<'_, str>> {
+        None
+    }
+}
 
 #[derive(Debug)]
 pub enum Error {

@@ -17,7 +17,10 @@ impl Handler {
         pool: &PgPool,
     ) -> Result<()> {
         match interaction {
-            Interaction::Command(command) => Handler::interaction_command(ctx, command, pool).await,
+            Interaction::Command(command) => {
+                Handler::interaction_command(ctx, command, pool).await;
+                Ok(())
+            }
             Interaction::Autocomplete(autocomplete) => {
                 Handler::interaction_autocomplete(ctx, autocomplete, pool).await
             }
