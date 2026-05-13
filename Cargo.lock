@@ -565,6 +565,7 @@ dependencies = [
  "serde_json",
  "serenity",
  "tokio",
+ "tracing",
  "zayden-core",
 ]
 
@@ -2993,6 +2994,7 @@ dependencies = [
  "futures",
  "serenity",
  "sqlx",
+ "tracing",
  "zayden-core",
 ]
 
@@ -3036,6 +3038,7 @@ dependencies = [
  "serenity",
  "sqlx",
  "tokio",
+ "tracing",
  "zayden-core",
 ]
 

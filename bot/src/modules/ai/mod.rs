@@ -1,3 +1,5 @@
+use std::error::Error as StdError;
+
 use ai::{
     chat::{Input, ResponseBody, Role},
     openai::OpenAI,
@@ -5,6 +7,7 @@ use ai::{
 use async_trait::async_trait;
 use serenity::all::{Context, GenericChannelId, Message};
 use sqlx::{PgPool, Postgres};
+use tracing::error;
 use zayden_core::MessageCommand;
 
 use crate::{Error, Result};
@@ -49,6 +52,44 @@ impl Ai {
 
         parsed_content
     }
+
+    async fn reply(ctx: &Context, message: &Message) -> Result<()> {
+        let mut body = ResponseBody::basic().instructions(PERSONALITY);
+
+        body = Self::process_referenced_messages(message).into_iter().fold(
+            body,
+            |body, (bot, content)| {
+                body.input(Input::new(
+                    content,
+                    if bot { Role::Assistant } else { Role::User },
+                ))
+            },
+        );
+
+        body = body.input(Input::new(Self::parse_mentions(message), Role::User));
+
+        let api_key = std::env::var("OPENAI_API_KEY")?;
+        let openai = OpenAI::new(api_key);
+        let response = openai.create_response(&body).await?;
+
+        let text = response
+            .output
+            .iter()
+            .find_map(|output| {
+                if output.kind == "message"
+                    && let Some(content_vec) = &output.content
+                    && let [content] = content_vec.as_slice()
+                {
+                    Some(&content.text)
+                } else {
+                    None
+                }
+            })
+            .ok_or("OpenAI response contained no usable message text")?;
+
+        message.reply(&ctx.http, text).await?;
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -72,40 +113,9 @@ impl MessageCommand<Error, Postgres> for Ai {
             return Ok(());
         }
 
-        let mut body = ResponseBody::basic().instructions(PERSONALITY);
-
-        body = Self::process_referenced_messages(message).into_iter().fold(
-            body,
-            |body, (bot, content)| {
-                body.input(Input::new(
-                    content,
-                    if bot { Role::Assistant } else { Role::User },
-                ))
-            },
-        );
-
-        body = body.input(Input::new(Self::parse_mentions(message), Role::User));
-
-        let openai = OpenAI::new(std::env::var("OPENAI_API_KEY").unwrap());
-        let response = openai.create_response(&body).await.unwrap();
-
-        let text = response
-            .output
-            .iter()
-            .find_map(|output| {
-                if output.kind == "message"
-                    && let Some(content_vec) = &output.content
-                {
-                    match content_vec.as_slice() {
-                        [content] => return Some(&content.text),
-                        content => panic!("Unexpected content: {content:?}"),
-                    }
-                }
-                None
-            })
-            .expect("No message with content found in the output");
-
-        message.reply(&ctx.http, text).await.unwrap();
+        if let Err(e) = Self::reply(ctx, message).await {
+            error!(error = ?e, channel_id = %message.channel_id, "AI reply failed");
+        }
 
         Ok(())
     }

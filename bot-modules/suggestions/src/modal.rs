@@ -3,16 +3,16 @@ use serenity::all::{
     EditThread, Http, LabelComponent, ModalComponent, ModalInteraction, ThreadId,
 };
 
-use crate::Suggestions;
+use crate::{Error, Result, Suggestions};
 
 impl Suggestions {
-    pub async fn modal(http: &Http, modal: &ModalInteraction, accepted: bool) {
+    pub async fn modal(http: &Http, modal: &ModalInteraction, accepted: bool) -> Result<()> {
         let response = match modal.data.components.first() {
             Some(ModalComponent::Label(label)) => match &label.component {
                 LabelComponent::InputText(input_text) => &input_text.value,
-                _ => unimplemented!("InputText must be the component"),
+                _ => return Err(Error::InvalidModalStructure),
             },
-            _ => unreachable!("Label is a required component"),
+            _ => return Err(Error::InvalidModalStructure),
         };
 
         let old_embed = modal.message.as_ref().unwrap().embeds.first().unwrap();
@@ -44,8 +44,7 @@ impl Suggestions {
 
         channel_id
             .edit(http, EditThread::new().name(&name).archived(false))
-            .await
-            .unwrap();
+            .await?;
 
         modal
             .create_response(
@@ -62,8 +61,7 @@ impl Suggestions {
                     ),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         let title = if accepted {
             "Suggestion Accepted"
@@ -77,10 +75,10 @@ impl Suggestions {
                 http,
                 CreateMessage::new().embed(CreateEmbed::new().title(title).description(response)),
             )
-            .await
-            .unwrap()
+            .await?
             .pin(http, Some("Mod response pinned"))
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 }

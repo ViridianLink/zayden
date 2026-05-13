@@ -99,7 +99,12 @@ pub async fn delete_voice_channel_if_inactive(
                         },
                     ..
                 }))) => {}
-                Err(e) => panic!("{e:?}"),
+                Err(e) => tracing::error!(
+                    error = ?e,
+                    channel_id = %vc.id,
+                    guild_id = %guild_id,
+                    "delete_voice_channel_if_inactive: vc.delete failed",
+                ),
             }
 
             true

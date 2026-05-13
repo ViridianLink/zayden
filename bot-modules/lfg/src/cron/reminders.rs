@@ -3,6 +3,7 @@ use jiff::{Span, tz::TimeZone};
 use serenity::all::{Colour, Context, CreateEmbed, CreateMessage, Http, Mentionable, ThreadId};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
+use tracing::error;
 use zayden_core::{CronJob, CronJobData};
 
 use crate::{Join, PostManager, PostRow};
@@ -95,7 +96,10 @@ async fn reminder<Db: Database, Manager: PostManager<Db>>(
         Ok(post) => post,
         // Post deleted
         Err(sqlx::Error::RowNotFound) => return,
-        Err(e) => panic!("{e:?}"),
+        Err(e) => {
+            error!(error = ?e, post_id = %id, "lfg reminder: post_row lookup failed");
+            return;
+        }
     };
 
     let timestamp = post.start_time.to_jiff();

@@ -3,6 +3,7 @@ use reqwest::{Client, ClientBuilder};
 use url::Url;
 
 use crate::chat::ResponseBody;
+use crate::error::Error;
 use crate::output::Response;
 
 #[derive(Debug)]
@@ -36,7 +37,7 @@ impl OpenAI {
         }
     }
 
-    pub async fn create_response(&self, body: &ResponseBody) -> reqwest::Result<Response> {
+    pub async fn create_response(&self, body: &ResponseBody) -> Result<Response, Error> {
         let text = self
             .client
             .post(self.api_url.join("responses").unwrap())
@@ -46,11 +47,6 @@ impl OpenAI {
             .text()
             .await?;
 
-        match serde_json::from_str(&text) {
-            Ok(x) => Ok(x),
-            Err(e) => {
-                panic!("Error parse: {e:?}\n{text}")
-            }
-        }
+        serde_json::from_str(&text).map_err(|source| Error::ParseResponse { source, body: text })
     }
 }

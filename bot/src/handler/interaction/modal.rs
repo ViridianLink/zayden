@@ -53,14 +53,12 @@ impl Handler {
                     .map_err(Error::from)
             }
             // endregion
-            "suggestions_accept" => {
-                Suggestions::modal(&ctx.http, interaction, true).await;
-                Ok(())
-            }
-            "suggestions_reject" => {
-                Suggestions::modal(&ctx.http, interaction, false).await;
-                Ok(())
-            }
+            "suggestions_accept" => Suggestions::modal(&ctx.http, interaction, true)
+                .await
+                .map_err(Error::from),
+            "suggestions_reject" => Suggestions::modal(&ctx.http, interaction, false)
+                .await
+                .map_err(Error::from),
 
             unknown => {
                 warn!(

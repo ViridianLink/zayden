@@ -15,10 +15,11 @@ impl Handler {
     pub async fn guild_create(&self, ctx: &Context, guild: &Guild, pool: &PgPool) -> Result<()> {
         let data = ctx.data::<RwLock<CtxData>>();
 
-        let _ = tokio::join!(
+        let (lfg_result, _) = tokio::join!(
             lfg::events::guild_create::<CtxData, Postgres, GuildTable, PostTable>(ctx, guild, pool),
             CtxData::guild_create(data, guild),
         );
+        lfg_result?;
 
         let mut commands = APPLICATION_COMMANDS
             .iter()
@@ -49,15 +50,12 @@ impl Handler {
             LLAMAD2_GUILD => {
                 commands.extend(llamad2::register());
 
-                LLAMAD2_GUILD
-                    .set_commands(&ctx.http, &commands)
-                    .await
-                    .unwrap();
+                LLAMAD2_GUILD.set_commands(&ctx.http, &commands).await?;
 
                 info!("Registered {}", guild.name);
             }
             id => {
-                id.set_commands(&ctx.http, &commands).await.unwrap();
+                id.set_commands(&ctx.http, &commands).await?;
             }
         }
 

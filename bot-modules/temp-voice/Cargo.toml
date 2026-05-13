@@ -11,3 +11,4 @@ futures = { workspace = true }
 serenity = { workspace = true }
 sqlx = { workspace = true }
 tokio = { workspace = true }
+tracing = { workspace = true }

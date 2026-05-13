@@ -59,14 +59,14 @@ pub async fn join<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, PostR
 
     let embed =
         update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread)
-            .await;
+            .await?;
 
     Announcement::Joined {
         user: interaction.user,
         alternative,
     }
     .send(http, interaction.thread)
-    .await;
+    .await?;
 
     Ok((interaction.thread, embed))
 }

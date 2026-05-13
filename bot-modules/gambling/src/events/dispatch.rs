@@ -4,8 +4,8 @@ use serenity::all::{GenericChannelId, Http};
 use sqlx::{Database, Pool};
 use zayden_core::EmojiCache;
 
-use crate::GoalsManager;
 use crate::goals::GoalHandler;
+use crate::{GoalsManager, Result};
 
 use super::{Event, EventRow};
 
@@ -35,7 +35,7 @@ where
         channel: GenericChannelId,
         row: &mut dyn EventRow,
         event: Event,
-    ) -> sqlx::Result<Event> {
+    ) -> Result<Event> {
         GoalHandler::process_goals::<Db, Manager>(
             self.http,
             self.pool,

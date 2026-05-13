@@ -3,6 +3,7 @@ use std::fmt::Display;
 use serenity::all::{
     CreateSectionComponent, CreateTextDisplay, CreateThumbnail, CreateUnfurledMediaItem,
 };
+use tracing::warn;
 use zayden_core::EmojiCache;
 
 pub const CHOIR_OF_ONE: Weapon = Weapon {
@@ -193,7 +194,10 @@ impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
             "Choir of One" => {
                 "https://www.bungie.net/common/destiny2_content/icons/e285e30c15aa9482df3f1f9c5810fe66.jpg"
             }
-            name => unimplemented!("Image URL for '{name}' not implemented"),
+            name => {
+                warn!(weapon = name, "loadouts: image URL not implemented for weapon");
+                ""
+            }
         };
 
         CreateUnfurledMediaItem::new(url)

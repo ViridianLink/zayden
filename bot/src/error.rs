@@ -16,6 +16,8 @@ pub enum Error {
     TempVoice(temp_voice::Error),
 
     ZaydenCore(ZaydenError),
+
+    Jiff(jiff::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -35,6 +37,7 @@ impl std::fmt::Display for Error {
             Error::Ticket(e) => e.fmt(f),
             Error::Suggestions(e) => e.fmt(f),
             Error::TempVoice(e) => e.fmt(f),
+            Error::Jiff(e) => e.fmt(f),
         }
     }
 }
@@ -50,6 +53,7 @@ impl std::error::Error for Error {
             Self::Suggestions(e) => Some(e),
             Self::TempVoice(e) => Some(e),
             Self::ZaydenCore(e) => Some(e),
+            Self::Jiff(e) => Some(e),
             _ => None,
         }
     }
@@ -71,6 +75,8 @@ impl Respond for Error {
             Self::TempVoice(e) => e.user_message(),
 
             Self::ZaydenCore(e) => e.user_message(),
+
+            Self::Jiff(_) => None,
         }
     }
 }

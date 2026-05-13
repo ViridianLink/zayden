@@ -86,7 +86,10 @@ impl FromStr for ShopCurrency {
             "tech" => Ok(Self::Tech),
             "utility" => Ok(Self::Utility),
             "production" => Ok(Self::Production),
-            s => unimplemented!("Currency {s} has not been implemented"),
+            s => {
+                tracing::warn!(currency = s, "ShopCurrency::from_str: unknown currency");
+                Err(())
+            }
         }
     }
 }

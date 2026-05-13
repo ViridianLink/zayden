@@ -6,18 +6,20 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use zayden_core::CronJobData;
 
-use crate::{GuildManager, PostManager, actions, cron::create_reminders, templates::TemplateInfo};
+use crate::{
+    Error, GuildManager, PostManager, Result, actions, cron::create_reminders,
+    templates::TemplateInfo,
+};
 
 pub async fn thread_delete<Db: Database, Manager: PostManager<Db>>(
     http: &Http,
     thread: &PartialGuildThread,
     pool: &Pool<Db>,
-) {
-    if Manager::exists(pool, thread.id).await.unwrap() {
-        actions::delete::<Db, Manager>(http, thread.id, pool)
-            .await
-            .unwrap();
+) -> Result<()> {
+    if Manager::exists(pool, thread.id).await? {
+        actions::delete::<Db, Manager>(http, thread.id, pool).await?;
     }
+    Ok(())
 }
 
 pub async fn guild_create<
@@ -29,13 +31,13 @@ pub async fn guild_create<
     ctx: &Context,
     guild: &Guild,
     pool: &Pool<Db>,
-) {
+) -> Result<()> {
     let Ok(Some(guild_row)) = GuildHandler::row(pool, guild.id).await else {
-        return;
+        return Ok(());
     };
 
     let Some(lfg_channel) = guild_row.channel_id() else {
-        return;
+        return Ok(());
     };
 
     let archived_threads = match lfg_channel
@@ -50,8 +52,8 @@ pub async fn guild_create<
                     ..
                 },
             ..
-        }))) => return,
-        Err(e) => panic!("Error: {e:?}"),
+        }))) => return Ok(()),
+        Err(e) => return Err(Error::Serenity(e)),
     };
 
     let threads = guild
@@ -66,10 +68,14 @@ pub async fn guild_create<
     let month_ago = &now - Span::new().days(30);
 
     for mut thread in threads {
-        let time_dt = *thread.base.last_message_id.unwrap().created_at();
-        let created_at = Timestamp::from_second(time_dt.unix_timestamp())
-            .expect("Should be a valid timestamp")
-            .to_zoned(TimeZone::UTC);
+        let Some(last_message_id) = thread.base.last_message_id else {
+            continue;
+        };
+        let Ok(created_at) = Timestamp::from_second(last_message_id.created_at().unix_timestamp())
+        else {
+            continue;
+        };
+        let created_at = created_at.to_zoned(TimeZone::UTC);
 
         if created_at < month_ago {
             match thread
@@ -86,7 +92,7 @@ pub async fn guild_create<
                         },
                     ..
                 }))) => {}
-                Err(e) => panic!("{e:?}"),
+                Err(e) => return Err(e.into()),
             };
         }
 
@@ -104,7 +110,7 @@ pub async fn guild_create<
                         },
                     ..
                 }))) => {}
-                Err(e) => panic!("{e:?}"),
+                Err(e) => return Err(e.into()),
             }
         }
 
@@ -135,7 +141,7 @@ pub async fn guild_create<
                         },
                     ..
                 }))) => {}
-                Err(e) => panic!("{e:?}"),
+                Err(e) => return Err(e.into()),
             };
         }
 
@@ -154,8 +160,10 @@ pub async fn guild_create<
                         },
                     ..
                 }))) => {}
-                Err(e) => panic!("{e:?}"),
+                Err(e) => return Err(e.into()),
             };
         }
     }
+
+    Ok(())
 }

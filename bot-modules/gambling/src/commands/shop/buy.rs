@@ -76,7 +76,7 @@ pub async fn buy<
             ShopCurrency::Tech => &mut row.tech,
             ShopCurrency::Utility => &mut row.utility,
             ShopCurrency::Production => &mut row.production,
-            _ => unimplemented!("Currnecy not implemented"),
+            _ => return Err(Error::InvalidAmount),
         };
 
         *funds -= cost;

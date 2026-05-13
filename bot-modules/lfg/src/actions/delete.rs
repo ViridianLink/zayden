@@ -31,7 +31,7 @@ pub async fn delete<Db: Database, Manager: PostManager<Db>>(
                 },
             ..
         }))) => {}
-        Err(e) => panic!("{e:?}"),
+        Err(e) => return Err(e.into()),
     }
 
     if let (Some(channel), Some(message)) = (post.schedule_channel(), post.alt_message()) {
@@ -48,11 +48,11 @@ pub async fn delete<Db: Database, Manager: PostManager<Db>>(
                     },
                 ..
             }))) => {}
-            Err(e) => panic!("{e:?}"),
+            Err(e) => return Err(e.into()),
         }
     }
 
-    Manager::delete(pool, channel).await.unwrap();
+    Manager::delete(pool, channel).await?;
 
     Ok(())
 }

@@ -38,7 +38,7 @@ async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
         };
 
         if sleep_duration > SignedDuration::new(1, 0) {
-            let std_duration = sleep_duration.try_into().expect("Span should be fixed");
+            let std_duration = sleep_duration.try_into()?;
             sleep(std_duration).await;
         }
 

@@ -97,7 +97,7 @@ impl Edit {
                     },
                 ..
             }))) => return Ok(()),
-            Err(e) => panic!("Unhandled error: {e:?}"),
+            Err(e) => return Err(e.into()),
         }
 
         let embed = update_embeds::<DefaultTemplate>(
@@ -106,7 +106,7 @@ impl Edit {
             interaction.user.display_name(),
             thread,
         )
-        .await;
+        .await?;
 
         create_reminders::<Data, Db, Manager>(ctx, &post).await;
 

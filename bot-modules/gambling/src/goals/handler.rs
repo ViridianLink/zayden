@@ -6,7 +6,7 @@ use sqlx::{Database, Pool};
 use zayden_core::EmojiCache;
 
 use crate::events::{Event, EventRow};
-use crate::{GEM, GamblingGoalsRow, GoalsManager, tomorrow};
+use crate::{GEM, GamblingGoalsRow, GoalsManager, Result, tomorrow};
 
 use super::GOAL_REGISTRY;
 
@@ -59,7 +59,7 @@ impl GoalHandler {
         channel: GenericChannelId,
         row: &mut dyn EventRow,
         event: Event,
-    ) -> sqlx::Result<Event> {
+    ) -> Result<Event> {
         let user_id = event.user_id();
 
         let mut all_goals = Self::get_user_progress::<Db, Manager>(pool, user_id, row).await?;
@@ -111,7 +111,7 @@ impl GoalHandler {
                         },
                     ..
                 }))) => {}
-                Err(e) => panic!("Unhandled serenity error: {e}"),
+                Err(e) => return Err(e.into()),
             };
         }
 

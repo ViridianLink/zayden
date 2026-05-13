@@ -1,4 +1,5 @@
 use serenity::all::{ActivityData, Context, OnlineStatus, Presence};
+use tracing::warn;
 
 use crate::{LLAMA_GUILD, LLAMA_USER};
 
@@ -24,7 +25,9 @@ impl StatusUpdate {
             OnlineStatus::Offline | OnlineStatus::Invisible => {
                 ctx.set_activity(Some(ActivityData::custom(LLAMA_OFFLINE_STATUS)))
             }
-            _ => unimplemented!(),
+            other => {
+                warn!(status = ?other, "llamad2 presence_update: unhandled OnlineStatus variant");
+            }
         }
     }
 }

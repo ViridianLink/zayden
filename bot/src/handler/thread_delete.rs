@@ -12,7 +12,7 @@ impl Handler {
         thread: &PartialGuildThread,
         pool: &PgPool,
     ) -> Result<()> {
-        lfg::events::thread_delete::<Postgres, PostTable>(&ctx.http, thread, pool).await;
+        lfg::events::thread_delete::<Postgres, PostTable>(&ctx.http, thread, pool).await?;
 
         Ok(())
     }

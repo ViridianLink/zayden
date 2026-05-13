@@ -18,7 +18,7 @@ impl Components {
         let owner = match Manager::owner(pool, interaction.channel_id).await {
             Ok(owner) => owner,
             Err(sqlx::Error::RowNotFound) => interaction.user.id,
-            Err(e) => panic!("{e:?}"),
+            Err(e) => return Err(e.into()),
         };
 
         if interaction.user.id != owner {

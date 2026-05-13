@@ -18,9 +18,9 @@ pub async fn channel_creator<
     pool: &Pool<Db>,
     new: &VoiceState,
 ) -> Result<()> {
-    let guild_id = new
-        .guild_id
-        .expect("Should be in a guild as voice channels are guild only");
+    let Some(guild_id) = new.guild_id else {
+        return Ok(());
+    };
 
     let Ok(Some(creator_channel)) = GuildManager::get_creator_channel(pool, guild_id).await else {
         return Ok(());
@@ -34,8 +34,10 @@ pub async fn channel_creator<
     let creator_category = match creator_channel_id
         .to_guild_channel(http, new.guild_id)
         .await
+        .map(|c| c.parent_id)
     {
-        Ok(channel) => channel.parent_id.expect("Should be in a category"),
+        Ok(Some(parent_id)) => parent_id,
+        Ok(None) => return Ok(()),
         Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
             error:
                 DiscordJsonError {
@@ -46,10 +48,12 @@ pub async fn channel_creator<
         }))) => {
             return Ok(());
         }
-        Err(e) => panic!("Unhandled serenity error: {e:?}"),
+        Err(e) => return Err(e.into()),
     };
 
-    let member = new.member.as_ref().expect("Should be in a guild");
+    let Some(member) = new.member.as_ref() else {
+        return Ok(());
+    };
 
     let perms = vec![owner_perms(member.user.id)];
 
@@ -77,16 +81,14 @@ pub async fn channel_creator<
                     CreateMessage::new()
                         .content("Voice channel created. You have 1 minute to join."),
                 )
-                .await
-                .unwrap();
+                .await?;
 
             if delete_voice_channel_if_inactive(http, guild_id, member.user.id, &vc).await {
                 return Ok(());
             }
         }
-        result => {
-            result.unwrap();
-        }
+        Ok(_) => {}
+        Err(e) => return Err(e.into()),
     };
 
     let row = VoiceChannelRow::new(vc.id, new.user_id);

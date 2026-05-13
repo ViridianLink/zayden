@@ -28,7 +28,7 @@ pub async fn channel_deleter<
         _ => return Ok(()),
     };
 
-    let row = match ChannelManager::get(pool, channel_id).await.unwrap() {
+    let row = match ChannelManager::get(pool, channel_id).await? {
         Some(row) => row,
         None => return Ok(()),
     };
@@ -52,7 +52,10 @@ pub async fn channel_deleter<
     };
     let category = guild_data.category();
 
-    if channel.parent_id.expect("Should be in a category") != category {
+    let Some(parent) = channel.parent_id else {
+        return Ok(());
+    };
+    if parent != category {
         return Ok(());
     }
 
@@ -84,9 +87,8 @@ pub async fn channel_deleter<
                     },
                 ..
             }))) => {}
-            result => {
-                result.unwrap();
-            }
+            Ok(_) => {}
+            Err(e) => return Err(e.into()),
         };
     }
 

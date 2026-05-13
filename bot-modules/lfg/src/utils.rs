@@ -5,6 +5,7 @@ use serenity::all::{
     JsonErrorCode, Mentionable, ThreadId, UserId,
 };
 
+use crate::Result;
 use crate::templates::{Template, TemplateInfo};
 
 pub async fn update_embeds<'a, T: Template>(
@@ -12,7 +13,7 @@ pub async fn update_embeds<'a, T: Template>(
     row: &impl TemplateInfo,
     owner_name: &str,
     thread: impl Into<ThreadId>,
-) -> CreateEmbed<'a> {
+) -> Result<CreateEmbed<'a>> {
     let thread = thread.into();
 
     let embed = T::thread_embed(row, owner_name);
@@ -33,11 +34,11 @@ pub async fn update_embeds<'a, T: Template>(
                     },
                 ..
             }))) => {}
-            Err(e) => panic!("{e:?}"),
+            Err(e) => return Err(e.into()),
         };
     }
 
-    embed
+    Ok(embed)
 }
 
 pub enum Announcement {
@@ -46,12 +47,12 @@ pub enum Announcement {
 }
 
 impl Announcement {
-    pub async fn send(&self, http: &Http, channel: ThreadId) {
+    pub async fn send(&self, http: &Http, channel: ThreadId) -> Result<()> {
         channel
             .widen()
             .send_message(http, CreateMessage::new().content(format!("{self}")))
-            .await
-            .unwrap();
+            .await?;
+        Ok(())
     }
 }
 

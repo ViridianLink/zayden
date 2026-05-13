@@ -76,11 +76,11 @@ pub async fn leave<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, Post
 
     let embed =
         update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread)
-            .await;
+            .await?;
 
     Announcement::Left(user)
         .send(http, interaction.thread)
-        .await;
+        .await?;
 
     Ok((interaction.thread, embed))
 }

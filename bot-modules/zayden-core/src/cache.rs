@@ -12,6 +12,7 @@ use serenity::all::{
     GuildId, HttpError, UserId,
 };
 use serenity::small_fixed_array::FixedString;
+use tracing::error;
 
 const ZAYDEN_ID: ApplicationId = ApplicationId::new(787490197943091211);
 
@@ -99,7 +100,7 @@ impl EmojiCache {
                     .first()
                     .is_some_and(|e| e.code == "APPLICATION_EMOJI_NAME_ALREADY_TAKEN") => {}
 
-                Err(e) => panic!("Unhandled error: {e:?}"),
+                Err(e) => return Err(e),
             }
         }
 
@@ -109,9 +110,10 @@ impl EmojiCache {
     pub async fn upload(&mut self, ctx: &Context, parent_token: &str, name: &str) {
         let zayden_emojis = Self::parent_emojis(parent_token).await;
 
-        let emoji_id = *zayden_emojis
-            .get(name)
-            .unwrap_or_else(|| panic!("Emoji '{name}' doesn't exist on Zayden"));
+        let Some(&emoji_id) = zayden_emojis.get(name) else {
+            error!(emoji = name, "EmojiCache::upload: emoji not found on Zayden");
+            return;
+        };
 
         let bytes = reqwest::get(format!("https://cdn.discordapp.com/emojis/{emoji_id}.webp"))
             .await
@@ -143,7 +145,11 @@ impl EmojiCache {
             {
                 self.0.insert(FixedString::from_str_trunc(name), emoji_id);
             }
-            Err(e) => panic!("Unhandled Serenity error: {e:?}"),
+            Err(e) => error!(
+                error = ?e,
+                emoji = name,
+                "EmojiCache::upload: failed to create application emoji",
+            ),
         };
     }
 

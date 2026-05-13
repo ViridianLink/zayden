@@ -55,7 +55,10 @@ fn parse_action_row(components: &[ActionRowComponent]) -> Vec<(Cow<'_, str>, Vec
         .filter_map(|c| match c {
             ActionRowComponent::Button(_) => None,
             ActionRowComponent::SelectMenu(_select_menu) => {
-                todo!("Select menu can have multiple values which breaks current function")
+                warn!(
+                    "parse_action_row: SelectMenu encountered; multi-value select menus are not yet supported and will be skipped",
+                );
+                None
             }
             c => {
                 warn!("New action row component {c:?}");
@@ -79,7 +82,8 @@ fn parse_section(components: &[SectionComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<
 }
 
 fn parse_container(_components: &[ContainerComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
-    todo!()
+    warn!("parse_container: container parsing not yet implemented; returning empty");
+    Vec::new()
 }
 
 fn parse_label(component: &LabelComponent) -> (Cow<'_, str>, Vec<Cow<'_, str>>) {
@@ -92,8 +96,12 @@ fn parse_label(component: &LabelComponent) -> (Cow<'_, str>, Vec<Cow<'_, str>>) 
             Cow::Borrowed(&input_text.custom_id),
             vec![Cow::Borrowed(&input_text.value)],
         ),
-        LabelComponent::FileUpload(_file_upload) => {
-            panic!("File upload uses a non-text format");
+        LabelComponent::FileUpload(file_upload) => {
+            warn!(
+                custom_id = %file_upload.custom_id,
+                "parse_label: file upload uses a non-text format; skipping",
+            );
+            (Cow::Borrowed(&file_upload.custom_id), Vec::new())
         }
         c => {
             warn!("New label component {c:?}");

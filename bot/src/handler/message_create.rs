@@ -27,13 +27,11 @@ impl Handler {
         )?;
 
         if let Some(level) = new_level {
-            let mut tx = pool.begin().await.unwrap();
+            let mut tx = pool.begin().await?;
 
-            GamblingTable::add_coins(&mut tx, msg.author.id, level as i64 * 1000)
-                .await
-                .unwrap();
+            GamblingTable::add_coins(&mut tx, msg.author.id, level as i64 * 1000).await?;
 
-            tx.commit().await.unwrap();
+            tx.commit().await?;
         }
 
         Ok(())
