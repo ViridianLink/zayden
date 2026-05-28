@@ -6,8 +6,8 @@ use tracing::{error, info, warn};
 use zayden_core::error::Respond;
 use zayden_core::parse_modal_components;
 
-use crate::modules::lfg::{PostTable, UsersTable};
-use crate::modules::ticket::TicketTable;
+use crate::bindings::lfg::{PostTable, UsersTable};
+use crate::bindings::ticket::TicketTable;
 use crate::sqlx_lib::GuildTable;
 use crate::{BotState, Error, Handler, Result};
 

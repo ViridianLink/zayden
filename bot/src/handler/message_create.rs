@@ -4,11 +4,11 @@ use serenity::all::{Context, Message};
 use sqlx::{PgPool, Postgres};
 use zayden_core::MessageCommand;
 
+use crate::bindings::ai::Ai;
+use crate::bindings::gambling::GamblingTable;
+use crate::bindings::levels::LevelsTable;
+use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
-use crate::modules::ai::Ai;
-use crate::modules::gambling::GamblingTable;
-use crate::modules::levels::LevelsTable;
-use crate::modules::ticket::message_commands::support;
 use crate::{BotState, Result};
 
 impl Handler {

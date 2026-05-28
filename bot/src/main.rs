@@ -8,10 +8,10 @@ use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
 use tracing::info;
 
+pub mod bindings;
 mod cron;
 mod error;
 mod handler;
-pub mod modules;
 pub mod registry;
 mod sqlx_lib;
 pub mod state;

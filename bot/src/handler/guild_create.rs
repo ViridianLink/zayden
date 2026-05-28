@@ -4,9 +4,9 @@ use tokio::sync::RwLock;
 use tracing::info;
 use zayden_core::ApplicationCommand;
 
-use crate::modules::events::Live;
-use crate::modules::lfg::PostTable;
-use crate::modules::{APPLICATION_COMMANDS, llamad2};
+use crate::bindings::events::Live;
+use crate::bindings::lfg::PostTable;
+use crate::bindings::{APPLICATION_COMMANDS, llamad2};
 use crate::sqlx_lib::GuildTable;
 use crate::{BRADSTER_GUILD, BotState, LLAMAD2_GUILD, Result};
 

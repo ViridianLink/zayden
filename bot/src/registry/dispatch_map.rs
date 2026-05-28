@@ -59,8 +59,7 @@ impl<T: ?Sized> DispatchMap<T> {
                 self.prefix.retain(|(k, _)| k != &key);
                 self.prefix.push((key, val));
                 // Longest first so the first hit is the most specific.
-                self.prefix
-                    .sort_by_key(|(k, _)| std::cmp::Reverse(k.len()));
+                self.prefix.sort_by_key(|(k, _)| std::cmp::Reverse(k.len()));
             }
         }
     }

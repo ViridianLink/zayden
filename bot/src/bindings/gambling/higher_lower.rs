@@ -10,7 +10,7 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Component};
 
-use crate::modules::gambling::GamblingTable;
+use crate::bindings::gambling::GamblingTable;
 use crate::{BotState, Error, Result};
 
 use super::{GameTable, GoalsTable, StatsTable};

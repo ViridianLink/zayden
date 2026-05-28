@@ -4,10 +4,10 @@ use tracing::warn;
 use zayden_core::Autocomplete;
 
 use crate::Result;
+use crate::bindings::destiny2::Perk;
+use crate::bindings::destiny2::endgame_analysis::slash_commands::{TierList, Weapon};
+use crate::bindings::lfg::Lfg;
 use crate::handler::Handler;
-use crate::modules::destiny2::Perk;
-use crate::modules::destiny2::endgame_analysis::slash_commands::{TierList, Weapon};
-use crate::modules::lfg::Lfg;
 
 impl Handler {
     pub async fn interaction_autocomplete(

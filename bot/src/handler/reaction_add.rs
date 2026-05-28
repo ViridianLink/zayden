@@ -4,7 +4,7 @@ use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 
 use crate::Result;
-use crate::modules::reaction_roles::ReactionRolesTable;
+use crate::bindings::reaction_roles::ReactionRolesTable;
 use crate::sqlx_lib::GuildTable;
 
 use super::Handler;

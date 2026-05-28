@@ -2,7 +2,7 @@ use serenity::all::{Context, PartialGuildThread};
 use sqlx::{PgPool, Postgres};
 
 use crate::Result;
-use crate::modules::lfg::PostTable;
+use crate::bindings::lfg::PostTable;
 
 use super::Handler;
 

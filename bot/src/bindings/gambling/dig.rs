@@ -7,7 +7,7 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::modules::gambling::StaminaTable;
+use crate::bindings::gambling::StaminaTable;
 use crate::{BotState, Error, Result};
 
 use super::GoalsTable;

@@ -5,7 +5,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, 
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::modules::gambling::EffectsTable;
+use crate::bindings::gambling::EffectsTable;
 use crate::{BotState, Error, Result};
 
 pub struct InventoryTable;

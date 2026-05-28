@@ -1,35 +1,37 @@
 use async_trait::async_trait;
-use gambling::commands::gift::GiftManager;
-use gambling::{Commands, commands::gift::SenderRow};
+use gambling::Commands;
+use gambling::commands::work::{WorkManager, WorkRow};
+use jiff_sqlx::Timestamp;
 use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::modules::gambling::{GamblingTable, GoalsTable};
+use crate::bindings::gambling::StaminaTable;
 use crate::{BotState, Error, Result};
 
-pub struct GiftTable;
+use super::goals::GoalsTable;
+
+pub struct WorkTable;
 
 #[async_trait]
-impl GiftManager<Postgres> for GiftTable {
-    async fn sender(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<SenderRow>> {
+impl WorkManager<Postgres> for WorkTable {
+    async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<WorkRow>> {
         let id = id.into();
 
         sqlx::query_as!(
-            SenderRow,
+            WorkRow,
             r#"SELECT
                 g.user_id,
                 g.coins,
                 g.gems,
-                g.gift as "gift: jiff_sqlx::Timestamp",
+                g.stamina,
 
-                COALESCE(l.level, 0) AS "level!",
+                COALESCE(l.level, 0) AS level,
                 
-                m.prestige
+                COALESCE(m.miners, 0) AS miners,
+                COALESCE(m.prestige, 0) AS prestige,
+                COALESCE(m.mine_activity, now()::TIMESTAMP) AS "mine_activity: jiff_sqlx::Timestamp"
 
                 FROM gambling g
                 LEFT JOIN levels l ON g.user_id = l.user_id
@@ -41,28 +43,29 @@ impl GiftManager<Postgres> for GiftTable {
         .await
     }
 
-    async fn save_sender(pool: &PgPool, row: SenderRow) -> sqlx::Result<PgQueryResult> {
+    async fn save(pool: &PgPool, row: WorkRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, gems, gift)
-            VALUES ($1, $2, $3, now())
+            "INSERT INTO gambling (user_id, coins, gems, stamina)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems, gift = EXCLUDED.gift;",
+            coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
             row.user_id,
             row.coins,
             row.gems,
+            row.stamina
         )
         .execute(&mut *tx)
         .await?;
 
         let result2 = sqlx::query!(
-            "INSERT INTO levels (user_id, level)
+            "INSERT INTO gambling_mine (user_id, mine_activity)
             VALUES ($1, $2)
             ON CONFLICT (user_id) DO UPDATE SET
-            level = EXCLUDED.level;",
+            mine_activity = EXCLUDED.mine_activity;",
             row.user_id,
-            row.level,
+            row.mine_activity as Option<Timestamp>,
         )
         .execute(&mut *tx)
         .await?;
@@ -75,21 +78,20 @@ impl GiftManager<Postgres> for GiftTable {
     }
 }
 
-pub struct Gift;
+pub struct Work;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Gift {
+impl ApplicationCommand<Error, Postgres> for Work {
     async fn run(
         &self,
         ctx: &Context,
         interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
+        _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::gift::<BotState, Postgres, GamblingTable, GoalsTable, GiftTable>(
+        Commands::work::<BotState, Postgres, StaminaTable, GoalsTable, WorkTable>(
             ctx,
             interaction,
-            options,
             pool,
         )
         .await?;
@@ -98,6 +100,6 @@ impl ApplicationCommand<Error, Postgres> for Gift {
     }
 
     fn command(&self) -> CreateCommand<'_> {
-        Commands::register_gift()
+        Commands::register_work()
     }
 }

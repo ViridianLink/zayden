@@ -2,7 +2,7 @@ use serenity::all::{Context, VoiceState};
 use sqlx::PgPool;
 
 use crate::Result;
-use crate::modules::temp_voice;
+use crate::bindings::temp_voice;
 
 use super::Handler;
 

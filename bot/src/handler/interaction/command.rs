@@ -5,8 +5,8 @@ use zayden_core::error::Respond;
 use zayden_core::get_option_str;
 
 use crate::Error;
+use crate::bindings::APPLICATION_COMMANDS;
 use crate::handler::Handler;
-use crate::modules::APPLICATION_COMMANDS;
 
 impl Handler {
     pub async fn interaction_command(

@@ -8,12 +8,12 @@ use tracing::{error, info};
 use zayden_core::Component;
 use zayden_core::error::Respond;
 
+use crate::bindings::gambling::{Blackjack, HigherLower, Leaderboard, Prestige, TicTacToe};
+use crate::bindings::levels::Levels;
+use crate::bindings::lfg::PostTable;
+use crate::bindings::ticket::Ticket;
+use crate::bindings::verify::Panel;
 use crate::handler::Handler;
-use crate::modules::gambling::{Blackjack, HigherLower, Leaderboard, Prestige, TicTacToe};
-use crate::modules::levels::Levels;
-use crate::modules::lfg::PostTable;
-use crate::modules::ticket::Ticket;
-use crate::modules::verify::Panel;
 use crate::sqlx_lib::GuildTable;
 use crate::{Error, Result};
 

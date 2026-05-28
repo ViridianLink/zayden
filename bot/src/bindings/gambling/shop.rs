@@ -7,7 +7,7 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::modules::gambling::GoalsTable;
+use crate::bindings::gambling::GoalsTable;
 use crate::{BotState, Error, Result};
 
 pub struct ShopTable;

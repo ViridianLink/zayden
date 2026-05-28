@@ -15,7 +15,7 @@ use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;
 use zayden_core::{CronJob, CronJobData, EmojiCache, EmojiCacheData};
 
-use crate::modules::gambling::{GamblingTable, HigherLowerTable, LottoTable, StaminaTable};
+use crate::bindings::gambling::{GamblingTable, HigherLowerTable, LottoTable, StaminaTable};
 use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
 /// Bot-specific application state stored in Serenity's context data.
