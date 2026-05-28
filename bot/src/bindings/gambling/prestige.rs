@@ -1,16 +1,19 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::commands::inventory::{InventoryManager, InventoryRow};
 use gambling::commands::prestige::{PrestigeManager, PrestigeRow};
 use gambling::shop::LOTTO_TICKET;
 use gambling::{Commands, GamblingItem, GamblingItems};
-use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption, UserId,
-};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::{ApplicationCommand, Component};
+use zayden_core::ctx::{ComponentCtx, InvocationCtx};
+use zayden_core::error::HandlerError;
+use zayden_core::module::{ModuleCommand, ModuleComponent};
+use zayden_core::scope::IdMatch;
 
-use crate::{Error, Result, ZAYDEN_ID};
+use crate::ZAYDEN_ID;
 
 use super::stamina::MAX_STAMINA;
 
@@ -164,33 +167,41 @@ impl InventoryManager<Postgres> for PrestigeTable {
 pub struct Prestige;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Prestige {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::prestige::<Postgres, PrestigeTable>(ctx, interaction, pool).await?;
-        Ok(())
+impl ModuleCommand for Prestige {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("prestige")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_prestige()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Commands::prestige::<Postgres, PrestigeTable>(cx.ctx, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
     }
 }
 
 #[async_trait]
-impl Component<Error, Postgres> for Prestige {
-    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
-        match interaction.data.custom_id.as_str() {
+impl ModuleComponent for Prestige {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Prefix(Cow::Borrowed("prestige"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        match cx.interaction.data.custom_id.as_str() {
             "prestige_confirm" => {
-                Commands::confirm_prestige::<Postgres, PrestigeTable>(ctx, interaction, pool).await
+                Commands::confirm_prestige::<Postgres, PrestigeTable>(
+                    cx.ctx,
+                    cx.interaction,
+                    &cx.app.db,
+                )
+                .await
             }
-            "prestige_cancel" => Commands::cancel_prestige(ctx, interaction).await,
+            "prestige_cancel" => Commands::cancel_prestige(cx.ctx, cx.interaction).await,
             id => unreachable!("Invalid component id: {id}"),
         }
-        .map_err(Error::from)
+        .map_err(HandlerError::from_respond)
     }
 }

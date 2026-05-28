@@ -1,14 +1,18 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::commands::inventory::{InventoryManager, InventoryRow};
 use gambling::commands::shop::SellRow;
 use gambling::{Commands, GamblingItem, GamblingItems, ShopManager, ShopRow};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
+use crate::BotState;
 use crate::bindings::gambling::GoalsTable;
-use crate::{BotState, Error, Result};
 
 pub struct ShopTable;
 
@@ -225,25 +229,24 @@ impl InventoryManager<Postgres> for ShopTable {
 pub struct Shop;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Shop {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::shop::<BotState, Postgres, GoalsTable, ShopTable>(
-            ctx,
-            interaction,
-            options,
-            pool,
-        )
-        .await?;
-        Ok(())
+impl ModuleCommand for Shop {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("shop")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_shop()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::shop::<BotState, Postgres, GoalsTable, ShopTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

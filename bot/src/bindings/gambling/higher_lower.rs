@@ -1,17 +1,19 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use gambling::Commands;
 use gambling::games::higherlower::HigherLowerManager;
-use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, MessageInteractionMetadata,
-    ResolvedOption, UserId,
-};
+use serenity::all::{CreateCommand, MessageInteractionMetadata, UserId};
 use sqlx::postgres::PgQueryResult;
-use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::{ApplicationCommand, Component};
+use sqlx::{PgConnection, Postgres};
+use zayden_core::ctx::{ComponentCtx, InvocationCtx};
+use zayden_core::error::HandlerError;
+use zayden_core::module::{ModuleCommand, ModuleComponent};
+use zayden_core::scope::IdMatch;
 
+use crate::BotState;
 use crate::bindings::gambling::GamblingTable;
-use crate::{BotState, Error, Result};
 
 use super::{GameTable, GoalsTable, StatsTable};
 
@@ -37,34 +39,36 @@ impl HigherLowerManager<Postgres> for HigherLowerTable {
 pub struct HigherLower;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for HigherLower {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        _pool: &PgPool,
-    ) -> Result<()> {
-        Commands::higher_lower::<BotState>(ctx, interaction).await?;
-
-        Ok(())
+impl ModuleCommand for HigherLower {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("higher_lower")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_higher_lower()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Commands::higher_lower::<BotState>(cx.ctx, cx.interaction)
+            .await
+            .map_err(HandlerError::from_respond)
     }
 }
 
 #[async_trait]
-impl Component<Error, Postgres> for HigherLower {
-    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+impl ModuleComponent for HigherLower {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Prefix(Cow::Borrowed("hol"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let Some(MessageInteractionMetadata::Command(metadata)) =
-            interaction.message.interaction_metadata.as_deref()
+            cx.interaction.message.interaction_metadata.as_deref()
         else {
-            unreachable!("Message must be created from an command")
+            unreachable!("Message must be created from a command")
         };
 
-        if interaction.user != metadata.user {
+        if cx.interaction.user != metadata.user {
             return Ok(());
         };
 
@@ -75,9 +79,8 @@ impl Component<Error, Postgres> for HigherLower {
             GameTable,
             GoalsTable,
             StatsTable,
-        >(ctx, interaction, pool)
-        .await?;
-
-        Ok(())
+        >(cx.ctx, cx.interaction, &cx.app.db)
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

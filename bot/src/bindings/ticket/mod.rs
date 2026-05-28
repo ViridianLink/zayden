@@ -9,13 +9,15 @@ use ticket::{
 
 use zayden_app::config::ConfigStore;
 
+use crate::RegistryBuilder;
 use crate::sqlx_lib::GuildTable;
 
 pub mod components;
 pub mod message_commands;
 pub mod slash_commands;
 
-pub struct Ticket;
+use components::{CreateTicketModal, SupportClose, SupportFaq, SupportTicket, TicketCreate};
+use slash_commands::{SupportCommand, TicketCommand};
 
 #[async_trait]
 impl TicketGuildManager<Postgres> for GuildTable {
@@ -84,4 +86,15 @@ impl TicketManager<Postgres> for TicketTable {
 
         Ok(())
     }
+}
+
+pub fn register(builder: &mut RegistryBuilder) {
+    builder
+        .add_command(TicketCommand)
+        .add_command(SupportCommand)
+        .add_component(TicketCreate)
+        .add_component(SupportTicket)
+        .add_component(SupportClose)
+        .add_component(SupportFaq)
+        .add_modal(CreateTicketModal);
 }

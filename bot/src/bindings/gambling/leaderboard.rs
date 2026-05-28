@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use futures::TryStreamExt;
 use gambling::Commands;
@@ -6,13 +8,14 @@ use gambling::common::leaderboard::{
 };
 use gambling::common::{LeaderboardManager, LeaderboardRow};
 use gambling::shop::{EGGPLANT, LOTTO_TICKET};
-use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption, UserId,
-};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgPool, Postgres};
-use zayden_core::{ApplicationCommand, Component};
+use zayden_core::ctx::{ComponentCtx, InvocationCtx};
+use zayden_core::error::HandlerError;
+use zayden_core::module::{ModuleCommand, ModuleComponent};
+use zayden_core::scope::IdMatch;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 const LIMIT: i64 = 10;
 
@@ -274,39 +277,41 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
 pub struct Leaderboard;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Leaderboard {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::leaderboard::<BotState, Postgres, LeaderboardTable>(
-            ctx,
-            interaction,
-            options,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for Leaderboard {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("leaderboard")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_leaderboard()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::leaderboard::<BotState, Postgres, LeaderboardTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
 #[async_trait]
-impl Component<Error, Postgres> for Leaderboard {
-    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+impl ModuleComponent for Leaderboard {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Prefix(Cow::Borrowed("leaderboard"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         gambling::Leaderboard::run_component::<BotState, Postgres, LeaderboardTable>(
-            ctx,
-            interaction,
-            pool,
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
         )
         .await
-        .map_err(Error::from)
+        .map_err(HandlerError::from_respond)
     }
 }

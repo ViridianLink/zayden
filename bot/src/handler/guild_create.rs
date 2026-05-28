@@ -1,14 +1,11 @@
+use crate::bindings::APPLICATION_COMMANDS;
+use crate::bindings::lfg::PostTable;
+use crate::sqlx_lib::GuildTable;
+use crate::{BRADSTER_GUILD, BotState, Result};
 use serenity::all::{Context, Guild};
 use sqlx::{PgPool, Postgres};
 use tokio::sync::RwLock;
 use tracing::info;
-use zayden_core::ApplicationCommand;
-
-use crate::bindings::events::Live;
-use crate::bindings::lfg::PostTable;
-use crate::bindings::{APPLICATION_COMMANDS, llamad2};
-use crate::sqlx_lib::GuildTable;
-use crate::{BRADSTER_GUILD, BotState, LLAMAD2_GUILD, Result};
 
 use super::Handler;
 
@@ -25,37 +22,15 @@ impl Handler {
         lfg_result?;
 
         let mut commands = APPLICATION_COMMANDS
-            .iter()
-            .filter(|(name, _)| {
-                ![
-                    "live",
-                    "dungeonreport",
-                    "goof",
-                    "hello",
-                    "playlist",
-                    "raidreport",
-                    "sensitivity",
-                    "socials",
-                ]
-                .contains(&name.as_str())
-            })
-            .map(|(_, cmd)| cmd.command())
+            .values()
+            .map(|cmd| cmd.command())
             .collect::<Vec<_>>();
 
         commands.extend(self.registry.definitions_for(guild.id));
 
         match guild.id {
             BRADSTER_GUILD => {
-                commands.push(Live {}.command());
-
                 BRADSTER_GUILD.set_commands(&ctx.http, &commands).await?;
-
-                info!("Registered {}", guild.name);
-            }
-            LLAMAD2_GUILD => {
-                commands.extend(llamad2::register());
-
-                LLAMAD2_GUILD.set_commands(&ctx.http, &commands).await?;
 
                 info!("Registered {}", guild.name);
             }

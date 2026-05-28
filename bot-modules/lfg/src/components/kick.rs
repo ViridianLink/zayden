@@ -1,7 +1,7 @@
 use serenity::all::EditInteractionResponse;
 use serenity::all::{
-    ComponentInteraction, CreateInteractionResponse, CreateInteractionResponseMessage,
-    CreateSelectMenu, CreateSelectMenuKind, Http,
+    ComponentInteraction, ComponentInteractionDataKind, CreateInteractionResponse,
+    CreateInteractionResponseMessage, CreateSelectMenu, CreateSelectMenuKind, Http,
 };
 use sqlx::Database;
 use sqlx::Pool;
@@ -53,16 +53,17 @@ impl KickComponent {
     pub async fn run<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
         http: &Http,
         interaction: &ComponentInteraction,
-        _pool: &Pool<Db>,
+        pool: &Pool<Db>,
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        todo!("Parse kick component");
+        let kicked_user = match &interaction.data.kind {
+            ComponentInteractionDataKind::UserSelect { values } => *values.first().unwrap(),
+            _ => unreachable!("KickComponent expects a UserSelect interaction"),
+        };
 
-        #[allow(unreachable_code)]
-        let (_, embed) = actions::leave::<Db, Manager>(http, interaction, _pool, &interaction.user)
-            .await
-            .unwrap();
+        let (_, embed) =
+            actions::leave::<Db, Manager>(http, interaction, pool, kicked_user).await?;
 
         interaction
             .edit_response(http, EditInteractionResponse::new().embed(embed))

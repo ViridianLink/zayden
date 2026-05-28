@@ -2,13 +2,10 @@ use ai::{
     chat::{Input, ResponseBody, Role},
     openai::OpenAI,
 };
-use async_trait::async_trait;
 use serenity::all::{Context, GenericChannelId, Message};
-use sqlx::{PgPool, Postgres};
-use tracing::error;
-use zayden_core::MessageCommand;
+use zayden_app::state::AppState;
 
-use crate::{Error, Result};
+use crate::{Error, RegistryBuilder, Result};
 
 const PERSONALITY: &str = "[Word Limit: 100]
 You're Zayden. Cunning, cold, and calculated, you waste no words; each one is a weapon. You don't crave war or chaos—you crave control, built not through force but through vice.
@@ -51,7 +48,7 @@ impl Ai {
         parsed_content
     }
 
-    async fn reply(ctx: &Context, message: &Message) -> Result<()> {
+    async fn reply(ctx: &Context, message: &Message, api_key: &str) -> Result<()> {
         let mut body = ResponseBody::basic().instructions(PERSONALITY);
 
         body = Self::process_referenced_messages(message).into_iter().fold(
@@ -66,7 +63,6 @@ impl Ai {
 
         body = body.input(Input::new(Self::parse_mentions(message), Role::User));
 
-        let api_key = std::env::var("OPENAI_API_KEY")?;
         let openai = OpenAI::new(api_key);
         let response = openai.create_response(&body).await?;
 
@@ -90,11 +86,8 @@ impl Ai {
         message.reply(&ctx.http, text).await?;
         Ok(())
     }
-}
 
-#[async_trait]
-impl MessageCommand<Error, Postgres> for Ai {
-    async fn run(ctx: &Context, message: &Message, _pool: &PgPool) -> Result<()> {
+    pub async fn run(ctx: &Context, message: &Message, app: &AppState) -> Result<()> {
         const GAMBLING_CHANNEL: GenericChannelId = GenericChannelId::new(1281440730820116582);
 
         if message.channel_id != GAMBLING_CHANNEL {
@@ -113,10 +106,14 @@ impl MessageCommand<Error, Postgres> for Ai {
             return Ok(());
         }
 
-        if let Err(e) = Self::reply(ctx, message).await {
-            error!(error = ?e, channel_id = %message.channel_id, "AI reply failed");
+        if let Err(e) = Self::reply(ctx, message, &app.openai_api_key).await {
+            tracing::error!(error = ?e, channel_id = %message.channel_id, "AI reply failed");
         }
 
         Ok(())
     }
+}
+
+pub fn register(_builder: &mut RegistryBuilder) {
+    // ai has no slash commands — all interaction is via message events
 }

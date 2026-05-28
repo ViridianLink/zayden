@@ -1,51 +1,22 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use rand::{rng, seq::IndexedRandom};
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, ResolvedOption,
-    ResolvedValue,
+    CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
+    CreateInteractionResponseMessage, ResolvedValue,
 };
-use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
-
-use crate::{Error, Result};
+use zayden_core::{HandlerError, InvocationCtx, ModuleCommand};
 
 pub struct Random;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Random {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        _pool: &PgPool,
-    ) -> Result<()> {
-        let option = {
-            let mut rng = rng();
-            options.choose(&mut rng).unwrap()
-        };
-
-        let ResolvedValue::String(value) = option.value else {
-            unreachable!("All options are strings")
-        };
-
-        let embed = CreateEmbed::new().description(format!("{}: {}", option.name, value));
-
-        interaction
-            .create_response(
-                &ctx.http,
-                CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new().embed(embed),
-                ),
-            )
-            .await
-            .unwrap();
-
-        Ok(())
+impl ModuleCommand for Random {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("random")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         CreateCommand::new("random")
             .description("A command demonstrating the maximum number of options (25).")
             .add_option(
@@ -169,5 +140,34 @@ impl ApplicationCommand<Error, Postgres> for Random {
                 "25",
                 "The twenty-fifth optional string input.",
             ))
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+
+        let option = {
+            let mut rng = rng();
+            options
+                .choose(&mut rng)
+                .expect("at least two options are required")
+        };
+
+        let ResolvedValue::String(value) = option.value else {
+            unreachable!("All options are strings")
+        };
+
+        let embed = CreateEmbed::new().description(format!("{}: {}", option.name, value));
+
+        cx.interaction
+            .create_response(
+                &cx.ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new().embed(embed),
+                ),
+            )
+            .await
+            .map_err(HandlerError::new)?;
+
+        Ok(())
     }
 }

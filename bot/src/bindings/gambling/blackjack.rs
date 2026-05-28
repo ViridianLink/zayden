@@ -1,57 +1,61 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::Commands;
-use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, MessageInteractionMetadata,
-    ResolvedOption,
-};
-use sqlx::{PgPool, Postgres};
-use zayden_core::{ApplicationCommand, Component};
+use serenity::all::{CreateCommand, MessageInteractionMetadata};
+use sqlx::Postgres;
+use zayden_core::ctx::{ComponentCtx, InvocationCtx};
+use zayden_core::error::HandlerError;
+use zayden_core::module::{ModuleCommand, ModuleComponent};
+use zayden_core::scope::IdMatch;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 
 pub struct Blackjack;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Blackjack {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::blackjack::<BotState, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
-            ctx,
-            interaction,
-            options,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for Blackjack {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("blackjack")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_blackjack()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::blackjack::<BotState, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
 #[async_trait]
-impl Component<Error, Postgres> for Blackjack {
-    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+impl ModuleComponent for Blackjack {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Prefix(Cow::Borrowed("blackjack"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let Some(MessageInteractionMetadata::Command(metadata)) =
-            interaction.message.interaction_metadata.as_deref()
+            cx.interaction.message.interaction_metadata.as_deref()
         else {
-            unreachable!("Message must be created from an command")
+            unreachable!("Message must be created from a command")
         };
 
-        if interaction.user != metadata.user {
+        if cx.interaction.user != metadata.user {
             return Ok(());
         };
 
-        match interaction.data.custom_id.as_str() {
+        match cx.interaction.data.custom_id.as_str() {
             "blackjack_hit" => {
                 gambling::components::Blackjack::hit::<
                     BotState,
@@ -59,8 +63,8 @@ impl Component<Error, Postgres> for Blackjack {
                     GoalsTable,
                     EffectsTable,
                     GameTable,
-                >(ctx, interaction, pool)
-                .await?
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await
             }
             "blackjack_stand" => {
                 gambling::components::Blackjack::stand::<
@@ -69,8 +73,8 @@ impl Component<Error, Postgres> for Blackjack {
                     GoalsTable,
                     EffectsTable,
                     GameTable,
-                >(ctx, interaction, pool)
-                .await?
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await
             }
             "blackjack_double" => {
                 gambling::components::Blackjack::double::<
@@ -80,8 +84,8 @@ impl Component<Error, Postgres> for Blackjack {
                     GoalsTable,
                     EffectsTable,
                     GameTable,
-                >(ctx, interaction, pool)
-                .await?
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await
             }
             "blackjack_split" => {
                 gambling::components::Blackjack::split::<
@@ -91,8 +95,8 @@ impl Component<Error, Postgres> for Blackjack {
                     GoalsTable,
                     EffectsTable,
                     GameTable,
-                >(ctx, interaction, pool)
-                .await?
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await
             }
             "blackjack_surrender" => {
                 gambling::components::Blackjack::surrender::<
@@ -101,13 +105,11 @@ impl Component<Error, Postgres> for Blackjack {
                     GoalsTable,
                     EffectsTable,
                     GameTable,
-                >(ctx, interaction, pool)
-                .await?
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await
             }
-
             id => unreachable!("Invalid custom_id: {id}"),
         }
-
-        Ok(())
+        .map_err(HandlerError::from_respond)
     }
 }

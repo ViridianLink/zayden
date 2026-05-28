@@ -35,7 +35,14 @@ impl Handler {
                 Ok(())
             }
             Interaction::Autocomplete(autocomplete) => {
-                Handler::interaction_autocomplete(ctx, autocomplete, pool).await
+                Handler::interaction_autocomplete(
+                    ctx,
+                    autocomplete,
+                    pool,
+                    Arc::clone(&app),
+                    Arc::clone(&registry),
+                )
+                .await
             }
             Interaction::Component(component) => {
                 Handler::interaction_component(
@@ -47,7 +54,16 @@ impl Handler {
                 )
                 .await
             }
-            Interaction::Modal(modal) => Handler::interaction_modal(ctx, modal, pool).await,
+            Interaction::Modal(modal) => {
+                Handler::interaction_modal(
+                    ctx,
+                    modal,
+                    pool,
+                    Arc::clone(&app),
+                    Arc::clone(&registry),
+                )
+                .await
+            }
             other => {
                 warn!(kind = ?other.kind(), "interaction kind not handled");
                 Ok(())

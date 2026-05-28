@@ -1,34 +1,31 @@
-use async_trait::async_trait;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
-use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use std::borrow::Cow;
 
-use crate::{Error, Result};
+use async_trait::async_trait;
+use serenity::all::CreateCommand;
+use sqlx::Postgres;
+use zayden_core::{HandlerError, InvocationCtx, ModuleCommand};
 
 use super::ReactionRolesTable;
 
 pub struct ReactionRoleCommand;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for ReactionRoleCommand {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        reaction_roles::ReactionRoleCommand::run::<Postgres, ReactionRolesTable>(
-            &ctx.http,
-            interaction,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for ReactionRoleCommand {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("reaction_role")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         reaction_roles::ReactionRoleCommand::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        reaction_roles::ReactionRoleCommand::run::<Postgres, ReactionRolesTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

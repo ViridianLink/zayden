@@ -1,12 +1,11 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, CreateMessage, Permissions, ResolvedOption,
+    CreateCommand, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
+    CreateMessage, Permissions,
 };
-use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
-
-use crate::{Error, Result};
+use zayden_core::{HandlerError, InvocationCtx, ModuleCommand};
 
 const DESC: &str = "- LIFE COMES FIRST. We won't kick you or get upset for things that are happening in your life. We'll be here when you can play! With that said, if you are removed from the clan due to inactivity, you will be kept in the discord, and are welcome to ask one of the admins for a re-invite when you become active again; you're always welcome back!
 
@@ -25,8 +24,8 @@ We don't condone actions of hacks, cheats or any behaviour that breaches Bungie'
 
 - We kindly ask that you attempt to schedule a raid with the clan before using public LFG, guests are more than welcome! If there isn't enough interest/availably for your run after you have asked the clan, you are more than welcome to and encouraged to ask public LFGs and even invite others in if they match the vibe. (This rule is mainly for raids/newer dungeons. If you'd rather use fireteam finder for old content like Dares, old campaigns, or recruiting etc, that's totally understandable).
 
-- The clan is not an LFG pool. Please do not organize a raid through LFG and then ask the clan to fill the remaining 1-2 spots. 
-[NOTE: Raids have the most success when they are scheduled through Zayden or Charlemagne .] 
+- The clan is not an LFG pool. Please do not organize a raid through LFG and then ask the clan to fill the remaining 1-2 spots.
+[NOTE: Raids have the most success when they are scheduled through Zayden or Charlemagne .]
 
 - We do have teaching raids and will post frequently, if it is tagged as teaching it's encouraged to let newbies join first. If it is posted as KWTD please do not join if you need teaching.
 
@@ -35,27 +34,31 @@ We don't condone actions of hacks, cheats or any behaviour that breaches Bungie'
 pub struct CustomMsg;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for CustomMsg {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        _pool: &PgPool,
-    ) -> Result<()> {
+impl ModuleCommand for CustomMsg {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("custom_msg")
+    }
+
+    fn definition(&self) -> CreateCommand<'static> {
+        CreateCommand::new("custom_msg")
+            .description("Custom Messages")
+            .default_member_permissions(Permissions::ADMINISTRATOR)
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let embed = CreateEmbed::new()
             .title("Community Rules")
             .description(DESC);
 
-        interaction
+        cx.interaction
             .channel_id
-            .send_message(&ctx.http, CreateMessage::new().embed(embed))
+            .send_message(&cx.ctx.http, CreateMessage::new().embed(embed))
             .await
-            .unwrap();
+            .map_err(HandlerError::new)?;
 
-        interaction
+        cx.interaction
             .create_response(
-                &ctx.http,
+                &cx.ctx.http,
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
                         .content("Message sent")
@@ -63,14 +66,8 @@ impl ApplicationCommand<Error, Postgres> for CustomMsg {
                 ),
             )
             .await
-            .unwrap();
+            .map_err(HandlerError::new)?;
 
         Ok(())
-    }
-
-    fn command(&self) -> CreateCommand<'_> {
-        CreateCommand::new("custom_msg")
-            .description("Custom Messages")
-            .default_member_permissions(Permissions::ADMINISTRATOR)
     }
 }

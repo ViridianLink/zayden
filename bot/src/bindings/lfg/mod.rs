@@ -1,5 +1,7 @@
 mod slash_command;
 
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use jiff::tz;
 use jiff::tz::TimeZone;
@@ -8,16 +10,26 @@ use lfg::commands::{JoinedManager, SetupManager};
 use lfg::components::{EditManager, EditRow};
 use lfg::modals::create::{GuildManager, GuildRow};
 use lfg::models::timezone_manager::locale_to_timezone;
-use lfg::{Error, Join, JoinedRow, PostManager, PostRow, Savable, TimezoneManager}; // PostRow
+use lfg::{
+    Components, Error, Join, JoinedRow, KickComponent, PostManager, PostRow, Savable,
+    TagsComponent, TimezoneManager,
+};
 use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-
 use zayden_app::config::ConfigStore;
+use zayden_core::ctx::{ComponentCtx, ModalCtx};
+use zayden_core::error::HandlerError;
+use zayden_core::module::{ModuleComponent, ModuleModal};
+use zayden_core::scope::IdMatch;
 
+use crate::BotState;
+use crate::RegistryBuilder;
 use crate::sqlx_lib::GuildTable;
 
 pub use slash_command::Lfg;
+
+// region: PostTable
 
 pub struct PostTable;
 
@@ -225,12 +237,12 @@ impl JoinedManager<Postgres> for PostTable {
                 p.id,
                 p.activity,
                 p.start_time as "start_time: jiff_sqlx::Timestamp",
-            
+
                 COALESCE(
                     (SELECT array_agg(f.user_id) FROM lfg_fireteam f WHERE f.post_id = p.id),
                     '{}'
                 ) AS "fireteam!"
-            
+
             FROM
                 lfg_posts p
             JOIN lfg_fireteam f ON p.id = f.post_id
@@ -273,6 +285,10 @@ impl EditManager<Postgres> for PostTable {
     }
 }
 
+// endregion
+
+// region: UsersTable
+
 pub struct UsersTable;
 
 #[async_trait]
@@ -309,6 +325,10 @@ impl TimezoneManager<Postgres> for UsersTable {
     }
 }
 
+// endregion
+
+// region: GuildTable
+
 #[async_trait]
 impl GuildManager<Postgres> for GuildTable {
     async fn row(pool: &PgPool, id: impl Into<GuildId> + Send) -> sqlx::Result<Option<GuildRow>> {
@@ -327,4 +347,236 @@ impl GuildManager<Postgres> for GuildTable {
             lfg_scheduled_thread_id: cfg.lfg_scheduled_thread_id,
         }))
     }
+}
+
+// endregion
+
+// region: Components
+
+pub struct LfgJoin;
+
+#[async_trait]
+impl ModuleComponent for LfgJoin {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_join"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::join::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgLeave;
+
+#[async_trait]
+impl ModuleComponent for LfgLeave {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_leave"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::leave::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgAlternative;
+
+#[async_trait]
+impl ModuleComponent for LfgAlternative {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_alternative"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::alternative::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgSettings;
+
+#[async_trait]
+impl ModuleComponent for LfgSettings {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_settings"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::settings::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgEditComponent;
+
+#[async_trait]
+impl ModuleComponent for LfgEditComponent {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_edit"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::edit::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgCopy;
+
+#[async_trait]
+impl ModuleComponent for LfgCopy {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_copy"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::copy::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgKick;
+
+#[async_trait]
+impl ModuleComponent for LfgKick {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_kick"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::kick::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgKickMenu;
+
+#[async_trait]
+impl ModuleComponent for LfgKickMenu {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_kick_menu"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        KickComponent::run::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgDelete;
+
+#[async_trait]
+impl ModuleComponent for LfgDelete {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_delete"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        Components::delete::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgTagsAdd;
+
+#[async_trait]
+impl ModuleComponent for LfgTagsAdd {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_tags_add"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        TagsComponent::add(&cx.ctx.http, cx.interaction)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgTagsRemove;
+
+#[async_trait]
+impl ModuleComponent for LfgTagsRemove {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_tags_remove"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        TagsComponent::remove(&cx.ctx.http, cx.interaction)
+            .await
+            .map_err(HandlerError::from_respond)
+    }
+}
+
+// endregion
+
+// region: Modals
+
+pub struct LfgEditModal;
+
+#[async_trait]
+impl ModuleModal for LfgEditModal {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("lfg_edit"))
+    }
+
+    async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
+        lfg::modals::Edit::run::<BotState, Postgres, PostTable, UsersTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
+    }
+}
+
+pub struct LfgCreateModal;
+
+#[async_trait]
+impl ModuleModal for LfgCreateModal {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Prefix(Cow::Borrowed("lfg_create"))
+    }
+
+    async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
+        lfg::modals::Create::run::<BotState, Postgres, GuildTable, PostTable, UsersTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
+    }
+}
+
+// endregion
+
+pub fn register(builder: &mut RegistryBuilder) {
+    builder
+        .add_command(Lfg)
+        .add_autocomplete(Lfg)
+        .add_component(LfgJoin)
+        .add_component(LfgLeave)
+        .add_component(LfgAlternative)
+        .add_component(LfgSettings)
+        .add_component(LfgEditComponent)
+        .add_component(LfgCopy)
+        .add_component(LfgKick)
+        .add_component(LfgKickMenu)
+        .add_component(LfgDelete)
+        .add_component(LfgTagsAdd)
+        .add_component(LfgTagsRemove)
+        .add_modal(LfgEditModal)
+        .add_modal(LfgCreateModal);
 }

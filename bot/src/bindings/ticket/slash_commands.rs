@@ -1,53 +1,61 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
-use sqlx::{PgPool, Postgres};
+use serenity::all::CreateCommand;
+use sqlx::Postgres;
 use ticket::{Support, Ticket};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
 use crate::sqlx_lib::GuildTable;
-use crate::{Error, Result};
 
 use super::TicketTable;
 
 pub struct TicketCommand;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for TicketCommand {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Ticket::run::<Postgres, GuildTable, TicketTable>(&ctx.http, interaction, pool, options)
-            .await?;
-
-        Ok(())
+impl ModuleCommand for TicketCommand {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("ticket")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Ticket::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Ticket::run::<Postgres, GuildTable, TicketTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+            cx.interaction.data.options(),
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
 pub struct SupportCommand;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for SupportCommand {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Support::run::<Postgres, GuildTable>(&ctx.http, interaction, pool, options).await?;
-
-        Ok(())
+impl ModuleCommand for SupportCommand {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("support")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Support::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Support::run::<Postgres, GuildTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+            cx.interaction.data.options(),
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

@@ -51,7 +51,8 @@ impl EventHandler for Handler {
                 Self::guild_create(self, ctx, guild, &pool).await
             }
             FullEvent::Message { new_message, .. } => {
-                Self::message_create(ctx, new_message, &pool).await
+                let app = Arc::clone(&self.bot_state.read().await.app);
+                Self::message_create(ctx, new_message, &pool, app).await
             }
             FullEvent::ReactionAdd { add_reaction, .. } => {
                 Self::reaction_add(ctx, add_reaction, &pool).await

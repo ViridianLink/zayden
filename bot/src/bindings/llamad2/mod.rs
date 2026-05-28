@@ -1,5 +1,6 @@
-use serenity::all::CreateCommand;
-use zayden_core::ApplicationCommand;
+use serenity::all::GuildId;
+
+use crate::RegistryBuilder;
 
 mod dungeon_report;
 mod goof;
@@ -9,22 +10,23 @@ mod raidreport;
 mod sensitivity;
 mod socials;
 
-pub use dungeon_report::DungeonReport;
-pub use goof::Goof;
-pub use hello::Hello;
-pub use playlist::Playlist;
-pub use raidreport::RaidReport;
-pub use sensitivity::Sensitivity;
-pub use socials::Socials;
+use dungeon_report::DungeonReport;
+use goof::Goof;
+use hello::Hello;
+use playlist::Playlist;
+use raidreport::RaidReport;
+use sensitivity::Sensitivity;
+use socials::Socials;
 
-pub fn register() -> [CreateCommand<'static>; 7] {
-    [
-        DungeonReport {}.command(),
-        Goof {}.command(),
-        Hello {}.command(),
-        Playlist {}.command(),
-        RaidReport {}.command(),
-        Sensitivity {}.command(),
-        Socials {}.command(),
-    ]
+static LLAMA_GUILDS: [GuildId; 1] = [crate::LLAMAD2_GUILD];
+
+pub fn register(builder: &mut RegistryBuilder) {
+    builder
+        .add_command(DungeonReport)
+        .add_command(Goof)
+        .add_command(Hello)
+        .add_command(Playlist)
+        .add_command(RaidReport)
+        .add_command(Sensitivity)
+        .add_command(Socials);
 }

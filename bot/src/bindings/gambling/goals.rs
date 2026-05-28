@@ -1,12 +1,16 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::commands::goals::GoalsRow;
 use gambling::{Commands, GamblingGoalsRow, GoalsManager};
 use jiff_sqlx::Date;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 pub struct GoalsTable;
 
@@ -103,19 +107,18 @@ impl GoalsManager<Postgres> for GoalsTable {
 pub struct Goals;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Goals {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::goals::<BotState, Postgres, GoalsTable>(ctx, interaction, pool).await?;
-        Ok(())
+impl ModuleCommand for Goals {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("goals")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_goals()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Commands::goals::<BotState, Postgres, GoalsTable>(cx.ctx, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
     }
 }

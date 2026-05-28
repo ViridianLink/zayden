@@ -1,33 +1,32 @@
-use async_trait::async_trait;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
-use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use std::borrow::Cow;
 
-use crate::{Error, Result, sqlx_lib::GuildTable};
+use async_trait::async_trait;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
+
+use crate::sqlx_lib::GuildTable;
 
 pub struct FetchSuggestions;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for FetchSuggestions {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        suggestions::FetchSuggestions::run::<Postgres, GuildTable>(
-            &ctx.http,
-            interaction,
-            options,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for FetchSuggestions {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("fetch_suggestions")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> serenity::all::CreateCommand<'static> {
         suggestions::FetchSuggestions::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        suggestions::FetchSuggestions::run::<sqlx::Postgres, GuildTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            cx.interaction.data.options(),
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

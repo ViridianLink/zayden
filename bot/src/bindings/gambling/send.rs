@@ -1,13 +1,17 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::send::{SendManager, SendRow};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
+use crate::BotState;
 use crate::bindings::gambling::{GamblingTable, StaminaTable};
-use crate::{BotState, Error, Result};
 
 use super::goals::GoalsTable;
 
@@ -62,25 +66,24 @@ impl SendManager<Postgres> for SendTable {
 pub struct Send;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Send {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::send::<BotState, Postgres, GamblingTable, StaminaTable, GoalsTable, SendTable>(
-            ctx,
-            interaction,
-            options,
-            pool,
-        )
-        .await?;
-        Ok(())
+impl ModuleCommand for Send {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("send")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_send()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::send::<BotState, Postgres, GamblingTable, StaminaTable, GoalsTable, SendTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

@@ -1,36 +1,36 @@
-use async_trait::async_trait;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
-use sqlx::{PgPool, Postgres};
-use temp_voice::VoiceCommand;
-use zayden_core::ApplicationCommand;
+use std::borrow::Cow;
 
+use async_trait::async_trait;
+use serenity::all::CreateCommand;
+use sqlx::Postgres;
+use temp_voice::VoiceCommand;
+use zayden_core::error::HandlerError;
+use zayden_core::{InvocationCtx, ModuleCommand};
+
+use crate::BotState;
 use crate::sqlx_lib::GuildTable;
-use crate::{BotState, Error, Result};
 
 use super::VoiceChannelTable;
 
 pub struct Voice;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Voice {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        VoiceCommand::run::<BotState, Postgres, GuildTable, VoiceChannelTable>(
-            ctx,
-            interaction,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for Voice {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("voice")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         VoiceCommand::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        VoiceCommand::run::<BotState, Postgres, GuildTable, VoiceChannelTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

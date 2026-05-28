@@ -1,54 +1,58 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::Commands;
-use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption,
-};
-use sqlx::{PgPool, Postgres};
-use zayden_core::{ApplicationCommand, Component};
+use serenity::all::CreateCommand;
+use sqlx::Postgres;
+use zayden_core::ctx::{ComponentCtx, InvocationCtx};
+use zayden_core::error::HandlerError;
+use zayden_core::module::{ModuleCommand, ModuleComponent};
+use zayden_core::scope::IdMatch;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 
 pub struct TicTacToe;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for TicTacToe {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::tictactoe::<BotState, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
-            ctx,
-            interaction,
-            options,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for TicTacToe {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("tictactoe")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_tictactoe()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::tictactoe::<BotState, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
 #[async_trait]
-impl Component<Error, Postgres> for TicTacToe {
-    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
+impl ModuleComponent for TicTacToe {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Prefix(Cow::Borrowed("ttt"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         gambling::components::TicTacToe::run_component::<
             BotState,
             Postgres,
             GamblingTable,
             EffectsTable,
             GameTable,
-        >(ctx, interaction, pool)
-        .await?;
-
-        Ok(())
+        >(cx.ctx, cx.interaction, &cx.app.db)
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

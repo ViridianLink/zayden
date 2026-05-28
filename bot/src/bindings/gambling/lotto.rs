@@ -1,14 +1,18 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use bigdecimal::ToPrimitive;
 use gambling::shop::LOTTO_TICKET;
 use gambling::{Commands, LottoManager, LottoRow};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
-use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use sqlx::{PgConnection, Postgres};
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
+use crate::BotState;
 use crate::bindings::gambling::GamblingTable;
-use crate::{BotState, Error, Result};
 
 pub struct LottoTable;
 
@@ -64,20 +68,22 @@ impl LottoManager<Postgres> for LottoTable {
 pub struct Lotto;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Lotto {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::lotto::<BotState, Postgres, GamblingTable, LottoTable>(ctx, interaction, pool)
-            .await?;
-        Ok(())
+impl ModuleCommand for Lotto {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("lotto")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_lotto()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Commands::lotto::<BotState, Postgres, GamblingTable, LottoTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

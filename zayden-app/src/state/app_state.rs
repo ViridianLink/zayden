@@ -20,12 +20,13 @@ pub struct AppState {
     /// Cross-process broadcast bus (config invalidation, entitlement changes, …).
     pub events: broadcast::Sender<AppEvent>,
     pub http: reqwest::Client,
+    pub openai_api_key: String,
 }
 
 impl AppState {
     /// Construct `AppState` from an already-established pool and a loaded
     /// `BotConfig`.  `EntitlementService` remains a placeholder until M4.
-    pub fn new(pool: PgPool, _config: &BotConfig) -> Self {
+    pub fn new(pool: PgPool, config: &BotConfig) -> Self {
         // 64-slot channel is plenty for current usage; resize when needed.
         let (events, _) = broadcast::channel(64);
 
@@ -38,6 +39,7 @@ impl AppState {
             entitlements: Arc::new(EntitlementService),
             events,
             http: reqwest::Client::new(),
+            openai_api_key: config.openai_api_key.clone(),
         }
     }
 

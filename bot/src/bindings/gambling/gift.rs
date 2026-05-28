@@ -1,13 +1,17 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::commands::gift::GiftManager;
 use gambling::{Commands, commands::gift::SenderRow};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
+use crate::BotState;
 use crate::bindings::gambling::{GamblingTable, GoalsTable};
-use crate::{BotState, Error, Result};
 
 pub struct GiftTable;
 
@@ -78,26 +82,24 @@ impl GiftManager<Postgres> for GiftTable {
 pub struct Gift;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Gift {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::gift::<BotState, Postgres, GamblingTable, GoalsTable, GiftTable>(
-            ctx,
-            interaction,
-            options,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for Gift {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("gift")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_gift()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::gift::<BotState, Postgres, GamblingTable, GoalsTable, GiftTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

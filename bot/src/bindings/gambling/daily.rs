@@ -1,14 +1,18 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::commands::daily::{DailyManager, DailyRow};
 use gambling::commands::goals::GoalsRow;
 use gambling::{Commands, GamblingGoalsRow, GoalsManager};
 use jiff_sqlx::Date;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 pub struct DailyTable;
 
@@ -119,20 +123,18 @@ impl GoalsManager<Postgres> for DailyTable {
 pub struct Daily;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Daily {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::daily::<BotState, Postgres, DailyTable>(ctx, interaction, pool).await?;
-
-        Ok(())
+impl ModuleCommand for Daily {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("daily")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_daily()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Commands::daily::<BotState, Postgres, DailyTable>(cx.ctx, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
     }
 }

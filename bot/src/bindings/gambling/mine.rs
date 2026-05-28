@@ -1,11 +1,15 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::mine::{MineManager, MineRow};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 pub struct MineTable;
 
@@ -25,20 +29,18 @@ impl MineManager<Postgres> for MineTable {
 pub struct Mine;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Mine {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::mine::<BotState, Postgres, MineTable>(ctx, interaction, pool).await?;
-
-        Ok(())
+impl ModuleCommand for Mine {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("mine")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_mine()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Commands::mine::<BotState, Postgres, MineTable>(cx.ctx, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond)
     }
 }

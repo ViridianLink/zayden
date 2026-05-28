@@ -1,12 +1,16 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::craft::{CraftManager, CraftRow};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 pub struct CraftTable;
 
@@ -59,20 +63,24 @@ impl CraftManager<Postgres> for CraftTable {
 pub struct Craft;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Craft {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::craft::<BotState, Postgres, CraftTable>(ctx, interaction, options, pool).await?;
-
-        Ok(())
+impl ModuleCommand for Craft {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("craft")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_craft()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::craft::<BotState, Postgres, CraftTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

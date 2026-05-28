@@ -3,6 +3,12 @@ pub use commands::Voice;
 
 pub mod events;
 
+use crate::RegistryBuilder;
+
+pub fn register(builder: &mut RegistryBuilder) {
+    builder.add_command(Voice);
+}
+
 use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId, UserId};
 use sqlx::postgres::PgQueryResult;

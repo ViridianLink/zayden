@@ -1,27 +1,27 @@
-use async_trait::async_trait;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
-use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use std::borrow::Cow;
 
-use crate::{Error, Result};
+use async_trait::async_trait;
+use serenity::all::CreateCommand;
+use zayden_core::{CommandScope, HandlerError, InvocationCtx, ModuleCommand};
 
 pub struct Goof;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Goof {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        _pool: &PgPool,
-    ) -> Result<()> {
-        llamad2::Goof::run(ctx, interaction).await;
-
-        Ok(())
+impl ModuleCommand for Goof {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("goof")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         llamad2::Goof::register()
+    }
+
+    fn scope(&self) -> CommandScope {
+        CommandScope::Guilds(Cow::Borrowed(&super::LLAMA_GUILDS))
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        llamad2::Goof::run(cx.ctx, cx.interaction).await;
+        Ok(())
     }
 }

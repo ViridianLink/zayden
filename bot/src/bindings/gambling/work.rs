@@ -1,14 +1,18 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::work::{WorkManager, WorkRow};
 use jiff_sqlx::Timestamp;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
+use crate::BotState;
 use crate::bindings::gambling::StaminaTable;
-use crate::{BotState, Error, Result};
 
 use super::goals::GoalsTable;
 
@@ -81,25 +85,22 @@ impl WorkManager<Postgres> for WorkTable {
 pub struct Work;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Work {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::work::<BotState, Postgres, StaminaTable, GoalsTable, WorkTable>(
-            ctx,
-            interaction,
-            pool,
-        )
-        .await?;
-
-        Ok(())
+impl ModuleCommand for Work {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("work")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_work()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        Commands::work::<BotState, Postgres, StaminaTable, GoalsTable, WorkTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

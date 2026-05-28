@@ -1,27 +1,24 @@
-use async_trait::async_trait;
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
-use sqlx::{PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use std::borrow::Cow;
 
-use crate::{Error, Result};
+use async_trait::async_trait;
+use serenity::all::CreateCommand;
+use zayden_core::error::HandlerError;
+use zayden_core::{InvocationCtx, ModuleCommand};
 
 pub struct RaidGuide;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for RaidGuide {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        _pool: &PgPool,
-    ) -> Result<()> {
-        destiny2::raid_guides::RaidGuide::<0>::run(&ctx.http, interaction).await;
-
-        Ok(())
+impl ModuleCommand for RaidGuide {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("raidguide")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         destiny2::raid_guides::RaidGuide::<0>::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        destiny2::raid_guides::RaidGuide::<0>::run(&cx.ctx.http, cx.interaction).await;
+        Ok(())
     }
 }

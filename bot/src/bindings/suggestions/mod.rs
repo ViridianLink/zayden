@@ -4,10 +4,12 @@ use sqlx::{PgPool, Postgres};
 use suggestions::{SuggestionsGuildManager, SuggestionsGuildRow};
 use zayden_app::config::ConfigStore;
 
+mod components;
 pub mod slash_command;
 
 pub use slash_command::FetchSuggestions;
 
+use crate::RegistryBuilder;
 use crate::sqlx_lib::GuildTable;
 
 #[async_trait]
@@ -31,4 +33,16 @@ impl SuggestionsGuildManager<Postgres> for GuildTable {
             review_channel_id: cfg.review_channel_id,
         }))
     }
+}
+
+pub fn register(builder: &mut RegistryBuilder) {
+    builder
+        .add_command(FetchSuggestions)
+        .add_component(components::SuggestionsAccept)
+        .add_component(components::SuggestionsAdded)
+        .add_component(components::AcceptLegacy)
+        .add_component(components::SuggestionsReject)
+        .add_component(components::RejectLegacy)
+        .add_modal(components::SuggestionsAcceptModal)
+        .add_modal(components::SuggestionsRejectModal);
 }

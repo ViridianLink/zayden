@@ -1,12 +1,16 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use gambling::commands::inventory::{InventoryManager, InventoryRow};
 use gambling::commands::profile::{ProfileManager, ProfileRow};
 use gambling::{Commands, GamblingItem, GamblingItems};
-use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgConnection, PgPool, Postgres};
-use zayden_core::ApplicationCommand;
+use zayden_core::ctx::InvocationCtx;
+use zayden_core::error::HandlerError;
+use zayden_core::module::ModuleCommand;
 
-use crate::{BotState, Error, Result};
+use crate::BotState;
 
 pub struct ProfileTable;
 
@@ -69,21 +73,24 @@ impl InventoryManager<Postgres> for ProfileTable {
 pub struct Profile;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Profile {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        Commands::profile::<BotState, Postgres, ProfileTable>(ctx, interaction, options, pool)
-            .await?;
-
-        Ok(())
+impl ModuleCommand for Profile {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("profile")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         Commands::register_profile()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        Commands::profile::<BotState, Postgres, ProfileTable>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
