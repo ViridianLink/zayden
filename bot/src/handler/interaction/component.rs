@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serenity::all::{
     ComponentInteraction, Context, CreateInteractionResponse, EditInteractionResponse,
 };
@@ -5,23 +7,25 @@ use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 use ticket::TicketComponent;
 use tracing::{error, info};
+use zayden_app::state::AppState;
 use zayden_core::Component;
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 use crate::bindings::gambling::{Blackjack, HigherLower, Leaderboard, Prestige, TicTacToe};
-use crate::bindings::levels::Levels;
 use crate::bindings::lfg::PostTable;
 use crate::bindings::ticket::Ticket;
 use crate::bindings::verify::Panel;
 use crate::handler::Handler;
 use crate::sqlx_lib::GuildTable;
-use crate::{Error, Result};
+use crate::{CommandRegistry, Error, Result};
 
 impl Handler {
     pub async fn interaction_component(
         ctx: &Context,
         interaction: &ComponentInteraction,
         pool: &PgPool,
+        app: Arc<AppState>,
+        registry: Arc<CommandRegistry>,
     ) -> Result<()> {
         let custom_id = &interaction.data.custom_id;
 
@@ -30,6 +34,13 @@ impl Handler {
             interaction.user.name, custom_id, interaction.message.id,
         );
 
+        if let Some(result) = registry.run_component(ctx, interaction, app).await {
+            if let Err(err) = result {
+                report_handler_error(ctx, interaction, err).await;
+            }
+            return Ok(());
+        }
+
         let result: Result<()> = match custom_id.as_str() {
             //region: Gambling
             id if id.starts_with("blackjack") => Blackjack::run(ctx, interaction, pool).await,
@@ -37,10 +48,6 @@ impl Handler {
             id if id.starts_with("leaderboard") => Leaderboard::run(ctx, interaction, pool).await,
             id if id.starts_with("prestige") => Prestige::run(ctx, interaction, pool).await,
             id if id.starts_with("ttt") => TicTacToe::run(ctx, interaction, pool).await,
-            //endregion
-
-            //region: levels
-            id if id.starts_with("levels") => Levels::run(ctx, interaction, pool).await,
             //endregion
 
             // region: Lfg
@@ -130,6 +137,44 @@ impl Handler {
         }
 
         Ok(())
+    }
+}
+
+async fn report_handler_error(
+    ctx: &Context,
+    interaction: &ComponentInteraction,
+    err: HandlerError,
+) {
+    let custom_id = interaction.data.custom_id.as_str();
+    let user = interaction.user.name.as_str();
+
+    match err.user_message() {
+        Some(msg) => {
+            let _ = interaction.defer_ephemeral(&ctx.http).await;
+            if let Err(send_err) = interaction
+                .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
+                .await
+            {
+                error!(
+                    error = ?err,
+                    send_err = ?send_err,
+                    custom_id = custom_id,
+                    user = user,
+                    "failed to deliver user error message",
+                );
+            }
+        }
+        None => {
+            error!(
+                error = ?err,
+                custom_id = custom_id,
+                user = user,
+                channel_id = %interaction.channel_id,
+                guild_id = ?interaction.guild_id,
+                message_id = %interaction.message.id,
+                "internal error in component handler",
+            );
+        }
     }
 }
 

@@ -79,7 +79,7 @@ async fn main() -> Result<()> {
 
     let bot_state = Arc::new(RwLock::new(bot_state));
 
-    let registry = RegistryBuilder::new().build();
+    let registry = bindings::build_registry();
 
     let mut client = ClientBuilder::new(
         Token::from_env("DISCORD_TOKEN").unwrap(),

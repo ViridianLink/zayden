@@ -2,6 +2,14 @@ mod commands;
 
 pub use commands::{Levels, Rank, Xp};
 
+pub fn register(builder: &mut crate::RegistryBuilder) {
+    builder
+        .add_command(Levels)
+        .add_command(Rank)
+        .add_command(Xp)
+        .add_component(Levels);
+}
+
 use async_trait::async_trait;
 use levels::{FullLevelRow, LeaderboardRow, LevelsManager, RankRow, XpRow};
 use serenity::all::UserId;

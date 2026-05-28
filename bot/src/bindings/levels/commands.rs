@@ -1,41 +1,49 @@
-use async_trait::async_trait;
-use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, ResolvedOption,
-};
-use sqlx::{PgPool, Postgres};
-use zayden_core::{ApplicationCommand, Component};
+use std::borrow::Cow;
 
-use crate::{BotState, Error, Result};
+use async_trait::async_trait;
+use serenity::all::CreateCommand;
+use sqlx::Postgres;
+use zayden_core::ctx::{ComponentCtx, InvocationCtx};
+use zayden_core::error::HandlerError;
+use zayden_core::module::{ModuleCommand, ModuleComponent};
+use zayden_core::scope::IdMatch;
+
+use crate::BotState;
 
 use super::LevelsTable;
 
 pub struct Levels;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Levels {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        _options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        levels::Levels::run::<BotState, Postgres, LevelsTable>(ctx, interaction, pool).await;
-
-        Ok(())
+impl ModuleCommand for Levels {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("levels")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         levels::Levels::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        levels::Levels::run::<BotState, Postgres, LevelsTable>(cx.ctx, cx.interaction, &cx.app.db)
+            .await;
+        Ok(())
     }
 }
 
 #[async_trait]
-impl Component<Error, Postgres> for Levels {
-    async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
-        levels::Levels::run_components::<BotState, Postgres, LevelsTable>(ctx, interaction, pool)
-            .await;
+impl ModuleComponent for Levels {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Prefix(Cow::Borrowed("levels"))
+    }
 
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        levels::Levels::run_components::<BotState, Postgres, LevelsTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await;
         Ok(())
     }
 }
@@ -43,41 +51,44 @@ impl Component<Error, Postgres> for Levels {
 pub struct Rank;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Rank {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        levels::Rank::rank::<Postgres, LevelsTable>(&ctx.http, interaction, options, pool).await;
-
-        Ok(())
+impl ModuleCommand for Rank {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("rank")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         levels::Rank::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        levels::Rank::rank::<Postgres, LevelsTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await;
+        Ok(())
     }
 }
 
 pub struct Xp;
 
 #[async_trait]
-impl ApplicationCommand<Error, Postgres> for Xp {
-    async fn run(
-        &self,
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
-        pool: &PgPool,
-    ) -> Result<()> {
-        levels::Xp::xp::<Postgres, LevelsTable>(&ctx.http, interaction, options, pool).await;
-
-        Ok(())
+impl ModuleCommand for Xp {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("xp")
     }
 
-    fn command(&self) -> CreateCommand<'_> {
+    fn definition(&self) -> CreateCommand<'static> {
         levels::Xp::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let options = cx.interaction.data.options();
+        levels::Xp::xp::<Postgres, LevelsTable>(&cx.ctx.http, cx.interaction, options, &cx.app.db)
+            .await;
+        Ok(())
     }
 }

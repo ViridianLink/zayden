@@ -68,7 +68,9 @@ impl EventHandler for Handler {
                 Self::voice_state_update(ctx, new, &pool).await
             }
             FullEvent::InteractionCreate { interaction, .. } => {
-                Self::interaction_create(ctx, interaction, &pool).await
+                let app = Arc::clone(&self.bot_state.read().await.app);
+                let registry = Arc::clone(&self.registry);
+                Self::interaction_create(ctx, interaction, &pool, app, registry).await
             }
             FullEvent::ThreadDelete { thread, .. } => Self::thread_delete(ctx, thread, &pool).await,
 

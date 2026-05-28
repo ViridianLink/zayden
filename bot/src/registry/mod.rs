@@ -90,7 +90,7 @@ pub struct CommandRegistry {
 impl CommandRegistry {
     /// Return the slash-command definitions that should be registered for `guild_id`,
     /// honouring each command's [`CommandScope`].
-    pub fn definitions_for(&self, guild_id: GuildId) -> Vec<CreateCommand<'_>> {
+    pub fn definitions_for(&self, guild_id: GuildId) -> Vec<CreateCommand<'static>> {
         self.commands
             .values()
             .filter(|cmd| match cmd.scope() {

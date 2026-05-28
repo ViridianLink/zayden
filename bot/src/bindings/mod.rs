@@ -16,7 +16,6 @@ use gambling::{
 };
 
 pub mod levels;
-use levels::{Levels, Rank, Xp};
 
 pub mod lfg;
 use lfg::Lfg;
@@ -83,10 +82,6 @@ pub static APPLICATION_COMMANDS: LazyLock<
         Shop,
         TicTacToe,
 
-        Levels,
-        Rank,
-        Xp,
-
         DungeonReport,
         Goof,
         Hello,
@@ -108,3 +103,9 @@ pub static APPLICATION_COMMANDS: LazyLock<
         SupportCommand,
     }
 });
+
+pub fn build_registry() -> std::sync::Arc<crate::CommandRegistry> {
+    let mut builder = crate::RegistryBuilder::new();
+    levels::register(&mut builder);
+    builder.build()
+}

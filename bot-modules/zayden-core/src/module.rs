@@ -13,7 +13,7 @@ pub trait ModuleCommand: Send + Sync {
     /// across multiple bot applications without hard-coding.
     fn name(&self) -> Cow<'static, str>;
 
-    fn definition(&self) -> CreateCommand<'_>;
+    fn definition(&self) -> CreateCommand<'static>;
 
     fn scope(&self) -> CommandScope {
         CommandScope::Global

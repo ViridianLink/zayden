@@ -42,6 +42,8 @@ impl Handler {
             .map(|(_, cmd)| cmd.command())
             .collect::<Vec<_>>();
 
+        commands.extend(self.registry.definitions_for(guild.id));
+
         match guild.id {
             BRADSTER_GUILD => {
                 commands.push(Live {}.command());
