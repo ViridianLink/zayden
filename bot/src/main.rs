@@ -7,6 +7,7 @@ use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
 use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Http, Token, UserId};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
+use tracing::info;
 
 mod cron;
 pub mod ctx_data;
@@ -52,6 +53,12 @@ async fn main() -> Result<()> {
     let pool = new_pool_with_retry()
         .await
         .expect("Failed to connect to database.");
+
+    let bot_config = zayden_app::config::BotConfig::load(&pool).await?;
+    info!("BotConfig loaded successfully");
+
+    let _app_state = zayden_app::state::AppState::new(pool.clone(), &bot_config);
+    info!("AppState constructed successfully");
 
     let data = CtxData::default();
 

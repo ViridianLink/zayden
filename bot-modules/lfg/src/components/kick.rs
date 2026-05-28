@@ -1,13 +1,13 @@
+use serenity::all::EditInteractionResponse;
 use serenity::all::{
-    ComponentInteraction, CreateInteractionResponseMessage, EditInteractionResponse, Http,
+    ComponentInteraction, CreateInteractionResponse, CreateInteractionResponseMessage,
+    CreateSelectMenu, CreateSelectMenuKind, Http,
 };
-use serenity::all::{CreateInteractionResponse, CreateSelectMenu, CreateSelectMenuKind};
 use sqlx::Database;
 use sqlx::Pool;
 
 use crate::models::post::PostManager;
-use crate::{Error, PostRow, Savable};
-use crate::{Result, actions};
+use crate::{Error, PostRow, Result, Savable, actions};
 
 use super::Components;
 
@@ -53,13 +53,14 @@ impl KickComponent {
     pub async fn run<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        _pool: &Pool<Db>,
     ) -> Result<()> {
         interaction.defer(http).await?;
 
         todo!("Parse kick component");
 
-        let (_, embed) = actions::leave::<Db, Manager>(http, interaction, pool, &interaction.user)
+        #[allow(unreachable_code)]
+        let (_, embed) = actions::leave::<Db, Manager>(http, interaction, _pool, &interaction.user)
             .await
             .unwrap();
 

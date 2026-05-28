@@ -164,9 +164,9 @@ impl Blackjack {
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
-        ctx: &Context,
-        interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        _ctx: &Context,
+        _interaction: &ComponentInteraction,
+        _pool: &Pool<Db>,
     ) -> Result<()> {
         todo!()
     }

@@ -14,7 +14,6 @@ use zayden_core::{EmojiCache, EmojiCacheData};
 
 use crate::{
     Coins, EffectsManager, GamblingManager, GameManager, GameRow, Result,
-    events::Dispatch,
     games::tiktactoe::{EMOJI_P1, EMOJI_P2},
 };
 
@@ -289,6 +288,7 @@ async fn accept<
     Ok(())
 }
 
+#[allow(dead_code)]
 fn check_win(state: &TicTacToe, components: &[Component], target: ReactionType) -> bool {
     let get_emoji = |r: usize, c: usize| -> Option<&ReactionType> {
         let Some(Component::ActionRow(action_row)) = components.get(r) else {
@@ -342,6 +342,7 @@ fn check_win(state: &TicTacToe, components: &[Component], target: ReactionType) 
     false
 }
 
+#[allow(dead_code)]
 fn check_draw(components: &[Component]) -> bool {
     let x_emoji = Some(ReactionType::from(EMOJI_P1));
     let o_emoji = Some(ReactionType::from(EMOJI_P2));
@@ -359,11 +360,12 @@ fn check_draw(components: &[Component]) -> bool {
         .all(|button| button.emoji == x_emoji || button.emoji == o_emoji)
 }
 
+#[allow(dead_code)]
 async fn after_play<Data: EmojiCacheData, Db: Database, Manager: GameManager<Db>>(
-    http: &Http,
-    interaction: &ComponentInteraction,
+    _http: &Http,
+    _interaction: &ComponentInteraction,
     pool: &Pool<Db>,
-    data_lock: Arc<RwLock<Data>>,
+    _data_lock: Arc<RwLock<Data>>,
     state: &TicTacToe,
     winner: Option<UserId>,
 ) {
@@ -372,7 +374,7 @@ async fn after_play<Data: EmojiCacheData, Db: Database, Manager: GameManager<Db>
 
     let [p1, p2] = state.players;
 
-    let embed = if let Some(winner) = winner {
+    let _embed = if let Some(winner) = winner {
         let row = if p1 == winner {
             &mut p1_row
         } else {

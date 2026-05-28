@@ -195,7 +195,10 @@ impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
                 "https://www.bungie.net/common/destiny2_content/icons/e285e30c15aa9482df3f1f9c5810fe66.jpg"
             }
             name => {
-                warn!(weapon = name, "loadouts: image URL not implemented for weapon");
+                warn!(
+                    weapon = name,
+                    "loadouts: image URL not implemented for weapon"
+                );
                 ""
             }
         };

@@ -18,6 +18,7 @@ temp-voice = { workspace = true }
 ticket = { workspace = true }
 verify = { workspace = true }
 zayden-core = { workspace = true }
+zayden-app = { workspace = true }
 
 bungie-api = { workspace = true }
 

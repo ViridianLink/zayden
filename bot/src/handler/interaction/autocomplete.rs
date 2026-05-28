@@ -15,7 +15,9 @@ impl Handler {
         interaction: &CommandInteraction,
         pool: &PgPool,
     ) -> Result<()> {
-        let option = interaction.data.autocomplete()?;
+        let Some(option) = interaction.data.autocomplete() else {
+            return Ok(());
+        };
 
         match interaction.data.name.as_str() {
             "lfg" => Lfg::autocomplete(ctx, interaction, option, pool).await,

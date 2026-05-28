@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["bot", "bot-modules/*"]
+members = ["bot", "bot-modules/*", "zayden-app"]
 
 [workspace.dependencies]
 ai = { path = "./bot-modules/ai" }
@@ -17,8 +17,12 @@ temp-voice = { path = "./bot-modules/temp-voice" }
 ticket = { path = "./bot-modules/ticket" }
 verify = { path = "./bot-modules/verify" }
 zayden-core = { path = "./bot-modules/zayden-core" }
+zayden-app = { path = "./zayden-app" }
 
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
+
+thiserror = { version = "*", default-features = false }
+toml = { version = "*", default-features = false, features = ["parse", "serde"] }
 
 async-trait = { version = "*", default-features = false }
 axum = { version = "*", default-features = false }

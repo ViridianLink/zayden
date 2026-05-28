@@ -1,5 +1,3 @@
-use std::error::Error as StdError;
-
 use ai::{
     chat::{Input, ResponseBody, Role},
     openai::OpenAI,
@@ -85,7 +83,9 @@ impl Ai {
                     None
                 }
             })
-            .ok_or("OpenAI response contained no usable message text")?;
+            .ok_or_else(|| {
+                Error::Other("OpenAI response contained no usable message text".to_owned())
+            })?;
 
         message.reply(&ctx.http, text).await?;
         Ok(())

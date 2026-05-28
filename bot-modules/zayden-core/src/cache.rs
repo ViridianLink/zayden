@@ -111,7 +111,10 @@ impl EmojiCache {
         let zayden_emojis = Self::parent_emojis(parent_token).await;
 
         let Some(&emoji_id) = zayden_emojis.get(name) else {
-            error!(emoji = name, "EmojiCache::upload: emoji not found on Zayden");
+            error!(
+                emoji = name,
+                "EmojiCache::upload: emoji not found on Zayden"
+            );
             return;
         };
 

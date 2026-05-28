@@ -182,6 +182,7 @@ pub const ALL_INS: ShopItem = ShopItem::new(
 .useable(true)
 .duration(Duration::from_secs(2 * 60));
 
+#[allow(dead_code)]
 const RIGGED_LUCK: ShopItem = ShopItem::new(
     "riggedluck",
     "Rigged Luck",

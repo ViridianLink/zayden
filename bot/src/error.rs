@@ -15,9 +15,14 @@ pub enum Error {
     Suggestions(suggestions::Error),
     TempVoice(temp_voice::Error),
 
+    Ai(ai::Error),
+
     ZaydenCore(ZaydenError),
 
+    Config(zayden_app::Error),
     Jiff(jiff::Error),
+    EnvVar(std::env::VarError),
+    Other(String),
 }
 
 impl std::fmt::Display for Error {
@@ -37,7 +42,11 @@ impl std::fmt::Display for Error {
             Error::Ticket(e) => e.fmt(f),
             Error::Suggestions(e) => e.fmt(f),
             Error::TempVoice(e) => e.fmt(f),
+            Error::Ai(e) => e.fmt(f),
+            Error::Config(e) => e.fmt(f),
             Error::Jiff(e) => e.fmt(f),
+            Error::EnvVar(e) => e.fmt(f),
+            Error::Other(msg) => write!(f, "{msg}"),
         }
     }
 }
@@ -52,8 +61,11 @@ impl std::error::Error for Error {
             Self::Ticket(e) => Some(e),
             Self::Suggestions(e) => Some(e),
             Self::TempVoice(e) => Some(e),
+            Self::Ai(e) => Some(e),
+            Self::Config(e) => Some(e),
             Self::ZaydenCore(e) => Some(e),
             Self::Jiff(e) => Some(e),
+            Self::EnvVar(e) => Some(e),
             _ => None,
         }
     }
@@ -76,7 +88,9 @@ impl Respond for Error {
 
             Self::ZaydenCore(e) => e.user_message(),
 
-            Self::Jiff(_) => None,
+            Self::Ai(_) | Self::Config(_) | Self::Jiff(_) | Self::EnvVar(_) | Self::Other(_) => {
+                None
+            }
         }
     }
 }
@@ -148,5 +162,29 @@ impl From<serenity::Error> for Error {
 impl From<sqlx::Error> for Error {
     fn from(value: sqlx::Error) -> Self {
         Self::ZaydenCore(ZaydenError::Sqlx(value))
+    }
+}
+
+impl From<jiff::Error> for Error {
+    fn from(e: jiff::Error) -> Self {
+        Self::Jiff(e)
+    }
+}
+
+impl From<ai::Error> for Error {
+    fn from(e: ai::Error) -> Self {
+        Self::Ai(e)
+    }
+}
+
+impl From<std::env::VarError> for Error {
+    fn from(e: std::env::VarError) -> Self {
+        Self::EnvVar(e)
+    }
+}
+
+impl From<zayden_app::Error> for Error {
+    fn from(e: zayden_app::Error) -> Self {
+        Self::Config(e)
     }
 }

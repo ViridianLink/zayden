@@ -113,6 +113,7 @@ impl Commands {
     }
 }
 
+#[allow(dead_code)]
 struct GameState<Db: Database, Manager: GameManager<Db>> {
     size: usize,
     players: [UserId; 2],
@@ -124,6 +125,7 @@ struct GameState<Db: Database, Manager: GameManager<Db>> {
     _manager: PhantomData<Manager>,
 }
 
+#[allow(dead_code)]
 impl<Db, Manager> GameState<Db, Manager>
 where
     Db: Database,

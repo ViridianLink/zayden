@@ -4,9 +4,9 @@ use std::sync::OnceLock;
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    ButtonStyle, Colour, Context, CreateButton, CreateComponent, CreateContainerComponent,
-    CreateEmbed, CreateTextDisplay, EditInteractionResponse, EmojiId, GenericChannelId,
-    ReactionType, UserId, parse_emoji,
+    ButtonStyle, Colour, Context, CreateButton, CreateContainerComponent, CreateEmbed,
+    CreateTextDisplay, EditInteractionResponse, EmojiId, GenericChannelId, ReactionType, UserId,
+    parse_emoji,
 };
 use serenity::small_fixed_array::FixedString;
 use sqlx::{Database, Pool};

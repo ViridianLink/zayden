@@ -63,7 +63,7 @@ pub struct TicketTable;
 #[async_trait]
 impl TicketManager<Postgres> for TicketTable {
     async fn get(pool: &PgPool, id: impl Into<MessageId> + Send) -> sqlx::Result<TicketRow> {
-        let row = sqlx::query_as!( 
+        let row = sqlx::query_as!(
             TicketRow,
             r#"SELECT thread_id, COALESCE(
                         (SELECT array_agg(role_id) FROM ticket_roles WHERE ticket_id = t.thread_id), 
@@ -78,9 +78,12 @@ impl TicketManager<Postgres> for TicketTable {
     }
 
     async fn delete(pool: &PgPool, id: impl Into<MessageId> + Send) -> sqlx::Result<()> {
-        sqlx::query!("DELETE FROM tickets WHERE thread_id = $1", id.into().get() as i64)
-            .execute(pool)
-            .await?;
+        sqlx::query!(
+            "DELETE FROM tickets WHERE thread_id = $1",
+            id.into().get() as i64
+        )
+        .execute(pool)
+        .await?;
 
         Ok(())
     }
