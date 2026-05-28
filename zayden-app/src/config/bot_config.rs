@@ -2,7 +2,7 @@ use std::env;
 use std::path::Path;
 
 use serde::Deserialize;
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 
 use crate::{Error, Result};
 
@@ -122,15 +122,14 @@ fn load_toml_config() -> Result<TomlConfig> {
 /// Fetches the single-row `bot_config` override table (may not exist yet —
 /// uses dynamic query so no compile-time DB check is needed).
 async fn load_db_row(pool: &PgPool) -> Result<Option<DbConfigRow>> {
-    let row =
-        sqlx::query("SELECT error_log_webhook, normal_log_webhook FROM bot_config WHERE id = 1")
-            .fetch_optional(pool)
-            .await?;
+    let row = sqlx::query_as!(
+        DbConfigRow,
+        "SELECT error_log_webhook, normal_log_webhook FROM bot_config WHERE id = 1"
+    )
+    .fetch_optional(pool)
+    .await?;
 
-    Ok(row.map(|r| DbConfigRow {
-        error_log_webhook: r.get("error_log_webhook"),
-        normal_log_webhook: r.get("normal_log_webhook"),
-    }))
+    Ok(row)
 }
 
 // --- TOML deserialization types ---

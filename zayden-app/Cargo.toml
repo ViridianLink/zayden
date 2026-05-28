@@ -5,10 +5,13 @@ edition = "2024"
 
 [dependencies]
 jiff = { workspace = true }
+jiff-sqlx = { workspace = true, features = ["postgres"] }
+moka = { workspace = true, features = ["future"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 sqlx = { workspace = true, features = [
+  "derive",
   "postgres",
   "runtime-tokio",
   "tls-rustls-aws-lc-rs",

@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use jiff::Timestamp;
+use jiff_sqlx::Timestamp;
 use serde_json::Value;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct GuildConfig {
     pub id: i64,
     pub support_channel_id: Option<i64>,

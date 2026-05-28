@@ -21,6 +21,7 @@ zayden-app = { path = "./zayden-app" }
 
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
 
+moka = { version = "*", default-features = false }
 thiserror = { version = "*", default-features = false }
 toml = { version = "*", default-features = false, features = ["parse", "serde"] }
 
