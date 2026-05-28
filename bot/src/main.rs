@@ -12,12 +12,14 @@ mod cron;
 mod error;
 mod handler;
 pub mod modules;
+pub mod registry;
 mod sqlx_lib;
 pub mod state;
 mod webhook_logger;
 
 pub use error::{Error, Result};
 pub use handler::Handler;
+pub use registry::{CommandRegistry, RegistryBuilder};
 pub use state::BotState;
 use tracing::warn;
 use tracing_subscriber::{
@@ -77,12 +79,17 @@ async fn main() -> Result<()> {
 
     let bot_state = Arc::new(RwLock::new(bot_state));
 
+    let registry = RegistryBuilder::new().build();
+
     let mut client = ClientBuilder::new(
         Token::from_env("DISCORD_TOKEN").unwrap(),
         GatewayIntents::all(),
     )
     .data(Arc::clone(&bot_state))
-    .event_handler(Arc::new(Handler { bot_state }))
+    .event_handler(Arc::new(Handler {
+        bot_state,
+        registry,
+    }))
     .await
     .unwrap();
 

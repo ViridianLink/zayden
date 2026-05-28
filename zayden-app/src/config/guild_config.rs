@@ -47,6 +47,32 @@ pub struct GuildConfigPatch {
     pub lfg_scheduled_thread_id: Option<i64>,
 }
 
+impl GuildConfig {
+    pub fn empty(id: i64) -> Self {
+        Self {
+            id,
+            support_channel_id: None,
+            support_thread_id: 0,
+            support_role_id: None,
+            faq_channel_id: None,
+            suggestions_channel_id: None,
+            review_channel_id: None,
+            rules_channel_id: None,
+            general_channel_id: None,
+            spoiler_channel_id: None,
+            artist_role_id: None,
+            sleep_role_id: None,
+            temp_voice_category: None,
+            temp_voice_creator_channel: None,
+            thread_id: 0,
+            lfg_channel_id: None,
+            lfg_role_id: None,
+            lfg_scheduled_thread_id: None,
+            updated_at: jiff::Timestamp::UNIX_EPOCH.into(),
+        }
+    }
+}
+
 pub trait ModuleConfig: Sized {
     fn module_name() -> &'static str;
     fn from_kv(kv: &HashMap<String, Value>) -> Self;

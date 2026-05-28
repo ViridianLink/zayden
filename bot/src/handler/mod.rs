@@ -17,10 +17,11 @@ mod ready;
 mod thread_delete;
 mod voice_state_update;
 
-use crate::BotState;
+use crate::{BotState, CommandRegistry};
 
 pub struct Handler {
     pub bot_state: Arc<RwLock<BotState>>,
+    pub registry: Arc<CommandRegistry>,
 }
 
 #[async_trait]
