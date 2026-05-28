@@ -7,7 +7,7 @@ use serenity::all::{
 use sqlx::{PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Component};
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 
@@ -22,7 +22,7 @@ impl ApplicationCommand<Error, Postgres> for Blackjack {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::blackjack::<CtxData, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
+        Commands::blackjack::<BotState, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
             ctx,
             interaction,
             options,
@@ -54,7 +54,7 @@ impl Component<Error, Postgres> for Blackjack {
         match interaction.data.custom_id.as_str() {
             "blackjack_hit" => {
                 gambling::components::Blackjack::hit::<
-                    CtxData,
+                    BotState,
                     Postgres,
                     GoalsTable,
                     EffectsTable,
@@ -64,7 +64,7 @@ impl Component<Error, Postgres> for Blackjack {
             }
             "blackjack_stand" => {
                 gambling::components::Blackjack::stand::<
-                    CtxData,
+                    BotState,
                     Postgres,
                     GoalsTable,
                     EffectsTable,
@@ -74,7 +74,7 @@ impl Component<Error, Postgres> for Blackjack {
             }
             "blackjack_double" => {
                 gambling::components::Blackjack::double::<
-                    CtxData,
+                    BotState,
                     Postgres,
                     GamblingTable,
                     GoalsTable,
@@ -85,7 +85,7 @@ impl Component<Error, Postgres> for Blackjack {
             }
             "blackjack_split" => {
                 gambling::components::Blackjack::split::<
-                    CtxData,
+                    BotState,
                     Postgres,
                     GamblingTable,
                     GoalsTable,
@@ -96,7 +96,7 @@ impl Component<Error, Postgres> for Blackjack {
             }
             "blackjack_surrender" => {
                 gambling::components::Blackjack::surrender::<
-                    CtxData,
+                    BotState,
                     Postgres,
                     GoalsTable,
                     EffectsTable,

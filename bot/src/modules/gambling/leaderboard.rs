@@ -12,7 +12,7 @@ use serenity::all::{
 use sqlx::{PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Component};
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 const LIMIT: i64 = 10;
 
@@ -282,7 +282,7 @@ impl ApplicationCommand<Error, Postgres> for Leaderboard {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::leaderboard::<CtxData, Postgres, LeaderboardTable>(
+        Commands::leaderboard::<BotState, Postgres, LeaderboardTable>(
             ctx,
             interaction,
             options,
@@ -301,7 +301,7 @@ impl ApplicationCommand<Error, Postgres> for Leaderboard {
 #[async_trait]
 impl Component<Error, Postgres> for Leaderboard {
     async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
-        gambling::Leaderboard::run_component::<CtxData, Postgres, LeaderboardTable>(
+        gambling::Leaderboard::run_component::<BotState, Postgres, LeaderboardTable>(
             ctx,
             interaction,
             pool,

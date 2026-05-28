@@ -6,7 +6,7 @@ use serenity::all::{
 use sqlx::{PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Autocomplete};
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 pub struct DimWishlist;
 
@@ -19,7 +19,7 @@ impl ApplicationCommand<Error, Postgres> for DimWishlist {
         options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        DimWishlistCommand::run::<CtxData>(ctx, interaction, options).await;
+        DimWishlistCommand::run::<BotState>(ctx, interaction, options).await;
 
         Ok(())
     }
@@ -40,7 +40,7 @@ impl ApplicationCommand<Error, Postgres> for TierList {
         options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        TierListCommand::run::<CtxData>(ctx, interaction, options).await?;
+        TierListCommand::run::<BotState>(ctx, interaction, options).await?;
 
         Ok(())
     }
@@ -58,7 +58,7 @@ impl Autocomplete<Error, Postgres> for TierList {
         option: AutocompleteOption<'_>,
         _pool: &PgPool,
     ) -> Result<()> {
-        TierListCommand::autocomplete::<CtxData>(ctx, interaction, option).await?;
+        TierListCommand::autocomplete::<BotState>(ctx, interaction, option).await?;
 
         Ok(())
     }
@@ -75,7 +75,7 @@ impl ApplicationCommand<Error, Postgres> for Weapon {
         _options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        WeaponCommand::run::<CtxData>(ctx, interaction).await?;
+        WeaponCommand::run::<BotState>(ctx, interaction).await?;
 
         Ok(())
     }
@@ -93,7 +93,7 @@ impl Autocomplete<Error, Postgres> for Weapon {
         option: AutocompleteOption<'_>,
         _pool: &PgPool,
     ) -> Result<()> {
-        WeaponCommand::autocomplete::<CtxData>(ctx, interaction, option).await?;
+        WeaponCommand::autocomplete::<BotState>(ctx, interaction, option).await?;
 
         Ok(())
     }

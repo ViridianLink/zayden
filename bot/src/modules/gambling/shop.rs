@@ -8,7 +8,7 @@ use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::GoalsTable;
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 pub struct ShopTable;
 
@@ -233,8 +233,13 @@ impl ApplicationCommand<Error, Postgres> for Shop {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::shop::<CtxData, Postgres, GoalsTable, ShopTable>(ctx, interaction, options, pool)
-            .await?;
+        Commands::shop::<BotState, Postgres, GoalsTable, ShopTable>(
+            ctx,
+            interaction,
+            options,
+            pool,
+        )
+        .await?;
         Ok(())
     }
 

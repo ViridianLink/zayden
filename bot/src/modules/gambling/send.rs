@@ -7,7 +7,7 @@ use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::{GamblingTable, StaminaTable};
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 use super::goals::GoalsTable;
 
@@ -70,7 +70,7 @@ impl ApplicationCommand<Error, Postgres> for Send {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::send::<CtxData, Postgres, GamblingTable, StaminaTable, GoalsTable, SendTable>(
+        Commands::send::<BotState, Postgres, GamblingTable, StaminaTable, GoalsTable, SendTable>(
             ctx,
             interaction,
             options,

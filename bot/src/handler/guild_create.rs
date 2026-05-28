@@ -7,17 +7,19 @@ use zayden_core::ApplicationCommand;
 use crate::modules::events::Live;
 use crate::modules::lfg::{GuildTable, PostTable};
 use crate::modules::{APPLICATION_COMMANDS, llamad2};
-use crate::{BRADSTER_GUILD, CtxData, LLAMAD2_GUILD, Result};
+use crate::{BRADSTER_GUILD, BotState, LLAMAD2_GUILD, Result};
 
 use super::Handler;
 
 impl Handler {
     pub async fn guild_create(&self, ctx: &Context, guild: &Guild, pool: &PgPool) -> Result<()> {
-        let data = ctx.data::<RwLock<CtxData>>();
+        let data = ctx.data::<RwLock<BotState>>();
 
         let (lfg_result, _) = tokio::join!(
-            lfg::events::guild_create::<CtxData, Postgres, GuildTable, PostTable>(ctx, guild, pool),
-            CtxData::guild_create(data, guild),
+            lfg::events::guild_create::<BotState, Postgres, GuildTable, PostTable>(
+                ctx, guild, pool
+            ),
+            BotState::guild_create(data, guild),
         );
         lfg_result?;
 

@@ -1,10 +1,10 @@
-use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
 
 use serenity::all::{Event, EventHandler, FullEvent, RatelimitInfo};
 use serenity::async_trait;
 use serenity::model::prelude::Interaction;
 use serenity::prelude::Context;
-use sqlx::PgPool;
+use tokio::sync::RwLock;
 use tracing::{error, trace, warn};
 
 mod guild_create;
@@ -17,9 +17,10 @@ mod ready;
 mod thread_delete;
 mod voice_state_update;
 
+use crate::BotState;
+
 pub struct Handler {
-    pub pool: PgPool,
-    pub started_cron: AtomicBool,
+    pub bot_state: Arc<RwLock<BotState>>,
 }
 
 #[async_trait]
@@ -42,33 +43,33 @@ impl EventHandler for Handler {
             _ => "",
         };
 
+        let pool = self.bot_state.read().await.app.db.clone();
+
         let result = match ev {
             FullEvent::GuildCreate { guild, .. } => {
-                Self::guild_create(self, ctx, guild, &self.pool).await
+                Self::guild_create(self, ctx, guild, &pool).await
             }
             FullEvent::Message { new_message, .. } => {
-                Self::message_create(ctx, new_message, &self.pool).await
+                Self::message_create(ctx, new_message, &pool).await
             }
             FullEvent::ReactionAdd { add_reaction, .. } => {
-                Self::reaction_add(ctx, add_reaction, &self.pool).await
+                Self::reaction_add(ctx, add_reaction, &pool).await
             }
             FullEvent::ReactionRemove {
                 removed_reaction, ..
-            } => Self::reaction_remove(ctx, removed_reaction, &self.pool).await,
+            } => Self::reaction_remove(ctx, removed_reaction, &pool).await,
             FullEvent::PresenceUpdate { new_data, .. } => {
                 Self::presence_update(self, ctx, new_data).await
             }
 
             FullEvent::Ready { data_about_bot, .. } => Self::ready(self, ctx, data_about_bot).await,
             FullEvent::VoiceStateUpdate { new, .. } => {
-                Self::voice_state_update(ctx, new, &self.pool).await
+                Self::voice_state_update(ctx, new, &pool).await
             }
             FullEvent::InteractionCreate { interaction, .. } => {
-                Self::interaction_create(ctx, interaction, &self.pool).await
+                Self::interaction_create(ctx, interaction, &pool).await
             }
-            FullEvent::ThreadDelete { thread, .. } => {
-                Self::thread_delete(ctx, thread, &self.pool).await
-            }
+            FullEvent::ThreadDelete { thread, .. } => Self::thread_delete(ctx, thread, &pool).await,
 
             _ => Ok(()),
         };

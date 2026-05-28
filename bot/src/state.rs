@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::env;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use bungie_api::{BungieClient, BungieClientBuilder};
 use destiny2_core::BungieClientData;
@@ -10,13 +10,21 @@ use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use sqlx::{PgPool, Postgres};
 use temp_voice::{CachedState, VoiceStateCache};
 use tokio::sync::RwLock;
+use zayden_app::config::BotConfig;
+use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;
 use zayden_core::{CronJob, CronJobData, EmojiCache, EmojiCacheData};
 
 use crate::modules::gambling::{GamblingTable, HigherLowerTable, LottoTable, StaminaTable};
 use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
-pub struct CtxData {
+/// Bot-specific application state stored in Serenity's context data.
+///
+/// Wraps the shared [`AppState`] and adds Discord-gateway-only caches.
+/// Stored as `Arc<RwLock<BotState>>` in `ctx.data`.
+pub struct BotState {
+    pub app: Arc<AppState>,
+    pub started_cron: AtomicBool,
     bungie_client: BungieClient,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
@@ -26,11 +34,29 @@ pub struct CtxData {
     good_morning_cache: HashMap<GenericChannelId, (UserId, bool)>,
 }
 
-impl CtxData {
+impl BotState {
+    pub fn new(app: Arc<AppState>, config: &BotConfig) -> Self {
+        let bungie_client = BungieClientBuilder::new(config.bungie_api_key.clone())
+            .build()
+            .expect("BungieClient construction failed — check BUNGIE_API_KEY");
+
+        Self {
+            app,
+            started_cron: AtomicBool::new(false),
+            bungie_client,
+            emoji_cache: Arc::default(),
+            cron_jobs: Vec::new(),
+            voice_stats: HashMap::new(),
+            guild_members: HashMap::new(),
+            gambling_cache: GameCache::default(),
+            good_morning_cache: HashMap::new(),
+        }
+    }
+
     pub fn setup_static_cron(&mut self) {
         self.cron_jobs = vec![
             StaminaCron::cron_job::<Postgres, StaminaTable>(),
-            Lotto::cron_job::<CtxData, Postgres, GamblingTable, LottoTable>(),
+            Lotto::cron_job::<BotState, Postgres, GamblingTable, LottoTable>(),
             HigherLower::cron_job::<Postgres, GamblingTable, HigherLowerTable>(),
         ];
     }
@@ -40,49 +66,30 @@ impl CtxData {
             EmojiCache::new(ctx).await.unwrap()
         } else {
             let token = ZAYDEN_TOKEN.get_or_init(|| zayden_token(pool)).await;
-
             EmojiCache::new_from_parent(ctx, token).await.unwrap()
         };
 
-        {
-            let data = ctx.data::<RwLock<Self>>();
-            let mut data = data.write().await;
-            data.emoji_cache = Arc::new(cache);
-        }
+        let data = ctx.data::<RwLock<Self>>();
+        let mut data = data.write().await;
+        data.emoji_cache = Arc::new(cache);
     }
 
     pub async fn guild_create(data: Arc<RwLock<Self>>, guild: &Guild) {
         let mut data = data.write().await;
-
         VoiceStateCache::guild_create(&mut *data, guild);
         GuildMembersCache::guild_create(&mut *data, guild);
     }
 }
 
-impl Default for CtxData {
-    fn default() -> Self {
-        let api_key = env::var("BUNGIE_API_KEY").unwrap();
-        let bungie_client = BungieClientBuilder::new(api_key).build().unwrap();
+// --- Trait implementations (trivial field accessors) ---
 
-        Self {
-            bungie_client,
-            emoji_cache: Default::default(),
-            cron_jobs: Default::default(),
-            voice_stats: Default::default(),
-            guild_members: Default::default(),
-            gambling_cache: Default::default(),
-            good_morning_cache: Default::default(),
-        }
-    }
-}
-
-impl BungieClientData for CtxData {
+impl BungieClientData for BotState {
     fn bungie_client(&self) -> &BungieClient {
         &self.bungie_client
     }
 }
 
-impl EmojiCacheData for CtxData {
+impl EmojiCacheData for BotState {
     fn emojis(&self) -> Arc<EmojiCache> {
         Arc::clone(&self.emoji_cache)
     }
@@ -92,7 +99,7 @@ impl EmojiCacheData for CtxData {
     }
 }
 
-impl CronJobData<Postgres> for CtxData {
+impl CronJobData<Postgres> for BotState {
     fn jobs(&self) -> &[CronJob<Postgres>] {
         &self.cron_jobs
     }
@@ -102,7 +109,7 @@ impl CronJobData<Postgres> for CtxData {
     }
 }
 
-impl VoiceStateCache for CtxData {
+impl VoiceStateCache for BotState {
     fn get(&self) -> &HashMap<UserId, CachedState> {
         &self.voice_stats
     }
@@ -112,7 +119,7 @@ impl VoiceStateCache for CtxData {
     }
 }
 
-impl GuildMembersCache for CtxData {
+impl GuildMembersCache for BotState {
     fn get(&self) -> &HashMap<GuildId, Vec<UserId>> {
         &self.guild_members
     }
@@ -122,7 +129,7 @@ impl GuildMembersCache for CtxData {
     }
 }
 
-impl GamblingData for CtxData {
+impl GamblingData for BotState {
     fn game_cache(&self) -> &GameCache {
         &self.gambling_cache
     }
@@ -132,7 +139,7 @@ impl GamblingData for CtxData {
     }
 }
 
-impl GoodMorningCache for CtxData {
+impl GoodMorningCache for BotState {
     fn insert(
         &mut self,
         channel_id: GenericChannelId,

@@ -6,7 +6,7 @@ use serenity::all::{
 use sqlx::{PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Component};
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 
@@ -21,7 +21,7 @@ impl ApplicationCommand<Error, Postgres> for TicTacToe {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::tictactoe::<CtxData, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
+        Commands::tictactoe::<BotState, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
             ctx,
             interaction,
             options,
@@ -41,7 +41,7 @@ impl ApplicationCommand<Error, Postgres> for TicTacToe {
 impl Component<Error, Postgres> for TicTacToe {
     async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
         gambling::components::TicTacToe::run_component::<
-            CtxData,
+            BotState,
             Postgres,
             GamblingTable,
             EffectsTable,

@@ -10,8 +10,8 @@ use tokio::time::sleep;
 use tracing::{debug, error};
 use zayden_core::{ActionFn, CronJobData};
 
+use crate::BotState;
 use crate::Result;
-use crate::ctx_data::CtxData;
 
 pub async fn start_cron_jobs(ctx: Context, pool: PgPool) {
     if let Err(e) = _start_cron_jobs(ctx, pool).await {
@@ -57,7 +57,7 @@ async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
 async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
     let mut pending_jobs: Vec<(Zoned, ActionFn<Postgres>)> = Vec::new();
 
-    let data = ctx.data::<RwLock<CtxData>>();
+    let data = ctx.data::<RwLock<BotState>>();
 
     let now = Timestamp::now().to_zoned(TimeZone::UTC);
 

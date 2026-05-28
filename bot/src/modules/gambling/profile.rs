@@ -6,7 +6,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption, 
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 pub struct ProfileTable;
 
@@ -77,7 +77,7 @@ impl ApplicationCommand<Error, Postgres> for Profile {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::profile::<CtxData, Postgres, ProfileTable>(ctx, interaction, options, pool)
+        Commands::profile::<BotState, Postgres, ProfileTable>(ctx, interaction, options, pool)
             .await?;
 
         Ok(())

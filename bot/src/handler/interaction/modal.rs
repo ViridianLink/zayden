@@ -9,7 +9,7 @@ use zayden_core::parse_modal_components;
 use crate::modules::lfg::{PostTable, UsersTable};
 use crate::modules::ticket::TicketTable;
 use crate::sqlx_lib::GuildTable;
-use crate::{CtxData, Error, Handler, Result, modules};
+use crate::{BotState, Error, Handler, Result, modules};
 
 impl Handler {
     pub async fn interaction_modal(
@@ -26,7 +26,7 @@ impl Handler {
 
         let result: Result<()> = match interaction.data.custom_id.as_str() {
             // region LFG
-            "lfg_edit" => lfg::modals::Edit::run::<CtxData, Postgres, PostTable, UsersTable>(
+            "lfg_edit" => lfg::modals::Edit::run::<BotState, Postgres, PostTable, UsersTable>(
                 ctx,
                 interaction,
                 pool,
@@ -35,7 +35,7 @@ impl Handler {
             .map_err(Error::from),
             custom_id if custom_id.starts_with("lfg_create") => {
                 lfg::modals::Create::run::<
-                    CtxData,
+                    BotState,
                     Postgres,
                     modules::lfg::GuildTable,
                     PostTable,

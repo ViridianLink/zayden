@@ -6,7 +6,7 @@ use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::EffectsTable;
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 pub struct InventoryTable;
 
@@ -99,7 +99,7 @@ impl ApplicationCommand<Error, Postgres> for Inventory {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::inventory::<CtxData, Postgres, EffectsTable, InventoryTable>(
+        Commands::inventory::<BotState, Postgres, EffectsTable, InventoryTable>(
             ctx,
             interaction,
             options,

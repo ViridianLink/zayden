@@ -3,7 +3,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::{CtxData, Error, Result, ZAYDEN_TOKEN, zayden_token};
+use crate::{BotState, Error, Result, ZAYDEN_TOKEN, zayden_token};
 
 pub struct Loadout;
 
@@ -18,7 +18,7 @@ impl ApplicationCommand<Error, Postgres> for Loadout {
     ) -> Result<()> {
         let zayden_token = ZAYDEN_TOKEN.get_or_init(|| zayden_token(pool)).await;
 
-        destiny2::loadouts::Loadout::run::<CtxData>(ctx, interaction, options, zayden_token)
+        destiny2::loadouts::Loadout::run::<BotState>(ctx, interaction, options, zayden_token)
             .await?;
 
         Ok(())

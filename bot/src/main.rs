@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::path::Path;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 
 use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
 use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Http, Token, UserId};
@@ -10,16 +9,16 @@ use tokio::sync::{OnceCell, RwLock};
 use tracing::info;
 
 mod cron;
-pub mod ctx_data;
 mod error;
 mod handler;
 pub mod modules;
 mod sqlx_lib;
+pub mod state;
 mod webhook_logger;
 
-pub use ctx_data::CtxData;
 pub use error::{Error, Result};
 pub use handler::Handler;
+pub use state::BotState;
 use tracing::warn;
 use tracing_subscriber::{
     Layer, Registry, filter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
@@ -57,26 +56,25 @@ async fn main() -> Result<()> {
     let bot_config = zayden_app::config::BotConfig::load(&pool).await?;
     info!("BotConfig loaded successfully");
 
-    let _app_state = zayden_app::state::AppState::new(pool.clone(), &bot_config);
+    let app_state = Arc::new(zayden_app::state::AppState::new(pool.clone(), &bot_config));
     info!("AppState constructed successfully");
 
-    let data = CtxData::default();
+    let bot_state = BotState::new(Arc::clone(&app_state), &bot_config);
 
     if !cfg!(debug_assertions) {
-        let manifest = EndgameAnalysisSheet::item_manifest(&data).await;
+        let manifest = EndgameAnalysisSheet::item_manifest(&bot_state).await;
         EndgameAnalysisSheet::update(&manifest).await.unwrap();
         destiny2::compendium::update().await;
     }
+
+    let bot_state = Arc::new(RwLock::new(bot_state));
 
     let mut client = ClientBuilder::new(
         Token::from_env("DISCORD_TOKEN").unwrap(),
         GatewayIntents::all(),
     )
-    .data(Arc::new(RwLock::new(data)))
-    .event_handler(Arc::new(Handler {
-        pool,
-        started_cron: AtomicBool::new(false),
-    }))
+    .data(Arc::clone(&bot_state))
+    .event_handler(Arc::new(Handler { bot_state }))
     .await
     .unwrap();
 
@@ -93,7 +91,6 @@ async fn logging(http: Arc<Http>) {
         .with_writer(log_file)
         .with_filter(filter::LevelFilter::INFO);
 
-    // A layer for logging to standard output
     let stdout_log = fmt::layer()
         .with_writer(std::io::stdout)
         .with_filter(filter::LevelFilter::INFO);

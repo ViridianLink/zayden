@@ -4,7 +4,7 @@ use serenity::all::{CommandInteraction, Context, CreateCommand, ResolvedOption};
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
 
@@ -19,7 +19,7 @@ impl ApplicationCommand<Error, Postgres> for Roll {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::roll::<CtxData, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
+        Commands::roll::<BotState, Postgres, GamblingTable, GoalsTable, EffectsTable, GameTable>(
             ctx,
             interaction,
             options,

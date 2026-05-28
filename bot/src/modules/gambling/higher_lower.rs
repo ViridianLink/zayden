@@ -11,7 +11,7 @@ use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Component};
 
 use crate::modules::gambling::GamblingTable;
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 use super::{GameTable, GoalsTable, StatsTable};
 
@@ -45,7 +45,7 @@ impl ApplicationCommand<Error, Postgres> for HigherLower {
         _options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        Commands::higher_lower::<CtxData>(ctx, interaction).await?;
+        Commands::higher_lower::<BotState>(ctx, interaction).await?;
 
         Ok(())
     }
@@ -69,7 +69,7 @@ impl Component<Error, Postgres> for HigherLower {
         };
 
         gambling::components::HigherLower::run_components::<
-            CtxData,
+            BotState,
             Postgres,
             GamblingTable,
             GameTable,

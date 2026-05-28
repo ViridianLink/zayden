@@ -9,7 +9,7 @@ use crate::modules::ai::Ai;
 use crate::modules::gambling::GamblingTable;
 use crate::modules::levels::LevelsTable;
 use crate::modules::ticket::message_commands::support;
-use crate::{CtxData, Result};
+use crate::{BotState, Result};
 
 impl Handler {
     pub async fn message_create(ctx: &Context, msg: &Message, pool: &PgPool) -> Result<()> {
@@ -21,7 +21,7 @@ impl Handler {
             levels::message_create::<Postgres, LevelsTable>(msg, pool).map(Result::Ok),
             Ai::run(ctx, msg, pool),
             support(&ctx.http, msg, pool),
-            llamad2::GoodMorning::run::<CtxData>(ctx, msg).map(Result::Ok),
+            llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
             llamad2::CountingFail::run(ctx, msg).map(Result::Ok)
         )?;

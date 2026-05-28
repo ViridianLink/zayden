@@ -8,7 +8,7 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 pub struct DailyTable;
 
@@ -127,7 +127,7 @@ impl ApplicationCommand<Error, Postgres> for Daily {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::daily::<CtxData, Postgres, DailyTable>(ctx, interaction, pool).await?;
+        Commands::daily::<BotState, Postgres, DailyTable>(ctx, interaction, pool).await?;
 
         Ok(())
     }

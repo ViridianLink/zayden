@@ -5,7 +5,7 @@ use serenity::all::{
 use sqlx::{PgPool, Postgres};
 use zayden_core::{ApplicationCommand, Component};
 
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 use super::LevelsTable;
 
@@ -20,7 +20,7 @@ impl ApplicationCommand<Error, Postgres> for Levels {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        levels::Levels::run::<CtxData, Postgres, LevelsTable>(ctx, interaction, pool).await;
+        levels::Levels::run::<BotState, Postgres, LevelsTable>(ctx, interaction, pool).await;
 
         Ok(())
     }
@@ -33,7 +33,7 @@ impl ApplicationCommand<Error, Postgres> for Levels {
 #[async_trait]
 impl Component<Error, Postgres> for Levels {
     async fn run(ctx: &Context, interaction: &ComponentInteraction, pool: &PgPool) -> Result<()> {
-        levels::Levels::run_components::<CtxData, Postgres, LevelsTable>(ctx, interaction, pool)
+        levels::Levels::run_components::<BotState, Postgres, LevelsTable>(ctx, interaction, pool)
             .await;
 
         Ok(())

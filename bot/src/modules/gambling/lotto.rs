@@ -8,7 +8,7 @@ use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::ApplicationCommand;
 
 use crate::modules::gambling::GamblingTable;
-use crate::{CtxData, Error, Result};
+use crate::{BotState, Error, Result};
 
 pub struct LottoTable;
 
@@ -72,7 +72,7 @@ impl ApplicationCommand<Error, Postgres> for Lotto {
         _options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        Commands::lotto::<CtxData, Postgres, GamblingTable, LottoTable>(ctx, interaction, pool)
+        Commands::lotto::<BotState, Postgres, GamblingTable, LottoTable>(ctx, interaction, pool)
             .await?;
         Ok(())
     }
