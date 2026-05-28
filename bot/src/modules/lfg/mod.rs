@@ -13,6 +13,8 @@ use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 
+use crate::sqlx_lib::GuildTable;
+
 pub use slash_command::Lfg;
 
 pub struct PostTable;
@@ -312,8 +314,6 @@ impl TimezoneManager<Postgres> for UsersTable {
         .await
     }
 }
-
-pub struct GuildTable;
 
 #[async_trait]
 impl GuildManager<Postgres> for GuildTable {

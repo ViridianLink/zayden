@@ -5,8 +5,9 @@ use tracing::info;
 use zayden_core::ApplicationCommand;
 
 use crate::modules::events::Live;
-use crate::modules::lfg::{GuildTable, PostTable};
+use crate::modules::lfg::PostTable;
 use crate::modules::{APPLICATION_COMMANDS, llamad2};
+use crate::sqlx_lib::GuildTable;
 use crate::{BRADSTER_GUILD, BotState, LLAMAD2_GUILD, Result};
 
 use super::Handler;
