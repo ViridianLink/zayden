@@ -3,6 +3,7 @@ use std::sync::Arc;
 use moka::future::Cache;
 use sqlx::PgPool;
 use tokio::sync::broadcast;
+use tracing::warn;
 
 use crate::events::AppEvent;
 
@@ -208,6 +209,31 @@ impl ConfigStore {
         let _ = self.events.send(AppEvent::ConfigChanged(guild_id as u64));
 
         Ok(())
+    }
+
+    /// Spawn a background task that evicts cache entries on `AppEvent::ConfigChanged`.
+    ///
+    /// This is the cross-process invalidation path: when another OS process
+    /// writes a guild config, the `ConfigListener` Postgres LISTEN task emits
+    /// `ConfigChanged` onto the broadcast, which this task receives and acts on.
+    pub fn spawn_invalidator(store: Arc<Self>, mut rx: broadcast::Receiver<AppEvent>) {
+        tokio::spawn(async move {
+            loop {
+                match rx.recv().await {
+                    Ok(AppEvent::ConfigChanged(guild_id)) => {
+                        store.cache.invalidate(&(guild_id as i64)).await;
+                    }
+                    Ok(_) => {}
+                    Err(broadcast::error::RecvError::Lagged(n)) => {
+                        warn!(
+                            "ConfigStore invalidator lagged by {n} events; evicting all cache entries"
+                        );
+                        store.cache.invalidate_all();
+                    }
+                    Err(broadcast::error::RecvError::Closed) => break,
+                }
+            }
+        });
     }
 
     /// Atomically increment `thread_id` for a guild, then invalidate its

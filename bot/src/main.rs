@@ -59,6 +59,14 @@ async fn main() -> Result<()> {
     let app_state = Arc::new(zayden_app::state::AppState::new(pool.clone(), &bot_config));
     info!("AppState constructed successfully");
 
+    {
+        let events_tx = app_state.events.clone();
+        let listener_pool = pool.clone();
+        tokio::spawn(async move {
+            zayden_app::events::listener::ConfigListener::listen(&listener_pool, events_tx).await;
+        });
+    }
+
     let bot_state = BotState::new(Arc::clone(&app_state), &bot_config);
 
     if !cfg!(debug_assertions) {

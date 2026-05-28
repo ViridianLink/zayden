@@ -30,6 +30,7 @@ impl AppState {
         let (events, _) = broadcast::channel(64);
 
         let config_store = Arc::new(ConfigStore::new(pool.clone(), events.clone()));
+        ConfigStore::spawn_invalidator(Arc::clone(&config_store), events.subscribe());
 
         Self {
             db: pool,

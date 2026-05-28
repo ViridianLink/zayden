@@ -17,6 +17,6 @@ sqlx = { workspace = true, features = [
   "tls-rustls-aws-lc-rs",
 ] }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
+tokio = { workspace = true, features = ["rt", "sync"] }
 toml = { workspace = true }
 tracing = { workspace = true }
