@@ -22,11 +22,20 @@ pub use modals::{parse_modal_components, parse_text_components};
 pub mod templates;
 
 pub mod error;
-pub use error::Error;
+pub use error::{Error, HandlerError, Respond};
 
 pub mod events;
 pub mod format_num;
 pub use format_num::FormatNum;
+
+pub mod scope;
+pub use scope::{CommandMetadata, CommandScope, IdMatch};
+
+pub mod ctx;
+pub use ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
+
+pub mod module;
+pub use module::{ModuleAutocomplete, ModuleCommand, ModuleComponent, ModuleModal};
 
 #[async_trait]
 pub trait Autocomplete<E: std::error::Error, Db: Database> {

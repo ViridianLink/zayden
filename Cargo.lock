@@ -4256,6 +4256,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
+ "zayden-app",
 ]
 
 [[package]]

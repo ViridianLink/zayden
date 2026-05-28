@@ -8,6 +8,59 @@ pub trait Respond: std::error::Error {
     }
 }
 
+/// A type-erased error returned by all module handler traits.
+///
+/// Wraps any `std::error::Error + Send + Sync` and carries an optional
+/// user-visible message extracted from the original error's [`Respond`] impl.
+#[derive(Debug)]
+pub struct HandlerError {
+    inner: Box<dyn std::error::Error + Send + Sync>,
+    user_message: Option<String>,
+}
+
+impl HandlerError {
+    pub fn new<E>(err: E) -> Self
+    where
+        E: std::error::Error + Send + Sync + 'static,
+    {
+        Self {
+            inner: Box::new(err),
+            user_message: None,
+        }
+    }
+
+    pub fn from_respond<E>(err: E) -> Self
+    where
+        E: Respond + Send + Sync + 'static,
+    {
+        let user_message = err.user_message().map(|s| s.into_owned());
+        Self {
+            inner: Box::new(err),
+            user_message,
+        }
+    }
+
+    pub fn user_message(&self) -> Option<&str> {
+        self.user_message.as_deref()
+    }
+
+    pub fn inner(&self) -> &(dyn std::error::Error + Send + Sync) {
+        &*self.inner
+    }
+}
+
+impl std::fmt::Display for HandlerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
+impl std::error::Error for HandlerError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&*self.inner)
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     MissingGuildId,
