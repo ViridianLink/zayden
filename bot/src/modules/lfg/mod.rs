@@ -13,6 +13,8 @@ use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 
+use zayden_app::config::ConfigStore;
+
 use crate::sqlx_lib::GuildTable;
 
 pub use slash_command::Lfg;
@@ -192,27 +194,19 @@ impl SetupManager<Postgres> for PostTable {
         pool: &PgPool,
         id: impl Into<GuildId> + Send,
         channel: impl Into<GenericChannelId> + Send,
-        role: Option<impl Into<RoleId> + Send>,
+        role: Option<RoleId>,
     ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
         let channel = channel.into();
-        let role = role.map(|role| role.into());
 
-        sqlx::query!(
-            r#"
-            INSERT INTO guild_config (id, lfg_channel_id, lfg_role_id)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE
-            SET
-                lfg_channel_id = EXCLUDED.lfg_channel_id,
-                lfg_role_id = EXCLUDED.lfg_role_id;
-            "#,
-            id.get() as i64,
-            channel.get() as i64,
-            role.map(|role| role.get() as i64),
-        )
-        .execute(pool)
-        .await
+        ConfigStore::from_pool(pool.clone())
+            .update(id.get() as i64, |patch| {
+                patch.lfg_channel_id = Some(channel.get() as i64);
+                patch.lfg_role_id = role.map(|r| r.get() as i64);
+            })
+            .await?;
+
+        Ok(PgQueryResult::default())
     }
 }
 
@@ -320,12 +314,17 @@ impl GuildManager<Postgres> for GuildTable {
     async fn row(pool: &PgPool, id: impl Into<GuildId> + Send) -> sqlx::Result<Option<GuildRow>> {
         let id = id.into();
 
-        sqlx::query_as!(
-            GuildRow,
-            "SELECT lfg_channel_id, lfg_role_id, lfg_scheduled_thread_id FROM guild_config WHERE id = $1",
-            id.get() as i64
-        )
-        .fetch_optional(pool )
-        .await
+        let Some(cfg) = ConfigStore::from_pool(pool.clone())
+            .try_get(id.get() as i64)
+            .await?
+        else {
+            return Ok(None);
+        };
+
+        Ok(Some(GuildRow {
+            lfg_channel_id: cfg.lfg_channel_id,
+            lfg_role_id: cfg.lfg_role_id,
+            lfg_scheduled_thread_id: cfg.lfg_scheduled_thread_id,
+        }))
     }
 }

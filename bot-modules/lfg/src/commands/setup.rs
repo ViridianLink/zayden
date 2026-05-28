@@ -17,7 +17,7 @@ pub trait SetupManager<Db: Database> {
         pool: &Pool<Db>,
         id: impl Into<GuildId> + Send,
         channel: impl Into<GenericChannelId> + Send,
-        role: Option<impl Into<RoleId> + Send>,
+        role: Option<RoleId>,
     ) -> sqlx::Result<Db::QueryResult>;
 }
 

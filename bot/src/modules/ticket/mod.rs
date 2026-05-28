@@ -7,6 +7,8 @@ use ticket::{
     ticket_manager::{TicketManager, TicketRow},
 };
 
+use zayden_app::config::ConfigStore;
+
 use crate::sqlx_lib::GuildTable;
 
 pub mod components;
@@ -23,38 +25,33 @@ impl TicketGuildManager<Postgres> for GuildTable {
     ) -> sqlx::Result<Option<TicketGuildRow>> {
         let id = id.into();
 
-        let row = sqlx::query_as!(
-                TicketGuildRow,
-               r#"
-                SELECT 
-                    gc.id, 
-                    gc.thread_id, 
-                    gc.support_channel_id, 
-                    COALESCE(
-                        (SELECT array_agg(role_id) FROM guild_support_roles WHERE guild_id = gc.id), 
-                        ARRAY[]::bigint[]
-                    ) AS "support_role_ids!", 
-                    gc.faq_channel_id 
-                FROM guild_config gc 
-                WHERE gc.id = $1;
-                "#,
-                id.get() as i64
-            )
-            .fetch_optional(pool)
-            .await?;
+        let Some(cfg) = ConfigStore::from_pool(pool.clone())
+            .try_get(id.get() as i64)
+            .await?
+        else {
+            return Ok(None);
+        };
 
-        Ok(row)
+        // guild_support_roles is a separate table — still queried directly.
+        let support_role_ids: Vec<i64> =
+            sqlx::query_scalar("SELECT role_id FROM guild_support_roles WHERE guild_id = $1")
+                .bind(id.get() as i64)
+                .fetch_all(pool)
+                .await?;
+
+        Ok(Some(TicketGuildRow {
+            id: cfg.id,
+            thread_id: cfg.thread_id,
+            support_channel_id: cfg.support_channel_id,
+            support_role_ids,
+            faq_channel_id: cfg.faq_channel_id,
+        }))
     }
 
     async fn update_thread_id(pool: &PgPool, id: impl Into<GuildId> + Send) -> sqlx::Result<()> {
-        sqlx::query!(
-            "UPDATE guild_config SET thread_id = thread_id + 1 WHERE id = $1",
-            id.into().get() as i64,
-        )
-        .execute(pool)
-        .await?;
-
-        Ok(())
+        ConfigStore::from_pool(pool.clone())
+            .increment_thread_id(id.into().get() as i64)
+            .await
     }
 }
 

@@ -24,13 +24,26 @@ impl ConfigStore {
         Self { db, cache, events }
     }
 
-    /// Return the cached `GuildConfig` for `guild_id`, loading from DB on miss.
-    pub async fn get(&self, guild_id: i64) -> Result<Arc<GuildConfig>, sqlx::Error> {
+    /// Construct a transient `ConfigStore` from a bare pool.
+    ///
+    /// Used by binding-layer trait impls that only receive a `&PgPool`.  The
+    /// resulting store has its own short-lived cache and a disconnected event
+    /// channel; it does NOT share the application-level cache in `AppState`.
+    /// This is a stepping-stone: M3 will thread `Arc<ConfigStore>` directly
+    /// through command handlers.
+    pub fn from_pool(db: PgPool) -> Self {
+        let (events, _) = broadcast::channel(1);
+        Self::new(db, events)
+    }
+
+    /// Return the cached `GuildConfig` for `guild_id`, returning `None` on a
+    /// cache miss where the row does not exist.
+    pub async fn try_get(&self, guild_id: i64) -> Result<Option<Arc<GuildConfig>>, sqlx::Error> {
         if let Some(cached) = self.cache.get(&guild_id).await {
-            return Ok(cached);
+            return Ok(Some(cached));
         }
 
-        let row: GuildConfig = sqlx::query_as(
+        let row: Option<GuildConfig> = sqlx::query_as(
             r#"
             SELECT
                 id,
@@ -57,22 +70,42 @@ impl ConfigStore {
             "#,
         )
         .bind(guild_id)
-        .fetch_one(&self.db)
+        .fetch_optional(&self.db)
         .await?;
 
-        let entry = Arc::new(row);
-        self.cache.insert(guild_id, Arc::clone(&entry)).await;
-        Ok(entry)
+        match row {
+            Some(r) => {
+                let entry = Arc::new(r);
+                self.cache.insert(guild_id, Arc::clone(&entry)).await;
+                Ok(Some(entry))
+            }
+            None => Ok(None),
+        }
+    }
+
+    /// Return the cached `GuildConfig` for `guild_id`, loading from DB on miss.
+    pub async fn get(&self, guild_id: i64) -> Result<Arc<GuildConfig>, sqlx::Error> {
+        self.try_get(guild_id)
+            .await?
+            .ok_or(sqlx::Error::RowNotFound)
     }
 
     /// Apply a patch to the guild config, persist it, invalidate the cache, and
     /// emit `AppEvent::ConfigChanged`.
+    ///
+    /// Upserts: if no row exists for `guild_id` yet, one is created with
+    /// default/null values before the COALESCE-based UPDATE runs.
     pub async fn update<F>(&self, guild_id: i64, f: F) -> Result<Arc<GuildConfig>, sqlx::Error>
     where
         F: FnOnce(&mut GuildConfigPatch),
     {
         let mut patch = GuildConfigPatch::default();
         f(&mut patch);
+
+        sqlx::query("INSERT INTO guild_config (id) VALUES ($1) ON CONFLICT (id) DO NOTHING")
+            .bind(guild_id)
+            .execute(&self.db)
+            .await?;
 
         sqlx::query!(
             r#"
@@ -170,6 +203,20 @@ impl ConfigStore {
             .execute(&self.db)
             .await?;
         }
+
+        self.cache.invalidate(&guild_id).await;
+        let _ = self.events.send(AppEvent::ConfigChanged(guild_id as u64));
+
+        Ok(())
+    }
+
+    /// Atomically increment `thread_id` for a guild, then invalidate its
+    /// cache entry.  Used by the ticket module's sequential ticket counter.
+    pub async fn increment_thread_id(&self, guild_id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE guild_config SET thread_id = thread_id + 1 WHERE id = $1")
+            .bind(guild_id)
+            .execute(&self.db)
+            .await?;
 
         self.cache.invalidate(&guild_id).await;
         let _ = self.events.send(AppEvent::ConfigChanged(guild_id as u64));
