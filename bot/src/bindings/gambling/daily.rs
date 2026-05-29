@@ -45,12 +45,13 @@ impl DailyManager<Postgres> for DailyTable {
 
     async fn save(pool: &PgPool, row: DailyRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, daily)
-            VALUES ($1, $2, now())
+            "INSERT INTO gambling (user_id, coins, gems, daily)
+            VALUES ($1, $2, $3, now())
             ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, daily = EXCLUDED.daily;",
+            coins = EXCLUDED.coins, gems = EXCLUDED.gems, daily = EXCLUDED.daily;",
             row.user_id,
             row.coins,
+            row.gems,
         )
         .execute(pool)
         .await
@@ -60,14 +61,14 @@ impl DailyManager<Postgres> for DailyTable {
 #[async_trait]
 impl GoalsManager<Postgres> for DailyTable {
     async fn row(_pool: &PgPool, _id: impl Into<UserId> + Send) -> sqlx::Result<Option<GoalsRow>> {
-        unimplemented!()
+        Ok(None)
     }
 
     async fn full_rows(
         _pool: &PgPool,
         _id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
-        unimplemented!()
+        Ok(Vec::new())
     }
 
     async fn update(

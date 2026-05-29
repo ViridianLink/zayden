@@ -159,31 +159,31 @@ impl Mining for ShopRow {
     }
 
     fn coal(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn iron(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn gold(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn redstone(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn lapis(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn diamonds(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn emeralds(&self) -> i64 {
-        unimplemented!()
+        0
     }
 }
 

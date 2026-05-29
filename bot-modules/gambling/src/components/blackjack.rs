@@ -164,11 +164,21 @@ impl Blackjack {
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
-        _ctx: &Context,
-        _interaction: &ComponentInteraction,
+        ctx: &Context,
+        interaction: &ComponentInteraction,
         _pool: &Pool<Db>,
     ) -> Result<()> {
-        todo!()
+        interaction
+            .create_response(
+                &ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .content("Blackjack split is not yet available.")
+                        .ephemeral(true),
+                ),
+            )
+            .await?;
+        Ok(())
     }
 
     pub async fn surrender<

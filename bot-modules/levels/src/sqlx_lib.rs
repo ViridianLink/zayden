@@ -69,7 +69,7 @@ impl LevelsRow for LeaderboardRow {
     }
 
     fn total_xp(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn message_count(&self) -> i64 {
@@ -77,7 +77,7 @@ impl LevelsRow for LeaderboardRow {
     }
 
     fn last_xp(&self) -> jiff::Timestamp {
-        unimplemented!()
+        jiff::Timestamp::UNIX_EPOCH
     }
 }
 
@@ -95,7 +95,7 @@ impl Default for RankRow {
 
 impl LevelsRow for RankRow {
     fn user_id(&self) -> serenity::all::UserId {
-        unimplemented!()
+        unreachable!("user_id is not available on RankRow")
     }
 
     fn xp(&self) -> i32 {
@@ -107,15 +107,15 @@ impl LevelsRow for RankRow {
     }
 
     fn total_xp(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn message_count(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn last_xp(&self) -> jiff::Timestamp {
-        unimplemented!()
+        jiff::Timestamp::UNIX_EPOCH
     }
 }
 
@@ -138,7 +138,7 @@ impl Default for XpRow {
 
 impl LevelsRow for XpRow {
     fn user_id(&self) -> UserId {
-        unimplemented!()
+        unreachable!("user_id is not available on XpRow")
     }
 
     fn xp(&self) -> i32 {
@@ -154,11 +154,11 @@ impl LevelsRow for XpRow {
     }
 
     fn message_count(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn last_xp(&self) -> jiff::Timestamp {
-        unimplemented!()
+        jiff::Timestamp::UNIX_EPOCH
     }
 }
 

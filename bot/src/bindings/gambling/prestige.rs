@@ -138,7 +138,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
 #[async_trait]
 impl InventoryManager<Postgres> for PrestigeTable {
     async fn gambling_row(_pool: &PgPool, _id: UserId) -> sqlx::Result<Option<InventoryRow>> {
-        unimplemented!()
+        Ok(None)
     }
     async fn inventory_items(pool: &PgPool, id: UserId) -> sqlx::Result<GamblingItems> {
         let items = sqlx::query_as!(
@@ -160,7 +160,7 @@ impl InventoryManager<Postgres> for PrestigeTable {
         _item_id: &str,
         _amount: i64,
     ) -> sqlx::Result<i64> {
-        unimplemented!()
+        Err(sqlx::Error::RowNotFound)
     }
 }
 

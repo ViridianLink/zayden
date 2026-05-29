@@ -94,39 +94,39 @@ impl Gems for InventoryRow {
 
 impl Mining for InventoryRow {
     fn miners(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn mines(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn land(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn countries(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn continents(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn planets(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn solar_systems(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn galaxies(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn universes(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn tech(&self) -> i64 {

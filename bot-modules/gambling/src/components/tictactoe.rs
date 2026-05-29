@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
 use rand::{rng, seq::IndexedRandom};
 use regex::Regex;
 use serenity::all::{
-    ActionRowComponent, ButtonStyle, Colour, Component, ComponentInteraction, Context,
-    CreateActionRow, CreateButton, CreateComponent, CreateEmbed, CreateInteractionResponse,
+    ActionRowComponent, ButtonStyle, Component, ComponentInteraction, Context, CreateActionRow,
+    CreateButton, CreateComponent, CreateEmbed, CreateInteractionResponse,
     CreateInteractionResponseMessage, EditInteractionResponse, Http, Mentionable,
     MessageInteractionMetadata, ReactionType, UserId,
 };
@@ -358,89 +356,4 @@ fn check_draw(components: &[Component]) -> bool {
             _ => unreachable!("Component must be a button"),
         })
         .all(|button| button.emoji == x_emoji || button.emoji == o_emoji)
-}
-
-#[allow(dead_code)]
-async fn after_play<Data: EmojiCacheData, Db: Database, Manager: GameManager<Db>>(
-    _http: &Http,
-    _interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
-    _data_lock: Arc<RwLock<Data>>,
-    state: &TicTacToe,
-    winner: Option<UserId>,
-) {
-    let mut p1_row = state.p1_row::<Db, Manager>(pool).await;
-    let mut p2_row = state.p2_row::<Db, Manager>(pool).await;
-
-    let [p1, p2] = state.players;
-
-    let _embed = if let Some(winner) = winner {
-        let row = if p1 == winner {
-            &mut p1_row
-        } else {
-            &mut p2_row
-        };
-
-        row.add_coins(state.bet * 2);
-
-        CreateEmbed::new()
-            .title("TicTacToe")
-            .description(format!("Winner! {} 🎉", winner.mention()))
-            .colour(Colour::DARK_GREEN)
-    } else if p1 != p2 {
-        p1_row.add_coins(state.bet);
-        p2_row.add_coins(state.bet);
-
-        CreateEmbed::new()
-            .title("TicTacToe")
-            .description("It's a draw!")
-            .colour(Colour::ORANGE)
-    } else {
-        p1_row.add_coins(state.bet);
-
-        CreateEmbed::new()
-            .title("TicTacToe")
-            .description("This game timed out after 2 minutes of inactivity")
-            .colour(Colour::TEAL)
-    };
-
-    todo!()
-
-    // {
-    //     let data = data_lock.read().await;
-    //     let emojis = data.emojis();
-    //     let dispatch = Dispatch::<Db, GoalHandler>::new(http, pool, emojis);
-
-    //     dispatch
-    //         .fire(
-    //             interaction.channel_id,
-    //             &mut p1_row,
-    //             Event::Game(GameEvent::new("rps", p1, state.bet, state.bet, false)), // TODO: Fix win logic
-    //         )
-    //         .await?;
-
-    //     dispatch
-    //         .fire(
-    //             interaction.channel_id,
-    //             &mut p2_row,
-    //             Event::Game(GameEvent::new("rps", p2, state.bet, state.bet, false)), // TODO: Fix win logic
-    //         )
-    //         .await?;
-    // };
-
-    // GameHandler::save(pool, p1_row).await?;
-    // GameHandler::save(pool, p2_row).await?;
-
-    // GameCache::update(Arc::clone(&data_lock), p1).await;
-    // GameCache::update(data_lock, p2).await;
-
-    // interaction
-    //     .edit_response(
-    //         http,
-    //         EditInteractionResponse::new()
-    //             .embed(embed)
-    //             .components(Vec::new()),
-    //     )
-    //     .await
-    //     .unwrap();
 }

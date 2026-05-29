@@ -30,6 +30,7 @@ pub trait DailyManager<Db: Database> {
 pub struct DailyRow {
     pub user_id: i64,
     pub coins: i64,
+    pub gems: i64,
     pub daily: Date,
     pub prestige: Option<i64>,
     pub level: Option<i32>,
@@ -42,6 +43,7 @@ impl DailyRow {
         Self {
             user_id: id.get() as i64,
             coins: 0,
+            gems: 0,
             daily: jiff::civil::Date::default().to_sqlx(),
             prestige: Some(0),
             level: Some(0),
@@ -61,11 +63,11 @@ impl Coins for DailyRow {
 
 impl Gems for DailyRow {
     fn gems(&self) -> i64 {
-        todo!()
+        self.gems
     }
 
     fn gems_mut(&mut self) -> &mut i64 {
-        todo!()
+        &mut self.gems
     }
 }
 

@@ -1,6 +1,7 @@
 SELECT
     g.user_id,
     g.coins,
+    g.gems,
     g.daily AS "daily: jiff_sqlx::Date",
     gm.prestige,
     l.level

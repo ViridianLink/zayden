@@ -95,7 +95,7 @@ impl Gems for ProfileRow {
 
 impl LevelsRow for ProfileRow {
     fn user_id(&self) -> UserId {
-        unimplemented!()
+        unreachable!("user_id is not available on ProfileRow")
     }
 
     fn xp(&self) -> i32 {
@@ -107,15 +107,15 @@ impl LevelsRow for ProfileRow {
     }
 
     fn total_xp(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn message_count(&self) -> i64 {
-        unimplemented!()
+        0
     }
 
     fn last_xp(&self) -> Timestamp {
-        unimplemented!()
+        jiff::Timestamp::UNIX_EPOCH
     }
 }
 

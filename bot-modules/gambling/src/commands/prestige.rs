@@ -151,35 +151,35 @@ impl Mining for PrestigeRow {
     }
 
     fn production(&self) -> i64 {
-        todo!()
+        self.production
     }
 
     fn coal(&self) -> i64 {
-        todo!()
+        self.coal
     }
 
     fn iron(&self) -> i64 {
-        todo!()
+        self.iron
     }
 
     fn gold(&self) -> i64 {
-        todo!()
+        self.gold
     }
 
     fn redstone(&self) -> i64 {
-        todo!()
+        self.redstone
     }
 
     fn lapis(&self) -> i64 {
-        todo!()
+        self.lapis
     }
 
     fn diamonds(&self) -> i64 {
-        todo!()
+        self.diamonds
     }
 
     fn emeralds(&self) -> i64 {
-        todo!()
+        self.emeralds
     }
 }
 
