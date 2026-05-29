@@ -7,6 +7,7 @@ use serenity::prelude::Context;
 use tokio::sync::RwLock;
 use tracing::{error, trace, warn};
 
+mod entitlement;
 mod guild_create;
 mod interaction;
 mod message_create;
@@ -71,9 +72,22 @@ impl EventHandler for Handler {
             FullEvent::InteractionCreate { interaction, .. } => {
                 let app = Arc::clone(&self.bot_state.read().await.app);
                 let registry = Arc::clone(&self.registry);
-                Self::interaction_create(ctx, interaction, &pool, app, registry).await
+                Self::interaction_create(ctx, interaction, app, registry).await
             }
             FullEvent::ThreadDelete { thread, .. } => Self::thread_delete(ctx, thread, &pool).await,
+
+            FullEvent::EntitlementCreate { entitlement, .. } => {
+                let bot_state = self.bot_state.read().await;
+                entitlement::entitlement_create(ctx, entitlement, &bot_state).await
+            }
+            FullEvent::EntitlementUpdate { entitlement, .. } => {
+                let bot_state = self.bot_state.read().await;
+                entitlement::entitlement_update(ctx, entitlement, &bot_state).await
+            }
+            FullEvent::EntitlementDelete { entitlement, .. } => {
+                let bot_state = self.bot_state.read().await;
+                entitlement::entitlement_delete(ctx, entitlement, &bot_state).await
+            }
 
             _ => Ok(()),
         };

@@ -33,10 +33,13 @@ impl AppState {
         let config_store = Arc::new(ConfigStore::new(pool.clone(), events.clone()));
         ConfigStore::spawn_invalidator(Arc::clone(&config_store), events.subscribe());
 
+        let entitlements = Arc::new(EntitlementService::new(pool.clone(), events.clone()));
+        EntitlementService::spawn_invalidator(Arc::clone(&entitlements), events.subscribe());
+
         Self {
             db: pool,
             config_store,
-            entitlements: Arc::new(EntitlementService),
+            entitlements,
             events,
             http: reqwest::Client::new(),
             openai_api_key: config.openai_api_key.clone(),

@@ -5,23 +5,26 @@ pub use error::{Error, Result};
 use axum::extract::State;
 use axum::http::{HeaderValue, Method, header};
 use axum::response::{IntoResponse, Redirect, Response};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Router, middleware};
 use oauth2::{
     AuthUrl, ClientId, ClientSecret, CsrfToken, EndpointSet, RedirectUrl, Scope, TokenUrl,
 };
 use oauth2::{EndpointNotSet, basic::BasicClient};
 use reqwest::header::AUTHORIZATION;
+use sqlx::PgPool;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tokio::sync::broadcast;
 use tower_cookies::CookieManagerLayer;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::warn;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Layer, Registry, filter, fmt};
+use zayden_app::entitlement::EntitlementService;
 
 const FRONTEND_URL: &str = "http://localhost:5173";
 const CLIENT_ID: u64 = 787490197943091211;
@@ -38,10 +41,11 @@ struct AppState {
     oauth_client:
         BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>,
     discord_client: Arc<twilight_http::Client>,
+    entitlements: Arc<EntitlementService>,
 }
 
 impl AppState {
-    pub fn new(client_secret: String, discord_token: String) -> Self {
+    pub fn new(client_secret: String, discord_token: String, pool: PgPool) -> Self {
         let http_client = reqwest::ClientBuilder::new().build().unwrap();
 
         let oauth_client = BasicClient::new(ClientId::new(CLIENT_ID.to_string()))
@@ -56,10 +60,15 @@ impl AppState {
             .token(discord_token)
             .build();
 
+        let (events, _) = broadcast::channel(64);
+        let entitlements = Arc::new(EntitlementService::new(pool, events.clone()));
+        EntitlementService::spawn_invalidator(Arc::clone(&entitlements), events.subscribe());
+
         Self {
             http_client,
             oauth_client,
             discord_client: Arc::new(discord_client),
+            entitlements,
         }
     }
 }
@@ -85,7 +94,12 @@ async fn main() {
 
     let discord_token = std::env::var("DISCORD_TOKEN").expect("Missing DISCORD_TOKEN");
 
-    let state = AppState::new(client_secret, discord_token);
+    let database_url = std::env::var("DATABASE_URL").expect("Missing DATABASE_URL");
+    let pool = PgPool::connect(&database_url)
+        .await
+        .expect("failed to connect to database");
+
+    let state = AppState::new(client_secret, discord_token, pool);
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -95,6 +109,7 @@ async fn main() {
     let app = Router::new()
         .route("/invite", get(invite_handler))
         .route("/login", get(login_handler))
+        .route("/webhooks/kofi", post(web::kofi_webhook_handler))
         .merge(web::routes())
         .layer(middleware::map_response(main_response_mapper))
         .layer(cors)

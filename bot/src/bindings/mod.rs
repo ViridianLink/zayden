@@ -24,22 +24,6 @@ pub mod ticket;
 
 pub mod verify;
 
-use std::collections::HashMap;
-use std::sync::LazyLock;
-
-use sqlx::Postgres;
-use zayden_core::{ApplicationCommand, application_commands};
-
-use crate::Error;
-
-pub static APPLICATION_COMMANDS: LazyLock<
-    HashMap<String, Box<dyn ApplicationCommand<Error, Postgres>>>,
-> = LazyLock::new(|| {
-    application_commands! {
-        Error, Postgres;
-    }
-});
-
 pub fn build_registry() -> std::sync::Arc<crate::CommandRegistry> {
     let mut builder = crate::RegistryBuilder::new();
     ai::register(&mut builder);

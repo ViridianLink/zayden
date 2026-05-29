@@ -1,4 +1,3 @@
-use crate::bindings::APPLICATION_COMMANDS;
 use crate::bindings::lfg::PostTable;
 use crate::sqlx_lib::GuildTable;
 use crate::{BRADSTER_GUILD, BotState, Result};
@@ -21,12 +20,7 @@ impl Handler {
         );
         lfg_result?;
 
-        let mut commands = APPLICATION_COMMANDS
-            .values()
-            .map(|cmd| cmd.command())
-            .collect::<Vec<_>>();
-
-        commands.extend(self.registry.definitions_for(guild.id));
+        let commands = self.registry.definitions_for(guild.id);
 
         match guild.id {
             BRADSTER_GUILD => {

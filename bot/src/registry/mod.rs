@@ -6,10 +6,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, CreateCommand, GuildId, ModalInteraction,
+    CommandInteraction, ComponentInteraction, Context, CreateCommand, CreateInteractionResponse,
+    CreateInteractionResponseMessage, GuildId, ModalInteraction,
 };
 use tracing::warn;
 use zayden_app::config::GuildConfig;
+use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState;
 use zayden_core::ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 use zayden_core::error::HandlerError;
@@ -115,6 +117,27 @@ impl CommandRegistry {
     ) -> Option<Result<(), HandlerError>> {
         let cmd = Arc::clone(self.commands.get(interaction.data.name.as_str())?);
         let guild_config = resolve_guild_config(&app, interaction.guild_id).await;
+
+        // Entitlement gate — runs before the handler so modules cannot forget to check.
+        let required = cmd.metadata().required_tier;
+        if required != Tier::Free {
+            let scope = match interaction.guild_id {
+                Some(gid) => EntitlementScope::UserInGuild(interaction.user.id.get(), gid.get()),
+                None => EntitlementScope::User(interaction.user.id.get()),
+            };
+            if !app.entitlements.allows(scope, required).await {
+                let response = CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .ephemeral(true)
+                        .content("This command requires a premium subscription. Upgrade at https://ko-fi.com/zaydenbot"),
+                );
+                if let Err(e) = interaction.create_response(&ctx.http, response).await {
+                    warn!(?e, "failed to send upgrade prompt");
+                }
+                return Some(Ok(()));
+            }
+        }
+
         let cx = InvocationCtx {
             ctx,
             interaction,

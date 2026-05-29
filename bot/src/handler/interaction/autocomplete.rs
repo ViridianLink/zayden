@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use serenity::all::{CommandInteraction, Context};
-use sqlx::PgPool;
 use tracing::{error, warn};
 use zayden_app::state::AppState;
 
@@ -13,12 +12,12 @@ impl Handler {
     pub async fn interaction_autocomplete(
         ctx: &Context,
         interaction: &CommandInteraction,
-        _pool: &PgPool,
         app: Arc<AppState>,
         registry: Arc<CommandRegistry>,
     ) -> Result<()> {
-        if let Some(result) = registry.run_autocomplete(ctx, interaction, app).await {
-            if let Err(err) = result {
+        match registry.run_autocomplete(ctx, interaction, app).await {
+            Some(Ok(())) => {}
+            Some(Err(err)) => {
                 error!(
                     error = ?err,
                     command = interaction.data.name.as_str(),
@@ -26,10 +25,9 @@ impl Handler {
                     "autocomplete handler error",
                 );
             }
-            return Ok(());
+            None => warn!("Unknown autocomplete command: {}", interaction.data.name),
         }
 
-        warn!("Unknown autocomplete command: {}", interaction.data.name);
         Ok(())
     }
 }

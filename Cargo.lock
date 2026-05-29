@@ -4228,6 +4228,7 @@ dependencies = [
 name = "zayden-app"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "jiff",
  "jiff-sqlx",
  "moka",

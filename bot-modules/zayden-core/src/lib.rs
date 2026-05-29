@@ -1,14 +1,6 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
-use serenity::all::{
-    ActionRow, AutocompleteOption, CommandInteraction, ComponentInteraction, Context, Message,
-    ModalInteraction, ResolvedOption, ResolvedValue,
-};
-use sqlx::{Database, Pool};
-
-pub mod application_command;
-pub use application_command::ApplicationCommand;
+use serenity::all::{ResolvedOption, ResolvedValue};
 
 pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
@@ -36,40 +28,6 @@ pub use ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 
 pub mod module;
 pub use module::{ModuleAutocomplete, ModuleCommand, ModuleComponent, ModuleModal};
-
-#[async_trait]
-pub trait Autocomplete<E: std::error::Error, Db: Database> {
-    async fn autocomplete(
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        option: AutocompleteOption<'_>,
-        pool: &Pool<Db>,
-    ) -> Result<(), E>;
-}
-
-#[async_trait]
-pub trait Component<E: std::error::Error, Db: Database> {
-    async fn run(
-        ctx: &Context,
-        interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
-    ) -> Result<(), E>;
-}
-
-#[async_trait]
-pub trait Modal<E: std::error::Error, Db: Database> {
-    async fn run(
-        ctx: &Context,
-        interaction: &ModalInteraction,
-        components: &[ActionRow],
-        pool: &Pool<Db>,
-    ) -> Result<(), E>;
-}
-
-#[async_trait]
-pub trait MessageCommand<E: std::error::Error, Db: Database> {
-    async fn run(ctx: &Context, message: &Message, pool: &Pool<Db>) -> Result<(), E>;
-}
 
 pub fn parse_options<'a>(
     options: impl IntoIterator<Item = ResolvedOption<'a>>,

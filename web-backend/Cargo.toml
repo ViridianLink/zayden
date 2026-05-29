@@ -23,6 +23,11 @@ oauth2 = { workspace = true, features = ["reqwest"] }
 reqwest = { version = "0.12" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+sqlx = { workspace = true, features = [
+  "postgres",
+  "runtime-tokio",
+  "tls-rustls-aws-lc-rs",
+] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower-cookies = { workspace = true, features = ["axum-core"] }
 tower-http = { workspace = true, features = ["cors", "fs"] }
@@ -30,3 +35,4 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "fmt"] }
 twilight-http = { workspace = true, default-features = true }
 twilight-model = { workspace = true }
+zayden-app = { workspace = true }
