@@ -3,6 +3,9 @@ name = "gambling"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 zayden-core = { workspace = true }
 levels = { workspace = true }

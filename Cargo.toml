@@ -2,6 +2,127 @@
 resolver = "3"
 members = ["bot", "bot-modules/*", "zayden-app"]
 
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+unused = "warn"
+unused_imports = "deny"
+unused_must_use = "deny"
+
+unreachable_pub = "warn"
+unused_qualifications = "warn"
+
+# missing_debug_implementations = "warn"
+
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+# Catch accidental lifetime elision weirdness
+elided_lifetimes_in_paths = "deny"
+
+# Common correctness footguns
+noop_method_call = "deny"
+redundant_lifetimes = "deny"
+single_use_lifetimes = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+variant_size_differences = "warn"
+
+# Future compatibility
+future_incompatible = "deny"
+
+[workspace.lints.clippy]
+
+# Correctness / panic prevention
+
+unwrap_used = "deny"
+expect_used = "deny"
+
+panic = "deny"
+panic_in_result_fn = "deny"
+unreachable = "deny"
+
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+
+indexing_slicing = "warn"
+string_slice = "warn"
+
+unchecked_time_subtraction = "warn"
+
+# Async correctness
+
+await_holding_lock = "deny"
+await_holding_refcell_ref = "deny"
+
+unused_async = "warn"
+
+# Performance
+
+large_futures = "warn"
+large_stack_arrays = "warn"
+
+redundant_clone = "warn"
+inefficient_to_string = "warn"
+
+rc_buffer = "warn"
+clone_on_ref_ptr = "warn"
+
+# API quality
+
+semicolon_if_nothing_returned = "warn"
+
+must_use_candidate = "warn"
+return_self_not_must_use = "warn"
+
+missing_const_for_fn = "warn"
+
+# Error handling
+
+result_large_err = "warn"
+map_err_ignore = "warn"
+unwrap_in_result = "warn"
+error_impl_error = "warn"
+
+# Style / maintainability
+
+wildcard_imports = "warn"
+wildcard_enum_match_arm = "warn"
+
+manual_assert = "warn"
+manual_ok_or = "warn"
+
+match_same_arms = "warn"
+
+# Keeping attributes honest (excellent for AI agents)
+allow_attributes_without_reason = "warn"
+allow_attributes = "warn"
+
+# Memory and Synchronization
+mem_forget = "deny"
+mutex_atomic = "warn"
+rc_mutex = "warn"
+
+# Pedantic + nursery
+
+pedantic = "warn"
+nursery = "warn"
+
+# Noise reductions
+
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+struct_excessive_bools = "allow"
+too_many_lines = "allow"
+
+similar_names = "allow"
+
+# Often counterproductive in real systems
+implicit_return = "allow"
+single_call_fn = "allow"
+
 [workspace.dependencies]
 ai = { path = "./bot-modules/ai" }
 destiny2 = { path = "./bot-modules/destiny2" }
@@ -23,7 +144,10 @@ bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = 
 
 moka = { version = "*", default-features = false }
 thiserror = { version = "*", default-features = false }
-toml = { version = "*", default-features = false, features = ["parse", "serde"] }
+toml = { version = "*", default-features = false, features = [
+  "parse",
+  "serde",
+] }
 
 async-trait = { version = "*", default-features = false }
 axum = { version = "*", default-features = false }

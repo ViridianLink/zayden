@@ -3,6 +3,9 @@ name = "lfg"
 version = "0.9.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 zayden-core = { workspace = true }
 

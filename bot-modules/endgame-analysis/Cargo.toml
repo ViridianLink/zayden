@@ -3,6 +3,9 @@ name = "endgame-analysis"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 bungie-api = { workspace = true }
 destiny2-core = { workspace = true }

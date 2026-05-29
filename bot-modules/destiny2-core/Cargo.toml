@@ -3,5 +3,8 @@ name = "destiny2-core"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }

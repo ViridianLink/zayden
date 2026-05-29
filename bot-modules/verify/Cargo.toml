@@ -3,5 +3,8 @@ name = "verify"
 version = "0.1.0"
 edition = "2024"
 
+[lints]
+workspace = true
+
 [dependencies]
 serenity = { workspace = true }
