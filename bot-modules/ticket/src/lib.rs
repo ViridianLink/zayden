@@ -1,4 +1,11 @@
-use serenity::all::{ButtonStyle, CreateButton, CreateMessage, Http, Mention, ThreadId};
+use serenity::all::{
+    ButtonStyle,
+    CreateButton,
+    CreateMessage,
+    Http,
+    Mention,
+    ThreadId,
+};
 
 pub mod components;
 pub mod error;
@@ -19,23 +26,18 @@ pub use ticket_manager::TicketManager;
 pub struct Support;
 pub struct Ticket;
 
+#[must_use]
 pub fn thread_name(thread_id: i32, author_name: &str, content: &str) -> String {
-    format!("{thread_id} - {author_name} - {content}")
-        .chars()
-        .take(100)
-        .collect()
+    format!("{thread_id} - {author_name} - {content}").chars().take(100).collect()
 }
 
-pub async fn send_support_message<'a>(
+pub async fn send_support_message(
     http: &Http,
     thread_id: ThreadId,
     mentions: &[Mention],
-    mut messages: Vec<CreateMessage<'a>>,
+    mut messages: Vec<CreateMessage<'_>>,
 ) -> Result<()> {
-    let mentions = mentions
-        .iter()
-        .map(|mention| mention.to_string())
-        .collect::<String>();
+    let mentions = mentions.iter().map(ToString::to_string).collect::<String>();
 
     let button = CreateButton::new("support_close")
         .label("Close")
@@ -47,10 +49,13 @@ pub async fn send_support_message<'a>(
         thread_id
             .send_message(
                 http,
-                messages.pop().unwrap().content(mentions).button(button),
+                messages
+                    .pop()
+                    .expect("messages has exactly one element")
+                    .content(mentions)
+                    .button(button),
             )
-            .await
-            .unwrap();
+            .await?;
 
         return Ok(());
     }
@@ -59,24 +64,18 @@ pub async fn send_support_message<'a>(
 
     for (i, message) in messages.into_iter().enumerate() {
         if i == 0 {
-            thread_id
-                .send_message(http, message.content(mentions.clone()))
-                .await
-                .unwrap();
+            thread_id.send_message(http, message.content(mentions.clone())).await?;
 
             continue;
         }
 
         if i == last_idx {
-            thread_id
-                .send_message(http, message.button(button.clone()))
-                .await
-                .unwrap();
+            thread_id.send_message(http, message.button(button.clone())).await?;
 
             continue;
         }
 
-        thread_id.send_message(http, message).await.unwrap();
+        thread_id.send_message(http, message).await?;
     }
 
     Ok(())
@@ -87,13 +86,10 @@ fn to_title_case(input: &str) -> String {
         .split_whitespace()
         .map(|word| {
             let mut chars = word.chars();
-            match chars.next() {
-                None => String::new(),
-                Some(first) => {
-                    first.to_uppercase().collect::<String>()
-                        + chars.as_str().to_lowercase().as_str()
-                }
-            }
+            chars.next().map_or_else(String::new, |first| {
+                first.to_uppercase().collect::<String>()
+                    + chars.as_str().to_lowercase().as_str()
+            })
         })
         .collect::<Vec<String>>()
         .join(" ")

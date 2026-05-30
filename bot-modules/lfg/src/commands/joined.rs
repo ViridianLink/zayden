@@ -1,9 +1,16 @@
 use async_trait::async_trait;
 use jiff_sqlx::Timestamp;
 use serenity::all::{
-    ChannelId, CommandInteraction, CreateEmbed, EditInteractionResponse, Http, Mentionable, UserId,
+    ChannelId,
+    CommandInteraction,
+    CreateEmbed,
+    EditInteractionResponse,
+    Http,
+    Mentionable,
+    UserId,
 };
-use sqlx::{Database, Pool, prelude::FromRow};
+use sqlx::prelude::FromRow;
+use sqlx::{Database, Pool};
 
 use super::Command;
 
@@ -24,20 +31,23 @@ pub struct JoinedRow {
 }
 
 impl JoinedRow {
-    pub fn channel_id(&self) -> ChannelId {
-        ChannelId::new(self.id as u64)
+    #[must_use]
+    pub const fn channel_id(&self) -> ChannelId {
+        ChannelId::new(self.id.cast_unsigned())
     }
 
+    #[must_use]
     pub fn activity(&self) -> &str {
         &self.activity
     }
 
+    #[must_use]
     pub fn timestamp(&self) -> jiff::Timestamp {
         self.start_time.to_jiff()
     }
 
     pub fn fireteam(&self) -> impl Iterator<Item = UserId> {
-        self.fireteam.iter().map(|&id| UserId::new(id as u64))
+        self.fireteam.iter().map(|&id| UserId::new(id.cast_unsigned()))
     }
 }
 
@@ -46,14 +56,15 @@ impl Command {
         http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
-    ) {
-        interaction.defer_ephemeral(http).await.unwrap();
+    ) -> crate::Result<()> {
+        interaction.defer_ephemeral(http).await?;
 
-        let posts = Manager::upcoming(pool, interaction.user.id).await.unwrap();
+        let posts = Manager::upcoming(pool, interaction.user.id).await?;
 
-        let (joined, alternative) = posts
-            .into_iter()
-            .partition::<Vec<_>, _>(|row| row.fireteam().any(|user| user == interaction.user.id));
+        let (joined, alternative) =
+            posts.into_iter().partition::<Vec<_>, _>(|row| {
+                row.fireteam().any(|user| user == interaction.user.id)
+            });
 
         let mut embed = CreateEmbed::new().title("Joined LFG Events");
 
@@ -70,7 +81,7 @@ impl Command {
                 })
                 .collect::<Vec<_>>();
 
-            embed = embed.field("Joined Posts", values.join("\n\n"), false)
+            embed = embed.field("Joined Posts", values.join("\n\n"), false);
         }
 
         if !alternative.is_empty() {
@@ -86,12 +97,13 @@ impl Command {
                 })
                 .collect::<Vec<_>>();
 
-            embed = embed.field("Alternative Posts", values.join("\n\n"), false)
+            embed = embed.field("Alternative Posts", values.join("\n\n"), false);
         }
 
         interaction
             .edit_response(http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 }

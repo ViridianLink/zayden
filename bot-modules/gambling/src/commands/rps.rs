@@ -1,29 +1,44 @@
+use std::fmt::Display;
+use std::str::FromStr;
 use std::sync::Arc;
-use std::{fmt::Display, str::FromStr};
 
 use rand::seq::IndexedRandom;
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    Colour,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options};
 
+use super::Commands;
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::GamblingManager;
 use crate::{
-    Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager, Result,
+    Coins,
+    EffectsManager,
+    GamblingData,
+    GameCache,
+    GameManager,
+    GameRow,
+    GoalsManager,
+    Result,
 };
-
-use super::Commands;
 
 impl Commands {
     pub async fn rps<
         Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
-        GoalHandler: GoalsManager<Db>,
+        GoalHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -32,17 +47,18 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::String(selection)) = options.remove("selection") else {
-            unreachable!("selection is required")
+        let Some(ResolvedValue::String(selection)) = options.remove("selection")
+        else {
+            return Err(crate::Error::InvalidAmount);
         };
-        let user_choice = selection.parse::<RPSChoice>().unwrap();
+        let user_choice = selection.parse::<RPSChoice>().expect("valid RPS choice");
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
-            unreachable!("bet is required")
+            return Err(crate::Error::InvalidAmount);
         };
 
         let mut row = GameHandler::row(pool, interaction.user.id)
@@ -52,12 +68,18 @@ impl Commands {
         let data = ctx.data::<RwLock<Data>>();
 
         GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
-        EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, row.coins())
-            .await?;
+        EffectsHandler::bet_limit::<GamblingHandler>(
+            pool,
+            interaction.user.id,
+            bet,
+            row.coins(),
+        )
+        .await?;
         row.bet(bet);
 
-        let computer_choice = *CHOICES.choose(&mut rand::rng()).unwrap();
-        let winner = user_choice.winner(&computer_choice);
+        let computer_choice =
+            *CHOICES.choose(&mut rand::rng()).expect("CHOICES is non-empty");
+        let winner = user_choice.winner(computer_choice);
 
         let mut payout = if winner == Some(true) {
             bet * 2
@@ -87,7 +109,9 @@ impl Commands {
             )
             .await?;
 
-        payout = EffectsHandler::payout(pool, interaction.user.id, bet, payout, winner).await;
+        payout =
+            EffectsHandler::payout(pool, interaction.user.id, bet, payout, winner)
+                .await;
 
         row.add_coins(payout);
 
@@ -104,7 +128,7 @@ impl Commands {
             "Rock 🪨 Paper 🗞️ Scissors ✂ - You Tied!"
         };
 
-        let coin = emojis.emoji("heads").unwrap();
+        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
         let desc = format!(
             "Your bet: {} <:coin:{coin}>
@@ -130,15 +154,11 @@ impl Commands {
             Colour::DARKER_GREY
         };
 
-        let embed = CreateEmbed::new()
-            .title(title)
-            .description(desc)
-            .colour(colour);
+        let embed = CreateEmbed::new().title(title).description(desc).colour(colour);
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -158,13 +178,18 @@ impl Commands {
                 .add_string_choice("Scissors", "scissors"),
             )
             .add_option(
-                CreateCommandOption::new(CommandOptionType::Integer, "bet", "The amount to bet.")
-                    .required(true),
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "bet",
+                    "The amount to bet.",
+                )
+                .required(true),
             )
     }
 }
 
-const CHOICES: [RPSChoice; 3] = [RPSChoice::Rock, RPSChoice::Paper, RPSChoice::Scissors];
+const CHOICES: [RPSChoice; 3] =
+    [RPSChoice::Rock, RPSChoice::Paper, RPSChoice::Scissors];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum RPSChoice {
@@ -174,17 +199,21 @@ enum RPSChoice {
 }
 
 impl RPSChoice {
-    fn winner(&self, opponent: &Self) -> Option<bool> {
+    const fn winner(self, opponent: Self) -> Option<bool> {
         match (self, opponent) {
-            (a, b) if a == b => None,
+            (Self::Rock, Self::Rock)
+            | (Self::Paper, Self::Paper)
+            | (Self::Scissors, Self::Scissors) => None,
             (Self::Rock, Self::Scissors)
             | (Self::Paper, Self::Rock)
             | (Self::Scissors, Self::Paper) => Some(true),
-            _ => Some(false),
+            (Self::Rock, Self::Paper)
+            | (Self::Paper, Self::Scissors)
+            | (Self::Scissors, Self::Rock) => Some(false),
         }
     }
 
-    fn emoji(&self) -> &str {
+    const fn emoji(self) -> &'static str {
         match self {
             Self::Rock => "🪨",
             Self::Paper => "🗞️",
@@ -196,9 +225,9 @@ impl RPSChoice {
 impl Display for RPSChoice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RPSChoice::Rock => write!(f, "Rock"),
-            RPSChoice::Paper => write!(f, "Paper"),
-            RPSChoice::Scissors => write!(f, "Scissors"),
+            Self::Rock => write!(f, "Rock"),
+            Self::Paper => write!(f, "Paper"),
+            Self::Scissors => write!(f, "Scissors"),
         }
     }
 }

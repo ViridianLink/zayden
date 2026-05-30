@@ -1,37 +1,43 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelType, CommandInteraction, CreateChannel, EditInteractionResponse, GuildId, Http,
+    ChannelType,
+    CommandInteraction,
+    CreateChannel,
+    EditInteractionResponse,
+    GuildId,
+    Http,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
-use crate::{Error, Result, guild_manager::TempVoiceGuildManager};
+use crate::guild_manager::TempVoiceGuildManager;
+use crate::{Error, Result};
 
-pub async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
+pub(super) async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
     http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<()> {
-    interaction.defer_ephemeral(http).await.unwrap();
+    interaction.defer_ephemeral(http).await?;
 
     if !interaction
         .member
         .as_ref()
-        .unwrap()
+        .expect("guild command always has a member")
         .permissions
-        .unwrap()
+        .expect("guild member always has permissions")
         .administrator()
     {
         return Err(Error::AdministratorRequired);
     }
 
-    let category = match options.remove("category") {
-        Some(ResolvedValue::Channel(category)) => category.id().expect_channel(),
-        _ => unreachable!("Category is required"),
+    let Some(ResolvedValue::Channel(category)) = options.remove("category") else {
+        return Err(Error::IneligibleChannel);
     };
+    let category = category.id().expect_channel();
 
     let creator_channel = guild_id
         .create_channel(
@@ -40,20 +46,16 @@ pub async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
                 .category(category)
                 .kind(ChannelType::Voice),
         )
-        .await
-        .unwrap();
+        .await?;
 
-    Manager::save(pool, guild_id, category, creator_channel.id)
-        .await
-        .unwrap();
+    Manager::save(pool, guild_id, category, creator_channel.id).await?;
 
     interaction
         .edit_response(
             http,
             EditInteractionResponse::new().content("Setup complete."),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

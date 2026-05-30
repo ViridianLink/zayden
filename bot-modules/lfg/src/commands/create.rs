@@ -2,14 +2,17 @@ use std::collections::HashMap;
 
 use jiff::Timestamp;
 use serenity::all::{
-    CommandInteraction, CreateInteractionResponse, CreateModal, Http, ResolvedValue,
+    CommandInteraction,
+    CreateInteractionResponse,
+    CreateModal,
+    Http,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
+use super::Command;
 use crate::modals::modal_components;
 use crate::{ACTIVITIES, Result, TimezoneManager};
-
-use super::Command;
 
 impl Command {
     pub async fn create<Db: Database, Manager: TimezoneManager<Db>>(
@@ -18,29 +21,34 @@ impl Command {
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        let Some(ResolvedValue::String(activity)) = options.remove("activity") else {
-            unreachable!("Activity is required");
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
+        let Some(ResolvedValue::String(activity)) = options.remove("activity")
+        else {
+            unreachable!("Activity is required")
         };
 
         let template = match options.remove("template") {
-            Some(ResolvedValue::String(s)) => s.parse().unwrap(),
+            Some(ResolvedValue::String(s)) => s.parse().unwrap_or(0),
             _ => 0,
         };
 
-        let timezone = Manager::get(pool, interaction.user.id, &interaction.locale)
-            .await
-            .unwrap();
+        let timezone =
+            Manager::get(pool, interaction.user.id, &interaction.locale).await?;
         let now = Timestamp::now().to_zoned(timezone);
 
-        let fireteam_size = match ACTIVITIES.iter().find(|a| a.name == activity) {
-            Some(activity) => activity.fireteam_size,
-            None => 3,
-        };
+        let fireteam_size = ACTIVITIES
+            .iter()
+            .find(|a| a.name == activity)
+            .map_or(3, |a| a.fireteam_size);
 
-        let row = modal_components(activity, now, fireteam_size, None);
+        let row = modal_components(activity, &now, fireteam_size, None);
 
         let modal =
-            CreateModal::new(format!("lfg_create_{template}"), "Create Event").components(row);
+            CreateModal::new(format!("lfg_create_{template}"), "Create Event")
+                .components(row);
 
         interaction
             .create_response(http, CreateInteractionResponse::Modal(modal))

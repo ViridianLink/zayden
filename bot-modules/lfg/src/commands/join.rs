@@ -1,22 +1,29 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    CommandInteraction, EditInteractionResponse, EditMessage, Http, Mentionable, ResolvedValue,
+    CommandInteraction,
+    EditInteractionResponse,
+    EditMessage,
+    Http,
+    Mentionable,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
+use super::Command;
 use crate::{PostManager, PostRow, Result, Savable, actions};
 
-use super::Command;
-
 impl Command {
-    pub async fn join<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
+    pub async fn join<
+        Db: Database,
+        Manager: PostManager<Db> + Savable<Db, PostRow>,
+    >(
         http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        interaction.defer_ephemeral(http).await.unwrap();
+        interaction.defer_ephemeral(http).await?;
 
         let alternative = match options.remove("alternative") {
             Some(ResolvedValue::Boolean(alt)) => alt,
@@ -24,22 +31,23 @@ impl Command {
         };
 
         let (thread, embed) =
-            actions::join::<Db, Manager>(http, interaction, pool, alternative).await?;
+            actions::join::<Db, Manager>(http, interaction, pool, alternative)
+                .await?;
 
         thread
             .widen()
             .edit_message(http, thread.get().into(), EditMessage::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         interaction
             .edit_response(
                 http,
-                EditInteractionResponse::new()
-                    .content(format!("You have joined {}", thread.widen().mention())),
+                EditInteractionResponse::new().content(format!(
+                    "You have joined {}",
+                    thread.widen().mention()
+                )),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

@@ -8,16 +8,14 @@ use crate::relationships::Relationships;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[expect(clippy::error_impl_error, reason = "conventional error type naming")]
 #[derive(Debug)]
 pub enum Error {
     // region common
     Zayden,
     Bot,
     InvalidUserId,
-    AlreadyRelated {
-        target: UserId,
-        relationship: Relationships,
-    },
+    AlreadyRelated { target: UserId, relationship: Relationships },
     UnauthorisedUser,
     NoMentionedUser,
     NoInteraction,
@@ -35,7 +33,7 @@ pub enum Error {
     UserSelfBlock,
     // endregion
 
-    //region children
+    // region children
     SelfNoChildren,
     NoChildren(UserId),
     // endregion
@@ -81,20 +79,22 @@ impl Display for Error {
             Self::UserSelfMarry => write!(f, "You can't marry yourself!"),
             Self::Bot => write!(f, "Can robots even love?"),
             Self::Zayden => write!(f, "Please... I can do better than you."),
-            Self::AlreadyRelated {
-                target,
-                relationship,
-            } => {
+            Self::AlreadyRelated { target, relationship } => {
                 write!(
                     f,
                     "You guys are already related! {} is your {relationship}.",
                     target.mention()
                 )
-            }
+            },
             Self::MaxPartners => {
-                write!(f, "You're already at your partner limit! Use `/divorce` to break up with someone.")
-            }
-            Self::UnauthorisedUser => write!(f, "You can't respond to this interaction."),
+                write!(
+                    f,
+                    "You're already at your partner limit! Use `/divorce` to break up with someone."
+                )
+            },
+            Self::UnauthorisedUser => {
+                write!(f, "You can't respond to this interaction.")
+            },
             Self::SameUser(user_id) => write!(
                 f,
                 "Would you look at that... {0} is very closely related to {0}",
@@ -107,8 +107,28 @@ impl Display for Error {
                     "It looks like {} already has a parent.",
                     user_id.mention()
                 )
-            }
-            other => write!(f, "{other:?}"),
+            },
+            Self::InvalidUserId
+            | Self::NoMentionedUser
+            | Self::NoInteraction
+            | Self::NoData(_)
+            | Self::AdoptCancelled
+            | Self::UserSelfBlock
+            | Self::SelfNoChildren
+            | Self::NoChildren(_)
+            | Self::MarryCancelled
+            | Self::SelfNoParents
+            | Self::NoParents(_)
+            | Self::SelfNoPartners
+            | Self::NoPartners(_)
+            | Self::SelfNoSiblings
+            | Self::NoSiblings(_)
+            | Self::SerenityTimestamp(_)
+            | Self::Sqlx(_)
+            | Self::EnvVar(_)
+            | Self::ParseIntError(_)
+            | Self::ReactionConversionError(_)
+            | Self::Serenity(_) => write!(f, "{self:?}"),
         }
     }
 }
@@ -125,7 +145,27 @@ impl Respond for Error {
             | Self::SameUser(_)
             | Self::UserSelfAdopt
             | Self::AlreadyAdopted(_) => Some(Cow::Owned(self.to_string())),
-            _ => None,
+            Self::InvalidUserId
+            | Self::NoMentionedUser
+            | Self::NoInteraction
+            | Self::NoData(_)
+            | Self::AdoptCancelled
+            | Self::UserSelfBlock
+            | Self::SelfNoChildren
+            | Self::NoChildren(_)
+            | Self::MarryCancelled
+            | Self::SelfNoParents
+            | Self::NoParents(_)
+            | Self::SelfNoPartners
+            | Self::NoPartners(_)
+            | Self::SelfNoSiblings
+            | Self::NoSiblings(_)
+            | Self::SerenityTimestamp(_)
+            | Self::Sqlx(_)
+            | Self::EnvVar(_)
+            | Self::ParseIntError(_)
+            | Self::ReactionConversionError(_)
+            | Self::Serenity(_) => None,
         }
     }
 }
@@ -139,26 +179,49 @@ impl std::error::Error for Error {
             Self::EnvVar(e) => Some(e),
             Self::ParseIntError(e) => Some(e),
             Self::ReactionConversionError(e) => Some(e),
-            _ => None,
+            Self::UserSelfMarry
+            | Self::MaxPartners
+            | Self::Zayden
+            | Self::Bot
+            | Self::InvalidUserId
+            | Self::AlreadyRelated { .. }
+            | Self::UnauthorisedUser
+            | Self::NoMentionedUser
+            | Self::NoInteraction
+            | Self::SameUser(_)
+            | Self::NoData(_)
+            | Self::UserSelfAdopt
+            | Self::AlreadyAdopted(_)
+            | Self::AdoptCancelled
+            | Self::UserSelfBlock
+            | Self::SelfNoChildren
+            | Self::NoChildren(_)
+            | Self::MarryCancelled
+            | Self::SelfNoParents
+            | Self::NoParents(_)
+            | Self::SelfNoPartners
+            | Self::NoPartners(_)
+            | Self::SelfNoSiblings
+            | Self::NoSiblings(_) => None,
         }
     }
 }
 
 impl From<serenity::Error> for Error {
     fn from(e: serenity::Error) -> Self {
-        Error::Serenity(e)
+        Self::Serenity(e)
     }
 }
 
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
-        Error::Sqlx(e)
+        Self::Sqlx(e)
     }
 }
 
 impl From<std::env::VarError> for Error {
     fn from(e: std::env::VarError) -> Self {
-        Error::EnvVar(e)
+        Self::EnvVar(e)
     }
 }
 
@@ -176,19 +239,19 @@ impl From<std::env::VarError> for Error {
 
 impl From<serenity::model::timestamp::InvalidTimestamp> for Error {
     fn from(e: serenity::model::timestamp::InvalidTimestamp) -> Self {
-        Error::SerenityTimestamp(e)
+        Self::SerenityTimestamp(e)
     }
 }
 
 impl From<std::num::ParseIntError> for Error {
     fn from(e: std::num::ParseIntError) -> Self {
-        Error::ParseIntError(e)
+        Self::ParseIntError(e)
     }
 }
 
 impl From<serenity::all::ReactionConversionError> for Error {
     fn from(e: serenity::all::ReactionConversionError) -> Self {
-        Error::ReactionConversionError(e)
+        Self::ReactionConversionError(e)
     }
 }
 

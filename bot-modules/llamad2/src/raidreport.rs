@@ -1,22 +1,28 @@
+use serenity::Error;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateInteractionResponse,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateInteractionResponse,
     CreateInteractionResponseMessage,
 };
 
 use crate::LLAMA_GUILD;
 
-const CONTENT: &str = "This is Llama's Raid Report: <https://raid.report/ps/4611686018441992331>";
+const CONTENT: &str =
+    "This is Llama's Raid Report: <https://raid.report/ps/4611686018441992331>";
 
 pub struct RaidReport;
 
 impl RaidReport {
-    pub async fn run(ctx: &Context, interaction: &CommandInteraction) {
-        if interaction
-            .guild_id
-            .is_none_or(|guild| guild != LLAMA_GUILD)
+    pub async fn run(
+        ctx: &Context,
+        interaction: &CommandInteraction,
+    ) -> Result<(), Error> {
+        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
             || interaction.user.bot()
         {
-            return;
+            return Ok(());
         }
 
         interaction
@@ -26,8 +32,9 @@ impl RaidReport {
                     CreateInteractionResponseMessage::new().content(CONTENT),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {

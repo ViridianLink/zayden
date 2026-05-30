@@ -1,29 +1,41 @@
 use std::sync::Arc;
 
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, parse_options};
 
+use super::Commands;
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::GamblingManager;
 use crate::utils::{GameResult, game_embed};
 use crate::{
-    Coins, EffectsManager, Error, GamblingData, GameCache, GameManager, GameRow, GoalsManager,
+    Coins,
+    EffectsManager,
+    Error,
+    GamblingData,
+    GameCache,
+    GameManager,
+    GameRow,
+    GoalsManager,
     Result,
 };
-
-use super::Commands;
 
 impl Commands {
     pub async fn roll<
         Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
-        GoalHandler: GoalsManager<Db>,
+        GoalHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -37,20 +49,21 @@ impl Commands {
         let mut options = parse_options(options);
 
         let Some(ResolvedValue::String(dice)) = options.remove("dice") else {
-            unreachable!("dice option is required")
+            return Err(Error::InvalidAmount);
         };
 
-        let n_sides = dice.parse::<i64>().unwrap();
+        let n_sides = dice.parse::<i64>().expect("dice notation is a valid integer");
 
-        let Some(ResolvedValue::Integer(prediction)) = options.remove("prediction") else {
-            unreachable!("prediction option is required")
+        let Some(ResolvedValue::Integer(prediction)) = options.remove("prediction")
+        else {
+            return Err(Error::InvalidPrediction);
         };
 
         verify_prediction(prediction, 1, n_sides)?;
 
         let mut row = GameHandler::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         let data = ctx.data::<RwLock<Data>>();
@@ -58,11 +71,16 @@ impl Commands {
         GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
-            unreachable!("bet option is required")
+            return Err(Error::InvalidAmount);
         };
 
-        EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, row.coins())
-            .await?;
+        EffectsHandler::bet_limit::<GamblingHandler>(
+            pool,
+            interaction.user.id,
+            bet,
+            row.coins(),
+        )
+        .await?;
         row.bet(bet);
 
         let roll = rand::random_range(1..=n_sides);
@@ -106,7 +124,7 @@ impl Commands {
 
         let coins = row.coins();
 
-        GameHandler::save(pool, row).await.unwrap();
+        GameHandler::save(pool, row).await?;
         GameCache::update(data, interaction.user.id).await;
 
         let embed = game_embed(
@@ -122,8 +140,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -154,13 +171,17 @@ impl Commands {
                 .required(true),
             )
             .add_option(
-                CreateCommandOption::new(CommandOptionType::Integer, "bet", "Roll the dice")
-                    .required(true),
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "bet",
+                    "Roll the dice",
+                )
+                .required(true),
             )
     }
 }
 
-fn verify_prediction(prediction: i64, min: i64, max: i64) -> Result<()> {
+const fn verify_prediction(prediction: i64, min: i64, max: i64) -> Result<()> {
     if prediction > max || prediction < min {
         return Err(Error::InvalidPrediction);
     }

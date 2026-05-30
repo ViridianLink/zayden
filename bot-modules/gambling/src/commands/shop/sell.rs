@@ -1,5 +1,10 @@
 use serenity::all::{
-    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction,
+    Context,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
@@ -22,7 +27,7 @@ impl SellRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coins: 0,
             item_row_id: None,
             item_quantity: None,
@@ -49,11 +54,11 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
     let mut options = parse_options_ref(options);
 
     let Some(ResolvedValue::String(item)) = options.remove("item") else {
-        unreachable!("item is required");
+        return Err(Error::InvalidAmount);
     };
 
     let Some(ResolvedValue::Integer(amount)) = options.remove("amount") else {
-        unreachable!("amount is required")
+        return Err(Error::InvalidAmount);
     };
     let amount = *amount;
 
@@ -61,33 +66,36 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
         return Err(Error::NegativeAmount);
     }
 
-    let item = SHOP_ITEMS
-        .get(item)
-        .expect("Preset choices so item should always exist");
-    let payment = ((item.coin_cost().unwrap() as f64) * (amount as f64) * (1.0 - SALES_TAX)) as i64;
+    let item =
+        SHOP_ITEMS.get(item).expect("Preset choices so item should always exist");
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_precision_loss,
+        reason = "payment calculation: precision and truncation are acceptable for display"
+    )]
+    let payment = ((item.coin_cost().expect("item has a coin cost") as f64)
+        * (amount as f64)
+        * (1.0 - SALES_TAX)) as i64;
 
-    let mut row = match Manager::sell_row(pool, interaction.user.id, item.id)
+    let mut row = Manager::sell_row(pool, interaction.user.id, item.id)
         .await
-        .unwrap()
-    {
-        Some(row) => row,
-        None => SellRow::new(interaction.user.id),
-    };
+        .expect("async call")
+        .unwrap_or_else(|| SellRow::new(interaction.user.id));
 
     let quantity = match &mut row.item_quantity {
         Some(quantity) if *quantity < amount => {
             return Err(Error::InsufficientItemQuantity(*quantity));
-        }
+        },
         Some(quantity) => {
             *quantity -= amount;
             *quantity
-        }
+        },
         None => return Err(Error::ItemNotInInventory),
     };
 
     row.add_coins(payment);
 
-    Manager::sell_save(pool, row).await.unwrap();
+    Manager::sell_save(pool, row).await?;
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -95,7 +103,7 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
         data.emojis()
     };
 
-    let coin = emojis.emoji("heads").unwrap();
+    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
     interaction
         .edit_response(

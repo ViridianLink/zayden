@@ -18,12 +18,13 @@ pub struct SuggestionsGuildRow {
 }
 
 impl SuggestionsGuildRow {
+    #[must_use]
     pub fn channel_id(&self) -> Option<ChannelId> {
-        self.suggestions_channel_id
-            .map(|id| ChannelId::new(id as u64))
+        self.suggestions_channel_id.map(|id| ChannelId::new(id.cast_unsigned()))
     }
 
+    #[must_use]
     pub fn review_channel_id(&self) -> Option<ChannelId> {
-        self.review_channel_id.map(|id| ChannelId::new(id as u64))
+        self.review_channel_id.map(|id| ChannelId::new(id.cast_unsigned()))
     }
 }

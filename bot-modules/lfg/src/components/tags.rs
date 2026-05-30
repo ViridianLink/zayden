@@ -1,8 +1,12 @@
 use std::collections::HashSet;
 
 use serenity::all::{
-    ComponentInteraction, ComponentInteractionDataKind, CreateInteractionResponse, EditThread,
-    ForumTagId, Http,
+    ComponentInteraction,
+    ComponentInteractionDataKind,
+    CreateInteractionResponse,
+    EditThread,
+    ForumTagId,
+    Http,
 };
 
 use crate::Result;
@@ -10,54 +14,77 @@ use crate::Result;
 pub struct TagsComponent;
 
 impl TagsComponent {
+    #[expect(
+        clippy::unreachable,
+        reason = "add/remove are only registered for StringSelect"
+    )]
     pub async fn add(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
         let mut tag_ids = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => values
                 .iter()
-                .map(|x| x.parse::<u64>().unwrap())
-                .map(|id| ForumTagId::new(id))
+                .map(|x| {
+                    x.parse::<u64>().expect("forum tag ID is always a valid u64")
+                })
+                .map(ForumTagId::new)
                 .collect::<Vec<_>>(),
-            _ => unreachable!("Expected string select"),
+            ComponentInteractionDataKind::Button
+            | ComponentInteractionDataKind::UserSelect { .. }
+            | ComponentInteractionDataKind::RoleSelect { .. }
+            | ComponentInteractionDataKind::MentionableSelect { .. }
+            | ComponentInteractionDataKind::ChannelSelect { .. }
+            | ComponentInteractionDataKind::Unknown(_) => {
+                unreachable!("Expected string select")
+            },
         };
 
         let mut thread = interaction
             .channel_id
             .expect_thread()
             .to_thread(http, interaction.guild_id)
-            .await
-            .unwrap();
+            .await?;
 
         tag_ids.extend(thread.applied_tags.iter().copied());
 
-        thread
-            .edit(http, EditThread::new().applied_tags(tag_ids))
-            .await
-            .unwrap();
+        thread.edit(http, EditThread::new().applied_tags(tag_ids)).await?;
 
         interaction
             .create_response(http, CreateInteractionResponse::Acknowledge)
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
 
-    pub async fn remove(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
+    #[expect(
+        clippy::unreachable,
+        reason = "remove is only registered for StringSelect"
+    )]
+    pub async fn remove(
+        http: &Http,
+        interaction: &ComponentInteraction,
+    ) -> Result<()> {
         let selected_ids = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => values
                 .iter()
-                .map(|x| x.parse::<u64>().unwrap())
+                .map(|x| {
+                    x.parse::<u64>().expect("forum tag ID is always a valid u64")
+                })
                 .map(ForumTagId::new)
                 .collect::<HashSet<_>>(),
-            _ => unreachable!("Expected string select"),
+            ComponentInteractionDataKind::Button
+            | ComponentInteractionDataKind::UserSelect { .. }
+            | ComponentInteractionDataKind::RoleSelect { .. }
+            | ComponentInteractionDataKind::MentionableSelect { .. }
+            | ComponentInteractionDataKind::ChannelSelect { .. }
+            | ComponentInteractionDataKind::Unknown(_) => {
+                unreachable!("Expected string select")
+            },
         };
 
         let mut thread = interaction
             .channel_id
             .expect_thread()
             .to_thread(http, interaction.guild_id)
-            .await
-            .unwrap();
+            .await?;
 
         let new_tag_ids = thread
             .applied_tags
@@ -66,15 +93,11 @@ impl TagsComponent {
             .filter(|tag_id| !selected_ids.contains(tag_id))
             .collect::<Vec<_>>();
 
-        thread
-            .edit(http, EditThread::new().applied_tags(new_tag_ids))
-            .await
-            .unwrap();
+        thread.edit(http, EditThread::new().applied_tags(new_tag_ids)).await?;
 
         interaction
             .create_response(http, CreateInteractionResponse::Acknowledge)
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

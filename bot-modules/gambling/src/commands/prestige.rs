@@ -1,8 +1,18 @@
 use async_trait::async_trait;
 use serenity::all::{
-    ButtonStyle, Colour, CommandInteraction, ComponentInteraction, Context, CreateButton,
-    CreateCommand, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-    EditInteractionResponse, MessageInteractionMetadata, UserId,
+    ButtonStyle,
+    Colour,
+    CommandInteraction,
+    ComponentInteraction,
+    Context,
+    CreateButton,
+    CreateCommand,
+    CreateEmbed,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    EditInteractionResponse,
+    MessageInteractionMetadata,
+    UserId,
 };
 use sqlx::{Database, FromRow, Pool};
 use zayden_core::FormatNum;
@@ -13,7 +23,10 @@ use crate::{Commands, MaxValues, Mining, Prestige, Result, START_AMOUNT};
 
 #[async_trait]
 pub trait PrestigeManager<Db: Database> {
-    async fn miners(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<i64>>;
+    async fn miners(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<i64>>;
 
     async fn row(
         pool: &Pool<Db>,
@@ -22,7 +35,10 @@ pub trait PrestigeManager<Db: Database> {
 
     async fn lotto(pool: &Pool<Db>, tickets: i64) -> sqlx::Result<Db::QueryResult>;
 
-    async fn save(pool: &Pool<Db>, row: PrestigeRow) -> sqlx::Result<Db::QueryResult>;
+    async fn save(
+        pool: &Pool<Db>,
+        row: PrestigeRow,
+    ) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow, Default)]
@@ -54,6 +70,7 @@ pub struct PrestigeRow {
 }
 
 impl PrestigeRow {
+    #[must_use]
     pub fn req_miners(&self) -> i64 {
         let prestige = self.prestige();
 
@@ -77,7 +94,7 @@ impl PrestigeRow {
         required_miners
     }
 
-    pub fn do_prestige(&mut self) {
+    pub const fn do_prestige(&mut self) {
         self.prestige += 1;
         self.coins = START_AMOUNT;
         self.gems += self.prestige;
@@ -199,7 +216,7 @@ impl Commands {
 
         let row = Manager::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_default();
 
         let req_miners = row.req_miners();
@@ -214,9 +231,11 @@ impl Commands {
                 .colour(Colour::RED);
 
             interaction
-                .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-                .await
-                .unwrap();
+                .edit_response(
+                    &ctx.http,
+                    EditInteractionResponse::new().embed(embed),
+                )
+                .await?;
 
             return Ok(());
         }
@@ -240,8 +259,7 @@ impl Commands {
                     .button(confirm)
                     .button(cancel),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -262,25 +280,26 @@ impl Commands {
         let Some(MessageInteractionMetadata::Command(metadata)) =
             interaction.message.interaction_metadata.as_deref()
         else {
-            unreachable!("Message must be created from an command")
+            return Ok(());
         };
 
         if interaction.user != metadata.user {
             return Ok(());
-        };
+        }
 
         let mut prestige_row = Manager::row(pool, interaction.user.id)
             .await
-            .unwrap()
-            .unwrap();
+            .expect("async call")
+            .expect(
+                "prestige confirm only reachable for users with an existing row",
+            );
 
         if prestige_row.miners < prestige_row.req_miners() {
             return Ok(());
         }
 
-        let mut inventory_row = Manager::inventory_items(pool, interaction.user.id)
-            .await
-            .unwrap();
+        let mut inventory_row =
+            Manager::inventory_items(pool, interaction.user.id).await?;
 
         Manager::lotto(
             pool,
@@ -292,12 +311,11 @@ impl Commands {
                 .unwrap_or_default()
                 .min(100_000),
         )
-        .await
-        .unwrap();
+        .await?;
         prestige_row.do_prestige();
         inventory_row.do_prestige();
 
-        Manager::save(pool, prestige_row).await.unwrap();
+        Manager::save(pool, prestige_row).await?;
 
         interaction
             .create_response(
@@ -309,13 +327,15 @@ impl Commands {
                         .components(Vec::new()),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
 
-    pub async fn cancel_prestige(ctx: &Context, interaction: &ComponentInteraction) -> Result<()> {
+    pub async fn cancel_prestige(
+        ctx: &Context,
+        interaction: &ComponentInteraction,
+    ) -> Result<()> {
         if interaction.user.id != interaction.message.author.id {
             return Ok(());
         }
@@ -323,8 +343,7 @@ impl Commands {
         interaction
             .message
             .delete(&ctx.http, Some("User canceled prestige"))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

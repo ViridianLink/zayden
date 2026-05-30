@@ -1,6 +1,12 @@
 use std::collections::HashMap;
 
-use serenity::all::{CommandInteraction, EditInteractionResponse, Http, MessageId, ResolvedValue};
+use serenity::all::{
+    CommandInteraction,
+    EditInteractionResponse,
+    Http,
+    MessageId,
+    ResolvedValue,
+};
 use sqlx::{Database, Pool};
 
 use crate::{Result, Ticket, TicketManager};
@@ -14,8 +20,12 @@ impl Ticket {
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
         let message_id = match options.remove("message") {
-            Some(ResolvedValue::Integer(id)) => MessageId::new(id as u64),
+            Some(ResolvedValue::Integer(id)) => MessageId::new(id.cast_unsigned()),
             _ => unreachable!("ID is required"),
         };
 
@@ -26,18 +36,16 @@ impl Ticket {
 
         channel_id
             .delete_message(http, message_id, Some("Deleted created ticket message"))
-            .await
-            .unwrap();
+            .await?;
 
-        Manager::delete(pool, message_id).await.unwrap();
+        Manager::delete(pool, message_id).await?;
 
         interaction
             .edit_response(
                 http,
                 EditInteractionResponse::new().content("Message removed"),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

@@ -16,9 +16,8 @@ impl ReactionRoleReaction {
         Manager: ReactionRolesManager<Db>,
     {
         let emoji_string = reaction.emoji.to_string();
-        let reaction_role = Manager::row(pool, reaction.message_id, &emoji_string)
-            .await
-            .unwrap();
+        let reaction_role =
+            Manager::row(pool, reaction.message_id, &emoji_string).await?;
 
         if let Some(reaction_role) = reaction_role {
             let member = reaction.member.as_ref().ok_or(Error::MissingGuildId)?;
@@ -29,8 +28,7 @@ impl ReactionRoleReaction {
                     reaction_role.role_id(),
                     Some("User reacted to a reaction role reaction"),
                 )
-                .await
-                .unwrap();
+                .await?;
         }
 
         Ok(())
@@ -45,17 +43,19 @@ impl ReactionRoleReaction {
         Db: sqlx::Database,
         Manager: ReactionRolesManager<Db>,
     {
-        let reaction_role = Manager::row(pool, reaction.message_id, &reaction.emoji.to_string())
-            .await
-            .unwrap();
+        let reaction_role =
+            Manager::row(pool, reaction.message_id, &reaction.emoji.to_string())
+                .await?;
 
         if let Some(reaction_role) = reaction_role {
             let member = reaction
                 .guild_id
                 .ok_or(Error::MissingGuildId)?
-                .member(http, reaction.user_id.unwrap())
-                .await
-                .unwrap();
+                .member(
+                    http,
+                    reaction.user_id.expect("reaction always has a user_id"),
+                )
+                .await?;
 
             member
                 .remove_role(
@@ -63,8 +63,7 @@ impl ReactionRoleReaction {
                     reaction_role.role_id(),
                     Some("User removed their reaction role reaction"),
                 )
-                .await
-                .unwrap();
+                .await?;
         }
 
         Ok(())

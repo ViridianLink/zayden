@@ -1,32 +1,56 @@
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateActionRow, CreateCommand,
-    CreateCommandOption, CreateComponent, CreateContainer, CreateContainerComponent,
-    EditInteractionResponse, MessageFlags, ResolvedOption, ResolvedValue,
+    Colour,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateActionRow,
+    CreateCommand,
+    CreateCommandOption,
+    CreateComponent,
+    CreateContainer,
+    CreateContainerComponent,
+    EditInteractionResponse,
+    MessageFlags,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
+use super::Commands;
 use crate::games::blackjack::{
-    GameDetails, double_button, game_end_blackjack, game_end_draw, hit_button, in_play_text,
-    split_button, stand_button, sum_cards, surrender_button,
+    GameDetails,
+    double_button,
+    game_end_blackjack,
+    game_end_draw,
+    hit_button,
+    in_play_text,
+    split_button,
+    stand_button,
+    sum_cards,
+    surrender_button,
 };
 use crate::models::gambling::GamblingManager;
 use crate::{
-    CARD_DECK, EffectsManager, GamblingData, GameCache, GameManager, GoalsManager, Result,
+    CARD_DECK,
+    EffectsManager,
+    GamblingData,
+    GameCache,
+    GameManager,
+    GoalsManager,
+    Result,
     card_deck,
 };
-
-use super::Commands;
 
 impl Commands {
     pub async fn blackjack<
         Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -37,23 +61,26 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let Some(ResolvedValue::Integer(bet)) = options.pop().map(|opt| opt.value) else {
-            unreachable!("bet is required")
+        let Some(ResolvedValue::Integer(bet)) = options.pop().map(|opt| opt.value)
+        else {
+            return Err(crate::Error::InvalidAmount);
         };
 
-        let mut tx = pool.begin().await.unwrap();
+        let mut tx = pool.begin().await?;
 
-        let coins = GamblingHandler::coins(&mut *tx, interaction.user.id)
-            .await
-            .unwrap();
+        let coins = GamblingHandler::coins(&mut *tx, interaction.user.id).await?;
 
-        tx.commit().await.unwrap();
+        tx.commit().await?;
 
         GameCache::can_play(ctx.data::<RwLock<Data>>(), interaction.user.id).await?;
-        EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, coins).await?;
-        GamblingHandler::bet(pool, interaction.user.id, bet)
-            .await
-            .unwrap();
+        EffectsHandler::bet_limit::<GamblingHandler>(
+            pool,
+            interaction.user.id,
+            bet,
+            coins,
+        )
+        .await?;
+        GamblingHandler::bet(pool, interaction.user.id, bet).await?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -61,19 +88,31 @@ impl Commands {
             data.emojis()
         };
 
-        let mut card_shoe = CARD_DECK.get_or_init(|| card_deck(&emojis)).to_vec();
+        let mut card_shoe = CARD_DECK.get_or_init(|| card_deck(&emojis)).clone();
 
         card_shoe.shuffle(&mut rng());
 
-        let player_hand = vec![card_shoe.pop().unwrap(), card_shoe.pop().unwrap()];
+        let player_hand = vec![
+            card_shoe.pop().expect("card shoe not empty"),
+            card_shoe.pop().expect("card shoe not empty"),
+        ];
         let player_value = sum_cards(&emojis, &player_hand);
-        let dealer_hand = [card_shoe.pop().unwrap(), card_shoe.pop().unwrap()];
+        let dealer_hand = [
+            card_shoe.pop().expect("card shoe not empty"),
+            card_shoe.pop().expect("card shoe not empty"),
+        ];
         let dealer_value = sum_cards(&emojis, &dealer_hand);
 
         let game = GameDetails::new(bet, player_hand, dealer_hand[0]);
 
         if player_value == 21 && dealer_value == 21 {
-            let response = game_end_draw::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
+            let response = game_end_draw::<
+                Data,
+                Db,
+                GoalsHandler,
+                EffectsHandler,
+                GameHandler,
+            >(
                 ctx,
                 pool,
                 &emojis,
@@ -82,44 +121,44 @@ impl Commands {
                 game,
                 &dealer_hand,
             )
-            .await;
+            .await?;
 
-            interaction
-                .edit_response(&ctx.http, response)
-                .await
-                .unwrap();
+            interaction.edit_response(&ctx.http, response).await?;
 
             return Ok(());
         } else if player_value == 21 {
-            let response =
-                game_end_blackjack::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
-                    ctx,
-                    pool,
-                    &emojis,
-                    interaction.user.id,
-                    interaction.channel_id,
-                    game,
-                    &dealer_hand,
-                )
-                .await;
+            let response = game_end_blackjack::<
+                Data,
+                Db,
+                GoalsHandler,
+                EffectsHandler,
+                GameHandler,
+            >(
+                ctx,
+                pool,
+                &emojis,
+                interaction.user.id,
+                interaction.channel_id,
+                game,
+                &dealer_hand,
+            )
+            .await?;
 
-            interaction
-                .edit_response(&ctx.http, response)
-                .await
-                .unwrap();
+            interaction.edit_response(&ctx.http, response).await?;
 
             return Ok(());
         }
 
         let text = in_play_text(&emojis, bet, game.player_hand(), dealer_hand[0]);
 
-        let action_row = CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
-            hit_button(),
-            stand_button(),
-            double_button().disabled(coins < bet * 2),
-            split_button().disabled(true), //.disabled(coins < bet * 2),
-            surrender_button(),
-        ]));
+        let action_row =
+            CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
+                hit_button(),
+                stand_button(),
+                double_button().disabled(coins < bet * 2),
+                split_button().disabled(true), //.disabled(coins < bet * 2),
+                surrender_button(),
+            ]));
 
         let container = CreateComponent::Container(
             CreateContainer::new(vec![text, action_row]).accent_colour(Colour::TEAL),
@@ -132,8 +171,7 @@ impl Commands {
                     .flags(MessageFlags::IS_COMPONENTS_V2)
                     .components(vec![container]),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -142,8 +180,12 @@ impl Commands {
         CreateCommand::new("blackjack")
             .description("Play a game of blackjack")
             .add_option(
-                CreateCommandOption::new(CommandOptionType::Integer, "bet", "The amount to bet.")
-                    .required(true),
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "bet",
+                    "The amount to bet.",
+                )
+                .required(true),
             )
     }
 }

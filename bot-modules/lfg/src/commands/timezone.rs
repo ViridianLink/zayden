@@ -2,12 +2,16 @@ use std::collections::HashMap;
 
 use jiff::tz;
 use jiff::tz::TimeZone;
-use serenity::all::{CommandInteraction, EditInteractionResponse, Http, ResolvedValue};
+use serenity::all::{
+    CommandInteraction,
+    EditInteractionResponse,
+    Http,
+    ResolvedValue,
+};
 use sqlx::{Database, Pool};
 
-use crate::{Result, TimezoneManager};
-
 use super::Command;
+use crate::{Result, TimezoneManager};
 
 impl Command {
     pub async fn timezone<Db: Database, Manager: TimezoneManager<Db>>(
@@ -16,18 +20,20 @@ impl Command {
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        interaction.defer_ephemeral(http).await.unwrap();
+        interaction.defer_ephemeral(http).await?;
 
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
         let Some(ResolvedValue::String(region)) = options.remove("region") else {
-            unreachable!("Region is required");
+            unreachable!("Region is required")
         };
 
         let tz = tz::db().get(region).unwrap_or(TimeZone::UTC);
         let tz_name = tz.iana_name().unwrap_or(region);
 
-        Manager::save(pool, interaction.user.id, tz_name)
-            .await
-            .unwrap();
+        Manager::save(pool, interaction.user.id, tz_name).await?;
 
         interaction
             .edit_response(
@@ -35,8 +41,7 @@ impl Command {
                 EditInteractionResponse::new()
                     .content(format!("Your timezone has been set to {tz_name}")),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

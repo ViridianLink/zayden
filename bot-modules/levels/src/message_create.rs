@@ -2,9 +2,8 @@ use jiff::{Span, Timestamp};
 use serenity::all::Message;
 use sqlx::{Database, Pool};
 
-use crate::{FullLevelRow, LevelsManager};
-
 use super::LevelsRow;
+use crate::{FullLevelRow, LevelsManager};
 
 pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
     message: &Message,
@@ -14,7 +13,7 @@ pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
 
     let mut row = Manager::full_row(pool, message.author.id)
         .await
-        .unwrap()
+        .expect("DB query")
         .unwrap_or_else(|| FullLevelRow::new(message.author.id));
 
     let xp_cooldown = row
@@ -28,7 +27,7 @@ pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
 
     let new_level = row.new_message();
 
-    Manager::save(pool, row).await.unwrap();
+    Manager::save(pool, row).await.ok()?;
 
     new_level
 }

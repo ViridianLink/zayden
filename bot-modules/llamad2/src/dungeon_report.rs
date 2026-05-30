@@ -1,23 +1,27 @@
+use serenity::Error;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateInteractionResponse,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateInteractionResponse,
     CreateInteractionResponseMessage,
 };
 
 use crate::LLAMA_GUILD;
 
-const CONTENT: &str =
-    "This is Llama's Dungeon Report: <https://dungeon.report/ps/4611686018441992331>";
+const CONTENT: &str = "This is Llama's Dungeon Report: <https://dungeon.report/ps/4611686018441992331>";
 
 pub struct DungeonReport;
 
 impl DungeonReport {
-    pub async fn run(ctx: &Context, interaction: &CommandInteraction) {
-        if interaction
-            .guild_id
-            .is_none_or(|guild| guild != LLAMA_GUILD)
+    pub async fn run(
+        ctx: &Context,
+        interaction: &CommandInteraction,
+    ) -> Result<(), Error> {
+        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
             || interaction.user.bot()
         {
-            return;
+            return Ok(());
         }
 
         interaction
@@ -27,11 +31,13 @@ impl DungeonReport {
                     CreateInteractionResponseMessage::new().content(CONTENT),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("dungeonreport").description("Returns Llama's Dungeon Report.")
+        CreateCommand::new("dungeonreport")
+            .description("Returns Llama's Dungeon Report.")
     }
 }

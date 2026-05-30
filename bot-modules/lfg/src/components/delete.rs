@@ -1,9 +1,8 @@
 use serenity::all::{ComponentInteraction, CreateInteractionResponse, Http};
 use sqlx::{Database, Pool};
 
-use crate::{Error, PostManager, Result, actions};
-
 use super::Components;
+use crate::{Error, PostManager, Result, actions};
 
 impl Components {
     pub async fn delete<Db: Database, Manager: PostManager<Db>>(
@@ -17,14 +16,11 @@ impl Components {
             return Err(Error::PermissionDenied(owner));
         }
 
-        actions::delete::<Db, Manager>(http, interaction.channel_id, pool)
-            .await
-            .unwrap();
+        actions::delete::<Db, Manager>(http, interaction.channel_id, pool).await?;
 
         interaction
             .create_response(http, CreateInteractionResponse::Acknowledge)
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

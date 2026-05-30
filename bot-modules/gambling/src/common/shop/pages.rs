@@ -11,14 +11,9 @@ pub enum ShopPage {
 }
 
 impl ShopPage {
-    pub const fn pages() -> [ShopPage; 5] {
-        [
-            ShopPage::Item,
-            ShopPage::Boost1,
-            ShopPage::Boost2,
-            ShopPage::Mine1,
-            ShopPage::Mine2,
-        ]
+    #[must_use]
+    pub const fn pages() -> [Self; 5] {
+        [Self::Item, Self::Boost1, Self::Boost2, Self::Mine1, Self::Mine2]
     }
 }
 
@@ -37,7 +32,7 @@ impl Display for ShopPage {
 impl FromStr for ShopPage {
     type Err = ();
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Item" => Ok(Self::Item),
             "Boost 1" => Ok(Self::Boost1),

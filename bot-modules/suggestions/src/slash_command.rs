@@ -2,8 +2,17 @@ use std::time;
 
 use futures::{StreamExt, stream};
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    CreateMessage, EditInteractionResponse, Http, Mentionable, Permissions, ResolvedOption,
+    CommandInteraction,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    CreateMessage,
+    EditInteractionResponse,
+    Http,
+    Mentionable,
+    Permissions,
+    ResolvedOption,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
@@ -29,14 +38,13 @@ impl FetchSuggestions {
         let channel_id = match options.remove("channel") {
             Some(ResolvedValue::Channel(channel)) => channel.id().expect_channel(),
             _ => Manager::get(pool, guild_id)
-                .await
-                .unwrap()
+                .await?
                 .ok_or(Error::MissingSuggesionChannel)?
                 .channel_id()
                 .ok_or(Error::MissingSuggesionChannel)?,
         };
 
-        let active_guild_threads = guild_id.get_active_threads(http).await.unwrap();
+        let active_guild_threads = guild_id.get_active_threads(http).await?;
         let threads_iter = active_guild_threads
             .threads
             .into_iter()
@@ -44,21 +52,26 @@ impl FetchSuggestions {
             .chain(
                 channel_id
                     .get_archived_public_threads(http, None, None)
-                    .await
-                    .unwrap()
+                    .await?
                     .threads,
             );
 
         let mut reaction_counts = stream::iter(threads_iter)
             .then(|thread| async {
-                let reactions = thread
+                let count = thread
                     .id
                     .widen()
-                    .reaction_users(http, thread.id.get().into(), '👍', Some(100), None)
+                    .reaction_users(
+                        http,
+                        thread.id.get().into(),
+                        '👍',
+                        Some(100),
+                        None,
+                    )
                     .await
-                    .unwrap();
+                    .map_or(0, |r| r.len());
 
-                (thread, reactions.len())
+                (thread, count)
             })
             .collect::<Vec<_>>()
             .await;
@@ -67,18 +80,15 @@ impl FetchSuggestions {
 
         let elapsed_time = start_time.elapsed();
 
-        let fields_iter =
-            reaction_counts
-                .into_iter()
-                .take(10)
-                .enumerate()
-                .map(|(i, (thread, count))| {
-                    (
-                        format!("{}. 👍: {}", i + 1, count),
-                        format!("Link: {}", thread.mention()),
-                        false,
-                    )
-                });
+        let fields_iter = reaction_counts.into_iter().take(10).enumerate().map(
+            |(i, (thread, count))| {
+                (
+                    format!("{}. 👍: {}", i + 1, count),
+                    format!("Link: {}", thread.mention()),
+                    false,
+                )
+            },
+        );
 
         let embed = CreateEmbed::new()
             .title("Top 10 suggestions")
@@ -89,8 +99,7 @@ impl FetchSuggestions {
             .user
             .id
             .direct_message(&http, CreateMessage::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         interaction
             .edit_response(
@@ -100,8 +109,7 @@ impl FetchSuggestions {
                     elapsed_time.as_secs()
                 )),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

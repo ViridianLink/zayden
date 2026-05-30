@@ -9,7 +9,10 @@ pub trait TicketGuildManager<Db: Database> {
         id: impl Into<GuildId> + Send,
     ) -> sqlx::Result<Option<TicketGuildRow>>;
 
-    async fn update_thread_id(pool: &Pool<Db>, id: impl Into<GuildId> + Send) -> sqlx::Result<()>;
+    async fn update_thread_id(
+        pool: &Pool<Db>,
+        id: impl Into<GuildId> + Send,
+    ) -> sqlx::Result<()>;
 }
 
 #[derive(FromRow)]
@@ -22,18 +25,21 @@ pub struct TicketGuildRow {
 }
 
 impl TicketGuildRow {
+    #[must_use]
     pub fn channel_id(&self) -> Option<ChannelId> {
-        self.support_channel_id.map(|id| ChannelId::new(id as u64))
+        self.support_channel_id.map(|id| ChannelId::new(id.cast_unsigned()))
     }
 
+    #[must_use]
     pub fn role_ids(&self) -> Vec<RoleId> {
         self.support_role_ids
             .iter()
-            .map(|id| RoleId::new(*id as u64))
+            .map(|id| RoleId::new(id.cast_unsigned()))
             .collect()
     }
 
+    #[must_use]
     pub fn faq_channel_id(&self) -> Option<ChannelId> {
-        self.faq_channel_id.map(|id| ChannelId::new(id as u64))
+        self.faq_channel_id.map(|id| ChannelId::new(id.cast_unsigned()))
     }
 }

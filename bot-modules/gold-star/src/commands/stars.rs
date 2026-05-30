@@ -1,6 +1,13 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Http,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
@@ -21,10 +28,9 @@ impl Stars {
             _ => &interaction.user,
         };
 
-        let row = match Manager::get_row(pool, user.id).await.unwrap() {
-            Some(row) => row,
-            None => GoldStarRow::new(user.id),
-        };
+        let row = Manager::get_row(pool, user.id)
+            .await?
+            .unwrap_or_else(|| GoldStarRow::new(user.id));
 
         let username = user.global_name.as_deref().unwrap_or(&user.name);
 
@@ -34,13 +40,20 @@ impl Stars {
                 EditInteractionResponse::new().embed(
                     CreateEmbed::new()
                         .title(format!("{username}'s Stars"))
-                        .field("Number of Stars", row.number_of_stars.to_string(), true)
+                        .field(
+                            "Number of Stars",
+                            row.number_of_stars.to_string(),
+                            true,
+                        )
                         .field("Given Stars", row.given_stars.to_string(), true)
-                        .field("Received Stars", row.received_stars.to_string(), true),
+                        .field(
+                            "Received Stars",
+                            row.received_stars.to_string(),
+                            true,
+                        ),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

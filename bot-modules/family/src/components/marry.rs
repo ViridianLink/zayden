@@ -11,24 +11,20 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     let author = match interaction.message.interaction_metadata.as_deref() {
         Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
         None => return Err(Error::NoInteraction),
-        _ => unreachable!("Interaction metadata is not a CommandMetaData"),
+        Some(_) => return Err(Error::InvalidUserId),
     };
 
     let partner = &interaction.user;
 
     if !interaction.message.mentions.contains(partner) && partner.id != author.id {
         return Err(Error::UnauthorisedUser);
-    };
+    }
 
-    let mut row = match Manager::row(pool, author.id).await? {
-        Some(row) => row,
-        None => author.into(),
-    };
+    let mut row =
+        Manager::row(pool, author.id).await?.unwrap_or_else(|| author.into());
 
-    let mut partner_row = match Manager::row(pool, partner.id).await? {
-        Some(row) => row,
-        None => partner.into(),
-    };
+    let mut partner_row =
+        Manager::row(pool, partner.id).await?.unwrap_or_else(|| partner.into());
 
     row.add_partner(&partner_row);
     partner_row.add_partner(&row);
@@ -39,7 +35,7 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     Ok(())
 }
 
-pub async fn decline(interaction: &ComponentInteraction) -> Result<()> {
+pub fn decline(interaction: &ComponentInteraction) -> Result<()> {
     if !interaction.message.mentions.contains(&interaction.user) {
         return Err(Error::UnauthorisedUser);
     }
@@ -47,7 +43,7 @@ pub async fn decline(interaction: &ComponentInteraction) -> Result<()> {
     let author = match interaction.message.interaction_metadata.as_deref() {
         Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
         None => return Err(Error::NoInteraction),
-        _ => unreachable!("Interaction metadata is not a CommandMetaData"),
+        Some(_) => return Err(Error::InvalidUserId),
     };
 
     if author.id == interaction.user.id {

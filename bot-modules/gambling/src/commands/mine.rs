@@ -1,6 +1,11 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse, UserId,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateEmbed,
+    EditInteractionResponse,
+    UserId,
 };
 use sqlx::{Database, FromRow, Pool};
 use tokio::sync::RwLock;
@@ -10,7 +15,10 @@ use crate::{MaxValues, MineHourly, Mining, Prestige, Result};
 
 #[async_trait]
 pub trait MineManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<MineRow>>;
+    async fn row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<MineRow>>;
 }
 
 #[derive(Default, FromRow)]
@@ -120,7 +128,11 @@ impl MineHourly for MineRow {
 use super::Commands;
 
 impl Commands {
-    pub async fn mine<Data: EmojiCacheData, Db: Database, Manager: MineManager<Db>>(
+    pub async fn mine<
+        Data: EmojiCacheData,
+        Db: Database,
+        Manager: MineManager<Db>,
+    >(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
@@ -129,13 +141,13 @@ impl Commands {
 
         let row = Manager::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_default();
 
         let coin = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
-            data.emojis().emoji("heads").unwrap()
+            data.emojis().emoji("heads").expect("emoji 'heads' in cache")
         };
 
         let embed = CreateEmbed::new()
@@ -148,8 +160,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

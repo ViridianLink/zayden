@@ -1,12 +1,23 @@
 use serenity::all::{
-    ChannelType, CreateChannel, CreateMessage, DiscordJsonError, ErrorResponse, Http, HttpError,
-    JsonErrorCode, VoiceState,
+    ChannelType,
+    CreateChannel,
+    CreateMessage,
+    DiscordJsonError,
+    ErrorResponse,
+    Http,
+    HttpError,
+    JsonErrorCode,
+    VoiceState,
 };
 use sqlx::{Database, Pool};
 
 use crate::{
-    Result, TempVoiceGuildManager, VoiceChannelManager, VoiceChannelRow,
-    delete_voice_channel_if_inactive, owner_perms,
+    Result,
+    TempVoiceGuildManager,
+    VoiceChannelManager,
+    VoiceChannelRow,
+    delete_voice_channel_if_inactive,
+    owner_perms,
 };
 
 pub async fn channel_creator<
@@ -22,7 +33,9 @@ pub async fn channel_creator<
         return Ok(());
     };
 
-    let Ok(Some(creator_channel)) = GuildManager::get_creator_channel(pool, guild_id).await else {
+    let Ok(Some(creator_channel)) =
+        GuildManager::get_creator_channel(pool, guild_id).await
+    else {
         return Ok(());
     };
 
@@ -38,16 +51,14 @@ pub async fn channel_creator<
     {
         Ok(Some(parent_id)) => parent_id,
         Ok(None) => return Ok(()),
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error:
-                DiscordJsonError {
-                    code: JsonErrorCode::MissingAccess,
-                    ..
-                },
-            ..
-        }))) => {
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+            ErrorResponse {
+                error: DiscordJsonError { code: JsonErrorCode::MissingAccess, .. },
+                ..
+            },
+        ))) => {
             return Ok(());
-        }
+        },
         Err(e) => return Err(e.into()),
     };
 
@@ -57,39 +68,45 @@ pub async fn channel_creator<
 
     let perms = vec![owner_perms(member.user.id)];
 
-    let vc_builder = CreateChannel::new(format!("{}'s Channel", member.display_name()))
-        .kind(ChannelType::Voice)
-        .category(creator_category)
-        .permissions(perms);
+    let vc_builder =
+        CreateChannel::new(format!("{}'s Channel", member.display_name()))
+            .kind(ChannelType::Voice)
+            .category(creator_category)
+            .permissions(perms);
 
     let vc = guild_id.create_channel(http, vc_builder).await?;
 
     match guild_id.move_member(http, member.user.id, vc.id).await {
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error:
-                DiscordJsonError {
-                    code: JsonErrorCode::TargetUserNotConnectedToVoice,
-                    ..
-                },
-            ..
-        }))) => {
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+            ErrorResponse {
+                error:
+                    DiscordJsonError {
+                        code: JsonErrorCode::TargetUserNotConnectedToVoice,
+                        ..
+                    },
+                ..
+            },
+        ))) => {
             member
                 .user
                 .id
                 .direct_message(
                     http,
-                    CreateMessage::new()
-                        .content("Voice channel created. You have 1 minute to join."),
+                    CreateMessage::new().content(
+                        "Voice channel created. You have 1 minute to join.",
+                    ),
                 )
                 .await?;
 
-            if delete_voice_channel_if_inactive(http, guild_id, member.user.id, &vc).await {
+            if delete_voice_channel_if_inactive(http, guild_id, member.user.id, &vc)
+                .await
+            {
                 return Ok(());
             }
-        }
-        Ok(_) => {}
+        },
+        Ok(_) => {},
         Err(e) => return Err(e.into()),
-    };
+    }
 
     let row = VoiceChannelRow::new(vc.id, new.user_id);
     row.save::<Db, ChannelManager>(pool).await?;

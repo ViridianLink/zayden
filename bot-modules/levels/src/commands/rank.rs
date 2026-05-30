@@ -1,11 +1,18 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Http,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
-use crate::{level_up_xp, LevelsManager, LevelsRow};
+use crate::{LevelsManager, LevelsRow, level_up_xp};
 
 pub struct Rank;
 
@@ -15,12 +22,14 @@ impl Rank {
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
-    ) {
+    ) -> serenity::Result<()> {
         let mut options = parse_options(options);
 
         match options.remove("ephemeral") {
-            Some(ResolvedValue::Boolean(true)) => interaction.defer_ephemeral(http).await.unwrap(),
-            _ => interaction.defer(http).await.unwrap(),
+            Some(ResolvedValue::Boolean(true)) => {
+                interaction.defer_ephemeral(http).await?;
+            },
+            _ => interaction.defer(http).await?,
         }
 
         let user = match options.remove("user") {
@@ -30,16 +39,16 @@ impl Rank {
 
         let row = Manager::rank_row(pool, user.id)
             .await
-            .unwrap()
+            .expect("DB query")
             .unwrap_or_default();
 
         let level = row.level();
         let xp_for_next_level = level_up_xp(level);
 
-        let user_rank = match Manager::user_rank(pool, user.id).await.unwrap() {
-            Some(rank) => format!("{rank}"),
-            None => String::from("N/A"),
-        };
+        let user_rank = Manager::user_rank(pool, user.id)
+            .await
+            .expect("DB query")
+            .map_or_else(|| String::from("N/A"), |rank| format!("{rank}"));
 
         let xp = row.xp();
 
@@ -47,13 +56,14 @@ impl Rank {
             .title(format!("XP stats for {}", user.name))
             .description(format!(
                 "Rank: #{user_rank}\nLevel: {level}\nXP: {xp}/{xp_for_next_level} ({}%)",
-                (xp as f32 / xp_for_next_level as f32 * 100.0).round()
+                (f64::from(xp) / f64::from(xp_for_next_level) * 100.0).round()
             ));
 
         interaction
             .edit_response(http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {

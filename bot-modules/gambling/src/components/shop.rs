@@ -1,5 +1,8 @@
 use serenity::all::{
-    ComponentInteraction, Context, CreateInteractionResponse, CreateInteractionResponseMessage,
+    ComponentInteraction,
+    Context,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -33,19 +36,17 @@ impl Shop {
             data.emojis()
         };
 
-        let row = match Manager::buy_row(pool, interaction.user.id).await.unwrap() {
-            Some(row) => row,
-            None => ShopRow::new(interaction.user.id),
-        };
-
-        let inventory = Manager::inventory_items(pool, interaction.user.id)
+        let row = Manager::buy_row(pool, interaction.user.id)
             .await
-            .unwrap();
+            .expect("async call")
+            .unwrap_or_else(|| ShopRow::new(interaction.user.id));
+
+        let inventory = Manager::inventory_items(pool, interaction.user.id).await?;
 
         let (embed, components) = if interaction.data.custom_id == "shop_next" {
-            shop_response(&emojis, &row, inventory, title, 1)
+            shop_response(&emojis, &row, &inventory, title, 1)
         } else {
-            shop_response(&emojis, &row, inventory, title, -1)
+            shop_response(&emojis, &row, &inventory, title, -1)
         };
 
         interaction

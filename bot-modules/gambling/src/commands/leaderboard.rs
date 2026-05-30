@@ -1,19 +1,28 @@
 use serenity::all::{
-    ButtonStyle, Colour, CommandInteraction, CommandOptionType, Context, CreateButton,
-    CreateCommand, CreateCommandOption, CreateEmbed, CreateEmbedFooter, EditInteractionResponse,
-    ResolvedOption, ResolvedValue,
+    ButtonStyle,
+    Colour,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateButton,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    CreateEmbedFooter,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::cache::GuildMembersCache;
 use zayden_core::{EmojiCacheData, parse_options};
 
+use super::Commands;
 use crate::Result;
 use crate::common::LeaderboardManager;
 use crate::common::leaderboard::{get_row_number, get_rows};
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
-
-use super::Commands;
 
 impl Commands {
     pub async fn leaderboard<
@@ -26,12 +35,13 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let mut options = parse_options(options);
 
-        let ResolvedValue::String(leaderboard) = options.remove("leaderboard").unwrap() else {
-            unreachable!("leaderboard option is required")
+        let Some(ResolvedValue::String(leaderboard)) = options.remove("leaderboard")
+        else {
+            return Err(crate::Error::InvalidAmount);
         };
 
         let global = match options.remove("global") {
@@ -39,22 +49,28 @@ impl Commands {
             _ => false,
         };
 
-        let users = if !global {
-            let data = ctx.data::<RwLock<Data>>();
-            let data = data.read().await;
-            let users = data
-                .get()
-                .get(&interaction.guild_id.unwrap())
-                .unwrap()
-                .iter()
-                .map(|id| id.get() as i64)
-                .collect::<Vec<_>>();
-            Some(users)
-        } else {
+        let users = if global {
             None
+        } else {
+            let users = {
+                let data = ctx.data::<RwLock<Data>>();
+                let data = data.read().await;
+                data.get()
+                    .get(
+                        &interaction
+                            .guild_id
+                            .expect("gambling command always used in guild"),
+                    )
+                    .expect("guild members cached when leaderboard command ran")
+                    .iter()
+                    .map(|id| id.get().cast_signed())
+                    .collect::<Vec<_>>()
+            };
+            Some(users)
         };
 
-        let rows = get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), 1).await;
+        let rows =
+            get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), 1).await;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -84,9 +100,14 @@ impl Commands {
                 .style(ButtonStyle::Secondary),
         );
 
-        if get_row_number::<Db, Manager>(leaderboard, pool, users.as_deref(), interaction.user.id)
-            .await
-            .is_some()
+        if get_row_number::<Db, Manager>(
+            leaderboard,
+            pool,
+            users.as_deref(),
+            interaction.user.id,
+        )
+        .await
+        .is_some()
         {
             response = response.button(
                 CreateButton::new("leaderboard_user")
@@ -104,8 +125,7 @@ impl Commands {
                         .style(ButtonStyle::Secondary),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

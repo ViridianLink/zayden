@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelId, CommandInteraction, EditInteractionResponse, Http, PermissionOverwriteType,
+    ChannelId,
+    CommandInteraction,
+    EditInteractionResponse,
+    Http,
+    PermissionOverwriteType,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
@@ -9,7 +13,7 @@ use sqlx::{Database, Pool};
 use crate::error::PermissionError;
 use crate::{Error, VoiceChannelManager, VoiceChannelRow};
 
-pub async fn untrust<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn untrust<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
@@ -17,15 +21,14 @@ pub async fn untrust<Db: Database, Manager: VoiceChannelManager<Db>>(
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(http).await.unwrap();
+    interaction.defer_ephemeral(http).await?;
 
     if !row.is_owner(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotOwner));
     }
 
-    let user = match options.remove("user") {
-        Some(ResolvedValue::User(user, _member)) => user,
-        _ => unreachable!("User option is required"),
+    let Some(ResolvedValue::User(user, _member)) = options.remove("user") else {
+        return Err(Error::IneligibleChannel);
     };
 
     row.untrust(user.id);
@@ -37,16 +40,14 @@ pub async fn untrust<Db: Database, Manager: VoiceChannelManager<Db>>(
             PermissionOverwriteType::Member(user.id),
             Some("User untrusted"),
         )
-        .await
-        .unwrap();
+        .await?;
 
     interaction
         .edit_response(
             http,
             EditInteractionResponse::new().content("Removed user from trusted."),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

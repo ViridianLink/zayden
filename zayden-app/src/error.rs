@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, AppError>;
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum AppError {
     #[error("missing required environment variable: {0}")]
     MissingEnvVar(String),
 

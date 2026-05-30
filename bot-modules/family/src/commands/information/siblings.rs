@@ -1,7 +1,14 @@
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    Mentionable,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::{Database, Pool};
 
@@ -11,23 +18,22 @@ use crate::{Error, Result};
 pub struct Siblings;
 
 impl Siblings {
+    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<(UserId, Vec<String>)> {
         let user = match interaction.data.options().first() {
-            Some(ResolvedOption {
-                value: ResolvedValue::User(user, _),
-                ..
-            }) => *user,
+            Some(ResolvedOption { value: ResolvedValue::User(user, _), .. }) => {
+                *user
+            },
             _ => &interaction.user,
         };
 
-        let row = match Manager::row(pool, user.id).await? {
-            Some(row) => row,
-            None => (&interaction.user).into(),
-        };
+        let row = Manager::row(pool, user.id)
+            .await?
+            .unwrap_or_else(|| (&interaction.user).into());
 
         if row.parent_ids.is_empty() {
             if user == &interaction.user {

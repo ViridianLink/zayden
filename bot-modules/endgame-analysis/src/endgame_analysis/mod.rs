@@ -14,8 +14,7 @@ pub mod weapon;
 
 pub use affinity::Affinity;
 pub use frame::Frame;
-pub use tier::Tier;
-pub use tier::{TIERS, TierLabel};
+pub use tier::{TIERS, Tier, TierLabel};
 use tracing::error;
 pub use weapon::{Weapon, WeaponBuilder};
 
@@ -23,14 +22,19 @@ use crate::Result;
 
 const ENDGAME_ANALYSIS_ID: &str = "1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY";
 
+#[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn primary_colour(color: &Color) -> bool {
-    color.red == 0.9529412 && color.green == 0.9529412 && color.blue == 0.9529412
+    color.red == 0.952_941_2
+        && color.green == 0.952_941_2
+        && color.blue == 0.952_941_2
 }
 
+#[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn special_colour(color: &Color) -> bool {
     color.red == 0.0 && color.green == 1.0 && color.blue == 0.0
 }
 
+#[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn heavy_colour(color: &Color) -> bool {
     color.red == 0.6 && color.green == 0.0 && color.blue == 1.0
 }
@@ -47,27 +51,27 @@ impl EndgameAnalysisSheet {
             Err(e) => {
                 error!("Destiny Manifest Error: {e}");
                 return HashMap::new();
-            }
+            },
         };
 
-        match client
-            .destiny_inventory_item_definition(&manifest, "en")
-            .await
-        {
+        match client.destiny_inventory_item_definition(&manifest, "en").await {
             Ok(manifest) => manifest,
             Err(e) => {
                 error!("Destiny item definition error: {e}");
                 HashMap::new()
-            }
+            },
         }
     }
 
-    pub async fn update(manifest: &HashMap<String, DestinyInventoryItemDefinition>) -> Result<()> {
-        let api_key = env::var("GOOGLE_API_KEY").unwrap();
+    pub async fn update(
+        manifest: &HashMap<String, DestinyInventoryItemDefinition>,
+    ) -> Result<()> {
+        let api_key = env::var("GOOGLE_API_KEY").expect("data invariant");
 
-        let client = SheetsClientBuilder::new(api_key).build().unwrap();
+        let client =
+            SheetsClientBuilder::new(api_key).build().expect("data invariant");
 
-        let spreadsheet = client.spreadsheet(ENDGAME_ANALYSIS_ID, true).await.unwrap();
+        let spreadsheet = client.spreadsheet(ENDGAME_ANALYSIS_ID, true).await?;
 
         let weapons = spreadsheet
             .sheets
@@ -79,35 +83,36 @@ impl EndgameAnalysisSheet {
                     || heavy_colour(&s.properties.tab_color)
                     || s.properties.title == "Other"
             })
-            .map(|mut sheet| (sheet.properties.title, sheet.data.pop().unwrap()))
-            .flat_map(|(title, data)| Self::parse_weapon_data(manifest, title, data))
+            .map(|mut sheet| {
+                (sheet.properties.title, sheet.data.pop().expect("data invariant"))
+            })
+            .flat_map(|(title, data)| {
+                Self::parse_weapon_data(manifest, &title, data)
+            })
             .collect::<Vec<_>>();
 
-        let json = serde_json::to_string(&weapons).unwrap();
-        std::fs::write("weapons.json", json).unwrap();
+        let json = serde_json::to_string(&weapons).expect("data invariant");
+        std::fs::write("weapons.json", json).expect("data invariant");
 
         Ok(())
     }
 
     fn parse_weapon_data(
         manifest: &HashMap<String, DestinyInventoryItemDefinition>,
-        title: String,
+        title: &str,
         data: GridData,
     ) -> Vec<Weapon> {
         let mut iter = data.row_data.into_iter().skip(1);
-        let header = iter.next().unwrap();
-        iter.filter_map(|r| WeaponBuilder::from_row(&title, &header, r))
+        let header = iter.next().expect("data invariant");
+        iter.filter_map(|r| WeaponBuilder::from_row(title, &header, r))
             .map(|builder| {
-                let item = match manifest.values().find(|item| {
-                    item.display_properties
-                        .name
-                        .eq_ignore_ascii_case(&builder.name)
+                let item = if let Some(item) = manifest.values().find(|item| {
+                    item.display_properties.name.eq_ignore_ascii_case(&builder.name)
                 }) {
-                    Some(item) => item,
-                    None => {
-                        error!("Missing item: {}", builder.name);
-                        &DestinyInventoryItemDefinition::default()
-                    }
+                    item
+                } else {
+                    error!("Missing item: {}", builder.name);
+                    &DestinyInventoryItemDefinition::default()
                 };
 
                 builder.build(item)

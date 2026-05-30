@@ -16,11 +16,15 @@ pub struct GamblingGoalsRow {
 }
 
 impl GamblingGoalsRow {
-    pub fn new(user_id: impl Into<UserId>, goal_id: impl Into<String>, target: i64) -> Self {
+    pub fn new(
+        user_id: impl Into<UserId>,
+        goal_id: impl Into<String>,
+        target: i64,
+    ) -> Self {
         let user_id = user_id.into();
 
         Self {
-            user_id: user_id.get() as i64,
+            user_id: user_id.get().cast_signed(),
             goal_id: goal_id.into(),
             day: jiff::civil::Date::default().to_sqlx(),
             progress: 0,
@@ -28,10 +32,12 @@ impl GamblingGoalsRow {
         }
     }
 
+    #[must_use]
     pub fn goal_id(&self) -> &str {
         &self.goal_id
     }
 
+    #[must_use]
     pub fn is_today(&self) -> bool {
         self.day.to_jiff() == jiff::Timestamp::now().to_zoned(TimeZone::UTC).date()
     }
@@ -41,26 +47,27 @@ impl GamblingGoalsRow {
         self.progress = self.progress.min(self.target);
     }
 
-    pub fn reset_progress(&mut self) {
-        self.progress = 0
+    pub const fn reset_progress(&mut self) {
+        self.progress = 0;
     }
 
-    pub fn set_completed(&mut self) {
-        self.progress = self.target
+    pub const fn set_completed(&mut self) {
+        self.progress = self.target;
     }
 
-    pub fn is_complete(&self) -> bool {
+    #[must_use]
+    pub const fn is_complete(&self) -> bool {
         self.progress == self.target
     }
 
     pub fn title(&self) -> String {
-        if let Some(goal) = GOAL_REGISTRY.get_definition(&self.goal_id) {
-            (goal.description)(self.target)
-        } else {
-            self.goal_id.to_string()
-        }
+        GOAL_REGISTRY.get_definition(&self.goal_id).map_or_else(
+            || self.goal_id.clone(),
+            |goal| (goal.description)(self.target),
+        )
     }
 
+    #[must_use]
     pub fn description(&self) -> String {
         let title = self.title();
 

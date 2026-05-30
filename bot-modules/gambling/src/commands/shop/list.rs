@@ -1,5 +1,9 @@
 use serenity::all::{
-    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    Context,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -20,18 +24,18 @@ pub async fn list<
     options: &[ResolvedOption<'_>],
 ) -> Result<()> {
     let page = match options.first().map(|opt| &opt.value) {
-        Some(ResolvedValue::String(page)) => page.parse::<ShopPage>().unwrap(),
+        Some(ResolvedValue::String(page)) => {
+            page.parse::<ShopPage>().expect("valid shop page")
+        },
         _ => ShopPage::Item,
     };
 
-    let row = match Manager::buy_row(pool, interaction.user.id).await.unwrap() {
-        Some(row) => row,
-        None => ShopRow::new(interaction.user.id),
-    };
-
-    let inventory = Manager::inventory_items(pool, interaction.user.id)
+    let row = Manager::buy_row(pool, interaction.user.id)
         .await
-        .unwrap();
+        .expect("async call")
+        .unwrap_or_else(|| ShopRow::new(interaction.user.id));
+
+    let inventory = Manager::inventory_items(pool, interaction.user.id).await?;
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -41,14 +45,13 @@ pub async fn list<
 
     let title = format!("{page} Shop");
 
-    let (embed, components) = shop_response(&emojis, &row, inventory, Some(&title), 0);
+    let (embed, components) =
+        shop_response(&emojis, &row, &inventory, Some(&title), 0);
 
     interaction
         .edit_response(
             &ctx.http,
-            EditInteractionResponse::new()
-                .embed(embed)
-                .components(vec![components]),
+            EditInteractionResponse::new().embed(embed).components(vec![components]),
         )
         .await?;
 

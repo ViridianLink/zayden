@@ -1,8 +1,18 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelId, CommandInteraction, Context, EditChannel, EditInteractionResponse, GuildId,
-    PermissionOverwrite, PermissionOverwriteType, Permissions, ResolvedValue, RoleId, UserId,
+    ChannelId,
+    CommandInteraction,
+    Context,
+    EditChannel,
+    EditInteractionResponse,
+    GuildId,
+    PermissionOverwrite,
+    PermissionOverwriteType,
+    Permissions,
+    ResolvedValue,
+    RoleId,
+    UserId,
 };
 use serenity::small_fixed_array::FixedArray;
 use tokio::sync::RwLock;
@@ -10,7 +20,7 @@ use tokio::sync::RwLock;
 use crate::error::PermissionError;
 use crate::{Error, VoiceChannelRow, VoiceStateCache};
 
-pub async fn privacy<Data: VoiceStateCache>(
+pub(super) async fn privacy<Data: VoiceStateCache>(
     ctx: &Context,
     interaction: &CommandInteraction,
     mut options: HashMap<&str, ResolvedValue<'_>>,
@@ -18,7 +28,7 @@ pub async fn privacy<Data: VoiceStateCache>(
     channel_id: ChannelId,
     row: VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(&ctx.http).await.unwrap();
+    interaction.defer_ephemeral(&ctx.http).await?;
 
     if !row.is_trusted(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotTrusted));
@@ -31,10 +41,8 @@ pub async fn privacy<Data: VoiceStateCache>(
 
     let everyone_role = guild_id.everyone_role();
 
-    let channel = channel_id
-        .to_guild_channel(&ctx.http, interaction.guild_id)
-        .await
-        .unwrap();
+    let channel =
+        channel_id.to_guild_channel(&ctx.http, interaction.guild_id).await?;
 
     let users = {
         let data = ctx.data::<RwLock<Data>>();
@@ -54,23 +62,25 @@ pub async fn privacy<Data: VoiceStateCache>(
         "spectator" => spectate_builder(perms, everyone_role, users),
         "lock" => lock_builder(perms, everyone_role),
         "invisible" => invisible_builder(perms, everyone_role),
-        _ => unreachable!("Invalid privacy option"),
+        _ => return Err(Error::IneligibleChannel),
     };
 
-    channel_id.edit(&ctx.http, builder).await.unwrap();
+    channel_id.edit(&ctx.http, builder).await?;
 
     interaction
         .edit_response(
             &ctx.http,
             EditInteractionResponse::new().content("Channel privacy updated."),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }
 
-fn open_builder<'a>(perms: FixedArray<PermissionOverwrite>, everyone: RoleId) -> EditChannel<'a> {
+fn open_builder<'a>(
+    perms: FixedArray<PermissionOverwrite>,
+    everyone: RoleId,
+) -> EditChannel<'a> {
     let perms = perms
         .into_iter()
         .map(|perm| {
@@ -127,7 +137,10 @@ fn spectate_builder<'a>(
     EditChannel::new().permissions(perms)
 }
 
-fn lock_builder<'a>(perms: FixedArray<PermissionOverwrite>, everyone: RoleId) -> EditChannel<'a> {
+fn lock_builder<'a>(
+    perms: FixedArray<PermissionOverwrite>,
+    everyone: RoleId,
+) -> EditChannel<'a> {
     let perms = perms
         .into_iter()
         .map(|perm| {

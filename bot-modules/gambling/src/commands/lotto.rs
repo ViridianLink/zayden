@@ -1,13 +1,25 @@
 use jiff::tz::TimeZone;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateEmbed,
+    EditInteractionResponse,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
 
 use crate::shop::LOTTO_TICKET;
-use crate::{Commands, GamblingManager, Lotto, LottoManager, LottoRow, Result, jackpot};
+use crate::{
+    Commands,
+    GamblingManager,
+    Lotto,
+    LottoManager,
+    LottoRow,
+    Result,
+    jackpot,
+};
 
 impl Commands {
     pub async fn lotto<
@@ -20,19 +32,16 @@ impl Commands {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
-        let mut tx = pool.begin().await.unwrap();
+        let mut tx = pool.begin().await?;
 
-        let total_tickets = LottoHandler::total_tickets(&mut tx).await.unwrap();
+        let total_tickets = LottoHandler::total_tickets(&mut tx).await?;
 
-        let row = match LottoHandler::row(&mut tx, interaction.user.id)
+        let row = LottoHandler::row(&mut tx, interaction.user.id)
             .await
-            .unwrap()
-        {
-            Some(row) => row,
-            None => LottoRow::new(interaction.user.id),
-        };
+            .expect("async call")
+            .unwrap_or_else(|| LottoRow::new(interaction.user.id));
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -44,6 +53,7 @@ impl Commands {
 
         let timestamp = {
             Lotto::cron_job::<Data, Db, GamblingHandler, LottoHandler>()
+                .expect("invariant: lotto cron schedule string is valid")
                 .schedule
                 .upcoming(TimeZone::UTC)
                 .next()
@@ -51,7 +61,7 @@ impl Commands {
                 .timestamp()
         };
 
-        let coin = emojis.emoji("heads").unwrap();
+        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
         let embed = CreateEmbed::new()
             .title(format!(
@@ -76,8 +86,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

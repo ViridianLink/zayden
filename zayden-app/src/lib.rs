@@ -5,4 +5,4 @@ pub mod events;
 pub mod services;
 pub mod state;
 
-pub use error::{Error, Result};
+pub use error::{AppError, AppError as Error, Result};

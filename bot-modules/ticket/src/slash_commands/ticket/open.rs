@@ -1,5 +1,9 @@
 use serenity::all::{
-    CommandInteraction, EditInteractionResponse, EditThread, GenericInteractionChannel, GuildId,
+    CommandInteraction,
+    EditInteractionResponse,
+    EditThread,
+    GenericInteractionChannel,
+    GuildId,
     Http,
 };
 use sqlx::{Database, Pool};
@@ -14,13 +18,13 @@ impl Ticket {
         guild_id: GuildId,
     ) -> Result<()> {
         let support_channel_id = GuildManager::get(pool, guild_id)
-            .await
-            .unwrap()
-            .unwrap()
+            .await?
+            .ok_or(Error::NotInSupportChannel)?
             .channel_id()
-            .unwrap();
+            .ok_or(Error::NotInSupportChannel)?;
 
-        let channel = interaction.channel.as_ref().unwrap();
+        let channel =
+            interaction.channel.as_ref().expect("interaction always has a channel");
 
         if let GenericInteractionChannel::Thread(c) = channel
             && c.parent_id != support_channel_id
@@ -32,7 +36,7 @@ impl Ticket {
             .base()
             .name
             .as_ref()
-            .unwrap()
+            .expect("channel always has a name")
             .replace("[Fixed] - ", "")
             .replace("[Closed] - ", "");
 
@@ -40,16 +44,14 @@ impl Ticket {
             .channel_id
             .expect_thread()
             .edit(http, EditThread::new().name(new_channel_name))
-            .await
-            .unwrap();
+            .await?;
 
         interaction
             .edit_response(
                 http,
                 EditInteractionResponse::new().content("Ticket reopened"),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

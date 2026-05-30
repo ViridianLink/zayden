@@ -1,8 +1,14 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ButtonStyle, CommandInteraction, CreateButton, CreateEmbed, CreateMessage,
-    EditInteractionResponse, Http, ResolvedValue,
+    ButtonStyle,
+    CommandInteraction,
+    CreateButton,
+    CreateEmbed,
+    CreateMessage,
+    EditInteractionResponse,
+    Http,
+    ResolvedValue,
 };
 
 use crate::{Result, Ticket};
@@ -13,14 +19,27 @@ impl Ticket {
         interaction: &CommandInteraction,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
         let Some(ResolvedValue::String(title)) = options.remove("title") else {
             unreachable!("Title is required")
         };
 
-        let Some(ResolvedValue::String(description)) = options.remove("description") else {
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
+        let Some(ResolvedValue::String(description)) = options.remove("description")
+        else {
             unreachable!("Description is required")
         };
 
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
         let Some(ResolvedValue::String(label)) = options.remove("label") else {
             unreachable!("Label is required")
         };
@@ -38,16 +57,14 @@ impl Ticket {
         interaction
             .channel_id
             .send_message(http, CreateMessage::new().embed(embed).button(button))
-            .await
-            .unwrap();
+            .await?;
 
         interaction
             .edit_response(
                 http,
                 EditInteractionResponse::new().content("Ticket embed created"),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

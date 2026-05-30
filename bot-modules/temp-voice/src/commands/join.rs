@@ -1,14 +1,20 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelId, CommandInteraction, GuildId, Http, PermissionOverwrite, PermissionOverwriteType,
+    ChannelId,
+    CommandInteraction,
+    EditInteractionResponse,
+    GuildId,
+    Http,
+    PermissionOverwrite,
+    PermissionOverwriteType,
     Permissions,
+    ResolvedValue,
 };
-use serenity::all::{EditInteractionResponse, ResolvedValue};
 
 use crate::{Error, Result, VoiceChannelRow};
 
-pub async fn join(
+pub(super) async fn join(
     http: &Http,
     interaction: &CommandInteraction,
     mut options: HashMap<&str, ResolvedValue<'_>>,
@@ -16,11 +22,10 @@ pub async fn join(
     channel_id: ChannelId,
     row: &VoiceChannelRow,
 ) -> Result<()> {
-    interaction.defer_ephemeral(http).await.unwrap();
+    interaction.defer_ephemeral(http).await?;
 
-    let pass = match options.remove("pass") {
-        Some(ResolvedValue::String(pass)) => pass,
-        _ => unreachable!("Password option is required"),
+    let Some(ResolvedValue::String(pass)) = options.remove("pass") else {
+        return Err(Error::IneligibleChannel);
     };
 
     if !row.verify_password(pass) {
@@ -37,21 +42,16 @@ pub async fn join(
             },
             Some("Correct channel password"),
         )
-        .await
-        .unwrap();
+        .await?;
 
-    guild_id
-        .move_member(http, interaction.user.id, channel_id)
-        .await
-        .unwrap();
+    guild_id.move_member(http, interaction.user.id, channel_id).await?;
 
     interaction
         .edit_response(
             http,
             EditInteractionResponse::new().content("Successfully joined channel."),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

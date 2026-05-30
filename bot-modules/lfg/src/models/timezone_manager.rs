@@ -3,6 +3,7 @@ use jiff::tz::TimeZone;
 use serenity::all::UserId;
 use sqlx::{Database, Pool};
 
+#[must_use]
 pub fn locale_to_timezone(locale: &str) -> &'static str {
     match locale {
         "id" => "Asia/Jakarta",
@@ -42,7 +43,8 @@ pub fn locale_to_timezone(locale: &str) -> &'static str {
 
 #[async_trait]
 pub trait TimezoneManager<Db: Database> {
-    async fn get(pool: &Pool<Db>, id: UserId, local: &str) -> sqlx::Result<TimeZone>;
+    async fn get(pool: &Pool<Db>, id: UserId, local: &str)
+    -> sqlx::Result<TimeZone>;
 
     async fn save(
         pool: &Pool<Db>,

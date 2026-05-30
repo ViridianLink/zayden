@@ -1,9 +1,15 @@
 use serenity::all::{
-    DiscordJsonError, ErrorResponse, GenericChannelId, Http, HttpError, JsonErrorCode,
+    DiscordJsonError,
+    ErrorResponse,
+    GenericChannelId,
+    Http,
+    HttpError,
+    JsonErrorCode,
 };
 use sqlx::{Database, Pool};
 
-use crate::{PostManager, Result, templates::TemplateInfo};
+use crate::templates::TemplateInfo;
+use crate::{PostManager, Result};
 
 pub async fn delete<Db: Database, Manager: PostManager<Db>>(
     http: &Http,
@@ -16,38 +22,34 @@ pub async fn delete<Db: Database, Manager: PostManager<Db>>(
         return Ok(());
     };
 
-    match post
-        .thread()
-        .widen()
-        .delete(http, Some("Lfg post deleted"))
-        .await
-    {
+    match post.thread().widen().delete(http, Some("Lfg post deleted")).await {
         Ok(_)
-        | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error:
-                DiscordJsonError {
-                    code: JsonErrorCode::UnknownChannel,
-                    ..
-                },
-            ..
-        }))) => {}
+        | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+            ErrorResponse {
+                error: DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
+                ..
+            },
+        ))) => {},
         Err(e) => return Err(e.into()),
     }
 
-    if let (Some(channel), Some(message)) = (post.schedule_channel(), post.alt_message()) {
-        match channel
-            .delete_message(http, message, Some("Lfg post deleted"))
-            .await
-        {
-            Ok(_)
-            | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                error:
-                    DiscordJsonError {
-                        code: JsonErrorCode::UnknownMessage | JsonErrorCode::UnknownChannel,
-                        ..
-                    },
-                ..
-            }))) => {}
+    if let (Some(channel), Some(message)) =
+        (post.schedule_channel(), post.alt_message())
+    {
+        match channel.delete_message(http, message, Some("Lfg post deleted")).await {
+            Ok(())
+            | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                ErrorResponse {
+                    error:
+                        DiscordJsonError {
+                            code:
+                                JsonErrorCode::UnknownMessage
+                                | JsonErrorCode::UnknownChannel,
+                            ..
+                        },
+                    ..
+                },
+            ))) => {},
             Err(e) => return Err(e.into()),
         }
     }

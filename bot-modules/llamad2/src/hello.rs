@@ -1,6 +1,11 @@
+use serenity::Error;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateInteractionResponse,
-    CreateInteractionResponseMessage, Mentionable,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    Mentionable,
 };
 
 use crate::LLAMA_GUILD;
@@ -8,13 +13,14 @@ use crate::LLAMA_GUILD;
 pub struct Hello;
 
 impl Hello {
-    pub async fn run(ctx: &Context, interaction: &CommandInteraction) {
-        if interaction
-            .guild_id
-            .is_none_or(|guild| guild != LLAMA_GUILD)
+    pub async fn run(
+        ctx: &Context,
+        interaction: &CommandInteraction,
+    ) -> Result<(), Error> {
+        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
             || interaction.user.bot()
         {
-            return;
+            return Ok(());
         }
 
         interaction
@@ -25,8 +31,9 @@ impl Hello {
                         .content(format!("Hello {}", interaction.user.mention())),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {

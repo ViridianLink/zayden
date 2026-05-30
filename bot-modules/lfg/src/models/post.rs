@@ -46,45 +46,53 @@ impl PostBuilder {
         }
     }
 
+    #[must_use]
     pub fn id(mut self, id: impl Into<ThreadId>) -> Self {
         self.id = id.into();
         self
     }
 
+    #[must_use]
     pub fn activity(mut self, activity: impl Into<String>) -> Self {
         self.activity = activity.into();
         self
     }
 
-    pub fn fireteam_size(mut self, size: i16) -> Self {
+    #[must_use]
+    pub const fn fireteam_size(mut self, size: i16) -> Self {
         self.fireteam_size = size;
         self
     }
 
+    #[must_use]
     pub fn description(mut self, desc: impl Into<String>) -> Self {
         self.description = desc.into();
         self
     }
 
+    #[must_use]
     pub fn start(mut self, start: Zoned) -> Self {
         self.start_time = start;
         self
     }
 
-    pub fn schedule_channel(mut self, channel: GenericChannelId) -> Self {
+    #[must_use]
+    pub const fn schedule_channel(mut self, channel: GenericChannelId) -> Self {
         self.schedule_channel = Some(channel);
         self
     }
 
-    pub fn alt_message(mut self, message: MessageId) -> Self {
+    #[must_use]
+    pub const fn alt_message(mut self, message: MessageId) -> Self {
         self.alt_message = Some(message);
         self
     }
 
+    #[must_use]
     pub fn build(self) -> PostRow {
         PostRow {
-            id: self.id.get() as i64,
-            owner_id: self.owner.get() as i64,
+            id: self.id.get().cast_signed(),
+            owner_id: self.owner.get().cast_signed(),
             activity: self.activity,
             start_time: self.start_time.timestamp().to_sqlx(),
             description: self.description,
@@ -92,15 +100,17 @@ impl PostBuilder {
             fireteam: self
                 .fireteam
                 .into_iter()
-                .map(|user| user.get() as i64)
+                .map(|user| user.get().cast_signed())
                 .collect(),
             alternatives: self
                 .alternatives
                 .into_iter()
-                .map(|user| user.get() as i64)
+                .map(|user| user.get().cast_signed())
                 .collect(),
-            alt_channel: self.schedule_channel.map(|channel| channel.get() as i64),
-            alt_message: self.alt_message.map(|message| message.get() as i64),
+            alt_channel: self
+                .schedule_channel
+                .map(|channel| channel.get().cast_signed()),
+            alt_message: self.alt_message.map(|message| message.get().cast_signed()),
         }
     }
 }
@@ -142,7 +152,7 @@ impl TemplateInfo for PostBuilder {
 impl From<PostRow> for PostBuilder {
     fn from(value: PostRow) -> Self {
         Self {
-            id: ThreadId::new(value.id as u64),
+            id: ThreadId::new(value.id.cast_unsigned()),
             owner: value.owner(),
             activity: value.activity,
             start_time: value.start_time.to_jiff().to_zoned(TimeZone::UTC),
@@ -151,25 +161,34 @@ impl From<PostRow> for PostBuilder {
             fireteam: value
                 .fireteam
                 .into_iter()
-                .map(|id| UserId::new(id as u64))
+                .map(|id| UserId::new(id.cast_unsigned()))
                 .collect(),
             alternatives: value
                 .alternatives
                 .into_iter()
-                .map(|id| UserId::new(id as u64))
+                .map(|id| UserId::new(id.cast_unsigned()))
                 .collect(),
-            schedule_channel: value.alt_channel.map(|id| GenericChannelId::new(id as u64)),
-            alt_message: value.alt_message.map(|id| MessageId::new(id as u64)),
+            schedule_channel: value
+                .alt_channel
+                .map(|id| GenericChannelId::new(id.cast_unsigned())),
+            alt_message: value
+                .alt_message
+                .map(|id| MessageId::new(id.cast_unsigned())),
         }
     }
 }
 
 #[async_trait]
 pub trait PostManager<Db: Database> {
-    async fn exists(pool: &Pool<Db>, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<bool>;
+    async fn exists(
+        pool: &Pool<Db>,
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<bool>;
 
-    async fn owner(pool: &Pool<Db>, id: impl Into<GenericChannelId> + Send)
-    -> sqlx::Result<UserId>;
+    async fn owner(
+        pool: &Pool<Db>,
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<UserId>;
 
     async fn post_row(
         pool: &Pool<Db>,
@@ -213,16 +232,19 @@ pub struct PostRow {
 }
 
 impl PostRow {
-    pub fn thread(&self) -> ThreadId {
-        ThreadId::new(self.id as u64)
+    #[must_use]
+    pub const fn thread(&self) -> ThreadId {
+        ThreadId::new(self.id.cast_unsigned())
     }
 
-    pub fn message(&self) -> MessageId {
-        MessageId::new(self.id as u64)
+    #[must_use]
+    pub const fn message(&self) -> MessageId {
+        MessageId::new(self.id.cast_unsigned())
     }
 
-    pub fn owner(&self) -> UserId {
-        UserId::new(self.owner_id as u64)
+    #[must_use]
+    pub const fn owner(&self) -> UserId {
+        UserId::new(self.owner_id.cast_unsigned())
     }
 }
 
@@ -232,15 +254,15 @@ impl Join for PostRow {
     }
 
     fn fireteam(&self) -> impl Iterator<Item = UserId> {
-        self.fireteam.iter().map(|&id| UserId::new(id as u64))
+        self.fireteam.iter().map(|&id| UserId::new(id.cast_unsigned()))
     }
 
     fn fireteam_len(&self) -> i16 {
-        self.fireteam.len() as i16
+        i16::try_from(self.fireteam.len()).unwrap_or(i16::MAX)
     }
 
     fn alternatives(&self) -> impl Iterator<Item = UserId> {
-        self.alternatives.iter().map(|&id| UserId::new(id as u64))
+        self.alternatives.iter().map(|&id| UserId::new(id.cast_unsigned()))
     }
 }
 
@@ -262,18 +284,18 @@ impl TemplateInfo for PostRow {
     }
 
     fn fireteam(&self) -> impl Iterator<Item = UserId> {
-        self.fireteam.iter().map(|&id| UserId::new(id as u64))
+        self.fireteam.iter().map(|&id| UserId::new(id.cast_unsigned()))
     }
 
     fn alternatives(&self) -> impl Iterator<Item = UserId> {
-        self.alternatives.iter().map(|&id| UserId::new(id as u64))
+        self.alternatives.iter().map(|&id| UserId::new(id.cast_unsigned()))
     }
 
     fn schedule_channel(&self) -> Option<GenericChannelId> {
-        self.alt_channel.map(|id| GenericChannelId::new(id as u64))
+        self.alt_channel.map(|id| GenericChannelId::new(id.cast_unsigned()))
     }
 
     fn alt_message(&self) -> Option<MessageId> {
-        self.alt_message.map(|id| MessageId::new(id as u64))
+        self.alt_message.map(|id| MessageId::new(id.cast_unsigned()))
     }
 }

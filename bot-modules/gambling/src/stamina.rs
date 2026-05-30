@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use jiff_cron;
 use sqlx::{Database, Pool};
 use zayden_core::CronJob;
 
@@ -10,9 +11,16 @@ pub trait StaminaManager<Db: Database> {
 pub struct StaminaCron;
 
 impl StaminaCron {
-    pub fn cron_job<Db: Database, Manager: StaminaManager<Db>>() -> CronJob<Db> {
-        CronJob::new("stamina", "0 */10 * * * * *").set_action(|_ctx, pool| async move {
-            Manager::update(&pool).await.unwrap();
-        })
+    /// # Errors
+    /// Returns an error if the cron schedule string is invalid.
+    pub fn cron_job<Db: Database, Manager: StaminaManager<Db>>()
+    -> Result<CronJob<Db>, jiff_cron::error::Error> {
+        Ok(CronJob::new("stamina", "0 */10 * * * * *")?.set_action(
+            |_ctx, pool| async move {
+                if let Err(e) = Manager::update(&pool).await {
+                    tracing::error!(error = ?e, "stamina cron update failed");
+                }
+            },
+        ))
     }
 }

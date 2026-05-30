@@ -17,31 +17,27 @@ pub struct GameResult {
 
 impl GameResult {
     pub fn new(name: impl Into<String>, emoji: Emoji) -> Self {
-        Self {
-            name: name.into(),
-            emoji,
-        }
+        Self { name: name.into(), emoji }
     }
 
     pub fn new_with_str(name: impl Into<String>, emoji: &'static str) -> Self {
-        Self {
-            name: name.into(),
-            emoji: Emoji::Str(emoji),
-        }
+        Self { name: name.into(), emoji: Emoji::Str(emoji) }
     }
 }
 
 impl GameResult {
     pub fn new_with_id(name: impl Into<String>, emoji: &'static str) -> Self {
-        Self {
-            name: name.into(),
-            emoji: Emoji::Id(emoji),
-        }
+        Self { name: name.into(), emoji: Emoji::Id(emoji) }
     }
 
+    #[must_use]
     pub fn emoji(&self, emojis: &EmojiCache) -> String {
         match self.emoji {
-            Emoji::Id(id) => format!("<:{}:{}>", self.name, emojis.emoji(id).unwrap()),
+            Emoji::Id(id) => format!(
+                "<:{}:{}>",
+                self.name,
+                emojis.emoji(id).expect("emoji ID in cache")
+            ),
             Emoji::Str(emoji) => String::from(emoji),
             Emoji::None => String::new(),
         }
@@ -60,7 +56,10 @@ impl PartialEq for GameResult {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "game embed requires all display parameters"
+)]
 pub fn game_embed<'a>(
     emojis: &EmojiCache,
     title: &'a str,
@@ -76,7 +75,8 @@ pub fn game_embed<'a>(
 
     let win = prediction == outcome;
 
-    let result = format!("Payout: {} ({})", payout.format(), (payout - bet).format());
+    let result =
+        format!("Payout: {} ({})", payout.format(), (payout - bet).format());
 
     let colour = if win { Colour::DARK_GREEN } else { Colour::RED };
 
@@ -89,14 +89,11 @@ pub fn game_embed<'a>(
         {result}
         Your coins: {}",
         bet.format(),
-        emojis.emoji("heads").unwrap(),
+        emojis.emoji("heads").expect("emoji 'heads' in cache"),
         prediction.emoji(emojis),
         outcome.emoji(emojis),
         coins.format()
     );
 
-    CreateEmbed::<'a>::new()
-        .title(title)
-        .description(desc)
-        .colour(colour)
+    CreateEmbed::<'a>::new().title(title).description(desc).colour(colour)
 }

@@ -1,6 +1,13 @@
+use std::fmt::Write as _;
+
 use async_trait::async_trait;
 use serenity::all::{
-    ButtonStyle, CreateActionRow, CreateButton, CreateComponent, CreateEmbed, UserId,
+    ButtonStyle,
+    CreateActionRow,
+    CreateButton,
+    CreateComponent,
+    CreateEmbed,
+    UserId,
 };
 use sqlx::{Database, FromRow, Pool};
 use zayden_core::{EmojiCache, FormatNum};
@@ -25,7 +32,10 @@ pub trait ShopManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<ShopRow>>;
 
-    async fn buy_save(pool: &Pool<Db>, row: ShopRow) -> sqlx::Result<Db::QueryResult>;
+    async fn buy_save(
+        pool: &Pool<Db>,
+        row: ShopRow,
+    ) -> sqlx::Result<Db::QueryResult>;
 
     async fn save_inventory(
         pool: &Pool<Db>,
@@ -39,7 +49,10 @@ pub trait ShopManager<Db: Database> {
         item_id: &str,
     ) -> sqlx::Result<Option<SellRow>>;
 
-    async fn sell_save(pool: &Pool<Db>, row: SellRow) -> sqlx::Result<Db::QueryResult>;
+    async fn sell_save(
+        pool: &Pool<Db>,
+        row: SellRow,
+    ) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -68,7 +81,7 @@ impl ShopRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coins: 0,
             gems: 0,
             level: Some(0),
@@ -202,18 +215,27 @@ impl MaxBet for ShopRow {
 pub fn shop_response<'a>(
     emojis: &EmojiCache,
     row: &'a ShopRow,
-    inventory: GamblingItems,
+    inventory: &GamblingItems,
     title: Option<&str>,
     page_change: i8,
 ) -> (CreateEmbed<'a>, CreateComponent<'a>) {
-    let current_cat = title
-        .map(|title| title.strip_suffix(" Shop").unwrap().parse().unwrap())
-        .unwrap_or(ShopPage::Item);
+    let current_cat = title.map_or(ShopPage::Item, |title| {
+        title
+            .strip_suffix(" Shop")
+            .expect("shop embed title ends with \" Shop\"")
+            .parse()
+            .expect("shop title prefix is a valid ShopPage")
+    });
 
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "ShopPage has fewer than i8::MAX variants"
+    )]
     let category_idx = ShopPage::pages()
         .iter()
         .position(|cat| *cat == current_cat)
-        .unwrap() as i8;
+        .expect("current_cat is always a valid ShopPage")
+        as i8;
 
     let category = ShopPage::pages()
         .get(usize::try_from(category_idx + page_change).unwrap_or_default())
@@ -222,24 +244,19 @@ pub fn shop_response<'a>(
 
     let embed = create_embed(emojis, category, row, inventory);
 
-    let prev = CreateButton::new("shop_prev")
-        .label("<")
-        .style(ButtonStyle::Secondary);
-    let next = CreateButton::new("shop_next")
-        .label(">")
-        .style(ButtonStyle::Secondary);
+    let prev =
+        CreateButton::new("shop_prev").label("<").style(ButtonStyle::Secondary);
+    let next =
+        CreateButton::new("shop_next").label(">").style(ButtonStyle::Secondary);
 
-    (
-        embed,
-        CreateComponent::ActionRow(CreateActionRow::buttons(vec![prev, next])),
-    )
+    (embed, CreateComponent::ActionRow(CreateActionRow::buttons(vec![prev, next])))
 }
 
 fn create_embed<'a>(
     emojis: &EmojiCache,
     category: ShopPage,
     row: &ShopRow,
-    inventory: GamblingItems,
+    inventory: &GamblingItems,
 ) -> CreateEmbed<'a> {
     let items = SHOP_ITEMS
         .iter()
@@ -248,7 +265,9 @@ fn create_embed<'a>(
             let costs = item
                 .costs(1)
                 .into_iter()
-                .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency.emoji(emojis)))
+                .map(|(cost, currency)| {
+                    format!("`{}` {}", cost.format(), currency.emoji(emojis))
+                })
                 .collect::<Vec<_>>();
 
             let mut s = format!("**{}**", item.as_str(emojis));
@@ -258,7 +277,8 @@ fn create_embed<'a>(
                 s.push_str(item.description);
             }
 
-            s.push_str(&format!(
+            let _ = write!(
+                s,
                 "\nOwned: `{}`\nCost:",
                 inventory
                     .0
@@ -266,7 +286,7 @@ fn create_embed<'a>(
                     .find(|inv_item| inv_item.item_id == item.id)
                     .map(|item| item.quantity)
                     .unwrap_or_default()
-            ));
+            );
 
             if costs.len() == 1 {
                 s.push(' ');
@@ -281,7 +301,7 @@ fn create_embed<'a>(
         .collect::<Vec<_>>()
         .join("\n\n");
 
-    let coin = emojis.emoji("heads").unwrap();
+    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
     let desc = format!(
         "Sales tax: {}%\nYour coins: {}  <:coin:{coin}>\n--------------------\n{items}\n--------------------\nBuy with `/shop buy <item> <amount>`\nSell with `/shop sell <item> <amount>`",
@@ -289,7 +309,5 @@ fn create_embed<'a>(
         row.coins_str()
     );
 
-    CreateEmbed::new()
-        .title(format!("{category} Shop"))
-        .description(desc)
+    CreateEmbed::new().title(format!("{category} Shop")).description(desc)
 }

@@ -2,8 +2,14 @@ mod get;
 mod list;
 
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, Http, Permissions,
-    ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    Http,
+    Permissions,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::{Error as ZaydenError, parse_options};
@@ -21,19 +27,29 @@ impl Support {
 
         let command = options.remove(0);
 
-        let options = match command.value {
-            ResolvedValue::SubCommand(options) => options,
-            ResolvedValue::SubCommandGroup(options) => options,
-            _ => unreachable!("Subcommand is required"),
+        let (ResolvedValue::SubCommand(options)
+        | ResolvedValue::SubCommandGroup(options)) = command.value
+        else {
+            return Ok(());
         };
         let options = parse_options(options);
 
         match command.name {
             "get" => {
-                Self::get::<Db, GuildManager>(http, interaction, pool, options, guild_id).await?
-            }
-            "list" => Self::list::<Db, GuildManager>(http, interaction, pool, guild_id).await?,
-            _ => unreachable!("Subcommand is required"),
+                Self::get::<Db, GuildManager>(
+                    http,
+                    interaction,
+                    pool,
+                    options,
+                    guild_id,
+                )
+                .await?;
+            },
+            "list" => {
+                Self::list::<Db, GuildManager>(http, interaction, pool, guild_id)
+                    .await?;
+            },
+            _ => return Ok(()),
         }
 
         Ok(())

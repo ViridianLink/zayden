@@ -1,11 +1,15 @@
 use charming::series::{GraphData, GraphLink, GraphNode, GraphNodeLabel};
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
 };
 use sqlx::{Database, Pool};
 
-use crate::family_manager::FamilyManager;
 use crate::Result;
+use crate::family_manager::FamilyManager;
 
 #[derive(Debug)]
 struct Node {
@@ -20,8 +24,8 @@ struct Node {
 }
 
 impl Node {
-    fn new(id: i64, name: String, x: f64, y: f64) -> Self {
-        Node {
+    const fn new(id: i64, name: String, x: f64, y: f64) -> Self {
+        Self {
             id,
             name,
             x,
@@ -41,9 +45,9 @@ impl Node {
 
 impl From<&Node> for GraphNode {
     fn from(node: &Node) -> Self {
-        GraphNode {
+        Self {
             id: node.id.to_string(),
-            name: node.name.to_string(),
+            name: node.name.clone(),
             x: node.x,
             y: node.y,
             value: node.value,
@@ -64,26 +68,30 @@ impl From<&Node> for GraphNode {
 pub struct Tree;
 
 impl Tree {
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "precision loss is acceptable for tree layout positioning"
+    )]
     pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         _ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<GraphData> {
-        let row = match Manager::row(pool, interaction.user.id).await? {
-            Some(row) => row,
-            None => (&interaction.user).into(),
-        };
+        let row = Manager::row(pool, interaction.user.id)
+            .await?
+            .unwrap_or_else(|| (&interaction.user).into());
 
         let tree = row.tree::<Db, Manager>(pool).await?;
 
         let mut keys: Vec<i32> = tree.keys().copied().collect();
-        keys.sort();
+        keys.sort_unstable();
 
-        let max_width = tree.values().map(|v| v.len()).max().unwrap_or(0);
+        let max_width = tree.values().map(Vec::len).max().unwrap_or(0);
 
         let mut nodes = Vec::new();
         for depth in keys {
-            let values = tree.get(&depth).unwrap();
+            let values =
+                tree.get(&depth).expect("key from tree.keys() always present");
             let width = values.len();
             let width_diff = max_width - width;
             let spacing = width_diff as f64 / 2.0;
@@ -92,7 +100,7 @@ impl Tree {
                     value.id,
                     value.username.clone(),
                     spacing + index as f64,
-                    depth as f64,
+                    f64::from(depth),
                 );
                 for id in value.children_ids.iter().chain(value.partner_ids.iter()) {
                     node = node.add_link(*id);

@@ -1,28 +1,39 @@
 use serenity::all::{
-    ButtonStyle, Colour, CommandInteraction, ComponentInteraction, CreateButton, CreateCommand,
-    CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage, CreateMessage, Http,
-    Permissions, RoleId,
+    ButtonStyle,
+    Colour,
+    CommandInteraction,
+    ComponentInteraction,
+    CreateButton,
+    CreateCommand,
+    CreateEmbed,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    CreateMessage,
+    Http,
+    Permissions,
+    RoleId,
 };
 
-const VERIFIED_ROLE: RoleId = RoleId::new(1404640603848839299);
+const VERIFIED_ROLE: RoleId = RoleId::new(1_404_640_603_848_839_299);
 
 pub struct Panel;
 
 impl Panel {
-    pub async fn run_command(http: &Http, interaction: &CommandInteraction) {
+    pub async fn run_command(
+        http: &Http,
+        interaction: &CommandInteraction,
+    ) -> serenity::Result<()> {
         let embed = CreateEmbed::new()
             .description("Click the green button below to verify")
             .colour(Colour::DARK_GREEN);
 
-        let button = CreateButton::new("verify")
-            .label("Verify")
-            .style(ButtonStyle::Success);
+        let button =
+            CreateButton::new("verify").label("Verify").style(ButtonStyle::Success);
 
         interaction
             .channel_id
             .send_message(http, CreateMessage::new().embed(embed).button(button))
-            .await
-            .unwrap();
+            .await?;
 
         interaction
             .create_response(
@@ -33,8 +44,9 @@ impl Panel {
                         .ephemeral(true),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {
@@ -47,12 +59,11 @@ impl Panel {
         http: &Http,
         interaction: &ComponentInteraction,
     ) -> Result<(), serenity::Error> {
-        let member = interaction.member.as_ref().unwrap();
+        let Some(member) = interaction.member.as_ref() else {
+            return Ok(());
+        };
 
-        member
-            .add_role(http, VERIFIED_ROLE, Some("Verified user"))
-            .await
-            .unwrap();
+        member.add_role(http, VERIFIED_ROLE, Some("Verified user")).await?;
 
         interaction
             .create_response(

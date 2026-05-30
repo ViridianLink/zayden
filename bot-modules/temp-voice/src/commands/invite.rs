@@ -1,25 +1,31 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelId, CommandInteraction, EditInteractionResponse, Http, PermissionOverwrite,
-    PermissionOverwriteType, Permissions, ResolvedValue,
+    ChannelId,
+    CommandInteraction,
+    CreateMessage,
+    EditInteractionResponse,
+    Http,
+    Mentionable,
+    PermissionOverwrite,
+    PermissionOverwriteType,
+    Permissions,
+    ResolvedValue,
 };
-use serenity::all::{CreateMessage, Mentionable};
 
 use crate::{Error, VoiceChannelRow};
 
-pub async fn invite(
+pub(super) async fn invite(
     http: &Http,
     interaction: &CommandInteraction,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(http).await.unwrap();
+    interaction.defer_ephemeral(http).await?;
 
-    let user = match options.remove("user") {
-        Some(ResolvedValue::User(user, _member)) => user,
-        _ => unreachable!("User option is required"),
+    let Some(ResolvedValue::User(user, _member)) = options.remove("user") else {
+        return Err(Error::IneligibleChannel);
     };
 
     row.create_invite(user.id);
@@ -34,8 +40,7 @@ pub async fn invite(
             },
             Some("User invited to channel"),
         )
-        .await
-        .unwrap();
+        .await?;
 
     let result = user
         .id
@@ -55,8 +60,7 @@ pub async fn invite(
 
     interaction
         .edit_response(http, EditInteractionResponse::new().content(content))
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

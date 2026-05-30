@@ -28,7 +28,10 @@ pub trait EffectsManager<Db: Database>: Send {
         item: &ShopItem<'_>,
     ) -> sqlx::Result<Db::QueryResult>;
 
-    async fn remove_effect(conn: &mut Db::Connection, id: i32) -> sqlx::Result<Db::QueryResult>;
+    async fn remove_effect(
+        conn: &mut Db::Connection,
+        id: i32,
+    ) -> sqlx::Result<Db::QueryResult>;
 
     async fn bet_limit<GamblingHandler: GamblingManager<Db>>(
         pool: &Pool<Db>,
@@ -44,22 +47,19 @@ pub trait EffectsManager<Db: Database>: Send {
 
         let user_id = user_id.into();
 
-        let mut tx = pool.begin().await.unwrap();
+        let mut tx = pool.begin().await?;
 
-        match Self::get_effect(&mut *tx, user_id, ALL_INS.id)
+        if let Some(effect) = Self::get_effect(&mut *tx, user_id, ALL_INS.id)
             .await
-            .unwrap()
+            .expect("async call")
         {
-            Some(effect) => {
-                Self::remove_effect(&mut *tx, effect.id).await?;
+            Self::remove_effect(&mut *tx, effect.id).await?;
+        } else {
+            let max = GamblingHandler::max_bet(&mut *tx, user_id).await?;
+            if bet > max {
+                return Err(Error::MaximumBetAmount(max));
             }
-            None => {
-                let max = GamblingHandler::max_bet(&mut *tx, user_id).await.unwrap();
-                if bet > max {
-                    return Err(Error::MaximumBetAmount(max));
-                }
-            }
-        };
+        }
 
         tx.commit().await?;
 
@@ -85,34 +85,43 @@ pub trait EffectsManager<Db: Database>: Send {
 
         let user_id = user_id.into();
 
-        let mut tx = pool.begin().await.unwrap();
-        let mut effects = Self::get_effects(&mut *tx, user_id).await.unwrap();
+        let result: sqlx::Result<i64> = (async {
+            let mut tx = pool.begin().await?;
+            let mut effects = Self::get_effects(&mut *tx, user_id).await?;
 
-        {
-            let lucky_chip = effects.remove(LUCKY_CHIP.id);
-            if let Some(id) = lucky_chip {
-                Self::remove_effect(&mut *tx, id).await.unwrap();
+            {
+                let lucky_chip = effects.remove(LUCKY_CHIP.id);
+                if let Some(id) = lucky_chip {
+                    Self::remove_effect(&mut *tx, id).await?;
 
-                if win == Some(false) {
-                    payout = bet;
+                    if win == Some(false) {
+                        payout = bet;
+                    }
                 }
             }
-        }
 
-        for (item_id, id) in effects.drain() {
-            Self::remove_effect(&mut *tx, id).await.unwrap();
+            for (item_id, id) in effects.drain() {
+                Self::remove_effect(&mut *tx, id).await?;
 
-            let item = SHOP_ITEMS.get(&item_id).unwrap();
+                let item = SHOP_ITEMS
+                    .get(&item_id)
+                    .expect("effect item_id is always a valid SHOP_ITEMS key");
 
-            if win == Some(true) && item_id.starts_with("payout") {
-                payout += (item.effect_fn)(bet, base_payout);
-                continue;
+                if win == Some(true) && item_id.starts_with("payout") {
+                    payout += (item.effect_fn)(bet, base_payout);
+                }
             }
-        }
 
-        tx.commit().await.unwrap();
+            tx.commit().await?;
 
-        payout.max(base_payout)
+            Ok(payout.max(base_payout))
+        })
+        .await;
+
+        result.unwrap_or_else(|e| {
+            tracing::error!(error = ?e, "payout effects DB error, falling back to base payout");
+            base_payout
+        })
     }
 }
 

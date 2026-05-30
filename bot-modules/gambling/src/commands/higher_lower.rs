@@ -3,16 +3,27 @@ use std::sync::Arc;
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    CommandInteraction, Context, CreateButton, CreateCommand, CreateInteractionResponse,
+    CommandInteraction,
+    Context,
+    CreateButton,
+    CreateCommand,
+    CreateInteractionResponse,
     CreateInteractionResponseMessage,
 };
 use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
-use crate::games::higherlower::create_embed;
-use crate::{CARD_DECK, CARD_TO_NUM, GamblingData, GameCache, Result, card_deck, card_to_num};
-
 use super::Commands;
+use crate::games::higherlower::create_embed;
+use crate::{
+    CARD_DECK,
+    CARD_TO_NUM,
+    GamblingData,
+    GameCache,
+    Result,
+    card_deck,
+    card_to_num,
+};
 
 impl Commands {
     pub async fn higher_lower<Data: GamblingData + EmojiCacheData>(
@@ -27,14 +38,14 @@ impl Commands {
 
         GameCache::can_play(Arc::clone(&data_lock), interaction.user.id).await?;
 
-        let mut deck = CARD_DECK.get_or_init(|| card_deck(&emojis)).to_vec();
+        let mut deck = CARD_DECK.get_or_init(|| card_deck(&emojis)).clone();
         deck.shuffle(&mut rng());
 
-        let emoji = deck.pop().unwrap();
+        let emoji = deck.pop().expect("deck not empty");
         let num = CARD_TO_NUM
             .get_or_init(|| card_to_num(&emojis))
             .get(&emoji)
-            .unwrap();
+            .expect("deck emoji always in card_to_num");
 
         let embed = create_embed(&format!("<:{num}:{emoji}>"), 0, true);
 
@@ -59,6 +70,7 @@ impl Commands {
     }
 
     pub fn register_higher_lower<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("higherorlower").description("Play a game of higher or lower")
+        CreateCommand::new("higherorlower")
+            .description("Play a game of higher or lower")
     }
 }

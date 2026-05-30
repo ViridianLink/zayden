@@ -1,13 +1,15 @@
 use serenity::all::{
-    ComponentInteraction, CreateComponent, CreateInteractionResponse,
-    CreateInteractionResponseMessage, Http,
+    ComponentInteraction,
+    CreateComponent,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    Http,
 };
 use sqlx::{Database, Pool};
 
+use super::Components;
 use crate::templates::{DefaultTemplate, Template};
 use crate::{Error, PostManager, Result};
-
-use super::Components;
 
 impl Components {
     pub async fn settings<Db: Database, Manager: PostManager<Db>>(
@@ -38,8 +40,7 @@ impl Components {
                     ]),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

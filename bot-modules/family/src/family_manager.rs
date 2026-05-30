@@ -1,10 +1,11 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use serenity::all::{User, UserId};
 use sqlx::{Database, FromRow, Pool};
-use std::collections::HashMap;
 
-use crate::relationships::Relationships;
 use crate::Result;
+use crate::relationships::Relationships;
 
 #[async_trait]
 pub trait FamilyManager<Db: Database> {
@@ -27,7 +28,7 @@ pub trait FamilyManager<Db: Database> {
     async fn save(pool: &Pool<Db>, row: &FamilyRow) -> sqlx::Result<()>;
 }
 
-#[derive(Debug, Default, Clone, PartialEq, FromRow)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, FromRow)]
 pub struct FamilyRow {
     pub id: i64,
     pub username: String,
@@ -38,34 +39,35 @@ pub struct FamilyRow {
 }
 
 impl FamilyRow {
+    #[must_use]
     pub fn new(id: i64, username: String) -> Self {
-        Self {
-            id,
-            username,
-            ..Default::default()
-        }
+        Self { id, username, ..Default::default() }
     }
 
+    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn add_blocked(&mut self, user_id: UserId) {
         self.blocked_ids.push(user_id.get() as i64);
     }
 
+    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn remove_blocked(&mut self, user_id: UserId) {
         self.blocked_ids.retain(|id| *id != user_id.get() as i64);
     }
 
-    pub fn add_child(&mut self, child: &FamilyRow) {
+    pub fn add_child(&mut self, child: &Self) {
         self.children_ids.push(child.id);
     }
 
-    pub fn add_partner(&mut self, partner: &FamilyRow) {
+    pub fn add_partner(&mut self, partner: &Self) {
         self.partner_ids.push(partner.id);
     }
 
-    pub fn add_parent(&mut self, parent: &FamilyRow) {
+    pub fn add_parent(&mut self, parent: &Self) {
         self.parent_ids.push(parent.id);
     }
 
+    #[must_use]
+    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn relationship(&self, user_id: UserId) -> Relationships {
         let user_id = user_id.get() as i64;
 
@@ -111,8 +113,8 @@ impl FamilyRow {
 
     //         let old_len = working_relationship.len();
 
-    //         working_relationship = Box::pin(parent.long_relationship::<Db, Manager>(
-    //             pool,
+    //         working_relationship = Box::pin(parent.long_relationship::<Db,
+    // Manager>(             pool,
     //             target_user,
     //             working_relationship,
     //             added_members,
@@ -138,8 +140,8 @@ impl FamilyRow {
 
     //         let old_len = working_relationship.len();
 
-    //         working_relationship = Box::pin(partner.long_relationship::<Db, Manager>(
-    //             pool,
+    //         working_relationship = Box::pin(partner.long_relationship::<Db,
+    // Manager>(             pool,
     //             target_user,
     //             working_relationship,
     //             added_members,
@@ -165,8 +167,8 @@ impl FamilyRow {
 
     //         let old_len = working_relationship.len();
 
-    //         working_relationship = Box::pin(child.long_relationship::<Db, Manager>(
-    //             pool,
+    //         working_relationship = Box::pin(child.long_relationship::<Db,
+    // Manager>(             pool,
     //             target_user,
     //             working_relationship,
     //             added_members,
@@ -184,7 +186,11 @@ impl FamilyRow {
     pub async fn tree<Db: Database, Manager: FamilyManager<Db>>(
         self,
         pool: &Pool<Db>,
-    ) -> Result<HashMap<i32, Vec<FamilyRow>>> {
+    ) -> Result<HashMap<i32, Vec<Self>>> {
+        #[expect(
+            clippy::cast_sign_loss,
+            reason = "stored IDs are always non-negative"
+        )]
         let tree = Manager::tree(
             pool,
             UserId::new(self.id as u64),
@@ -207,6 +213,7 @@ impl FamilyRow {
     }
 }
 
+#[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
 impl From<&User> for FamilyRow {
     fn from(user: &User) -> Self {
         Self {

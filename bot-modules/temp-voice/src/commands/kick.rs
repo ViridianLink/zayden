@@ -1,37 +1,41 @@
 use std::collections::HashMap;
 
-use serenity::all::{CommandInteraction, EditInteractionResponse, GuildId, Http, ResolvedValue};
+use serenity::all::{
+    CommandInteraction,
+    EditInteractionResponse,
+    GuildId,
+    Http,
+    ResolvedValue,
+};
 
 use crate::error::PermissionError;
 use crate::{Error, VoiceChannelRow};
 
-pub async fn kick(
+pub(super) async fn kick(
     http: &Http,
     interaction: &CommandInteraction,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     guild_id: GuildId,
     row: &VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(http).await.unwrap();
+    interaction.defer_ephemeral(http).await?;
 
     if !row.is_trusted(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotTrusted));
     }
 
-    let user = match options.remove("member") {
-        Some(ResolvedValue::User(user, _)) => user,
-        _ => unreachable!("Member option is required"),
+    let Some(ResolvedValue::User(user, _)) = options.remove("member") else {
+        return Err(Error::IneligibleChannel);
     };
 
-    guild_id.disconnect_member(http, user.id).await.unwrap();
+    guild_id.disconnect_member(http, user.id).await?;
 
     interaction
         .edit_response(
             http,
             EditInteractionResponse::new().content("User kicked from channel."),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

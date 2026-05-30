@@ -2,7 +2,12 @@ use std::collections::HashMap;
 
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    CommandInteraction, CreateEmbed, EditInteractionResponse, GuildId, Http, ResolvedValue,
+    CommandInteraction,
+    CreateEmbed,
+    EditInteractionResponse,
+    GuildId,
+    Http,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -18,35 +23,47 @@ impl Support {
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        let id = match options.remove("id") {
-            Some(ResolvedValue::String(id)) => id,
-            _ => unreachable!("ID is required"),
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
+        let Some(ResolvedValue::String(id)) = options.remove("id") else {
+            unreachable!("ID is required")
         };
 
         let faq_channel_id = GuildManager::get(pool, guild_id)
-            .await
-            .unwrap()
-            .unwrap()
+            .await?
+            .ok_or(Error::SupportNotFound)?
             .faq_channel_id()
-            .unwrap();
+            .ok_or(Error::SupportNotFound)?;
 
         let mut stream = faq_channel_id.widen().messages_iter(http).boxed();
 
-        while let Some(msg) = stream.try_next().await.unwrap() {
-            let support_id = msg.content.lines().next().unwrap().trim();
+        while let Some(msg) = stream.try_next().await? {
+            let support_id = msg
+                .content
+                .lines()
+                .next()
+                .expect("message content always has at least one line")
+                .trim();
 
-            let title = &support_id[2..support_id.len() - 2];
-            let description = msg.content.strip_prefix(support_id).unwrap();
+            let title = support_id
+                .get(2..support_id.len().saturating_sub(2))
+                .unwrap_or(support_id);
+            let description = msg
+                .content
+                .strip_prefix(support_id)
+                .expect("content starts with support_id");
 
             if support_id.contains(id) {
                 interaction
                     .edit_response(
                         http,
-                        EditInteractionResponse::new()
-                            .embed(CreateEmbed::new().title(title).description(description)),
+                        EditInteractionResponse::new().embed(
+                            CreateEmbed::new().title(title).description(description),
+                        ),
                     )
-                    .await
-                    .unwrap();
+                    .await?;
 
                 return Ok(());
             }

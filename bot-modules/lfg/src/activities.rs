@@ -1,7 +1,7 @@
 use core::fmt;
 
 pub const ACTIVITIES: [Activity; 41] = [
-    //region: Raids
+    // region: Raids
     Activity::new("Desert Perpetual", ActivityCategory::Raid, 6),
     Activity::new("Salvation's Edge", ActivityCategory::Raid, 6),
     Activity::new("Crota's End", ActivityCategory::Raid, 6),
@@ -14,8 +14,8 @@ pub const ACTIVITIES: [Activity; 41] = [
     Activity::new("Last Wish", ActivityCategory::Raid, 6),
     Activity::new("Wrath of the Machine", ActivityCategory::Raid, 6),
     Activity::new("Any Raid", ActivityCategory::Raid, 6),
-    //endregion
-    //region: Dungeons
+    // endregion
+    // region: Dungeons
     Activity::new("Sundered Doctrine", ActivityCategory::Dungeon, 3),
     Activity::new("Vesper's Host", ActivityCategory::Dungeon, 3),
     Activity::new("Warlord's Ruin", ActivityCategory::Dungeon, 3),
@@ -27,7 +27,7 @@ pub const ACTIVITIES: [Activity; 41] = [
     Activity::new("Pit of Heresy", ActivityCategory::Dungeon, 3),
     Activity::new("Shattered Throne", ActivityCategory::Dungeon, 3),
     Activity::new("Any Dungeon", ActivityCategory::Dungeon, 3),
-    //endregion
+    // endregion
     Activity::new("Kell's Fall", ActivityCategory::ExoticMission, 3),
     Activity::new("Duel Destiny", ActivityCategory::ExoticMission, 2),
     Activity::new("The Whisper", ActivityCategory::ExoticMission, 3),
@@ -35,11 +35,7 @@ pub const ACTIVITIES: [Activity; 41] = [
     Activity::new("Harbinger", ActivityCategory::ExoticMission, 3),
     Activity::new("Presage", ActivityCategory::ExoticMission, 3),
     Activity::new("Vox Obscura", ActivityCategory::ExoticMission, 3),
-    Activity::new(
-        "Operation: Seraph's Shield",
-        ActivityCategory::ExoticMission,
-        3,
-    ),
+    Activity::new("Operation: Seraph's Shield", ActivityCategory::ExoticMission, 3),
     Activity::new("Node.Ovrd.Avalon", ActivityCategory::ExoticMission, 3),
     Activity::new("Starcrossed", ActivityCategory::ExoticMission, 3),
     Activity::new("Vanguard Ops", ActivityCategory::Vanguard, 3),
@@ -59,12 +55,12 @@ pub struct Activity {
 }
 
 impl Activity {
-    const fn new(name: &'static str, category: ActivityCategory, fireteam_size: i16) -> Self {
-        Self {
-            name,
-            category,
-            fireteam_size,
-        }
+    const fn new(
+        name: &'static str,
+        category: ActivityCategory,
+        fireteam_size: i16,
+    ) -> Self {
+        Self { name, category, fireteam_size }
     }
 }
 

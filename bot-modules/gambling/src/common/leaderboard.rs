@@ -159,17 +159,19 @@ pub enum LeaderboardRow {
 }
 
 impl LeaderboardRow {
-    pub fn user_id(&self) -> UserId {
+    #[must_use]
+    pub const fn user_id(&self) -> UserId {
         match self {
-            Self::Coins(row) => UserId::new(row.user_id as u64),
-            Self::Gems(row) => UserId::new(row.user_id as u64),
-            Self::Eggplants(row) => UserId::new(row.user_id as u64),
-            Self::LottoTickets(row) => UserId::new(row.user_id as u64),
-            Self::HigherLower(row) => UserId::new(row.user_id as u64),
-            Self::WeeklyHigherLower(row) => UserId::new(row.user_id as u64),
+            Self::Coins(row) => UserId::new(row.user_id.cast_unsigned()),
+            Self::Gems(row) => UserId::new(row.user_id.cast_unsigned()),
+            Self::Eggplants(row) => UserId::new(row.user_id.cast_unsigned()),
+            Self::LottoTickets(row) => UserId::new(row.user_id.cast_unsigned()),
+            Self::HigherLower(row) => UserId::new(row.user_id.cast_unsigned()),
+            Self::WeeklyHigherLower(row) => UserId::new(row.user_id.cast_unsigned()),
         }
     }
 
+    #[must_use]
     pub fn as_desc(&self, emojis: &EmojiCache, i: usize) -> String {
         let place = if i == 0 {
             "🥇".to_string()
@@ -184,12 +186,16 @@ impl LeaderboardRow {
         let data = match self {
             Self::Coins(row) => row.coins_str(),
             Self::Gems(row) => row.gems_str(),
-            Self::Eggplants(row) => format!("{} {}", row.quantity.format(), EGGPLANT.emoji(emojis)),
+            Self::Eggplants(row) => {
+                format!("{} {}", row.quantity.format(), EGGPLANT.emoji(emojis))
+            },
             Self::LottoTickets(row) => {
                 format!("{} {}", row.quantity.format(), LOTTO_TICKET.emoji(emojis))
-            }
+            },
             Self::HigherLower(row) => row.higher_or_lower_score.to_string(),
-            Self::WeeklyHigherLower(row) => row.weekly_higher_or_lower_score.to_string(),
+            Self::WeeklyHigherLower(row) => {
+                row.weekly_higher_or_lower_score.to_string()
+            },
         };
 
         format!("{place} - {} - {data}", self.user_id().mention())
@@ -206,21 +212,27 @@ pub async fn get_rows<Db: Database, Manager: LeaderboardManager<Db>>(
     let users = users.unwrap_or_default();
 
     match leaderboard {
-        "coins" => Manager::coins(pool, global, users, page_num).await.unwrap(),
-        "gems" => Manager::gems(pool, global, users, page_num).await.unwrap(),
+        "coins" => {
+            Manager::coins(pool, global, users, page_num).await.expect("async call")
+        },
+        "gems" => {
+            Manager::gems(pool, global, users, page_num).await.expect("async call")
+        },
         "eggplants" => Manager::eggplants(pool, global, users, page_num)
             .await
-            .unwrap(),
+            .expect("async call"),
         "lottotickets" => Manager::lottotickets(pool, global, users, page_num)
             .await
-            .unwrap(),
+            .expect("async call"),
         "higherlower" => Manager::higherlower(pool, global, users, page_num)
             .await
-            .unwrap(),
-        "weekly_higherlower" => Manager::weekly_higherlower(pool, global, users, page_num)
-            .await
-            .unwrap(),
-        _ => unreachable!("Invalid leaderboard option"),
+            .expect("async call"),
+        "weekly_higherlower" => {
+            Manager::weekly_higherlower(pool, global, users, page_num)
+                .await
+                .expect("async call")
+        },
+        _ => Vec::new(),
     }
 }
 
@@ -236,22 +248,26 @@ pub async fn get_row_number<Db: Database, Manager: LeaderboardManager<Db>>(
     match leaderboard {
         "coins" => Manager::coins_row_number(pool, global, users, user)
             .await
-            .unwrap(),
+            .expect("async call"),
         "gems" => Manager::gems_row_number(pool, global, users, user)
             .await
-            .unwrap(),
+            .expect("async call"),
         "eggplants" => Manager::eggplants_row_number(pool, global, users, user)
             .await
-            .unwrap(),
-        "lottotickets" => Manager::lottotickets_row_number(pool, global, users, user)
-            .await
-            .unwrap(),
+            .expect("async call"),
+        "lottotickets" => {
+            Manager::lottotickets_row_number(pool, global, users, user)
+                .await
+                .expect("async call")
+        },
         "higherlower" => Manager::higherlower_row_number(pool, global, users, user)
             .await
-            .unwrap(),
-        "weekly_higherlower" => Manager::weekly_higherlower_row_number(pool, global, users, user)
-            .await
-            .unwrap(),
+            .expect("async call"),
+        "weekly_higherlower" => {
+            Manager::weekly_higherlower_row_number(pool, global, users, user)
+                .await
+                .expect("async call")
+        },
         _ => None,
     }
 }

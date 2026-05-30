@@ -3,28 +3,40 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, parse_options};
 
+use super::Commands;
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::gambling::GamblingManager;
 use crate::utils::{Emoji, GameResult, game_embed};
 use crate::{
-    Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager, Result,
+    Coins,
+    EffectsManager,
+    GamblingData,
+    GameCache,
+    GameManager,
+    GameRow,
+    GoalsManager,
+    Result,
 };
-
-use super::Commands;
 
 impl Commands {
     pub async fn coinflip<
         Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -33,17 +45,18 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::String(prediction)) = options.remove("prediction") else {
-            unreachable!("prediction is required")
+        let Some(ResolvedValue::String(prediction)) = options.remove("prediction")
+        else {
+            return Err(crate::Error::InvalidPrediction);
         };
-        let prediction = prediction.parse::<CoinSide>().unwrap();
+        let prediction = prediction.parse::<CoinSide>().expect("valid coin side");
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
-            unreachable!("bet is required")
+            return Err(crate::Error::InvalidAmount);
         };
 
         let mut row = GameHandler::row(pool, interaction.user.id)
@@ -53,8 +66,13 @@ impl Commands {
         let data = ctx.data::<RwLock<Data>>();
 
         GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
-        EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, row.coins())
-            .await?;
+        EffectsHandler::bet_limit::<GamblingHandler>(
+            pool,
+            interaction.user.id,
+            bet,
+            row.coins(),
+        )
+        .await?;
         row.bet(bet);
 
         let heads = rand::random_bool(0.5);
@@ -87,13 +105,20 @@ impl Commands {
             )
             .await?;
 
-        payout = EffectsHandler::payout(pool, interaction.user.id, bet, payout, Some(winner)).await;
+        payout = EffectsHandler::payout(
+            pool,
+            interaction.user.id,
+            bet,
+            payout,
+            Some(winner),
+        )
+        .await;
 
         row.add_coins(payout);
 
         let coins = row.coins();
 
-        GameHandler::save(pool, row).await.unwrap();
+        GameHandler::save(pool, row).await?;
         GameCache::update(data, interaction.user.id).await;
 
         let (coin, title) = if edge {
@@ -117,8 +142,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -137,8 +161,12 @@ impl Commands {
                 .required(true),
             )
             .add_option(
-                CreateCommandOption::new(CommandOptionType::Integer, "bet", "The amount to bet.")
-                    .required(true),
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "bet",
+                    "The amount to bet.",
+                )
+                .required(true),
             )
     }
 }
@@ -150,10 +178,10 @@ enum CoinSide {
 }
 
 impl CoinSide {
-    fn opposite(&self) -> CoinSide {
+    const fn opposite(self) -> Self {
         match self {
-            CoinSide::Heads => CoinSide::Tails,
-            CoinSide::Tails => CoinSide::Heads,
+            Self::Heads => Self::Tails,
+            Self::Tails => Self::Heads,
         }
     }
 }
@@ -161,8 +189,8 @@ impl CoinSide {
 impl Display for CoinSide {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CoinSide::Heads => write!(f, "Heads"),
-            CoinSide::Tails => write!(f, "Tails"),
+            Self::Heads => write!(f, "Heads"),
+            Self::Tails => write!(f, "Tails"),
         }
     }
 }
@@ -172,8 +200,8 @@ impl FromStr for CoinSide {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
-            "heads" => Ok(CoinSide::Heads),
-            "tails" => Ok(CoinSide::Tails),
+            "heads" => Ok(Self::Heads),
+            "tails" => Ok(Self::Tails),
             _ => Err(()),
         }
     }
@@ -186,9 +214,6 @@ impl From<CoinSide> for GameResult {
             CoinSide::Tails => Emoji::Id("tails"),
         };
 
-        Self {
-            name: value.to_string(),
-            emoji,
-        }
+        Self { name: value.to_string(), emoji }
     }
 }

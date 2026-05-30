@@ -1,18 +1,26 @@
 use serenity::all::{
-    CommandInteraction, ComponentInteraction, ComponentInteractionDataKind, CreateEmbed,
-    GenericInteractionChannel, Http, ResolvedValue, ThreadId, UserId,
+    CommandInteraction,
+    ComponentInteraction,
+    ComponentInteractionDataKind,
+    CreateEmbed,
+    GenericInteractionChannel,
+    Http,
+    ResolvedValue,
+    ThreadId,
+    UserId,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
-use crate::{
-    PostManager, PostRow, Result,
-    models::Savable,
-    templates::DefaultTemplate,
-    utils::{Announcement, update_embeds},
-};
+use crate::models::Savable;
+use crate::templates::DefaultTemplate;
+use crate::utils::{Announcement, update_embeds};
+use crate::{PostManager, PostRow, Result};
 
-#[allow(dead_code)]
+#[expect(
+    dead_code,
+    reason = "LeaveInteraction fields are not yet consumed after construction"
+)]
 pub struct LeaveInteraction {
     thread: ThreadId,
     author: UserId,
@@ -21,14 +29,25 @@ pub struct LeaveInteraction {
 
 impl From<&CommandInteraction> for LeaveInteraction {
     fn from(value: &CommandInteraction) -> Self {
-        let ResolvedValue::SubCommand(subcommand) = value.data.options().pop().unwrap().value
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees subcommand structure"
+        )]
+        let ResolvedValue::SubCommand(subcommand) = value
+            .data
+            .options()
+            .pop()
+            .expect("lfg action always has a subcommand")
+            .value
         else {
             unreachable!("Option must be subcommand")
         };
 
         let mut options = parse_options(subcommand);
         let thread = match options.remove("thread") {
-            Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(thread))) => thread.id,
+            Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(
+                thread,
+            ))) => thread.id,
             _ => value.channel_id.expect_thread(),
         };
         let user = match options.remove("guardian") {
@@ -36,19 +55,22 @@ impl From<&CommandInteraction> for LeaveInteraction {
             _ => value.user.id,
         };
 
-        Self {
-            thread,
-            author: value.user.id,
-            user,
-        }
+        Self { thread, author: value.user.id, user }
     }
 }
 
 impl From<&ComponentInteraction> for LeaveInteraction {
     fn from(value: &ComponentInteraction) -> Self {
         let user = match &value.data.kind {
-            ComponentInteractionDataKind::UserSelect { values } => *values.first().unwrap(),
-            _ => value.user.id,
+            ComponentInteractionDataKind::UserSelect { values } => {
+                *values.first().expect("UserSelect always has at least one value")
+            },
+            ComponentInteractionDataKind::Button
+            | ComponentInteractionDataKind::StringSelect { .. }
+            | ComponentInteractionDataKind::RoleSelect { .. }
+            | ComponentInteractionDataKind::MentionableSelect { .. }
+            | ComponentInteractionDataKind::ChannelSelect { .. }
+            | ComponentInteractionDataKind::Unknown(_) => value.user.id,
         };
 
         Self {
@@ -59,7 +81,11 @@ impl From<&ComponentInteraction> for LeaveInteraction {
     }
 }
 
-pub async fn leave<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
+pub async fn leave<
+    'a,
+    Db: Database,
+    Manager: PostManager<Db> + Savable<Db, PostRow>,
+>(
     http: &'a Http,
     interaction: impl Into<LeaveInteraction>,
     pool: &Pool<Db>,
@@ -68,19 +94,19 @@ pub async fn leave<'a, Db: Database, Manager: PostManager<Db> + Savable<Db, Post
     let interaction = interaction.into();
     let user = user.into();
 
-    let row = Manager::leave(pool, interaction.thread, user)
-        .await
-        .unwrap();
+    let row = Manager::leave(pool, interaction.thread, user).await?;
 
-    let owner = row.owner().to_user(http).await.unwrap();
+    let owner = row.owner().to_user(http).await?;
 
-    let embed =
-        update_embeds::<DefaultTemplate>(http, &row, owner.display_name(), interaction.thread)
-            .await?;
+    let embed = update_embeds::<DefaultTemplate>(
+        http,
+        &row,
+        owner.display_name(),
+        interaction.thread,
+    )
+    .await?;
 
-    Announcement::Left(user)
-        .send(http, interaction.thread)
-        .await?;
+    Announcement::Left(user).send(http, interaction.thread).await?;
 
     Ok((interaction.thread, embed))
 }

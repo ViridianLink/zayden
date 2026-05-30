@@ -2,19 +2,32 @@ use async_trait::async_trait;
 use jiff::tz::TimeZone;
 use jiff_sqlx::{Date, ToSqlx};
 use serenity::all::{
-    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
+    Colour,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateEmbed,
+    EditInteractionResponse,
     UserId,
 };
 use sqlx::{Database, FromRow, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
 
-use crate::{
-    Coins, Error, GamblingGoalsRow, Gems, GoalHandler, GoalsManager, MaxBet, Prestige, Result,
-    START_AMOUNT, tomorrow,
-};
-
 use super::Commands;
+use crate::{
+    Coins,
+    Error,
+    GamblingGoalsRow,
+    Gems,
+    GoalHandler,
+    GoalsManager,
+    MaxBet,
+    Prestige,
+    Result,
+    START_AMOUNT,
+    tomorrow,
+};
 
 #[async_trait]
 pub trait DailyManager<Db: Database> {
@@ -22,7 +35,10 @@ pub trait DailyManager<Db: Database> {
         pool: &Pool<Db>,
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<DailyRow>>;
-    async fn goal_rows(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Vec<GamblingGoalsRow>>;
+    async fn goal_rows(
+        pool: &Pool<Db>,
+        id: UserId,
+    ) -> sqlx::Result<Vec<GamblingGoalsRow>>;
     async fn save(pool: &Pool<Db>, row: DailyRow) -> sqlx::Result<Db::QueryResult>;
 }
 
@@ -41,7 +57,7 @@ impl DailyRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coins: 0,
             gems: 0,
             daily: jiff::civil::Date::default().to_sqlx(),
@@ -93,11 +109,11 @@ impl Commands {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let mut row = Manager::daily_row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| DailyRow::new(interaction.user.id));
 
         let now = jiff::Timestamp::now();
@@ -110,11 +126,15 @@ impl Commands {
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);
 
         *row.coins_mut() += amount;
-        let mut goals = Manager::goal_rows(pool, interaction.user.id).await.unwrap();
-        if goals.is_empty() || !goals[0].is_today() {
-            goals = GoalHandler::daily_reset::<Db, Manager>(pool, interaction.user.id, &row)
-                .await
-                .unwrap();
+        let mut goals = Manager::goal_rows(pool, interaction.user.id).await?;
+        if goals.is_empty() || !goals.first().is_some_and(GamblingGoalsRow::is_today)
+        {
+            goals = GoalHandler::daily_reset::<Db, Manager>(
+                pool,
+                interaction.user.id,
+                &row,
+            )
+            .await?;
         }
 
         let goals_str = goals
@@ -133,12 +153,12 @@ impl Commands {
             })
             .collect::<String>();
 
-        Manager::save(pool, row).await.unwrap();
+        Manager::save(pool, row).await?;
 
         let coin = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
-            data.emojis().emoji("heads").unwrap()
+            data.emojis().emoji("heads").expect("emoji 'heads' in cache")
         };
 
         let embed = CreateEmbed::new()
@@ -150,8 +170,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

@@ -1,28 +1,38 @@
-use serenity::all::{CommandInteraction, EditInteractionResponse, EditMessage, Http, Mentionable};
+use serenity::all::{
+    CommandInteraction,
+    EditInteractionResponse,
+    EditMessage,
+    Http,
+    Mentionable,
+};
 use sqlx::{Database, Pool};
 
+use super::Command;
 use crate::{PostManager, PostRow, Result, Savable, actions};
 
-use super::Command;
-
 impl Command {
-    pub async fn leave<Db: Database, Manager: PostManager<Db> + Savable<Db, PostRow>>(
+    pub async fn leave<
+        Db: Database,
+        Manager: PostManager<Db> + Savable<Db, PostRow>,
+    >(
         http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer_ephemeral(http).await.unwrap();
+        interaction.defer_ephemeral(http).await?;
 
-        let (thread, embed) =
-            actions::leave::<Db, Manager>(http, interaction, pool, &interaction.user)
-                .await
-                .unwrap();
+        let (thread, embed) = actions::leave::<Db, Manager>(
+            http,
+            interaction,
+            pool,
+            &interaction.user,
+        )
+        .await?;
 
         thread
             .widen()
             .edit_message(http, thread.get().into(), EditMessage::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         interaction
             .edit_response(
@@ -30,8 +40,7 @@ impl Command {
                 EditInteractionResponse::new()
                     .content(format!("You have left {}", thread.widen().mention())),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

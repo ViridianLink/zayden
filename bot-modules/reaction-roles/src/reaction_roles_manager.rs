@@ -44,19 +44,23 @@ pub struct ReactionRole {
 }
 
 impl ReactionRole {
-    pub fn guild_id(&self) -> GuildId {
-        GuildId::new(self.guild_id as u64)
+    #[must_use]
+    pub const fn guild_id(&self) -> GuildId {
+        GuildId::new(self.guild_id.cast_unsigned())
     }
 
-    pub fn channel_id(&self) -> GenericChannelId {
-        GenericChannelId::new(self.channel_id as u64)
+    #[must_use]
+    pub const fn channel_id(&self) -> GenericChannelId {
+        GenericChannelId::new(self.channel_id.cast_unsigned())
     }
 
-    pub fn message_id(&self) -> MessageId {
-        MessageId::new(self.message_id as u64)
+    #[must_use]
+    pub const fn message_id(&self) -> MessageId {
+        MessageId::new(self.message_id.cast_unsigned())
     }
 
-    pub fn role_id(&self) -> RoleId {
-        RoleId::new(self.role_id as u64)
+    #[must_use]
+    pub const fn role_id(&self) -> RoleId {
+        RoleId::new(self.role_id.cast_unsigned())
     }
 }

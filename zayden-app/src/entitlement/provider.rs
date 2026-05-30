@@ -2,18 +2,20 @@ use async_trait::async_trait;
 use serde::Deserialize;
 use tracing::warn;
 
-use super::{
-    service::EntitlementService,
-    types::{EntitlementScope, Tier},
-};
+use super::service::EntitlementService;
+use super::types::{EntitlementScope, Tier};
 
 /// Abstraction over an external billing/subscription provider that writes
-/// entitlements into the shared `entitlements` table via [`EntitlementService`].
+/// entitlements into the shared `entitlements` table via
+/// [`EntitlementService`].
 #[async_trait]
 pub trait EntitlementProvider: Send + Sync {
     /// Record a new or renewed entitlement originating from this provider.
-    async fn grant(&self, service: &EntitlementService, data: GrantData)
-    -> Result<(), sqlx::Error>;
+    async fn grant(
+        &self,
+        service: &EntitlementService,
+        data: GrantData,
+    ) -> Result<(), sqlx::Error>;
 
     /// Remove an entitlement by its provider-specific reference.
     async fn revoke(
@@ -25,7 +27,8 @@ pub trait EntitlementProvider: Send + Sync {
 
 /// Provider-neutral grant payload passed to [`EntitlementProvider::grant`].
 pub struct GrantData {
-    /// Provider-specific unique identifier (Discord entitlement ID, KoFi transaction ID, …).
+    /// Provider-specific unique identifier (Discord entitlement ID, `KoFi`
+    /// transaction ID, …).
     pub external_id: String,
     /// The principal receiving the entitlement.
     pub scope: EntitlementScope,
@@ -35,7 +38,8 @@ pub struct GrantData {
     pub expires_at: Option<jiff::Timestamp>,
 }
 
-// ── Discord provider ──────────────────────────────────────────────────────────
+// ── Discord provider
+// ──────────────────────────────────────────────────────────
 
 /// Handles Discord App Subscription entitlements.
 ///
@@ -73,14 +77,19 @@ impl EntitlementProvider for DiscordProvider {
 }
 
 impl DiscordProvider {
-    /// Build a [`GrantData`] from the raw fields extracted from a Discord `Entitlement` object.
+    /// Build a [`GrantData`] from the raw fields extracted from a Discord
+    /// `Entitlement` object.
     ///
     /// * `entitlement_id`  — the Discord entitlement's `id` as a `u64`.
-    /// * `user_id`         — `user_id` field from the entitlement (may be `None` for guild subs).
-    /// * `guild_id`        — `guild_id` field from the entitlement (may be `None` for user subs).
-    /// * `ends_at_unix`    — `ends_at` epoch seconds, `None` if the subscription doesn't expire.
+    /// * `user_id`         — `user_id` field from the entitlement (may be `None` for
+    ///   guild subs).
+    /// * `guild_id`        — `guild_id` field from the entitlement (may be `None`
+    ///   for user subs).
+    /// * `ends_at_unix`    — `ends_at` epoch seconds, `None` if the subscription
+    ///   doesn't expire.
     ///
-    /// Returns `None` when neither `user_id` nor `guild_id` is set (unexpected from Discord).
+    /// Returns `None` when neither `user_id` nor `guild_id` is set (unexpected
+    /// from Discord).
     pub fn build_grant(
         entitlement_id: u64,
         user_id: Option<u64>,
@@ -97,7 +106,7 @@ impl DiscordProvider {
                     "Discord entitlement has neither user_id nor guild_id; skipping"
                 );
                 return None;
-            }
+            },
         };
 
         let expires_at = ends_at_unix.and_then(|ts| {
@@ -115,7 +124,8 @@ impl DiscordProvider {
     }
 }
 
-// ── KoFi provider ─────────────────────────────────────────────────────────────
+// ── KoFi provider
+// ─────────────────────────────────────────────────────────────
 
 /// Handles Ko-fi donation / subscription webhooks.
 ///
@@ -144,13 +154,7 @@ impl EntitlementProvider for KoFiProvider {
         data: GrantData,
     ) -> Result<(), sqlx::Error> {
         service
-            .grant(
-                data.scope,
-                data.tier,
-                "kofi",
-                &data.external_id,
-                data.expires_at,
-            )
+            .grant(data.scope, data.tier, "kofi", &data.external_id, data.expires_at)
             .await
     }
 

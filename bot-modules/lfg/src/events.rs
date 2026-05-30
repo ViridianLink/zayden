@@ -1,15 +1,22 @@
-use jiff::{Span, Timestamp, tz::TimeZone};
+use jiff::tz::TimeZone;
+use jiff::{Span, Timestamp};
 use serenity::all::{
-    Context, DiscordJsonError, EditThread, ErrorResponse, Guild, Http, HttpError, JsonErrorCode,
+    Context,
+    DiscordJsonError,
+    EditThread,
+    ErrorResponse,
+    Guild,
+    Http,
+    HttpError,
+    JsonErrorCode,
     PartialGuildThread,
 };
 use sqlx::{Database, Pool};
 use zayden_core::CronJobData;
 
-use crate::{
-    Error, GuildManager, PostManager, Result, actions, cron::create_reminders,
-    templates::TemplateInfo,
-};
+use crate::cron::create_reminders;
+use crate::templates::TemplateInfo;
+use crate::{Error, GuildManager, PostManager, Result, actions};
 
 pub async fn thread_delete<Db: Database, Manager: PostManager<Db>>(
     http: &Http,
@@ -45,14 +52,17 @@ pub async fn guild_create<
         .await
     {
         Ok(threads) => threads,
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error:
-                DiscordJsonError {
-                    code: JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
-                    ..
-                },
-            ..
-        }))) => return Ok(()),
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+            ErrorResponse {
+                error:
+                    DiscordJsonError {
+                        code:
+                            JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
+                        ..
+                    },
+                ..
+            },
+        ))) => return Ok(()),
         Err(e) => return Err(Error::Serenity(e)),
     };
 
@@ -71,7 +81,8 @@ pub async fn guild_create<
         let Some(last_message_id) = thread.base.last_message_id else {
             continue;
         };
-        let Ok(created_at) = Timestamp::from_second(last_message_id.created_at().unix_timestamp())
+        let Ok(created_at) =
+            Timestamp::from_second(last_message_id.created_at().unix_timestamp())
         else {
             continue;
         };
@@ -93,30 +104,27 @@ pub async fn guild_create<
                     ..
                 }))) => {}
                 Err(e) => return Err(e.into()),
-            };
+            }
         }
 
         if created_at < week_ago {
-            match thread
-                .edit(&ctx.http, EditThread::new().archived(true))
-                .await
-            {
-                Ok(_)
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code: JsonErrorCode::UnknownChannel,
-                            ..
-                        },
-                    ..
-                }))) => {}
+            match thread.edit(&ctx.http, EditThread::new().archived(true)).await {
+                Ok(())
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                    ErrorResponse {
+                        error:
+                            DiscordJsonError {
+                                code: JsonErrorCode::UnknownChannel, ..
+                            },
+                        ..
+                    },
+                ))) => {},
                 Err(e) => return Err(e.into()),
             }
         }
 
-        let post = match PostHandler::post_row(pool, thread.id).await {
-            Ok(post) => post,
-            Err(_) => continue,
+        let Ok(post) = PostHandler::post_row(pool, thread.id).await else {
+            continue;
         };
 
         let start_time = post.start_time.to_jiff().to_zoned(TimeZone::UTC);
@@ -126,23 +134,28 @@ pub async fn guild_create<
         }
 
         if start_time < now
-            && let (Some(channel), Some(message)) = (post.schedule_channel(), post.alt_message())
+            && let (Some(channel), Some(message)) =
+                (post.schedule_channel(), post.alt_message())
         {
             match channel
                 .delete_message(&ctx.http, message, Some("Expired LFG post"))
                 .await
             {
-                Ok(_)
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code: JsonErrorCode::UnknownMessage | JsonErrorCode::UnknownChannel,
-                            ..
-                        },
-                    ..
-                }))) => {}
+                Ok(())
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                    ErrorResponse {
+                        error:
+                            DiscordJsonError {
+                                code:
+                                    JsonErrorCode::UnknownMessage
+                                    | JsonErrorCode::UnknownChannel,
+                                ..
+                            },
+                        ..
+                    },
+                ))) => {},
                 Err(e) => return Err(e.into()),
-            };
+            }
         }
 
         if start_time + Span::new().hours(2) < now {
@@ -152,16 +165,17 @@ pub async fn guild_create<
                 .await
             {
                 Ok(_)
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code: JsonErrorCode::UnknownChannel,
-                            ..
-                        },
-                    ..
-                }))) => {}
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                    ErrorResponse {
+                        error:
+                            DiscordJsonError {
+                                code: JsonErrorCode::UnknownChannel, ..
+                            },
+                        ..
+                    },
+                ))) => {},
                 Err(e) => return Err(e.into()),
-            };
+            }
         }
     }
 

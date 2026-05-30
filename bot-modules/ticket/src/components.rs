@@ -2,8 +2,15 @@ use std::borrow::Cow;
 
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    ComponentInteraction, ComponentInteractionDataKind, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, CreateModal, CreateModalComponent, EditThread, Http,
+    ComponentInteraction,
+    ComponentInteractionDataKind,
+    CreateEmbed,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    CreateModal,
+    CreateModalComponent,
+    EditThread,
+    Http,
 };
 use sqlx::{Database, Pool};
 use zayden_core::Error as ZaydenError;
@@ -18,7 +25,8 @@ impl TicketComponent {
         interaction: &ComponentInteraction,
         components: impl Into<Cow<'a, [CreateModalComponent<'a>]>>,
     ) -> Result<()> {
-        let modal = CreateModal::new("create_ticket", "Ticket").components(components);
+        let modal =
+            CreateModal::new("create_ticket", "Ticket").components(components);
 
         interaction
             .create_response(http, CreateInteractionResponse::Modal(modal))
@@ -27,22 +35,28 @@ impl TicketComponent {
         Ok(())
     }
 
-    pub async fn support_close(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
-        let channel = interaction.channel.as_ref().unwrap();
+    pub async fn support_close(
+        http: &Http,
+        interaction: &ComponentInteraction,
+    ) -> Result<()> {
+        let channel = interaction
+            .channel
+            .as_ref()
+            .expect("component interaction always has a channel");
 
-        let new_channel_name: String =
-            format!("{} - {}", "[Closed]", channel.base().name.as_ref().unwrap())
-                .chars()
-                .take(100)
-                .collect();
+        let new_channel_name: String = format!(
+            "{} - {}",
+            "[Closed]",
+            channel.base().name.as_ref().expect("channel always has a name")
+        )
+        .chars()
+        .take(100)
+        .collect();
 
         channel
             .id()
             .expect_thread()
-            .edit(
-                http,
-                EditThread::new().name(new_channel_name).archived(true),
-            )
+            .edit(http, EditThread::new().name(new_channel_name).archived(true))
             .await?;
 
         interaction
@@ -59,19 +73,31 @@ impl TicketComponent {
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
+        #[expect(
+            clippy::unreachable,
+            reason = "FAQ component is only registered for StringSelect"
+        )]
         let index = match &interaction.data.kind {
-            ComponentInteractionDataKind::StringSelect { values } => {
-                values[0].parse::<usize>().unwrap()
-            }
-            _ => unreachable!("Invalid interaction data kind"),
+            ComponentInteractionDataKind::StringSelect { values } => values
+                .first()
+                .expect("StringSelect always has at least one value")
+                .parse::<usize>()
+                .expect("FAQ index is always a valid usize"),
+            ComponentInteractionDataKind::Button
+            | ComponentInteractionDataKind::UserSelect { .. }
+            | ComponentInteractionDataKind::RoleSelect { .. }
+            | ComponentInteractionDataKind::MentionableSelect { .. }
+            | ComponentInteractionDataKind::ChannelSelect { .. }
+            | ComponentInteractionDataKind::Unknown(_) => {
+                unreachable!("Invalid interaction data kind")
+            },
         };
 
         let faq_channel_id = GuildManager::get(pool, guild_id)
-            .await
-            .unwrap()
-            .unwrap()
+            .await?
+            .ok_or(ZaydenError::MissingGuildId)?
             .faq_channel_id()
-            .unwrap();
+            .ok_or(ZaydenError::MissingGuildId)?;
 
         let message = faq_channel_id
             .widen()
@@ -79,12 +105,14 @@ impl TicketComponent {
             .skip(index)
             .boxed()
             .try_next()
-            .await
-            .unwrap()
-            .unwrap();
+            .await?
+            .ok_or(crate::Error::SupportNotFound)?;
 
         let mut parts: Vec<&str> = message.content.split("**").collect();
-        let description = parts.pop().unwrap().trim();
+        let description = parts
+            .pop()
+            .expect("message content always has description after '**' split")
+            .trim();
         let title = parts.join("");
 
         interaction

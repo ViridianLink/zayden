@@ -1,21 +1,33 @@
 use async_trait::async_trait;
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Http, ResolvedOption, ResolvedValue, UserId,
+    Colour,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Http,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum, parse_options};
 
+use super::Commands;
 use crate::shop::ShopCurrency;
 use crate::{Error, Result};
 
-use super::Commands;
-
 #[async_trait]
 pub trait CraftManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<CraftRow>>;
+    async fn row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<CraftRow>>;
 
     async fn save(pool: &Pool<Db>, row: CraftRow) -> sqlx::Result<Db::QueryResult>;
 }
@@ -40,7 +52,7 @@ impl CraftRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coal: 0,
             iron: 0,
             gold: 0,
@@ -56,13 +68,17 @@ impl CraftRow {
 }
 
 impl Commands {
-    pub async fn craft<Data: EmojiCacheData, Db: Database, Manager: CraftManager<Db>>(
+    pub async fn craft<
+        Data: EmojiCacheData,
+        Db: Database,
+        Manager: CraftManager<Db>,
+    >(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -72,18 +88,18 @@ impl Commands {
 
         let mut row = Manager::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| CraftRow::new(interaction.user.id));
 
         let mut options = parse_options(options);
 
         if !options.contains_key("type") {
-            menu(&ctx.http, interaction, &emojis, row).await;
+            menu(&ctx.http, interaction, &emojis, row).await?;
             return Ok(());
         }
 
         let Some(ResolvedValue::String(kind)) = options.remove("type") else {
-            unreachable!("Type must be present")
+            return Err(Error::InvalidAmount);
         };
 
         let amount = match options.remove("amount") {
@@ -99,13 +115,13 @@ impl Commands {
             return Err(Error::ZeroAmount);
         }
 
-        let item: ShopCurrency = kind.parse().unwrap();
+        let item: ShopCurrency = kind.parse().expect("kind is a valid ShopCurrency");
 
         let costs = item
             .craft_req(&emojis)
             .into_iter()
             .flatten()
-            .map(|(currency, cost)| (currency, cost as i64 * amount))
+            .map(|(currency, cost)| (currency, i64::from(cost) * amount))
             .collect::<Vec<_>>();
 
         for (currency, cost) in costs {
@@ -117,7 +133,11 @@ impl Commands {
                 ShopCurrency::Lapis => &mut row.lapis,
                 ShopCurrency::Diamonds => &mut row.diamonds,
                 ShopCurrency::Emeralds => &mut row.emeralds,
-                c => unreachable!("Invalid crafting currency: {c:?}"),
+                ShopCurrency::Coins
+                | ShopCurrency::Gems
+                | ShopCurrency::Tech
+                | ShopCurrency::Utility
+                | ShopCurrency::Production => return Err(Error::InvalidAmount),
             };
 
             *fund -= cost;
@@ -133,19 +153,27 @@ impl Commands {
             ShopCurrency::Tech => {
                 row.tech += amount;
                 row.tech
-            }
+            },
             ShopCurrency::Utility => {
                 row.utility += amount;
                 row.utility
-            }
+            },
             ShopCurrency::Production => {
                 row.production += amount;
                 row.production
-            }
-            c => unreachable!("Invalid item: {c:?}"),
+            },
+            ShopCurrency::Coins
+            | ShopCurrency::Gems
+            | ShopCurrency::Coal
+            | ShopCurrency::Iron
+            | ShopCurrency::Gold
+            | ShopCurrency::Redstone
+            | ShopCurrency::Lapis
+            | ShopCurrency::Diamonds
+            | ShopCurrency::Emeralds => return Err(Error::InvalidAmount),
         };
 
-        Manager::save(pool, row).await.unwrap();
+        Manager::save(pool, row).await?;
 
         let embed = CreateEmbed::new()
             .description(format!(
@@ -158,8 +186,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -185,48 +212,78 @@ impl Commands {
     }
 }
 
-async fn menu(http: &Http, interaction: &CommandInteraction, emojis: &EmojiCache, row: CraftRow) {
-    let mut desc = [
-        ShopCurrency::Tech,
-        ShopCurrency::Utility,
-        ShopCurrency::Production,
-    ]
-    .into_iter()
-    .map(|item| match item {
-        ShopCurrency::Tech => (item, row.tech.format()),
-        ShopCurrency::Utility => (item, row.utility.format()),
-        ShopCurrency::Production => (item, row.production.format()),
-        _ => unreachable!(),
-    })
-    .map(|(item, owned)| {
-        format!(
-            "{} **{item:?}**\nOwned: `{owned}`\n{}",
-            item.emoji(emojis),
-            item.craft_req(emojis)
-                .into_iter()
-                .flatten()
-                .map(|(currency, cost)| {
-                    match currency {
-                        ShopCurrency::Coal => (currency, cost, row.coal.format()),
-                        ShopCurrency::Iron => (currency, cost, row.iron.format()),
-                        ShopCurrency::Gold => (currency, cost, row.gold.format()),
-                        ShopCurrency::Redstone => (currency, cost, row.redstone.format()),
-                        ShopCurrency::Lapis => (currency, cost, row.lapis.format()),
-                        ShopCurrency::Diamonds => (currency, cost, row.diamonds.format()),
-                        ShopCurrency::Emeralds => (currency, cost, row.emeralds.format()),
-                        _ => unreachable!("Invalid shop currency"),
-                    }
-                })
-                .map(|(currency, cost, owned)| format!(
-                    "(`{owned}`) `{cost}` {}",
-                    currency.emoji(emojis)
-                ))
-                .collect::<Vec<_>>()
-                .join("\n")
-        )
-    })
-    .collect::<Vec<_>>()
-    .join("\n\n");
+async fn menu(
+    http: &Http,
+    interaction: &CommandInteraction,
+    emojis: &EmojiCache,
+    row: CraftRow,
+) -> Result<()> {
+    let mut desc =
+        [ShopCurrency::Tech, ShopCurrency::Utility, ShopCurrency::Production]
+            .into_iter()
+            .map(|item| match item {
+                ShopCurrency::Tech => (item, row.tech.format()),
+                ShopCurrency::Utility => (item, row.utility.format()),
+                ShopCurrency::Production => (item, row.production.format()),
+                ShopCurrency::Coins
+                | ShopCurrency::Gems
+                | ShopCurrency::Coal
+                | ShopCurrency::Iron
+                | ShopCurrency::Gold
+                | ShopCurrency::Redstone
+                | ShopCurrency::Lapis
+                | ShopCurrency::Diamonds
+                | ShopCurrency::Emeralds => (item, String::new()),
+            })
+            .map(|(item, owned)| {
+                format!(
+                    "{} **{item:?}**\nOwned: `{owned}`\n{}",
+                    item.emoji(emojis),
+                    item.craft_req(emojis)
+                        .into_iter()
+                        .flatten()
+                        .map(|(currency, cost)| {
+                            match currency {
+                                ShopCurrency::Coal => {
+                                    (currency, cost, row.coal.format())
+                                },
+                                ShopCurrency::Iron => {
+                                    (currency, cost, row.iron.format())
+                                },
+                                ShopCurrency::Gold => {
+                                    (currency, cost, row.gold.format())
+                                },
+                                ShopCurrency::Redstone => {
+                                    (currency, cost, row.redstone.format())
+                                },
+                                ShopCurrency::Lapis => {
+                                    (currency, cost, row.lapis.format())
+                                },
+                                ShopCurrency::Diamonds => {
+                                    (currency, cost, row.diamonds.format())
+                                },
+                                ShopCurrency::Emeralds => {
+                                    (currency, cost, row.emeralds.format())
+                                },
+                                ShopCurrency::Coins
+                                | ShopCurrency::Gems
+                                | ShopCurrency::Tech
+                                | ShopCurrency::Utility
+                                | ShopCurrency::Production => {
+                                    (currency, cost, String::new())
+                                },
+                            }
+                        })
+                        .map(|(currency, cost, owned)| format!(
+                            "(`{owned}`) `{cost}` {}",
+                            currency.emoji(emojis)
+                        ))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n");
 
     desc.push_str("\n------------------\n`/craft <id> <amount>`");
 
@@ -237,6 +294,7 @@ async fn menu(http: &Http, interaction: &CommandInteraction, emojis: &EmojiCache
 
     interaction
         .edit_response(http, EditInteractionResponse::new().embed(embed))
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }

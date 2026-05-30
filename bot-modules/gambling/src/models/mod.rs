@@ -10,7 +10,12 @@ mod game_row;
 pub use gambling::GamblingManager;
 pub use gambling_effects::{EffectsManager, EffectsRow};
 pub use gambling_goals::GamblingGoalsRow;
-pub use gambling_inventory::{GamblingItem, GamblingItems, InventoryManager, InventoryRow};
+pub use gambling_inventory::{
+    GamblingItem,
+    GamblingItems,
+    InventoryManager,
+    InventoryRow,
+};
 pub use gambling_stats::StatsManager;
 pub use game_row::{GameManager, GameRow};
 use jiff::tz::TimeZone;
@@ -58,6 +63,7 @@ pub trait Stamina {
 
     fn stamina(&self) -> i32;
 
+    #[expect(clippy::cast_sign_loss, reason = "stamina is always non-negative")]
     fn stamina_str(&self) -> String {
         format!(
             "{}{}",
@@ -69,12 +75,13 @@ pub trait Stamina {
     fn stamina_mut(&mut self) -> &mut i32;
 
     fn done_work(&mut self) {
-        *self.stamina_mut() -= 1
+        *self.stamina_mut() -= 1;
     }
 
     fn verify_work<Db: Database, Manager: StaminaManager<Db>>(&self) -> Result<()> {
         if self.stamina() <= 0 {
             let next_timestamp = StaminaCron::cron_job::<Db, Manager>()
+                .expect("invariant: stamina cron schedule string is valid")
                 .schedule
                 .upcoming(TimeZone::UTC)
                 .next()
@@ -218,42 +225,50 @@ pub trait Prestige {
 }
 
 pub trait MaxValues: Mining + Prestige {
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn miners_per_mine() -> i64 {
         10
     }
 
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn mines_per_land() -> i64 {
         10
     }
 
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn land_per_country() -> i64 {
         10
     }
 
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn countries_per_continent() -> i64 {
         10
     }
 
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn continents_per_plant() -> i64 {
         10
     }
 
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn plants_per_solar_system() -> i64 {
         10
     }
 
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn solar_system_per_galaxies() -> i64 {
         10
     }
 
-    #[inline(always)]
+    #[inline]
+    #[must_use]
     fn galaxies_per_universe() -> i64 {
         10
     }
@@ -263,26 +278,14 @@ pub trait MaxValues: Mining + Prestige {
             ("miner", Self::miners_per_mine() * (self.mines() + 1)),
             ("mine", Self::mines_per_land() * (self.land() + 1)),
             ("land", Self::land_per_country() * (self.countries() + 1)),
-            (
-                "country",
-                Self::countries_per_continent() * (self.continents() + 1),
-            ),
-            (
-                "continent",
-                Self::continents_per_plant() * (self.planets() + 1),
-            ),
-            (
-                "planet",
-                Self::plants_per_solar_system() * (self.solar_systems() + 1),
-            ),
+            ("country", Self::countries_per_continent() * (self.continents() + 1)),
+            ("continent", Self::continents_per_plant() * (self.planets() + 1)),
+            ("planet", Self::plants_per_solar_system() * (self.solar_systems() + 1)),
             (
                 "solar_system",
                 Self::solar_system_per_galaxies() * (self.galaxies() + 1),
             ),
-            (
-                "galaxy",
-                Self::galaxies_per_universe() * (self.universes() + 1),
-            ),
+            ("galaxy", Self::galaxies_per_universe() * (self.universes() + 1)),
             ("universe", self.prestige() + 1),
         ])
     }
@@ -302,7 +305,7 @@ pub trait MaxValues: Mining + Prestige {
             ("universe", self.universes()),
         ]
         .map(|(unit, amount)| {
-            let max = *max_values.get(unit).unwrap();
+            let max = *max_values.get(unit).expect("unit key in max_values");
             let display = match unit {
                 "land" => String::from("plots of land"),
                 "country" => String::from("countries"),
@@ -344,7 +347,7 @@ pub trait MaxBet: Prestige {
     fn max_bet(&self) -> i64 {
         let base_amount = (self.level() * 10_000).max(10_000);
 
-        (base_amount as i64 * self.prestige_mult_10()) / 10
+        (i64::from(base_amount) * self.prestige_mult_10()) / 10
     }
 
     fn max_bet_str(&self) -> String {
@@ -369,7 +372,7 @@ pub trait MineAmount: MineHourly {
             .since((Unit::Hour, mine_hour))
             .expect("Span should be within bounds");
 
-        let hours_passed = duration.get_hours().clamp(0, 24) as i64;
+        let hours_passed = i64::from(duration.get_hours().clamp(0, 24));
 
         hours_passed * self.hourly()
     }

@@ -1,3 +1,4 @@
+use serenity::Error;
 use serenity::all::{Context, CreateMessage, GenericChannelId, Message, UserId};
 use tokio::sync::RwLock;
 
@@ -26,9 +27,14 @@ pub trait GoodMorningCache: Send + Sync + 'static {
 pub struct GoodMorning;
 
 impl GoodMorning {
-    pub async fn run<Data: GoodMorningCache>(ctx: &Context, message: &Message) {
-        if message.guild_id.is_none_or(|guild| guild != LLAMA_GUILD) || message.author.bot() {
-            return;
+    pub async fn run<Data: GoodMorningCache>(
+        ctx: &Context,
+        message: &Message,
+    ) -> Result<(), Error> {
+        if message.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
+            || message.author.bot()
+        {
+            return Ok(());
         }
 
         let content = message.content.to_lowercase();
@@ -50,19 +56,19 @@ impl GoodMorning {
                 .channel_id
                 .send_message(
                     &ctx.http,
-                    CreateMessage::new()
-                        .content("Good Morning dear viewer <:GROG:1393906582298955776>"),
+                    CreateMessage::new().content(
+                        "Good Morning dear viewer <:GROG:1393906582298955776>",
+                    ),
                 )
-                .await
-                .unwrap();
+                .await?;
         }
+
+        Ok(())
     }
 }
 
 fn is_good_morning(content: &str) -> bool {
     let trimmed_content = content.trim();
 
-    GOOD_MORNINGS
-        .iter()
-        .any(|gm_prefix| trimmed_content.starts_with(gm_prefix))
+    GOOD_MORNINGS.iter().any(|gm_prefix| trimmed_content.starts_with(gm_prefix))
 }

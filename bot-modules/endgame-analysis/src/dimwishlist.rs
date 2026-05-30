@@ -12,18 +12,23 @@ use serenity::all::{
     ResolvedValue,
 };
 use tokio::sync::RwLock;
+use tracing::error;
 
-use crate::Error;
+use crate::EndgameAnalysisError;
 use crate::endgame_analysis::{EndgameAnalysisSheet, Weapon};
 
 pub struct DimWishlistCommand;
 
 impl DimWishlistCommand {
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "bungie_client() returns a reference into the RwLockReadGuard; guard must stay alive until all API calls complete"
+    )]
     pub async fn run<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
-    ) -> Result<(), Error> {
+    ) -> Result<(), EndgameAnalysisError> {
         interaction.defer_ephemeral(&ctx.http).await?;
 
         let strict = match options.pop().map(|o| o.value) {
@@ -38,7 +43,10 @@ impl DimWishlistCommand {
             "strict" => vec!["S", "A", "B"],
             "very strict" => vec!["S", "A"],
             "uber strict" => vec!["S"],
-            _ => unreachable!(),
+            _ => {
+                error!("unknown strictness value");
+                Vec::new()
+            },
         };
 
         let (item_manifest, perk_manifest) = {

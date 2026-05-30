@@ -1,8 +1,20 @@
-use serenity::all::{Context, DiscordJsonError, ErrorResponse, HttpError, JsonErrorCode};
+use serenity::all::{
+    Context,
+    DiscordJsonError,
+    ErrorResponse,
+    HttpError,
+    JsonErrorCode,
+};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 
-use crate::{CachedState, Result, TempVoiceGuildManager, VoiceChannelManager, VoiceStateCache};
+use crate::{
+    CachedState,
+    Result,
+    TempVoiceGuildManager,
+    VoiceChannelManager,
+    VoiceStateCache,
+};
 
 pub async fn channel_deleter<
     Data: VoiceStateCache,
@@ -14,9 +26,8 @@ pub async fn channel_deleter<
     pool: &Pool<Db>,
     old: Option<&CachedState>,
 ) -> Result<()> {
-    let old = match old {
-        Some(old) => old,
-        None => return Ok(()),
+    let Some(old) = old else {
+        return Ok(());
     };
 
     let Ok(guild_data) = GuildManager::get(pool, old.guild_id).await else {
@@ -24,13 +35,16 @@ pub async fn channel_deleter<
     };
 
     let channel_id = match (old.channel_id, guild_data.creator_channel()) {
-        (Some(channel_id), Some(creator_channel)) if channel_id != creator_channel => channel_id,
+        (Some(channel_id), Some(creator_channel))
+            if channel_id != creator_channel =>
+        {
+            channel_id
+        },
         _ => return Ok(()),
     };
 
-    let row = match ChannelManager::get(pool, channel_id).await? {
-        Some(row) => row,
-        None => return Ok(()),
+    let Some(row) = ChannelManager::get(pool, channel_id).await? else {
+        return Ok(());
     };
 
     if row.is_persistent() {
@@ -38,16 +52,19 @@ pub async fn channel_deleter<
     }
 
     let channel = match channel_id.to_guild_channel(ctx, Some(old.guild_id)).await {
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-            error:
-                DiscordJsonError {
-                    code: JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
-                    ..
-                },
-            ..
-        }))) => {
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+            ErrorResponse {
+                error:
+                    DiscordJsonError {
+                        code:
+                            JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
+                        ..
+                    },
+                ..
+            },
+        ))) => {
             return Ok(());
-        }
+        },
         r => r?,
     };
     let category = guild_data.category();
@@ -61,13 +78,14 @@ pub async fn channel_deleter<
 
     let users = {
         let data = ctx.data::<RwLock<Data>>();
-        let data = data.read().await;
-        let cache = data.get();
-
-        cache
+        let guard = data.read().await;
+        let count = guard
+            .get()
             .values()
             .filter(|id| id.channel_id == Some(channel_id))
-            .count()
+            .count();
+        drop(guard);
+        count
     };
 
     if users == 0 {
@@ -79,17 +97,16 @@ pub async fn channel_deleter<
             .await
         {
             // Channel already deleted, ignore this error
-            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                error:
-                    DiscordJsonError {
-                        code: JsonErrorCode::UnknownChannel,
-                        ..
-                    },
-                ..
-            }))) => {}
-            Ok(_) => {}
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                ErrorResponse {
+                    error:
+                        DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
+                    ..
+                },
+            )))
+            | Ok(_) => {},
             Err(e) => return Err(e.into()),
-        };
+        }
     }
 
     Ok(())

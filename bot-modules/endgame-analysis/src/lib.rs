@@ -5,7 +5,7 @@ pub mod tierlist;
 pub mod weapon;
 
 pub use dimwishlist::DimWishlistCommand;
-pub use error::Error;
+pub use error::EndgameAnalysisError;
 use error::Result;
 pub use tierlist::TierListCommand;
 pub use weapon::WeaponCommand;

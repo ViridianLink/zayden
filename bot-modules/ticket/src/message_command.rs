@@ -1,7 +1,14 @@
 use futures::{StreamExt, stream};
 use serenity::all::{
-    AutoArchiveDuration, ChannelType, CreateAttachment, CreateEmbed, CreateMessage, CreateThread,
-    Http, Mentionable, Message,
+    AutoArchiveDuration,
+    ChannelType,
+    CreateAttachment,
+    CreateEmbed,
+    CreateMessage,
+    CreateThread,
+    Http,
+    Mentionable,
+    Message,
 };
 use sqlx::{Database, Pool};
 
@@ -19,7 +26,7 @@ impl SupportMessageCommand {
             return Ok(());
         };
 
-        let Some(row) = GuildManager::get(pool, guild_id).await.unwrap() else {
+        let Some(row) = GuildManager::get(pool, guild_id).await? else {
             return Ok(());
         };
 
@@ -48,21 +55,19 @@ impl SupportMessageCommand {
                     .kind(ChannelType::PrivateThread)
                     .auto_archive_duration(AutoArchiveDuration::OneWeek),
             )
-            .await
-            .unwrap();
+            .await?;
 
-        GuildManager::update_thread_id(pool, guild_id)
-            .await
-            .unwrap();
+        GuildManager::update_thread_id(pool, guild_id).await?;
 
-        let issue = CreateEmbed::new()
-            .title("Issue")
-            .description(&message.content);
+        let issue = CreateEmbed::new().title("Issue").description(&message.content);
 
         let attachments = stream::iter(message.attachments.iter())
             .then(|attachment| async move {
                 CreateAttachment::bytes(
-                    attachment.download().await.unwrap(),
+                    attachment
+                        .download()
+                        .await
+                        .expect("attachment download succeeded"),
                     attachment.filename.clone(),
                 )
             })
@@ -70,7 +75,7 @@ impl SupportMessageCommand {
             .await;
 
         let mentions = if role_ids.is_empty() {
-            let owner_id = guild_id.to_partial_guild(http).await.unwrap().owner_id;
+            let owner_id = guild_id.to_partial_guild(http).await?.owner_id;
             vec![message.author.mention(), owner_id.mention()]
         } else {
             role_ids
@@ -80,18 +85,12 @@ impl SupportMessageCommand {
                 .collect::<Vec<_>>()
         };
 
-        send_support_message(
-            http,
-            thread.id,
-            &mentions,
-            vec![CreateMessage::new().embed(issue).files(attachments)],
-        )
-        .await
-        .unwrap();
+        send_support_message(http, thread.id, &mentions, vec![
+            CreateMessage::new().embed(issue).files(attachments),
+        ])
+        .await?;
 
-        message
-            .delete(http, Some("Support message deleted"))
-            .await?;
+        message.delete(http, Some("Support message deleted")).await?;
 
         Ok(())
     }

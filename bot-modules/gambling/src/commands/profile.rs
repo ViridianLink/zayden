@@ -1,25 +1,35 @@
+use std::fmt::Write as _;
+
 use async_trait::async_trait;
 use jiff::Timestamp;
 use levels::{LevelsRow, level_up_xp};
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, ResolvedOption, ResolvedValue, UserId,
+    Colour,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
-use crate::{
-    Coins, GamblingItems, Gems, MaxBet, Prestige, Result, ShopItem,
-    commands::inventory::InventoryManager,
-};
-
 use super::Commands;
+use crate::commands::inventory::InventoryManager;
+use crate::{Coins, GamblingItems, Gems, MaxBet, Prestige, Result, ShopItem};
 
 #[async_trait]
 pub trait ProfileManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send)
-    -> sqlx::Result<Option<ProfileRow>>;
+    async fn row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<ProfileRow>>;
 }
 
 #[derive(Default)]
@@ -32,10 +42,18 @@ pub struct ProfileRow {
 }
 
 impl ProfileRow {
-    pub fn into_embed<'a>(self, inventory: GamblingItems, emojis: &EmojiCache) -> CreateEmbed<'a> {
+    pub fn into_embed<'a>(
+        self,
+        inventory: &GamblingItems,
+        emojis: &EmojiCache,
+    ) -> CreateEmbed<'a> {
         let mut betting_max = self.max_bet_str();
         if self.prestige() != 0 {
-            betting_max.push_str(&format!("\n(Prestige Boost: +{}%)", 10 * self.prestige()));
+            let _ = write!(
+                betting_max,
+                "\n(Prestige Boost: +{}%)",
+                10 * self.prestige()
+            );
         }
 
         let loot_str = if inventory.0.is_empty() {
@@ -53,7 +71,7 @@ impl ProfileRow {
                 .join("\n")
         };
 
-        let coin = emojis.emoji("heads").unwrap();
+        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
         CreateEmbed::new()
             .field(format!("Coins <:coin:{coin}>"), self.coins_str(), false)
@@ -95,7 +113,7 @@ impl Gems for ProfileRow {
 
 impl LevelsRow for ProfileRow {
     fn user_id(&self) -> UserId {
-        unreachable!("user_id is not available on ProfileRow")
+        UserId::new(1)
     }
 
     fn xp(&self) -> i32 {
@@ -115,7 +133,7 @@ impl LevelsRow for ProfileRow {
     }
 
     fn last_xp(&self) -> Timestamp {
-        jiff::Timestamp::UNIX_EPOCH
+        Timestamp::UNIX_EPOCH
     }
 }
 
@@ -142,20 +160,20 @@ impl Commands {
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let user = match options.pop() {
             Some(option) => {
                 let ResolvedValue::User(user, _) = option.value else {
-                    unreachable!("value must be a user")
+                    return Err(crate::Error::InvalidAmount);
                 };
                 user
-            }
+            },
             None => &interaction.user,
         };
 
         let row = Manager::row(pool, user.id).await?.unwrap_or_default();
-        let inventory_row = Manager::inventory_items(pool, user.id).await.unwrap();
+        let inventory_row = Manager::inventory_items(pool, user.id).await?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -163,9 +181,8 @@ impl Commands {
             data.emojis()
         };
 
-        let mut embed = row
-            .into_embed(inventory_row, &emojis)
-            .title(user.display_name());
+        let mut embed =
+            row.into_embed(&inventory_row, &emojis).title(user.display_name());
 
         if let Some(avatar) = user.avatar_url() {
             embed = embed.thumbnail(avatar);
@@ -173,8 +190,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

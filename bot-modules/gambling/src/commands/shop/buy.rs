@@ -1,5 +1,9 @@
 use serenity::all::{
-    CommandInteraction, Context, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    Context,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -10,14 +14,23 @@ use crate::commands::shop::{ShopManager, ShopRow};
 use crate::events::{Dispatch, Event, ShopPurchaseEvent};
 use crate::models::GamblingItem;
 use crate::{
-    Coins, Error, GamblingItems, Gems, GoalsManager, MaxValues, Result, SHOP_ITEMS, ShopCurrency,
-    ShopItem, ShopPage,
+    Coins,
+    Error,
+    GamblingItems,
+    Gems,
+    GoalsManager,
+    MaxValues,
+    Result,
+    SHOP_ITEMS,
+    ShopCurrency,
+    ShopItem,
+    ShopPage,
 };
 
 pub async fn buy<
     Data: EmojiCacheData,
     Db: Database,
-    GoalsHandler: GoalsManager<Db>,
+    GoalsHandler: GoalsManager<Db> + Send + Sync,
     BuyHandler: ShopManager<Db> + InventoryManager<Db>,
 >(
     ctx: &Context,
@@ -28,21 +41,19 @@ pub async fn buy<
     let mut options = parse_options_ref(options);
 
     let Some(ResolvedValue::String(item)) = options.remove("item") else {
-        unreachable!("item is required");
+        return Err(Error::InvalidAmount);
     };
 
-    let item = SHOP_ITEMS
-        .get(item)
-        .expect("Preset choices so item should always exist");
+    let item =
+        SHOP_ITEMS.get(item).expect("Preset choices so item should always exist");
 
     let Some(ResolvedValue::String(amount)) = options.remove("amount") else {
-        unreachable!("amount is required")
+        return Err(Error::InvalidAmount);
     };
 
-    let mut row = match BuyHandler::buy_row(pool, interaction.user.id).await? {
-        Some(row) => row,
-        None => ShopRow::new(interaction.user.id),
-    };
+    let mut row = BuyHandler::buy_row(pool, interaction.user.id)
+        .await?
+        .unwrap_or_else(|| ShopRow::new(interaction.user.id));
 
     let amount: i64 = match amount.parse() {
         Ok(x) => x,
@@ -55,7 +66,7 @@ pub async fn buy<
             //     Some(_) => unimplemented!("Currency not implimented"),
             //     None => unreachable!("No cost found"),
             // }
-        }
+        },
         _ => return Err(Error::InvalidAmount),
     };
 
@@ -76,7 +87,13 @@ pub async fn buy<
             ShopCurrency::Tech => &mut row.tech,
             ShopCurrency::Utility => &mut row.utility,
             ShopCurrency::Production => &mut row.production,
-            _ => return Err(Error::InvalidAmount),
+            ShopCurrency::Coal
+            | ShopCurrency::Iron
+            | ShopCurrency::Gold
+            | ShopCurrency::Redstone
+            | ShopCurrency::Lapis
+            | ShopCurrency::Diamonds
+            | ShopCurrency::Emeralds => return Err(Error::InvalidAmount),
         };
 
         *funds -= cost;
@@ -92,15 +109,12 @@ pub async fn buy<
     let quantity = if matches!(item.category, ShopPage::Mine1 | ShopPage::Mine2) {
         edit_mine(&mut row, item, amount)?
     } else {
-        let mut inventory = BuyHandler::inventory_items(pool, interaction.user.id)
-            .await
-            .unwrap();
+        let mut inventory =
+            BuyHandler::inventory_items(pool, interaction.user.id).await?;
 
         let quantity = edit_inv(&mut inventory, item, amount);
 
-        BuyHandler::save_inventory(pool, interaction.user.id, inventory)
-            .await
-            .unwrap();
+        BuyHandler::save_inventory(pool, interaction.user.id, inventory).await?;
 
         quantity
     };
@@ -115,15 +129,20 @@ pub async fn buy<
         .fire(
             interaction.channel_id,
             &mut row,
-            Event::ShopPurchase(ShopPurchaseEvent::new(interaction.user.id, item.id)),
+            Event::ShopPurchase(ShopPurchaseEvent::new(
+                interaction.user.id,
+                item.id,
+            )),
         )
         .await?;
 
-    BuyHandler::buy_save(pool, row).await.unwrap();
+    BuyHandler::buy_save(pool, row).await?;
 
     let cost = costs
         .into_iter()
-        .map(|(cost, currency)| format!("`{}` {}", cost.format(), currency.emoji(&emojis)))
+        .map(|(cost, currency)| {
+            format!("`{}` {}", cost.format(), currency.emoji(&emojis))
+        })
         .collect::<Vec<_>>();
 
     interaction
@@ -143,21 +162,16 @@ pub async fn buy<
 }
 
 fn edit_inv(inventory: &mut GamblingItems, item: &ShopItem<'_>, amount: i64) -> i64 {
-    match inventory
-        .0
-        .iter_mut()
-        .find(|inv_item| inv_item.item_id == item.id)
+    if let Some(item) =
+        inventory.0.iter_mut().find(|inv_item| inv_item.item_id == item.id)
     {
-        Some(item) => {
-            item.quantity += amount;
-            item.quantity
-        }
-        None => {
-            let mut item = GamblingItem::from(item);
-            item.quantity = amount;
-            inventory.0.push(item);
-            amount
-        }
+        item.quantity += amount;
+        item.quantity
+    } else {
+        let mut item = GamblingItem::from(item);
+        item.quantity = amount;
+        inventory.0.push(item);
+        amount
     }
 }
 
@@ -172,14 +186,14 @@ fn edit_mine(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> Result<i64>
         "solar_system" => &mut row.solar_systems,
         "galaxy" => &mut row.galaxies,
         "universe" => &mut row.universes,
-        _ => unreachable!("Invalid item id {}", item.id),
+        _ => return Err(Error::InvalidAmount),
     };
     let current = *value;
 
     *value += amount;
 
     let quantity = *value;
-    let max_value = *row.max_values().get(item.id).unwrap();
+    let max_value = *row.max_values().get(item.id).expect("item ID in max_values");
 
     if quantity > max_value {
         return Err(Error::InsufficientCapacity(max_value - current));

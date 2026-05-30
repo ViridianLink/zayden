@@ -1,8 +1,13 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    CommandInteraction, EditInteractionResponse, EditThread, GenericInteractionChannel, GuildId,
-    Http, ResolvedValue,
+    CommandInteraction,
+    EditInteractionResponse,
+    EditThread,
+    GenericInteractionChannel,
+    GuildId,
+    Http,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -21,19 +26,20 @@ impl Ticket {
             _ => "",
         };
 
-        match message.is_empty() {
-            true => interaction.defer_ephemeral(http).await?,
-            false => interaction.defer(http).await?,
-        };
+        if message.is_empty() {
+            interaction.defer_ephemeral(http).await?;
+        } else {
+            interaction.defer(http).await?;
+        }
 
         let support_channel_id = GuildManager::get(pool, guild_id)
-            .await
-            .unwrap()
-            .unwrap()
+            .await?
+            .ok_or(Error::NotInSupportChannel)?
             .channel_id()
-            .unwrap();
+            .ok_or(Error::NotInSupportChannel)?;
 
-        let channel = interaction.channel.as_ref().unwrap();
+        let channel =
+            interaction.channel.as_ref().expect("interaction always has a channel");
 
         if let GenericInteractionChannel::Thread(channel) = channel
             && channel.parent_id != support_channel_id
@@ -41,18 +47,20 @@ impl Ticket {
             return Err(Error::NotInSupportChannel);
         }
 
-        let new_channel_name: String =
-            format!("{} - {}", "[Closed]", channel.base().name.as_ref().unwrap())
-                .chars()
-                .take(100)
-                .collect();
+        let new_channel_name: String = format!(
+            "{} - {}",
+            "[Closed]",
+            channel.base().name.as_ref().expect("channel always has a name")
+        )
+        .chars()
+        .take(100)
+        .collect();
 
         interaction
             .channel_id
             .expect_thread()
             .edit(http, EditThread::new().name(new_channel_name))
-            .await
-            .unwrap();
+            .await?;
 
         interaction
             .edit_response(
@@ -60,8 +68,7 @@ impl Ticket {
                 EditInteractionResponse::new()
                     .content(format!("Ticket marked as closed\n\n{message}")),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

@@ -1,7 +1,16 @@
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Mentionable,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -9,8 +18,18 @@ use zayden_core::{EmojiCacheData, FormatNum, parse_options};
 
 use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
-    Coins, Commands, Error, GamblingManager, Gems, GoalsManager, MaxBet, Prestige, Result,
-    ShopCurrency, Stamina, StaminaManager,
+    Coins,
+    Commands,
+    Error,
+    GamblingManager,
+    Gems,
+    GoalsManager,
+    MaxBet,
+    Prestige,
+    Result,
+    ShopCurrency,
+    Stamina,
+    StaminaManager,
 };
 
 pub struct SendRow {
@@ -27,7 +46,7 @@ impl SendRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coins: 0,
             gems: 0,
             stamina: 0,
@@ -81,7 +100,10 @@ impl Prestige for SendRow {
 
 #[async_trait]
 pub trait SendManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<SendRow>>;
+    async fn row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<SendRow>>;
 
     async fn save(pool: &Pool<Db>, row: SendRow) -> sqlx::Result<Db::QueryResult>;
 }
@@ -92,7 +114,7 @@ impl Commands {
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         StaminaHandler: StaminaManager<Db>,
-        GoalHandler: GoalsManager<Db>,
+        GoalHandler: GoalsManager<Db> + Send + Sync,
         SendHandler: SendManager<Db>,
     >(
         ctx: &Context,
@@ -104,8 +126,9 @@ impl Commands {
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::User(recipient, _)) = options.remove("recipient") else {
-            unreachable!("recipient is required");
+        let Some(ResolvedValue::User(recipient, _)) = options.remove("recipient")
+        else {
+            return Err(Error::InvalidAmount);
         };
 
         if recipient.id == interaction.user.id {
@@ -113,17 +136,17 @@ impl Commands {
         }
 
         let Some(ResolvedValue::Integer(amount)) = options.remove("amount") else {
-            unreachable!("amount is required");
+            return Err(Error::InvalidAmount);
         };
 
         if amount < 0 {
             return Err(Error::NegativeAmount);
         }
 
-        let mut row = match SendHandler::row(pool, interaction.user.id).await.unwrap() {
-            Some(row) => row,
-            None => SendRow::new(interaction.user.id),
-        };
+        let mut row = SendHandler::row(pool, interaction.user.id)
+            .await
+            .expect("async call")
+            .unwrap_or_else(|| SendRow::new(interaction.user.id));
 
         row.verify_work::<Db, StaminaHandler>()?;
 
@@ -141,11 +164,11 @@ impl Commands {
 
         *row.coins_mut() -= amount;
 
-        let mut tx = pool.begin().await.unwrap();
+        let mut tx = pool.begin().await?;
 
         GamblingHandler::add_coins(&mut *tx, recipient.id, amount).await?;
 
-        tx.commit().await.unwrap();
+        tx.commit().await?;
 
         row.done_work();
 
@@ -163,12 +186,11 @@ impl Commands {
                 &mut row,
                 Event::Send(SendEvent::new(amount, interaction.user.id)),
             )
-            .await
-            .unwrap();
+            .await?;
 
         SendHandler::save(pool, row).await?;
 
-        let coin = emojis.emoji("heads").unwrap();
+        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
         let embed = CreateEmbed::new().description(format!(
             "You sent {} <:coin:{coin}> to {}\nStamina: {stamina}",
@@ -178,8 +200,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

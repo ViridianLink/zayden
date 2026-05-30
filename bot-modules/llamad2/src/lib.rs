@@ -24,5 +24,5 @@ pub use sensitivity::Sensitivity;
 pub use socials::Socials;
 pub use status_update::StatusUpdate;
 
-const LLAMA_GUILD: GuildId = GuildId::new(1133034263579734037);
-const LLAMA_USER: UserId = UserId::new(367719520082591746);
+const LLAMA_GUILD: GuildId = GuildId::new(1_133_034_263_579_734_037);
+const LLAMA_USER: UserId = UserId::new(367_719_520_082_591_746);

@@ -1,19 +1,33 @@
 use std::collections::HashMap;
 
 use serenity::all::{
-    ChannelType, CreateChannel, GuildId, Http, JsonErrorCode, PermissionOverwrite,
-    PermissionOverwriteType, Permissions, ResolvedValue,
+    ChannelType,
+    CreateChannel,
+    DiscordJsonError,
+    EditInteractionResponse,
+    ErrorResponse,
+    GuildId,
+    Http,
+    HttpError,
+    JsonErrorCode,
+    PermissionOverwrite,
+    PermissionOverwriteType,
+    Permissions,
+    ResolvedValue,
 };
-use serenity::all::{DiscordJsonError, EditInteractionResponse, ErrorResponse, HttpError};
 use serenity::nonmax::NonMaxU16;
 use sqlx::{Database, Pool};
 
 use crate::{
-    Error, TempVoiceGuildManager, VoiceChannelManager, VoiceChannelRow,
-    delete_voice_channel_if_inactive, owner_perms,
+    Error,
+    TempVoiceGuildManager,
+    VoiceChannelManager,
+    VoiceChannelRow,
+    delete_voice_channel_if_inactive,
+    owner_perms,
 };
 
-pub async fn create<
+pub(super) async fn create<
     Db: Database,
     GuildManager: TempVoiceGuildManager<Db>,
     ChannelManager: VoiceChannelManager<Db>,
@@ -24,7 +38,7 @@ pub async fn create<
     guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(http).await.unwrap();
+    interaction.defer_ephemeral(http).await?;
 
     let name = match options.remove("name") {
         Some(ResolvedValue::String(name)) => name.to_string(),
@@ -32,7 +46,9 @@ pub async fn create<
     };
 
     let limit = match options.remove("limit") {
-        Some(ResolvedValue::Integer(limit)) => limit.clamp(0, 99) as u16,
+        Some(ResolvedValue::Integer(limit)) => {
+            u16::try_from(limit.clamp(0, 99)).expect("clamped 0-99 fits in u16")
+        },
         _ => 0,
     };
 
@@ -64,18 +80,21 @@ pub async fn create<
             deny: Permissions::empty(),
             kind: PermissionOverwriteType::Role(guild_id.everyone_role()),
         }),
-        _ => unreachable!("Invalid privacy option"),
-    };
+        _ => return Err(Error::IneligibleChannel),
+    }
 
-    let category = GuildManager::get_category(pool, guild_id).await.unwrap();
+    let category = GuildManager::get_category(pool, guild_id).await?;
 
     let vc_builder = CreateChannel::new(name)
         .kind(ChannelType::Voice)
         .category(category)
-        .user_limit(NonMaxU16::new(limit).unwrap())
+        .user_limit(
+            NonMaxU16::new(limit).expect("limit 0-99 is below NonMaxU16 max"),
+        )
         .permissions(perms);
 
-    let vc: serenity::all::GuildChannel = guild_id.create_channel(http, vc_builder).await.unwrap();
+    let vc: serenity::all::GuildChannel =
+        guild_id.create_channel(http, vc_builder).await?;
 
     let move_result = guild_id.move_member(http, interaction.user.id, vc.id).await;
 
@@ -89,19 +108,21 @@ pub async fn create<
             http,
             EditInteractionResponse::new().content(response_content),
         )
-        .await
-        .unwrap();
+        .await?;
 
     // Target user is not connected to voice.
-    if let Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-        error:
-            DiscordJsonError {
-                code: JsonErrorCode::TargetUserNotConnectedToVoice,
-                ..
-            },
-        ..
-    }))) = move_result
-        && delete_voice_channel_if_inactive(http, guild_id, interaction.user.id, &vc).await
+    if let Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+        ErrorResponse {
+            error:
+                DiscordJsonError {
+                    code: JsonErrorCode::TargetUserNotConnectedToVoice,
+                    ..
+                },
+            ..
+        },
+    ))) = move_result
+        && delete_voice_channel_if_inactive(http, guild_id, interaction.user.id, &vc)
+            .await
     {
         return Ok(());
     }

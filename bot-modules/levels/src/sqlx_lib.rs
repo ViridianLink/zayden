@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::UserId;
-use sqlx::{prelude::FromRow, Database, Pool};
+use sqlx::prelude::FromRow;
+use sqlx::{Database, Pool};
 
 use crate::level_up_xp;
 
@@ -23,14 +24,20 @@ pub trait LevelsManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<RankRow>>;
 
-    async fn xp_row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<XpRow>>;
+    async fn xp_row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<XpRow>>;
 
     async fn full_row(
         pool: &Pool<Db>,
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<FullLevelRow>>;
 
-    async fn save(pool: &Pool<Db>, row: FullLevelRow) -> sqlx::Result<Db::QueryResult>;
+    async fn save(
+        pool: &Pool<Db>,
+        row: FullLevelRow,
+    ) -> sqlx::Result<Db::QueryResult>;
 }
 
 pub trait LevelsRow {
@@ -57,7 +64,7 @@ pub struct LeaderboardRow {
 
 impl LevelsRow for LeaderboardRow {
     fn user_id(&self) -> UserId {
-        UserId::new(self.user_id as u64)
+        UserId::new(self.user_id.cast_unsigned())
     }
 
     fn xp(&self) -> i32 {
@@ -94,7 +101,11 @@ impl Default for RankRow {
 }
 
 impl LevelsRow for RankRow {
-    fn user_id(&self) -> serenity::all::UserId {
+    #[expect(
+        clippy::unreachable,
+        reason = "user_id is not stored on this view row type"
+    )]
+    fn user_id(&self) -> UserId {
         unreachable!("user_id is not available on RankRow")
     }
 
@@ -128,15 +139,15 @@ pub struct XpRow {
 
 impl Default for XpRow {
     fn default() -> Self {
-        Self {
-            xp: 0,
-            level: 1,
-            total_xp: 0,
-        }
+        Self { xp: 0, level: 1, total_xp: 0 }
     }
 }
 
 impl LevelsRow for XpRow {
+    #[expect(
+        clippy::unreachable,
+        reason = "user_id is not stored on this view row type"
+    )]
     fn user_id(&self) -> UserId {
         unreachable!("user_id is not available on XpRow")
     }
@@ -177,7 +188,7 @@ impl FullLevelRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             xp: 0,
             level: 0,
             total_xp: 0,
@@ -190,7 +201,7 @@ impl FullLevelRow {
         self.message_count += 1;
 
         let rand_xp = rand::random_range(15..25);
-        self.total_xp += rand_xp as i64;
+        self.total_xp += i64::from(rand_xp);
         self.xp += rand_xp;
 
         let next_level_xp = level_up_xp(self.level());
@@ -198,7 +209,7 @@ impl FullLevelRow {
             self.xp -= next_level_xp;
             self.level += 1;
             return Some(self.level);
-        };
+        }
 
         None
     }
@@ -206,7 +217,7 @@ impl FullLevelRow {
 
 impl LevelsRow for FullLevelRow {
     fn user_id(&self) -> UserId {
-        UserId::new(self.user_id as u64)
+        UserId::new(self.user_id.cast_unsigned())
     }
 
     fn xp(&self) -> i32 {

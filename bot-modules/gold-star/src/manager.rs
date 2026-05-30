@@ -32,7 +32,7 @@ impl GoldStarRow {
         }
     }
 
-    pub fn give_star(&mut self, reciever: &mut GoldStarRow) {
+    pub const fn give_star(&mut self, reciever: &mut Self) {
         self.given_stars += 1;
         self.number_of_stars -= 1;
 
@@ -40,7 +40,7 @@ impl GoldStarRow {
         reciever.received_stars += 1;
     }
 
-    pub fn give_free_star(&mut self, reciever: &mut GoldStarRow) {
+    pub fn give_free_star(&mut self, reciever: &mut Self) {
         self.given_stars += 1;
         self.last_free_star = jiff::Timestamp::now().to_sqlx();
 

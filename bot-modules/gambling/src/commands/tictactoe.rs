@@ -1,20 +1,37 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::marker::PhantomData;
+use std::sync::Arc;
 
 use serenity::all::{
-    ButtonStyle, CommandInteraction, CommandOptionType, Context, CreateButton, CreateCommand,
-    CreateCommandOption, CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption,
-    ResolvedValue, UserId,
+    ButtonStyle,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateButton,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Mentionable,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, parse_options};
 
-use crate::{
-    Coins, EffectsManager, GamblingData, GameCache, GameManager, GameRow, GoalsManager, Result,
-    models::GamblingManager,
-};
-
 use super::Commands;
+use crate::models::GamblingManager;
+use crate::{
+    Coins,
+    EffectsManager,
+    GamblingData,
+    GameCache,
+    GameManager,
+    GameRow,
+    GoalsManager,
+    Result,
+};
 
 impl Commands {
     pub async fn tictactoe<
@@ -30,11 +47,11 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let row = GameHandler::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -43,25 +60,31 @@ impl Commands {
 
         let mut options = parse_options(options);
 
-        let ResolvedValue::String(size) = options.remove("size").unwrap() else {
-            unreachable!("size is required")
+        let Some(ResolvedValue::String(size)) = options.remove("size") else {
+            return Err(crate::Error::InvalidAmount);
         };
 
-        let ResolvedValue::Integer(bet) = options.remove("bet").unwrap() else {
-            unreachable!("bet is required option")
+        let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
+            return Err(crate::Error::InvalidAmount);
         };
 
-        EffectsHandler::bet_limit::<GamblingHandler>(pool, interaction.user.id, bet, row.coins())
-            .await?;
+        EffectsHandler::bet_limit::<GamblingHandler>(
+            pool,
+            interaction.user.id,
+            bet,
+            row.coins(),
+        )
+        .await?;
 
-        GameHandler::save(pool, row).await.unwrap();
+        GameHandler::save(pool, row).await?;
         GameCache::update(Arc::clone(&data_lock), interaction.user.id).await;
 
-        let coin = {
-            let data = data_lock.read().await;
-            let emojis = data.emojis();
-            emojis.emoji("heads").unwrap()
-        };
+        let coin = data_lock
+            .read()
+            .await
+            .emojis()
+            .emoji("heads")
+            .expect("emoji 'heads' in cache");
 
         let embed = CreateEmbed::new().title("TicTacToe").description(format!(
             "{} wants to play tic-tac-toe ({size}x{size}) for **{bet}** <:coin:{coin}>",
@@ -86,8 +109,7 @@ impl Commands {
                             .style(ButtonStyle::Secondary),
                     ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -107,13 +129,20 @@ impl Commands {
                 .required(true),
             )
             .add_option(
-                CreateCommandOption::new(CommandOptionType::Integer, "bet", "The amount to bet.")
-                    .required(true),
+                CreateCommandOption::new(
+                    CommandOptionType::Integer,
+                    "bet",
+                    "The amount to bet.",
+                )
+                .required(true),
             )
     }
 }
 
-#[allow(dead_code)]
+#[expect(
+    dead_code,
+    reason = "placeholder for future TicTacToe game state implementation"
+)]
 struct GameState<Db: Database, Manager: GameManager<Db>> {
     size: usize,
     players: [UserId; 2],
@@ -125,7 +154,10 @@ struct GameState<Db: Database, Manager: GameManager<Db>> {
     _manager: PhantomData<Manager>,
 }
 
-#[allow(dead_code)]
+#[expect(
+    dead_code,
+    reason = "placeholder for future TicTacToe game state implementation"
+)]
 impl<Db, Manager> GameState<Db, Manager>
 where
     Db: Database,
@@ -146,21 +178,23 @@ where
         }
     }
 
+    #[expect(clippy::future_not_send, reason = "dead code within GameState stub")]
     async fn p1_row(&self, pool: &Pool<Db>) -> GameRow {
         let id = self.players[0];
 
         Manager::row(pool, id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(id))
     }
 
+    #[expect(clippy::future_not_send, reason = "dead code within GameState stub")]
     async fn p2_row(&self, pool: &Pool<Db>) -> GameRow {
         let id = self.players[1];
 
         Manager::row(pool, id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(id))
     }
 }

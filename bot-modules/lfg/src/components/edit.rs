@@ -3,19 +3,26 @@ use jiff::Zoned;
 use jiff::tz::{self, TimeZone};
 use jiff_sqlx::Timestamp;
 use serenity::all::{
-    ComponentInteraction, CreateInteractionResponse, CreateModal, Http, MessageId, UserId,
+    ComponentInteraction,
+    CreateInteractionResponse,
+    CreateModal,
+    Http,
+    MessageId,
+    UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 
+use super::Components;
 use crate::modals::modal_components;
 use crate::{Error, Result};
 
-use super::Components;
-
 #[async_trait]
 pub trait EditManager<Db: Database> {
-    async fn edit_row(pool: &Pool<Db>, id: impl Into<MessageId> + Send) -> sqlx::Result<EditRow>;
+    async fn edit_row(
+        pool: &Pool<Db>,
+        id: impl Into<MessageId> + Send,
+    ) -> sqlx::Result<EditRow>;
 }
 
 #[derive(FromRow)]
@@ -29,10 +36,12 @@ pub struct EditRow {
 }
 
 impl EditRow {
-    pub fn owner(&self) -> UserId {
-        UserId::new(self.owner_id as u64)
+    #[must_use]
+    pub const fn owner(&self) -> UserId {
+        UserId::new(self.owner_id.cast_unsigned())
     }
 
+    #[must_use]
     pub fn start_time(&self) -> Zoned {
         let tz = self
             .timezone
@@ -50,9 +59,7 @@ impl Components {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let post = Manager::edit_row(pool, interaction.message.id)
-            .await
-            .unwrap();
+        let post = Manager::edit_row(pool, interaction.message.id).await?;
 
         if interaction.user.id != post.owner() {
             return Err(Error::PermissionDenied(post.owner()));
@@ -60,7 +67,7 @@ impl Components {
 
         let row = modal_components(
             &post.activity,
-            post.start_time(),
+            &post.start_time(),
             post.fireteam_size,
             Some(&post.description),
         );
@@ -69,8 +76,7 @@ impl Components {
 
         interaction
             .create_response(http, CreateInteractionResponse::Modal(modal))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

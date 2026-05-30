@@ -2,13 +2,15 @@ use async_trait::async_trait;
 use serenity::all::UserId;
 use sqlx::{Database, FromRow, Pool};
 
-use crate::Prestige;
-
 use super::{Coins, Gems, MaxBet};
+use crate::Prestige;
 
 #[async_trait]
 pub trait GameManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<GameRow>>;
+    async fn row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<GameRow>>;
 
     async fn save(pool: &Pool<Db>, row: GameRow) -> sqlx::Result<Db::QueryResult>;
 }
@@ -27,7 +29,7 @@ impl GameRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coins: 0,
             gems: 0,
             level: Some(0),

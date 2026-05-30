@@ -5,11 +5,11 @@ use sqlx::PgPool;
 use tokio::sync::broadcast;
 use tracing::{info, warn};
 
+use super::types::{EntitlementScope, Tier};
 use crate::events::AppEvent;
 
-use super::types::{EntitlementScope, Tier};
-
-/// Premium entitlement gate, backed by the `entitlements` table and an in-memory cache.
+/// Premium entitlement gate, backed by the `entitlements` table and an
+/// in-memory cache.
 pub struct EntitlementService {
     db: PgPool,
     cache: Cache<EntitlementScope, Tier>,
@@ -17,6 +17,7 @@ pub struct EntitlementService {
 }
 
 impl EntitlementService {
+    #[must_use]
     pub fn new(db: PgPool, events: broadcast::Sender<AppEvent>) -> Self {
         let cache = Cache::builder().max_capacity(4096).build();
         Self { db, cache, events }
@@ -36,7 +37,8 @@ impl EntitlementService {
 
     /// Return `true` if the principal described by `scope` meets `required`.
     ///
-    /// For `UserInGuild`, the effective tier is the maximum of the user and guild tiers.
+    /// For `UserInGuild`, the effective tier is the maximum of the user and
+    /// guild tiers.
     pub async fn allows(&self, scope: EntitlementScope, required: Tier) -> bool {
         if required == Tier::Free {
             return true;
@@ -46,15 +48,18 @@ impl EntitlementService {
                 let u = self.user_tier(*user_id).await;
                 let g = self.guild_tier(*guild_id).await;
                 u.max(g)
-            }
-            _ => self.tier_for_scope(scope).await,
+            },
+            EntitlementScope::User(_) | EntitlementScope::Guild(_) => {
+                self.tier_for_scope(scope).await
+            },
         };
         effective >= required
     }
 
     /// Write an entitlement row (or upsert if `external_id` already exists) and
-    /// refresh the denormalised cache row.  Emits `AppEvent::EntitlementChanged` so
-    /// other processes can evict their caches.
+    /// refresh the denormalised cache row.  Emits
+    /// `AppEvent::EntitlementChanged` so other processes can evict their
+    /// caches.
     pub async fn grant(
         &self,
         scope: EntitlementScope,
@@ -63,10 +68,10 @@ impl EntitlementService {
         external_id: &str,
         expires_at: Option<jiff::Timestamp>,
     ) -> Result<(), sqlx::Error> {
-        let expires_at_pg: Option<jiff_sqlx::Timestamp> = expires_at.map(|t| t.into());
+        let expires_at_pg: Option<jiff_sqlx::Timestamp> = expires_at.map(Into::into);
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO entitlements
                 (provider, external_id, scope_type, scope_id, scope_secondary_id, tier, expires_at)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -78,7 +83,7 @@ impl EntitlementService {
                 tier               = EXCLUDED.tier,
                 expires_at         = EXCLUDED.expires_at,
                 granted_at         = now()
-            "#,
+            ",
         )
         .bind(provider)
         .bind(external_id)
@@ -96,8 +101,13 @@ impl EntitlementService {
         Ok(())
     }
 
-    /// Remove an entitlement by provider + external_id and refresh the cache row.
-    pub async fn revoke(&self, provider: &str, external_id: &str) -> Result<(), sqlx::Error> {
+    /// Remove an entitlement by `provider` + `external_id` and refresh the
+    /// cache row.
+    pub async fn revoke(
+        &self,
+        provider: &str,
+        external_id: &str,
+    ) -> Result<(), sqlx::Error> {
         let row = sqlx::query_as::<_, (String, i64, i64)>(
             "DELETE FROM entitlements WHERE provider = $1 AND external_id = $2
              RETURNING scope_type, scope_id, scope_secondary_id",
@@ -118,18 +128,24 @@ impl EntitlementService {
 
     /// Spawn a background task that evicts cache entries when it receives
     /// `AppEvent::EntitlementChanged` on the broadcast bus.
-    pub fn spawn_invalidator(this: Arc<Self>, mut rx: broadcast::Receiver<AppEvent>) {
+    pub fn spawn_invalidator(
+        this: Arc<Self>,
+        mut rx: broadcast::Receiver<AppEvent>,
+    ) {
         tokio::spawn(async move {
             loop {
                 match rx.recv().await {
                     Ok(AppEvent::EntitlementChanged(scope)) => {
                         this.cache.invalidate(&scope).await;
-                    }
-                    Ok(_) => {}
+                    },
+                    Ok(_) => {},
                     Err(broadcast::error::RecvError::Lagged(n)) => {
-                        warn!(n, "entitlement invalidator lagged; clearing full cache");
+                        warn!(
+                            n,
+                            "entitlement invalidator lagged; clearing full cache"
+                        );
                         this.cache.invalidate_all();
-                    }
+                    },
                     Err(broadcast::error::RecvError::Closed) => break,
                 }
             }
@@ -146,23 +162,26 @@ impl EntitlementService {
             Ok(tier) => {
                 self.cache.insert(scope, tier).await;
                 tier
-            }
+            },
             Err(err) => {
                 warn!(?err, "failed to load entitlement tier; defaulting to Free");
                 Tier::Free
-            }
+            },
         }
     }
 
-    async fn load_tier_from_db(&self, scope: &EntitlementScope) -> Result<Tier, sqlx::Error> {
+    async fn load_tier_from_db(
+        &self,
+        scope: &EntitlementScope,
+    ) -> Result<Tier, sqlx::Error> {
         // Check the denormalised cache row first.
         let row = sqlx::query_as::<_, (String,)>(
-            r#"
+            r"
             SELECT tier FROM entitlement_cache
             WHERE scope_type = $1
               AND scope_id = $2
               AND scope_secondary_id = $3
-            "#,
+            ",
         )
         .bind(scope.scope_type())
         .bind(scope.scope_id())
@@ -178,9 +197,12 @@ impl EntitlementService {
         self.aggregate_tier_from_db(scope).await
     }
 
-    async fn aggregate_tier_from_db(&self, scope: &EntitlementScope) -> Result<Tier, sqlx::Error> {
+    async fn aggregate_tier_from_db(
+        &self,
+        scope: &EntitlementScope,
+    ) -> Result<Tier, sqlx::Error> {
         let row = sqlx::query_as::<_, (Option<i32>,)>(
-            r#"
+            r"
             SELECT MAX(
                 CASE tier
                     WHEN 'enterprise' THEN 2
@@ -193,7 +215,7 @@ impl EntitlementService {
               AND scope_id = $2
               AND scope_secondary_id = $3
               AND (expires_at IS NULL OR expires_at > now())
-            "#,
+            ",
         )
         .bind(scope.scope_type())
         .bind(scope.scope_id())
@@ -215,13 +237,13 @@ impl EntitlementService {
         tier: Tier,
     ) -> Result<(), sqlx::Error> {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO entitlement_cache
                 (scope_type, scope_id, scope_secondary_id, tier, refreshed_at)
             VALUES ($1, $2, $3, $4, now())
             ON CONFLICT (scope_type, scope_id, scope_secondary_id)
             DO UPDATE SET tier = EXCLUDED.tier, refreshed_at = now()
-            "#,
+            ",
         )
         .bind(scope.scope_type())
         .bind(scope.scope_id())
@@ -232,7 +254,10 @@ impl EntitlementService {
         Ok(())
     }
 
-    async fn refresh_cache_row_from_db(&self, scope: &EntitlementScope) -> Result<(), sqlx::Error> {
+    async fn refresh_cache_row_from_db(
+        &self,
+        scope: &EntitlementScope,
+    ) -> Result<(), sqlx::Error> {
         let tier = self.aggregate_tier_from_db(scope).await?;
         self.refresh_cache_row(scope, tier).await?;
         info!(
@@ -245,12 +270,17 @@ impl EntitlementService {
     }
 }
 
-fn row_to_scope(scope_type: &str, scope_id: i64, scope_secondary_id: i64) -> EntitlementScope {
+fn row_to_scope(
+    scope_type: &str,
+    scope_id: i64,
+    scope_secondary_id: i64,
+) -> EntitlementScope {
     match scope_type {
-        "guild" => EntitlementScope::Guild(scope_id as u64),
-        "user_in_guild" => {
-            EntitlementScope::UserInGuild(scope_id as u64, scope_secondary_id as u64)
-        }
-        _ => EntitlementScope::User(scope_id as u64),
+        "guild" => EntitlementScope::Guild(u64::try_from(scope_id).unwrap_or(0)),
+        "user_in_guild" => EntitlementScope::UserInGuild(
+            u64::try_from(scope_id).unwrap_or(0),
+            u64::try_from(scope_secondary_id).unwrap_or(0),
+        ),
+        _ => EntitlementScope::User(u64::try_from(scope_id).unwrap_or(0)),
     }
 }

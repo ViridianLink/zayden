@@ -2,26 +2,39 @@ use std::fs;
 
 use destiny2_core::BungieClientData;
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
-    CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateInteractionResponse,
-    EditInteractionResponse, ResolvedValue,
+    AutocompleteChoice,
+    AutocompleteOption,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateAutocompleteResponse,
+    CreateCommand,
+    CreateCommandOption,
+    CreateInteractionResponse,
+    EditInteractionResponse,
+    ResolvedValue,
 };
 use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
-use crate::{Error, Result};
-
 use super::endgame_analysis::EndgameAnalysisSheet;
 use super::endgame_analysis::weapon::Weapon;
+use crate::{EndgameAnalysisError, Result};
 
 pub struct WeaponCommand;
 
 impl WeaponCommand {
+    #[expect(
+        clippy::significant_drop_tightening,
+        clippy::unreachable,
+        clippy::manual_let_else,
+        reason = "bungie_client() borrows the read guard; required name option guaranteed by Discord"
+    )]
     pub async fn run<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let options = interaction.data.options();
         let options = parse_options(options);
@@ -31,37 +44,38 @@ impl WeaponCommand {
             _ => unreachable!("Name is required"),
         };
 
-        let weapons: Vec<Weapon> = if let Ok(w) = fs::read_to_string("weapons.json") {
-            serde_json::from_str(&w).unwrap()
-        } else {
-            let item_manifest = {
-                let data_lock = ctx.data::<RwLock<Data>>();
-                let data = data_lock.read().await;
-                let client = data.bungie_client();
-                let manifest = client.destiny_manifest().await.unwrap();
-                client
-                    .destiny_inventory_item_definition(&manifest, "en")
-                    .await
-                    .unwrap()
-            };
+        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
+            Ok(w) => serde_json::from_str(&w).expect("valid JSON"),
+            Err(_) => {
+                let item_manifest = {
+                    let data_lock = ctx.data::<RwLock<Data>>();
+                    let data = data_lock.read().await;
+                    let client = data.bungie_client();
+                    let manifest = client.destiny_manifest().await?;
+                    client
+                        .destiny_inventory_item_definition(&manifest, "en")
+                        .await
+                        .expect("data invariant")
+                };
 
-            EndgameAnalysisSheet::update(&item_manifest).await?;
-            let w = fs::read_to_string("weapons.json").unwrap();
-            serde_json::from_str(&w).unwrap()
+                EndgameAnalysisSheet::update(&item_manifest).await?;
+                let w = fs::read_to_string("weapons.json")
+                    .expect("weapons.json readable");
+                serde_json::from_str(&w).expect("valid JSON")
+            },
         };
 
         let weapon = weapons
             .iter()
             .find(|&w| w.name().to_lowercase() == name.to_lowercase())
-            .ok_or_else(|| Error::WeaponNotFound(name.to_string()))?;
+            .ok_or_else(|| EndgameAnalysisError::WeaponNotFound(name.to_string()))?;
 
         interaction
             .edit_response(
                 &ctx.http,
                 EditInteractionResponse::new().embed(weapon.into()),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -80,36 +94,39 @@ impl WeaponCommand {
             )
     }
 
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "bungie_client() borrows the read guard; lock must remain alive across await points"
+    )]
     pub async fn autocomplete<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
     ) -> Result<()> {
-        let weapons = match std::fs::read_to_string("weapons.json") {
+        let weapons = match fs::read_to_string("weapons.json") {
             Ok(weapons) => weapons,
             Err(_) => {
                 let item_manifest = {
                     let data_lock = ctx.data::<RwLock<Data>>();
                     let data = data_lock.read().await;
                     let client = data.bungie_client();
-                    let manifest = client.destiny_manifest().await.unwrap();
+                    let manifest = client.destiny_manifest().await?;
                     client
                         .destiny_inventory_item_definition(&manifest, "en")
                         .await
-                        .unwrap()
+                        .expect("data invariant")
                 };
 
                 EndgameAnalysisSheet::update(&item_manifest).await?;
-                std::fs::read_to_string("weapons.json").unwrap()
-            }
+                fs::read_to_string("weapons.json").expect("weapons.json readable")
+            },
         };
-        let weapons: Vec<Weapon> = serde_json::from_str(&weapons).unwrap();
+        let weapons: Vec<Weapon> =
+            serde_json::from_str(&weapons).expect("valid weapons JSON");
         let weapons = weapons
             .into_iter()
             .filter(|w| {
-                w.name()
-                    .to_lowercase()
-                    .contains(&option.value.to_lowercase())
+                w.name().to_lowercase().contains(&option.value.to_lowercase())
             })
             .map(AutocompleteChoice::from)
             .take(25)

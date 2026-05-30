@@ -4,7 +4,8 @@ use std::time::Duration;
 use zayden_core::EmojiCache;
 
 use super::{ShopCurrency, ShopPage};
-use crate::{GamblingItem, utils::Emoji};
+use crate::GamblingItem;
+use crate::utils::Emoji;
 
 #[derive(Clone, Copy)]
 pub struct ShopItem<'a> {
@@ -29,7 +30,7 @@ impl<'a> ShopItem<'a> {
         cost: i64,
         currency: ShopCurrency,
         category: ShopPage,
-    ) -> ShopItem<'a> {
+    ) -> Self {
         ShopItem {
             id,
             name,
@@ -44,7 +45,11 @@ impl<'a> ShopItem<'a> {
         }
     }
 
-    const fn add_cost(mut self, cost: i64, currency: ShopCurrency) -> ShopItem<'a> {
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "index is bounds-checked by the while loop condition"
+    )]
+    const fn add_cost(mut self, cost: i64, currency: ShopCurrency) -> Self {
         let mut i = 0;
         while i < self.costs.len() {
             if self.costs[i].is_none() {
@@ -78,14 +83,18 @@ impl<'a> ShopItem<'a> {
         self
     }
 
+    #[must_use]
     pub fn emoji(&self, emojis: &EmojiCache) -> String {
         match self.emoji {
-            Emoji::Id(name) => emojis.emoji_str(name).unwrap(),
+            Emoji::Id(name) => {
+                emojis.emoji_str(name).expect("emoji name always registered")
+            },
             Emoji::Str(emoji) => String::from(emoji),
             Emoji::None => String::new(),
         }
     }
 
+    #[must_use]
     pub fn cost_desc(&self, emojis: &EmojiCache) -> String {
         self.costs
             .iter()
@@ -95,6 +104,7 @@ impl<'a> ShopItem<'a> {
             .join("\n")
     }
 
+    #[must_use]
     pub fn coin_cost(&self) -> Option<i64> {
         self.costs
             .iter()
@@ -104,13 +114,14 @@ impl<'a> ShopItem<'a> {
             .copied()
     }
 
+    #[must_use]
     pub fn costs(&self, amount: i64) -> Vec<(i64, ShopCurrency)> {
         let iter = self.costs.iter().copied().flatten();
 
-        iter.map(|(cost, currency)| (cost * amount, currency))
-            .collect()
+        iter.map(|(cost, currency)| (cost * amount, currency)).collect()
     }
 
+    #[must_use]
     pub fn as_str(&self, emojis: &EmojiCache) -> String {
         format!("{} {}", self.emoji(emojis), self.name)
     }
@@ -121,11 +132,11 @@ impl From<&GamblingItem> for ShopItem<'_> {
         *SHOP_ITEMS
             .iter()
             .find(|item| item.id == value.item_id)
-            .unwrap()
+            .expect("GamblingItem::item_id always matches a SHOP_ITEMS entry")
     }
 }
 
-pub const LOTTO_TICKET: ShopItem = ShopItem::new(
+pub const LOTTO_TICKET: ShopItem<'static> = ShopItem::new(
     "lottoticket",
     "Lottery Ticket",
     Emoji::Str("🎟️"),
@@ -135,7 +146,7 @@ pub const LOTTO_TICKET: ShopItem = ShopItem::new(
     ShopPage::Item,
 );
 
-pub const EGGPLANT: ShopItem = ShopItem::new(
+pub const EGGPLANT: ShopItem<'static> = ShopItem::new(
     "eggplant",
     "Eggplant",
     Emoji::Str("🍆"),
@@ -146,7 +157,7 @@ pub const EGGPLANT: ShopItem = ShopItem::new(
 )
 .sellable(true);
 
-pub const WEAPON_CRATE: ShopItem = ShopItem::new(
+pub const WEAPON_CRATE: ShopItem<'static> = ShopItem::new(
     "weaponcrate",
     "Weapon Crate",
     Emoji::Str("📦"),
@@ -158,7 +169,7 @@ pub const WEAPON_CRATE: ShopItem = ShopItem::new(
 .sellable(true)
 .useable(true);
 
-pub const LUCKY_CHIP: ShopItem = ShopItem::new(
+pub const LUCKY_CHIP: ShopItem<'static> = ShopItem::new(
     "luckychip",
     "Lucky Chip",
     Emoji::Str("⭐"),
@@ -170,7 +181,7 @@ pub const LUCKY_CHIP: ShopItem = ShopItem::new(
 .useable(true)
 .effect_fn(|bet, _| bet);
 
-pub const ALL_INS: ShopItem = ShopItem::new(
+pub const ALL_INS: ShopItem<'static> = ShopItem::new(
     "allins",
     "Infinite All Ins",
     Emoji::Str("♾️"),
@@ -180,10 +191,10 @@ pub const ALL_INS: ShopItem = ShopItem::new(
     ShopPage::Boost1,
 )
 .useable(true)
-.duration(Duration::from_secs(2 * 60));
+.duration(Duration::from_mins(2));
 
-#[allow(dead_code)]
-const RIGGED_LUCK: ShopItem = ShopItem::new(
+#[expect(dead_code, reason = "reserved for future implementation")]
+const RIGGED_LUCK: ShopItem<'static> = ShopItem::new(
     "riggedluck",
     "Rigged Luck",
     Emoji::Str("⚪"),
@@ -193,7 +204,7 @@ const RIGGED_LUCK: ShopItem = ShopItem::new(
     ShopPage::Boost1,
 ).useable(true);
 
-const PAYOUT_X2: ShopItem = ShopItem::new(
+const PAYOUT_X2: ShopItem<'static> = ShopItem::new(
     "payout2x",
     "Payout x2",
     Emoji::Id("chip_2"),
@@ -210,9 +221,9 @@ const PAYOUT_X2: ShopItem = ShopItem::new(
 
     payout * 2
 })
-.duration(Duration::from_secs(15 * 60));
+.duration(Duration::from_mins(15));
 
-const PAYOUT_X5: ShopItem = ShopItem::new(
+const PAYOUT_X5: ShopItem<'static> = ShopItem::new(
     "payout5x",
     "Payout x5",
     Emoji::Id("chip_5"),
@@ -229,9 +240,9 @@ const PAYOUT_X5: ShopItem = ShopItem::new(
 
     payout * 5
 })
-.duration(Duration::from_secs(10 * 60));
+.duration(Duration::from_mins(10));
 
-const PAYOUT_X10: ShopItem = ShopItem::new(
+const PAYOUT_X10: ShopItem<'static> = ShopItem::new(
     "payout10x",
     "Payout x10",
     Emoji::Id("chip_10"),
@@ -248,9 +259,9 @@ const PAYOUT_X10: ShopItem = ShopItem::new(
 
     payout * 10
 })
-.duration(Duration::from_secs(5 * 60));
+.duration(Duration::from_mins(5));
 
-const PAYOUT_X50: ShopItem = ShopItem::new(
+const PAYOUT_X50: ShopItem<'static> = ShopItem::new(
     "payout50x",
     "Payout x50",
     Emoji::Id("chip_50"),
@@ -267,9 +278,9 @@ const PAYOUT_X50: ShopItem = ShopItem::new(
 
     payout * 50
 })
-.duration(Duration::from_secs(2 * 60));
+.duration(Duration::from_mins(2));
 
-const PAYOUT_X100: ShopItem = ShopItem::new(
+const PAYOUT_X100: ShopItem<'static> = ShopItem::new(
     "payout100x",
     "Payout x100",
     Emoji::Id("chip_100"),
@@ -286,10 +297,10 @@ const PAYOUT_X100: ShopItem = ShopItem::new(
 
     payout * 100
 })
-.duration(Duration::from_secs(60));
+.duration(Duration::from_mins(1));
 
-//region: Mine
-pub const MINER: ShopItem = ShopItem::new(
+// region: Mine
+pub const MINER: ShopItem<'static> = ShopItem::new(
     "miner",
     "Miner",
     Emoji::None,
@@ -299,7 +310,7 @@ pub const MINER: ShopItem = ShopItem::new(
     ShopPage::Mine1,
 );
 
-const MINE: ShopItem = ShopItem::new(
+const MINE: ShopItem<'static> = ShopItem::new(
     "mine",
     "Mine",
     Emoji::None,
@@ -310,7 +321,7 @@ const MINE: ShopItem = ShopItem::new(
 )
 .add_cost(1, ShopCurrency::Tech);
 
-const LAND: ShopItem = ShopItem::new(
+const LAND: ShopItem<'static> = ShopItem::new(
     "land",
     "Land",
     Emoji::None,
@@ -321,7 +332,7 @@ const LAND: ShopItem = ShopItem::new(
 )
 .add_cost(10, ShopCurrency::Tech);
 
-const COUNTRY: ShopItem = ShopItem::new(
+const COUNTRY: ShopItem<'static> = ShopItem::new(
     "country",
     "Country",
     Emoji::None,
@@ -333,7 +344,7 @@ const COUNTRY: ShopItem = ShopItem::new(
 .add_cost(100, ShopCurrency::Tech)
 .add_cost(1, ShopCurrency::Utility);
 
-const CONTINENT: ShopItem = ShopItem::new(
+const CONTINENT: ShopItem<'static> = ShopItem::new(
     "continent",
     "Continent",
     Emoji::None,
@@ -345,7 +356,7 @@ const CONTINENT: ShopItem = ShopItem::new(
 .add_cost(1000, ShopCurrency::Tech)
 .add_cost(10, ShopCurrency::Utility);
 
-const PLANET: ShopItem = ShopItem::new(
+const PLANET: ShopItem<'static> = ShopItem::new(
     "planet",
     "Planet",
     Emoji::None,
@@ -358,7 +369,7 @@ const PLANET: ShopItem = ShopItem::new(
 .add_cost(100, ShopCurrency::Utility)
 .add_cost(1, ShopCurrency::Production);
 
-const SOLAR_SYSTEM: ShopItem = ShopItem::new(
+const SOLAR_SYSTEM: ShopItem<'static> = ShopItem::new(
     "solar_system",
     "Solar System",
     Emoji::None,
@@ -371,7 +382,7 @@ const SOLAR_SYSTEM: ShopItem = ShopItem::new(
 .add_cost(1000, ShopCurrency::Utility)
 .add_cost(10, ShopCurrency::Production);
 
-const GALAXY: ShopItem = ShopItem::new(
+const GALAXY: ShopItem<'static> = ShopItem::new(
     "galaxy",
     "Galaxy",
     Emoji::None,
@@ -384,7 +395,7 @@ const GALAXY: ShopItem = ShopItem::new(
 .add_cost(10_000, ShopCurrency::Utility)
 .add_cost(100, ShopCurrency::Production);
 
-const UNIVERSE: ShopItem = ShopItem::new(
+const UNIVERSE: ShopItem<'static> = ShopItem::new(
     "universe",
     "Universe",
     Emoji::None,
@@ -396,11 +407,12 @@ const UNIVERSE: ShopItem = ShopItem::new(
 .add_cost(10_000_000, ShopCurrency::Tech)
 .add_cost(100_000, ShopCurrency::Utility)
 .add_cost(1000, ShopCurrency::Production);
-//endregion
+// endregion
 
 pub struct ShopItems<'a>([ShopItem<'a>; 18]);
 
 impl ShopItems<'_> {
+    #[must_use]
     pub fn get(&self, id: &str) -> Option<&ShopItem<'_>> {
         self.0.iter().find(|item| item.id == id)
     }
@@ -414,7 +426,7 @@ impl<'a> Deref for ShopItems<'a> {
     }
 }
 
-pub const SHOP_ITEMS: ShopItems = ShopItems([
+pub const SHOP_ITEMS: ShopItems<'static> = ShopItems([
     LOTTO_TICKET,
     EGGPLANT,
     // WEAPON_CRATE,

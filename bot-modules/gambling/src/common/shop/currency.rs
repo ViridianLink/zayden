@@ -22,9 +22,12 @@ pub enum ShopCurrency {
 }
 
 impl ShopCurrency {
-    pub fn craft_req(&self, emojis: &EmojiCache) -> [Option<(Self, u16)>; 4] {
+    #[must_use]
+    pub const fn craft_req(&self, _: &EmojiCache) -> [Option<(Self, u16)>; 4] {
         match self {
-            Self::Tech => [Some((Self::Coal, 10)), Some((Self::Iron, 5)), None, None],
+            Self::Tech => {
+                [Some((Self::Coal, 10)), Some((Self::Iron, 5)), None, None]
+            },
             Self::Utility => [
                 Some((Self::Coal, 15)),
                 Some((Self::Gold, 10)),
@@ -37,24 +40,74 @@ impl ShopCurrency {
                 Some((Self::Redstone, 125)),
                 None,
             ],
-            c => unreachable!("Invalid currency {}", c.emoji(emojis)),
+            Self::Coins
+            | Self::Gems
+            | Self::Coal
+            | Self::Iron
+            | Self::Gold
+            | Self::Redstone
+            | Self::Lapis
+            | Self::Diamonds
+            | Self::Emeralds => [None, None, None, None],
         }
     }
 
+    #[must_use]
     pub fn emoji(&self, emojis: &EmojiCache) -> String {
         match self {
-            ShopCurrency::Coins => format!("<:coin:{}>", emojis.get("heads").unwrap()),
-            ShopCurrency::Gems => GEM.to_string(),
-            ShopCurrency::Tech => format!("<:tech:{}>", emojis.get("tech").unwrap()),
-            ShopCurrency::Utility => format!("<:utility:{}>", emojis.get("utility").unwrap()),
-            ShopCurrency::Production => format!("<:production:{}>", emojis.get("tech").unwrap()),
-            ShopCurrency::Coal => format!("<:coal:{}>", emojis.get("coal").unwrap()),
-            ShopCurrency::Iron => format!("<:iron:{}>", emojis.get("iron").unwrap()),
-            ShopCurrency::Gold => format!("<:gold:{}>", emojis.get("gold").unwrap()),
-            ShopCurrency::Redstone => format!("<:redstone:{}>", emojis.get("redstone").unwrap()),
-            ShopCurrency::Lapis => format!("<:lapis:{}>", emojis.get("lapis").unwrap()),
-            ShopCurrency::Diamonds => format!("<:diamond:{}>", emojis.get("diamond").unwrap()),
-            ShopCurrency::Emeralds => format!("<:emerald:{}>", emojis.get("emerald").unwrap()),
+            Self::Coins => format!(
+                "<:coin:{}>",
+                emojis.get("heads").expect("emoji 'heads' in cache")
+            ),
+            Self::Gems => GEM.to_string(),
+            Self::Tech => format!(
+                "<:tech:{}>",
+                emojis.get("tech").expect("emoji 'tech' in cache")
+            ),
+            Self::Utility => format!(
+                "<:utility:{}>",
+                emojis.get("utility").expect("emoji 'utility' in cache")
+            ),
+            Self::Production => format!(
+                "<:production:{}>",
+                emojis.get("tech").expect("emoji 'tech' in cache")
+            ),
+            Self::Coal => format!(
+                "<:coal:{}>",
+                emojis.get("coal").expect("emoji 'coal' in cache")
+            ),
+            Self::Iron => format!(
+                "<:iron:{}>",
+                emojis.get("iron").expect("emoji 'iron' in cache")
+            ),
+            Self::Gold => format!(
+                "<:gold:{}>",
+                emojis.get("gold").expect("emoji 'gold' in cache")
+            ),
+            Self::Redstone => {
+                format!(
+                    "<:redstone:{}>",
+                    emojis.get("redstone").expect("emoji 'redstone' in cache")
+                )
+            },
+            Self::Lapis => {
+                format!(
+                    "<:lapis:{}>",
+                    emojis.get("lapis").expect("emoji 'lapis' in cache")
+                )
+            },
+            Self::Diamonds => {
+                format!(
+                    "<:diamond:{}>",
+                    emojis.get("diamond").expect("emoji 'diamond' in cache")
+                )
+            },
+            Self::Emeralds => {
+                format!(
+                    "<:emerald:{}>",
+                    emojis.get("emerald").expect("emoji 'emerald' in cache")
+                )
+            },
         }
     }
 }
@@ -81,15 +134,18 @@ impl Debug for ShopCurrency {
 impl FromStr for ShopCurrency {
     type Err = ();
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "tech" => Ok(Self::Tech),
             "utility" => Ok(Self::Utility),
             "production" => Ok(Self::Production),
             s => {
-                tracing::warn!(currency = s, "ShopCurrency::from_str: unknown currency");
+                tracing::warn!(
+                    currency = s,
+                    "ShopCurrency::from_str: unknown currency"
+                );
                 Err(())
-            }
+            },
         }
     }
 }

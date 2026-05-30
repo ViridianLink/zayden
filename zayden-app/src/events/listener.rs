@@ -1,4 +1,5 @@
-use sqlx::{PgPool, postgres::PgListener};
+use sqlx::PgPool;
+use sqlx::postgres::PgListener;
 use tokio::sync::broadcast;
 use tracing::warn;
 
@@ -23,7 +24,7 @@ impl ConfigListener {
             Err(e) => {
                 warn!("ConfigListener: failed to connect: {e}");
                 return;
-            }
+            },
         };
 
         if let Err(e) = listener.listen("config_changed").await {
@@ -42,11 +43,11 @@ impl ConfigListener {
                             notification.payload()
                         );
                     }
-                }
+                },
                 Err(e) => {
                     warn!("ConfigListener: fatal recv error: {e}");
                     break;
-                }
+                },
             }
         }
     }

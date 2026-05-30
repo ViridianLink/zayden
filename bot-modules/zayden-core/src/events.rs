@@ -1,15 +1,30 @@
 use async_trait::async_trait;
-use serenity::all::{Context, Guild, Message, PartialGuildThread, Reaction, VoiceState};
+use serenity::all::{
+    Context,
+    Guild,
+    Message,
+    PartialGuildThread,
+    Reaction,
+    VoiceState,
+};
 use sqlx::{Database, Pool};
 
 #[async_trait]
 pub trait GuildCreate<E: std::error::Error> {
-    async fn run<Db: Database>(ctx: &Context, guild: &Guild, pool: &Pool<Db>) -> Result<(), E>;
+    async fn run<Db: Database>(
+        ctx: &Context,
+        guild: &Guild,
+        pool: &Pool<Db>,
+    ) -> Result<(), E>;
 }
 
 #[async_trait]
 pub trait MessageCreate<E: std::error::Error> {
-    async fn run<Db: Database>(ctx: &Context, message: &Message, pool: &Pool<Db>) -> Result<(), E>;
+    async fn run<Db: Database>(
+        ctx: &Context,
+        message: &Message,
+        pool: &Pool<Db>,
+    ) -> Result<(), E>;
 }
 
 #[async_trait]

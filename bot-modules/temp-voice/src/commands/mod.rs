@@ -34,17 +34,20 @@ use persist::persist;
 use privacy::privacy;
 use region::region;
 use reset::reset;
+use serenity::all::{
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    ResolvedValue,
+};
 use setup::setup;
 use sqlx::{Database, Pool};
 use transfer::transfer;
 use trust::trust;
 use unblock::unblock;
 use untrust::untrust;
-
-use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    ResolvedValue,
-};
 use zayden_core::parse_options;
 
 use crate::guild_manager::TempVoiceGuildManager;
@@ -65,19 +68,30 @@ impl VoiceCommand {
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
-        let command = interaction.data.options().pop().unwrap();
+        let command = interaction
+            .data
+            .options()
+            .pop()
+            .expect("voice command always has a subcommand");
 
-        let mut options = match command.value {
-            ResolvedValue::SubCommand(options) => parse_options(options),
-            _ => unreachable!("Subcommand is required"),
+        let ResolvedValue::SubCommand(subcommand_options) = command.value else {
+            return Err(Error::IneligibleChannel);
         };
+        let mut options = parse_options(subcommand_options);
 
         match command.name {
             "setup" => {
-                setup::<Db, GuildManager>(&ctx.http, interaction, pool, guild_id, options).await?;
+                setup::<Db, GuildManager>(
+                    &ctx.http,
+                    interaction,
+                    pool,
+                    guild_id,
+                    options,
+                )
+                .await?;
 
                 return Ok(());
-            }
+            },
             "create" => {
                 create::<Db, GuildManager, ChannelManager>(
                     &ctx.http,
@@ -89,8 +103,8 @@ impl VoiceCommand {
                 .await?;
 
                 return Ok(());
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         let channel_id = match options.remove("channel") {
@@ -104,37 +118,62 @@ impl VoiceCommand {
 
         let row = match ChannelManager::get(pool, channel_id).await {
             Ok(Some(row)) => row,
-            // TODO: If user has "ManageChannel" permission then add the channel to the DB
+            // TODO: If user has "ManageChannel" permission then add the channel to
+            // the DB
             Ok(None) => return Err(Error::IneligibleChannel),
             Err(e) => return Err(Error::Sqlx(e)),
         };
 
         match command.name {
             "claim" => {
-                claim::<Data, Db, ChannelManager>(ctx, interaction, pool, channel_id, row).await?;
-            }
+                claim::<Data, Db, ChannelManager>(
+                    ctx,
+                    interaction,
+                    pool,
+                    channel_id,
+                    row,
+                )
+                .await?;
+            },
             "join" => {
-                join(&ctx.http, interaction, options, guild_id, channel_id, &row).await?;
-            }
+                join(&ctx.http, interaction, options, guild_id, channel_id, &row)
+                    .await?;
+            },
             "persist" => {
-                persist::<Db, ChannelManager>(&ctx.http, interaction, pool, row).await?;
-            }
+                persist::<Db, ChannelManager>(&ctx.http, interaction, pool, row)
+                    .await?;
+            },
             "name" => {
                 name(&ctx.http, interaction, options, channel_id, &row).await?;
-            }
+            },
             "limit" => {
                 limit(&ctx.http, interaction, options, channel_id, &row).await?;
-            }
+            },
             "privacy" => {
-                privacy::<Data>(ctx, interaction, options, guild_id, channel_id, row).await?;
-            }
-            "waiting" => {
-                // waiting(ctx, interaction, guild_id, options).await?;
-            }
+                privacy::<Data>(
+                    ctx,
+                    interaction,
+                    options,
+                    guild_id,
+                    channel_id,
+                    row,
+                )
+                .await?;
+            },
+            "waiting" | "info" => {
+                // Not yet implemented
+            },
             "trust" => {
-                trust::<Db, ChannelManager>(&ctx.http, interaction, pool, options, channel_id, row)
-                    .await?;
-            }
+                trust::<Db, ChannelManager>(
+                    &ctx.http,
+                    interaction,
+                    pool,
+                    options,
+                    channel_id,
+                    row,
+                )
+                .await?;
+            },
             "untrust" => {
                 untrust::<Db, ChannelManager>(
                     &ctx.http,
@@ -145,16 +184,16 @@ impl VoiceCommand {
                     row,
                 )
                 .await?;
-            }
+            },
             "invite" => {
                 invite(&ctx.http, interaction, options, channel_id, row).await?;
-            }
+            },
             "kick" => {
                 kick(&ctx.http, interaction, options, guild_id, &row).await?;
-            }
+            },
             "region" => {
                 region(&ctx.http, interaction, options, channel_id, &row).await?;
-            }
+            },
             "block" => {
                 block::<Db, ChannelManager>(
                     &ctx.http,
@@ -166,19 +205,23 @@ impl VoiceCommand {
                     row,
                 )
                 .await?;
-            }
+            },
             "unblock" => {
                 unblock(&ctx.http, interaction, options, channel_id, &row).await?;
-            }
+            },
             "delete" => {
-                delete::<Db, ChannelManager>(&ctx.http, interaction, pool, channel_id, row).await?;
-            }
+                delete::<Db, ChannelManager>(
+                    &ctx.http,
+                    interaction,
+                    pool,
+                    channel_id,
+                    row,
+                )
+                .await?;
+            },
             "bitrate" => {
                 bitrate(&ctx.http, interaction, options, channel_id, &row).await?;
-            }
-            "info" => {
-                // info(ctx, interaction, guild_id, options).await?;
-            }
+            },
             "password" => {
                 password::<Db, ChannelManager>(
                     &ctx.http,
@@ -190,7 +233,7 @@ impl VoiceCommand {
                     row,
                 )
                 .await?;
-            }
+            },
             "reset" => {
                 reset::<Db, ChannelManager>(
                     &ctx.http,
@@ -201,7 +244,7 @@ impl VoiceCommand {
                     row,
                 )
                 .await?;
-            }
+            },
             "transfer" => {
                 transfer::<Db, ChannelManager>(
                     &ctx.http,
@@ -212,9 +255,9 @@ impl VoiceCommand {
                     row,
                 )
                 .await?;
-            }
-            _ => unreachable!("Invalid subcommand name"),
-        };
+            },
+            _ => return Err(Error::IneligibleChannel),
+        }
 
         Ok(())
     }

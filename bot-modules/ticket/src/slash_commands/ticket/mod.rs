@@ -5,8 +5,14 @@ mod open;
 mod remove;
 
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, Http, Permissions,
-    ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    Http,
+    Permissions,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::{Error as ZaydenError, parse_options};
@@ -28,40 +34,63 @@ impl Ticket {
 
         let command = options.remove(0);
 
-        let options = match command.value {
-            ResolvedValue::SubCommand(options) => options,
-            ResolvedValue::SubCommandGroup(options) => options,
-            _ => unreachable!("Subcommand is required"),
+        let (ResolvedValue::SubCommand(options)
+        | ResolvedValue::SubCommandGroup(options)) = command.value
+        else {
+            return Ok(());
         };
         let options = parse_options(options);
 
         match command.name {
             "close" => {
-                Self::close::<Db, GuildManager>(http, interaction, pool, options, guild_id).await?
-            }
+                Self::close::<Db, GuildManager>(
+                    http,
+                    interaction,
+                    pool,
+                    options,
+                    guild_id,
+                )
+                .await?;
+            },
             "create" => Self::create(http, interaction, options).await?,
             "fixed" => {
-                Self::fixed::<Db, GuildManager>(http, interaction, pool, options, guild_id).await?
-            }
-            "open" => Self::open::<Db, GuildManager>(http, interaction, pool, guild_id).await?,
-            "remove" => Self::remove::<Db, Manager>(http, interaction, pool, options).await?,
-            _ => unreachable!("Subcommand is required"),
+                Self::fixed::<Db, GuildManager>(
+                    http,
+                    interaction,
+                    pool,
+                    options,
+                    guild_id,
+                )
+                .await?;
+            },
+            "open" => {
+                Self::open::<Db, GuildManager>(http, interaction, pool, guild_id)
+                    .await?;
+            },
+            "remove" => {
+                Self::remove::<Db, Manager>(http, interaction, pool, options)
+                    .await?;
+            },
+            _ => return Ok(()),
         }
 
         Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {
-        let close =
-            CreateCommandOption::new(CommandOptionType::SubCommand, "close", "Close the ticket")
-                .add_sub_option(
-                    CreateCommandOption::new(
-                        CommandOptionType::String,
-                        "message",
-                        "Message to send before closing the ticket",
-                    )
-                    .required(false),
-                );
+        let close = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "close",
+            "Close the ticket",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "message",
+                "Message to send before closing the ticket",
+            )
+            .required(false),
+        );
 
         let create = CreateCommandOption::new(
             CommandOptionType::SubCommand,
@@ -98,8 +127,11 @@ impl Ticket {
             .required(false),
         );
 
-        let open =
-            CreateCommandOption::new(CommandOptionType::SubCommand, "open", "Open the ticket");
+        let open = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "open",
+            "Open the ticket",
+        );
 
         CreateCommand::new("ticket")
             .description("Ticket management commands")

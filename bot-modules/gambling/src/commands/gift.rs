@@ -2,19 +2,43 @@ use async_trait::async_trait;
 use jiff::tz::TimeZone;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{
-    Colour, CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    Colour,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Mentionable,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
-use sqlx::{Database, Pool, prelude::FromRow};
+use sqlx::prelude::FromRow;
+use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
 
+use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
-    Coins, Error, GamblingManager, Gems, GoalsManager, MaxBet, Prestige, Result, START_AMOUNT,
-    events::{Dispatch, Event, SendEvent},
+    Coins,
+    Error,
+    GamblingManager,
+    Gems,
+    GoalsManager,
+    MaxBet,
+    Prestige,
+    Result,
+    START_AMOUNT,
     tomorrow,
 };
 
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    reason = "compile-time constant: precision and truncation are acceptable here"
+)]
 const GIFT_AMOUNT: i64 = (START_AMOUNT as f64 * 2.5) as i64;
 
 use super::Commands;
@@ -26,7 +50,10 @@ pub trait GiftManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<SenderRow>>;
 
-    async fn save_sender(pool: &Pool<Db>, row: SenderRow) -> sqlx::Result<Db::QueryResult>;
+    async fn save_sender(
+        pool: &Pool<Db>,
+        row: SenderRow,
+    ) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -44,7 +71,7 @@ impl SenderRow {
         let id = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coins: 0,
             gems: 0,
             gift: jiff::Timestamp::default().to_sqlx(),
@@ -96,10 +123,7 @@ impl RecipientRow {
     pub fn new(id: impl Into<UserId>) -> Self {
         let id = id.into();
 
-        Self {
-            id: id.get() as i64,
-            coins: 0,
-        }
+        Self { id: id.get().cast_signed(), coins: 0 }
     }
 }
 
@@ -118,7 +142,7 @@ impl Commands {
         Data: EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         GiftHandler: GiftManager<Db>,
     >(
         ctx: &Context,
@@ -126,10 +150,13 @@ impl Commands {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
-        let ResolvedValue::User(recipient, _) = options[0].value else {
-            unreachable!("recipient is required")
+        let Some(option) = options.first() else {
+            return Err(Error::InvalidAmount);
+        };
+        let ResolvedValue::User(recipient, _) = option.value else {
+            return Err(Error::InvalidAmount);
         };
 
         if recipient == &interaction.user {
@@ -138,7 +165,7 @@ impl Commands {
 
         let mut user_row = GiftHandler::sender(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| SenderRow::new(interaction.user.id));
 
         let now = jiff::Timestamp::now().to_zoned(TimeZone::UTC);
@@ -149,13 +176,11 @@ impl Commands {
 
         let amount = GIFT_AMOUNT * (user_row.prestige() + 1);
 
-        let mut tx = pool.begin().await.unwrap();
+        let mut tx = pool.begin().await?;
 
-        GamblingHandler::add_coins(&mut *tx, recipient.id, amount)
-            .await
-            .unwrap();
+        GamblingHandler::add_coins(&mut *tx, recipient.id, amount).await?;
 
-        tx.commit().await.unwrap();
+        tx.commit().await?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -171,7 +196,7 @@ impl Commands {
             )
             .await?;
 
-        GiftHandler::save_sender(pool, user_row).await.unwrap();
+        GiftHandler::save_sender(pool, user_row).await?;
 
         let embed = CreateEmbed::new()
             .description(format!(
@@ -183,8 +208,7 @@ impl Commands {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

@@ -1,6 +1,14 @@
 use serenity::all::{
-    ButtonStyle, CreateActionRow, CreateButton, CreateEmbed, CreateEmbedFooter, GenericChannelId,
-    Mentionable, MessageId, ThreadId, UserId,
+    ButtonStyle,
+    CreateActionRow,
+    CreateButton,
+    CreateEmbed,
+    CreateEmbedFooter,
+    GenericChannelId,
+    Mentionable,
+    MessageId,
+    ThreadId,
+    UserId,
 };
 
 pub trait TemplateInfo {
@@ -22,7 +30,10 @@ pub trait TemplateInfo {
 }
 
 pub trait Template {
-    fn thread_embed<'a>(post: &impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a>;
+    fn thread_embed<'a>(
+        post: &impl TemplateInfo,
+        owner_name: &str,
+    ) -> CreateEmbed<'a>;
 
     fn message_embed<'a>(
         post: &impl TemplateInfo,
@@ -53,7 +64,10 @@ pub trait Template {
 pub struct DefaultTemplate;
 
 impl Template for DefaultTemplate {
-    fn thread_embed<'a>(post: &impl TemplateInfo, owner_name: &str) -> CreateEmbed<'a> {
+    fn thread_embed<'a>(
+        post: &impl TemplateInfo,
+        owner_name: &str,
+    ) -> CreateEmbed<'a> {
         embed(post, owner_name, None)
     }
 
@@ -67,12 +81,8 @@ impl Template for DefaultTemplate {
 
     fn main_row<'a>() -> CreateActionRow<'a> {
         CreateActionRow::buttons(vec![
-            CreateButton::new("lfg_join")
-                .emoji('➕')
-                .style(ButtonStyle::Success),
-            CreateButton::new("lfg_leave")
-                .emoji('➖')
-                .style(ButtonStyle::Danger),
+            CreateButton::new("lfg_join").emoji('➕').style(ButtonStyle::Success),
+            CreateButton::new("lfg_leave").emoji('➖').style(ButtonStyle::Danger),
             CreateButton::new("lfg_alternative")
                 .emoji('❔')
                 .style(ButtonStyle::Secondary),
@@ -90,15 +100,11 @@ fn embed<'a>(
 ) -> CreateEmbed<'a> {
     let timestamp = post.timestamp().as_second();
 
-    let fireteam = post
-        .fireteam()
-        .map(|id| id.mention().to_string())
-        .collect::<Vec<_>>();
+    let fireteam =
+        post.fireteam().map(|id| id.mention().to_string()).collect::<Vec<_>>();
 
-    let alternatives = post
-        .alternatives()
-        .map(|id| id.mention().to_string())
-        .collect::<Vec<_>>();
+    let alternatives =
+        post.alternatives().map(|id| id.mention().to_string()).collect::<Vec<_>>();
 
     let fireteam_str = fireteam.join("\n");
 
@@ -108,11 +114,12 @@ fn embed<'a>(
         .field("Start Time", format!("<t:{timestamp}:R>"), true);
 
     if let Some(thread) = thread {
-        embed = embed.field("Event Thread", thread.widen().mention().to_string(), true);
+        embed =
+            embed.field("Event Thread", thread.widen().mention().to_string(), true);
     }
 
     if !post.description().is_empty() {
-        embed = embed.field("Description", post.description().to_string(), false)
+        embed = embed.field("Description", post.description().to_string(), false);
     }
 
     embed = embed

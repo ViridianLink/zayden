@@ -1,11 +1,17 @@
-use std::{collections::HashMap, fmt::Write, ops::Deref};
+use std::collections::HashMap;
+use std::fmt::Write;
+use std::ops::Deref;
 
-use bungie_api::{
-    DestinyInventoryItemDefinition, DestinyPlugSetDefinition, types::destiny::DestinyItemType,
-};
+use bungie_api::types::destiny::DestinyItemType;
+use bungie_api::{DestinyInventoryItemDefinition, DestinyPlugSetDefinition};
 use google_sheets_api::types::sheet::{CellData, RowData};
 use serde::{Deserialize, Serialize};
-use serenity::all::{AutocompleteChoice, CreateEmbed, CreateEmbedAuthor, CreateEmbedFooter};
+use serenity::all::{
+    AutocompleteChoice,
+    CreateEmbed,
+    CreateEmbedAuthor,
+    CreateEmbedFooter,
+};
 
 use super::{Affinity, Frame, Tier};
 
@@ -52,95 +58,113 @@ impl WeaponBuilder {
                 .trim_end_matches("\nRotN version"),
         };
 
-        WeaponBuilder {
+        Self {
             name: name.to_string(),
             archetype: archetype.into(),
             ..Default::default()
         }
     }
 
+    #[must_use]
     pub fn affinity(mut self, affinity: impl Into<String>) -> Self {
         self.affinity = affinity.into();
         self
     }
 
+    #[must_use]
     pub fn frame(mut self, frame: Option<impl Into<String>>) -> Self {
-        self.frame = frame.map(|f| f.into());
+        self.frame = frame.map(Into::into);
         self
     }
 
-    pub fn enhanceable(mut self, enhanceable: bool) -> Self {
+    #[must_use]
+    pub const fn enhanceable(mut self, enhanceable: bool) -> Self {
         self.enhanceable = enhanceable;
         self
     }
 
-    pub fn shield(mut self, shield: Option<u8>) -> Self {
+    #[must_use]
+    pub const fn shield(mut self, shield: Option<u8>) -> Self {
         self.shield = shield;
         self
     }
 
-    pub fn reserves(mut self, reserves: Option<u16>) -> Self {
+    #[must_use]
+    pub const fn reserves(mut self, reserves: Option<u16>) -> Self {
         self.reserves = reserves;
         self
     }
 
+    #[must_use]
     pub fn barrel(mut self, barrel: impl Into<String>) -> Self {
         self.barrel = barrel.into();
         self
     }
 
+    #[must_use]
     pub fn magazine(mut self, magazine: impl Into<String>) -> Self {
         self.magazine = magazine.into();
         self
     }
 
+    #[must_use]
     pub fn perk_1(mut self, column_1: impl Into<String>) -> Self {
         self.perk_1 = column_1.into();
         self
     }
 
+    #[must_use]
     pub fn perk_2(mut self, column_2: impl Into<String>) -> Self {
         self.perk_2 = column_2.into();
         self
     }
 
+    #[must_use]
     pub fn origin_trait(mut self, origin_trait: impl Into<String>) -> Self {
         self.origin_trait = origin_trait.into();
         self
     }
 
-    pub fn rank(mut self, rank: u8) -> Self {
+    #[must_use]
+    pub const fn rank(mut self, rank: u8) -> Self {
         self.rank = rank;
         self
     }
 
+    #[must_use]
     pub fn tier(mut self, tier: impl Into<Tier>) -> Self {
         self.tier = tier.into();
         self
     }
 
+    #[must_use]
     pub fn notes(mut self, notes: impl Into<String>) -> Self {
         self.notes = Some(notes.into());
         self
     }
 
+    #[must_use]
+    #[expect(
+        clippy::unwrap_in_result,
+        clippy::panic,
+        clippy::string_slice,
+        reason = "spreadsheet data invariants: field presence and parse validity are guaranteed by sheet structure"
+    )]
     pub fn from_row(name: &str, header: &RowData, row: RowData) -> Option<Self> {
         let mut data = header
             .values
             .iter()
             .zip(row.values)
             .map(|(h, r)| {
-                (
-                    h.formatted_value
-                        .as_deref()
-                        .unwrap_or_default()
-                        .to_lowercase(),
-                    r,
-                )
+                (h.formatted_value.as_deref().unwrap_or_default().to_lowercase(), r)
             })
             .collect::<HashMap<String, CellData>>();
 
-        let weapon_name = data.remove("name").unwrap().formatted_value.unwrap();
+        let weapon_name = data
+            .remove("name")
+            .expect("data invariant")
+            .formatted_value
+            .expect("data invariant");
 
         if weapon_name == "Ideal" {
             return None;
@@ -148,17 +172,14 @@ impl WeaponBuilder {
 
         let reserves = data
             .remove("reserves")
-            .map(|r| r.formatted_value.unwrap())
+            .map(|r| r.formatted_value.expect("data invariant"))
             .filter(|s| !matches!(s.as_str(), "?" | "N/A" | "TBA"))
-            .map(|s| {
-                s.parse()
-                    .unwrap_or_else(|_| panic!("Failed to parse: '{s}'"))
-            });
+            .map(|s| s.parse().unwrap_or_else(|_| panic!("Failed to parse: '{s}'")));
         let shield = data
             .remove("shield")
-            .map(|r| r.formatted_value.unwrap())
+            .map(|r| r.formatted_value.expect("data invariant"))
             .filter(|s| s != "?")
-            .map(|s| s.parse().unwrap());
+            .map(|s| s.parse().expect("data invariant"));
         let archetype = match name {
             "BGLs" | "HGLs" => String::from("Grenade Launcher"),
             "LMGs" => String::from("Machine Gun"),
@@ -172,17 +193,24 @@ impl WeaponBuilder {
             .affinity(
                 data.remove("affinity")
                     .or_else(|| data.remove("energy"))
-                    .unwrap_or_else(|| panic!("affinity or energy should exist on data: {data:?}"))
+                    .unwrap_or_else(|| {
+                        panic!("affinity or energy should exist on data: {data:?}")
+                    })
                     .formatted_value
                     .unwrap_or_default(),
             )
-            .frame(data.remove("frame").map(|f| f.formatted_value.unwrap()))
+            .frame(
+                data.remove("frame")
+                    .map(|f| f.formatted_value.expect("data invariant")),
+            )
             .enhanceable(
                 data.remove("enhance")
                     .or_else(|| data.remove("⬆\u{fe0f}"))
-                    .unwrap_or_else(|| panic!("enhance should exist on data: {data:?}"))
+                    .unwrap_or_else(|| {
+                        panic!("enhance should exist on data: {data:?}")
+                    })
                     .formatted_value
-                    .unwrap()
+                    .expect("data invariant")
                     == "Yes",
             )
             .shield(shield)
@@ -202,35 +230,37 @@ impl WeaponBuilder {
             .perk_1(
                 data.remove("column 1")
                     .unwrap_or_else(|| {
-                        data.remove("perk 1")
-                            .expect("Data should contain either 'perk' or 'column' headers")
+                        data.remove("perk 1").expect(
+                            "Data should contain either 'perk' or 'column' headers",
+                        )
                     })
                     .formatted_value
-                    .unwrap(),
+                    .expect("data invariant"),
             )
             .perk_2(
                 data.remove("column 2")
                     .unwrap_or_else(|| {
-                        data.remove("perk 2")
-                            .expect("Data should contain either 'perk' or 'column' headers")
+                        data.remove("perk 2").expect(
+                            "Data should contain either 'perk' or 'column' headers",
+                        )
                     })
                     .formatted_value
-                    .unwrap(),
+                    .expect("data invariant"),
             )
             .origin_trait(
                 data.remove("origin trait")
-                    .unwrap()
+                    .expect("data invariant")
                     .formatted_value
-                    .unwrap(),
+                    .expect("data invariant"),
             )
             .rank(
                 data.remove("rank")
-                    .unwrap()
+                    .expect("data invariant")
                     .formatted_value
-                    .map(|s| s.parse().unwrap())
+                    .map(|s| s.parse().expect("data invariant"))
                     .unwrap_or_default(),
             )
-            .tier(data.remove("tier").unwrap());
+            .tier(data.remove("tier").expect("data invariant"));
 
         if let Some(notes) = data.remove("notes").and_then(|d| d.formatted_value) {
             weapon = weapon.notes(notes);
@@ -239,6 +269,7 @@ impl WeaponBuilder {
         Some(weapon)
     }
 
+    #[must_use]
     pub fn build(self, item: &DestinyInventoryItemDefinition) -> Weapon {
         let icon = item.display_properties.icon.clone();
 
@@ -246,7 +277,7 @@ impl WeaponBuilder {
             icon,
             name: self.name,
             archetype: self.archetype,
-            affinity: self.affinity.parse().unwrap(),
+            affinity: self.affinity.parse().expect("data invariant"),
             frame: self
                 .frame
                 .map(|f| f.parse().expect("Failed to parse weapon frame")),
@@ -284,20 +315,22 @@ pub struct Weapon {
 }
 
 impl Weapon {
+    #[must_use]
     pub fn icon(&self) -> Option<String> {
-        self.icon
-            .as_deref()
-            .map(|icon| format!("https://www.bungie.net{icon}"))
+        self.icon.as_deref().map(|icon| format!("https://www.bungie.net{icon}"))
     }
 
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
 
+    #[must_use]
     pub fn archetype(&self) -> &str {
         &self.archetype
     }
 
+    #[must_use]
     pub fn perks(&self) -> Perks<'_> {
         let barrel = self.barrel.split('\n').collect();
         let mag = self.magazine.split('\n').collect();
@@ -307,10 +340,12 @@ impl Weapon {
         Perks([barrel, mag, perk_1, perk_2])
     }
 
+    #[must_use]
     pub fn origin_trait(&self) -> &str {
         &self.origin_trait
     }
 
+    #[must_use]
     pub fn as_api(
         &self,
         item_manifest: &HashMap<String, DestinyInventoryItemDefinition>,
@@ -323,14 +358,13 @@ impl Weapon {
             .filter(|item| {
                 !matches!(
                     item.item_type,
-                    DestinyItemType::None | DestinyItemType::Pattern | DestinyItemType::Dummy
+                    DestinyItemType::None
+                        | DestinyItemType::Pattern
+                        | DestinyItemType::Dummy
                 )
             })
             .filter(|item| {
-                item.display_properties
-                    .name
-                    .to_lowercase()
-                    .starts_with(&name)
+                item.display_properties.name.to_lowercase().starts_with(&name)
             })
             .filter(|item| {
                 item.inventory
@@ -340,83 +374,94 @@ impl Weapon {
             })
             .filter_map(|item| item.sockets.as_ref().map(|sockets| (item, sockets)))
             .map(|(item, sockets)| {
-                let plug_items = sockets.socket_entries.iter().map(|socket| {
-                    match (
-                        socket.randomized_plug_set_hash,
-                        socket.reusable_plug_set_hash,
-                        socket.reusable_plug_items.as_slice(),
-                    ) {
-                        (Some(hash), None, items) => {
-                            let plug_set = plug_manifest.get(&hash.to_string()).unwrap();
+                let plug_items =
+                    sockets.socket_entries.iter().map(|socket| {
+                        match (
+                            socket.randomized_plug_set_hash,
+                            socket.reusable_plug_set_hash,
+                            socket.reusable_plug_items.as_slice(),
+                        ) {
+                            (Some(hash), None, items) => {
+                                let plug_set = plug_manifest
+                                    .get(&hash.to_string())
+                                    .expect("data invariant");
 
-                            plug_set
-                                .reusable_plug_items
+                                plug_set
+                                    .reusable_plug_items
+                                    .iter()
+                                    .map(|item| item.plug_item_hash)
+                                    .chain(
+                                        items.iter().map(|item| item.plug_item_hash),
+                                    )
+                                    .collect::<Vec<_>>()
+                            },
+                            (None, Some(hash), items) => {
+                                let plug_set = plug_manifest
+                                    .get(&hash.to_string())
+                                    .expect("data invariant");
+
+                                plug_set
+                                    .reusable_plug_items
+                                    .iter()
+                                    .map(|item| item.plug_item_hash)
+                                    .chain(
+                                        items.iter().map(|item| item.plug_item_hash),
+                                    )
+                                    .collect::<Vec<_>>()
+                            },
+                            (Some(random_hash), Some(reusable_hash), items) => {
+                                let random_plug_set = plug_manifest
+                                    .get(&random_hash.to_string())
+                                    .expect("data invariant");
+                                let reusable_hash = plug_manifest
+                                    .get(&reusable_hash.to_string())
+                                    .expect("data invariant");
+
+                                random_plug_set
+                                    .reusable_plug_items
+                                    .iter()
+                                    .map(|item| item.plug_item_hash)
+                                    .chain(
+                                        reusable_hash
+                                            .reusable_plug_items
+                                            .iter()
+                                            .map(|item| item.plug_item_hash),
+                                    )
+                                    .chain(
+                                        items.iter().map(|item| item.plug_item_hash),
+                                    )
+                                    .collect::<Vec<_>>()
+                            },
+                            (None, None, items) => items
                                 .iter()
                                 .map(|item| item.plug_item_hash)
-                                .chain(items.iter().map(|item| item.plug_item_hash))
-                                .collect::<Vec<_>>()
+                                .collect::<Vec<_>>(),
                         }
-                        (None, Some(hash), items) => {
-                            let plug_set = plug_manifest.get(&hash.to_string()).unwrap();
-
-                            plug_set
-                                .reusable_plug_items
-                                .iter()
-                                .map(|item| item.plug_item_hash)
-                                .chain(items.iter().map(|item| item.plug_item_hash))
-                                .collect::<Vec<_>>()
-                        }
-                        (Some(random_hash), Some(reusable_hash), items) => {
-                            let random_plug_set =
-                                plug_manifest.get(&random_hash.to_string()).unwrap();
-                            let reusable_hash =
-                                plug_manifest.get(&reusable_hash.to_string()).unwrap();
-
-                            random_plug_set
-                                .reusable_plug_items
-                                .iter()
-                                .map(|item| item.plug_item_hash)
-                                .chain(
-                                    reusable_hash
-                                        .reusable_plug_items
-                                        .iter()
-                                        .map(|item| item.plug_item_hash),
-                                )
-                                .chain(items.iter().map(|item| item.plug_item_hash))
-                                .collect::<Vec<_>>()
-                        }
-                        (None, None, items) => items
-                            .iter()
-                            .map(|item| item.plug_item_hash)
-                            .collect::<Vec<_>>(),
-                    }
-                });
+                    });
 
                 (item, plug_items)
             })
             .peekable();
 
-        assert!(
-            weapons.peek().is_some(),
-            "At least 1 weapon should match: {name}"
-        );
+        assert!(weapons.peek().is_some(), "At least 1 weapon should match: {name}");
 
         let weapons = weapons
             .map(|(item, plug_items)| {
                 let perks = plug_items
                     .map(|traits| {
-                        let items = traits
+                        traits
                             .iter()
-                            .map(|hash| hash.to_string())
-                            .map(|hash| item_manifest.get(&hash).unwrap())
+                            .map(ToString::to_string)
+                            .map(|hash| {
+                                item_manifest.get(&hash).expect("data invariant")
+                            })
                             .filter(|item| !item.display_properties.name.is_empty())
-                            .collect::<Vec<_>>();
-
-                        items
-                            .into_iter()
                             .filter(|perk_item| {
                                 self.perks().0.iter().flatten().any(|perk| {
-                                    perk_item.display_properties.name.eq_ignore_ascii_case(perk)
+                                    perk_item
+                                        .display_properties
+                                        .name
+                                        .eq_ignore_ascii_case(perk)
                                 })
                             })
                             .map(|perk| perk.hash)
@@ -428,10 +473,7 @@ impl Weapon {
                 (item.hash, perks)
             })
             .filter(|(_, perks)| !perks.is_empty())
-            .map(|(hash, perks)| ApiWeapon {
-                hash,
-                perks: ApiPerks(perks),
-            })
+            .map(|(hash, perks)| ApiWeapon { hash, perks: ApiPerks(perks) })
             .collect::<Vec<_>>();
 
         assert!(!weapons.is_empty(), "No weapon found for {name}");
@@ -439,6 +481,7 @@ impl Weapon {
         weapons
     }
 
+    #[must_use]
     pub fn as_wishlist(
         &self,
         item_manifest: &HashMap<String, DestinyInventoryItemDefinition>,
@@ -462,15 +505,14 @@ impl Weapon {
 
 impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
     fn from(value: &'a Weapon) -> Self {
-        let frame = value
-            .frame
-            .as_ref()
-            .map(|f| format!("{f} "))
-            .unwrap_or_default();
+        let frame =
+            value.frame.as_ref().map(|f| format!("{f} ")).unwrap_or_default();
 
-        let mut description = format!("Tier: {} (#{})", value.tier.tier(), value.rank);
+        let mut description =
+            format!("Tier: {} (#{})", value.tier.tier(), value.rank);
         if let Some(reserves) = value.reserves {
-            description.push_str(&format!("\nReserves: {reserves}"));
+            description.push_str("\nReserves: ");
+            description.push_str(&reserves.to_string());
         }
 
         let mut embed = CreateEmbed::new()
@@ -480,7 +522,7 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
                 frame,
                 value.archetype(),
             )))
-            .title(value.name.to_string())
+            .title(value.name.clone())
             .footer(CreateEmbedFooter::new("From 'Destiny 2: Endgame Analysis'"))
             .colour(value.tier.colour)
             .description(description)
@@ -520,7 +562,7 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
 
         if let Some(notes) = value.notes.as_deref() {
             let mut chars = notes.chars();
-            let first_char = chars.next().unwrap();
+            let first_char = chars.next().expect("data invariant");
             let notes = first_char.to_uppercase().to_string() + chars.as_str();
             embed = embed.field("Notes", notes, false);
         }
@@ -555,11 +597,13 @@ pub struct ApiWeapon {
 pub struct ApiPerks(Vec<Vec<u32>>);
 
 impl ApiPerks {
+    #[must_use]
     pub fn as_wishlist(&self, item_hash: u32) -> String {
         create_combinations_string(&self.0, item_hash)
     }
 }
 
+#[must_use]
 pub fn create_combinations_string(data: &[Vec<u32>], item_hash: u32) -> String {
     if data.is_empty() {
         return String::new();
@@ -568,11 +612,21 @@ pub fn create_combinations_string(data: &[Vec<u32>], item_hash: u32) -> String {
     let mut result = String::new();
     let mut current_combination = Vec::with_capacity(data.len());
 
-    generate_combinations_iterative(data, 0, &mut current_combination, &mut result, item_hash);
+    generate_combinations_iterative(
+        data,
+        0,
+        &mut current_combination,
+        &mut result,
+        item_hash,
+    );
 
     result
 }
 
+#[expect(
+    clippy::indexing_slicing,
+    reason = "data[depth] access is bounded: depth is incremented up to data.len() only"
+)]
 fn generate_combinations_iterative(
     data: &[Vec<u32>],
     depth: usize,
@@ -584,19 +638,26 @@ fn generate_combinations_iterative(
         if !output.is_empty() {
             output.push('\n');
         }
-        write!(output, "dimwishlist:item={}&perks=", item_hash).unwrap();
+        write!(output, "dimwishlist:item={item_hash}&perks=")
+            .expect("data invariant");
         for (i, &num) in current_combination.iter().enumerate() {
             if i > 0 {
                 output.push(',');
             }
-            write!(output, "{}", num).unwrap();
+            write!(output, "{num}").expect("data invariant");
         }
         return;
     }
 
     for &num in &data[depth] {
         current_combination.push(num);
-        generate_combinations_iterative(data, depth + 1, current_combination, output, item_hash);
+        generate_combinations_iterative(
+            data,
+            depth + 1,
+            current_combination,
+            output,
+            item_hash,
+        );
         current_combination.pop();
     }
 }

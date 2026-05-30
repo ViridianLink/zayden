@@ -1,20 +1,38 @@
-use std::fmt::Display;
+use std::fmt::{Display, Write as _};
 
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Mentionable, ResolvedOption, ResolvedValue, UserId,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Mentionable,
+    ResolvedOption,
+    ResolvedValue,
+    UserId,
 };
 use serenity::small_fixed_array::FixedArray;
-use sqlx::{Database, Pool, prelude::FromRow};
+use sqlx::prelude::FromRow;
+use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, parse_options};
 
+use super::Commands;
 use crate::models::gambling_inventory::GamblingItems;
 use crate::shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
-use crate::{Coins, EffectsManager, Error, GEM, Gems, ItemInventory, Mining, Result};
-
-use super::Commands;
+use crate::{
+    Coins,
+    EffectsManager,
+    Error,
+    GEM,
+    Gems,
+    ItemInventory,
+    Mining,
+    Result,
+};
 
 struct InventoryItem<'a> {
     id: &'a str,
@@ -25,7 +43,7 @@ struct InventoryItem<'a> {
 }
 
 impl<'a> InventoryItem<'a> {
-    pub fn from_shop_item(item: &ShopItem<'a>, emojis: &EmojiCache) -> Self {
+    pub(crate) fn from_shop_item(item: &ShopItem<'a>, emojis: &EmojiCache) -> Self {
         Self {
             id: item.id,
             name: item.name,
@@ -44,9 +62,15 @@ impl Display for InventoryItem<'_> {
 
 #[async_trait]
 pub trait InventoryManager<Db: Database> {
-    async fn gambling_row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<InventoryRow>>;
+    async fn gambling_row(
+        pool: &Pool<Db>,
+        id: UserId,
+    ) -> sqlx::Result<Option<InventoryRow>>;
 
-    async fn inventory_items(pool: &Pool<Db>, id: UserId) -> sqlx::Result<GamblingItems>;
+    async fn inventory_items(
+        pool: &Pool<Db>,
+        id: UserId,
+    ) -> sqlx::Result<GamblingItems>;
 
     async fn edit_item_quantity(
         conn: &mut Db::Connection,
@@ -182,15 +206,17 @@ impl Commands {
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
-        let subcommand = options.pop().unwrap();
+        let subcommand = options.pop().expect("command always has a subcommand");
 
         match subcommand.name {
-            "show" => show::<Data, Db, InventoryHandler>(ctx, interaction, pool).await,
+            "show" => {
+                show::<Data, Db, InventoryHandler>(ctx, interaction, pool).await
+            },
             "use" => {
                 let ResolvedValue::SubCommand(options) = subcommand.value else {
-                    unreachable!("Option must be a subcommand")
+                    return Err(Error::InvalidAmount);
                 };
 
                 use_item::<Data, Db, EffectsHandler, InventoryHandler>(
@@ -200,8 +226,8 @@ impl Commands {
                     pool,
                 )
                 .await
-            }
-            _ => unreachable!("Invalid subcommand"),
+            },
+            _ => Err(Error::InvalidAmount),
         }
     }
 
@@ -214,7 +240,7 @@ impl Commands {
         .required(true);
 
         for item in SHOP_ITEMS.iter().filter(|item| item.useable) {
-            item_opt = item_opt.add_string_choice(item.name, item.id)
+            item_opt = item_opt.add_string_choice(item.name, item.id);
         }
 
         let use_item = CreateCommandOption::new(
@@ -247,12 +273,11 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
 ) -> Result<()> {
     let gambling_row = Manager::gambling_row(pool, interaction.user.id)
         .await
-        .unwrap()
+        .expect("async call")
         .unwrap_or_default();
 
-    let inventory_items = Manager::inventory_items(pool, interaction.user.id)
-        .await
-        .unwrap();
+    let inventory_items =
+        Manager::inventory_items(pool, interaction.user.id).await?;
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -280,9 +305,11 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
 
             item
         })
-        .partition::<Vec<_>, _>(|item| matches!(item.cost[0], Some((_, ShopCurrency::Coins))));
+        .partition::<Vec<_>, _>(|item| {
+            matches!(item.cost[0], Some((_, ShopCurrency::Coins)))
+        });
 
-    let coin = emojis.emoji("heads").unwrap();
+    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
     let mut embed = CreateEmbed::new()
         .field(
@@ -298,7 +325,9 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
             "Items",
             items
                 .into_iter()
-                .map(|item| format!("{} `{}` {}", item.emoji, item.quantity, item.name))
+                .map(|item| {
+                    format!("{} `{}` {}", item.emoji, item.quantity, item.name)
+                })
                 .collect::<Vec<_>>()
                 .join("\n"),
             true,
@@ -307,7 +336,9 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
             "Boosts",
             boosts
                 .into_iter()
-                .map(|item| format!("{} `{}` {}", item.emoji, item.quantity, item.name))
+                .map(|item| {
+                    format!("{} `{}` {}", item.emoji, item.quantity, item.name)
+                })
                 .collect::<Vec<_>>()
                 .join("\n"),
             true,
@@ -329,8 +360,7 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
 
     interaction
         .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }
@@ -349,13 +379,18 @@ async fn use_item<
     let mut options = parse_options(options);
 
     let Some(ResolvedValue::String(item_id)) = options.remove("item") else {
-        unreachable!("item is required option")
+        return Err(Error::InvalidAmount);
     };
 
-    let item = SHOP_ITEMS.get(item_id).unwrap();
+    let item = SHOP_ITEMS.get(item_id).expect("item_id always valid shop item");
 
     let amount = match options.remove("amount") {
-        Some(ResolvedValue::String(amount)) => amount.parse().map_err(|_| Error::InvalidAmount)?,
+        Some(ResolvedValue::String(amount)) => {
+            amount.parse().map_err(|e: std::num::ParseIntError| {
+                tracing::debug!(error = %e, "failed to parse item amount");
+                Error::InvalidAmount
+            })?
+        },
         _ => 1,
     };
 
@@ -367,24 +402,26 @@ async fn use_item<
         return Err(Error::ZeroAmount);
     }
 
-    let mut tx = pool.begin().await.unwrap();
+    let mut tx = pool.begin().await?;
 
-    let quantity =
-        match InventoryHandler::edit_item_quantity(&mut *tx, interaction.user.id, item_id, amount)
-            .await
-        {
-            Ok(q) => q,
-            Err(sqlx::Error::RowNotFound) => return Err(Error::InvalidAmount),
-            r => r?,
-        };
+    let quantity = match InventoryHandler::edit_item_quantity(
+        &mut *tx,
+        interaction.user.id,
+        item_id,
+        amount,
+    )
+    .await
+    {
+        Ok(q) => q,
+        Err(sqlx::Error::RowNotFound) => return Err(Error::InvalidAmount),
+        r => r?,
+    };
 
     for _ in 0..amount {
-        EffectsHandler::add_effect(&mut *tx, interaction.user.id, item)
-            .await
-            .unwrap();
+        EffectsHandler::add_effect(&mut *tx, interaction.user.id, item).await?;
     }
 
-    tx.commit().await.unwrap();
+    tx.commit().await?;
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -392,17 +429,18 @@ async fn use_item<
         data.emojis()
     };
 
-    let mut description = format!("Successfully activated item:\n**{}**", item.as_str(&emojis));
+    let mut description =
+        format!("Successfully activated item:\n**{}**", item.as_str(&emojis));
     if let Some(duration) = item.effect_duration {
-        description.push_str(&format!("(<t:{}:R>)", duration.as_secs()));
+        let _ = write!(description, "(<t:{}:R>)", duration.as_secs());
     }
 
-    let embed = CreateEmbed::new().description(format!("{description}\nUses left:{quantity}"));
+    let embed = CreateEmbed::new()
+        .description(format!("{description}\nUses left:{quantity}"));
 
     interaction
         .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

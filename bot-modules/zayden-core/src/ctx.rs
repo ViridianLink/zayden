@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use serenity::all::{CommandInteraction, ComponentInteraction, Context, ModalInteraction};
+use serenity::all::{
+    CommandInteraction,
+    ComponentInteraction,
+    Context,
+    ModalInteraction,
+};
 use zayden_app::config::GuildConfig;
 use zayden_app::state::AppState;
 

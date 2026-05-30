@@ -7,15 +7,26 @@ pub mod voice_channel_manager;
 use std::collections::HashMap;
 use std::time::Duration;
 
-use serenity::all::{
-    ChannelId, DiscordJsonError, ErrorResponse, Guild, GuildChannel, GuildId, Http, HttpError,
-    JsonErrorCode, PermissionOverwrite, PermissionOverwriteType, Permissions, UserId, VoiceState,
-};
-
 pub use commands::VoiceCommand;
 pub use error::Error;
 use error::Result;
 pub use guild_manager::{TempVoiceGuildManager, TempVoiceRow};
+use serenity::all::{
+    ChannelId,
+    DiscordJsonError,
+    ErrorResponse,
+    Guild,
+    GuildChannel,
+    GuildId,
+    Http,
+    HttpError,
+    JsonErrorCode,
+    PermissionOverwrite,
+    PermissionOverwriteType,
+    Permissions,
+    UserId,
+    VoiceState,
+};
 pub use voice_channel_manager::{VoiceChannelManager, VoiceChannelRow};
 
 #[derive(Debug)]
@@ -26,12 +37,13 @@ pub struct CachedState {
 }
 
 impl CachedState {
-    pub fn new(channel_id: Option<ChannelId>, guild_id: GuildId, user_id: UserId) -> Self {
-        Self {
-            channel_id,
-            guild_id,
-            user_id,
-        }
+    #[must_use]
+    pub const fn new(
+        channel_id: Option<ChannelId>,
+        guild_id: GuildId,
+        user_id: UserId,
+    ) -> Self {
+        Self { channel_id, guild_id, user_id }
     }
 }
 
@@ -39,7 +51,9 @@ impl From<&VoiceState> for CachedState {
     fn from(state: &VoiceState) -> Self {
         Self {
             channel_id: state.channel_id,
-            guild_id: state.guild_id.unwrap(),
+            guild_id: state
+                .guild_id
+                .expect("voice state update always has guild_id"),
             user_id: state.user_id,
         }
     }
@@ -62,7 +76,7 @@ pub trait VoiceStateCache: Send + Sync + 'static {
                     state.user_id,
                     CachedState::new(state.channel_id, guild.id, state.user_id),
                 );
-            })
+            });
     }
 
     fn update(&mut self, new: &VoiceState) -> Result<Option<CachedState>> {
@@ -84,21 +98,22 @@ pub async fn delete_voice_channel_if_inactive(
     user_id: UserId,
     vc: &GuildChannel,
 ) -> bool {
-    tokio::time::sleep(Duration::from_secs(60)).await;
+    tokio::time::sleep(Duration::from_mins(1)).await;
 
     match guild_id.get_user_voice_state(http, user_id).await {
         Ok(voice_state) if voice_state.channel_id == Some(vc.id) => false,
         _ => {
             match vc.delete(http, Some("Empty and inactive channel")).await {
                 Ok(_)
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code: JsonErrorCode::UnknownChannel,
-                            ..
-                        },
-                    ..
-                }))) => {}
+                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
+                    ErrorResponse {
+                        error:
+                            DiscordJsonError {
+                                code: JsonErrorCode::UnknownChannel, ..
+                            },
+                        ..
+                    },
+                ))) => {},
                 Err(e) => tracing::error!(
                     error = ?e,
                     channel_id = %vc.id,
@@ -108,10 +123,11 @@ pub async fn delete_voice_channel_if_inactive(
             }
 
             true
-        }
+        },
     }
 }
 
+#[must_use]
 pub fn owner_perms(user: UserId) -> PermissionOverwrite {
     PermissionOverwrite {
         allow: Permissions::VIEW_CHANNEL

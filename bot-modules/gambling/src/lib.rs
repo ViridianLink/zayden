@@ -1,6 +1,8 @@
-use std::{collections::HashMap, sync::OnceLock};
+use std::collections::HashMap;
+use std::sync::OnceLock;
 
-use jiff::{Timestamp, tz::TimeZone};
+use jiff::Timestamp;
+use jiff::tz::TimeZone;
 use serenity::all::{EmojiId, Http, UserId};
 
 pub mod commands;
@@ -19,7 +21,14 @@ pub mod utils;
 pub use commands::Commands;
 pub use commands::goals::GoalsManager;
 pub use common::{
-    SHOP_ITEMS, ShopCurrency, ShopItem, ShopItems, ShopManager, ShopPage, ShopRow, shop,
+    SHOP_ITEMS,
+    ShopCurrency,
+    ShopItem,
+    ShopItems,
+    ShopManager,
+    ShopPage,
+    ShopRow,
+    shop,
 };
 pub use ctx_data::GamblingData;
 pub use error::Error;
@@ -28,9 +37,24 @@ pub use game_cache::GameCache;
 pub use games::{HigherLower, Lotto, LottoManager, LottoRow, jackpot};
 pub use goals::GoalHandler;
 pub use models::{
-    Coins, EffectsManager, EffectsRow, GamblingGoalsRow, GamblingItem, GamblingItems,
-    GamblingManager, GameManager, GameRow, Gems, ItemInventory, MaxBet, MaxValues, MineHourly,
-    Mining, Prestige, Stamina, StatsManager,
+    Coins,
+    EffectsManager,
+    EffectsRow,
+    GamblingGoalsRow,
+    GamblingItem,
+    GamblingItems,
+    GamblingManager,
+    GameManager,
+    GameRow,
+    Gems,
+    ItemInventory,
+    MaxBet,
+    MaxValues,
+    MineHourly,
+    Mining,
+    Prestige,
+    Stamina,
+    StatsManager,
 };
 pub use stamina::{StaminaCron, StaminaManager};
 use tokio::sync::OnceCell;
@@ -41,19 +65,15 @@ const GEM: char = '💎';
 
 pub static CARD_DECK: OnceLock<Vec<EmojiId>> = OnceLock::new();
 
+#[must_use]
 pub fn card_deck(emojis: &EmojiCache) -> Vec<EmojiId> {
     const SUITS: [&str; 4] = ["clubs", "diamonds", "hearts", "spades"];
-    const VALUES: [&str; 13] = [
-        "A", "02", "03", "04", "05", "06", "07", "08", "09", "10", "J", "Q", "K",
-    ];
+    const VALUES: [&str; 13] =
+        ["A", "02", "03", "04", "05", "06", "07", "08", "09", "10", "J", "Q", "K"];
 
-    let emoji_names: Vec<String> = SUITS
+    SUITS
         .iter()
         .flat_map(|suit| VALUES.iter().map(move |value| format!("{suit}_{value}")))
-        .collect();
-
-    emoji_names
-        .into_iter()
         .map(|name| emojis.emoji(&name).expect("Emoji doesn't exist on Zayden"))
         .collect()
 }
@@ -73,9 +93,11 @@ static BOT_ID: OnceCell<UserId> = OnceCell::const_new();
 
 pub async fn bot_id(http: &Http) -> UserId {
     *BOT_ID
-        .get_or_try_init(|| async { http.get_current_user().await.map(|user| user.id) })
+        .get_or_try_init(|| async {
+            http.get_current_user().await.map(|user| user.id)
+        })
         .await
-        .unwrap()
+        .expect("async call")
 }
 
 fn tomorrow(now: Option<Timestamp>) -> i64 {

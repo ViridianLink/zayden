@@ -1,14 +1,21 @@
 use jiff::{Span, Timestamp};
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed,
-    EditInteractionResponse, Http, Mentionable, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Http,
+    Mentionable,
+    ResolvedOption,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
 use crate::manager::GoldStarRow;
-use crate::GiveStar;
-use crate::{Error, GoldStarManager, Result};
+use crate::{Error, GiveStar, GoldStarManager, Result};
 
 impl GiveStar {
     pub async fn run<Db: Database, Manager: GoldStarManager<Db>>(
@@ -19,23 +26,21 @@ impl GiveStar {
     ) -> Result<()> {
         let mut options = parse_options(options);
 
-        let target_user = match options.remove("member") {
-            Some(ResolvedValue::User(user, _)) => user,
-            _ => unreachable!("User option is required"),
+        let Some(ResolvedValue::User(target_user, _)) = options.remove("member")
+        else {
+            return Err(Error::InvalidOptions);
         };
 
         if interaction.user.id == target_user.id {
             return Err(Error::SelfStar);
         }
 
-        let mut author_row = match Manager::get_row(pool, interaction.user.id).await.unwrap() {
-            Some(stars) => stars,
-            None => GoldStarRow::new(interaction.user.id),
-        };
-        let mut target_row = match Manager::get_row(pool, target_user.id).await.unwrap() {
-            Some(stars) => stars,
-            None => GoldStarRow::new(target_user.id),
-        };
+        let mut author_row = Manager::get_row(pool, interaction.user.id)
+            .await?
+            .unwrap_or_else(|| GoldStarRow::new(interaction.user.id));
+        let mut target_row = Manager::get_row(pool, target_user.id)
+            .await?
+            .unwrap_or_else(|| GoldStarRow::new(target_user.id));
 
         let next_free_star = author_row
             .last_free_star
@@ -55,8 +60,8 @@ impl GiveStar {
             author_row.give_star(&mut target_row);
         }
 
-        author_row.save::<Db, Manager>(pool).await.unwrap();
-        target_row.save::<Db, Manager>(pool).await.unwrap();
+        author_row.save::<Db, Manager>(pool).await?;
+        target_row.save::<Db, Manager>(pool).await?;
 
         let mut description = format!(
             "{} received a golden star from {} for a total of **{}** stars.",
@@ -66,7 +71,8 @@ impl GiveStar {
         );
 
         if let Some(ResolvedValue::String(reason)) = options.remove("reason") {
-            description.push_str(&format!("\nReason: {reason}"));
+            description.push_str("\nReason: ");
+            description.push_str(reason);
         }
 
         interaction
@@ -78,8 +84,7 @@ impl GiveStar {
                         .description(description),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

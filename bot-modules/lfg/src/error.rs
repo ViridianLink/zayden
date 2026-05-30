@@ -6,6 +6,10 @@ use zayden_core::error::Respond;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[expect(
+    clippy::error_impl_error,
+    reason = "conventional error type name in domain crate"
+)]
 #[derive(Debug)]
 pub enum Error {
     MissingGuildId,
@@ -22,7 +26,7 @@ pub enum Error {
 }
 
 impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingGuildId => ZaydenError::MissingGuildId.fmt(f),
             Self::MissingSetup => {
@@ -30,7 +34,7 @@ impl std::fmt::Display for Error {
                     f,
                     "Missing setup. If you are the owner, please run `/lfg setup` to set up the bot."
                 )
-            }
+            },
             Self::FireteamFull => write!(f, "Unable to join. Fireteam is full."),
             Self::PermissionDenied(id) => write!(
                 f,
@@ -39,13 +43,13 @@ impl std::fmt::Display for Error {
             ),
             Self::InvalidDateTime(format) => {
                 write!(f, "Bot currently only accepts {format} for dates and time.")
-            }
+            },
             Self::TagRequired => {
                 write!(
                     f,
                     "Couldn't create the post: the activity name didn't match any known category, so the required forum tag couldn't be applied. Please use a recognised activity name and try again."
                 )
-            }
+            },
             Self::InvalidChannel => write!(f, "Invalid LFG channel."),
             Self::ThreadNotFound => write!(
                 f,
@@ -62,7 +66,14 @@ impl std::error::Error for Error {
         match self {
             Self::Serenity(e) => Some(e),
             Self::Sqlx(e) => Some(e),
-            _ => None,
+            Self::MissingGuildId
+            | Self::MissingSetup
+            | Self::FireteamFull
+            | Self::PermissionDenied(_)
+            | Self::InvalidDateTime(_)
+            | Self::TagRequired
+            | Self::InvalidChannel
+            | Self::ThreadNotFound => None,
         }
     }
 }
@@ -71,7 +82,14 @@ impl Respond for Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::Serenity(_) | Self::Sqlx(_) => None,
-            _ => Some(Cow::Owned(self.to_string())),
+            Self::MissingGuildId
+            | Self::MissingSetup
+            | Self::FireteamFull
+            | Self::PermissionDenied(_)
+            | Self::InvalidDateTime(_)
+            | Self::TagRequired
+            | Self::InvalidChannel
+            | Self::ThreadNotFound => Some(Cow::Owned(self.to_string())),
         }
     }
 }

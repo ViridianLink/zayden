@@ -16,4 +16,11 @@ pub use components::{Components, KickComponent, TagsComponent};
 pub use error::Error;
 use error::Result;
 pub use modals::{Create, Edit, GuildManager};
-pub use models::{Join, PostBuilder, PostManager, PostRow, Savable, TimezoneManager};
+pub use models::{
+    Join,
+    PostBuilder,
+    PostManager,
+    PostRow,
+    Savable,
+    TimezoneManager,
+};

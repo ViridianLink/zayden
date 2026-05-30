@@ -1,18 +1,36 @@
+use std::fmt::Write as _;
+
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse, UserId,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateEmbed,
+    EditInteractionResponse,
+    UserId,
 };
 use sqlx::{Database, FromRow, Pool};
 use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
-use crate::{Coins, GamblingGoalsRow, Gems, GoalHandler, MaxBet, Prestige, Result, tomorrow};
-
 use super::Commands;
+use crate::{
+    Coins,
+    GamblingGoalsRow,
+    Gems,
+    GoalHandler,
+    MaxBet,
+    Prestige,
+    Result,
+    tomorrow,
+};
 
 #[async_trait]
 pub trait GoalsManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<GoalsRow>>;
+    async fn row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<GoalsRow>>;
 
     async fn full_rows(
         pool: &Pool<Db>,
@@ -66,43 +84,53 @@ impl MaxBet for GoalsRow {
 }
 
 impl Commands {
-    pub async fn goals<Data: EmojiCacheData, Db: Database, Manager: GoalsManager<Db>>(
+    pub async fn goals<
+        Data: EmojiCacheData,
+        Db: Database,
+        Manager: GoalsManager<Db>,
+    >(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let row = Manager::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_default();
 
-        let mut desc =
-            GoalHandler::get_user_progress::<Db, Manager>(pool, interaction.user.id, &row)
-                .await
-                .unwrap()
-                .into_iter()
-                .map(|goal| format!("{}\n\n", goal.description()))
-                .collect::<String>();
+        let mut desc = GoalHandler::get_user_progress::<Db, Manager>(
+            pool,
+            interaction.user.id,
+            &row,
+        )
+        .await
+        .expect("async call")
+        .into_iter()
+        .fold(String::new(), |mut acc, goal| {
+            acc.push_str(&goal.description());
+            acc.push_str("\n\n");
+            acc
+        });
 
         let coin = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
-            data.emojis().emoji("heads").unwrap()
+            data.emojis().emoji("heads").expect("emoji 'heads' in cache")
         };
 
-        desc.push_str(&format!(
+        let _ = write!(
+            desc,
             "Reward for completing __**each goals**__: 5,000 <:coin:{coin}>\nReward for completing __**all goals**__: 1 💎\n\nGoals reset <t:{}:R>",
             tomorrow(None)
-        ));
+        );
 
         let embed = CreateEmbed::new().title("Daily Goals 📋").description(desc);
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

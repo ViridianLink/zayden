@@ -1,7 +1,19 @@
+use std::fmt::Write as _;
+
 use serenity::all::{
-    Colour, Component, ComponentInteraction, ContainerComponent, Context, CreateActionRow,
-    CreateComponent, CreateContainer, CreateContainerComponent, CreateInteractionResponse,
-    CreateInteractionResponseMessage, CreateTextDisplay, MessageFlags,
+    Colour,
+    Component,
+    ComponentInteraction,
+    ContainerComponent,
+    Context,
+    CreateActionRow,
+    CreateComponent,
+    CreateContainer,
+    CreateContainerComponent,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    CreateTextDisplay,
+    MessageFlags,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -9,12 +21,27 @@ use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::blackjack::{
-    CARD_VALUES, GameDetails, card_values, double_button, hit_button, in_play_text, split_button,
-    stand_button, sum_cards, surrender_button,
+    CARD_VALUES,
+    GameDetails,
+    card_values,
+    double_button,
+    hit_button,
+    in_play_text,
+    split_button,
+    stand_button,
+    sum_cards,
+    surrender_button,
 };
 use crate::{
-    Coins, EffectsManager, GamblingData, GamblingManager, GameCache, GameManager, GameRow,
-    GoalsManager, Result,
+    Coins,
+    EffectsManager,
+    GamblingData,
+    GamblingManager,
+    GameCache,
+    GameManager,
+    GameRow,
+    GoalsManager,
+    Result,
 };
 
 pub struct Blackjack;
@@ -23,7 +50,7 @@ impl Blackjack {
     pub async fn hit<
         Data: GamblingData + EmojiCacheData,
         Db: Database,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -49,7 +76,7 @@ impl Blackjack {
                 &emojis,
                 game,
             )
-            .await;
+            .await?;
 
             return Ok(());
         }
@@ -58,16 +85,20 @@ impl Blackjack {
             &emojis,
             game.bet(),
             game.player_hand(),
-            game.dealer_hand()[0],
+            *game
+                .dealer_hand()
+                .first()
+                .expect("dealer hand always has at least one card"),
         );
 
-        let action_row = CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
-            hit_button(),
-            stand_button(),
-            split_button().disabled(true),
-            double_button().disabled(true),
-            surrender_button().disabled(true),
-        ]));
+        let action_row =
+            CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
+                hit_button(),
+                stand_button(),
+                split_button().disabled(true),
+                double_button().disabled(true),
+                surrender_button().disabled(true),
+            ]));
 
         let container = CreateComponent::Container(
             CreateContainer::new(vec![text, action_row]).accent_colour(Colour::TEAL),
@@ -82,8 +113,7 @@ impl Blackjack {
                         .components(vec![container]),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -91,7 +121,7 @@ impl Blackjack {
     pub async fn stand<
         Data: GamblingData + EmojiCacheData,
         Db: Database,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -112,7 +142,7 @@ impl Blackjack {
             &emojis,
             GameDetails::from_str(&emojis, text(interaction)),
         )
-        .await;
+        .await?;
 
         Ok(())
     }
@@ -121,7 +151,7 @@ impl Blackjack {
         Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -137,9 +167,7 @@ impl Blackjack {
 
         let mut game = GameDetails::from_str(&emojis, text(interaction));
 
-        GamblingHandler::bet(pool, interaction.user.id, game.bet())
-            .await
-            .unwrap();
+        GamblingHandler::bet(pool, interaction.user.id, game.bet()).await?;
 
         game.double_bet();
         game.add_card();
@@ -151,7 +179,7 @@ impl Blackjack {
             &emojis,
             game,
         )
-        .await;
+        .await?;
 
         Ok(())
     }
@@ -160,7 +188,7 @@ impl Blackjack {
         Data: GamblingData + EmojiCacheData,
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -184,7 +212,7 @@ impl Blackjack {
     pub async fn surrender<
         Data: GamblingData + EmojiCacheData,
         Db: Database,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         EffectsHandler: EffectsManager<Db> + Send,
         GameHandler: GameManager<Db>,
     >(
@@ -204,7 +232,7 @@ impl Blackjack {
 
         let mut row = GameHandler::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis);
@@ -223,21 +251,26 @@ impl Blackjack {
                     false,
                 )),
             )
-            .await
-            .unwrap();
+            .await?;
 
-        payout = EffectsHandler::payout(pool, interaction.user.id, game.bet(), payout, Some(false))
-            .await;
+        payout = EffectsHandler::payout(
+            pool,
+            interaction.user.id,
+            game.bet(),
+            payout,
+            Some(false),
+        )
+        .await;
 
         row.add_coins(payout);
 
         let coins = row.coins();
 
-        GameHandler::save(pool, row).await.unwrap();
+        GameHandler::save(pool, row).await?;
         GameCache::update(ctx.data::<RwLock<Data>>(), interaction.user.id).await;
 
         let card_to_num = CARD_VALUES.get_or_init(|| card_values(&emojis));
-        let coin = emojis.emoji("heads").unwrap();
+        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
         let mut dealer_hand = game.dealer_hand();
         dealer_hand.push(game.next_card());
@@ -247,13 +280,12 @@ impl Blackjack {
             "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{} - {dealer_value}",
             game.bet().format(),
             game.player_hand_str(&emojis),
-            dealer_hand
-                .iter()
-                .map(|id| {
-                    let num = card_to_num.get(id).unwrap();
-                    format!("<:{num}:{id}> ")
-                })
-                .collect::<String>()
+            dealer_hand.iter().fold(String::new(), |mut acc, id| {
+                let num =
+                    card_to_num.get(id).expect("card ID always in card_to_num");
+                let _ = write!(acc, "<:{num}:{id}> ");
+                acc
+            })
         );
 
         interaction
@@ -273,21 +305,22 @@ impl Blackjack {
                         ).accent_colour(Colour::RED))])
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
 }
 
 fn text(interaction: &ComponentInteraction) -> &str {
-    let Some(Component::Container(container)) = interaction.message.as_ref().components.first()
+    let Some(Component::Container(container)) =
+        interaction.message.as_ref().components.first()
     else {
-        unreachable!("Message must have a container component")
+        return "";
     };
 
-    let Some(ContainerComponent::TextDisplay(text)) = container.components.first() else {
-        unreachable!("First component must be text")
+    let Some(ContainerComponent::TextDisplay(text)) = container.components.first()
+    else {
+        return "";
     };
 
     text.content.as_str()
@@ -296,7 +329,7 @@ fn text(interaction: &ComponentInteraction) -> &str {
 async fn game_end<
     Data: GamblingData,
     Db: Database,
-    GoalsHandler: GoalsManager<Db>,
+    GoalsHandler: GoalsManager<Db> + Send + Sync,
     EffectsHandler: EffectsManager<Db>,
     GameHandler: GameManager<Db>,
 >(
@@ -305,12 +338,11 @@ async fn game_end<
     pool: &Pool<Db>,
     emojis: &EmojiCache,
     mut game: GameDetails,
-) {
+) -> Result<()> {
     let player_value = game.player_value(emojis);
 
     let mut row = GameHandler::row(pool, interaction.user.id)
-        .await
-        .unwrap()
+        .await?
         .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
     let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, emojis);
@@ -325,7 +357,7 @@ async fn game_end<
             row,
             dispatch,
         )
-        .await;
+        .await?;
 
         interaction
             .create_response(
@@ -333,20 +365,21 @@ async fn game_end<
                 CreateInteractionResponse::UpdateMessage(
                     CreateInteractionResponseMessage::new().components(vec![
                         CreateComponent::Container(
-                            CreateContainer::new(vec![CreateContainerComponent::TextDisplay(
-                                CreateTextDisplay::new(format!(
-                                    "### Blackjack - You Lost!\n{desc}"
-                                )),
-                            )])
+                            CreateContainer::new(vec![
+                                CreateContainerComponent::TextDisplay(
+                                    CreateTextDisplay::new(format!(
+                                        "### Blackjack - You Lost!\n{desc}"
+                                    )),
+                                ),
+                            ])
                             .accent_colour(Colour::RED),
                         ),
                     ]),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
-        return;
+        return Ok(());
     }
 
     let mut dealer_hand = game.dealer_hand();
@@ -377,32 +410,31 @@ async fn game_end<
                 win == Some(true),
             )),
         )
-        .await
-        .unwrap();
+        .await?;
 
-    payout = EffectsHandler::payout(pool, interaction.user.id, game.bet(), payout, win).await;
+    payout =
+        EffectsHandler::payout(pool, interaction.user.id, game.bet(), payout, win)
+            .await;
 
     row.add_coins(payout);
 
     let coins = row.coins();
 
-    GameHandler::save(pool, row).await.unwrap();
+    GameHandler::save(pool, row).await?;
     GameCache::update(ctx.data::<RwLock<Data>>(), interaction.user.id).await;
 
     let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
-    let coin = emojis.emoji("heads").unwrap();
+    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
     let desc = format!(
         "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{} - {dealer_value}",
         game.bet().format(),
         game.player_hand_str(emojis),
-        dealer_hand
-            .iter()
-            .map(|id| {
-                let num = card_to_num.get(id).unwrap();
-                format!("<:{num}:{id}> ")
-            })
-            .collect::<String>()
+        dealer_hand.iter().fold(String::new(), |mut acc, id| {
+            let num = card_to_num.get(id).expect("card ID always in card_to_num");
+            let _ = write!(acc, "<:{num}:{id}> ");
+            acc
+        })
     );
 
     let container = if win == Some(true) {
@@ -431,13 +463,14 @@ async fn game_end<
                     .components(vec![CreateComponent::Container(container)]),
             ),
         )
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }
 
 async fn bust<
     Db: Database,
-    GoalsHandler: GoalsManager<Db>,
+    GoalsHandler: GoalsManager<Db> + Send + Sync,
     EffectsHandler: EffectsManager<Db> + Send,
     GameHandler: GameManager<Db>,
 >(
@@ -448,7 +481,7 @@ async fn bust<
     player_value: u8,
     mut row: GameRow,
     dispatch: Dispatch<'_, Db, GoalsHandler>,
-) -> String {
+) -> Result<String> {
     dispatch
         .fire(
             interaction.channel_id,
@@ -461,42 +494,44 @@ async fn bust<
                 false,
             )),
         )
-        .await
-        .unwrap();
+        .await?;
 
-    let payout =
-        EffectsHandler::payout(pool, interaction.user.id, game.bet(), 0, Some(false)).await;
+    let payout = EffectsHandler::payout(
+        pool,
+        interaction.user.id,
+        game.bet(),
+        0,
+        Some(false),
+    )
+    .await;
 
     row.add_coins(payout);
 
     let coins = row.coins();
 
-    GameHandler::save(pool, row).await.unwrap();
+    GameHandler::save(pool, row).await?;
 
     let mut dealer_hand = game.dealer_hand();
     dealer_hand.push(game.next_card());
 
     let dealer_value = sum_cards(emojis, &dealer_hand);
 
-    let dealer_hand_str = dealer_hand
-        .iter()
-        .map(|id| {
-            let num = *CARD_VALUES
-                .get_or_init(|| card_values(emojis))
-                .get(id)
-                .unwrap();
+    let dealer_hand_str = dealer_hand.iter().fold(String::new(), |mut acc, id| {
+        let num = *CARD_VALUES
+            .get_or_init(|| card_values(emojis))
+            .get(id)
+            .expect("invariant: card ID is always a valid deck entry");
+        let _ = write!(acc, "<:{num}:{id}> ");
+        acc
+    });
 
-            format!("<:{num}:{id}> ")
-        })
-        .collect::<String>();
+    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
-    let coin = emojis.emoji("heads").unwrap();
-
-    format!(
+    Ok(format!(
         "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
         game.bet().format(),
         game.player_hand_str(emojis),
         (payout - game.bet()).format(),
         coins.format()
-    )
+    ))
 }

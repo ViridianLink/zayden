@@ -5,7 +5,12 @@ use zayden_core::GuildMembersCache;
 
 use crate::{LeaderboardRow, LevelsManager, LevelsRow};
 
-pub async fn create_embed<'a, Data: GuildMembersCache, Db: Database, Manager: LevelsManager<Db>>(
+pub async fn create_embed<
+    'a,
+    Data: GuildMembersCache,
+    Db: Database,
+    Manager: LevelsManager<Db>,
+>(
     ctx: &Context,
     pool: &Pool<Db>,
     guild_id: GuildId,
@@ -17,20 +22,26 @@ pub async fn create_embed<'a, Data: GuildMembersCache, Db: Database, Manager: Le
 
         data.get()
             .get(&guild_id)
-            .unwrap()
+            .expect("guild should be in member cache")
             .iter()
-            .map(|id| id.get() as i64)
+            .map(|id| id.get().cast_signed())
             .collect::<Vec<_>>()
     };
 
-    let rows = Manager::leaderboard(pool, &users, page_number)
-        .await
-        .unwrap();
+    let rows =
+        Manager::leaderboard(pool, &users, page_number).await.expect("DB query");
 
     let desc = rows
         .into_iter()
         .enumerate()
-        .map(|(i, row)| row_as_desc(&row, i + (page_number as usize - 1) * 10))
+        .map(|(i, row)| {
+            row_as_desc(
+                &row,
+                i + (usize::try_from(page_number).expect("page_number is positive")
+                    - 1)
+                    * 10,
+            )
+        })
         .collect::<Vec<_>>()
         .join("\n\n");
 
@@ -40,6 +51,7 @@ pub async fn create_embed<'a, Data: GuildMembersCache, Db: Database, Manager: Le
         .footer(CreateEmbedFooter::new(format!("Page {page_number}")))
 }
 
+#[must_use]
 pub fn row_as_desc(row: &LeaderboardRow, i: usize) -> String {
     let place = if i == 0 {
         "🥇".to_string()

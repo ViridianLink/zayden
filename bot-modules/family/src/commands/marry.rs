@@ -1,6 +1,11 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    ResolvedValue, UserId,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::{Database, Pool};
 
@@ -18,9 +23,10 @@ impl Marry {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<UserId> {
-        let target_user = match interaction.data.options()[0].value {
-            ResolvedValue::User(user, _) => user,
-            _ => unreachable!("User option must be a user"),
+        let options = interaction.data.options();
+        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let ResolvedValue::User(target_user, _) = option.value else {
+            return Err(Error::InvalidUserId);
         };
 
         if interaction.user.id == target_user.id {
@@ -50,10 +56,10 @@ impl Marry {
             }
         }
 
-        if let Some(row) = Manager::row(pool, target_user.id).await? {
-            if row.partner_ids.len() >= MAX_PARTNERS {
-                return Err(Error::MaxPartners);
-            }
+        if let Some(row) = Manager::row(pool, target_user.id).await?
+            && row.partner_ids.len() >= MAX_PARTNERS
+        {
+            return Err(Error::MaxPartners);
         }
 
         Ok(target_user.id)

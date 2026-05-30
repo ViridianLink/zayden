@@ -9,9 +9,17 @@ mod timezone;
 
 pub use joined::{JoinedManager, JoinedRow};
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType,
-    CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateInteractionResponse,
-    Http, ResolvedOption, ResolvedValue,
+    AutocompleteChoice,
+    AutocompleteOption,
+    CommandInteraction,
+    CommandOptionType,
+    CreateAutocompleteResponse,
+    CreateCommand,
+    CreateCommandOption,
+    CreateInteractionResponse,
+    Http,
+    ResolvedOption,
+    ResolvedValue,
 };
 pub use setup::SetupManager;
 use sqlx::{Database, Pool};
@@ -25,32 +33,57 @@ impl Command {
     pub async fn lfg<
         Db: Database,
         TzManager: TimezoneManager<Db>,
-        PostHandler: PostManager<Db> + SetupManager<Db> + JoinedManager<Db> + Savable<Db, PostRow>,
+        PostHandler: PostManager<Db>
+            + SetupManager<Db>
+            + JoinedManager<Db>
+            + Savable<Db, PostRow>,
     >(
         http: &Http,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let command = options.pop().unwrap();
+        let command = options.pop().expect("lfg command always has a subcommand");
 
-        let options = match command.value {
-            ResolvedValue::SubCommand(options) => options,
-            ResolvedValue::SubCommandGroup(options) => options,
-            _ => unreachable!("Subcommand is required"),
+        let (ResolvedValue::SubCommand(options)
+        | ResolvedValue::SubCommandGroup(options)) = command.value
+        else {
+            return Ok(());
         };
         let options = parse_options(options);
 
         match command.name {
-            "setup" => Self::setup::<Db, PostHandler>(http, interaction, pool, options).await?,
-            "create" => Self::create::<Db, TzManager>(http, interaction, pool, options).await?,
-            "tags" => Self::tags::<Db, PostHandler>(http, interaction, pool, options).await?,
-            "join" => Self::join::<Db, PostHandler>(http, interaction, pool, options).await?,
-            "leave" => Self::leave::<Db, PostHandler>(http, interaction, pool).await?,
-            "joined" => Self::joined::<Db, PostHandler>(http, interaction, pool).await,
-            "kick" => Self::kick::<Db, PostHandler>(http, interaction, pool, options).await?,
-            "timezone" => Self::timezone::<Db, TzManager>(http, interaction, pool, options).await?,
-            _ => unreachable!("Invalid subcommand"),
+            "setup" => {
+                Self::setup::<Db, PostHandler>(http, interaction, pool, options)
+                    .await?;
+            },
+            "create" => {
+                Self::create::<Db, TzManager>(http, interaction, pool, options)
+                    .await?;
+            },
+            "tags" => {
+                Self::tags::<Db, PostHandler>(http, interaction, pool, options)
+                    .await?;
+            },
+            "join" => {
+                Self::join::<Db, PostHandler>(http, interaction, pool, options)
+                    .await?;
+            },
+            "leave" => {
+                Self::leave::<Db, PostHandler>(http, interaction, pool).await?;
+            },
+            "joined" => {
+                Self::joined::<Db, PostHandler>(http, interaction, pool).await?;
+            },
+            "kick" => {
+                Self::kick::<Db, PostHandler>(http, interaction, pool, options)
+                    .await?;
+            },
+            "timezone" => {
+                Self::timezone::<Db, TzManager>(http, interaction, pool, options)
+                    .await?;
+            },
+            _ => return Ok(()),
         }
 
         Ok(())
@@ -159,8 +192,12 @@ impl Command {
             "Kick a user from the LFG post",
         )
         .add_sub_option(
-            CreateCommandOption::new(CommandOptionType::User, "user", "The user to kick")
-                .required(true),
+            CreateCommandOption::new(
+                CommandOptionType::User,
+                "user",
+                "The user to kick",
+            )
+            .required(true),
         )
         .add_sub_option(CreateCommandOption::new(
             CommandOptionType::Channel,
@@ -174,9 +211,13 @@ impl Command {
             "Set your timezone",
         )
         .add_sub_option(
-            CreateCommandOption::new(CommandOptionType::String, "region", "Your region")
-                .required(true)
-                .set_autocomplete(true),
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "region",
+                "Your region",
+            )
+            .required(true)
+            .set_autocomplete(true),
         );
 
         CreateCommand::new("lfg")
@@ -205,14 +246,21 @@ impl Command {
                 .iter()
                 .filter(|activity| activity.name.to_lowercase().contains(&opt_value))
                 .take(25)
-                .map(|activity| AutocompleteChoice::new(activity.name, activity.name))
+                .map(|activity| {
+                    AutocompleteChoice::new(activity.name, activity.name)
+                })
                 .collect::<Vec<_>>(),
 
             "timezone" => jiff::tz::db()
                 .available()
                 .filter(|tz| tz.as_str().to_lowercase().contains(&opt_value))
                 .take(25)
-                .map(|tz| AutocompleteChoice::new(tz.as_str().to_string(), tz.as_str().to_string()))
+                .map(|tz| {
+                    AutocompleteChoice::new(
+                        tz.as_str().to_string(),
+                        tz.as_str().to_string(),
+                    )
+                })
                 .collect::<Vec<_>>(),
             _ => return Ok(()),
         };
@@ -224,8 +272,7 @@ impl Command {
                     CreateAutocompleteResponse::new().set_choices(filtered),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

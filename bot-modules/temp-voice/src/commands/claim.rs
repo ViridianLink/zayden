@@ -1,18 +1,32 @@
-use serenity::all::{ChannelId, EditInteractionResponse};
-use serenity::all::{CommandInteraction, Context};
+use serenity::all::{
+    ChannelId,
+    CommandInteraction,
+    Context,
+    EditInteractionResponse,
+};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 
-use crate::{Error, VoiceChannelManager, VoiceChannelRow, VoiceStateCache, owner_perms};
+use crate::{
+    Error,
+    VoiceChannelManager,
+    VoiceChannelRow,
+    VoiceStateCache,
+    owner_perms,
+};
 
-pub async fn claim<Data: VoiceStateCache, Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn claim<
+    Data: VoiceStateCache,
+    Db: Database,
+    Manager: VoiceChannelManager<Db>,
+>(
     ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(&ctx.http).await.unwrap();
+    interaction.defer_ephemeral(&ctx.http).await?;
 
     if row.is_owner(interaction.user.id) {
         return Err(Error::UserIsOwner);
@@ -31,16 +45,14 @@ pub async fn claim<Data: VoiceStateCache, Db: Database, Manager: VoiceChannelMan
             owner_perms(interaction.user.id),
             Some("Channel claimed"),
         )
-        .await
-        .unwrap();
+        .await?;
 
     interaction
         .edit_response(
             &ctx.http,
             EditInteractionResponse::new().content("Claimed channel."),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }
@@ -50,10 +62,10 @@ async fn is_claimable<Data: VoiceStateCache>(
     channel_data: &VoiceChannelRow,
 ) -> bool {
     let data = ctx.data::<RwLock<Data>>();
-    let data = data.read().await;
-    let cache = data.get();
-
-    let owner_state = cache.get(&channel_data.owner_id());
-
-    owner_state.and_then(|state| state.channel_id) == Some(channel_data.channel_id())
+    let guard = data.read().await;
+    let result =
+        guard.get().get(&channel_data.owner_id()).and_then(|state| state.channel_id)
+            == Some(channel_data.channel_id());
+    drop(guard);
+    result
 }

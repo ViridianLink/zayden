@@ -3,32 +3,52 @@ use std::fs;
 
 use destiny2_core::BungieClientData;
 use serenity::all::{
-    AutocompleteChoice, AutocompleteOption, CommandInteraction, CommandOptionType, Context,
-    CreateAutocompleteResponse, CreateCommand, CreateCommandOption, CreateEmbed, CreateEmbedFooter,
-    CreateInteractionResponse, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    AutocompleteChoice,
+    AutocompleteOption,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateAutocompleteResponse,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    CreateEmbedFooter,
+    CreateInteractionResponse,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
+use super::endgame_analysis::tier::TIERS;
 use crate::Result;
 use crate::endgame_analysis::EndgameAnalysisSheet;
 use crate::endgame_analysis::weapon::Weapon;
 
-use super::endgame_analysis::tier::TIERS;
-
 pub struct TierListCommand;
 
 impl TierListCommand {
+    #[expect(
+        clippy::significant_drop_tightening,
+        clippy::unreachable,
+        clippy::wildcard_enum_match_arm,
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        clippy::indexing_slicing,
+        reason = "bungie_client() borrows the read guard; required Discord options guaranteed; integer count from Discord can't overflow usize; TIERS slice access is bounded"
+    )]
     pub async fn run<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::String(archetype)) = options.remove("archetype") else {
+        let Some(ResolvedValue::String(archetype)) = options.remove("archetype")
+        else {
             unreachable!("Archetype is required");
         };
 
@@ -39,30 +59,36 @@ impl TierListCommand {
 
         let tiers = match options.get("tier") {
             Some(ResolvedValue::String(tier)) => {
-                let tier = tier.parse().unwrap();
-                let index = TIERS.iter().copied().position(|t| t == tier).unwrap();
+                let tier = tier.parse().expect("valid tier string");
+                let index = TIERS
+                    .iter()
+                    .copied()
+                    .position(|t| t == tier)
+                    .expect("tier always in TIERS list");
                 &TIERS[..=index]
-            }
+            },
             _ => &TIERS,
         };
 
-        let weapons: Vec<Weapon> = if let Ok(w) = fs::read_to_string("weapons.json") {
-            serde_json::from_str(&w).unwrap()
-        } else {
-            let item_manifest = {
-                let data_lock = ctx.data::<RwLock<Data>>();
-                let data = data_lock.read().await;
-                let client = data.bungie_client();
-                let manifest = client.destiny_manifest().await.unwrap();
-                client
-                    .destiny_inventory_item_definition(&manifest, "en")
-                    .await
-                    .unwrap()
-            };
+        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
+            Ok(w) => serde_json::from_str(&w).expect("valid JSON"),
+            Err(_) => {
+                let item_manifest = {
+                    let data_lock = ctx.data::<RwLock<Data>>();
+                    let data = data_lock.read().await;
+                    let client = data.bungie_client();
+                    let manifest = client.destiny_manifest().await?;
+                    client
+                        .destiny_inventory_item_definition(&manifest, "en")
+                        .await
+                        .expect("data invariant")
+                };
 
-            EndgameAnalysisSheet::update(&item_manifest).await?;
-            let w = fs::read_to_string("weapons.json").unwrap();
-            serde_json::from_str(&w).unwrap()
+                EndgameAnalysisSheet::update(&item_manifest).await?;
+                let w = fs::read_to_string("weapons.json")
+                    .expect("weapons.json readable");
+                serde_json::from_str(&w).expect("valid JSON")
+            },
         };
 
         let init_map = tiers
@@ -77,7 +103,9 @@ impl TierListCommand {
             .filter(|w| tiers.contains(&w.tier.tier))
             .take(count.unwrap_or(usize::MAX))
             .fold(init_map, |mut map, w| {
-                map.get_mut(&w.tier.tier).unwrap().push(w.name);
+                map.get_mut(&w.tier.tier)
+                    .expect("tier key always in map")
+                    .push(w.name);
                 map
             });
 
@@ -102,8 +130,7 @@ impl TierListCommand {
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -115,7 +142,9 @@ impl TierListCommand {
                 "tier",
                 "The tier to display up to",
             ),
-            |option, tier| option.add_string_choice(tier.to_string(), tier.to_string()),
+            |option, tier| {
+                option.add_string_choice(tier.to_string(), tier.to_string())
+            },
         );
 
         CreateCommand::new("tierlist")
@@ -137,35 +166,40 @@ impl TierListCommand {
             ))
     }
 
+    #[expect(
+        clippy::significant_drop_tightening,
+        reason = "bungie_client() borrows the read guard; cache miss reads require the lock to remain alive across multiple await points"
+    )]
     pub async fn autocomplete<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
     ) -> Result<()> {
-        let weapons: Vec<Weapon> = match std::fs::read_to_string("weapons.json") {
-            Ok(weapons) => serde_json::from_str(&weapons).unwrap(),
-            Err(_) => {
+        let weapons: Vec<Weapon> =
+            if let Ok(weapons) = fs::read_to_string("weapons.json") {
+                serde_json::from_str(&weapons).expect("valid weapons JSON")
+            } else {
                 let item_manifest = {
                     let data_lock = ctx.data::<RwLock<Data>>();
                     let data = data_lock.read().await;
                     let client = data.bungie_client();
-                    let manifest = client.destiny_manifest().await.unwrap();
+                    let manifest = client.destiny_manifest().await?;
                     client
                         .destiny_inventory_item_definition(&manifest, "en")
                         .await
-                        .unwrap()
+                        .expect("data invariant")
                 };
 
                 EndgameAnalysisSheet::update(&item_manifest).await?;
-                let weapons = std::fs::read_to_string("weapons.json").unwrap();
-                serde_json::from_str(&weapons).unwrap()
-            }
-        };
+                let weapons = fs::read_to_string("weapons.json")
+                    .expect("weapons.json readable");
+                serde_json::from_str(&weapons).expect("valid weapons JSON")
+            };
 
         let choices = match option.name {
             "archetype" => weapons
                 .iter()
-                .map(|w| w.archetype())
+                .map(Weapon::archetype)
                 .collect::<HashSet<_>>()
                 .into_iter()
                 .filter(|t| t.to_lowercase().contains(&option.value.to_lowercase()))
@@ -187,8 +221,7 @@ impl TierListCommand {
                     CreateAutocompleteResponse::new().set_choices(choices),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

@@ -2,14 +2,18 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, EditInteractionResponse, GenericChannelId, GuildId, Http, ResolvedValue,
+    CommandInteraction,
+    EditInteractionResponse,
+    GenericChannelId,
+    GuildId,
+    Http,
+    ResolvedValue,
     RoleId,
 };
 use sqlx::{Database, Pool};
 
-use crate::{Error, Result};
-
 use super::Command;
+use crate::{Error, Result};
 
 #[async_trait]
 pub trait SetupManager<Db: Database> {
@@ -28,12 +32,16 @@ impl Command {
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        interaction.defer_ephemeral(http).await.unwrap();
+        interaction.defer_ephemeral(http).await?;
 
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
+        #[expect(
+            clippy::unreachable,
+            reason = "Discord guarantees required options are present"
+        )]
         let Some(ResolvedValue::Channel(channel)) = options.remove("channel") else {
-            unreachable!("Channel is required");
+            unreachable!("Channel is required")
         };
 
         let role = match options.remove("role") {
@@ -41,17 +49,14 @@ impl Command {
             _ => None,
         };
 
-        Manager::insert(pool, guild_id, channel.id(), role)
-            .await
-            .unwrap();
+        Manager::insert(pool, guild_id, channel.id(), role).await?;
 
         interaction
             .edit_response(
                 http,
                 EditInteractionResponse::new().content("LFG plugin has been setup"),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

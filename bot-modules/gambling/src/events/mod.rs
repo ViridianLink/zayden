@@ -17,7 +17,8 @@ pub enum Event {
 }
 
 impl Event {
-    pub fn user_id(&self) -> UserId {
+    #[must_use]
+    pub const fn user_id(&self) -> UserId {
         match self {
             Self::Game(event) => event.user_id,
             Self::Work(id) => *id,
@@ -43,13 +44,7 @@ impl GameEvent {
         payout: i64,
         win: bool,
     ) -> Self {
-        Self {
-            game_id: id.into(),
-            user_id: user_id.into(),
-            bet,
-            payout,
-            win,
-        }
+        Self { game_id: id.into(), user_id: user_id.into(), bet, payout, win }
     }
 }
 
@@ -60,10 +55,7 @@ pub struct ShopPurchaseEvent {
 
 impl ShopPurchaseEvent {
     pub fn new(user_id: impl Into<UserId>, item_id: impl Into<String>) -> Self {
-        Self {
-            user_id: user_id.into(),
-            item_id: item_id.into(),
-        }
+        Self { user_id: user_id.into(), item_id: item_id.into() }
     }
 }
 
@@ -74,9 +66,6 @@ pub struct SendEvent {
 
 impl SendEvent {
     pub fn new(amount: i64, sender: impl Into<UserId>) -> Self {
-        Self {
-            amount,
-            sender: sender.into(),
-        }
+        Self { amount, sender: sender.into() }
     }
 }

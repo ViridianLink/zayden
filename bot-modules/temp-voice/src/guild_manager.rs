@@ -15,7 +15,10 @@ pub trait TempVoiceGuildManager<Db: Database> {
 
     async fn get_category(pool: &Pool<Db>, id: GuildId) -> sqlx::Result<ChannelId>;
 
-    async fn get_creator_channel(pool: &Pool<Db>, id: GuildId) -> sqlx::Result<Option<ChannelId>>;
+    async fn get_creator_channel(
+        pool: &Pool<Db>,
+        id: GuildId,
+    ) -> sqlx::Result<Option<ChannelId>>;
 }
 
 #[derive(FromRow)]
@@ -26,16 +29,24 @@ pub struct TempVoiceRow {
 }
 
 impl TempVoiceRow {
+    #[must_use]
+    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn guild_id(&self) -> GuildId {
         GuildId::from(self.id as u64)
     }
 
+    #[must_use]
+    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn category(&self) -> ChannelId {
-        ChannelId::from(self.temp_voice_category.unwrap() as u64)
+        ChannelId::from(
+            self.temp_voice_category.expect("temp voice category must be configured")
+                as u64,
+        )
     }
 
+    #[must_use]
+    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn creator_channel(&self) -> Option<ChannelId> {
-        self.temp_voice_creator_channel
-            .map(|id| ChannelId::from(id as u64))
+        self.temp_voice_creator_channel.map(|id| ChannelId::from(id as u64))
     }
 }

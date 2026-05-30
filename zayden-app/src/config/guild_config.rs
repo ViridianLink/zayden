@@ -48,6 +48,7 @@ pub struct GuildConfigPatch {
 }
 
 impl GuildConfig {
+    #[must_use]
     pub fn empty(id: i64) -> Self {
         Self {
             id,

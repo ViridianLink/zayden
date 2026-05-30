@@ -1,5 +1,9 @@
 use serenity::all::{
-    ComponentInteraction, Context, CreateEmbed, CreateEmbedFooter, CreateInteractionResponse,
+    ComponentInteraction,
+    Context,
+    CreateEmbed,
+    CreateEmbedFooter,
+    CreateInteractionResponse,
     CreateInteractionResponseMessage,
 };
 use sqlx::{Database, Pool};
@@ -24,43 +28,55 @@ impl Leaderboard {
             .data
             .custom_id
             .strip_prefix("leaderboard_")
-            .unwrap();
+            .expect("registered with Prefix(\"leaderboard_\")");
 
-        let embed = interaction.message.embeds.first().unwrap();
+        let embed = interaction
+            .message
+            .embeds
+            .first()
+            .expect("leaderboard message always has embed");
 
-        let title = embed.title.as_ref().unwrap();
+        let title =
+            embed.title.as_ref().expect("leaderboard embed always has title");
 
         let global = title.strip_prefix("🏁 Global Leaderboard (");
 
-        let leaderboard = match global {
-            Some(s) => s.strip_suffix(")").unwrap(),
-            None => title
-                .strip_prefix("🏁 Leaderboard (")
-                .unwrap()
-                .strip_suffix(")")
-                .unwrap(),
-        };
+        let leaderboard = global.map_or_else(
+            || {
+                title
+                    .strip_prefix("🏁 Leaderboard (")
+                    .expect("bot-set leaderboard title prefix")
+                    .strip_suffix(")")
+                    .expect("bot-set title ends with )")
+            },
+            |s| s.strip_suffix(")").expect("bot-set title ends with )"),
+        );
 
         let mut page_number: i64 = embed
             .footer
             .as_ref()
-            .unwrap()
+            .expect("leaderboard embed always has footer")
             .text
             .strip_prefix("Page ")
-            .unwrap()
+            .expect("bot-set footer starts with Page")
             .parse()
-            .unwrap();
+            .expect("page number is always a valid integer");
 
         let users = if global.is_none() {
-            let data = ctx.data::<RwLock<Data>>();
-            let data = data.read().await;
-            let users = data
-                .get()
-                .get(&interaction.guild_id.unwrap())
-                .unwrap()
-                .iter()
-                .map(|id| id.get() as i64)
-                .collect::<Vec<_>>();
+            let users = {
+                let data = ctx.data::<RwLock<Data>>();
+                let data = data.read().await;
+                data.get()
+                    .get(
+                        &interaction
+                            .guild_id
+                            .expect("gambling command always used in guild"),
+                    )
+                    .expect("guild members cached when leaderboard command ran")
+                    .iter()
+                    .map(|id| id.get().cast_signed())
+                    .collect::<Vec<_>>()
+            };
             Some(users)
         } else {
             None
@@ -69,7 +85,7 @@ impl Leaderboard {
         match custom_id {
             "previous" => {
                 page_number = (page_number - 1).max(1);
-            }
+            },
             "user" => {
                 let row_num = get_row_number::<Db, Manager>(
                     leaderboard,
@@ -78,16 +94,22 @@ impl Leaderboard {
                     interaction.user.id,
                 )
                 .await
-                .unwrap();
+                .unwrap_or(0);
                 page_number = row_num / 10 + 1;
-            }
+            },
             "next" => {
                 page_number += 1;
-            }
-            _ => unreachable!("Invalid custom id"),
-        };
+            },
+            _ => {},
+        }
 
-        let rows = get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), page_number).await;
+        let rows = get_rows::<Db, Manager>(
+            leaderboard,
+            pool,
+            users.as_deref(),
+            page_number,
+        )
+        .await;
 
         if rows.is_empty() {
             return Ok(());
@@ -102,7 +124,12 @@ impl Leaderboard {
         let desc = rows
             .into_iter()
             .enumerate()
-            .map(|(i, row)| row.as_desc(&emojis, i + (page_number as usize - 1) * 10))
+            .map(|(i, row)| {
+                row.as_desc(
+                    &emojis,
+                    i + (usize::try_from(page_number - 1).unwrap_or(0)) * 10,
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n\n");
 
@@ -117,8 +144,7 @@ impl Leaderboard {
                     CreateInteractionResponseMessage::new().embed(embed),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

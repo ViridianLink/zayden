@@ -107,7 +107,7 @@ impl EventHandler for Handler {
             | Event::MessagePollVoteRemove(_)
             | Event::ShardStageUpdate(_) => None,
             _ => {
-                error!("temp"); // New event - unhandled
+                error!("unhandled event type");
                 None
             },
         }

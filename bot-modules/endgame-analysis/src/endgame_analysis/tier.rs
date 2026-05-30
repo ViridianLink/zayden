@@ -1,4 +1,5 @@
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::str::FromStr;
 
 use google_sheets_api::types::sheet::CellData;
 use serde::{Deserialize, Serialize};
@@ -21,6 +22,7 @@ pub struct Tier {
 }
 
 impl Tier {
+    #[must_use]
     pub fn tier(&self) -> String {
         self.tier.to_string()
     }
@@ -30,24 +32,23 @@ impl From<CellData> for Tier {
     fn from(value: CellData) -> Self {
         let tier = value
             .formatted_value
-            .map(|s| s.parse().unwrap())
+            .map(|s| s.parse().expect("data invariant"))
             .unwrap_or_default();
         let colour = value
             .effective_format
-            .unwrap()
+            .expect("data invariant")
             .background_color_style
-            .unwrap()
+            .expect("data invariant")
             .rgb_color
-            .unwrap();
+            .expect("data invariant");
 
-        Self {
-            tier,
-            colour: google_colour_to_serde_colour(colour),
-        }
+        Self { tier, colour: google_colour_to_serde_colour(&colour) }
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Hash, Clone, Copy, Deserialize, Serialize)]
+#[derive(
+    Debug, Default, PartialEq, Eq, Hash, Clone, Copy, Deserialize, Serialize,
+)]
 pub enum TierLabel {
     S,
     A,
@@ -65,36 +66,41 @@ impl FromStr for TierLabel {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "S" => Ok(TierLabel::S),
-            "A" => Ok(TierLabel::A),
-            "B" => Ok(TierLabel::B),
-            "C" => Ok(TierLabel::C),
-            "D" => Ok(TierLabel::D),
-            "E" => Ok(TierLabel::E),
-            "F" => Ok(TierLabel::F),
+            "S" => Ok(Self::S),
+            "A" => Ok(Self::A),
+            "B" => Ok(Self::B),
+            "C" => Ok(Self::C),
+            "D" => Ok(Self::D),
+            "E" => Ok(Self::E),
+            "F" => Ok(Self::F),
             _ => Err(()),
         }
     }
 }
 
 impl fmt::Display for TierLabel {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TierLabel::S => write!(f, "S"),
-            TierLabel::A => write!(f, "A"),
-            TierLabel::B => write!(f, "B"),
-            TierLabel::C => write!(f, "C"),
-            TierLabel::D => write!(f, "D"),
-            TierLabel::E => write!(f, "E"),
-            TierLabel::F => write!(f, "F"),
-            TierLabel::None => write!(f, "None"),
+            Self::S => write!(f, "S"),
+            Self::A => write!(f, "A"),
+            Self::B => write!(f, "B"),
+            Self::C => write!(f, "C"),
+            Self::D => write!(f, "D"),
+            Self::E => write!(f, "E"),
+            Self::F => write!(f, "F"),
+            Self::None => write!(f, "None"),
         }
     }
 }
 
 fn google_colour_to_serde_colour(
-    colour: google_sheets_api::types::common::Color,
-) -> serenity::all::Colour {
+    colour: &google_sheets_api::types::common::Color,
+) -> Colour {
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "clamping and scaling guarantees the value is within [0.0, 255.0], making the cast to u8 safe"
+    )]
     fn f64_to_u8(value: f64) -> u8 {
         (value.clamp(0.0, 1.0) * 255.0).round() as u8
     }

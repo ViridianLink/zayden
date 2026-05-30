@@ -1,6 +1,15 @@
 use futures::future;
-use jiff::{Span, tz::TimeZone};
-use serenity::all::{Colour, Context, CreateEmbed, CreateMessage, Http, Mentionable, ThreadId};
+use jiff::Span;
+use jiff::tz::TimeZone;
+use serenity::all::{
+    Colour,
+    Context,
+    CreateEmbed,
+    CreateMessage,
+    Http,
+    Mentionable,
+    ThreadId,
+};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use tracing::error;
@@ -8,7 +17,15 @@ use zayden_core::{CronJob, CronJobData};
 
 use crate::{Join, PostManager, PostRow};
 
-pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: PostManager<Db>>(
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "jobs borrows from the write guard and must be held for the full extend call"
+)]
+pub async fn create_reminders<
+    Data: CronJobData<Db>,
+    Db: Database,
+    Manager: PostManager<Db>,
+>(
     ctx: &Context,
     row: &PostRow,
 ) {
@@ -19,7 +36,7 @@ pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: Post
     let day = &start_time - Span::new().hours(24);
     let mins_30 = &start_time - Span::new().minutes(30);
 
-    let week_job = CronJob::<Db>::new(
+    let week_job = match CronJob::<Db>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -29,12 +46,17 @@ pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: Post
             week.month(),
             week.year()
         ),
-    )
-    .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
-    });
+    ) {
+        Ok(j) => j.set_action(move |ctx, pool| async move {
+            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+        }),
+        Err(e) => {
+            error!(error = ?e, "invalid lfg cron schedule");
+            return;
+        },
+    };
 
-    let day_job = CronJob::<Db>::new(
+    let day_job = match CronJob::<Db>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -44,12 +66,17 @@ pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: Post
             day.month(),
             day.year()
         ),
-    )
-    .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
-    });
+    ) {
+        Ok(j) => j.set_action(move |ctx, pool| async move {
+            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+        }),
+        Err(e) => {
+            error!(error = ?e, "invalid lfg cron schedule");
+            return;
+        },
+    };
 
-    let mins_30_job = CronJob::<Db>::new(
+    let mins_30_job = match CronJob::<Db>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -59,12 +86,17 @@ pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: Post
             mins_30.month(),
             mins_30.year()
         ),
-    )
-    .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
-    });
+    ) {
+        Ok(j) => j.set_action(move |ctx, pool| async move {
+            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+        }),
+        Err(e) => {
+            error!(error = ?e, "invalid lfg cron schedule");
+            return;
+        },
+    };
 
-    let now_job = CronJob::<Db>::new(
+    let now_job = match CronJob::<Db>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -74,10 +106,15 @@ pub async fn create_reminders<Data: CronJobData<Db>, Db: Database, Manager: Post
             start_time.month(),
             start_time.year()
         ),
-    )
-    .set_action(move |ctx, pool| async move {
-        reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
-    });
+    ) {
+        Ok(j) => j.set_action(move |ctx, pool| async move {
+            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+        }),
+        Err(e) => {
+            error!(error = ?e, "invalid lfg cron schedule");
+            return;
+        },
+    };
 
     let data = ctx.data::<RwLock<Data>>();
     let mut data = data.write().await;
@@ -99,13 +136,13 @@ async fn reminder<Db: Database, Manager: PostManager<Db>>(
         Err(e) => {
             error!(error = ?e, post_id = %id, "lfg reminder: post_row lookup failed");
             return;
-        }
+        },
     };
 
     let timestamp = post.start_time.to_jiff();
 
     let embed = CreateEmbed::new()
-        .title(format!("{} - <t:{timestamp}>", &post.activity))
+        .title(format!("{} - <t:{timestamp}>", post.activity))
         .colour(Colour::BLUE)
         .description(format!(
             "Starting <t:{timestamp}:R>\nThread: {}",

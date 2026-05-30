@@ -1,6 +1,12 @@
 use std::borrow::Cow;
 
-use serenity::all::{DiscordJsonError, ErrorResponse, HttpError, JsonErrorCode, StatusCode};
+use serenity::all::{
+    DiscordJsonError,
+    ErrorResponse,
+    HttpError,
+    JsonErrorCode,
+    StatusCode,
+};
 
 pub trait Respond: std::error::Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {
@@ -23,27 +29,23 @@ impl HandlerError {
     where
         E: std::error::Error + Send + Sync + 'static,
     {
-        Self {
-            inner: Box::new(err),
-            user_message: None,
-        }
+        Self { inner: Box::new(err), user_message: None }
     }
 
     pub fn from_respond<E>(err: E) -> Self
     where
         E: Respond + Send + Sync + 'static,
     {
-        let user_message = err.user_message().map(|s| s.into_owned());
-        Self {
-            inner: Box::new(err),
-            user_message,
-        }
+        let user_message = err.user_message().map(Cow::into_owned);
+        Self { inner: Box::new(err), user_message }
     }
 
+    #[must_use]
     pub fn user_message(&self) -> Option<&str> {
         self.user_message.as_deref()
     }
 
+    #[must_use]
     pub fn inner(&self) -> &(dyn std::error::Error + Send + Sync) {
         &*self.inner
     }
@@ -62,48 +64,56 @@ impl std::error::Error for HandlerError {
 }
 
 #[derive(Debug)]
-pub enum Error {
+pub enum CoreError {
     MissingGuildId,
     NotInteractionAuthor,
 
     MessageConflict,
 
     Serenity(serenity::Error),
-    //region: Sqlx
+    // region: Sqlx
     Sqlx(sqlx::Error),
-    //endregion
+    // endregion
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl std::fmt::Display for CoreError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::MissingGuildId => write!(f, "This command can only be used within a server."),
-            Error::NotInteractionAuthor => write!(f, "You are not the author of this interaction."),
-            Error::MessageConflict => write!(
+            Self::MissingGuildId => {
+                write!(f, "This command can only be used within a server.")
+            },
+            Self::NotInteractionAuthor => {
+                write!(f, "You are not the author of this interaction.")
+            },
+            Self::MessageConflict => write!(
                 f,
                 "Command is already awaiting interaction. Please respond to previous command first."
             ),
 
-            Error::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                serenity::all::ErrorResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE,
+            Self::Serenity(serenity::Error::Http(
+                HttpError::UnsuccessfulRequest(ErrorResponse {
+                    status_code:
+                        StatusCode::INTERNAL_SERVER_ERROR
+                        | StatusCode::SERVICE_UNAVAILABLE,
                     ..
-                },
-            ))) => write!(
+                }),
+            )) => write!(
                 f,
                 "It looks like Discord is currently experiencing some server issues. Please try your request again shortly. If the problem persists, please contact OscarSix for more details."
             ),
 
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
+            Self::Serenity(serenity::Error::Http(
+                HttpError::UnsuccessfulRequest(ErrorResponse {
                     error: DiscordJsonError { code, .. },
                     ..
+                }),
+            )) => match *code {
+                JsonErrorCode::UnknownChannel => {
+                    write!(f, "Channel already deleted")
                 },
-            ))) => match *code {
-                JsonErrorCode::UnknownChannel => write!(f, "Channel already deleted"),
                 JsonErrorCode::UnknownMessage => {
                     write!(f, "Message was unexpectably deleted. Please try again.")
-                }
+                },
                 JsonErrorCode::UnknownWebhook => write!(f, "Unknown Webhook"),
                 JsonErrorCode::UnknownInteraction => write!(
                     f,
@@ -119,7 +129,7 @@ impl std::fmt::Display for Error {
                 ),
                 JsonErrorCode::OperationOnArchivedThread => {
                     write!(f, "This thread has already been closed and archived.")
-                }
+                },
                 _ => write!(f, "serenity: {self:?}"),
             },
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
@@ -135,60 +145,67 @@ impl std::fmt::Display for Error {
                     f,
                     "Unexpected null found at {index}, please contact OscarSix to resolve."
                 )
-            }
+            },
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
         }
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for CoreError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Serenity(e) => Some(e),
             Self::Sqlx(e) => Some(e),
-            _ => None,
+            Self::MissingGuildId
+            | Self::NotInteractionAuthor
+            | Self::MessageConflict => None,
         }
     }
 }
 
-impl Respond for Error {
+impl Respond for CoreError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::MissingGuildId | Self::NotInteractionAuthor | Self::MessageConflict => {
-                Some(Cow::Owned(self.to_string()))
-            }
-
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    status_code: StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE,
+            Self::MissingGuildId
+            | Self::NotInteractionAuthor
+            | Self::MessageConflict
+            | Self::Serenity(serenity::Error::Http(
+                HttpError::UnsuccessfulRequest(ErrorResponse {
+                    status_code:
+                        StatusCode::INTERNAL_SERVER_ERROR
+                        | StatusCode::SERVICE_UNAVAILABLE,
                     ..
-                },
-            ))) => Some(Cow::Owned(self.to_string())),
+                }),
+            )) => Some(Cow::Owned(self.to_string())),
 
-            Self::Serenity(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
+            Self::Serenity(serenity::Error::Http(
+                HttpError::UnsuccessfulRequest(ErrorResponse {
                     error: DiscordJsonError { code, .. },
                     ..
-                },
-            ))) => match *code {
+                }),
+            )) => match *code {
                 JsonErrorCode::UnknownChannel
                 | JsonErrorCode::UnknownMessage
                 | JsonErrorCode::UnknownWebhook
                 | JsonErrorCode::UnknownInteraction
                 | JsonErrorCode::MissingAccess
                 | JsonErrorCode::LackPermissionsForAction
-                | JsonErrorCode::OperationOnArchivedThread => Some(Cow::Owned(self.to_string())),
+                | JsonErrorCode::OperationOnArchivedThread => {
+                    Some(Cow::Owned(self.to_string()))
+                },
                 _ => None,
             },
-            Self::Serenity(_) => None,
 
-            Self::Sqlx(sqlx::Error::PoolTimedOut) => Some(Cow::Owned(self.to_string())),
+            Self::Sqlx(sqlx::Error::PoolTimedOut) => {
+                Some(Cow::Owned(self.to_string()))
+            },
             Self::Sqlx(sqlx::Error::ColumnDecode { source, .. })
                 if source.is::<sqlx::error::UnexpectedNullError>() =>
             {
                 Some(Cow::Owned(self.to_string()))
-            }
-            Self::Sqlx(_) => None,
+            },
+
+            Self::Serenity(_) | Self::Sqlx(_) => None,
         }
     }
 }

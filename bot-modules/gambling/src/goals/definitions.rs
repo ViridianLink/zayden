@@ -37,7 +37,10 @@ impl GoalDefinition {
         self
     }
 
-    const fn set_update_fn(mut self, f: fn(&mut GamblingGoalsRow, &Event) -> bool) -> Self {
+    const fn set_update_fn(
+        mut self,
+        f: fn(&mut GamblingGoalsRow, &Event) -> bool,
+    ) -> Self {
         self.update_fn = f;
         self
     }
@@ -179,7 +182,7 @@ const WORK: GoalDefinition = GoalDefinition::new("work")
 pub struct GoalRegistry(HashMap<&'static str, GoalDefinition>);
 
 impl GoalRegistry {
-    pub fn new(goals: [GoalDefinition; 9]) -> Self {
+    pub fn new(goals: impl IntoIterator<Item = GoalDefinition>) -> Self {
         Self(goals.into_iter().map(|goal| (goal.id, goal)).collect())
     }
 

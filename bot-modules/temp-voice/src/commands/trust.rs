@@ -1,15 +1,21 @@
 use std::collections::HashMap;
 
-use serenity::all::{ChannelId, EditInteractionResponse, Http};
 use serenity::all::{
-    CommandInteraction, PermissionOverwrite, PermissionOverwriteType, Permissions, ResolvedValue,
+    ChannelId,
+    CommandInteraction,
+    EditInteractionResponse,
+    Http,
+    PermissionOverwrite,
+    PermissionOverwriteType,
+    Permissions,
+    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
 use crate::{Error, VoiceChannelManager, VoiceChannelRow};
 
-pub async fn trust<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn trust<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
@@ -17,15 +23,14 @@ pub async fn trust<Db: Database, Manager: VoiceChannelManager<Db>>(
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
 ) -> Result<(), Error> {
-    interaction.defer_ephemeral(http).await.unwrap();
+    interaction.defer_ephemeral(http).await?;
 
     if !row.is_owner(interaction.user.id) {
         return Err(Error::MissingPermissions(PermissionError::NotOwner));
     }
 
-    let user = match options.remove("user") {
-        Some(ResolvedValue::User(user, _member)) => user,
-        _ => unreachable!("User option is required"),
+    let Some(ResolvedValue::User(user, _member)) = options.remove("user") else {
+        return Err(Error::IneligibleChannel);
     };
 
     row.trust(user.id);
@@ -44,16 +49,14 @@ pub async fn trust<Db: Database, Manager: VoiceChannelManager<Db>>(
             },
             Some("User trusted"),
         )
-        .await
-        .unwrap();
+        .await?;
 
     interaction
         .edit_response(
             http,
             EditInteractionResponse::new().content("Set user to trusted."),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

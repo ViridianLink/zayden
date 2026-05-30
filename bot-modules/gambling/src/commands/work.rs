@@ -1,7 +1,12 @@
 use async_trait::async_trait;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{
-    Colour, CommandInteraction, Context, CreateCommand, CreateEmbed, EditInteractionResponse,
+    Colour,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateEmbed,
+    EditInteractionResponse,
     UserId,
 };
 use sqlx::prelude::FromRow;
@@ -9,13 +14,20 @@ use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
 
+use super::Commands;
 use crate::events::{Dispatch, Event};
 use crate::models::MineAmount;
 use crate::{
-    Coins, Gems, GoalsManager, MaxBet, MineHourly, Prestige, Result, Stamina, StaminaManager,
+    Coins,
+    Gems,
+    GoalsManager,
+    MaxBet,
+    MineHourly,
+    Prestige,
+    Result,
+    Stamina,
+    StaminaManager,
 };
-
-use super::Commands;
 
 #[derive(Debug, FromRow)]
 pub struct WorkRow {
@@ -34,7 +46,7 @@ impl WorkRow {
         let id: UserId = id.into();
 
         Self {
-            user_id: id.get() as i64,
+            user_id: id.get().cast_signed(),
             coins: 0,
             gems: 0,
             stamina: 3,
@@ -90,9 +102,7 @@ impl MineHourly for WorkRow {
 
 impl MineAmount for WorkRow {
     fn mine_activity(&self) -> jiff::Timestamp {
-        self.mine_activity
-            .map(|t| t.to_jiff())
-            .unwrap_or_else(jiff::Timestamp::now)
+        self.mine_activity.map_or_else(jiff::Timestamp::now, Timestamp::to_jiff)
     }
 }
 
@@ -104,7 +114,10 @@ impl Prestige for WorkRow {
 
 #[async_trait]
 pub trait WorkManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: impl Into<UserId> + Send) -> sqlx::Result<Option<WorkRow>>;
+    async fn row(
+        pool: &Pool<Db>,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<WorkRow>>;
 
     async fn save(pool: &Pool<Db>, row: WorkRow) -> sqlx::Result<Db::QueryResult>;
 }
@@ -114,19 +127,19 @@ impl Commands {
         Data: EmojiCacheData,
         Db: Database,
         StaminaHandler: StaminaManager<Db>,
-        GoalHandler: GoalsManager<Db>,
+        GoalHandler: GoalsManager<Db> + Send + Sync,
         WorkHandler: WorkManager<Db>,
     >(
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        interaction.defer(&ctx.http).await.unwrap();
+        interaction.defer(&ctx.http).await?;
 
-        let mut row = match WorkHandler::row(pool, interaction.user.id).await.unwrap() {
-            Some(row) => row,
-            None => WorkRow::new(interaction.user.id),
-        };
+        let mut row = WorkHandler::row(pool, interaction.user.id)
+            .await
+            .expect("async call")
+            .unwrap_or_else(|| WorkRow::new(interaction.user.id));
 
         row.verify_work::<Db, StaminaHandler>()?;
 
@@ -152,11 +165,7 @@ impl Commands {
         };
 
         Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
-            .fire(
-                interaction.channel_id,
-                &mut row,
-                Event::Work(interaction.user.id),
-            )
+            .fire(interaction.channel_id, &mut row, Event::Work(interaction.user.id))
             .await?;
 
         row.done_work();
@@ -164,9 +173,9 @@ impl Commands {
 
         let stamina = row.stamina_str();
 
-        WorkHandler::save(pool, row).await.unwrap();
+        WorkHandler::save(pool, row).await?;
 
-        let coin = emojis.emoji("heads").unwrap();
+        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
 
         let embed = CreateEmbed::new()
             .description(format!(
@@ -182,6 +191,7 @@ impl Commands {
     }
 
     pub fn register_work<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("work").description("Do some work and get some quick coins")
+        CreateCommand::new("work")
+            .description("Do some work and get some quick coins")
     }
 }

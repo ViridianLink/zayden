@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt::Write as _;
 
 use serenity::all::{ResolvedOption, ResolvedValue};
 
@@ -14,7 +15,7 @@ pub use modals::{parse_modal_components, parse_text_components};
 pub mod templates;
 
 pub mod error;
-pub use error::{Error, HandlerError, Respond};
+pub use error::{CoreError as Error, HandlerError, Respond};
 
 pub mod events;
 pub mod format_num;
@@ -28,25 +29,21 @@ pub use ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 
 pub mod module;
 pub use module::{ModuleAutocomplete, ModuleCommand, ModuleComponent, ModuleModal};
+use tracing::warn;
 
 pub fn parse_options<'a>(
     options: impl IntoIterator<Item = ResolvedOption<'a>>,
 ) -> HashMap<&'a str, ResolvedValue<'a>> {
-    options
-        .into_iter()
-        .map(|option| (option.name, option.value))
-        .collect()
+    options.into_iter().map(|option| (option.name, option.value)).collect()
 }
 
 pub fn parse_options_ref<'a>(
     options: impl IntoIterator<Item = &'a ResolvedOption<'a>>,
 ) -> HashMap<&'a str, &'a ResolvedValue<'a>> {
-    options
-        .into_iter()
-        .map(|option| (option.name, &option.value))
-        .collect()
+    options.into_iter().map(|option| (option.name, &option.value)).collect()
 }
 
+#[must_use]
 pub fn get_option_str(options: &[ResolvedOption<'_>]) -> String {
     let mut s = String::new();
 
@@ -62,16 +59,28 @@ pub fn get_option_str(options: &[ResolvedOption<'_>]) -> String {
         }
 
         match &option.value {
-            ResolvedValue::SubCommandGroup(sub_options) => {
+            ResolvedValue::SubCommandGroup(sub_options)
+            | ResolvedValue::SubCommand(sub_options) => {
                 s.push_str(&get_option_str(sub_options));
-            }
-            ResolvedValue::SubCommand(sub_options) => {
-                s.push_str(&get_option_str(sub_options));
-            }
+            },
             ResolvedValue::User(user, _) => {
-                s.push_str(&format!("User({{id: {}, name: {}}})", user.id, user.name))
-            }
-            _ => s.push_str(&format!("{:?}", option.value)),
+                let _ = write!(s, "User({{id: {}, name: {}}})", user.id, user.name);
+            },
+            ResolvedValue::Autocomplete { .. }
+            | ResolvedValue::Boolean(_)
+            | ResolvedValue::Integer(_)
+            | ResolvedValue::Number(_)
+            | ResolvedValue::String(_)
+            | ResolvedValue::Attachment(_)
+            | ResolvedValue::Channel(_)
+            | ResolvedValue::Role(_)
+            | ResolvedValue::Unresolved(_) => {
+                let _ = write!(s, "{:?}", option.value);
+            },
+            _ => {
+                warn!("unexpected resolved option type: {:?}", option.value);
+                let _ = write!(s, "{:?}", option.value);
+            },
         }
     }
 

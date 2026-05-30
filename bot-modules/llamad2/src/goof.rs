@@ -2,9 +2,14 @@ use std::fs::OpenOptions;
 use std::io::{Read, Write};
 
 use serde::{Deserialize, Serialize};
+use serenity::Error;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateInteractionResponse,
-    CreateInteractionResponseMessage, Mentionable,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    Mentionable,
 };
 use tracing::error;
 
@@ -15,38 +20,53 @@ const FILE_NAME: &str = "dumbCount.json";
 pub struct Goof;
 
 impl Goof {
-    pub async fn run(ctx: &Context, interaction: &CommandInteraction) {
-        if interaction
-            .guild_id
-            .is_none_or(|guild| guild != LLAMA_GUILD)
+    pub async fn run(
+        ctx: &Context,
+        interaction: &CommandInteraction,
+    ) -> Result<(), Error> {
+        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
             || interaction.user.bot()
         {
-            return;
+            return Ok(());
         }
 
-        let mut file = OpenOptions::new()
+        let Ok(mut file) = OpenOptions::new()
             .create(true)
             .read(true)
             .truncate(false)
             .write(true)
             .open(FILE_NAME)
-            .unwrap();
+        else {
+            error!("Failed to open {FILE_NAME}");
+            return Ok(());
+        };
 
         let mut buffer = String::new();
-        file.read_to_string(&mut buffer).unwrap();
+        if file.read_to_string(&mut buffer).is_err() {
+            error!("Failed to read {FILE_NAME}");
+            return Ok(());
+        }
 
         let mut data = match serde_json::from_str::<GoofData>(&buffer) {
             Ok(data) => data,
             Err(e) => {
                 error!("Serde error: {e}");
                 GoofData::default()
-            }
+            },
         };
 
         data.dumb_count += 1;
-        file.set_len(0).unwrap();
-        file.write_all(serde_json::to_string(&data).unwrap().as_bytes())
-            .unwrap();
+
+        let Ok(serialized) = serde_json::to_string(&data) else {
+            error!("Failed to serialize GoofData");
+            return Ok(());
+        };
+
+        if file.set_len(0).is_err() || file.write_all(serialized.as_bytes()).is_err()
+        {
+            error!("Failed to write {FILE_NAME}");
+            return Ok(());
+        }
 
         interaction
             .create_response(
@@ -59,8 +79,9 @@ impl Goof {
                     )),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {

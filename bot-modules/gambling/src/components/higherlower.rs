@@ -3,8 +3,15 @@ use std::collections::HashSet;
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
-    Colour, ComponentInteraction, Context, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, EmojiId, Http, parse_emoji,
+    Colour,
+    ComponentInteraction,
+    Context,
+    CreateEmbed,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    EmojiId,
+    Http,
+    parse_emoji,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
@@ -13,8 +20,17 @@ use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::higherlower::create_embed;
 use crate::{
-    CARD_DECK, CARD_TO_NUM, Coins, GamblingManager, GameManager, GameRow, GoalsManager, Result,
-    StatsManager, card_deck, card_to_num,
+    CARD_DECK,
+    CARD_TO_NUM,
+    Coins,
+    GamblingManager,
+    GameManager,
+    GameRow,
+    GoalsManager,
+    Result,
+    StatsManager,
+    card_deck,
+    card_to_num,
 };
 
 pub struct HigherLower {
@@ -29,7 +45,7 @@ impl HigherLower {
         Db: Database,
         GamblingHandler: GamblingManager<Db>,
         GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         StatsHandler: StatsManager<Db>,
     >(
         ctx: &Context,
@@ -42,20 +58,17 @@ impl HigherLower {
             data.emojis()
         };
 
-        let mut details = HigherLower::from(interaction);
+        let mut details = Self::from(interaction);
         let prev = details.prev();
-        let next = match details.next(&emojis) {
-            Some(next) => next,
-            None => {
-                let mut tx = pool.begin().await.unwrap();
-                GamblingHandler::add_gems(&mut *tx, interaction.user.id, 1)
-                    .await
-                    .unwrap();
-                tx.commit().await.unwrap();
+        let next = if let Some(next) = details.next(&emojis) {
+            next
+        } else {
+            let mut tx = pool.begin().await?;
+            GamblingHandler::add_gems(&mut *tx, interaction.user.id, 1).await?;
+            tx.commit().await?;
 
-                details.new_deck(&emojis);
-                details.next(&emojis).unwrap()
-            }
+            details.new_deck(&emojis);
+            details.next(&emojis).expect("new deck is non-empty")
         };
 
         match interaction.data.custom_id.as_str() {
@@ -70,7 +83,7 @@ impl HigherLower {
                     next,
                 )
                 .await?;
-            }
+            },
             "hol_lower" => {
                 Self::lower::<Db, GameHandler, GoalsHandler, StatsHandler>(
                     &ctx.http,
@@ -82,9 +95,9 @@ impl HigherLower {
                     next,
                 )
                 .await?;
-            }
-            id => unreachable!("Invalid custom_id: {id}"),
-        };
+            },
+            _ => {},
+        }
 
         Ok(())
     }
@@ -92,7 +105,7 @@ impl HigherLower {
     async fn higher<
         Db: Database,
         GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         StatsHandler: StatsManager<Db>,
     >(
         http: &Http,
@@ -106,7 +119,7 @@ impl HigherLower {
         let winner = next.1 >= prev;
 
         if winner {
-            details.payout += 1000
+            details.payout += 1000;
         }
 
         details.seq.push('☝'.into());
@@ -125,7 +138,7 @@ impl HigherLower {
                     pool,
                     emojis,
                 )
-                .await;
+                .await?;
 
             return Ok(());
         }
@@ -150,7 +163,7 @@ impl HigherLower {
     async fn lower<
         Db: Database,
         GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         StatsHandler: StatsManager<Db>,
     >(
         http: &Http,
@@ -164,7 +177,7 @@ impl HigherLower {
         let winner = next.1 <= prev;
 
         if winner {
-            details.payout += 1000
+            details.payout += 1000;
         }
 
         details.seq.push('👇'.into());
@@ -183,7 +196,7 @@ impl HigherLower {
                     pool,
                     emojis,
                 )
-                .await;
+                .await?;
             return Ok(());
         }
 
@@ -206,24 +219,21 @@ impl HigherLower {
 
     fn next(&mut self, emojis: &EmojiCache) -> Option<(EmojiId, u8)> {
         let emoji = self.deck.pop()?;
-        let num = *CARD_TO_NUM
-            .get_or_init(|| card_to_num(emojis))
-            .get(&emoji)
-            .unwrap();
+        let num = *CARD_TO_NUM.get_or_init(|| card_to_num(emojis)).get(&emoji)?;
 
         Some((emoji, num))
     }
 
     fn prev(&self) -> u8 {
-        parse_emoji(self.seq.last().unwrap())
-            .unwrap()
+        parse_emoji(self.seq.last().expect("seq always has at least one card"))
+            .expect("last seq element is a valid discord emoji")
             .name
             .parse()
-            .unwrap()
+            .expect("emoji name is always the card value")
     }
 
     fn new_deck(&mut self, emojis: &EmojiCache) {
-        let mut deck = CARD_DECK.get_or_init(|| card_deck(emojis)).to_vec();
+        let mut deck = CARD_DECK.get_or_init(|| card_deck(emojis)).clone();
 
         deck.shuffle(&mut rng());
 
@@ -233,7 +243,7 @@ impl HigherLower {
     async fn game_end<
         Db: Database,
         GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db>,
+        GoalsHandler: GoalsManager<Db> + Send + Sync,
         StatsHandler: StatsManager<Db>,
     >(
         self,
@@ -241,27 +251,26 @@ impl HigherLower {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
         emojis: &EmojiCache,
-    ) {
-        let mut tx = pool.begin().await.unwrap();
+    ) -> Result<()> {
+        let mut tx = pool.begin().await?;
 
-        StatsHandler::higherlower(&mut *tx, interaction.user.id, (self.payout / 1000) as i32)
-            .await
-            .unwrap();
+        StatsHandler::higherlower(
+            &mut *tx,
+            interaction.user.id,
+            i32::try_from(self.payout / 1000).unwrap_or(i32::MAX),
+        )
+        .await?;
 
-        tx.commit().await.unwrap();
+        tx.commit().await?;
 
         let mut row = GameHandler::row(pool, interaction.user.id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         row.add_coins(self.payout);
 
-        let colour = if self.payout > 0 {
-            Colour::DARK_GREEN
-        } else {
-            Colour::RED
-        };
+        let colour = if self.payout > 0 { Colour::DARK_GREEN } else { Colour::RED };
 
         let coins = row.coins_str();
 
@@ -277,10 +286,9 @@ impl HigherLower {
                     self.payout != 0,
                 )),
             )
-            .await
-            .unwrap();
+            .await?;
 
-        GameHandler::save(pool, row).await.unwrap();
+        GameHandler::save(pool, row).await?;
 
         let result = format!("Payout: {}", self.payout.format());
 
@@ -302,8 +310,9 @@ impl HigherLower {
                         .components(Vec::new()),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -315,23 +324,25 @@ impl From<&ComponentInteraction> for HigherLower {
             .embeds
             .first()
             .and_then(|embed| embed.description.as_deref())
-            .unwrap();
+            .expect("higher-lower game message always has embed with description");
 
         let mut lines = desc.lines();
-        let seq_line = lines.next().unwrap();
-        let payout_line = lines.nth(1).unwrap();
+        let seq_line = lines.next().expect("game message has expected format");
+        let payout_line = lines.nth(1).expect("game message has expected format");
 
-        let seq = seq_line[2..]
+        let seq = seq_line
+            .get(2..)
+            .unwrap_or("")
             .split_whitespace()
             .map(String::from)
             .collect::<Vec<_>>();
 
         let payout = payout_line
             .strip_prefix("Current Payout: ")
-            .unwrap()
+            .expect("payout line has expected prefix")
             .replace(',', "")
             .parse()
-            .unwrap();
+            .expect("payout is always a valid integer");
 
         let used_cards = seq
             .iter()

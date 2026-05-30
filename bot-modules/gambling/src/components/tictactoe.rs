@@ -1,19 +1,31 @@
-use rand::{rng, seq::IndexedRandom};
+use rand::rng;
+use rand::seq::IndexedRandom;
 use regex::Regex;
 use serenity::all::{
-    ActionRowComponent, ButtonStyle, Component, ComponentInteraction, Context, CreateActionRow,
-    CreateButton, CreateComponent, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, EditInteractionResponse, Http, Mentionable,
-    MessageInteractionMetadata, ReactionType, UserId,
+    ActionRowComponent,
+    ButtonStyle,
+    Component,
+    ComponentInteraction,
+    Context,
+    CreateActionRow,
+    CreateButton,
+    CreateComponent,
+    CreateEmbed,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    EditInteractionResponse,
+    Http,
+    Mentionable,
+    MessageInteractionMetadata,
+    ReactionType,
+    UserId,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData};
 
-use crate::{
-    Coins, EffectsManager, GamblingManager, GameManager, GameRow, Result,
-    games::tiktactoe::{EMOJI_P1, EMOJI_P2},
-};
+use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
+use crate::{Coins, EffectsManager, GamblingManager, GameManager, GameRow, Result};
 
 pub struct TicTacToe {
     size: usize,
@@ -37,7 +49,7 @@ impl TicTacToe {
         let Some(MessageInteractionMetadata::Command(metadata)) =
             interaction.message.interaction_metadata.as_deref()
         else {
-            unreachable!("Message must be created from an command")
+            return Ok(());
         };
 
         let emojis = {
@@ -48,8 +60,8 @@ impl TicTacToe {
 
         match interaction.data.custom_id.as_str() {
             "ttt_cancel" if metadata.user == interaction.user => {
-                cancel(&ctx.http, interaction).await;
-            }
+                cancel(&ctx.http, interaction).await?;
+            },
             "ttt_accept" => {
                 accept::<Db, GamblingHandler, EffectsHandler, GameHandler>(
                     &ctx.http,
@@ -58,8 +70,8 @@ impl TicTacToe {
                     &emojis,
                 )
                 .await?;
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         Ok(())
@@ -74,16 +86,17 @@ impl TicTacToe {
 
         // let mut components = interaction.message.components.clone();
 
-        // let Component::ActionRow(action_row) = components.get_mut(i).unwrap() else {
-        //     unreachable!("Component must be an action row")
+        // let Component::ActionRow(action_row) = components.get_mut(i).unwrap()
+        // else {     unreachable!("Component must be an action row")
         // };
 
-        // let ActionRowComponent::Button(button) = action_row.components.get_mut(j).unwrap() else {
+        // let ActionRowComponent::Button(button) =
+        // action_row.components.get_mut(j).unwrap() else {
         //     unreachable!("Component must be a button")
         // };
 
-        // if button.emoji == Some(EMOJI_P1.into()) || button.emoji == Some(EMOJI_P2.into()) {
-        //     return Ok(true);
+        // if button.emoji == Some(EMOJI_P1.into()) || button.emoji ==
+        // Some(EMOJI_P2.into()) {     return Ok(true);
         // }
 
         // let emoji = if state.current_turn == state.players[0] {
@@ -140,28 +153,34 @@ impl TicTacToe {
         //     .components(components);
 
         // interaction
-        //     .create_response(&ctx.http, CreateInteractionResponse::UpdateMessage(msg))
-        //     .await
+        //     .create_response(&ctx.http,
+        // CreateInteractionResponse::UpdateMessage(msg))     .await
         //     .unwrap();
 
         // Ok(true)
     }
 
-    async fn p1_row<Db: Database, Manager: GameManager<Db>>(&self, pool: &Pool<Db>) -> GameRow {
+    async fn p1_row<Db: Database, Manager: GameManager<Db>>(
+        &self,
+        pool: &Pool<Db>,
+    ) -> GameRow {
         let id = self.players[0];
 
         Manager::row(pool, id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(id))
     }
 
-    async fn p2_row<Db: Database, Manager: GameManager<Db>>(&self, pool: &Pool<Db>) -> GameRow {
+    async fn p2_row<Db: Database, Manager: GameManager<Db>>(
+        &self,
+        pool: &Pool<Db>,
+    ) -> GameRow {
         let id = self.players[0];
 
         Manager::row(pool, id)
             .await
-            .unwrap()
+            .expect("async call")
             .unwrap_or_else(|| GameRow::new(id))
     }
 }
@@ -171,20 +190,33 @@ impl From<&ComponentInteraction> for TicTacToe {
         let Some(MessageInteractionMetadata::Command(metadata)) =
             value.message.interaction_metadata.as_deref()
         else {
-            unreachable!("Message must be created from an command")
+            // Return a default/stub struct
+            return Self {
+                size: 0,
+                players: [value.user.id, value.user.id],
+                current_turn: value.user.id,
+                bet: 0,
+            };
         };
 
         let players = [metadata.user.id, value.user.id];
-        let current_turn = *players.choose(&mut rng()).unwrap();
+        let current_turn =
+            *players.choose(&mut rng()).expect("players slice is non-empty");
 
-        let embed = &value.message.embeds[0];
-        let re = Regex::new(r#"for \*\*(\d+)\*\*"#).unwrap();
+        let embed =
+            value.message.embeds.first().expect("ttt message always has an embed");
+        let re = Regex::new(r"for \*\*(\d+)\*\*").expect("valid static regex");
 
         let bet = re
-            .captures(embed.description.as_ref().unwrap())
+            .captures(
+                embed
+                    .description
+                    .as_ref()
+                    .expect("ttt challenge embed always has description"),
+            )
             .and_then(|caps| caps.get(1))
             .and_then(|matched| matched.as_str().parse::<i64>().ok())
-            .unwrap();
+            .expect("bet always present in ttt embed description");
 
         Self {
             size: value.message.components.len() as usize,
@@ -195,19 +227,17 @@ impl From<&ComponentInteraction> for TicTacToe {
     }
 }
 
-async fn cancel(http: &Http, interaction: &ComponentInteraction) {
-    let embed = CreateEmbed::new()
-        .title("TicTacToe")
-        .description("Game cancelled");
+async fn cancel(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
+    let embed = CreateEmbed::new().title("TicTacToe").description("Game cancelled");
 
-    let msg = CreateInteractionResponseMessage::new()
-        .embed(embed)
-        .components(Vec::new());
+    let msg =
+        CreateInteractionResponseMessage::new().embed(embed).components(Vec::new());
 
     interaction
         .create_response(http, CreateInteractionResponse::UpdateMessage(msg))
-        .await
-        .unwrap();
+        .await?;
+
+    Ok(())
 }
 
 async fn accept<
@@ -221,7 +251,7 @@ async fn accept<
     pool: &Pool<Db>,
     emojis: &EmojiCache,
 ) -> Result<()> {
-    interaction.defer(http).await.unwrap();
+    interaction.defer(http).await?;
 
     let mut state = TicTacToe::from(interaction);
 
@@ -232,28 +262,29 @@ async fn accept<
 
     EffectsHandler::bet_limit::<GamblingHandler>(
         pool,
-        p1_row.user_id as u64,
+        p1_row.user_id.cast_unsigned(),
         state.bet,
         p1_row.coins(),
     )
     .await?;
     EffectsHandler::bet_limit::<GamblingHandler>(
         pool,
-        p2_row.user_id as u64,
+        p2_row.user_id.cast_unsigned(),
         state.bet,
         p2_row.coins(),
     )
     .await?;
 
-    state.current_turn = *state.players.choose(&mut rng()).unwrap();
+    state.current_turn =
+        *state.players.choose(&mut rng()).expect("players slice is non-empty");
 
     p1_row.add_coins(-state.bet);
     p2_row.add_coins(-state.bet);
 
-    GameHandler::save(pool, p1_row).await.unwrap();
-    GameHandler::save(pool, p2_row).await.unwrap();
+    GameHandler::save(pool, p1_row).await?;
+    GameHandler::save(pool, p2_row).await?;
 
-    let blank = emojis.emoji("blank").unwrap();
+    let blank = emojis.emoji("blank").expect("blank emoji always registered");
 
     let embed = CreateEmbed::new()
         .title("TicTacToe")
@@ -276,26 +307,27 @@ async fn accept<
     interaction
         .edit_response(
             http,
-            EditInteractionResponse::new()
-                .embed(embed)
-                .components(components),
+            EditInteractionResponse::new().embed(embed).components(components),
         )
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }
 
-#[allow(dead_code)]
-fn check_win(state: &TicTacToe, components: &[Component], target: ReactionType) -> bool {
+#[expect(dead_code, reason = "used for future TicTacToe win/draw detection")]
+fn check_win(
+    state: &TicTacToe,
+    components: &[Component],
+    target: ReactionType,
+) -> bool {
     let get_emoji = |r: usize, c: usize| -> Option<&ReactionType> {
-        let Some(Component::ActionRow(action_row)) = components.get(r) else {
-            unreachable!("Component must be an action row")
+        let Component::ActionRow(action_row) = components.get(r)? else {
+            return None;
         };
 
         match action_row.components.get(c) {
             Some(ActionRowComponent::Button(b)) => b.emoji.as_ref(),
-            _ => unreachable!("Component must be a button"),
+            _ => None,
         }
     };
 
@@ -322,9 +354,7 @@ fn check_win(state: &TicTacToe, components: &[Component], target: ReactionType) 
     }
 
     // Check diagonals
-    if (0..state.size)
-        .map(|i| get_emoji(i, i))
-        .all(|emoji| emoji == target.as_ref())
+    if (0..state.size).map(|i| get_emoji(i, i)).all(|emoji| emoji == target.as_ref())
     {
         return true;
     }
@@ -340,20 +370,29 @@ fn check_win(state: &TicTacToe, components: &[Component], target: ReactionType) 
     false
 }
 
-#[allow(dead_code)]
+#[expect(dead_code, reason = "used for future TicTacToe win/draw detection")]
 fn check_draw(components: &[Component]) -> bool {
     let x_emoji = Some(ReactionType::from(EMOJI_P1));
     let o_emoji = Some(ReactionType::from(EMOJI_P2));
 
     components
         .iter()
-        .flat_map(|component| match component {
-            Component::ActionRow(action_row) => action_row.components.iter(),
-            _ => unreachable!("Component must be an action row"),
+        .filter_map(|component| match component {
+            Component::ActionRow(action_row) => Some(action_row.components.iter()),
+            Component::Section(_)
+            | Component::TextDisplay(_)
+            | Component::MediaGallery(_)
+            | Component::File(_)
+            | Component::Separator(_)
+            | Component::Container(_)
+            | Component::Label(_)
+            | Component::Unknown(_)
+            | _ => None,
         })
-        .map(|component| match component {
-            ActionRowComponent::Button(button) => button,
-            _ => unreachable!("Component must be a button"),
+        .flatten()
+        .filter_map(|component| match component {
+            ActionRowComponent::Button(button) => Some(button),
+            ActionRowComponent::SelectMenu(_) | _ => None,
         })
         .all(|button| button.emoji == x_emoji || button.emoji == o_emoji)
 }

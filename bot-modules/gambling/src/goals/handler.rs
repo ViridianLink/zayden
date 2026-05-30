@@ -1,14 +1,21 @@
 use serenity::all::{
-    Colour, CreateEmbed, CreateMessage, DiscordJsonError, ErrorResponse, GenericChannelId, Http,
-    HttpError, JsonErrorCode, UserId,
+    Colour,
+    CreateEmbed,
+    CreateMessage,
+    DiscordJsonError,
+    ErrorResponse,
+    GenericChannelId,
+    Http,
+    HttpError,
+    JsonErrorCode,
+    UserId,
 };
 use sqlx::{Database, Pool};
 use zayden_core::EmojiCache;
 
+use super::GOAL_REGISTRY;
 use crate::events::{Event, EventRow};
 use crate::{GEM, GamblingGoalsRow, GoalsManager, Result, tomorrow};
-
-use super::GOAL_REGISTRY;
 
 pub struct GoalHandler;
 
@@ -45,7 +52,8 @@ impl GoalHandler {
 
         let mut goals = Manager::full_rows(pool, user_id).await?;
 
-        if goals.is_empty() || !goals[0].is_today() {
+        if goals.is_empty() || !goals.first().is_some_and(GamblingGoalsRow::is_today)
+        {
             goals = Self::daily_reset::<Db, Manager>(pool, user_id, row).await?;
         }
 
@@ -62,7 +70,8 @@ impl GoalHandler {
     ) -> Result<Event> {
         let user_id = event.user_id();
 
-        let mut all_goals = Self::get_user_progress::<Db, Manager>(pool, user_id, row).await?;
+        let mut all_goals =
+            Self::get_user_progress::<Db, Manager>(pool, user_id, row).await?;
 
         let changed = all_goals
             .iter_mut()
@@ -82,7 +91,7 @@ impl GoalHandler {
                 acc
             });
 
-        let coin = emojis.get("heads").unwrap();
+        let coin = emojis.get("heads").expect("emoji 'heads' in cache");
 
         for &goal in changed.iter().filter(|goal| goal.is_complete()) {
             row.add_coins(5_000);
@@ -112,11 +121,11 @@ impl GoalHandler {
                     ..
                 }))) => {}
                 Err(e) => return Err(e.into()),
-            };
+            }
         }
 
         if !changed.is_empty() {
-            if all_goals.iter().all(|row| row.is_complete()) {
+            if all_goals.iter().all(GamblingGoalsRow::is_complete) {
                 row.add_gems(1);
 
                 channel
@@ -126,11 +135,10 @@ impl GoalHandler {
                             "You have completed **all** daily goals! 🎉\n**Reward:** 1 {GEM}\n\nGoals reset <t:{}:R>", tomorrow(None)
                         )).colour(Colour::DARK_GREEN)),
                     )
-                    .await
-                    .unwrap();
+                    .await?;
             }
 
-            Manager::update(pool, &all_goals).await.unwrap();
+            Manager::update(pool, &all_goals).await?;
         }
 
         Ok(event)

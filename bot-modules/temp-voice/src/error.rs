@@ -3,7 +3,8 @@ use std::borrow::Cow;
 use serenity::all::{ChannelId, Mentionable};
 use zayden_core::error::Respond;
 
-pub(crate) type Result<T> = std::result::Result<T, Error>;
+#[expect(unreachable_pub, reason = "used through re-export in parent module")]
+pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum PermissionError {
@@ -11,6 +12,7 @@ pub enum PermissionError {
     NotTrusted,
 }
 
+#[expect(clippy::error_impl_error, reason = "conventional error type naming")]
 #[derive(Debug)]
 pub enum Error {
     MissingGuildId,
@@ -29,44 +31,46 @@ pub enum Error {
 }
 
 impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::MissingGuildId => zayden_core::Error::MissingGuildId.fmt(f),
-            Error::MemberNotInVoiceChannel => {
+            Self::MissingGuildId => zayden_core::Error::MissingGuildId.fmt(f),
+            Self::MemberNotInVoiceChannel => {
                 write!(
                     f,
                     "You must be in a voice channel or use the `channel` option to specify a channel to use this command."
                 )
-            }
-            Error::OwnerInChannel => {
+            },
+            Self::OwnerInChannel => {
                 write!(
                     f,
                     "Cannot use this command while the channel owner is present."
                 )
-            }
-            Error::InvalidPassword => write!(f, "Invalid channel password."),
-            Error::UserIsOwner => write!(f, "You are already the owner of this channel."),
-            Error::MaxChannels => write!(
+            },
+            Self::InvalidPassword => write!(f, "Invalid channel password."),
+            Self::UserIsOwner => {
+                write!(f, "You are already the owner of this channel.")
+            },
+            Self::MaxChannels => write!(
                 f,
                 "You have reached the maximum number of persistent channels."
             ),
-            Error::MissingPermissions(PermissionError::NotOwner) => {
+            Self::MissingPermissions(PermissionError::NotOwner) => {
                 write!(f, "Only the channel owner can use this command.")
-            }
-            Error::MissingPermissions(PermissionError::NotTrusted) => {
+            },
+            Self::MissingPermissions(PermissionError::NotTrusted) => {
                 write!(f, "You must be trusted to use this command.")
-            }
-            Error::ChannelNotFound(id) => write!(
+            },
+            Self::ChannelNotFound(id) => write!(
                 f,
                 "Channel not found: {}\nTry using `/voice claim` to claim the channel.",
                 id.mention()
             ),
-            Error::AdministratorRequired => {
+            Self::AdministratorRequired => {
                 write!(f, "You must be an administrator to run this command.")
-            }
-            Error::IneligibleChannel => {
+            },
+            Self::IneligibleChannel => {
                 write!(f, "This channel isn't eligible for voice commands.")
-            }
+            },
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
         }
@@ -78,7 +82,16 @@ impl std::error::Error for Error {
         match self {
             Self::Serenity(e) => Some(e),
             Self::Sqlx(e) => Some(e),
-            _ => None,
+            Self::MissingGuildId
+            | Self::MemberNotInVoiceChannel
+            | Self::OwnerInChannel
+            | Self::InvalidPassword
+            | Self::UserIsOwner
+            | Self::MaxChannels
+            | Self::MissingPermissions(_)
+            | Self::ChannelNotFound(_)
+            | Self::AdministratorRequired
+            | Self::IneligibleChannel => None,
         }
     }
 }
@@ -86,9 +99,17 @@ impl std::error::Error for Error {
 impl Respond for Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::Serenity(_) => None,
-            Self::Sqlx(_) => None,
-            _ => Some(Cow::Owned(self.to_string())),
+            Self::Serenity(_) | Self::Sqlx(_) => None,
+            Self::MissingGuildId
+            | Self::MemberNotInVoiceChannel
+            | Self::OwnerInChannel
+            | Self::InvalidPassword
+            | Self::UserIsOwner
+            | Self::MaxChannels
+            | Self::MissingPermissions(_)
+            | Self::ChannelNotFound(_)
+            | Self::AdministratorRequired
+            | Self::IneligibleChannel => Some(Cow::Owned(self.to_string())),
         }
     }
 }

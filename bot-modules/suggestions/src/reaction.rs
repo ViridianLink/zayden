@@ -1,8 +1,20 @@
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
-    ButtonStyle, CreateActionRow, CreateButton, CreateComponent, CreateEmbed, CreateEmbedAuthor,
-    CreateEmbedFooter, CreateMessage, EditMessage, EmbedField, GuildChannel, Http, Message,
-    Reaction, ReactionType,
+    ButtonStyle,
+    CreateActionRow,
+    CreateButton,
+    CreateComponent,
+    CreateEmbed,
+    CreateEmbedAuthor,
+    CreateEmbedFooter,
+    CreateMessage,
+    EditMessage,
+    EmbedField,
+    GuildChannel,
+    Http,
+    Message,
+    Reaction,
+    ReactionType,
 };
 use sqlx::{Database, Pool};
 
@@ -18,11 +30,13 @@ impl Suggestions {
             return;
         };
 
-        let Some(channel) = reaction.channel(&http).await.unwrap().guild() else {
+        let Some(channel) =
+            reaction.channel(&http).await.expect("fetch reaction channel").guild()
+        else {
             return;
         };
 
-        let Some(row) = Manager::get(pool, guild_id).await.unwrap() else {
+        let Some(row) = Manager::get(pool, guild_id).await.expect("DB query") else {
             return;
         };
 
@@ -37,32 +51,37 @@ impl Suggestions {
             return;
         };
 
-        let message = reaction.message(http).await.unwrap();
+        let message = reaction.message(http).await.expect("Discord API call");
 
         let positive_reaction = ReactionType::from('👍');
         let negative_reaction = ReactionType::from('👎');
 
-        let (pos_count, neg_count) = message.reactions.iter().fold((0, 0), |(pos, neg), r| {
-            if r.reaction_type == positive_reaction {
-                (r.count as i32, neg)
-            } else if r.reaction_type == negative_reaction {
-                (pos, r.count as i32)
-            } else {
-                (pos, neg)
-            }
-        });
+        let (pos_count, neg_count) =
+            message.reactions.iter().fold((0, 0), |(pos, neg), r| {
+                let count = i32::try_from(r.count).unwrap_or(i32::MAX);
+                if r.reaction_type == positive_reaction {
+                    (count, neg)
+                } else if r.reaction_type == negative_reaction {
+                    (pos, count)
+                } else {
+                    (pos, neg)
+                }
+            });
 
         let mut messages = review_channel_id.widen().messages_iter(&http).boxed();
 
         if (pos_count - neg_count) >= 20 {
-            while let Some(mut msg) = messages.try_next().await.unwrap() {
+            while let Some(mut msg) =
+                messages.try_next().await.expect("stream message")
+            {
                 if let Some(embed) = msg.embeds.first()
-                    && embed.url.as_deref() == Some(message.link().to_string().as_str())
+                    && embed.url.as_deref()
+                        == Some(message.link().to_string().as_str())
                 {
                     let embed = create_embed(
                         &channel,
                         &message,
-                        &msg.embeds[0].fields,
+                        msg.embeds.first().map_or(&[], |e| e.fields.as_slice()),
                         pos_count,
                         neg_count,
                     );
@@ -74,7 +93,7 @@ impl Suggestions {
                             .components(vec![create_components()]),
                     )
                     .await
-                    .unwrap();
+                    .expect("Discord API call");
 
                     return;
                 }
@@ -95,13 +114,16 @@ impl Suggestions {
                         .components(vec![create_components()]),
                 )
                 .await
-                .unwrap();
+                .expect("Discord API call");
         } else if (neg_count - pos_count) <= 15 {
-            while let Some(msg) = messages.try_next().await.unwrap() {
-                if msg.embeds[0].url.as_deref() == Some(message.link().to_string().as_str()) {
+            while let Some(msg) = messages.try_next().await.expect("stream message")
+            {
+                if msg.embeds.first().and_then(|e| e.url.as_deref())
+                    == Some(message.link().to_string().as_str())
+                {
                     msg.delete(http, Some("Positive delta fell below 15"))
                         .await
-                        .unwrap();
+                        .expect("Discord API call");
 
                     return;
                 }
@@ -122,9 +144,7 @@ fn create_embed<'a>(
         .url(message.link().to_string())
         .description(&message.content)
         .author(CreateEmbedAuthor::new(&message.author.name))
-        .footer(CreateEmbedFooter::new(format!(
-            "👍 {pos_count} · 👎 {neg_count}",
-        )));
+        .footer(CreateEmbedFooter::new(format!("👍 {pos_count} · 👎 {neg_count}")));
 
     if let Some(team_response) = embed_fields.first() {
         embed = embed.field(

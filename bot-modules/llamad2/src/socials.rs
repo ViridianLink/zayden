@@ -1,25 +1,32 @@
+use serenity::Error;
 use serenity::all::{
-    CommandInteraction, Context, CreateCommand, CreateInteractionResponse,
-    CreateInteractionResponseMessage, EmojiId, ReactionType,
+    CommandInteraction,
+    Context,
+    CreateCommand,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    EmojiId,
+    ReactionType,
 };
 
 use crate::LLAMA_GUILD;
 
-const YOUTUBE_ICON: EmojiId = EmojiId::new(1391908911136641175);
-const TWITCH_ICON: EmojiId = EmojiId::new(1391913042916413633);
-const TWITTER_ICON: EmojiId = EmojiId::new(1391915596584587335);
-const TICTOK_ICON: EmojiId = EmojiId::new(1391912807716622397);
+const YOUTUBE_ICON: EmojiId = EmojiId::new(1_391_908_911_136_641_175);
+const TWITCH_ICON: EmojiId = EmojiId::new(1_391_913_042_916_413_633);
+const TWITTER_ICON: EmojiId = EmojiId::new(1_391_915_596_584_587_335);
+const TICTOK_ICON: EmojiId = EmojiId::new(1_391_912_807_716_622_397);
 
 pub struct Socials;
 
 impl Socials {
-    pub async fn run(ctx: &Context, interaction: &CommandInteraction) {
-        if interaction
-            .guild_id
-            .is_none_or(|guild| guild != LLAMA_GUILD)
+    pub async fn run(
+        ctx: &Context,
+        interaction: &CommandInteraction,
+    ) -> Result<(), Error> {
+        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
             || interaction.user.bot()
         {
-            return;
+            return Ok(());
         }
 
         let content = format!(
@@ -42,11 +49,13 @@ impl Socials {
                     CreateInteractionResponseMessage::new().content(content),
                 ),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("socials").description("Shows all of Llama's other socials")
+        CreateCommand::new("socials")
+            .description("Shows all of Llama's other socials")
     }
 }
