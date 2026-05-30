@@ -10,18 +10,21 @@ pub struct GamblingTable;
 impl GamblingManager<Postgres> for GamblingTable {
     async fn coins(
         conn: &mut PgConnection,
-        id: impl Into<UserId> + std::marker::Send,
+        id: impl Into<UserId> + Send,
     ) -> sqlx::Result<i64> {
         let id = id.into();
 
-        sqlx::query_file_scalar!("./sql/gambling/GamblingManager/coins.sql", id.get() as i64)
-            .fetch_one(conn)
-            .await
+        sqlx::query_file_scalar!(
+            "./sql/gambling/GamblingManager/coins.sql",
+            id.get().cast_signed()
+        )
+        .fetch_one(conn)
+        .await
     }
 
     async fn max_bet(
         conn: &mut PgConnection,
-        id: impl Into<UserId> + std::marker::Send,
+        id: impl Into<UserId> + Send,
     ) -> sqlx::Result<i64> {
         let id = id.into();
 
@@ -39,24 +42,24 @@ impl GamblingManager<Postgres> for GamblingTable {
             WHERE
                 l.user_id = $1
             "#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_one(conn)
         .await
-        .map(|r| r.unwrap())
+        .map(|r| r.expect("invariant: max_bet is non-null when a levels row exists"))
     }
 
-    //region: Update
+    // region: Update
     async fn bet(
         pool: &PgPool,
-        id: impl Into<UserId> + std::marker::Send,
+        id: impl Into<UserId> + Send,
         bet: i64,
     ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
 
         sqlx::query_file!(
             "./sql/gambling/GamblingManager/bet.sql",
-            id.get() as i64,
+            id.get().cast_signed(),
             bet
         )
         .execute(pool)
@@ -65,14 +68,14 @@ impl GamblingManager<Postgres> for GamblingTable {
 
     async fn add_coins(
         conn: &mut PgConnection,
-        id: impl Into<UserId> + std::marker::Send,
+        id: impl Into<UserId> + Send,
         amount: i64,
     ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
 
         sqlx::query_file!(
             "./sql/gambling/GamblingManager/add_coins.sql",
-            id.get() as i64,
+            id.get().cast_signed(),
             amount
         )
         .execute(conn)
@@ -88,7 +91,7 @@ impl GamblingManager<Postgres> for GamblingTable {
 
         sqlx::query_file!(
             "./sql/gambling/GamblingManager/add_gems.sql",
-            id.get() as i64,
+            id.get().cast_signed(),
             amount
         )
         .execute(conn)
@@ -102,14 +105,14 @@ pub struct GameTable;
 impl GameManager<Postgres> for GameTable {
     async fn row(
         pool: &PgPool,
-        id: impl Into<UserId> + std::marker::Send,
+        id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<GameRow>> {
         let id = id.into();
 
         sqlx::query_file_as!(
             GameRow,
             "./sql/gambling/GameManager/row.sql",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
@@ -143,7 +146,7 @@ impl StatsManager<Postgres> for StatsTable {
 
         sqlx::query_file!(
             "sql/gambling/StatsManager/higherlower.sql",
-            user_id.get() as i64,
+            user_id.get().cast_signed(),
             score
         )
         .execute(conn)

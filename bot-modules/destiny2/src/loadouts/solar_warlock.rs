@@ -1,10 +1,28 @@
 use super::weapons::{MINT_RETROGRADE, SUNSHOT};
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
 };
 
-pub const SOLAR_WARLOCK: Loadout = Loadout {
+pub(super) const SOLAR_WARLOCK: Loadout<'_> = Loadout {
     name: "Starfire Protocol",
     class: DestinyClass::Warlock,
     mode: Mode::PvE,
@@ -26,7 +44,7 @@ pub const SOLAR_WARLOCK: Loadout = Loadout {
 };
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Solar,
+    kind: SubclassType::Solar,
     abilities: ABILITIES,
     aspects: [Aspect::TouchOfFlame, Aspect::Hellion],
     fragments: [
@@ -46,26 +64,30 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Fusion,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [Some(MINT_RETROGRADE), Some(SUNSHOT), None],
     armour: [
-        Armour::new(
-            ArmourName::CollectivePsycheCover,
-            [Mod::HarmonicSiphon, Mod::SuperFont, Mod::AshesToAssets],
-        ),
-        Armour::new(
-            ArmourName::CollectivePsycheGloves,
-            [Mod::GrenadeFont, Mod::GrenadeFont, Mod::Firepower],
-        ),
+        Armour::new(ArmourName::CollectivePsycheCover, [
+            Mod::HarmonicSiphon,
+            Mod::SuperFont,
+            Mod::AshesToAssets,
+        ]),
+        Armour::new(ArmourName::CollectivePsycheGloves, [
+            Mod::GrenadeFont,
+            Mod::GrenadeFont,
+            Mod::Firepower,
+        ]),
         Armour::new(ArmourName::StarfireProtocol, [Mod::Empty; 3]),
-        Armour::new(
-            ArmourName::CollectivePsycheBoots,
-            [Mod::StacksOnStacks, Mod::Innervation, Mod::StrandScavenger],
-        ),
-        Armour::new(
-            ArmourName::CollectivePsycheBond,
-            [Mod::TimeDilation, Mod::Reaper, Mod::PowerfulAttraction],
-        ),
+        Armour::new(ArmourName::CollectivePsycheBoots, [
+            Mod::StacksOnStacks,
+            Mod::Innervation,
+            Mod::StrandScavenger,
+        ]),
+        Armour::new(ArmourName::CollectivePsycheBond, [
+            Mod::TimeDilation,
+            Mod::Reaper,
+            Mod::PowerfulAttraction,
+        ]),
     ],
     stats_priority: [
         Stat::Grenade(200),

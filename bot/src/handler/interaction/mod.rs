@@ -2,8 +2,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serenity::all::{
-    CommandInteraction, ComponentInteraction, Context, EditInteractionResponse, Http, Interaction,
-    Message, ModalInteraction,
+    CommandInteraction,
+    ComponentInteraction,
+    Context,
+    EditInteractionResponse,
+    Http,
+    Interaction,
+    Message,
+    ModalInteraction,
 };
 use tracing::{error, warn};
 use zayden_app::state::AppState;
@@ -14,18 +20,17 @@ mod command;
 mod component;
 mod modal;
 
-use crate::{CommandRegistry, Result};
-
 use super::Handler;
-
-// ---------------------------------------------------------------------------
-// Unified error reporter
-// ---------------------------------------------------------------------------
+use crate::{CommandRegistry, Result};
 
 #[async_trait]
 pub(super) trait Respondable: Send + Sync {
     async fn defer_ephemeral_(&self, http: &Http) -> serenity::Result<()>;
-    async fn send_error_reply(&self, http: &Http, content: &str) -> serenity::Result<Message>;
+    async fn send_error_reply(
+        &self,
+        http: &Http,
+        content: &str,
+    ) -> serenity::Result<Message>;
     fn interaction_name(&self) -> &str;
     fn user_name(&self) -> &str;
 }
@@ -35,16 +40,23 @@ impl Respondable for CommandInteraction {
     async fn defer_ephemeral_(&self, http: &Http) -> serenity::Result<()> {
         self.defer_ephemeral(http).await
     }
-    async fn send_error_reply(&self, http: &Http, content: &str) -> serenity::Result<Message> {
+
+    async fn send_error_reply(
+        &self,
+        http: &Http,
+        content: &str,
+    ) -> serenity::Result<Message> {
         self.edit_response(
             http,
             EditInteractionResponse::new().content(content.to_owned()),
         )
         .await
     }
+
     fn interaction_name(&self) -> &str {
         self.data.name.as_str()
     }
+
     fn user_name(&self) -> &str {
         self.user.name.as_str()
     }
@@ -55,16 +67,23 @@ impl Respondable for ComponentInteraction {
     async fn defer_ephemeral_(&self, http: &Http) -> serenity::Result<()> {
         self.defer_ephemeral(http).await
     }
-    async fn send_error_reply(&self, http: &Http, content: &str) -> serenity::Result<Message> {
+
+    async fn send_error_reply(
+        &self,
+        http: &Http,
+        content: &str,
+    ) -> serenity::Result<Message> {
         self.edit_response(
             http,
             EditInteractionResponse::new().content(content.to_owned()),
         )
         .await
     }
+
     fn interaction_name(&self) -> &str {
         self.data.custom_id.as_str()
     }
+
     fn user_name(&self) -> &str {
         self.user.name.as_str()
     }
@@ -75,16 +94,23 @@ impl Respondable for ModalInteraction {
     async fn defer_ephemeral_(&self, http: &Http) -> serenity::Result<()> {
         self.defer_ephemeral(http).await
     }
-    async fn send_error_reply(&self, http: &Http, content: &str) -> serenity::Result<Message> {
+
+    async fn send_error_reply(
+        &self,
+        http: &Http,
+        content: &str,
+    ) -> serenity::Result<Message> {
         self.edit_response(
             http,
             EditInteractionResponse::new().content(content.to_owned()),
         )
         .await
     }
+
     fn interaction_name(&self) -> &str {
         self.data.custom_id.as_str()
     }
+
     fn user_name(&self) -> &str {
         self.user.name.as_str()
     }
@@ -98,7 +124,8 @@ pub(super) async fn respond_with_error(
     match err.user_message() {
         Some(msg) => {
             let _ = interaction.defer_ephemeral_(&ctx.http).await;
-            if let Err(send_err) = interaction.send_error_reply(&ctx.http, msg).await {
+            if let Err(send_err) = interaction.send_error_reply(&ctx.http, msg).await
+            {
                 error!(
                     error = ?err,
                     send_err = ?send_err,
@@ -107,7 +134,7 @@ pub(super) async fn respond_with_error(
                     "failed to deliver user error message",
                 );
             }
-        }
+        },
         None => {
             error!(
                 error = ?err,
@@ -115,13 +142,9 @@ pub(super) async fn respond_with_error(
                 user = interaction.user_name(),
                 "internal error in interaction handler",
             );
-        }
+        },
     }
 }
-
-// ---------------------------------------------------------------------------
-// Dispatcher
-// ---------------------------------------------------------------------------
 
 impl Handler {
     pub async fn interaction_create(
@@ -132,36 +155,47 @@ impl Handler {
     ) -> Result<()> {
         match interaction {
             Interaction::Command(command) => {
-                Handler::interaction_command(ctx, command, Arc::clone(&app), Arc::clone(&registry))
-                    .await;
+                Self::interaction_command(
+                    ctx,
+                    command,
+                    Arc::clone(&app),
+                    Arc::clone(&registry),
+                )
+                .await;
                 Ok(())
-            }
+            },
             Interaction::Autocomplete(autocomplete) => {
-                Handler::interaction_autocomplete(
+                Self::interaction_autocomplete(
                     ctx,
                     autocomplete,
                     Arc::clone(&app),
                     Arc::clone(&registry),
                 )
                 .await
-            }
+            },
             Interaction::Component(component) => {
-                Handler::interaction_component(
+                Self::interaction_component(
                     ctx,
                     component,
                     Arc::clone(&app),
                     Arc::clone(&registry),
                 )
                 .await
-            }
+            },
             Interaction::Modal(modal) => {
-                Handler::interaction_modal(ctx, modal, Arc::clone(&app), Arc::clone(&registry))
-                    .await
-            }
+                Self::interaction_modal(
+                    ctx,
+                    modal,
+                    Arc::clone(&app),
+                    Arc::clone(&registry),
+                )
+                .await
+            },
+            Interaction::Ping(_) => Ok(()),
             other => {
                 warn!(kind = ?other.kind(), "interaction kind not handled");
                 Ok(())
-            }
+            },
         }
     }
 }

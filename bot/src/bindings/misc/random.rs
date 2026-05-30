@@ -1,14 +1,20 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use rand::{rng, seq::IndexedRandom};
+use rand::rng;
+use rand::seq::IndexedRandom;
 use serenity::all::{
-    CommandOptionType, CreateCommand, CreateCommandOption, CreateEmbed, CreateInteractionResponse,
-    CreateInteractionResponseMessage, ResolvedValue,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    ResolvedValue,
 };
 use zayden_core::{HandlerError, InvocationCtx, ModuleCommand};
 
-pub struct Random;
+pub(super) struct Random;
 
 #[async_trait]
 impl ModuleCommand for Random {
@@ -18,12 +24,16 @@ impl ModuleCommand for Random {
 
     fn definition(&self) -> CreateCommand<'static> {
         CreateCommand::new("random")
-            .description("A command demonstrating the maximum number of options (25).")
-            .add_option(
-                CreateCommandOption::new(CommandOptionType::String, "1", "Option 1").required(true),
+            .description(
+                "A command demonstrating the maximum number of options (25).",
             )
             .add_option(
-                CreateCommandOption::new(CommandOptionType::String, "2", "Option 2").required(true),
+                CreateCommandOption::new(CommandOptionType::String, "1", "Option 1")
+                    .required(true),
+            )
+            .add_option(
+                CreateCommandOption::new(CommandOptionType::String, "2", "Option 2")
+                    .required(true),
             )
             .add_option(CreateCommandOption::new(
                 CommandOptionType::String,
@@ -147,16 +157,15 @@ impl ModuleCommand for Random {
 
         let option = {
             let mut rng = rng();
-            options
-                .choose(&mut rng)
-                .expect("at least two options are required")
+            options.choose(&mut rng).expect("at least two options are required")
         };
 
         let ResolvedValue::String(value) = option.value else {
-            unreachable!("All options are strings")
+            return Ok(());
         };
 
-        let embed = CreateEmbed::new().description(format!("{}: {}", option.name, value));
+        let embed =
+            CreateEmbed::new().description(format!("{}: {}", option.name, value));
 
         cx.interaction
             .create_response(

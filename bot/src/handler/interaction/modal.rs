@@ -5,9 +5,8 @@ use tracing::{info, warn};
 use zayden_app::state::AppState;
 use zayden_core::parse_modal_components;
 
-use crate::{CommandRegistry, Handler, Result};
-
 use super::respond_with_error;
+use crate::{CommandRegistry, Handler, Result};
 
 impl Handler {
     pub async fn interaction_modal(
@@ -24,7 +23,7 @@ impl Handler {
         );
 
         match registry.run_modal(ctx, interaction, app).await {
-            Some(Ok(())) => {}
+            Some(Ok(())) => {},
             Some(Err(e)) => respond_with_error(ctx, interaction, e).await,
             None => warn!(
                 custom_id = interaction.data.custom_id.as_str(),

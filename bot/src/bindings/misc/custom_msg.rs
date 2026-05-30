@@ -2,8 +2,12 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use serenity::all::{
-    CreateCommand, CreateEmbed, CreateInteractionResponse, CreateInteractionResponseMessage,
-    CreateMessage, Permissions,
+    CreateCommand,
+    CreateEmbed,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    CreateMessage,
+    Permissions,
 };
 use zayden_core::{HandlerError, InvocationCtx, ModuleCommand};
 
@@ -31,7 +35,7 @@ We don't condone actions of hacks, cheats or any behaviour that breaches Bungie'
 
 - If there is a raid you would like to learn, please reach out to an Admin and we would be more than happy to schedule a teaching run for you!";
 
-pub struct CustomMsg;
+pub(super) struct CustomMsg;
 
 #[async_trait]
 impl ModuleCommand for CustomMsg {
@@ -46,9 +50,7 @@ impl ModuleCommand for CustomMsg {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        let embed = CreateEmbed::new()
-            .title("Community Rules")
-            .description(DESC);
+        let embed = CreateEmbed::new().title("Community Rules").description(DESC);
 
         cx.interaction
             .channel_id

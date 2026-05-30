@@ -1,11 +1,29 @@
 use super::weapons::{IKELOS_SG_V103, NAVIGATOR};
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
     Tag,
 };
 
-pub const BOSS_PRISMATIC_HUNTER: Loadout = Loadout::new(
+pub(super) const BOSS_PRISMATIC_HUNTER: Loadout<'_> = Loadout::new(
     "Grapple Melee",
     DestinyClass::Hunter,
     Mode::PvE,
@@ -27,7 +45,7 @@ pub const BOSS_PRISMATIC_HUNTER: Loadout = Loadout::new(
 ]);
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Prismatic,
+    kind: SubclassType::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::StylishExecutioner, Aspect::WintersShroud],
     fragments: [
@@ -47,30 +65,30 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Grapple,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [Some(NAVIGATOR), Some(IKELOS_SG_V103), None],
     armour: [
-        Armour::new(
-            ArmourName::CollectivePsycheCasque,
-            [Mod::AshesToAssets, Mod::StrandSiphon, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::CollectivePsycheSleeves,
-            [Mod::GrenadeFont, Mod::GrenadeFont, Mod::HeavyHanded],
-        ),
+        Armour::new(ArmourName::CollectivePsycheCasque, [
+            Mod::AshesToAssets,
+            Mod::StrandSiphon,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::CollectivePsycheSleeves, [
+            Mod::GrenadeFont,
+            Mod::GrenadeFont,
+            Mod::HeavyHanded,
+        ]),
         Armour::new(ArmourName::CollectivePsycheCuirass, [Mod::Empty; 3]),
-        Armour::new(
-            ArmourName::CollectivePsycheStrides,
-            [Mod::StrandScavenger, Mod::StacksOnStacks, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::Relativism(("Inmost Light", "Verity")),
-            [
-                Mod::SpecialFinisher,
-                Mod::PowerfulAttraction,
-                Mod::TimeDilation,
-            ],
-        ),
+        Armour::new(ArmourName::CollectivePsycheStrides, [
+            Mod::StrandScavenger,
+            Mod::StacksOnStacks,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::Relativism(("Inmost Light", "Verity")), [
+            Mod::SpecialFinisher,
+            Mod::PowerfulAttraction,
+            Mod::TimeDilation,
+        ]),
     ],
     stats_priority: [
         Stat::Class(70),

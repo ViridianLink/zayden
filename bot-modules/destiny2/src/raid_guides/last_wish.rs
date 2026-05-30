@@ -7,15 +7,16 @@ const GUIDE: &str = "1. Scattered throughout the arena are 9 plates each with th
 5. Group up in the middle and deal damage to Kalli
 6. Hide in the safe rooms below the boss to avoid wiping. Max 1 person per room";
 
-const KALLI_LEGIT: EncounterGuide = EncounterGuide::new("Kalli, the Corrupted (Legit)")
-    .video_timestamp(99)
-    .guide(GUIDE)
-    .add_weapon(Weapon::LordOfWolves)
-    .add_weapon(Weapon::Queenbreaker)
-    .add_armour("Celestial Nighthawk")
-    .add_armour("Sanguine Alchemy")
-    .add_armour("Cuirass of the Falling Star");
+const KALLI_LEGIT: EncounterGuide<'_> =
+    EncounterGuide::new("Kalli, the Corrupted (Legit)")
+        .video_timestamp(99)
+        .guide(GUIDE)
+        .add_weapon(Weapon::LordOfWolves)
+        .add_weapon(Weapon::Queenbreaker)
+        .add_armour("Celestial Nighthawk")
+        .add_armour("Sanguine Alchemy")
+        .add_armour("Cuirass of the Falling Star");
 
-pub const LAST_WISH: RaidGuide<6> = RaidGuide::new("Last Wish")
+pub const LAST_WISH: RaidGuide<'_, 6> = RaidGuide::new("Last Wish")
     .video("https://www.youtube.com/watch?v=aBfVlF4X_Rw")
     .add_encounter(KALLI_LEGIT);

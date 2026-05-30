@@ -2,13 +2,24 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use serenity::all::{
-    CommandOptionType, CreateCommand, CreateCommandOption, Permissions, ResolvedValue, RoleId,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    Permissions,
+    ResolvedValue,
+    RoleId,
 };
 use zayden_core::{
-    ComponentCtx, HandlerError, IdMatch, InvocationCtx, ModuleCommand, ModuleComponent,
+    ComponentCtx,
+    HandlerError,
+    IdMatch,
+    InvocationCtx,
+    ModuleCommand,
+    ModuleComponent,
 };
 
 use crate::RegistryBuilder;
+use crate::registry::OverlapError;
 
 pub struct Panel;
 
@@ -23,8 +34,9 @@ impl ModuleCommand for Panel {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        verify::Panel::run_command(&cx.ctx.http, cx.interaction).await;
-        Ok(())
+        verify::Panel::run_command(&cx.ctx.http, cx.interaction)
+            .await
+            .map_err(HandlerError::new)
     }
 }
 
@@ -54,20 +66,27 @@ impl ModuleCommand for ManVerify {
             .default_member_permissions(Permissions::ADMINISTRATOR)
             .description("Manually verifies a user")
             .add_option(
-                CreateCommandOption::new(CommandOptionType::User, "user", "User to verify")
-                    .required(true),
+                CreateCommandOption::new(
+                    CommandOptionType::User,
+                    "user",
+                    "User to verify",
+                )
+                .required(true),
             )
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        const VERIFIED_ROLE: RoleId = RoleId::new(1404640603848839299);
+        const VERIFIED_ROLE: RoleId = RoleId::new(1_404_640_603_848_839_299);
 
         let mut options = cx.interaction.data.options();
-        let Some(ResolvedValue::User(user, _)) = options.pop().map(|opt| opt.value) else {
-            unreachable!("User option is required")
+        let Some(ResolvedValue::User(user, _)) = options.pop().map(|opt| opt.value)
+        else {
+            return Ok(());
         };
 
-        let guild_id = cx.interaction.guild_id.unwrap();
+        let guild_id = cx.interaction.guild_id.ok_or_else(|| {
+            HandlerError::from_respond(zayden_core::Error::MissingGuildId)
+        })?;
 
         cx.ctx
             .http
@@ -87,9 +106,7 @@ impl ModuleCommand for ManVerify {
     }
 }
 
-pub fn register(builder: &mut RegistryBuilder) {
-    builder
-        .add_command(Panel)
-        .add_command(ManVerify)
-        .add_component(Panel);
+pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
+    builder.add_command(Panel).add_command(ManVerify).add_component(Panel)?;
+    Ok(())
 }

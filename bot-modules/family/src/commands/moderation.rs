@@ -1,9 +1,7 @@
-use serenity::all::Permissions;
-use serenity::all::{CommandInteraction, Context, CreateCommand};
+use serenity::all::{CommandInteraction, Context, CreateCommand, Permissions};
 use sqlx::{Database, Pool};
 
-use crate::FamilyManager;
-use crate::Result;
+use crate::{FamilyManager, Result};
 
 pub struct ResetFamily;
 

@@ -47,11 +47,12 @@ pub use tictactoe::TicTacToe;
 pub use work::{Work, WorkTable};
 
 use crate::RegistryBuilder;
+use crate::registry::OverlapError;
 
-pub fn register(builder: &mut RegistryBuilder) {
+pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
     builder
         .add_command(Blackjack)
-        .add_component(Blackjack)
+        .add_component(Blackjack)?
         .add_command(Coinflip)
         .add_command(Craft)
         .add_command(Daily)
@@ -59,20 +60,22 @@ pub fn register(builder: &mut RegistryBuilder) {
         .add_command(Gift)
         .add_command(Goals)
         .add_command(HigherLower)
-        .add_component(HigherLower)
+        .add_component(HigherLower)?
         .add_command(Inventory)
         .add_command(Leaderboard)
-        .add_component(Leaderboard)
+        .add_component(Leaderboard)?
         .add_command(Lotto)
         .add_command(Mine)
         .add_command(Prestige)
-        .add_component(Prestige)
+        .add_component(Prestige)?
         .add_command(Profile)
         .add_command(Roll)
         .add_command(RockPaperScissors)
         .add_command(Send)
         .add_command(Shop)
         .add_command(TicTacToe)
-        .add_component(TicTacToe)
+        .add_component(TicTacToe)?
         .add_command(Work);
+
+    Ok(())
 }

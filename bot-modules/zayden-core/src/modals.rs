@@ -1,11 +1,17 @@
-use serenity::all::{
-    ActionRowComponent, Component, ContainerComponent, LabelComponent, ModalComponent,
-    SectionComponent,
-};
 use std::borrow::Cow;
 use std::collections::HashMap;
+
+use serenity::all::{
+    ActionRowComponent,
+    Component,
+    ContainerComponent,
+    LabelComponent,
+    ModalComponent,
+    SectionComponent,
+};
 use tracing::warn;
 
+#[must_use]
 pub fn parse_modal_components(
     components: &[ModalComponent],
 ) -> HashMap<Cow<'_, str>, Vec<Cow<'_, str>>> {
@@ -13,43 +19,54 @@ pub fn parse_modal_components(
         .iter()
         .filter_map(|component| match component {
             ModalComponent::TextDisplay(_) => None,
-            ModalComponent::Label(label) => Some(vec![parse_label(&label.component)]),
+            ModalComponent::Label(label) => {
+                Some(vec![parse_label(&label.component)])
+            },
             c => {
                 warn!("New component {c:?}");
                 None
-            }
+            },
         })
         .flatten()
         .collect()
 }
 
-pub fn parse_text_components(components: &[Component]) -> HashMap<Cow<'_, str>, Vec<Cow<'_, str>>> {
+#[must_use]
+pub fn parse_text_components(
+    components: &[Component],
+) -> HashMap<Cow<'_, str>, Vec<Cow<'_, str>>> {
     components
         .iter()
         .enumerate()
         .filter_map(|(i, component)| match component {
-            Component::ActionRow(action_row) => Some(parse_action_row(&action_row.components)),
+            Component::ActionRow(action_row) => {
+                Some(parse_action_row(&action_row.components))
+            },
             Component::Section(section) => Some(parse_section(&section.components)),
-            Component::TextDisplay(_) => None,
-            Component::MediaGallery(_) => None,
+            Component::TextDisplay(_)
+            | Component::MediaGallery(_)
+            | Component::Separator(_)
+            | Component::Unknown(_) => None,
             Component::File(file_component) => Some(vec![(
                 Cow::Owned(format!("file_{i}")),
                 vec![Cow::Borrowed(&file_component.file.url)],
             )]),
-            Component::Separator(_) => None,
-            Component::Container(container) => Some(parse_container(&container.components)),
+            Component::Container(container) => {
+                Some(parse_container(&container.components))
+            },
             Component::Label(label) => Some(vec![parse_label(&label.component)]),
-            Component::Unknown(_) => None,
             c => {
                 warn!("New component {c:?}");
                 None
-            }
+            },
         })
         .flatten()
         .collect()
 }
 
-fn parse_action_row(components: &[ActionRowComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
+fn parse_action_row(
+    components: &[ActionRowComponent],
+) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
     components
         .iter()
         .filter_map(|c| match c {
@@ -68,7 +85,9 @@ fn parse_action_row(components: &[ActionRowComponent]) -> Vec<(Cow<'_, str>, Vec
         .collect()
 }
 
-fn parse_section(components: &[SectionComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
+fn parse_section(
+    components: &[SectionComponent],
+) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
     components
         .iter()
         .filter_map(|c| match c {
@@ -76,12 +95,14 @@ fn parse_section(components: &[SectionComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<
             c => {
                 warn!("New component: {c:?}");
                 None
-            }
+            },
         })
         .collect()
 }
 
-fn parse_container(_components: &[ContainerComponent]) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
+fn parse_container(
+    _components: &[ContainerComponent],
+) -> Vec<(Cow<'_, str>, Vec<Cow<'_, str>>)> {
     warn!("parse_container: container parsing not yet implemented; returning empty");
     Vec::new()
 }
@@ -96,16 +117,17 @@ fn parse_label(component: &LabelComponent) -> (Cow<'_, str>, Vec<Cow<'_, str>>) 
             Cow::Borrowed(&input_text.custom_id),
             vec![Cow::Borrowed(&input_text.value)],
         ),
-        LabelComponent::FileUpload(file_upload) => {
-            warn!(
-                custom_id = %file_upload.custom_id,
-                "parse_label: file upload uses a non-text format; skipping",
-            );
-            (Cow::Borrowed(&file_upload.custom_id), Vec::new())
-        }
+        LabelComponent::FileUpload(_)
+        | LabelComponent::RadioGroup(_)
+        | LabelComponent::CheckboxGroup(_)
+        | LabelComponent::Checkbox(_) => {
+            warn!("parse_label: component uses a non-text format; skipping",);
+            (Cow::Owned(String::new()), Vec::new())
+        },
+
         c => {
             warn!("New label component {c:?}");
             (Cow::Owned(String::new()), vec![Cow::Owned(String::new())])
-        }
+        },
     }
 }

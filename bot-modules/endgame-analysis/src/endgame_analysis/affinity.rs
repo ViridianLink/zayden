@@ -1,4 +1,5 @@
-use std::{fmt, str::FromStr};
+use std::fmt;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
@@ -18,28 +19,28 @@ impl FromStr for Affinity {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "" => Ok(Affinity::None),
-            "Kinetic" => Ok(Affinity::Kinetic),
-            "Arc" => Ok(Affinity::Arc),
-            "Void" => Ok(Affinity::Void),
-            "Solar" => Ok(Affinity::Solar),
-            "Stasis" => Ok(Affinity::Stasis),
-            "Strand" => Ok(Affinity::Strand),
+            "" => Ok(Self::None),
+            "Kinetic" => Ok(Self::Kinetic),
+            "Arc" => Ok(Self::Arc),
+            "Void" => Ok(Self::Void),
+            "Solar" => Ok(Self::Solar),
+            "Stasis" => Ok(Self::Stasis),
+            "Strand" => Ok(Self::Strand),
             _ => Err(()),
         }
     }
 }
 
 impl fmt::Display for Affinity {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Affinity::None => write!(f, ""),
-            Affinity::Kinetic => write!(f, "Kinetic"),
-            Affinity::Arc => write!(f, "Arc"),
-            Affinity::Void => write!(f, "Void"),
-            Affinity::Solar => write!(f, "Solar"),
-            Affinity::Stasis => write!(f, "Stasis"),
-            Affinity::Strand => write!(f, "Strand"),
+            Self::None => write!(f, ""),
+            Self::Kinetic => write!(f, "Kinetic"),
+            Self::Arc => write!(f, "Arc"),
+            Self::Void => write!(f, "Void"),
+            Self::Solar => write!(f, "Solar"),
+            Self::Stasis => write!(f, "Stasis"),
+            Self::Strand => write!(f, "Strand"),
         }
     }
 }

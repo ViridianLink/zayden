@@ -8,37 +8,43 @@ use gambling::{Commands, GamblingItem, GamblingItems};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
+use tracing::warn;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
-use crate::ZAYDEN_ID;
-
 use super::stamina::MAX_STAMINA;
+use crate::ZAYDEN_ID;
 
 pub struct PrestigeTable;
 
 #[async_trait]
 impl PrestigeManager<Postgres> for PrestigeTable {
-    async fn miners(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<i64>> {
+    async fn miners(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<i64>> {
         let id = id.into();
 
         sqlx::query_scalar!(
             "SELECT miners FROM gambling_mine WHERE user_id = $1;",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
     }
 
-    async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<PrestigeRow>> {
+    async fn row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<PrestigeRow>> {
         let id = id.into();
 
         sqlx::query_file_as!(
             PrestigeRow,
             "./sql/gambling/PrestigeManager/row.sql",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
@@ -47,7 +53,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
     async fn lotto(pool: &PgPool, tickets: i64) -> sqlx::Result<PgQueryResult> {
         sqlx::query_file!(
             "./sql/gambling/PrestigeManager/lotto.sql",
-            ZAYDEN_ID.get() as i64,
+            ZAYDEN_ID.get().cast_signed(),
             LOTTO_TICKET.id,
             tickets,
         )
@@ -137,16 +143,23 @@ impl PrestigeManager<Postgres> for PrestigeTable {
 
 #[async_trait]
 impl InventoryManager<Postgres> for PrestigeTable {
-    async fn gambling_row(_pool: &PgPool, _id: UserId) -> sqlx::Result<Option<InventoryRow>> {
+    async fn gambling_row(
+        _pool: &PgPool,
+        _id: UserId,
+    ) -> sqlx::Result<Option<InventoryRow>> {
         Ok(None)
     }
-    async fn inventory_items(pool: &PgPool, id: UserId) -> sqlx::Result<GamblingItems> {
+
+    async fn inventory_items(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<GamblingItems> {
         let items = sqlx::query_as!(
             GamblingItem,
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_all(pool)
         .await?;
@@ -177,9 +190,13 @@ impl ModuleCommand for Prestige {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Commands::prestige::<Postgres, PrestigeTable>(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Commands::prestige::<Postgres, PrestigeTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -191,17 +208,19 @@ impl ModuleComponent for Prestige {
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         match cx.interaction.data.custom_id.as_str() {
-            "prestige_confirm" => {
-                Commands::confirm_prestige::<Postgres, PrestigeTable>(
-                    cx.ctx,
-                    cx.interaction,
-                    &cx.app.db,
-                )
+            "prestige_confirm" => Commands::confirm_prestige::<
+                Postgres,
+                PrestigeTable,
+            >(cx.ctx, cx.interaction, &cx.app.db)
+            .await
+            .map_err(HandlerError::from_respond),
+            "prestige_cancel" => Commands::cancel_prestige(cx.ctx, cx.interaction)
                 .await
-            }
-            "prestige_cancel" => Commands::cancel_prestige(cx.ctx, cx.interaction).await,
-            id => unreachable!("Invalid component id: {id}"),
+                .map_err(HandlerError::from_respond),
+            _ => {
+                warn!(custom_id = %cx.interaction.data.custom_id, "unknown prestige component");
+                Ok(())
+            },
         }
-        .map_err(HandlerError::from_respond)
     }
 }

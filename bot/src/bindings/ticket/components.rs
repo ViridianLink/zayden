@@ -2,8 +2,13 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use serenity::all::{
-    CreateInputText, CreateLabel, CreateModalComponent, CreateSelectMenu, CreateSelectMenuKind,
-    CreateSelectMenuOption, InputTextStyle,
+    CreateInputText,
+    CreateLabel,
+    CreateModalComponent,
+    CreateSelectMenu,
+    CreateSelectMenuKind,
+    CreateSelectMenuOption,
+    InputTextStyle,
 };
 use sqlx::Postgres;
 use ticket::{TicketComponent, TicketModal};
@@ -12,26 +17,28 @@ use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
 use zayden_core::scope::IdMatch;
 
-use crate::sqlx_lib::GuildTable;
-
 use super::TicketTable;
+use crate::sqlx_lib::GuildTable;
 
 fn make_ticket_modal_components<'a>() -> Vec<CreateModalComponent<'a>> {
     vec![
         CreateModalComponent::Label(CreateLabel::select_menu(
             "Select a relevent category:",
-            CreateSelectMenu::new(
-                "ticket_category",
-                CreateSelectMenuKind::String {
-                    options: vec![
-                        CreateSelectMenuOption::new("Complaint", "complaint"),
-                        CreateSelectMenuOption::new("General question", "general_question"),
-                        CreateSelectMenuOption::new("Role Application", "role_application"),
-                        CreateSelectMenuOption::new("Suggestion", "suggestion"),
-                    ]
-                    .into(),
-                },
-            ),
+            CreateSelectMenu::new("ticket_category", CreateSelectMenuKind::String {
+                options: vec![
+                    CreateSelectMenuOption::new("Complaint", "complaint"),
+                    CreateSelectMenuOption::new(
+                        "General question",
+                        "general_question",
+                    ),
+                    CreateSelectMenuOption::new(
+                        "Role Application",
+                        "role_application",
+                    ),
+                    CreateSelectMenuOption::new("Suggestion", "suggestion"),
+                ]
+                .into(),
+            }),
         )),
         CreateModalComponent::Label(CreateLabel::input_text(
             "Describe the issue:",
@@ -49,9 +56,13 @@ impl ModuleComponent for TicketCreate {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TicketComponent::ticket_create(&cx.ctx.http, cx.interaction, make_ticket_modal_components())
-            .await
-            .map_err(HandlerError::from_respond)
+        TicketComponent::ticket_create(
+            &cx.ctx.http,
+            cx.interaction,
+            make_ticket_modal_components(),
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -64,9 +75,13 @@ impl ModuleComponent for SupportTicket {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TicketComponent::ticket_create(&cx.ctx.http, cx.interaction, make_ticket_modal_components())
-            .await
-            .map_err(HandlerError::from_respond)
+        TicketComponent::ticket_create(
+            &cx.ctx.http,
+            cx.interaction,
+            make_ticket_modal_components(),
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 

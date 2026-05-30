@@ -8,9 +8,8 @@ use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
-use crate::BotState;
-
 use super::LevelsTable;
+use crate::BotState;
 
 pub struct Levels;
 
@@ -25,9 +24,13 @@ impl ModuleCommand for Levels {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        levels::Levels::run::<BotState, Postgres, LevelsTable>(cx.ctx, cx.interaction, &cx.app.db)
-            .await;
-        Ok(())
+        levels::Levels::run::<BotState, Postgres, LevelsTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::new)
     }
 }
 
@@ -43,8 +46,8 @@ impl ModuleComponent for Levels {
             cx.interaction,
             &cx.app.db,
         )
-        .await;
-        Ok(())
+        .await
+        .map_err(HandlerError::new)
     }
 }
 
@@ -68,8 +71,8 @@ impl ModuleCommand for Rank {
             options,
             &cx.app.db,
         )
-        .await;
-        Ok(())
+        .await
+        .map_err(HandlerError::new)
     }
 }
 
@@ -87,8 +90,13 @@ impl ModuleCommand for Xp {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        levels::Xp::xp::<Postgres, LevelsTable>(&cx.ctx.http, cx.interaction, options, &cx.app.db)
-            .await;
-        Ok(())
+        levels::Xp::xp::<Postgres, LevelsTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::new)
     }
 }

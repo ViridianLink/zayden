@@ -5,11 +5,10 @@ pub mod tierlist;
 pub mod weapon;
 
 pub use dimwishlist::DimWishlistCommand;
-pub use tierlist::TierListCommand;
-pub use weapon::WeaponCommand;
-
 pub use error::Error;
 use error::Result;
+pub use tierlist::TierListCommand;
+pub use weapon::WeaponCommand;
 
 pub struct DestinyWeapon {
     pub id: i64,

@@ -1,11 +1,29 @@
 use super::weapons::PHONEUTRIA_FERA;
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
     Tag,
 };
 
-pub const PRISMATIC_TITAN: Loadout = Loadout::new(
+pub(super) const PRISMATIC_TITAN: Loadout<'_> = Loadout::new(
     "Insurmountable Skullfort",
     DestinyClass::Titan,
     Mode::PvE,
@@ -27,7 +45,7 @@ pub const PRISMATIC_TITAN: Loadout = Loadout::new(
 ]);
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Prismatic,
+    kind: SubclassType::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::Knockout, Aspect::DiamondLance],
     fragments: [
@@ -47,30 +65,30 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Shackle,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [None, Some(PHONEUTRIA_FERA), None],
     armour: [
-        Armour::new(
-            ArmourName::AnInsurmountableSkullfort,
-            [Mod::HandsOn, Mod::HandsOn, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::CollectivePsycheGauntlets,
-            [Mod::HeavyHanded, Mod::MeleeFont, Mod::MeleeFont],
-        ),
+        Armour::new(ArmourName::AnInsurmountableSkullfort, [
+            Mod::HandsOn,
+            Mod::HandsOn,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::CollectivePsycheGauntlets, [
+            Mod::HeavyHanded,
+            Mod::MeleeFont,
+            Mod::MeleeFont,
+        ]),
         Armour::new(ArmourName::CollectivePsychePlate, [Mod::Empty; 3]),
-        Armour::new(
-            ArmourName::CollectivePsycheGreaves,
-            [Mod::Innervation, Mod::StacksOnStacks, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::CollectivePsycheMark,
-            [
-                Mod::TimeDilation,
-                Mod::PowerfulAttraction,
-                Mod::PowerfulAttraction,
-            ],
-        ),
+        Armour::new(ArmourName::CollectivePsycheGreaves, [
+            Mod::Innervation,
+            Mod::StacksOnStacks,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::CollectivePsycheMark, [
+            Mod::TimeDilation,
+            Mod::PowerfulAttraction,
+            Mod::PowerfulAttraction,
+        ]),
     ],
     stats_priority: [
         Stat::Melee(200),

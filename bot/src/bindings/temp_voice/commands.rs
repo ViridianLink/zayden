@@ -7,10 +7,9 @@ use temp_voice::VoiceCommand;
 use zayden_core::error::HandlerError;
 use zayden_core::{InvocationCtx, ModuleCommand};
 
+use super::VoiceChannelTable;
 use crate::BotState;
 use crate::sqlx_lib::GuildTable;
-
-use super::VoiceChannelTable;
 
 pub struct Voice;
 

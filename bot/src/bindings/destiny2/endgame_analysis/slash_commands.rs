@@ -4,7 +4,12 @@ use async_trait::async_trait;
 use endgame_analysis::{DimWishlistCommand, TierListCommand, WeaponCommand};
 use serenity::all::CreateCommand;
 use zayden_core::error::HandlerError;
-use zayden_core::{AutocompleteCtx, InvocationCtx, ModuleAutocomplete, ModuleCommand};
+use zayden_core::{
+    AutocompleteCtx,
+    InvocationCtx,
+    ModuleAutocomplete,
+    ModuleCommand,
+};
 
 use crate::BotState;
 
@@ -22,7 +27,9 @@ impl ModuleCommand for DimWishlist {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        DimWishlistCommand::run::<BotState>(cx.ctx, cx.interaction, options).await;
+        DimWishlistCommand::run::<BotState>(cx.ctx, cx.interaction, options)
+            .await
+            .map_err(HandlerError::from_respond)?;
         Ok(())
     }
 }
@@ -55,9 +62,13 @@ impl ModuleAutocomplete for TierList {
 
     async fn run(&self, cx: &AutocompleteCtx<'_>) -> Result<(), HandlerError> {
         if let Some(option) = cx.interaction.data.autocomplete() {
-            TierListCommand::autocomplete::<BotState>(cx.ctx, cx.interaction, option)
-                .await
-                .map_err(HandlerError::from_respond)?;
+            TierListCommand::autocomplete::<BotState>(
+                cx.ctx,
+                cx.interaction,
+                option,
+            )
+            .await
+            .map_err(HandlerError::from_respond)?;
         }
         Ok(())
     }

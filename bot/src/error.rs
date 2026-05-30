@@ -1,13 +1,14 @@
-use zayden_core::{Error as ZaydenError, error::Respond};
+use zayden_core::Error as ZaydenError;
+use zayden_core::error::Respond;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, BotError>;
 
 #[derive(Debug)]
-pub enum Error {
+pub enum BotError {
     NotInteractionAuthor,
     NegativeHours,
 
-    EndgameAnalysis(endgame_analysis::Error),
+    EndgameAnalysis(endgame_analysis::EndgameAnalysisError),
     Lfg(lfg::Error),
     ReactionRole(reaction_roles::Error),
     Ticket(ticket::Error),
@@ -17,37 +18,39 @@ pub enum Error {
 
     ZaydenCore(ZaydenError),
 
-    Config(zayden_app::Error),
+    Config(zayden_app::AppError),
     Jiff(jiff::Error),
     EnvVar(std::env::VarError),
     Other(String),
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl std::fmt::Display for BotError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::NotInteractionAuthor => {
+            Self::NotInteractionAuthor => {
                 write!(f, "You are not the author of this interaction.")
-            }
-            Error::NegativeHours => write!(f, "Hours must be a positive number."),
+            },
+            Self::NegativeHours => {
+                write!(f, "Hours must be a positive number.")
+            },
 
-            Error::ZaydenCore(e) => e.fmt(f),
+            Self::ZaydenCore(e) => e.fmt(f),
 
-            Error::EndgameAnalysis(e) => e.fmt(f),
-            Error::Lfg(e) => e.fmt(f),
-            Error::ReactionRole(e) => e.fmt(f),
-            Error::Ticket(e) => e.fmt(f),
-            Error::TempVoice(e) => e.fmt(f),
-            Error::Ai(e) => e.fmt(f),
-            Error::Config(e) => e.fmt(f),
-            Error::Jiff(e) => e.fmt(f),
-            Error::EnvVar(e) => e.fmt(f),
-            Error::Other(msg) => write!(f, "{msg}"),
+            Self::EndgameAnalysis(e) => e.fmt(f),
+            Self::Lfg(e) => e.fmt(f),
+            Self::ReactionRole(e) => e.fmt(f),
+            Self::Ticket(e) => e.fmt(f),
+            Self::TempVoice(e) => e.fmt(f),
+            Self::Ai(e) => e.fmt(f),
+            Self::Config(e) => e.fmt(f),
+            Self::Jiff(e) => e.fmt(f),
+            Self::EnvVar(e) => e.fmt(f),
+            Self::Other(msg) => write!(f, "{msg}"),
         }
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for BotError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::EndgameAnalysis(e) => Some(e),
@@ -60,17 +63,19 @@ impl std::error::Error for Error {
             Self::ZaydenCore(e) => Some(e),
             Self::Jiff(e) => Some(e),
             Self::EnvVar(e) => Some(e),
-            _ => None,
+            Self::NotInteractionAuthor | Self::NegativeHours | Self::Other(_) => {
+                None
+            },
         }
     }
 }
 
-impl Respond for Error {
+impl Respond for BotError {
     fn user_message(&self) -> Option<std::borrow::Cow<'_, str>> {
         match self {
             Self::NotInteractionAuthor | Self::NegativeHours => {
                 Some(std::borrow::Cow::Owned(self.to_string()))
-            }
+            },
 
             Self::EndgameAnalysis(e) => e.user_message(),
             Self::Lfg(e) => e.user_message(),
@@ -80,75 +85,77 @@ impl Respond for Error {
 
             Self::ZaydenCore(e) => e.user_message(),
 
-            Self::Ai(_) | Self::Config(_) | Self::Jiff(_) | Self::EnvVar(_) | Self::Other(_) => {
-                None
-            }
+            Self::Ai(_)
+            | Self::Config(_)
+            | Self::Jiff(_)
+            | Self::EnvVar(_)
+            | Self::Other(_) => None,
         }
     }
 }
 
-impl From<endgame_analysis::Error> for Error {
-    fn from(e: endgame_analysis::Error) -> Self {
-        Error::EndgameAnalysis(e)
+impl From<endgame_analysis::EndgameAnalysisError> for BotError {
+    fn from(e: endgame_analysis::EndgameAnalysisError) -> Self {
+        Self::EndgameAnalysis(e)
     }
 }
 
-impl From<lfg::Error> for Error {
+impl From<lfg::Error> for BotError {
     fn from(e: lfg::Error) -> Self {
         Self::Lfg(e)
     }
 }
 
-impl From<reaction_roles::Error> for Error {
+impl From<reaction_roles::Error> for BotError {
     fn from(e: reaction_roles::Error) -> Self {
-        Error::ReactionRole(e)
+        Self::ReactionRole(e)
     }
 }
 
-impl From<temp_voice::Error> for Error {
+impl From<temp_voice::Error> for BotError {
     fn from(e: temp_voice::Error) -> Self {
         Self::TempVoice(e)
     }
 }
 
-impl From<ticket::Error> for Error {
+impl From<ticket::Error> for BotError {
     fn from(e: ticket::Error) -> Self {
         Self::Ticket(e)
     }
 }
 
-impl From<serenity::Error> for Error {
+impl From<serenity::Error> for BotError {
     fn from(value: serenity::Error) -> Self {
         Self::ZaydenCore(ZaydenError::Serenity(value))
     }
 }
 
-impl From<sqlx::Error> for Error {
+impl From<sqlx::Error> for BotError {
     fn from(value: sqlx::Error) -> Self {
         Self::ZaydenCore(ZaydenError::Sqlx(value))
     }
 }
 
-impl From<jiff::Error> for Error {
+impl From<jiff::Error> for BotError {
     fn from(e: jiff::Error) -> Self {
         Self::Jiff(e)
     }
 }
 
-impl From<ai::Error> for Error {
+impl From<ai::Error> for BotError {
     fn from(e: ai::Error) -> Self {
         Self::Ai(e)
     }
 }
 
-impl From<std::env::VarError> for Error {
+impl From<std::env::VarError> for BotError {
     fn from(e: std::env::VarError) -> Self {
         Self::EnvVar(e)
     }
 }
 
-impl From<zayden_app::Error> for Error {
-    fn from(e: zayden_app::Error) -> Self {
+impl From<zayden_app::AppError> for BotError {
+    fn from(e: zayden_app::AppError) -> Self {
         Self::Config(e)
     }
 }

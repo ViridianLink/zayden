@@ -11,10 +11,19 @@ use lfg::components::{EditManager, EditRow};
 use lfg::modals::create::{GuildManager, GuildRow};
 use lfg::models::timezone_manager::locale_to_timezone;
 use lfg::{
-    Components, Error, Join, JoinedRow, KickComponent, PostManager, PostRow, Savable,
-    TagsComponent, TimezoneManager,
+    Components,
+    Error,
+    Join,
+    JoinedRow,
+    KickComponent,
+    PostManager,
+    PostRow,
+    Savable,
+    TagsComponent,
+    TimezoneManager,
 };
 use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId, UserId};
+pub use slash_command::Lfg;
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_app::config::ConfigStore;
@@ -23,11 +32,9 @@ use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
 use zayden_core::scope::IdMatch;
 
-use crate::BotState;
-use crate::RegistryBuilder;
+use crate::registry::OverlapError;
 use crate::sqlx_lib::GuildTable;
-
-pub use slash_command::Lfg;
+use crate::{BotState, RegistryBuilder};
 
 // region: PostTable
 
@@ -35,28 +42,34 @@ pub struct PostTable;
 
 #[async_trait]
 impl PostManager<Postgres> for PostTable {
-    async fn exists(pool: &PgPool, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<bool> {
+    async fn exists(
+        pool: &PgPool,
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<bool> {
         let id = id.into();
 
         sqlx::query_scalar!(
             "SELECT EXISTS (SELECT 1 FROM lfg_posts WHERE id = $1)",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_one(pool)
         .await
         .map(|exists| exists.unwrap_or(false))
     }
 
-    async fn owner(pool: &PgPool, id: impl Into<GenericChannelId> + Send) -> sqlx::Result<UserId> {
+    async fn owner(
+        pool: &PgPool,
+        id: impl Into<GenericChannelId> + Send,
+    ) -> sqlx::Result<UserId> {
         let id = id.into();
 
         sqlx::query_scalar!(
             "SELECT owner_id from lfg_posts WHERE id = $1",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_one(pool)
         .await
-        .map(|id| UserId::new(id as u64))
+        .map(|id| UserId::new(id.cast_unsigned()))
     }
 
     async fn post_row(
@@ -65,9 +78,13 @@ impl PostManager<Postgres> for PostTable {
     ) -> sqlx::Result<PostRow> {
         let id = id.into();
 
-        sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/post_row.sql", id.get() as i64)
-            .fetch_one(pool)
-            .await
+        sqlx::query_file_as!(
+            PostRow,
+            "sql/lfg/PostManager/post_row.sql",
+            id.get().cast_signed()
+        )
+        .fetch_one(pool)
+        .await
     }
 
     async fn join(
@@ -84,17 +101,20 @@ impl PostManager<Postgres> for PostTable {
         sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/join.sql",
-            id.get() as i64,
-            user.get() as i64,
+            id.get().cast_signed(),
+            user.get().cast_signed(),
             alternative
         )
         .execute(&mut *tx)
         .await?;
 
-        let row =
-            sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/post_row.sql", id.get() as i64)
-                .fetch_one(&mut *tx)
-                .await?;
+        let row = sqlx::query_file_as!(
+            PostRow,
+            "sql/lfg/PostManager/post_row.sql",
+            id.get().cast_signed()
+        )
+        .fetch_one(&mut *tx)
+        .await?;
 
         if !alternative && row.fireteam_len() > row.fireteam_size() {
             return Err(Error::FireteamFull);
@@ -118,22 +138,29 @@ impl PostManager<Postgres> for PostTable {
         sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/leave.sql",
-            id.get() as i64,
-            user.get() as i64,
+            id.get().cast_signed(),
+            user.get().cast_signed(),
         )
         .execute(&mut *tx)
         .await?;
 
-        let row =
-            sqlx::query_file_as!(PostRow, "sql/lfg/PostManager/post_row.sql", id.get() as i64)
-                .fetch_one(&mut *tx)
-                .await?;
+        let row = sqlx::query_file_as!(
+            PostRow,
+            "sql/lfg/PostManager/post_row.sql",
+            id.get().cast_signed()
+        )
+        .fetch_one(&mut *tx)
+        .await?;
 
         tx.commit().await?;
 
         Ok(row)
     }
 
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
     async fn edit(pool: &PgPool, post: &PostRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query_file!(
             "sql/lfg/PostManager/edit.sql",
@@ -154,12 +181,16 @@ impl PostManager<Postgres> for PostTable {
     ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
 
-        sqlx::query!("DELETE FROM lfg_posts WHERE id = $1", id.get() as i64)
+        sqlx::query!("DELETE FROM lfg_posts WHERE id = $1", id.get().cast_signed())
             .execute(pool)
             .await
     }
 }
 
+#[expect(
+    trivial_casts,
+    reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+)]
 async fn save_post(pool: &PgPool, row: PostRow) -> sqlx::Result<PgQueryResult> {
     let mut tx = pool.begin().await?;
 
@@ -212,9 +243,9 @@ impl SetupManager<Postgres> for PostTable {
         let channel = channel.into();
 
         ConfigStore::from_pool(pool.clone())
-            .update(id.get() as i64, |patch| {
-                patch.lfg_channel_id = Some(channel.get() as i64);
-                patch.lfg_role_id = role.map(|r| r.get() as i64);
+            .update(id.get().cast_signed(), |patch| {
+                patch.lfg_channel_id = Some(channel.get().cast_signed());
+                patch.lfg_role_id = role.map(|r| r.get().cast_signed());
             })
             .await?;
 
@@ -249,7 +280,7 @@ impl JoinedManager<Postgres> for PostTable {
             WHERE
                 f.user_id = $1
             "#,
-            user.get() as i64
+            user.get().cast_signed()
         )
         .fetch_all(pool)
         .await
@@ -258,7 +289,10 @@ impl JoinedManager<Postgres> for PostTable {
 
 #[async_trait]
 impl EditManager<Postgres> for PostTable {
-    async fn edit_row(pool: &PgPool, id: impl Into<MessageId> + Send) -> sqlx::Result<EditRow> {
+    async fn edit_row(
+        pool: &PgPool,
+        id: impl Into<MessageId> + Send,
+    ) -> sqlx::Result<EditRow> {
         let id = id.into();
 
         sqlx::query_as!(
@@ -278,7 +312,7 @@ impl EditManager<Postgres> for PostTable {
             WHERE
                 p.id = $1
             "#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_one(pool)
         .await
@@ -296,7 +330,7 @@ impl TimezoneManager<Postgres> for UsersTable {
     async fn get(pool: &PgPool, id: UserId, locale: &str) -> sqlx::Result<TimeZone> {
         let row = sqlx::query!(
             "SELECT timezone FROM lfg_user_config WHERE id = $1",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await?;
@@ -318,7 +352,7 @@ impl TimezoneManager<Postgres> for UsersTable {
 
         sqlx::query!(
             "INSERT INTO lfg_user_config (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
-            id.get() as i64,
+            id.get().cast_signed(),
         tz_name)
         .execute(pool)
         .await
@@ -331,11 +365,14 @@ impl TimezoneManager<Postgres> for UsersTable {
 
 #[async_trait]
 impl GuildManager<Postgres> for GuildTable {
-    async fn row(pool: &PgPool, id: impl Into<GuildId> + Send) -> sqlx::Result<Option<GuildRow>> {
+    async fn row(
+        pool: &PgPool,
+        id: impl Into<GuildId> + Send,
+    ) -> sqlx::Result<Option<GuildRow>> {
         let id = id.into();
 
         let Some(cfg) = ConfigStore::from_pool(pool.clone())
-            .try_get(id.get() as i64)
+            .try_get(id.get().cast_signed())
             .await?
         else {
             return Ok(None);
@@ -362,9 +399,13 @@ impl ModuleComponent for LfgJoin {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::join::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::join::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -377,9 +418,13 @@ impl ModuleComponent for LfgLeave {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::leave::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::leave::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -392,9 +437,13 @@ impl ModuleComponent for LfgAlternative {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::alternative::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::alternative::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -407,9 +456,13 @@ impl ModuleComponent for LfgSettings {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::settings::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::settings::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -422,9 +475,13 @@ impl ModuleComponent for LfgEditComponent {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::edit::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::edit::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -437,9 +494,13 @@ impl ModuleComponent for LfgCopy {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::copy::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::copy::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -452,9 +513,13 @@ impl ModuleComponent for LfgKick {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::kick::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::kick::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -467,9 +532,13 @@ impl ModuleComponent for LfgKickMenu {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        KickComponent::run::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        KickComponent::run::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -482,9 +551,13 @@ impl ModuleComponent for LfgDelete {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Components::delete::<Postgres, PostTable>(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Components::delete::<Postgres, PostTable>(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -550,11 +623,13 @@ impl ModuleModal for LfgCreateModal {
     }
 
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
-        lfg::modals::Create::run::<BotState, Postgres, GuildTable, PostTable, UsersTable>(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
+        lfg::modals::Create::run::<
+            BotState,
+            Postgres,
+            GuildTable,
+            PostTable,
+            UsersTable,
+        >(cx.ctx, cx.interaction, &cx.app.db)
         .await
         .map_err(HandlerError::from_respond)
     }
@@ -562,21 +637,23 @@ impl ModuleModal for LfgCreateModal {
 
 // endregion
 
-pub fn register(builder: &mut RegistryBuilder) {
+pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
     builder
         .add_command(Lfg)
         .add_autocomplete(Lfg)
-        .add_component(LfgJoin)
-        .add_component(LfgLeave)
-        .add_component(LfgAlternative)
-        .add_component(LfgSettings)
-        .add_component(LfgEditComponent)
-        .add_component(LfgCopy)
-        .add_component(LfgKick)
-        .add_component(LfgKickMenu)
-        .add_component(LfgDelete)
-        .add_component(LfgTagsAdd)
-        .add_component(LfgTagsRemove)
-        .add_modal(LfgEditModal)
-        .add_modal(LfgCreateModal);
+        .add_component(LfgJoin)?
+        .add_component(LfgLeave)?
+        .add_component(LfgAlternative)?
+        .add_component(LfgSettings)?
+        .add_component(LfgEditComponent)?
+        .add_component(LfgCopy)?
+        .add_component(LfgKick)?
+        .add_component(LfgKickMenu)?
+        .add_component(LfgDelete)?
+        .add_component(LfgTagsAdd)?
+        .add_component(LfgTagsRemove)?
+        .add_modal(LfgEditModal)?
+        .add_modal(LfgCreateModal)?;
+
+    Ok(())
 }

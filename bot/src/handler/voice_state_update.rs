@@ -1,10 +1,9 @@
 use serenity::all::{Context, VoiceState};
 use sqlx::PgPool;
 
+use super::Handler;
 use crate::Result;
 use crate::bindings::temp_voice;
-
-use super::Handler;
 
 impl Handler {
     pub(super) async fn voice_state_update(

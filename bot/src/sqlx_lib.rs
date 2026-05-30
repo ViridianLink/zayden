@@ -9,11 +9,7 @@ use tracing::{error, info};
 pub struct GuildTable;
 
 pub async fn new_pool(url: &str) -> sqlx::Result<PgPool> {
-    PgPoolOptions::new()
-        .max_connections(10)
-        .min_connections(1)
-        .connect(url)
-        .await
+    PgPoolOptions::new().max_connections(10).min_connections(1).connect(url).await
 }
 
 pub async fn new_pool_with_retry() -> sqlx::Result<PgPool> {
@@ -41,11 +37,11 @@ pub async fn new_pool_with_retry() -> sqlx::Result<PgPool> {
                 );
 
                 sleep(retry_delay).await;
-            }
+            },
 
             r => {
                 return r;
-            }
+            },
         }
     }
 }

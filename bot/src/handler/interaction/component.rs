@@ -4,10 +4,9 @@ use serenity::all::{ComponentInteraction, Context};
 use tracing::{info, warn};
 use zayden_app::state::AppState;
 
+use super::respond_with_error;
 use crate::handler::Handler;
 use crate::{CommandRegistry, Result};
-
-use super::respond_with_error;
 
 impl Handler {
     pub async fn interaction_component(
@@ -24,7 +23,7 @@ impl Handler {
         );
 
         match registry.run_component(ctx, interaction, app).await {
-            Some(Ok(())) => {}
+            Some(Ok(())) => {},
             Some(Err(e)) => respond_with_error(ctx, interaction, e).await,
             None => warn!(custom_id = custom_id.as_str(), "unknown component"),
         }

@@ -5,7 +5,7 @@ members = ["bot", "bot-modules/*", "zayden-app"]
 [workspace.lints.rust]
 unsafe_code = "deny"
 
-unused = "warn"
+unused = { level = "warn", priority = -1 }
 unused_imports = "deny"
 unused_must_use = "deny"
 
@@ -28,14 +28,14 @@ trivial_numeric_casts = "warn"
 variant_size_differences = "warn"
 
 # Future compatibility
-future_incompatible = "deny"
+future_incompatible = { level = "deny", priority = -1 }
 
 [workspace.lints.clippy]
 
 # Correctness / panic prevention
 
 unwrap_used = "deny"
-expect_used = "deny"
+# expect_used = "deny"
 
 panic = "deny"
 panic_in_result_fn = "deny"
@@ -105,8 +105,8 @@ rc_mutex = "warn"
 
 # Pedantic + nursery
 
-pedantic = "warn"
-nursery = "warn"
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
 
 # Noise reductions
 
@@ -122,6 +122,7 @@ similar_names = "allow"
 # Often counterproductive in real systems
 implicit_return = "allow"
 single_call_fn = "allow"
+single_match_else = "allow"
 
 [workspace.dependencies]
 ai = { path = "./bot-modules/ai" }

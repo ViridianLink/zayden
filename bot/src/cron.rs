@@ -1,25 +1,26 @@
+use std::cmp::Ordering;
+use std::sync::Arc;
+use std::time::Duration;
+
 use futures::future;
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp, Zoned};
 use serenity::all::Context;
 use sqlx::{PgPool, Postgres};
-use std::cmp::Ordering;
-use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use tracing::{debug, error};
 use zayden_core::{ActionFn, CronJobData};
 
-use crate::BotState;
-use crate::Result;
+use crate::{BotState, Result};
 
 pub async fn start_cron_jobs(ctx: Context, pool: PgPool) {
-    if let Err(e) = _start_cron_jobs(ctx, pool).await {
+    if let Err(e) = run_cron_jobs_loop(ctx, pool).await {
         error!("Error starting cron jobs: {e:?}");
     }
 }
 
-async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
+async fn run_cron_jobs_loop(ctx: Context, pool: PgPool) -> Result<()> {
     loop {
         let pending_jobs = pending_jobs(&ctx).await;
 
@@ -33,7 +34,7 @@ async fn _start_cron_jobs(ctx: Context, pool: PgPool) -> Result<()> {
                 } else {
                     SignedDuration::new(0, 0)
                 }
-            }
+            },
             None => SignedDuration::new(60, 0),
         };
 
@@ -67,28 +68,34 @@ async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
             job.schedule
                 .upcoming(TimeZone::UTC)
                 .next()
-                .map(|t| t > now && job.schedule.includes(t))
-                .unwrap_or(false)
+                .is_some_and(|t| t > now && job.schedule.includes(t))
         });
     }
 
-    let data = data.read().await;
-    let jobs = data.jobs().iter().filter_map(|job| {
-        job.schedule
-            .upcoming(TimeZone::UTC)
-            .next()
-            .filter(|t| *t > now && job.schedule.includes(t.clone()))
-            .map(|run_time| (job, run_time))
-    });
+    let jobs: Vec<(Zoned, ActionFn<Postgres>)> = {
+        let data = data.read().await;
+        data.jobs()
+            .iter()
+            .filter_map(|job| {
+                job.schedule
+                    .upcoming(TimeZone::UTC)
+                    .next()
+                    .filter(|t| *t > now && job.schedule.includes(t.clone()))
+                    .map(|run_time| (run_time, Arc::clone(&job.action_fn)))
+            })
+            .collect()
+    };
 
-    for (job, run_time) in jobs {
+    for (run_time, action_fn) in jobs {
         let cmp = pending_jobs.first().map(|(t, _)| run_time.cmp(t));
         match cmp {
             Some(Ordering::Less) | None => {
-                pending_jobs = vec![(run_time, job.action_fn.clone())];
-            }
-            Some(Ordering::Equal) => pending_jobs.push((run_time, job.action_fn.clone())),
-            Some(Ordering::Greater) => {}
+                pending_jobs = vec![(run_time, action_fn)];
+            },
+            Some(Ordering::Equal) => {
+                pending_jobs.push((run_time, action_fn));
+            },
+            Some(Ordering::Greater) => {},
         }
     }
 

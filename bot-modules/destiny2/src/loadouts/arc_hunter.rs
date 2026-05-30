@@ -1,16 +1,35 @@
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
     Tag,
 };
 
-pub const ARC_HUNTER: Loadout = Loadout::new(
+pub(super) const ARC_HUNTER: Loadout<'_> = Loadout::new(
     "Gifted Conviction",
     DestinyClass::Hunter,
     Mode::PvE,
     SUBCLASS,
     GEAR,
-    Details::new("LlamaD2", "https://dim.gg/5e6byba/Arc").video("https://youtu.be/UDIJdVTl5SE"),
+    Details::new("LlamaD2", "https://dim.gg/5e6byba/Arc")
+        .video("https://youtu.be/UDIJdVTl5SE"),
 )
 .tags([Some(Tag::EndGame), None, None])
 .artifact([
@@ -25,7 +44,7 @@ pub const ARC_HUNTER: Loadout = Loadout::new(
 ]);
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Arc,
+    kind: SubclassType::Arc,
     abilities: ABILITIES,
     aspects: [Aspect::TempestStrike, Aspect::Ascension],
     fragments: [
@@ -45,26 +64,30 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Flux,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [None, None, None],
     armour: [
-        Armour::new(
-            ArmourName::HunterHelmet,
-            [Mod::HandsOn, Mod::HandsOn, Mod::HarmonicSiphon],
-        ),
-        Armour::new(
-            ArmourName::HunterArms,
-            [Mod::MeleeFont, Mod::MeleeFont, Mod::HeavyHanded],
-        ),
+        Armour::new(ArmourName::HunterHelmet, [
+            Mod::HandsOn,
+            Mod::HandsOn,
+            Mod::HarmonicSiphon,
+        ]),
+        Armour::new(ArmourName::HunterArms, [
+            Mod::MeleeFont,
+            Mod::MeleeFont,
+            Mod::HeavyHanded,
+        ]),
         Armour::new(ArmourName::GiftedConviction, [Mod::Empty; 3]),
-        Armour::new(
-            ArmourName::HunterLegs,
-            [Mod::StacksOnStacks, Mod::Empty, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::Cloak,
-            [Mod::TimeDilation, Mod::PowerfulAttraction, Mod::Reaper],
-        ),
+        Armour::new(ArmourName::HunterLegs, [
+            Mod::StacksOnStacks,
+            Mod::Empty,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::Cloak, [
+            Mod::TimeDilation,
+            Mod::PowerfulAttraction,
+            Mod::Reaper,
+        ]),
     ],
     stats_priority: [
         Stat::Class(70),

@@ -15,13 +15,16 @@ pub struct MineTable;
 
 #[async_trait]
 impl MineManager<Postgres> for MineTable {
-    async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<MineRow>> {
+    async fn row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<MineRow>> {
         let id = id.into();
 
         sqlx::query_as!(
             MineRow,
             "SELECT miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige FROM gambling_mine WHERE user_id = $1",
-            id.get() as i64
+            id.get().cast_signed()
         ).fetch_optional(pool).await
     }
 }
@@ -39,8 +42,12 @@ impl ModuleCommand for Mine {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Commands::mine::<BotState, Postgres, MineTable>(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Commands::mine::<BotState, Postgres, MineTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

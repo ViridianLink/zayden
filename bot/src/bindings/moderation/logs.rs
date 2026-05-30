@@ -20,7 +20,7 @@ impl SlashCommand<Error, Postgres> for Logs {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(ctx).await?;
 
         let mut options = parse_options(options);
 
@@ -59,8 +59,7 @@ impl SlashCommand<Error, Postgres> for Logs {
 
         interaction
             .edit_response(ctx, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

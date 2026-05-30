@@ -11,16 +11,18 @@ use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
 
+use super::goals::GoalsTable;
 use crate::BotState;
 use crate::bindings::gambling::StaminaTable;
-
-use super::goals::GoalsTable;
 
 pub struct WorkTable;
 
 #[async_trait]
 impl WorkManager<Postgres> for WorkTable {
-    async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<WorkRow>> {
+    async fn row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<WorkRow>> {
         let id = id.into();
 
         sqlx::query_as!(
@@ -41,12 +43,16 @@ impl WorkManager<Postgres> for WorkTable {
                 LEFT JOIN levels l ON g.user_id = l.user_id
                 LEFT JOIN gambling_mine m on g.user_id = m.user_id
                 WHERE g.user_id = $1;"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
     }
 
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
     async fn save(pool: &PgPool, row: WorkRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 

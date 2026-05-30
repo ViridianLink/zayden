@@ -20,10 +20,16 @@ impl ModuleCommand for Loadout {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        let zayden_token = ZAYDEN_TOKEN.get_or_init(|| zayden_token(&cx.app.db)).await;
+        let zayden_token =
+            ZAYDEN_TOKEN.get_or_init(|| zayden_token(&cx.app.db)).await;
         let options = cx.interaction.data.options();
-        destiny2::loadouts::Loadout::run::<BotState>(cx.ctx, cx.interaction, options, zayden_token)
-            .await
-            .map_err(HandlerError::new)
+        destiny2::loadouts::Loadout::run::<BotState>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            zayden_token,
+        )
+        .await
+        .map_err(HandlerError::new)
     }
 }

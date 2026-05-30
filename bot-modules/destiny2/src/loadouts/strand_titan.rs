@@ -1,17 +1,36 @@
 use super::weapons::MONTE_CARLO;
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
     Tag,
 };
 
-pub const STRAND_TITAN: Loadout = Loadout::new(
+pub(super) const STRAND_TITAN: Loadout<'_> = Loadout::new(
     "Flechette Storm",
     DestinyClass::Titan,
     Mode::PvE,
     SUBCLASS,
     GEAR,
-    Details::new("LlamaD2", "https://dim.gg/g37nsna/Strand").video("https://youtu.be/T7KhZa1sBuA"),
+    Details::new("LlamaD2", "https://dim.gg/g37nsna/Strand")
+        .video("https://youtu.be/T7KhZa1sBuA"),
 )
 .tags([Some(Tag::AbilityFocused), None, None])
 .artifact([
@@ -26,7 +45,7 @@ pub const STRAND_TITAN: Loadout = Loadout::new(
 ]);
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Strand,
+    kind: SubclassType::Strand,
     abilities: ABILITIES,
     aspects: [Aspect::BannerOfWar, Aspect::FlechetteStorm],
     fragments: [
@@ -46,26 +65,30 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Grapple,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [Some(MONTE_CARLO), None, None],
     armour: [
-        Armour::new(
-            ArmourName::CollectivePsycheHelm,
-            [Mod::KineticSiphon, Mod::HandsOn, Mod::HandsOn],
-        ),
-        Armour::new(
-            ArmourName::WishfulIgnorance,
-            [Mod::HeavyHanded, Mod::MeleeFont, Mod::MeleeFont],
-        ),
+        Armour::new(ArmourName::CollectivePsycheHelm, [
+            Mod::KineticSiphon,
+            Mod::HandsOn,
+            Mod::HandsOn,
+        ]),
+        Armour::new(ArmourName::WishfulIgnorance, [
+            Mod::HeavyHanded,
+            Mod::MeleeFont,
+            Mod::MeleeFont,
+        ]),
         Armour::new(ArmourName::CollectivePsychePlate, [Mod::Empty; 3]),
-        Armour::new(
-            ArmourName::CollectivePsycheGreaves,
-            [Mod::Invigoration, Mod::Recuperation, Mod::StacksOnStacks],
-        ),
-        Armour::new(
-            ArmourName::CollectivePsycheMark,
-            [Mod::TimeDilation, Mod::Outreach, Mod::Reaper],
-        ),
+        Armour::new(ArmourName::CollectivePsycheGreaves, [
+            Mod::Invigoration,
+            Mod::Recuperation,
+            Mod::StacksOnStacks,
+        ]),
+        Armour::new(ArmourName::CollectivePsycheMark, [
+            Mod::TimeDilation,
+            Mod::Outreach,
+            Mod::Reaper,
+        ]),
     ],
     stats_priority: [
         Stat::Melee(200),

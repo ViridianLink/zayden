@@ -16,7 +16,10 @@ pub struct ProfileTable;
 
 #[async_trait]
 impl ProfileManager<Postgres> for ProfileTable {
-    async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<ProfileRow>> {
+    async fn row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<ProfileRow>> {
         let id = id.into();
 
         sqlx::query_as!(
@@ -34,7 +37,7 @@ impl ProfileManager<Postgres> for ProfileTable {
             LEFT JOIN levels l ON g.user_id = l.user_id
             LEFT JOIN gambling_mine m on g.user_id = m.user_id
             WHERE g.user_id = $1;"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
@@ -43,16 +46,23 @@ impl ProfileManager<Postgres> for ProfileTable {
 
 #[async_trait]
 impl InventoryManager<Postgres> for ProfileTable {
-    async fn gambling_row(_pool: &PgPool, _id: UserId) -> sqlx::Result<Option<InventoryRow>> {
+    async fn gambling_row(
+        _pool: &PgPool,
+        _id: UserId,
+    ) -> sqlx::Result<Option<InventoryRow>> {
         Ok(None)
     }
-    async fn inventory_items(pool: &PgPool, id: UserId) -> sqlx::Result<GamblingItems> {
+
+    async fn inventory_items(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<GamblingItems> {
         let items = sqlx::query_as!(
             GamblingItem,
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_all(pool)
         .await?;

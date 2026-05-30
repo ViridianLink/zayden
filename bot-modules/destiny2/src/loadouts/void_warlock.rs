@@ -1,10 +1,28 @@
 use super::weapons::DEAD_MESSENGER;
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
 };
 
-pub const VOID_WARLOCK: Loadout = Loadout {
+pub(super) const VOID_WARLOCK: Loadout<'_> = Loadout {
     name: "Handheld Supernova",
     class: DestinyClass::Warlock,
     mode: Mode::PvE,
@@ -26,7 +44,7 @@ pub const VOID_WARLOCK: Loadout = Loadout {
 };
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Void,
+    kind: SubclassType::Void,
     abilities: ABILITIES,
     aspects: [Aspect::ChaosAccelerant, Aspect::FeedTheVoid],
     fragments: [
@@ -46,37 +64,34 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Magnetic,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [None, Some(DEAD_MESSENGER), None],
     armour: [
-        Armour::new(
-            ArmourName::VeritysBrow,
-            [
-                Mod::SpecialAmmoFinder,
-                Mod::AshesToAssets,
-                Mod::HarmonicSiphon,
-            ],
-        ),
-        Armour::new(
-            ArmourName::AionAdapterGloves,
-            [Mod::GrenadeFont, Mod::GrenadeFont, Mod::Firepower],
-        ),
-        Armour::new(
-            ArmourName::AionAdapterRobes,
-            [Mod::VoidAmmoGeneration, Mod::Empty, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::AionAdapterBoots,
-            [
-                Mod::StacksOnStacks,
-                Mod::WeaponsFont,
-                Mod::HarmonicScavenger,
-            ],
-        ),
-        Armour::new(
-            ArmourName::AionAdapterBond,
-            [Mod::TimeDilation, Mod::Reaper, Mod::SpecialFinisher],
-        ),
+        Armour::new(ArmourName::VeritysBrow, [
+            Mod::SpecialAmmoFinder,
+            Mod::AshesToAssets,
+            Mod::HarmonicSiphon,
+        ]),
+        Armour::new(ArmourName::AionAdapterGloves, [
+            Mod::GrenadeFont,
+            Mod::GrenadeFont,
+            Mod::Firepower,
+        ]),
+        Armour::new(ArmourName::AionAdapterRobes, [
+            Mod::VoidAmmoGeneration,
+            Mod::Empty,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::AionAdapterBoots, [
+            Mod::StacksOnStacks,
+            Mod::WeaponsFont,
+            Mod::HarmonicScavenger,
+        ]),
+        Armour::new(ArmourName::AionAdapterBond, [
+            Mod::TimeDilation,
+            Mod::Reaper,
+            Mod::SpecialFinisher,
+        ]),
     ],
     stats_priority: [
         Stat::Grenade(200),

@@ -1,11 +1,29 @@
 use super::weapons::THIRD_ITERATION;
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
     Tag,
 };
 
-pub const GENERAL_PRISMATIC_HUNTER: Loadout = Loadout::new(
+pub(super) const GENERAL_PRISMATIC_HUNTER: Loadout<'_> = Loadout::new(
     "Ascension",
     DestinyClass::Hunter,
     Mode::PvE,
@@ -27,7 +45,7 @@ pub const GENERAL_PRISMATIC_HUNTER: Loadout = Loadout::new(
 ]);
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Prismatic,
+    kind: SubclassType::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::Ascension, Aspect::GunpowderGamble],
     fragments: [
@@ -47,29 +65,34 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Grapple,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [None, Some(THIRD_ITERATION), None],
     armour: [
-        Armour::new(
-            ArmourName::BushidoCowl,
-            [Mod::AshesToAssets, Mod::SuperFont, Mod::VoidSiphon],
-        ),
-        Armour::new(
-            ArmourName::BushidoGrips,
-            [Mod::Firepower, Mod::GrenadeFont, Mod::FocusingStrike],
-        ),
-        Armour::new(
-            ArmourName::LastDisciplineVest,
-            [Mod::Empty, Mod::Empty, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::LastDisciplineStrides,
-            [Mod::Recuperation, Mod::StacksOnStacks, Mod::Invigoration],
-        ),
-        Armour::new(
-            ArmourName::Relativism(("Inmost Light", "Cyrtarachne")),
-            [Mod::TimeDilation, Mod::ClassFont, Mod::PowerfulAttraction],
-        ),
+        Armour::new(ArmourName::BushidoCowl, [
+            Mod::AshesToAssets,
+            Mod::SuperFont,
+            Mod::VoidSiphon,
+        ]),
+        Armour::new(ArmourName::BushidoGrips, [
+            Mod::Firepower,
+            Mod::GrenadeFont,
+            Mod::FocusingStrike,
+        ]),
+        Armour::new(ArmourName::LastDisciplineVest, [
+            Mod::Empty,
+            Mod::Empty,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::LastDisciplineStrides, [
+            Mod::Recuperation,
+            Mod::StacksOnStacks,
+            Mod::Invigoration,
+        ]),
+        Armour::new(ArmourName::Relativism(("Inmost Light", "Cyrtarachne")), [
+            Mod::TimeDilation,
+            Mod::ClassFont,
+            Mod::PowerfulAttraction,
+        ]),
     ],
     stats_priority: [
         Stat::Grenade(200),

@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Relationships {
     Partner,
     Parent,
@@ -7,12 +7,12 @@ pub enum Relationships {
 }
 
 impl std::fmt::Display for Relationships {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Relationships::Partner => write!(f, "Partner"),
-            Relationships::Parent => write!(f, "Parent"),
-            Relationships::Child => write!(f, "Child"),
-            Relationships::None => write!(f, "None"),
+            Self::Partner => write!(f, "Partner"),
+            Self::Parent => write!(f, "Parent"),
+            Self::Child => write!(f, "Child"),
+            Self::None => write!(f, "None"),
         }
     }
 }

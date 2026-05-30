@@ -1,11 +1,19 @@
 use destiny2_core::BungieClientData;
 use futures::future;
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateAttachment, CreateCommand,
-    CreateCommandOption, EditInteractionResponse, ResolvedOption, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateAttachment,
+    CreateCommand,
+    CreateCommandOption,
+    EditInteractionResponse,
+    ResolvedOption,
+    ResolvedValue,
 };
 use tokio::sync::RwLock;
 
+use crate::Error;
 use crate::endgame_analysis::{EndgameAnalysisSheet, Weapon};
 
 pub struct DimWishlistCommand;
@@ -15,8 +23,8 @@ impl DimWishlistCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
-    ) {
-        interaction.defer_ephemeral(&ctx.http).await.unwrap();
+    ) -> Result<(), Error> {
+        interaction.defer_ephemeral(&ctx.http).await?;
 
         let strict = match options.pop().map(|o| o.value) {
             Some(ResolvedValue::String(strict)) => strict,
@@ -37,35 +45,42 @@ impl DimWishlistCommand {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
             let client = data.bungie_client();
-            let manifest = client.destiny_manifest().await.unwrap();
+            let manifest = client.destiny_manifest().await?;
+
             future::try_join(
                 client.destiny_inventory_item_definition(&manifest, "en"),
                 client.destiny_plug_set_definition(&manifest, "en"),
             )
             .await
         }
-        .unwrap();
+        .expect("data invariant");
 
         let weapons = match std::fs::read_to_string("weapons.json") {
             Ok(weapons) => weapons,
             Err(_) => {
-                EndgameAnalysisSheet::update(&item_manifest).await.unwrap();
-                std::fs::read_to_string("weapons.json").unwrap()
-            }
+                EndgameAnalysisSheet::update(&item_manifest).await?;
+                std::fs::read_to_string("weapons.json")
+                    .expect("weapons.json readable")
+            },
         };
-        let weapons: Vec<Weapon> = serde_json::from_str(&weapons).unwrap();
+        let weapons: Vec<Weapon> =
+            serde_json::from_str(&weapons).expect("valid weapons JSON");
 
         let wishlist = weapons
             .into_iter()
             .filter(|weapon| {
-                tier.contains(&weapon.tier.tier().as_str()) || weapon.tier.tier() == "None"
+                tier.contains(&weapon.tier.tier().as_str())
+                    || weapon.tier.tier() == "None"
             })
             .map(|weapon| weapon.as_wishlist(&item_manifest, &perk_manifest))
             .collect::<Vec<_>>();
 
         let wishlist = format!("title: DIM Wishlist\n\n{}", wishlist.join("\n\n"));
 
-        let file = CreateAttachment::bytes(wishlist, format!("PVE Wishlist ({strict}).txt"));
+        let file = CreateAttachment::bytes(
+            wishlist,
+            format!("PVE Wishlist ({strict}).txt"),
+        );
 
         interaction
             .edit_response(
@@ -74,8 +89,9 @@ impl DimWishlistCommand {
                     .new_attachment(file)
                     .content(format!("PVE Wishlist ({strict}):")),
             )
-            .await
-            .unwrap();
+            .await?;
+
+        Ok(())
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {

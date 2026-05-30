@@ -1,16 +1,35 @@
 use super::weapons::DELICATE_TOMB;
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
 };
 
-pub const ARC_WARLOCK: Loadout = Loadout::new(
+pub(super) const ARC_WARLOCK: Loadout<'_> = Loadout::new(
     "Buddy Build",
     DestinyClass::Warlock,
     Mode::PvE,
     SUBCLASS,
     GEAR,
-    Details::new("LlamaD2", "https://dim.gg/i2kny6a/Arc").video("https://youtu.be/sFzAdAl3ULw"),
+    Details::new("LlamaD2", "https://dim.gg/i2kny6a/Arc")
+        .video("https://youtu.be/sFzAdAl3ULw"),
 )
 .artifact([
     Some(ArtifactPerk::RefreshThreads),
@@ -24,7 +43,7 @@ pub const ARC_WARLOCK: Loadout = Loadout::new(
 ]);
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Arc,
+    kind: SubclassType::Arc,
     abilities: ABILITIES,
     aspects: [Aspect::ArcSoul, Aspect::IonicSentry],
     fragments: [
@@ -44,37 +63,34 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Pulse,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [None, Some(DELICATE_TOMB), None],
     armour: [
-        Armour::new(
-            ArmourName::VeritysBrow,
-            [
-                Mod::SpecialAmmoFinder,
-                Mod::AshesToAssets,
-                Mod::HarmonicSiphon,
-            ],
-        ),
-        Armour::new(
-            ArmourName::TechsecGloves,
-            [Mod::GrenadeFont, Mod::BolsteringDetonation, Mod::Firepower],
-        ),
-        Armour::new(
-            ArmourName::TechsecVestment,
-            [Mod::HarmonicAmmoGeneration, Mod::Empty, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::TwofoldCrownBoots,
-            [
-                Mod::StacksOnStacks,
-                Mod::WeaponsFont,
-                Mod::HarmonicScavenger,
-            ],
-        ),
-        Armour::new(
-            ArmourName::TwofoldCrownBond,
-            [Mod::TimeDilation, Mod::ClassFont, Mod::SpecialFinisher],
-        ),
+        Armour::new(ArmourName::VeritysBrow, [
+            Mod::SpecialAmmoFinder,
+            Mod::AshesToAssets,
+            Mod::HarmonicSiphon,
+        ]),
+        Armour::new(ArmourName::TechsecGloves, [
+            Mod::GrenadeFont,
+            Mod::BolsteringDetonation,
+            Mod::Firepower,
+        ]),
+        Armour::new(ArmourName::TechsecVestment, [
+            Mod::HarmonicAmmoGeneration,
+            Mod::Empty,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::TwofoldCrownBoots, [
+            Mod::StacksOnStacks,
+            Mod::WeaponsFont,
+            Mod::HarmonicScavenger,
+        ]),
+        Armour::new(ArmourName::TwofoldCrownBond, [
+            Mod::TimeDilation,
+            Mod::ClassFont,
+            Mod::SpecialFinisher,
+        ]),
     ],
     stats_priority: [
         Stat::Grenade(200),

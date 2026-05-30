@@ -27,7 +27,7 @@ impl SlashCommand<Error, Postgres> for Infraction {
         options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
     ) -> Result<()> {
-        interaction.defer(ctx).await.unwrap();
+        interaction.defer(ctx).await?;
 
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
@@ -51,7 +51,7 @@ impl SlashCommand<Error, Postgres> for Infraction {
 
         let six_months_age = Utc::now()
             .checked_sub_months(Months::new(6))
-            .unwrap()
+            .expect("invariant: current date minus 6 months cannot overflow")
             .naive_utc();
 
         let infractions: Vec<_> = infractions
@@ -111,8 +111,7 @@ impl SlashCommand<Error, Postgres> for Infraction {
 
         interaction
             .edit_response(ctx, EditInteractionResponse::new().embed(embed))
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }
@@ -163,8 +162,7 @@ async fn send_user_message(
 
     let message = user_id
         .direct_message(ctx, CreateMessage::new().embed(embed))
-        .await
-        .unwrap();
+        .await?;
 
     Ok(message)
 }
@@ -190,16 +188,13 @@ async fn warn<'a>(
     .create(pool)
     .await?;
 
+    let guild_name = guild_id.to_partial_guild(ctx).await?.name;
     let desc = if reason == "No reason provided." {
-        format!(
-            "You have been warned in {}.",
-            guild_id.to_partial_guild(ctx).await.unwrap().name
-        )
+        format!("You have been warned in {}.", guild_name)
     } else {
         format!(
             "You have been warned in {} for the following reason:\n{}",
-            guild_id.to_partial_guild(ctx).await.unwrap().name,
-            reason
+            guild_name, reason
         )
     };
 
@@ -223,16 +218,16 @@ async fn mute<'a>(
     points: i32,
     reason: &str,
 ) -> Result<CreateEmbed> {
-    let mut member = guild_id.member(ctx, user.id).await.unwrap();
+    let mut member = guild_id.member(ctx, user.id).await?;
 
     let timestamp = (Utc::now() + duration).timestamp();
     member
         .disable_communication_until_datetime(
             ctx,
-            Timestamp::from_unix_timestamp(timestamp).unwrap(),
+            Timestamp::from_unix_timestamp(timestamp)
+                .expect("invariant: timeout timestamp derived from Utc::now() plus a bounded duration is always valid"),
         )
-        .await
-        .unwrap();
+        .await?;
 
     InfractionRow::new(
         user.id,
@@ -262,19 +257,11 @@ async fn mute<'a>(
         }
     }
 
+    let guild_name = guild_id.to_partial_guild(ctx).await?.name;
     let desc: String = if reason == "No reason provided." {
-        format!(
-            "You have been muted in {} for {}.",
-            guild_id.to_partial_guild(ctx).await.unwrap().name,
-            duration_str
-        )
+        format!("You have been muted in {} for {}.", guild_name, duration_str)
     } else {
-        format!(
-            "You have been muted in {} for {}\n{}",
-            guild_id.to_partial_guild(ctx).await.unwrap().name,
-            duration_str,
-            reason
-        )
+        format!("You have been muted in {} for {}\n{}", guild_name, duration_str, reason)
     };
 
     send_user_message(ctx, user.id, InfractionKind::Mute, &desc).await?;
@@ -295,26 +282,21 @@ async fn ban<'a>(
     points: i32,
     reason: &str,
 ) -> Result<CreateEmbed> {
-    let member = guild_id.member(ctx, user.id).await.unwrap();
+    let member = guild_id.member(ctx, user.id).await?;
 
+    let guild_name = guild_id.to_partial_guild(ctx).await?.name;
     let desc = if reason == "No reason provided." {
-        format!(
-            "You have been banned from {}.",
-            guild_id.to_partial_guild(ctx).await.unwrap().name
-        )
+        format!("You have been banned from {}.", guild_name)
     } else {
         format!(
             "You have been banned from {} for the following reason:\n{}",
-            guild_id.to_partial_guild(ctx).await.unwrap().name,
-            reason
+            guild_name, reason
         )
     };
 
-    send_user_message(ctx, user.id, InfractionKind::Ban, desc)
-        .await
-        .unwrap();
+    send_user_message(ctx, user.id, InfractionKind::Ban, desc).await?;
 
-    member.ban_with_reason(ctx, 1, reason).await.unwrap();
+    member.ban_with_reason(ctx, 1, reason).await?;
 
     InfractionRow::new(
         user.id,

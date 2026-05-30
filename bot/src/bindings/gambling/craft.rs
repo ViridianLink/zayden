@@ -16,13 +16,16 @@ pub struct CraftTable;
 
 #[async_trait]
 impl CraftManager<Postgres> for CraftTable {
-    async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<CraftRow>> {
+    async fn row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<CraftRow>> {
         let id = id.into();
 
         sqlx::query_file_as!(
             CraftRow,
             "sql/gambling/CraftManager/craft-row.sql",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await

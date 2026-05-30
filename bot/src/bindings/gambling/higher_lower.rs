@@ -12,10 +12,9 @@ use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
+use super::{GameTable, GoalsTable, StatsTable};
 use crate::BotState;
 use crate::bindings::gambling::GamblingTable;
-
-use super::{GameTable, GoalsTable, StatsTable};
 
 pub struct HigherLowerTable;
 
@@ -24,7 +23,7 @@ impl HigherLowerManager<Postgres> for HigherLowerTable {
     async fn winners(conn: &mut PgConnection) -> sqlx::Result<Vec<UserId>> {
         sqlx::query_file_scalar!("sql/gambling/HigherLowerManager/winners.sql")
             .fetch(conn)
-            .map_ok(|id| UserId::new(id as u64))
+            .map_ok(|id| UserId::new(id.cast_unsigned()))
             .try_collect()
             .await
     }
@@ -65,12 +64,12 @@ impl ModuleComponent for HigherLower {
         let Some(MessageInteractionMetadata::Command(metadata)) =
             cx.interaction.message.interaction_metadata.as_deref()
         else {
-            unreachable!("Message must be created from a command")
+            return Ok(());
         };
 
         if cx.interaction.user != metadata.user {
             return Ok(());
-        };
+        }
 
         gambling::components::HigherLower::run_components::<
             BotState,

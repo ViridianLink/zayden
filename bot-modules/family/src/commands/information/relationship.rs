@@ -1,5 +1,10 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, CreateCommand, CreateCommandOption, Http, ResolvedValue,
+    CommandInteraction,
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    Http,
+    ResolvedValue,
     UserId,
 };
 use sqlx::{Database, Pool};
@@ -28,10 +33,10 @@ impl Relationship {
         let options = interaction.data.options();
         let options = parse_options(options);
 
-        let user = match options.get("user") {
-            Some(ResolvedValue::User(user, _)) => *user,
-            _ => unreachable!("User option is required and must be a user."),
+        let Some(ResolvedValue::User(user, _)) = options.get("user") else {
+            return Err(Error::InvalidUserId);
         };
+        let user = *user;
 
         let other = match options.get("other") {
             Some(ResolvedValue::User(user, _)) => *user,
@@ -42,10 +47,8 @@ impl Relationship {
             return Err(Error::SameUser(user.id));
         }
 
-        let user_info = match Manager::row(pool, user.id).await? {
-            Some(row) => row,
-            None => user.into(),
-        };
+        let user_info =
+            Manager::row(pool, user.id).await?.unwrap_or_else(|| user.into());
 
         let relationship = user_info.relationship(other.id);
 

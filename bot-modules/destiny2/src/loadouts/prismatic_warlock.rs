@@ -1,10 +1,27 @@
 use super::weapons::CHOIR_OF_ONE;
 use super::{
-    Abilities, Armour, ArmourName, Aspect, ClassAbility, DestinyClass, Details, Fragment, Gear,
-    Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
 };
 
-pub const PRISMATIC_WARLOCK: Loadout = Loadout::new(
+pub(super) const PRISMATIC_WARLOCK: Loadout<'_> = Loadout::new(
     "Lightning Surge",
     DestinyClass::Warlock,
     Mode::PvE,
@@ -14,7 +31,7 @@ pub const PRISMATIC_WARLOCK: Loadout = Loadout::new(
 );
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Prismatic,
+    kind: SubclassType::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::LightningSurge, Aspect::FeedTheVoid],
     fragments: [
@@ -34,29 +51,30 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Vortex,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [None, Some(CHOIR_OF_ONE), None],
     armour: [
-        Armour::new(
-            ArmourName::WarlockHood,
-            [Mod::HandsOn, Mod::HandsOn, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::WarlockGloves,
-            [Mod::MeleeFont, Mod::MeleeFont, Mod::HeavyHanded],
-        ),
-        Armour::new(
-            ArmourName::WarlockRobes,
-            [Mod::Empty, Mod::Empty, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::WarlockBoots,
-            [Mod::Recuperation, Mod::Invigoration, Mod::Absolution],
-        ),
-        Armour::new(
-            ArmourName::Solipsism(("Inmost Light", "Synthoceps")),
-            [Mod::TimeDilation, Mod::PowerfulAttraction, Mod::Outreach],
-        ),
+        Armour::new(ArmourName::WarlockHood, [
+            Mod::HandsOn,
+            Mod::HandsOn,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::WarlockGloves, [
+            Mod::MeleeFont,
+            Mod::MeleeFont,
+            Mod::HeavyHanded,
+        ]),
+        Armour::new(ArmourName::WarlockRobes, [Mod::Empty, Mod::Empty, Mod::Empty]),
+        Armour::new(ArmourName::WarlockBoots, [
+            Mod::Recuperation,
+            Mod::Invigoration,
+            Mod::Absolution,
+        ]),
+        Armour::new(ArmourName::Solipsism(("Inmost Light", "Synthoceps")), [
+            Mod::TimeDilation,
+            Mod::PowerfulAttraction,
+            Mod::Outreach,
+        ]),
     ],
     stats_priority: [
         Stat::Melee(200),

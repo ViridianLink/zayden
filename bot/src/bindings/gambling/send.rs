@@ -10,10 +10,9 @@ use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
 
+use super::goals::GoalsTable;
 use crate::BotState;
 use crate::bindings::gambling::{GamblingTable, StaminaTable};
-
-use super::goals::GoalsTable;
 
 pub struct SendTable;
 
@@ -41,7 +40,7 @@ impl SendManager<Postgres> for SendTable {
                 LEFT JOIN levels l ON g.user_id = l.user_id
                 LEFT JOIN gambling_mine m on g.user_id = m.user_id
                 WHERE g.user_id = $1;",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
@@ -77,12 +76,14 @@ impl ModuleCommand for Send {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        Commands::send::<BotState, Postgres, GamblingTable, StaminaTable, GoalsTable, SendTable>(
-            cx.ctx,
-            cx.interaction,
-            options,
-            &cx.app.db,
-        )
+        Commands::send::<
+            BotState,
+            Postgres,
+            GamblingTable,
+            StaminaTable,
+            GoalsTable,
+            SendTable,
+        >(cx.ctx, cx.interaction, options, &cx.app.db)
         .await
         .map_err(HandlerError::from_respond)
     }

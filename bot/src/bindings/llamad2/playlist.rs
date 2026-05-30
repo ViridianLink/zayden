@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serenity::all::CreateCommand;
 use zayden_core::{CommandScope, HandlerError, InvocationCtx, ModuleCommand};
 
-pub struct Playlist;
+pub(super) struct Playlist;
 
 #[async_trait]
 impl ModuleCommand for Playlist {
@@ -21,7 +21,9 @@ impl ModuleCommand for Playlist {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        llamad2::Playlist::run(cx.ctx, cx.interaction).await;
+        llamad2::Playlist::run(cx.ctx, cx.interaction)
+            .await
+            .map_err(HandlerError::new)?;
         Ok(())
     }
 }

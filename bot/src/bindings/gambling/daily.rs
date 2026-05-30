@@ -27,17 +27,20 @@ impl DailyManager<Postgres> for DailyTable {
         sqlx::query_file_as!(
             DailyRow,
             "sql/gambling/DailyManager/daily_row.sql",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
     }
 
-    async fn goal_rows(pool: &PgPool, id: UserId) -> sqlx::Result<Vec<GamblingGoalsRow>> {
+    async fn goal_rows(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
         sqlx::query_file_as!(
             GamblingGoalsRow,
             "sql/gambling/DailyManager/goal_rows.sql",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_all(pool)
         .await
@@ -60,7 +63,10 @@ impl DailyManager<Postgres> for DailyTable {
 
 #[async_trait]
 impl GoalsManager<Postgres> for DailyTable {
-    async fn row(_pool: &PgPool, _id: impl Into<UserId> + Send) -> sqlx::Result<Option<GoalsRow>> {
+    async fn row(
+        _pool: &PgPool,
+        _id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<GoalsRow>> {
         Ok(None)
     }
 
@@ -71,6 +77,10 @@ impl GoalsManager<Postgres> for DailyTable {
         Ok(Vec::new())
     }
 
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx DATE[] mapping"
+    )]
     async fn update(
         pool: &PgPool,
         rows: &[GamblingGoalsRow],
@@ -134,8 +144,12 @@ impl ModuleCommand for Daily {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Commands::daily::<BotState, Postgres, DailyTable>(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Commands::daily::<BotState, Postgres, DailyTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

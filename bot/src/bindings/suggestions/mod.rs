@@ -10,6 +10,7 @@ pub mod slash_command;
 pub use slash_command::FetchSuggestions;
 
 use crate::RegistryBuilder;
+use crate::registry::OverlapError;
 use crate::sqlx_lib::GuildTable;
 
 #[async_trait]
@@ -21,7 +22,7 @@ impl SuggestionsGuildManager<Postgres> for GuildTable {
         let id = id.into();
 
         let Some(cfg) = ConfigStore::from_pool(pool.clone())
-            .try_get(id.get() as i64)
+            .try_get(id.get().cast_signed())
             .await?
         else {
             return Ok(None);
@@ -35,14 +36,13 @@ impl SuggestionsGuildManager<Postgres> for GuildTable {
     }
 }
 
-pub fn register(builder: &mut RegistryBuilder) {
+pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
     builder
         .add_command(FetchSuggestions)
-        .add_component(components::SuggestionsAccept)
-        .add_component(components::SuggestionsAdded)
-        .add_component(components::AcceptLegacy)
-        .add_component(components::SuggestionsReject)
-        .add_component(components::RejectLegacy)
-        .add_modal(components::SuggestionsAcceptModal)
-        .add_modal(components::SuggestionsRejectModal);
+        .add_component(components::SuggestionsAccept)?
+        .add_component(components::SuggestionsReject)?
+        .add_modal(components::SuggestionsAcceptModal)?
+        .add_modal(components::SuggestionsRejectModal)?;
+
+    Ok(())
 }

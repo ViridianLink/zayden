@@ -13,17 +13,22 @@ pub struct PerkInfo {
 }
 
 pub async fn update() {
-    let api_key = env::var("GOOGLE_API_KEY").unwrap();
+    let api_key =
+        env::var("GOOGLE_API_KEY").expect("GOOGLE_API_KEY env var must be set");
 
-    let client = SheetsClientBuilder::new(api_key).build().unwrap();
+    let client =
+        SheetsClientBuilder::new(api_key).build().expect("sheets client build");
 
-    let spreadsheet = client.spreadsheet(COMPENDIUM_ID, true).await.unwrap();
+    let spreadsheet = client
+        .spreadsheet(COMPENDIUM_ID, true)
+        .await
+        .expect("Google Sheets API call");
     let mut perks_sheet = spreadsheet
         .sheets
         .into_iter()
         .find(|sheet| sheet.properties.title.eq_ignore_ascii_case("gear perks"))
-        .unwrap();
-    let data = perks_sheet.data.pop().unwrap();
+        .expect("gear perks sheet must exist in spreadsheet");
+    let data = perks_sheet.data.pop().expect("gear perks sheet always has data");
 
     let perks = data
         .row_data
@@ -36,7 +41,11 @@ pub async fn update() {
                 values.swap_remove(2).formatted_value,
                 values.swap_remove(0).formatted_value,
             ) {
-                let name = name.split("\n\n").next().unwrap().replace("\n", " ");
+                let name = name
+                    .split("\n\n")
+                    .next()
+                    .expect("name always has content")
+                    .replace('\n', " ");
 
                 Some((name.to_lowercase(), PerkInfo { name, description }))
             } else {
@@ -45,6 +54,6 @@ pub async fn update() {
         })
         .collect::<HashMap<String, PerkInfo>>();
 
-    let json = serde_json::to_string(&perks).unwrap();
-    std::fs::write("perks.json", json).unwrap();
+    let json = serde_json::to_string(&perks).expect("serialize perks");
+    std::fs::write("perks.json", json).expect("write perks.json");
 }

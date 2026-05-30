@@ -2,18 +2,24 @@ mod commands;
 
 pub use commands::{Levels, Rank, Xp};
 
-pub fn register(builder: &mut crate::RegistryBuilder) {
+pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
     builder
         .add_command(Levels)
         .add_command(Rank)
         .add_command(Xp)
-        .add_component(Levels);
+        .add_component(Levels)?;
+
+    Ok(())
 }
 
 use async_trait::async_trait;
 use levels::{FullLevelRow, LeaderboardRow, LevelsManager, RankRow, XpRow};
 use serenity::all::UserId;
-use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{PgPool, Postgres};
+
+use crate::RegistryBuilder;
+use crate::registry::OverlapError;
 
 pub struct LevelsTable;
 
@@ -40,7 +46,7 @@ impl LevelsManager<Postgres> for LevelsTable {
         pool: &PgPool,
         user_id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>> {
-        let id = user_id.into().get() as i64;
+        let id = user_id.into().get().cast_signed();
 
         sqlx::query_scalar!(
     "SELECT row_number FROM (SELECT user_id, ROW_NUMBER() OVER (ORDER BY level DESC, xp DESC) FROM levels) AS ranked WHERE user_id = $1",
@@ -59,19 +65,22 @@ impl LevelsManager<Postgres> for LevelsTable {
         sqlx::query_as!(
             RankRow,
             "SELECT xp, level FROM levels WHERE user_id = $1",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
     }
 
-    async fn xp_row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<XpRow>> {
+    async fn xp_row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<XpRow>> {
         let id = id.into();
 
         sqlx::query_as!(
             XpRow,
             "SELECT xp, level, total_xp FROM levels WHERE user_id = $1",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
@@ -86,12 +95,16 @@ impl LevelsManager<Postgres> for LevelsTable {
         sqlx::query_as!(
             FullLevelRow,
             r#"SELECT user_id, xp, level, total_xp, message_count, last_xp as "last_xp: jiff_sqlx::Timestamp" FROM levels WHERE user_id = $1"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
     }
 
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "DB columns xp/message_count are INT4; values are bounded by gameplay"
+    )]
     async fn save(pool: &PgPool, row: FullLevelRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",

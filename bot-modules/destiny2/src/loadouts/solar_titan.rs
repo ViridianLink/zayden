@@ -1,11 +1,29 @@
 use super::weapons::{DEVILS_RUIN, PERFECT_PARADOX};
 use super::{
-    Abilities, Armour, ArmourName, ArtifactPerk, Aspect, ClassAbility, DestinyClass, Details,
-    Fragment, Gear, Grenade, Jump, Loadout, Melee, Mod, Mode, Stat, Subclass, SubclassType, Super,
+    Abilities,
+    Armour,
+    ArmourName,
+    ArtifactPerk,
+    Aspect,
+    ClassAbility,
+    DestinyClass,
+    Details,
+    Fragment,
+    Gear,
+    Grenade,
+    Jump,
+    Loadout,
+    Melee,
+    Mod,
+    Mode,
+    Stat,
+    Subclass,
+    SubclassType,
+    Super,
     Tag,
 };
 
-pub const SOLAR_TITAN: Loadout = Loadout {
+pub(super) const SOLAR_TITAN: Loadout<'_> = Loadout {
     name: "Throwing Hammer",
     class: DestinyClass::Titan,
     mode: Mode::PvE,
@@ -31,7 +49,7 @@ pub const SOLAR_TITAN: Loadout = Loadout {
 };
 
 const SUBCLASS: Subclass = Subclass {
-    subclass: SubclassType::Solar,
+    kind: SubclassType::Solar,
     abilities: ABILITIES,
     aspects: [Aspect::RoaringFlames, Aspect::SolInvictus],
     fragments: [
@@ -51,26 +69,30 @@ const ABILITIES: Abilities = Abilities {
     grenade: Grenade::Fusion,
 };
 
-const GEAR: Gear = Gear {
+const GEAR: Gear<'_> = Gear {
     weapons: [Some(PERFECT_PARADOX), Some(DEVILS_RUIN), None],
     armour: [
-        Armour::new(
-            ArmourName::LustrousHelm,
-            [Mod::HandsOn, Mod::SpecialAmmoFinder, Mod::HarmonicSiphon],
-        ),
-        Armour::new(
-            ArmourName::WormgodCaress,
-            [Mod::MeleeFont, Mod::MeleeFont, Mod::HeavyHanded],
-        ),
+        Armour::new(ArmourName::LustrousHelm, [
+            Mod::HandsOn,
+            Mod::SpecialAmmoFinder,
+            Mod::HarmonicSiphon,
+        ]),
+        Armour::new(ArmourName::WormgodCaress, [
+            Mod::MeleeFont,
+            Mod::MeleeFont,
+            Mod::HeavyHanded,
+        ]),
         Armour::new(ArmourName::LustrousPlate, [Mod::Empty; 3]),
-        Armour::new(
-            ArmourName::LustrousGreaves,
-            [Mod::StacksOnStacks, Mod::KineticScavenger, Mod::Empty],
-        ),
-        Armour::new(
-            ArmourName::LustrousMark,
-            [Mod::TimeDilation, Mod::Distribution, Mod::SpecialFinisher],
-        ),
+        Armour::new(ArmourName::LustrousGreaves, [
+            Mod::StacksOnStacks,
+            Mod::KineticScavenger,
+            Mod::Empty,
+        ]),
+        Armour::new(ArmourName::LustrousMark, [
+            Mod::TimeDilation,
+            Mod::Distribution,
+            Mod::SpecialFinisher,
+        ]),
     ],
     stats_priority: [
         Stat::Melee(200),

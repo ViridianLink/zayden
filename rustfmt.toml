@@ -1,16 +1,33 @@
+# Core Config
 edition = "2024"
-
-max_width = 100
+max_width = 85
 use_small_heuristics = "Max"
+newline_style = "Unix"
 
+# Nightly Feature Opt-in
+unstable_features = true
+style_edition = "2024"
+
+# Import Management
 imports_granularity = "Module"
 group_imports = "StdExternalCrate"
+imports_layout = "HorizontalVertical"
 
+# Formatting & Code Structure
 reorder_impl_items = true
+merge_derives = true
+use_try_shorthand = true
+overflow_delimited_expr = true
+match_block_trailing_comma = true
+condense_wildcard_suffixes = true
+hex_literal_case = "Lower"
 
+# Comments & Documentation
 format_code_in_doc_comments = true
-
 normalize_comments = true
 normalize_doc_attributes = true
-
 wrap_comments = true
+comment_width = 100
+
+# Whitespace
+blank_lines_upper_bound = 1

@@ -4,7 +4,12 @@ use async_trait::async_trait;
 use futures::TryStreamExt;
 use gambling::Commands;
 use gambling::common::leaderboard::{
-    CoinsRow, EggplantsRow, GemsRow, HigherLowerRow, LottoTicketRow, WeeklyHigherLowerRow,
+    CoinsRow,
+    EggplantsRow,
+    GemsRow,
+    HigherLowerRow,
+    LottoTicketRow,
+    WeeklyHigherLowerRow,
 };
 use gambling::common::{LeaderboardManager, LeaderboardRow};
 use gambling::shop::{EGGPLANT, LOTTO_TICKET};
@@ -57,11 +62,11 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/coins_row_number.sql",
             global,
             users,
-            user_id.get() as i64
+            user_id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
-        .map(|num| num.flatten())
+        .map(Option::flatten)
     }
 
     async fn gems(
@@ -98,11 +103,11 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/gems_row_number.sql",
             global,
             users,
-            user_id.get() as i64
+            user_id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
-        .map(|num| num.flatten())
+        .map(Option::flatten)
     }
 
     async fn eggplants(
@@ -141,11 +146,11 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             global,
             users,
             EGGPLANT.id,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
-        .map(|num| num.flatten())
+        .map(Option::flatten)
     }
 
     async fn lottotickets(
@@ -184,11 +189,11 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             global,
             users,
             LOTTO_TICKET.id,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
-        .map(|num| num.flatten())
+        .map(Option::flatten)
     }
 
     async fn higherlower(
@@ -225,11 +230,11 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/higherlower_row_number.sql",
             global,
             users,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
-        .map(|num| num.flatten())
+        .map(Option::flatten)
     }
 
     async fn weekly_higherlower(
@@ -266,11 +271,11 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/weekly_higherlower_row_number.sql",
             global,
             users,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
-        .map(|num| num.flatten())
+        .map(Option::flatten)
     }
 }
 

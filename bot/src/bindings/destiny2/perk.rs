@@ -3,7 +3,12 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
 use zayden_core::error::HandlerError;
-use zayden_core::{AutocompleteCtx, InvocationCtx, ModuleAutocomplete, ModuleCommand};
+use zayden_core::{
+    AutocompleteCtx,
+    InvocationCtx,
+    ModuleAutocomplete,
+    ModuleCommand,
+};
 
 pub struct Perk;
 
@@ -19,7 +24,12 @@ impl ModuleCommand for Perk {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        let _ = destiny2::slash_commands::perk::Perk::run(cx.ctx, cx.interaction, options).await;
+        let _ = destiny2::slash_commands::perk::Perk::run(
+            cx.ctx,
+            cx.interaction,
+            options,
+        )
+        .await;
         Ok(())
     }
 }
@@ -37,7 +47,8 @@ impl ModuleAutocomplete for Perk {
                 cx.interaction,
                 option,
             )
-            .await;
+            .await
+            .map_err(HandlerError::new)?;
         }
         Ok(())
     }

@@ -5,10 +5,9 @@ use tracing::{info, warn};
 use zayden_app::state::AppState;
 use zayden_core::get_option_str;
 
+use super::respond_with_error;
 use crate::CommandRegistry;
 use crate::handler::Handler;
-
-use super::respond_with_error;
 
 impl Handler {
     pub async fn interaction_command(
@@ -27,9 +26,11 @@ impl Handler {
         );
 
         match registry.run_command(ctx, interaction, app).await {
-            Some(Ok(())) => {}
+            Some(Ok(())) => {},
             Some(Err(e)) => respond_with_error(ctx, interaction, e).await,
-            None => warn!(command = interaction.data.name.as_str(), "unknown command"),
+            None => {
+                warn!(command = interaction.data.name.as_str(), "unknown command");
+            },
         }
     }
 }

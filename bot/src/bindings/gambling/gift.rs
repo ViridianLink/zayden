@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use gambling::commands::gift::GiftManager;
-use gambling::{Commands, commands::gift::SenderRow};
+use gambling::Commands;
+use gambling::commands::gift::{GiftManager, SenderRow};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
@@ -39,13 +39,16 @@ impl GiftManager<Postgres> for GiftTable {
                 LEFT JOIN levels l ON g.user_id = l.user_id
                 LEFT JOIN gambling_mine m on g.user_id = m.user_id
                 WHERE g.user_id = $1;"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
     }
 
-    async fn save_sender(pool: &PgPool, row: SenderRow) -> sqlx::Result<PgQueryResult> {
+    async fn save_sender(
+        pool: &PgPool,
+        row: SenderRow,
+    ) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
         let mut result = sqlx::query!(

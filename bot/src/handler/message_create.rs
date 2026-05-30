@@ -25,18 +25,24 @@ impl Handler {
         }
 
         let (new_level, ..) = tokio::try_join!(
-            levels::message_create::<Postgres, LevelsTable>(msg, pool).map(Result::Ok),
-            Ai::run(ctx, msg, &app),
-            support(&ctx.http, msg, pool),
+            levels::message_create::<Postgres, LevelsTable>(msg, pool)
+                .map(Result::Ok),
             llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
-            llamad2::CountingFail::run(ctx, msg).map(Result::Ok)
+            llamad2::CountingFail::run(ctx, msg).map(Result::Ok),
+            Box::pin(support(&ctx.http, msg, pool)),
+            Box::pin(Ai::run(ctx, msg, &app)),
         )?;
 
         if let Some(level) = new_level {
             let mut tx = pool.begin().await?;
 
-            GamblingTable::add_coins(&mut tx, msg.author.id, level as i64 * 1000).await?;
+            GamblingTable::add_coins(
+                &mut tx,
+                msg.author.id,
+                i64::from(level) * 1000,
+            )
+            .await?;
 
             tx.commit().await?;
         }

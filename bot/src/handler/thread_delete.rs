@@ -1,10 +1,9 @@
 use serenity::all::{Context, PartialGuildThread};
 use sqlx::{PgPool, Postgres};
 
+use super::Handler;
 use crate::Result;
 use crate::bindings::lfg::PostTable;
-
-use super::Handler;
 
 impl Handler {
     pub async fn thread_delete(
@@ -12,7 +11,8 @@ impl Handler {
         thread: &PartialGuildThread,
         pool: &PgPool,
     ) -> Result<()> {
-        lfg::events::thread_delete::<Postgres, PostTable>(&ctx.http, thread, pool).await?;
+        lfg::events::thread_delete::<Postgres, PostTable>(&ctx.http, thread, pool)
+            .await?;
 
         Ok(())
     }

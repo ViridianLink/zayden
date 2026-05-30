@@ -1,4 +1,5 @@
-use std::{collections::HashMap, num::NonZeroU64};
+use std::collections::HashMap;
+use std::num::NonZeroU64;
 
 use serde::Serialize;
 
@@ -33,18 +34,16 @@ pub struct ResponseBody {
 }
 
 impl ResponseBody {
+    #[must_use]
     pub fn basic() -> Self {
-        let reasoning = Reasoning {
-            effort: Effort::Minimal,
-            ..Default::default()
-        };
+        let reasoning = Reasoning { effort: Effort::Minimal, ..Default::default() };
 
         Self {
             background: false,
             include: Vec::new(),
             input: Vec::new(),
             instructions: None,
-            max_output_tokens: Some(NonZeroU64::new(100).unwrap()),
+            max_output_tokens: NonZeroU64::new(100),
             max_tool_calls: None,
             metadata: None,
             model: String::from("gpt-5-nano"),
@@ -69,11 +68,13 @@ impl ResponseBody {
         }
     }
 
+    #[must_use]
     pub fn input(mut self, input: Input) -> Self {
         self.input.push(input);
         self
     }
 
+    #[must_use]
     pub fn instructions(mut self, message: impl Into<String>) -> Self {
         self.instructions = Some(message.into());
         self
@@ -90,11 +91,7 @@ pub struct Input {
 
 impl Input {
     pub fn new(content: impl Into<String>, role: Role) -> Self {
-        Self {
-            content: content.into(),
-            role,
-            kind: String::from("message"),
-        }
+        Self { content: content.into(), role, kind: String::from("message") }
     }
 }
 
@@ -122,10 +119,7 @@ pub struct Reasoning {
 
 impl Default for Reasoning {
     fn default() -> Self {
-        Self {
-            effort: Effort::Medium,
-            summary: None,
-        }
+        Self { effort: Effort::Medium, summary: None }
     }
 }
 

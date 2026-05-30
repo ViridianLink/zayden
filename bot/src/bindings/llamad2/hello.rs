@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use serenity::all::CreateCommand;
 use zayden_core::{CommandScope, HandlerError, InvocationCtx, ModuleCommand};
 
-pub struct Hello;
+pub(super) struct Hello;
 
 #[async_trait]
 impl ModuleCommand for Hello {
@@ -21,7 +21,9 @@ impl ModuleCommand for Hello {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        llamad2::Hello::run(cx.ctx, cx.interaction).await;
+        llamad2::Hello::run(cx.ctx, cx.interaction)
+            .await
+            .map_err(HandlerError::new)?;
         Ok(())
     }
 }

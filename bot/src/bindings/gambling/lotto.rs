@@ -27,7 +27,7 @@ impl LottoManager<Postgres> for LottoTable {
         sqlx::query_file_as!(
             LottoRow,
             "sql/gambling/LottoManager/row.sql",
-            id.get() as i64,
+            id.get().cast_signed(),
             LOTTO_TICKET.id
         )
         .fetch_optional(conn)
@@ -51,7 +51,7 @@ impl LottoManager<Postgres> for LottoTable {
         )
         .fetch_one(conn)
         .await
-        .map(|x| x.unwrap_or_default())
+        .map(Option::unwrap_or_default)
         .map(|x| x.to_i64().unwrap_or_default())
     }
 

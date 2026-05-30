@@ -4,16 +4,15 @@ use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 
 const ITEMS_PER_PAGE: usize = 10;
 
-pub fn leaderboard<'a, T: Display>(
-    title: &'a str,
+pub fn leaderboard<T: Display>(
+    title: &str,
     data: impl Iterator<Item = T>,
     page: u32,
-) -> CreateEmbed<'a> {
+) -> CreateEmbed<'_> {
     let page_offset = (page.saturating_sub(1) as usize) * ITEMS_PER_PAGE;
 
-    let description = data
-        .enumerate()
-        .fold(String::new(), |mut output, (i, item)| {
+    let description =
+        data.enumerate().fold(String::new(), |mut output, (i, item)| {
             if !output.is_empty() {
                 output.push_str("\n\n");
             }
@@ -27,7 +26,7 @@ pub fn leaderboard<'a, T: Display>(
                 _ => format!("#{place}"),
             };
 
-            write!(output, "{place_marker} - {item}").unwrap();
+            let _ = write!(output, "{place_marker} - {item}");
             output
         });
 

@@ -2,12 +2,12 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use futures::TryStreamExt;
-use gambling::{EffectsManager, EffectsRow, shop::ShopItem};
+use gambling::shop::ShopItem;
+use gambling::{EffectsManager, EffectsRow};
 use serenity::all::UserId;
-use sqlx::{
-    PgConnection, Postgres,
-    postgres::{PgQueryResult, types::PgInterval},
-};
+use sqlx::postgres::PgQueryResult;
+use sqlx::postgres::types::PgInterval;
+use sqlx::{PgConnection, Postgres};
 
 pub struct EffectsTable;
 
@@ -22,7 +22,7 @@ impl EffectsManager<Postgres> for EffectsTable {
         sqlx::query_as!(
             EffectsRow,
             r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1"#,
-            user_id.get() as i64,
+            user_id.get().cast_signed(),
         )
         .fetch(conn).map_ok(|row| (row.item_id, row.id)).try_collect()
         .await
@@ -38,7 +38,7 @@ impl EffectsManager<Postgres> for EffectsTable {
         sqlx::query_as!(
             EffectsRow,
             r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1 AND item_id = $2"#,
-            user_id.get() as i64,
+            user_id.get().cast_signed(),
             effect
         )
         .fetch_optional(conn)
@@ -52,9 +52,10 @@ impl EffectsManager<Postgres> for EffectsTable {
     ) -> sqlx::Result<PgQueryResult> {
         let user_id = user_id.into();
 
-        let duration = item
-            .effect_duration
-            .map(|d| PgInterval::try_from(d).unwrap());
+        let duration = item.effect_duration.map(|d| {
+            PgInterval::try_from(d)
+                .expect("invariant: effect_duration fits in PgInterval")
+        });
 
         sqlx::query!(
             "INSERT INTO gambling_effects (user_id, item_id, expiry)
@@ -62,7 +63,7 @@ impl EffectsManager<Postgres> for EffectsTable {
             ON CONFLICT (user_id, item_id)
             DO UPDATE SET
                 expiry = GREATEST(gambling_effects.expiry + $3, EXCLUDED.expiry)",
-            user_id.get() as i64,
+            user_id.get().cast_signed(),
             item.id,
             duration
         )
@@ -70,7 +71,10 @@ impl EffectsManager<Postgres> for EffectsTable {
         .await
     }
 
-    async fn remove_effect(conn: &mut PgConnection, id: i32) -> sqlx::Result<PgQueryResult> {
+    async fn remove_effect(
+        conn: &mut PgConnection,
+        id: i32,
+    ) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "DELETE FROM gambling_effects WHERE id = $1 AND (expiry <= NOW() OR expiry IS NULL)",
             id

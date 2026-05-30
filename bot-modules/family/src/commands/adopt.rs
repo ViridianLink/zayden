@@ -1,6 +1,11 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    ResolvedValue, UserId,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    ResolvedValue,
+    UserId,
 };
 use sqlx::{Database, Pool};
 
@@ -16,9 +21,10 @@ impl Adopt {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<UserId> {
-        let target_user = match interaction.data.options()[0].value {
-            ResolvedValue::User(user, _) => user,
-            _ => unreachable!("User option must be a user"),
+        let options = interaction.data.options();
+        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let ResolvedValue::User(target_user, _) = option.value else {
+            return Err(Error::InvalidUserId);
         };
 
         if interaction.user.id == target_user.id {
@@ -33,10 +39,9 @@ impl Adopt {
             return Err(Error::Bot);
         }
 
-        let row = match Manager::row(pool, interaction.user.id).await? {
-            Some(row) => row,
-            None => (&interaction.user).into(),
-        };
+        let row = Manager::row(pool, interaction.user.id)
+            .await?
+            .unwrap_or_else(|| (&interaction.user).into());
 
         if !row.parent_ids.is_empty() {
             return Err(Error::AlreadyAdopted(target_user.id));
@@ -57,8 +62,12 @@ impl Adopt {
         CreateCommand::new("adopt")
             .description("Adopt another user into your family.")
             .add_option(
-                CreateCommandOption::new(CommandOptionType::User, "user", "The user to adopt.")
-                    .required(true),
+                CreateCommandOption::new(
+                    CommandOptionType::User,
+                    "user",
+                    "The user to adopt.",
+                )
+                .required(true),
             )
     }
 }

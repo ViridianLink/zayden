@@ -4,6 +4,24 @@ use std::sync::Arc;
 
 use zayden_core::IdMatch;
 
+#[derive(Debug)]
+pub struct OverlapError {
+    pub incoming: Cow<'static, str>,
+    pub existing: Cow<'static, str>,
+}
+
+impl std::fmt::Display for OverlapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "registry: prefix '{}' overlaps with already-registered prefix '{}'",
+            self.incoming, self.existing
+        )
+    }
+}
+
+impl std::error::Error for OverlapError {}
+
 /// Dual-mode lookup table for component and modal handlers.
 ///
 /// Exact registrations always win over prefix registrations.
@@ -19,14 +37,12 @@ pub struct DispatchMap<T: ?Sized> {
 
 impl<T: ?Sized> Default for DispatchMap<T> {
     fn default() -> Self {
-        Self {
-            exact: HashMap::new(),
-            prefix: Vec::new(),
-        }
+        Self { exact: HashMap::new(), prefix: Vec::new() }
     }
 }
 
 impl<T: ?Sized> DispatchMap<T> {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -35,24 +51,28 @@ impl<T: ?Sized> DispatchMap<T> {
     ///
     /// For `Exact` keys, an existing registration for the same key is silently
     /// overwritten.  For `Prefix` keys, registering the same prefix again also
-    /// overwrites, but registering a prefix that is a prefix-of or has-as-prefix
-    /// an *already-registered different* prefix panics — this is a programmer
-    /// error caught at startup.
-    pub fn insert(&mut self, id_match: IdMatch, val: Arc<T>) {
+    /// overwrites, but registering a prefix that is a prefix-of or
+    /// has-as-prefix an *already-registered different* prefix returns
+    /// [`OverlapError`] — this is a programmer error caught at startup.
+    pub fn insert(
+        &mut self,
+        id_match: IdMatch,
+        val: Arc<T>,
+    ) -> Result<(), OverlapError> {
         match id_match {
             IdMatch::Exact(key) => {
                 self.exact.insert(key, val);
-            }
+            },
             IdMatch::Prefix(key) => {
                 for (existing, _) in &self.prefix {
                     if existing != &key
                         && (existing.starts_with(key.as_ref())
                             || key.starts_with(existing.as_ref()))
                     {
-                        panic!(
-                            "registry: prefix '{}' overlaps with already-registered prefix '{}'",
-                            key, existing
-                        );
+                        return Err(OverlapError {
+                            incoming: key,
+                            existing: existing.clone(),
+                        });
                     }
                 }
                 // Allow overwriting the same prefix.
@@ -60,13 +80,15 @@ impl<T: ?Sized> DispatchMap<T> {
                 self.prefix.push((key, val));
                 // Longest first so the first hit is the most specific.
                 self.prefix.sort_by_key(|(k, _)| std::cmp::Reverse(k.len()));
-            }
+            },
         }
+        Ok(())
     }
 
     /// Look up a handler for `custom_id`.
     ///
     /// Exact match wins; then the longest prefix match is returned.
+    #[must_use]
     pub fn lookup(&self, custom_id: &str) -> Option<&Arc<T>> {
         if let Some(v) = self.exact.get(custom_id) {
             return Some(v);
@@ -91,17 +113,17 @@ mod tests {
     #[test]
     fn exact_match() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
-        map.insert(IdMatch::Exact(Cow::Borrowed("foo")), arc(1));
-        assert_eq!(map.lookup("foo").unwrap().0, 1);
+        let _ = map.insert(IdMatch::Exact(Cow::Borrowed("foo")), arc(1));
+        assert_eq!(map.lookup("foo").expect("handler must be registered").0, 1);
         assert!(map.lookup("foo_extra").is_none());
     }
 
     #[test]
     fn prefix_match() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
-        map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
-        assert_eq!(map.lookup("foo_bar").unwrap().0, 1);
-        assert_eq!(map.lookup("foo_").unwrap().0, 1);
+        let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
+        assert_eq!(map.lookup("foo_bar").expect("handler must be registered").0, 1);
+        assert_eq!(map.lookup("foo_").expect("handler must be registered").0, 1);
         assert!(map.lookup("fo").is_none());
         assert!(map.lookup("bar").is_none());
     }
@@ -109,36 +131,42 @@ mod tests {
     #[test]
     fn exact_wins_over_prefix() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
-        map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
-        map.insert(IdMatch::Exact(Cow::Borrowed("foo_exact")), arc(2));
-        assert_eq!(map.lookup("foo_exact").unwrap().0, 2);
-        assert_eq!(map.lookup("foo_other").unwrap().0, 1);
+        let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
+        let _ = map.insert(IdMatch::Exact(Cow::Borrowed("foo_exact")), arc(2));
+        assert_eq!(
+            map.lookup("foo_exact").expect("handler must be registered").0,
+            2
+        );
+        assert_eq!(
+            map.lookup("foo_other").expect("handler must be registered").0,
+            1
+        );
     }
 
     #[test]
     fn two_non_overlapping_prefixes() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
-        map.insert(IdMatch::Prefix(Cow::Borrowed("alpha_")), arc(1));
-        map.insert(IdMatch::Prefix(Cow::Borrowed("beta_")), arc(2));
-        assert_eq!(map.lookup("alpha_1").unwrap().0, 1);
-        assert_eq!(map.lookup("beta_2").unwrap().0, 2);
+        let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("alpha_")), arc(1));
+        let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("beta_")), arc(2));
+        assert_eq!(map.lookup("alpha_1").expect("handler must be registered").0, 1);
+        assert_eq!(map.lookup("beta_2").expect("handler must be registered").0, 2);
         assert!(map.lookup("gamma_3").is_none());
     }
 
     #[test]
     fn same_prefix_overwrites() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
-        map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
-        map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(2));
-        assert_eq!(map.lookup("foo_bar").unwrap().0, 2);
+        let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
+        let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(2));
+        assert_eq!(map.lookup("foo_bar").expect("handler must be registered").0, 2);
     }
 
     #[test]
-    #[should_panic(expected = "overlaps")]
-    fn overlapping_prefixes_panic() {
+    fn overlapping_prefixes_err() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
-        map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
-        map.insert(IdMatch::Prefix(Cow::Borrowed("foo_bar_")), arc(2));
+        let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
+        let result = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_bar_")), arc(2));
+        assert!(result.is_err());
     }
 
     #[test]

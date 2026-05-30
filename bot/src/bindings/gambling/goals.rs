@@ -16,7 +16,10 @@ pub struct GoalsTable;
 
 #[async_trait]
 impl GoalsManager<Postgres> for GoalsTable {
-    async fn row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<GoalsRow>> {
+    async fn row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<GoalsRow>> {
         let id = id.into();
 
         sqlx::query_as!(
@@ -33,7 +36,7 @@ impl GoalsManager<Postgres> for GoalsTable {
                 LEFT JOIN levels l ON g.user_id = l.user_id
                 LEFT JOIN gambling_mine m on g.user_id = m.user_id
                 WHERE g.user_id = $1;",
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
@@ -48,12 +51,16 @@ impl GoalsManager<Postgres> for GoalsTable {
         sqlx::query_as!(
             GamblingGoalsRow,
             r#"SELECT user_id, goal_id, day as "day: jiff_sqlx::Date", progress, target FROM gambling_goals WHERE user_id = $1"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_all(pool)
         .await
     }
 
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx DATE[] mapping"
+    )]
     async fn update(
         pool: &PgPool,
         rows: &[GamblingGoalsRow],
@@ -117,8 +124,12 @@ impl ModuleCommand for Goals {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Commands::goals::<BotState, Postgres, GoalsTable>(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)
+        Commands::goals::<BotState, Postgres, GoalsTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }

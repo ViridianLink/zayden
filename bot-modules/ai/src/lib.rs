@@ -3,4 +3,4 @@ pub mod error;
 pub mod openai;
 pub mod output;
 
-pub use error::Error;
+pub use error::AiError as Error;

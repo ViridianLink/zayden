@@ -1,11 +1,9 @@
-use ai::{
-    chat::{Input, ResponseBody, Role},
-    openai::OpenAI,
-};
+use ai::chat::{Input, ResponseBody, Role};
+use ai::openai::OpenAI;
 use serenity::all::{Context, GenericChannelId, Message};
 use zayden_app::state::AppState;
 
-use crate::{Error, RegistryBuilder, Result};
+use crate::{BotError, RegistryBuilder, Result};
 
 const PERSONALITY: &str = "[Word Limit: 100]
 You're Zayden. Cunning, cold, and calculated, you waste no words; each one is a weapon. You don't crave war or chaos—you crave control, built not through force but through vice.
@@ -24,7 +22,8 @@ impl Ai {
                 Self::parse_mentions(referenced_message),
             ));
 
-            let nested_contents = Self::process_referenced_messages(referenced_message);
+            let nested_contents =
+                Self::process_referenced_messages(referenced_message);
             contents.extend(nested_contents);
         }
 
@@ -42,7 +41,8 @@ impl Ai {
                 continue;
             }
 
-            parsed_content = parsed_content.replace(&mention_tag, mention.display_name());
+            parsed_content =
+                parsed_content.replace(&mention_tag, mention.display_name());
         }
 
         parsed_content
@@ -63,7 +63,7 @@ impl Ai {
 
         body = body.input(Input::new(Self::parse_mentions(message), Role::User));
 
-        let openai = OpenAI::new(api_key);
+        let openai = OpenAI::new(api_key).map_err(BotError::Ai)?;
         let response = openai.create_response(&body).await?;
 
         let text = response
@@ -80,15 +80,22 @@ impl Ai {
                 }
             })
             .ok_or_else(|| {
-                Error::Other("OpenAI response contained no usable message text".to_owned())
+                BotError::Other(
+                    "OpenAI response contained no usable message text".to_owned(),
+                )
             })?;
 
         message.reply(&ctx.http, text).await?;
         Ok(())
     }
 
-    pub async fn run(ctx: &Context, message: &Message, app: &AppState) -> Result<()> {
-        const GAMBLING_CHANNEL: GenericChannelId = GenericChannelId::new(1281440730820116582);
+    pub async fn run(
+        ctx: &Context,
+        message: &Message,
+        app: &AppState,
+    ) -> Result<()> {
+        const GAMBLING_CHANNEL: GenericChannelId =
+            GenericChannelId::new(1_281_440_730_820_116_582);
 
         if message.channel_id != GAMBLING_CHANNEL {
             return Ok(());
@@ -114,6 +121,6 @@ impl Ai {
     }
 }
 
-pub fn register(_builder: &mut RegistryBuilder) {
+pub const fn register(_builder: &mut RegistryBuilder) {
     // ai has no slash commands — all interaction is via message events
 }

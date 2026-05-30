@@ -18,7 +18,10 @@ pub struct ShopTable;
 
 #[async_trait]
 impl ShopManager<Postgres> for ShopTable {
-    async fn buy_row(pool: &PgPool, id: impl Into<UserId> + Send) -> sqlx::Result<Option<ShopRow>> {
+    async fn buy_row(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<ShopRow>> {
         let id = id.into();
 
         sqlx::query_as!(ShopRow,
@@ -44,7 +47,7 @@ impl ShopManager<Postgres> for ShopTable {
             COALESCE(m.production, 0) AS "production!"
 
             FROM gambling g LEFT JOIN levels l ON g.user_id = l.user_id LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1;"#,
-            id.get() as i64
+            id.get().cast_signed()
         ).fetch_optional(pool).await
     }
 
@@ -97,7 +100,7 @@ impl ShopManager<Postgres> for ShopTable {
 
         result.extend([result3]);
 
-        tx.commit().await.unwrap();
+        tx.commit().await?;
 
         Ok(result)
     }
@@ -120,7 +123,7 @@ impl ShopManager<Postgres> for ShopTable {
             SELECT $1, * FROM UNNEST($2::text[], $3::bigint[])
             ON CONFLICT (user_id, item_id) DO UPDATE
             SET quantity = EXCLUDED.quantity",
-            user_id.get() as i64,
+            user_id.get().cast_signed(),
             &item_ids,
             &quantities
         )
@@ -151,7 +154,7 @@ impl ShopManager<Postgres> for ShopTable {
             WHERE
                 g.user_id = $1
             "#,
-            id.get() as i64,
+            id.get().cast_signed(),
             item_id
         )
         .fetch_optional(pool)
@@ -199,16 +202,23 @@ impl ShopManager<Postgres> for ShopTable {
 
 #[async_trait]
 impl InventoryManager<Postgres> for ShopTable {
-    async fn gambling_row(_pool: &PgPool, _id: UserId) -> sqlx::Result<Option<InventoryRow>> {
+    async fn gambling_row(
+        _pool: &PgPool,
+        _id: UserId,
+    ) -> sqlx::Result<Option<InventoryRow>> {
         Ok(None)
     }
-    async fn inventory_items(pool: &PgPool, id: UserId) -> sqlx::Result<GamblingItems> {
+
+    async fn inventory_items(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<GamblingItems> {
         let items = sqlx::query_as!(
             GamblingItem,
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_all(pool)
         .await?;

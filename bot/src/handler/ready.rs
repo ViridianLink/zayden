@@ -13,10 +13,7 @@ impl Handler {
         info!(
             "{} is connected ({} shards) and in {} guilds!",
             ready.user.name,
-            ready
-                .shard
-                .map(|info| info.total)
-                .unwrap_or(NonZeroU16::MIN),
+            ready.shard.map_or(NonZeroU16::MIN, |info| info.total),
             ready.guilds.len()
         );
 
@@ -25,12 +22,8 @@ impl Handler {
         let pool = self.bot_state.read().await.app.db.clone();
         BotState::ready(ctx, ready, &pool).await;
 
-        let already_started = self
-            .bot_state
-            .read()
-            .await
-            .started_cron
-            .load(Ordering::Relaxed);
+        let already_started =
+            self.bot_state.read().await.started_cron.load(Ordering::Relaxed);
 
         if !already_started {
             {

@@ -15,7 +15,12 @@ use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;
 use zayden_core::{CronJob, CronJobData, EmojiCache, EmojiCacheData};
 
-use crate::bindings::gambling::{GamblingTable, HigherLowerTable, LottoTable, StaminaTable};
+use crate::bindings::gambling::{
+    GamblingTable,
+    HigherLowerTable,
+    LottoTable,
+    StaminaTable,
+};
 use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
 /// Bot-specific application state stored in Serenity's context data.
@@ -35,6 +40,7 @@ pub struct BotState {
 }
 
 impl BotState {
+    #[must_use]
     pub fn new(app: Arc<AppState>, config: &BotConfig) -> Self {
         let bungie_client = BungieClientBuilder::new(config.bungie_api_key.clone())
             .build()
@@ -54,19 +60,31 @@ impl BotState {
     }
 
     pub fn setup_static_cron(&mut self) {
-        self.cron_jobs = vec![
+        let jobs = [
             StaminaCron::cron_job::<Postgres, StaminaTable>(),
-            Lotto::cron_job::<BotState, Postgres, GamblingTable, LottoTable>(),
+            Lotto::cron_job::<Self, Postgres, GamblingTable, LottoTable>(),
             HigherLower::cron_job::<Postgres, GamblingTable, HigherLowerTable>(),
         ];
+        for job in jobs {
+            match job {
+                Ok(j) => self.cron_jobs.push(j),
+                Err(e) => {
+                    tracing::error!(error = ?e, "failed to create cron job");
+                },
+            }
+        }
     }
 
     pub async fn ready(ctx: &Context, ready: &Ready, pool: &PgPool) {
         let cache = if ready.application.id.get() == ZAYDEN_ID.get() {
-            EmojiCache::new(ctx).await.unwrap()
+            EmojiCache::new(ctx)
+                .await
+                .expect("EmojiCache initialization failed in Ready handler")
         } else {
             let token = ZAYDEN_TOKEN.get_or_init(|| zayden_token(pool)).await;
-            EmojiCache::new_from_parent(ctx, token).await.unwrap()
+            EmojiCache::new_from_parent(ctx, token)
+                .await
+                .expect("EmojiCache initialization failed in Ready handler")
         };
 
         let data = ctx.data::<RwLock<Self>>();
@@ -146,7 +164,6 @@ impl GoodMorningCache for BotState {
         author: UserId,
         is_good_morning: bool,
     ) -> Option<(UserId, bool)> {
-        self.good_morning_cache
-            .insert(channel_id, (author, is_good_morning))
+        self.good_morning_cache.insert(channel_id, (author, is_good_morning))
     }
 }

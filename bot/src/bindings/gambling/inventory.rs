@@ -16,7 +16,10 @@ pub struct InventoryTable;
 
 #[async_trait]
 impl InventoryManager<Postgres> for InventoryTable {
-    async fn gambling_row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<InventoryRow>> {
+    async fn gambling_row(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<Option<InventoryRow>> {
         sqlx::query_as!(
             InventoryRow,
             r#"SELECT
@@ -35,18 +38,22 @@ impl InventoryManager<Postgres> for InventoryTable {
             COALESCE(m.emeralds, 0) AS "emeralds!"
 
             FROM gambling g LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_optional(pool)
         .await
     }
-    async fn inventory_items(pool: &PgPool, id: UserId) -> sqlx::Result<GamblingItems> {
+
+    async fn inventory_items(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<GamblingItems> {
         let items = sqlx::query_as!(
             GamblingItem,
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get() as i64
+            id.get().cast_signed()
         )
         .fetch_all(pool)
         .await?;
@@ -83,7 +90,7 @@ impl InventoryManager<Postgres> for InventoryTable {
         FROM
             updated_row ur
         "#,
-            id.get() as i64,
+            id.get().cast_signed(),
             item_id,
             amount
         )

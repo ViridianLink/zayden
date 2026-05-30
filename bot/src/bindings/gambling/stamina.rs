@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use gambling::StaminaManager;
-use sqlx::{PgPool, Postgres, postgres::PgQueryResult};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{PgPool, Postgres};
 
-pub const MAX_STAMINA: i32 = 3;
+pub(super) const MAX_STAMINA: i32 = 3;
 
 pub struct StaminaTable;
 

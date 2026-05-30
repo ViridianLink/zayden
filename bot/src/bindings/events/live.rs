@@ -3,17 +3,21 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use jiff::{Span, Timestamp};
 use serenity::all::{
-    CreateCommand, CreateScheduledEvent, EditInteractionResponse, GuildId, Permissions,
+    CreateCommand,
+    CreateScheduledEvent,
+    EditInteractionResponse,
+    GuildId,
+    Permissions,
     ScheduledEventType,
 };
 use zayden_core::{CommandScope, Error, HandlerError, InvocationCtx, ModuleCommand};
 
 static LIVE_GUILDS: [GuildId; 1] = [crate::BRADSTER_GUILD];
 
-pub struct Live;
+pub(super) struct Live;
 
 impl Live {
-    pub fn register() -> CreateCommand<'static> {
+    pub(super) fn register() -> CreateCommand<'static> {
         CreateCommand::new("live")
             .description("Notify the server that Brad is live on Twitch")
             .default_member_permissions(Permissions::CREATE_EVENTS)
@@ -27,7 +31,7 @@ impl ModuleCommand for Live {
     }
 
     fn definition(&self) -> CreateCommand<'static> {
-        Live::register()
+        Self::register()
     }
 
     fn scope(&self) -> CommandScope {
@@ -35,10 +39,7 @@ impl ModuleCommand for Live {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        cx.interaction
-            .defer(&cx.ctx.http)
-            .await
-            .map_err(HandlerError::new)?;
+        cx.interaction.defer(&cx.ctx.http).await.map_err(HandlerError::new)?;
 
         let guild_id = cx
             .interaction
@@ -55,13 +56,17 @@ impl ModuleCommand for Live {
                 CreateScheduledEvent::new(
                     ScheduledEventType::External,
                     "Brad is LIVE",
-                    serenity::all::Timestamp::from_unix_timestamp(in_one_min.as_second())
-                        .expect("timestamp must be in bounds"),
+                    serenity::all::Timestamp::from_unix_timestamp(
+                        in_one_min.as_second(),
+                    )
+                    .expect("timestamp must be in bounds"),
                 )
                 .location("https://www.twitch.tv/bradleythebradster")
                 .end_time(
-                    serenity::all::Timestamp::from_unix_timestamp(in_seven_hours.as_second())
-                        .expect("timestamp must be in bounds"),
+                    serenity::all::Timestamp::from_unix_timestamp(
+                        in_seven_hours.as_second(),
+                    )
+                    .expect("timestamp must be in bounds"),
                 ),
             )
             .await
@@ -70,7 +75,8 @@ impl ModuleCommand for Live {
         cx.interaction
             .edit_response(
                 &cx.ctx.http,
-                EditInteractionResponse::new().content("Event successfully created."),
+                EditInteractionResponse::new()
+                    .content("Event successfully created."),
             )
             .await
             .map_err(HandlerError::new)?;

@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use async_trait::async_trait;
 use serenity::all::{
@@ -27,33 +26,32 @@ impl SlashCommand<Error, Postgres> for RulesCommand {
         _options: Vec<ResolvedOption<'_>>,
         _pool: &PgPool,
     ) -> Result<()> {
-        interaction.defer_ephemeral(ctx).await.unwrap();
+        interaction.defer_ephemeral(ctx).await?;
 
-        let rules_path = PathBuf::from_str("messages").unwrap().join("rules.md");
+        let rules_path = PathBuf::from("messages").join("rules.md");
 
-        let rules = tokio::fs::read_to_string(rules_path).await.unwrap();
-        let fields = rules.split("\r\n\r\n").map(|rule| {
-            let mut lines = rule.lines();
-            let title = lines.next().unwrap();
-            let description = lines.collect::<Vec<&str>>().join("\n");
-            (title, description, false)
-        });
+        let rules = tokio::fs::read_to_string(rules_path).await?;
+        let fields = rules
+            .split("\r\n\r\n")
+            .filter(|r| !r.trim().is_empty())
+            .map(|rule| {
+                let mut lines = rule.lines();
+                let title = lines.next().unwrap_or_default();
+                let description = lines.collect::<Vec<&str>>().join("\n");
+                (title, description, false)
+            });
 
         let embed = CreateEmbed::new().colour(Colour::from_rgb(255, 0, 0)).title("College Kings Server Rules").description("The below rules are a truncated version of the rules found in the [Code of Conduct](https://gist.github.com/KiloOscarSix/201a919b5650e511f11287c0a9c4c2fc).").fields(fields);
 
-        let mut message = CHANNEL_ID.message(ctx, MESSAGE_ID).await.unwrap();
-        message
-            .edit(ctx, EditMessage::new().embed(embed))
-            .await
-            .unwrap();
+        let mut message = CHANNEL_ID.message(ctx, MESSAGE_ID).await?;
+        message.edit(ctx, EditMessage::new().embed(embed)).await?;
 
         interaction
             .edit_response(
                 ctx,
                 EditInteractionResponse::new().content("The rules have been sent."),
             )
-            .await
-            .unwrap();
+            .await?;
 
         Ok(())
     }

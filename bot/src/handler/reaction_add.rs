@@ -3,11 +3,10 @@ use serenity::all::{Context, Reaction};
 use sqlx::{PgPool, Postgres};
 use suggestions::Suggestions;
 
+use super::Handler;
 use crate::Result;
 use crate::bindings::reaction_roles::ReactionRolesTable;
 use crate::sqlx_lib::GuildTable;
-
-use super::Handler;
 
 impl Handler {
     pub(super) async fn reaction_add(
@@ -19,7 +18,8 @@ impl Handler {
             &ctx.http, reaction, pool,
         )
         .await?;
-        Suggestions::reaction::<Postgres, GuildTable>(&ctx.http, reaction, pool).await;
+        Suggestions::reaction::<Postgres, GuildTable>(&ctx.http, reaction, pool)
+            .await;
 
         Ok(())
     }

@@ -18,7 +18,8 @@ impl ModuleCommand for RaidGuide {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        destiny2::raid_guides::RaidGuide::<0>::run(&cx.ctx.http, cx.interaction).await;
+        destiny2::raid_guides::RaidGuide::<0>::run(&cx.ctx.http, cx.interaction)
+            .await;
         Ok(())
     }
 }

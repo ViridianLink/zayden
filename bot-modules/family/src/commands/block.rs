@@ -1,5 +1,9 @@
 use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
@@ -15,19 +19,19 @@ impl Block {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let user = match interaction.data.options()[0].value {
-            ResolvedValue::User(user, _) => user,
-            _ => unreachable!("User option was not a user."),
+        let options = interaction.data.options();
+        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let ResolvedValue::User(user, _) = option.value else {
+            return Err(Error::InvalidUserId);
         };
 
         if &interaction.user == user {
             return Err(Error::UserSelfBlock);
         }
 
-        let mut row = match Manager::row(pool, interaction.user.id).await? {
-            Some(row) => row,
-            None => (&interaction.user).into(),
-        };
+        let mut row = Manager::row(pool, interaction.user.id)
+            .await?
+            .unwrap_or_else(|| (&interaction.user).into());
 
         row.add_blocked(user.id);
         row.save::<Db, Manager>(pool).await?;
@@ -54,19 +58,19 @@ impl Unblock {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let user = match interaction.data.options()[0].value {
-            ResolvedValue::User(user, _) => user,
-            _ => unreachable!("User option was not a user."),
+        let options = interaction.data.options();
+        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let ResolvedValue::User(user, _) = option.value else {
+            return Err(Error::InvalidUserId);
         };
 
         if &interaction.user == user {
             return Err(Error::UserSelfBlock);
         }
 
-        let mut row = match Manager::row(pool, interaction.user.id).await? {
-            Some(row) => row,
-            None => (&interaction.user).into(),
-        };
+        let mut row = Manager::row(pool, interaction.user.id)
+            .await?
+            .unwrap_or_else(|| (&interaction.user).into());
 
         row.remove_blocked(user.id);
         row.save::<Db, Manager>(pool).await?;

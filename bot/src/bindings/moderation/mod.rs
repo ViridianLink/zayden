@@ -53,11 +53,11 @@ impl InfractionRow {
     ) -> Result<Self> {
         Ok(Self {
             id: 0,
-            user_id: user_id.get() as i64,
+            user_id: user_id.get().cast_signed(),
             username: username.into(),
-            guild_id: guild_id.get() as i64,
+            guild_id: guild_id.get().cast_signed(),
             infraction_type: infraction_kind.to_string(),
-            moderator_id: moderator.id.get() as i64,
+            moderator_id: moderator.id.get().cast_signed(),
             moderator_username: moderator.name.clone(),
             points,
             reason: reason.into(),
@@ -70,14 +70,14 @@ impl InfractionRow {
         user_id: UserId,
         recent: bool,
     ) -> Result<Vec<InfractionRow>> {
-        let user_id = user_id.get() as i64;
+        let user_id = user_id.get().cast_signed();
 
         let infractions = if recent {
             sqlx::query_as!(
                 InfractionRow,
                 "SELECT * FROM infractions WHERE user_id = $1 AND created_at > CURRENT_DATE - INTERVAL '6 months'",
                 user_id
-            ).fetch_all(pool).await.unwrap()
+            ).fetch_all(pool).await?
         } else {
             sqlx::query_as!(
                 InfractionRow,
@@ -85,8 +85,7 @@ impl InfractionRow {
                 user_id
             )
             .fetch_all(pool)
-            .await
-            .unwrap()
+            .await?
         };
 
         Ok(infractions)
@@ -98,7 +97,7 @@ impl InfractionRow {
             self.user_id, self.username, self.guild_id, self.infraction_type, self.moderator_id, self.moderator_username, self.points, self.reason
         )
             .execute(pool)
-            .await.unwrap();
+            .await?;
 
         Ok(result)
     }
