@@ -29,6 +29,10 @@ pub struct LeaveInteraction {
 
 impl From<&CommandInteraction> for LeaveInteraction {
     fn from(value: &CommandInteraction) -> Self {
+        #[expect(
+            clippy::unreachable,
+            reason = "lfg command options are always SubCommand"
+        )]
         let ResolvedValue::SubCommand(subcommand) = value
             .data
             .options()
@@ -36,7 +40,7 @@ impl From<&CommandInteraction> for LeaveInteraction {
             .expect("lfg action always has a subcommand")
             .value
         else {
-            todo!()
+            unreachable!("lfg command options are always SubCommand")
         };
 
         let mut options = parse_options(subcommand);

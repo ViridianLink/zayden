@@ -75,8 +75,11 @@ impl Commands {
     }
 
     pub fn register_shop<'a>() -> CreateCommand<'a> {
-        let mut page_opt =
-            CreateCommandOption::new(CommandOptionType::String, "page", "test");
+        let mut page_opt = CreateCommandOption::new(
+            CommandOptionType::String,
+            "page",
+            "The shop page to view",
+        );
 
         for page in ShopPage::pages() {
             page_opt =

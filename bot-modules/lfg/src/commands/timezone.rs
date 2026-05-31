@@ -22,10 +22,6 @@ impl Command {
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
         let Some(ResolvedValue::String(region)) = options.remove("region") else {
             return Ok(());
         };

@@ -59,16 +59,16 @@ pub trait Gems {
 }
 
 pub trait Stamina {
-    const MAX_STAMINA: u8 = 3;
+    const MAX_STAMINA: i32 = 3;
 
-    fn stamina(&self) -> u8;
+    fn stamina(&self) -> i32;
 
     #[expect(clippy::cast_sign_loss, reason = "stamina is always non-negative")]
     fn stamina_str(&self) -> String {
         format!(
             "{}{}",
             "🟩 ".repeat(self.stamina() as usize),
-            "⬛ ".repeat(usize::from((Self::MAX_STAMINA - self.stamina()).max(0)))
+            "⬛ ".repeat((Self::MAX_STAMINA - self.stamina()).max(0) as usize)
         )
     }
 

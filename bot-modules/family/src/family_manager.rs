@@ -44,12 +44,10 @@ impl FamilyRow {
         Self { id, username, ..Default::default() }
     }
 
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn add_blocked(&mut self, user_id: UserId) {
         self.blocked_ids.push(user_id.get().cast_signed());
     }
 
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn remove_blocked(&mut self, user_id: UserId) {
         self.blocked_ids.retain(|id| *id != user_id.get().cast_signed());
     }
@@ -208,7 +206,6 @@ impl FamilyRow {
     }
 }
 
-#[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
 impl From<&User> for FamilyRow {
     fn from(user: &User) -> Self {
         Self {

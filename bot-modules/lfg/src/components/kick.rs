@@ -9,6 +9,7 @@ use serenity::all::{
     Http,
 };
 use sqlx::{Database, Pool};
+use tracing::error;
 
 use super::Components;
 use crate::models::post::PostManager;

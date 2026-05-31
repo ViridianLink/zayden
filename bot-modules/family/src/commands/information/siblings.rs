@@ -18,7 +18,6 @@ use crate::{FamilyError, Result};
 pub struct Siblings;
 
 impl Siblings {
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
         ctx: &Context,
         interaction: &CommandInteraction,

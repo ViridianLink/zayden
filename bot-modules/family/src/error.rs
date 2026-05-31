@@ -8,7 +8,6 @@ use crate::relationships::Relationships;
 
 pub type Result<T> = std::result::Result<T, FamilyError>;
 
-#[expect(clippy::error_impl_error, reason = "conventional error type naming")]
 #[derive(Debug)]
 pub enum FamilyError {
     // region common

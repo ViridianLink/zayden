@@ -174,7 +174,7 @@ impl WeaponBuilder {
             .map(|s| {
                 s.parse().map_or_else(
                     |_| {
-                        error!("temp"); // "Failed to parse: '{s}'"
+                        error!("Failed to parse: {s:?}");
                         None
                     },
                     Some,
@@ -194,7 +194,11 @@ impl WeaponBuilder {
             "LFRs" => String::from("Linear Fusion"),
             "HCs" => String::from("Hand Cannon"),
             "Other" => String::from("Other"),
-            s => String::from(s.get(..s.len() - 1).ok_or(()).expect("temp")),
+            s => String::from(
+                s.get(..s.len() - 1)
+                    .ok_or(())
+                    .expect("non-empty weapon type abbreviation"),
+            ),
         };
 
         let mut weapon = Self::new(&weapon_name, archetype)
@@ -637,10 +641,6 @@ pub fn create_combinations_string(data: &[Vec<u32>], item_hash: u32) -> String {
     result
 }
 
-#[expect(
-    clippy::indexing_slicing,
-    reason = "data[depth] access is bounded: depth is incremented up to data.len() only"
-)]
 fn generate_combinations_iterative(
     data: &[Vec<u32>],
     depth: usize,
@@ -663,7 +663,7 @@ fn generate_combinations_iterative(
         return;
     }
 
-    for &num in data.get(depth).expect("temp") {
+    for &num in data.get(depth).expect("depth is bounded by data.len()") {
         current_combination.push(num);
         generate_combinations_iterative(
             data,

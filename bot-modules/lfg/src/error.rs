@@ -6,10 +6,6 @@ use zayden_core::error::Respond;
 
 pub type Result<T> = std::result::Result<T, LfgError>;
 
-#[expect(
-    clippy::error_impl_error,
-    reason = "conventional error type name in domain crate"
-)]
 #[derive(Debug)]
 pub enum LfgError {
     MissingGuildId,

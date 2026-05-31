@@ -136,8 +136,9 @@ impl Create {
             DefaultTemplate::thread_embed(&post, interaction.user.display_name());
         let row = DefaultTemplate::main_row();
 
-        let lfg_guild =
-            GuildHandler::row(pool, guild_id).await?.ok_or(LfgError::MissingSetup)?;
+        let lfg_guild = GuildHandler::row(pool, guild_id)
+            .await?
+            .ok_or(LfgError::MissingSetup)?;
 
         let channel = match lfg_guild.channel_id() {
             Some(id) => id.to_guild_channel(&ctx.http, Some(guild_id)).await?,

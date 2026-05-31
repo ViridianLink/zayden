@@ -20,10 +20,6 @@ use crate::endgame_analysis::{EndgameAnalysisSheet, Weapon};
 pub struct DimWishlistCommand;
 
 impl DimWishlistCommand {
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "bungie_client() returns a reference into the RwLockReadGuard; guard must stay alive until all API calls complete"
-    )]
     pub async fn run<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,

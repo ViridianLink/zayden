@@ -1,4 +1,6 @@
-use jiff::Timestamp;
+use std::fmt::Write;
+
+use jiff::{Span, Timestamp};
 use serenity::all::{
     CommandInteraction,
     CommandOptionType,

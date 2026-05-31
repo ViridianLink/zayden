@@ -29,15 +29,6 @@ use crate::endgame_analysis::weapon::Weapon;
 pub struct TierListCommand;
 
 impl TierListCommand {
-    #[expect(
-        clippy::significant_drop_tightening,
-        clippy::unreachable,
-        clippy::wildcard_enum_match_arm,
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        clippy::indexing_slicing,
-        reason = "bungie_client() borrows the read guard; required Discord options guaranteed; integer count from Discord can't overflow usize; TIERS slice access is bounded"
-    )]
     pub async fn run<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -54,7 +45,7 @@ impl TierListCommand {
 
         let count = match options.get("count") {
             Some(ResolvedValue::Integer(count)) => {
-                usize::try_from(*count).expect("temp")
+                usize::try_from(*count).expect("count from Discord is non-negative")
             },
             _ => usize::MAX,
         };
@@ -67,7 +58,9 @@ impl TierListCommand {
                     .copied()
                     .position(|t| t == tier)
                     .expect("tier always in TIERS list");
-                TIERS.get(..=index).expect("temp")
+                TIERS
+                    .get(..=index)
+                    .expect("index from position() is always in bounds")
             },
             _ => &TIERS,
         };
@@ -169,10 +162,6 @@ impl TierListCommand {
             ))
     }
 
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "bungie_client() borrows the read guard; cache miss reads require the lock to remain alive across multiple await points"
-    )]
     pub async fn autocomplete<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,

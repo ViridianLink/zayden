@@ -40,10 +40,6 @@ impl Command {
             return Err(LfgError::PermissionDenied(owner));
         }
 
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
         let Some(ResolvedValue::User(user, _)) = options.remove("user") else {
             return Ok(());
         };

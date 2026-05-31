@@ -8,16 +8,13 @@ use serenity::all::{
     ForumTagId,
     Http,
 };
+use tracing::error;
 
 use crate::Result;
 
 pub struct TagsComponent;
 
 impl TagsComponent {
-    #[expect(
-        clippy::unreachable,
-        reason = "add/remove are only registered for StringSelect"
-    )]
     pub async fn add(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
         let mut tag_ids = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => values

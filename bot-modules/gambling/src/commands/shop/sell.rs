@@ -11,7 +11,7 @@ use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
-use crate::shop::SALES_TAX;
+use crate::shop::SALES_RETURN;
 use crate::{Coins, GamblingError, Result, SHOP_ITEMS, ShopManager};
 
 #[derive(FromRow)]
@@ -70,7 +70,7 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
         SHOP_ITEMS.get(item).expect("Preset choices so item should always exist");
 
     let total_coin_cost = item.coin_cost().expect("item has a coin cost") * amount;
-    let payment = (total_coin_cost as f64 * (1.0 - SALES_TAX)) as i64;
+    let payment = total_coin_cost * SALES_RETURN / 100;
 
     let mut row = Manager::sell_row(pool, interaction.user.id, item.id)
         .await

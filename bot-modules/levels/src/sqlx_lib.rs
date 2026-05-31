@@ -140,10 +140,6 @@ impl Default for XpRow {
 }
 
 impl LevelsRow for XpRow {
-    #[expect(
-        clippy::unreachable,
-        reason = "user_id is not stored on this view row type"
-    )]
     fn user_id(&self) -> UserId {
         UserId::default()
     }

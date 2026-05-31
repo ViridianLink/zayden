@@ -45,13 +45,15 @@ impl<'a> ShopItem<'a> {
         }
     }
 
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "i is bounded by self.costs.len(); get_mut is not usable in const fn"
+    )]
     const fn add_cost(mut self, cost: i64, currency: ShopCurrency) -> Self {
         let mut i = 0;
         while i < self.costs.len() {
-            let costs_mut = self.costs.get_mut(i).expect("");
-
-            if costs_mut.is_none() {
-                *costs_mut = Some((cost, currency));
+            if self.costs[i].is_none() {
+                self.costs[i] = Some((cost, currency));
                 break;
             }
 

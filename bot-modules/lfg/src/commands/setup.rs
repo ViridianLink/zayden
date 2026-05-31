@@ -36,10 +36,6 @@ impl Command {
 
         let guild_id = interaction.guild_id.ok_or(LfgError::MissingGuildId)?;
 
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
         let Some(ResolvedValue::Channel(channel)) = options.remove("channel") else {
             return Ok(());
         };

@@ -24,12 +24,6 @@ use crate::{EndgameAnalysisError, Result};
 pub struct WeaponCommand;
 
 impl WeaponCommand {
-    #[expect(
-        clippy::significant_drop_tightening,
-        clippy::unreachable,
-        clippy::manual_let_else,
-        reason = "bungie_client() borrows the read guard; required name option guaranteed by Discord"
-    )]
     pub async fn run<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
@@ -94,10 +88,6 @@ impl WeaponCommand {
             )
     }
 
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "bungie_client() borrows the read guard; lock must remain alive across await points"
-    )]
     pub async fn autocomplete<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,

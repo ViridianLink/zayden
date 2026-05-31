@@ -23,7 +23,7 @@ pub use currency::ShopCurrency;
 pub use items::*;
 pub use pages::ShopPage;
 
-pub const SALES_TAX: f64 = 0.1;
+pub const SALES_RETURN: i64 = 90;
 
 #[async_trait]
 pub trait ShopManager<Db: Database> {
@@ -229,10 +229,6 @@ pub fn shop_response<'a>(
             .expect("shop title prefix is a valid ShopPage")
     });
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "ShopPage has fewer than i8::MAX variants"
-    )]
     let category_idx = ShopPage::pages()
         .iter()
         .position(|cat| *cat == current_cat)
@@ -306,7 +302,7 @@ fn create_embed<'a>(
 
     let desc = format!(
         "Sales tax: {}%\nYour coins: {}  <:coin:{coin}>\n--------------------\n{items}\n--------------------\nBuy with `/shop buy <item> <amount>`\nSell with `/shop sell <item> <amount>`",
-        SALES_TAX * 100.0,
+        100 - SALES_RETURN,
         row.coins_str()
     );
 

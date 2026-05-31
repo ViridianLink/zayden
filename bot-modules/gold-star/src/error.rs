@@ -5,7 +5,6 @@ use zayden_core::error::Respond;
 
 pub type Result<T> = std::result::Result<T, GoldStarError>;
 
-#[expect(clippy::error_impl_error, reason = "module-level Error is idiomatic Rust")]
 #[derive(Debug)]
 pub enum GoldStarError {
     SelfStar,

@@ -21,8 +21,8 @@ use crate::utils::{GameResult, game_embed};
 use crate::{
     Coins,
     EffectsManager,
-    GamblingError,
     GamblingData,
+    GamblingError,
     GameCache,
     GameManager,
     GameRow,

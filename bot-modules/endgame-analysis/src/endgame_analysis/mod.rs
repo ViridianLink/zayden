@@ -22,19 +22,16 @@ use crate::Result;
 
 const ENDGAME_ANALYSIS_ID: &str = "1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY";
 
-#[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn primary_colour(color: &Color) -> bool {
     (color.red - 0.952_941_2).abs() < f64::EPSILON
         && (color.green - 0.952_941_2).abs() < f64::EPSILON
         && (color.blue - 0.952_941_2).abs() < f64::EPSILON
 }
 
-#[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn special_colour(color: &Color) -> bool {
     color.red == 0.0 && (color.green - 1.0).abs() < f64::EPSILON && color.blue == 0.0
 }
 
-#[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn heavy_colour(color: &Color) -> bool {
     (color.red - 0.6).abs() < f64::EPSILON
         && color.green == 0.0

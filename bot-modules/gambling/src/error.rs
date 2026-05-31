@@ -8,7 +8,6 @@ use crate::ShopCurrency;
 
 pub type Result<T> = std::result::Result<T, GamblingError>;
 
-#[expect(clippy::error_impl_error, reason = "conventional error type naming")]
 #[derive(Debug)]
 pub enum GamblingError {
     Overflow(i64),
