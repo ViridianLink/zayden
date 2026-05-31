@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT thread_id, COALESCE(\n                        (SELECT array_agg(role_id) FROM ticket_roles WHERE ticket_id = t.thread_id), \n                        ARRAY[]::bigint[]\n                    ) AS \"role_ids!\" FROM tickets t WHERE thread_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "role_ids!",
+        "type_info": "Int8Array"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "c19acab878f84f1605a11dc91cb4441a8af3fd01246650a293d86c9ae5284171"
+}

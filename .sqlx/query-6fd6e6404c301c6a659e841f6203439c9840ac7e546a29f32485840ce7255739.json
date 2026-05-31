@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH deleted AS (\n                DELETE FROM voice_channel_invites WHERE channel_id = $1\n            )\n            INSERT INTO voice_channel_invites (channel_id, user_id)\n            SELECT $1, * FROM UNNEST($2::bigint[])\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6fd6e6404c301c6a659e841f6203439c9840ac7e546a29f32485840ce7255739"
+}

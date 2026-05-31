@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n    gambling_stats (\n        user_id,\n        higher_or_lower_score,\n        weekly_higher_or_lower_score\n    )\nVALUES\n    ($1, $2, $2) ON CONFLICT (user_id)\nDO\nUPDATE\nSET\n    higher_or_lower_score = GREATEST(\n        gambling_stats.higher_or_lower_score,\n        EXCLUDED.higher_or_lower_score\n    ),\n    weekly_higher_or_lower_score = GREATEST(\n        gambling_stats.weekly_higher_or_lower_score,\n        EXCLUDED.weekly_higher_or_lower_score\n    );",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bde1f1bd17b02f692fb9c195be33b7adc3fa10207c3d580d62983a27015f3d3d"
+}

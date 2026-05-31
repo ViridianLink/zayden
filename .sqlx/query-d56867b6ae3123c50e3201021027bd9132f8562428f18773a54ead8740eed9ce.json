@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM lfg_fireteam\nWHERE\n    post_id = $1\n    AND user_id = $2;\n\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d56867b6ae3123c50e3201021027bd9132f8562428f18773a54ead8740eed9ce"
+}

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\nnumbered_users AS (\n    SELECT\n        user_id,\n        ROW_NUMBER() OVER (\n            ORDER BY\n                gems DESC\n        ) AS rn\n    FROM\n        gambling\n    WHERE\n        ($1 IS TRUE)\n        OR (user_id = ANY($2))\n)\n\nSELECT rn\nFROM\n    numbered_users\nWHERE\n    user_id = $3\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rn",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8Array",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0b7f34307a22c474e26356fe88fc38f11022ee6719b345b41016e899f83fefa0"
+}

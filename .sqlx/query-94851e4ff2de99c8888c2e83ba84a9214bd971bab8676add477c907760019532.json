@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                g.user_id,\n                g.coins,\n\n                i.id AS \"item_row_id?\",\n                i.quantity AS \"item_quantity?\"\n            FROM\n                gambling g\n            LEFT JOIN\n                gambling_inventory i ON g.user_id = i.user_id AND i.item_id = $2\n            WHERE\n                g.user_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "coins",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "item_row_id?",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "item_quantity?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "94851e4ff2de99c8888c2e83ba84a9214bd971bab8676add477c907760019532"
+}

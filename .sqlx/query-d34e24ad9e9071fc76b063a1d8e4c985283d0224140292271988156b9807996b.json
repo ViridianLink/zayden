@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    user_id,\n    quantity\nFROM\n    gambling_inventory\nWHERE\n    (\n        ($1 IS TRUE)\n        OR user_id = ANY ($2)\n    )\n    AND item_id = $3\nORDER BY\n    quantity DESC\nLIMIT\n    $4\nOFFSET\n    $5",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "quantity",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8Array",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d34e24ad9e9071fc76b063a1d8e4c985283d0224140292271988156b9807996b"
+}

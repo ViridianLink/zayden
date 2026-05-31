@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    user_id,\n    higher_or_lower_score\nFROM\n    gambling_stats\nWHERE\n    ($1 IS TRUE)\n    OR (user_id = ANY ($2))\nORDER BY\n    higher_or_lower_score DESC\nLIMIT\n    $3\nOFFSET\n    $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "higher_or_lower_score",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8Array",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2fffda1a39784bcb6d0b554fb9271aeeb8a28c0424b98265036eb6d43110a906"
+}

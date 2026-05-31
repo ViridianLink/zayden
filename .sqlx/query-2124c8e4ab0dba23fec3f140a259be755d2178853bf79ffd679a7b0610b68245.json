@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO lfg_messages (post_id, message_id, channel_id) VALUES ($1, $2, $3) ON CONFLICT (post_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2124c8e4ab0dba23fec3f140a259be755d2178853bf79ffd679a7b0610b68245"
+}

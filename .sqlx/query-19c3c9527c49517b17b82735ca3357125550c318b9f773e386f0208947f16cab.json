@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling_stats\nSET\n    weekly_higher_or_lower_score = 0;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "19c3c9527c49517b17b82735ca3357125550c318b9f773e386f0208947f16cab"
+}

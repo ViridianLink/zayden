@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\ngambling (user_id, coins)\nVALUES\n($1, $2) ON CONFLICT (user_id)\nDO\nUPDATE\n    SET\n        coins = gambling.coins + $2\n\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "28fd966ea0d4b547cc6fd2375be3e12f64aa48711d7a49643fc2eb4ad0f8d165"
+}

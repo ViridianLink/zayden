@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    user_id\nFROM\n    gambling_stats\nORDER BY\n    weekly_higher_or_lower_score DESC\nLIMIT\n    3;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8ed3387e19980c64fa550f8117f817564c5174a9be2d891261466b4f837a1db9"
+}

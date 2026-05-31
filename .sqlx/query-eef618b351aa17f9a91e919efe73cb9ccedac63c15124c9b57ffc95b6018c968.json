@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT user_id, xp, level, total_xp, message_count, last_xp as \"last_xp: jiff_sqlx::Timestamp\" FROM levels WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "xp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "total_xp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "message_count",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_xp: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "eef618b351aa17f9a91e919efe73cb9ccedac63c15124c9b57ffc95b6018c968"
+}

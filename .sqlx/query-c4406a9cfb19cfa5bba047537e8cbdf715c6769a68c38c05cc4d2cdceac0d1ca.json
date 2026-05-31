@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling_effects (user_id, item_id, expiry)\n            VALUES ($1, $2, NOW() + $3)\n            ON CONFLICT (user_id, item_id)\n            DO UPDATE SET\n                expiry = GREATEST(gambling_effects.expiry + $3, EXCLUDED.expiry)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Interval"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c4406a9cfb19cfa5bba047537e8cbdf715c6769a68c38c05cc4d2cdceac0d1ca"
+}

@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                g.user_id,\n                g.coins,\n                g.gems,\n                g.gift as \"gift: jiff_sqlx::Timestamp\",\n\n                COALESCE(l.level, 0) AS \"level!\",\n                \n                m.prestige\n\n                FROM gambling g\n                LEFT JOIN levels l ON g.user_id = l.user_id\n                LEFT JOIN gambling_mine m on g.user_id = m.user_id\n                WHERE g.user_id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "coins",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "gems",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "gift: jiff_sqlx::Timestamp",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "level!",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "prestige",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      false
+    ]
+  },
+  "hash": "4970d694697a87696befd3f2ad7c7ec6216b02356da32490ff8b494f8130e74c"
+}

@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    user_id,\n    gems\nFROM\n    gambling\nWHERE\n    ($1 IS TRUE)\n    OR user_id = ANY($2)\nORDER BY\n    gems DESC\nLIMIT\n    $3\n    OFFSET\n    $4\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "gems",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8Array",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "18e32f37fd75985b089dfc983d312d4d5ffe1aa3121737d83ae9f3e3d15daa66"
+}

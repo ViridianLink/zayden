@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            g.coins,\n            g.gems,\n\n            COALESCE(m.tech, 0) AS \"tech!\",\n            COALESCE(m.utility, 0) AS \"utility!\",\n            COALESCE(m.production, 0) AS \"production!\",\n            COALESCE(m.coal, 0) AS \"coal!\",\n            COALESCE(m.iron, 0) AS \"iron!\",\n            COALESCE(m.gold, 0) AS \"gold!\",\n            COALESCE(m.redstone, 0) AS \"redstone!\",\n            COALESCE(m.lapis, 0) AS \"lapis!\",\n            COALESCE(m.diamonds, 0) AS \"diamonds!\",\n            COALESCE(m.emeralds, 0) AS \"emeralds!\"\n\n            FROM gambling g LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coins",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "gems",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "tech!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "utility!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "production!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "coal!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "iron!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "gold!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "redstone!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "lapis!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "diamonds!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "emeralds!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "1fb204f1237d96305c24c24f52b5d85f93a3bccc6eda5fad94b46ec467bc42b8"
+}

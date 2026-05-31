@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO levels (user_id, xp, total_xp, level, message_count, last_xp)\n            VALUES ($1, $2, $3, $4, $5, now())\n            ON CONFLICT (user_id) DO UPDATE\n            SET xp = EXCLUDED.xp,\n                total_xp = EXCLUDED.total_xp,\n                level = EXCLUDED.level,\n                message_count = EXCLUDED.message_count,\n                last_xp = now();",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7d1a74853d8328a09d4c392eebe5861875778bdf1e786d09187e582a0a8181d0"
+}

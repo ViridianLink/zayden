@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    g.user_id,\n    g.coins,\n    COALESCE(i.quantity, 0) AS quantity\nFROM\n    gambling g\nLEFT JOIN gambling_inventory i\n    ON\n        g.user_id = i.user_id\n        AND i.item_id = $2\nWHERE\n    g.user_id = $1\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "coins",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "6055e277a4f86c3fddc1de9badd36351678a62cc21ccebc998cf11608a256780"
+}

@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            g.user_id,\n            g.coins,\n            g.gems,\n            \n            COALESCE(l.level, 0) AS level,\n\n            COALESCE(m.miners, 0) AS \"miners!\",\n            COALESCE(m.mines, 0) AS \"mines!\",\n            COALESCE(m.land, 0) AS \"land!\",\n            COALESCE(m.countries, 0) AS \"countries!\",\n            COALESCE(m.continents, 0) AS \"continents!\",\n            COALESCE(m.planets, 0) AS \"planets!\",\n            COALESCE(m.solar_systems, 0) AS \"solar_systems!\",\n            COALESCE(m.galaxies, 0) AS \"galaxies!\",\n            COALESCE(m.universes, 0) AS \"universes!\",\n            COALESCE(m.prestige, 0) AS \"prestige!\",\n            COALESCE(m.tech, 0) AS \"tech!\",\n            COALESCE(m.utility, 0) AS \"utility!\",\n            COALESCE(m.production, 0) AS \"production!\"\n\n            FROM gambling g LEFT JOIN levels l ON g.user_id = l.user_id LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "coins",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "gems",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "miners!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "mines!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "land!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "countries!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "continents!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "planets!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "solar_systems!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "galaxies!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "universes!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "prestige!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "tech!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "utility!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 16,
+        "name": "production!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "8099b315a1c3ec388d250c91c8a6df999bfbdf334518525a048a0e66fe6e84ca"
+}

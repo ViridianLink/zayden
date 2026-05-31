@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT xp, level, total_xp FROM levels WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "xp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "total_xp",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cb0c6d08033e67c4b88d555def0f6db8da24d831fd0e3952c52dd913e62953c8"
+}

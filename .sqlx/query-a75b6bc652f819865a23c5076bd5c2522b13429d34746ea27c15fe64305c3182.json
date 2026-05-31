@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    user_id,\n    goal_id,\n    day AS \"day: jiff_sqlx::Date\",\n    progress,\n    target\nFROM\n    gambling_goals\nWHERE\n    user_id = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "goal_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "day: jiff_sqlx::Date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "progress",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "target",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a75b6bc652f819865a23c5076bd5c2522b13429d34746ea27c15fe64305c3182"
+}

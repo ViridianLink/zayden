@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling_mine (user_id, mine_activity)\n            VALUES ($1, $2)\n            ON CONFLICT (user_id) DO UPDATE SET\n            mine_activity = EXCLUDED.mine_activity;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8a248e0d4eebb2a8b4df5741e4ccd2c725bdeb64442d6d48da7d0f12a2c61ba6"
+}

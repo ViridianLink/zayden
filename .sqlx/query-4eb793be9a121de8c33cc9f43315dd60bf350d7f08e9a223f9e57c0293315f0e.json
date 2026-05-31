@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling_goals (user_id, goal_id, day, progress, target)\n            SELECT * FROM UNNEST($1::bigint[], $2::text[], $3::date[], $4::bigint[], $5::bigint[])\n            RETURNING user_id, goal_id, day as \"day: jiff_sqlx::Date\", progress, target;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "goal_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "day: jiff_sqlx::Date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 3,
+        "name": "progress",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "target",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "TextArray",
+        "DateArray",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4eb793be9a121de8c33cc9f43315dd60bf350d7f08e9a223f9e57c0293315f0e"
+}

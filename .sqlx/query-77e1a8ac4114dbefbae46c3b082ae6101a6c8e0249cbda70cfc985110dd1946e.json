@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n    user_leaderboard AS (\n        SELECT\n            user_id,\n            ROW_NUMBER() OVER (\n                ORDER BY\n                    higher_or_lower_score DESC\n            ) as rank\n        FROM\n            gambling_stats\n        WHERE\n            ($1 IS TRUE)\n            OR (user_id = ANY ($2))\n    )\nSELECT\n    rank\nFROM\n    user_leaderboard\nWHERE\n    user_id = $3;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rank",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8Array",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "77e1a8ac4114dbefbae46c3b082ae6101a6c8e0249cbda70cfc985110dd1946e"
+}

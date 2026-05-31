@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                p.owner_id,\n                p.activity,\n                p.start_time as \"start_time: jiff_sqlx::Timestamp\",\n                p.description,\n                p.fireteam_size,\n                u.timezone AS \"timezone?\"\n            FROM\n                lfg_posts AS p\n            LEFT JOIN\n                lfg_user_config AS u ON p.owner_id = u.id\n            WHERE\n                p.id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "owner_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "activity",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "start_time: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "fireteam_size",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "timezone?",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f6203d7fbff2799c7927e41138dcac07383bb867fe953d7ccd3fef20f4d04926"
+}

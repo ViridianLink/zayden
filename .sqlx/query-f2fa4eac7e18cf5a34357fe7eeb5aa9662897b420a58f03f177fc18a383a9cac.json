@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    user_id,\n    weekly_higher_or_lower_score\nFROM\n    gambling_stats\nWHERE\n    (\n        ($1 IS TRUE)\n        OR (user_id = ANY ($2))\n    )\n    AND weekly_higher_or_lower_score > 0\nORDER BY\n    weekly_higher_or_lower_score DESC\nLIMIT\n    $3\nOFFSET\n    $4",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "weekly_higher_or_lower_score",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "Int8Array",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "f2fa4eac7e18cf5a34357fe7eeb5aa9662897b420a58f03f177fc18a383a9cac"
+}

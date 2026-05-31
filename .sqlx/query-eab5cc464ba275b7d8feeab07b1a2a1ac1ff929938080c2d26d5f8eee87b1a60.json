@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\npost AS (\n    INSERT INTO\n    lfg_posts (\n        id,\n        owner_id,\n        activity,\n        start_time,\n        description,\n        fireteam_size\n    )\n    VALUES\n    ($1, $2, $3, $4, $5, $6) ON CONFLICT (id)\n    DO\n    UPDATE\n        SET\n            owner_id = excluded.owner_id,\n            activity = excluded.activity,\n            start_time = excluded.start_time,\n            description = excluded.description,\n            fireteam_size = excluded.fireteam_size\n    RETURNING\n        id\n),\n\ndelete_fireteam AS (\n    DELETE FROM lfg_fireteam\n    WHERE\n        post_id = (\n            SELECT id\n            FROM\n                post\n        )\n)\n\nINSERT INTO\nlfg_fireteam (post_id, user_id, alternative)\nSELECT\n    (\n        SELECT id\n        FROM\n            post\n    ),\n    user_id,\n    FALSE\nFROM\n    UNNEST($7::bigint []) AS t (user_id)\nUNION ALL\nSELECT\n    (\n        SELECT id\n        FROM\n            post\n    ),\n    user_id,\n    TRUE\nFROM\n    UNNEST($8::bigint []) AS t (user_id)\n\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Int2",
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eab5cc464ba275b7d8feeab07b1a2a1ac1ff929938080c2d26d5f8eee87b1a60"
+}

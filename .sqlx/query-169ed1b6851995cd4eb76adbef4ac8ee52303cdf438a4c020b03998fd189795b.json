@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n    gambling_inventory (user_id, item_id, quantity)\nVALUES\n    ($1, $2, $3) ON CONFLICT (user_id, item_id)\nDO\nUPDATE\nSET\n    quantity = EXCLUDED.quantity + $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "169ed1b6851995cd4eb76adbef4ac8ee52303cdf438a4c020b03998fd189795b"
+}

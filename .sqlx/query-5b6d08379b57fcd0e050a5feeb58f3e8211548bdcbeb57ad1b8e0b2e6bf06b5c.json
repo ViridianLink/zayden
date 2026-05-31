@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling_inventory (user_id, item_id, quantity)\n            SELECT $1, * FROM UNNEST($2::text[], $3::bigint[])\n            ON CONFLICT (user_id, item_id) DO UPDATE\n            SET quantity = EXCLUDED.quantity",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "TextArray",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b6d08379b57fcd0e050a5feeb58f3e8211548bdcbeb57ad1b8e0b2e6bf06b5c"
+}

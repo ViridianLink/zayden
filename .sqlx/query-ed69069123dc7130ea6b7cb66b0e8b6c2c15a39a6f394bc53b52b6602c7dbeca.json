@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT user_id, xp, level, message_count FROM levels WHERE user_id = ANY($1) ORDER BY level DESC, xp DESC LIMIT 10 OFFSET $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "xp",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 3,
+        "name": "message_count",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ed69069123dc7130ea6b7cb66b0e8b6c2c15a39a6f394bc53b52b6602c7dbeca"
+}

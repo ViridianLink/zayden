@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM reaction_roles WHERE message_id = $1 AND emoji = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "role_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "emoji",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "78a6110ebc99c46487c7d0496d7e8aaa5918c62f7c36c68166c76e8d24dc9112"
+}

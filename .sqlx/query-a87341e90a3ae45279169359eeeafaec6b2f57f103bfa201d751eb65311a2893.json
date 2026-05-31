@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    p.id,\n    p.owner_id,\n    p.activity,\n    p.start_time AS \"start_time: jiff_sqlx::Timestamp\",\n    p.description,\n    p.fireteam_size,\n    COALESCE(\n        ARRAY_AGG(f.user_id) FILTER (\n            WHERE f.user_id IS NOT NULL AND f.alternative = FALSE\n        ),\n        ARRAY[]::int8 []\n    ) AS \"fireteam!\",\n    COALESCE(\n        ARRAY_AGG(f.user_id) FILTER (\n            WHERE f.user_id IS NOT NULL AND f.alternative = TRUE\n        ),\n        ARRAY[]::int8 []\n    ) AS \"alternatives!\",\n    m.message_id AS \"alt_message?\",\n    m.channel_id AS \"alt_channel?\"\nFROM lfg_posts p\nLEFT JOIN lfg_fireteam f ON f.post_id = p.id\nLEFT JOIN lfg_messages m ON p.id = m.post_id\nWHERE p.id = $1\nGROUP BY p.id, m.message_id, m.channel_id;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "activity",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "start_time: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "fireteam_size",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 6,
+        "name": "fireteam!",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 7,
+        "name": "alternatives!",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 8,
+        "name": "alt_message?",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "alt_channel?",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "a87341e90a3ae45279169359eeeafaec6b2f57f103bfa201d751eb65311a2893"
+}

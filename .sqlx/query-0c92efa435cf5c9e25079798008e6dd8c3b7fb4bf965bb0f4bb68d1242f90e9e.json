@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling_mine (user_id, miners, coal, iron, gold, redstone, lapis, diamonds, emeralds, prestige, mine_activity)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n            ON CONFLICT (user_id) DO UPDATE SET\n                miners = EXCLUDED.miners,\n                coal = EXCLUDED.coal,\n                iron = EXCLUDED.iron,\n                gold = EXCLUDED.gold,\n                redstone = EXCLUDED.redstone,\n                lapis = EXCLUDED.lapis,\n                diamonds = EXCLUDED.diamonds,\n                emeralds = EXCLUDED.emeralds,\n                prestige = EXCLUDED.prestige,\n                mine_activity = EXCLUDED.mine_activity",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0c92efa435cf5c9e25079798008e6dd8c3b7fb4bf965bb0f4bb68d1242f90e9e"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\nlfg_fireteam (post_id, user_id, alternative)\nVALUES\n($1, $2, $3) ON CONFLICT (post_id, user_id)\nDO\nUPDATE\n    SET\n        alternative = excluded.alternative\n\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bc487dce54adb49c43c9cdd6b386998dc6c4d14ffda92f2913c5dced5417fd26"
+}

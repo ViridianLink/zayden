@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO voice_channels (id, owner_id, password, persistent, mode)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (id) DO UPDATE\n            SET owner_id = $2, password = $3, persistent = $4, mode = $5\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Bool",
+        {
+          "Custom": {
+            "name": "temp_voice_mode",
+            "kind": {
+              "Enum": [
+                "open",
+                "spectator",
+                "locked",
+                "invisible"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "95b9c060911edfd3178dd9080dc385e3f59827372f44e70e12eb5aadcb69ffdb"
+}

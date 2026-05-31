@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (item_id) id, item_id, expiry as \"expiry: jiff_sqlx::Timestamp\" FROM gambling_effects WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "item_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "expiry: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "a7695b640d20b4ea5914272704ec602083c5724ad96469330eadbcc0048c2989"
+}

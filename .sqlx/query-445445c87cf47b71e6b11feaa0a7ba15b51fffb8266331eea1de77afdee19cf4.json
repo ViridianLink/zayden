@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coins\nFROM\n    gambling\nWHERE\n    user_id = $1\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coins",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "445445c87cf47b71e6b11feaa0a7ba15b51fffb8266331eea1de77afdee19cf4"
+}

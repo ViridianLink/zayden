@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH updated_row AS (\n            UPDATE gambling_inventory\n            SET quantity = quantity - $3\n            WHERE user_id = $1\n              AND item_id = $2\n              AND $3 <= gambling_inventory.quantity\n            RETURNING quantity\n        ),\n        deleted_row AS (\n            DELETE FROM gambling_inventory\n            WHERE user_id = $1 AND item_id = $2\n            AND EXISTS (SELECT 1 FROM updated_row ur WHERE ur.quantity <= 0)\n            RETURNING item_id\n        )\n        SELECT\n            ur.quantity\n        FROM\n            updated_row ur\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "quantity",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3b12ddf7b0ba915992fef0c70e84cb8b120d855cb08512ef3a174912580f532e"
+}

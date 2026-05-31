@@ -1,0 +1,70 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n                vc.id, \n                vc.owner_id, \n                COALESCE(\n                    (SELECT array_agg(user_id) FROM voice_channel_trusted_users WHERE channel_id = vc.id), \n                    ARRAY[]::int[]\n                ) AS \"trusted_ids!\", \n                COALESCE(\n                    (SELECT array_agg(user_id) FROM voice_channel_invites WHERE channel_id = vc.id), \n                    ARRAY[]::int[]\n                ) AS \"invites!\", \n                vc.password, \n                vc.persistent, \n                vc.mode AS \"mode: TempVoiceMode\" \n            FROM voice_channels vc\n            WHERE vc.id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "trusted_ids!",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 3,
+        "name": "invites!",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 4,
+        "name": "password",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "persistent",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "mode: TempVoiceMode",
+        "type_info": {
+          "Custom": {
+            "name": "temp_voice_mode",
+            "kind": {
+              "Enum": [
+                "open",
+                "spectator",
+                "locked",
+                "invisible"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "3d5a9647d1f3ab05e6c51ef16775abd4bf4350089ab26af9bb997c80bc0e8073"
+}

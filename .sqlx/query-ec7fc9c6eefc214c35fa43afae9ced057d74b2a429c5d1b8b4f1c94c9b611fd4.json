@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    g.user_id,\n    g.coins,\n    g.gems,\n    g.daily AS \"daily: jiff_sqlx::Date\",\n    gm.prestige,\n    l.level\nFROM\n    gambling g\nJOIN gambling_mine gm\n    ON g.user_id = gm.user_id\nJOIN levels l\n    ON g.user_id = l.user_id\nWHERE\n    g.user_id = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "coins",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "gems",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "daily: jiff_sqlx::Date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "prestige",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "level",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ec7fc9c6eefc214c35fa43afae9ced057d74b2a429c5d1b8b4f1c94c9b611fd4"
+}

@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige FROM gambling_mine WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "miners",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "mines",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "land",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "countries",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "continents",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "planets",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "solar_systems",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "galaxies",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "universes",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "prestige",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5f6a7e012f720f59fe4fde206275f194e715afbbfa6303f38e1a495a3951084f"
+}

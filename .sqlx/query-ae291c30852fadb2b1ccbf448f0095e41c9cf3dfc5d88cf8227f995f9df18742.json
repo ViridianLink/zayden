@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE lfg_posts\nSET\n    owner_id = $2,\n    activity = $3,\n    start_time = $4,\n    description = $5,\n    fireteam_size = $6\nWHERE\n    id = $1;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ae291c30852fadb2b1ccbf448f0095e41c9cf3dfc5d88cf8227f995f9df18742"
+}

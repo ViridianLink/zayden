@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO levels (user_id, level)\n            VALUES ($1, $2)\n            ON CONFLICT (user_id) DO UPDATE SET\n            level = EXCLUDED.level;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "58f71349a3f4ee90792048e2588b2015264919cf381ea8aeb22c42ddf29ad2d4"
+}

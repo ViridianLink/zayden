@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    g.user_id,\n    g.coins,\n    g.gems,\n\n    COALESCE(l.level, 0) AS level,\n\n    COALESCE(m.prestige, 0) AS prestige\nFROM\n    gambling AS g\nLEFT JOIN\n    levels AS l\n    ON g.user_id = l.user_id\nLEFT JOIN\n    gambling_mine AS m\n    ON g.user_id = m.user_id\nWHERE\n    g.user_id = $1;\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "coins",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "gems",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "level",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "prestige",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "a819c95ae17d3ffa07476acbf1d72a227a57e355da4a273581061819f7a55dcf"
+}

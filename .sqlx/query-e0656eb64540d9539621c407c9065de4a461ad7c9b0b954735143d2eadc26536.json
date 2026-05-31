@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling\nSET\n    coins = coins - $2\nWHERE\n    user_id = $1;\n\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e0656eb64540d9539621c407c9065de4a461ad7c9b0b954735143d2eadc26536"
+}
