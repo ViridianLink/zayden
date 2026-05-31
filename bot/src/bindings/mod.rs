@@ -11,6 +11,8 @@ pub mod events;
 
 pub mod gambling;
 
+pub mod gold_star;
+
 pub mod levels;
 
 pub mod lfg;
@@ -35,6 +37,7 @@ pub fn build_registry() -> Result<Arc<CommandRegistry>, OverlapError> {
     destiny2::register(&mut builder);
     events::register(&mut builder);
     gambling::register(&mut builder)?;
+    gold_star::register(&mut builder);
     lfg::register(&mut builder)?;
     levels::register(&mut builder)?;
     llamad2::register(&mut builder);

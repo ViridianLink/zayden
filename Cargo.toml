@@ -130,6 +130,7 @@ destiny2 = { path = "./bot-modules/destiny2" }
 destiny2-core = { path = "./bot-modules/destiny2-core" }
 endgame-analysis = { path = "./bot-modules/endgame-analysis" }
 gambling = { path = "./bot-modules/gambling" }
+gold-star = { path = "./bot-modules/gold-star" }
 levels = { path = "./bot-modules/levels" }
 lfg = { path = "./bot-modules/lfg" }
 llamad2 = { path = "./bot-modules/llamad2" }

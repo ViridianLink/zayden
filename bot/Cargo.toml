@@ -12,6 +12,7 @@ destiny2 = { workspace = true }
 destiny2-core = { workspace = true }
 endgame-analysis = { workspace = true }
 gambling = { workspace = true }
+gold-star = { workspace = true }
 levels = { workspace = true }
 lfg = { workspace = true }
 llamad2 = { workspace = true }

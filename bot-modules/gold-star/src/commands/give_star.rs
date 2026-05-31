@@ -26,6 +26,8 @@ impl GiveStar {
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
+        interaction.defer(http).await?;
+
         let mut options = parse_options(options);
 
         let Some(ResolvedValue::User(target_user, _)) = options.remove("member")

@@ -207,6 +207,7 @@ dependencies = [
  "endgame-analysis",
  "futures",
  "gambling",
+ "gold-star",
  "jiff",
  "jiff-sqlx",
  "levels",
