@@ -1,4 +1,3 @@
-use futures::{StreamExt, TryStreamExt, stream};
 use serenity::all::{
     CommandInteraction,
     CommandOptionType,
@@ -36,32 +35,33 @@ impl Siblings {
 
         if row.parent_ids.is_empty() {
             if user == &interaction.user {
-                return Err(FamilyError::SelfNoParents);
+                return Err(FamilyError::SelfNoSiblings);
             }
-
-            return Err(FamilyError::NoParents(user.id));
+            return Err(FamilyError::NoSiblings(user.id));
         }
 
-        let siblings: Vec<String> = stream::iter(row.parent_ids)
-            .map(|id| UserId::new(id.cast_unsigned()))
-            .then(|id| async move {
-                if let Some(row) = Manager::row(pool, id).await? {
-                    for sib_id in row.children_ids {
-                        if sib_id != row.id {
-                            let user_id = UserId::new(sib_id.cast_unsigned());
-                            let user = user_id.to_user(ctx).await?;
+        let user_id_signed: i64 = user.id.get().cast_signed();
+        let mut siblings = Vec::new();
 
-                            return Ok::<String, FamilyError>(
-                                user.mention().to_string(),
-                            );
-                        }
+        for parent_id in row.parent_ids {
+            let parent_uid = UserId::new(parent_id.cast_unsigned());
+            if let Some(parent_row) = Manager::row(pool, parent_uid).await? {
+                for sib_id in parent_row.children_ids {
+                    if sib_id != user_id_signed {
+                        let sib_uid = UserId::new(sib_id.cast_unsigned());
+                        let sib_user = sib_uid.to_user(ctx).await?;
+                        siblings.push(sib_user.mention().to_string());
                     }
                 }
+            }
+        }
 
-                Err(FamilyError::NoData(id))
-            })
-            .try_collect()
-            .await?;
+        if siblings.is_empty() {
+            if user == &interaction.user {
+                return Err(FamilyError::SelfNoSiblings);
+            }
+            return Err(FamilyError::NoSiblings(user.id));
+        }
 
         Ok((user.id, siblings))
     }

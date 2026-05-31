@@ -205,6 +205,7 @@ dependencies = [
  "destiny2-core",
  "dotenvy",
  "endgame-analysis",
+ "family",
  "futures",
  "gambling",
  "gold-star",

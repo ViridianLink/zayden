@@ -129,6 +129,7 @@ ai = { path = "./bot-modules/ai" }
 destiny2 = { path = "./bot-modules/destiny2" }
 destiny2-core = { path = "./bot-modules/destiny2-core" }
 endgame-analysis = { path = "./bot-modules/endgame-analysis" }
+family = { path = "./bot-modules/family" }
 gambling = { path = "./bot-modules/gambling" }
 gold-star = { path = "./bot-modules/gold-star" }
 levels = { path = "./bot-modules/levels" }

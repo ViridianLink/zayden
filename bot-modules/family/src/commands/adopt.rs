@@ -39,15 +39,19 @@ impl Adopt {
             return Err(FamilyError::Bot);
         }
 
-        let row = Manager::row(pool, interaction.user.id)
+        let adopter_row = Manager::row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| (&interaction.user).into());
 
-        if !row.parent_ids.is_empty() {
+        // Is already adopted?
+        if let Some(target_row) = Manager::row(pool, target_user.id).await?
+            && !target_row.parent_ids.is_empty()
+        {
             return Err(FamilyError::AlreadyAdopted(target_user.id));
         }
 
-        let relationship = row.relationship(interaction.user.id);
+        // Are the adopter and target are already related?
+        let relationship = adopter_row.relationship(target_user.id);
         if relationship != Relationships::None {
             return Err(FamilyError::AlreadyRelated {
                 target: target_user.id,

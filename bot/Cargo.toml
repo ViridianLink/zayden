@@ -9,6 +9,7 @@ workspace = true
 [dependencies]
 ai = { workspace = true }
 destiny2 = { workspace = true }
+family = { workspace = true }
 destiny2-core = { workspace = true }
 endgame-analysis = { workspace = true }
 gambling = { workspace = true }
