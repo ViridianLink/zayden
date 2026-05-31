@@ -8,7 +8,7 @@ use sqlx::{Database, Pool};
 
 use super::{Components, EditManager};
 use crate::modals::modal_components;
-use crate::{Error, Result};
+use crate::{LfgError, Result};
 
 impl Components {
     pub async fn copy<Db: Database, Manager: EditManager<Db>>(
@@ -19,7 +19,7 @@ impl Components {
         let post = Manager::edit_row(pool, interaction.message.id).await?;
 
         if interaction.user.id != post.owner() {
-            return Err(Error::PermissionDenied(post.owner()));
+            return Err(LfgError::PermissionDenied(post.owner()));
         }
 
         let row = modal_components(

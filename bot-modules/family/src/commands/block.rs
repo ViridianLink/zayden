@@ -9,7 +9,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 pub struct Block;
 
@@ -20,13 +20,13 @@ impl Block {
         pool: &Pool<Db>,
     ) -> Result<()> {
         let options = interaction.data.options();
-        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let option = options.first().ok_or(FamilyError::InvalidUserId)?;
         let ResolvedValue::User(user, _) = option.value else {
-            return Err(Error::InvalidUserId);
+            return Err(FamilyError::InvalidUserId);
         };
 
         if &interaction.user == user {
-            return Err(Error::UserSelfBlock);
+            return Err(FamilyError::UserSelfBlock);
         }
 
         let mut row = Manager::row(pool, interaction.user.id)
@@ -59,13 +59,13 @@ impl Unblock {
         pool: &Pool<Db>,
     ) -> Result<()> {
         let options = interaction.data.options();
-        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let option = options.first().ok_or(FamilyError::InvalidUserId)?;
         let ResolvedValue::User(user, _) = option.value else {
-            return Err(Error::InvalidUserId);
+            return Err(FamilyError::InvalidUserId);
         };
 
         if &interaction.user == user {
-            return Err(Error::UserSelfBlock);
+            return Err(FamilyError::UserSelfBlock);
         }
 
         let mut row = Manager::row(pool, interaction.user.id)

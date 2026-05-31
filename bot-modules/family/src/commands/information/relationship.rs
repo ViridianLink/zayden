@@ -12,7 +12,7 @@ use zayden_core::parse_options;
 
 use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 pub struct RelationshipResponse {
     pub other_id: UserId,
@@ -34,7 +34,7 @@ impl Relationship {
         let options = parse_options(options);
 
         let Some(ResolvedValue::User(user, _)) = options.get("user") else {
-            return Err(Error::InvalidUserId);
+            return Err(FamilyError::InvalidUserId);
         };
         let user = *user;
 
@@ -44,7 +44,7 @@ impl Relationship {
         };
 
         if user == other {
-            return Err(Error::SameUser(user.id));
+            return Err(FamilyError::SameUser(user.id));
         }
 
         let user_info =

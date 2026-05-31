@@ -24,19 +24,21 @@ const ENDGAME_ANALYSIS_ID: &str = "1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY"
 
 #[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn primary_colour(color: &Color) -> bool {
-    color.red == 0.952_941_2
-        && color.green == 0.952_941_2
-        && color.blue == 0.952_941_2
+    (color.red - 0.952_941_2).abs() < f64::EPSILON
+        && (color.green - 0.952_941_2).abs() < f64::EPSILON
+        && (color.blue - 0.952_941_2).abs() < f64::EPSILON
 }
 
 #[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn special_colour(color: &Color) -> bool {
-    color.red == 0.0 && color.green == 1.0 && color.blue == 0.0
+    color.red == 0.0 && (color.green - 1.0).abs() < f64::EPSILON && color.blue == 0.0
 }
 
 #[expect(clippy::float_cmp, reason = "exact color values from Google Sheets API")]
 fn heavy_colour(color: &Color) -> bool {
-    color.red == 0.6 && color.green == 0.0 && color.blue == 1.0
+    (color.red - 0.6).abs() < f64::EPSILON
+        && color.green == 0.0
+        && (color.blue - 1.0).abs() < f64::EPSILON
 }
 
 pub struct EndgameAnalysisSheet;
@@ -106,13 +108,14 @@ impl EndgameAnalysisSheet {
         let header = iter.next().expect("data invariant");
         iter.filter_map(|r| WeaponBuilder::from_row(title, &header, r))
             .map(|builder| {
-                let item = if let Some(item) = manifest.values().find(|item| {
+                let item = match manifest.values().find(|item| {
                     item.display_properties.name.eq_ignore_ascii_case(&builder.name)
                 }) {
-                    item
-                } else {
-                    error!("Missing item: {}", builder.name);
-                    &DestinyInventoryItemDefinition::default()
+                    Some(item) => item,
+                    None => {
+                        error!("Missing item: {}", builder.name);
+                        &DestinyInventoryItemDefinition::default()
+                    },
                 };
 
                 builder.build(item)

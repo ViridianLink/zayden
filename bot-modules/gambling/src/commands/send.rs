@@ -20,7 +20,7 @@ use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
     Coins,
     Commands,
-    Error,
+    GamblingError,
     GamblingManager,
     Gems,
     GoalsManager,
@@ -128,19 +128,19 @@ impl Commands {
 
         let Some(ResolvedValue::User(recipient, _)) = options.remove("recipient")
         else {
-            return Err(Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         if recipient.id == interaction.user.id {
-            return Err(Error::SelfSend);
+            return Err(GamblingError::SelfSend);
         }
 
         let Some(ResolvedValue::Integer(amount)) = options.remove("amount") else {
-            return Err(Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         if amount < 0 {
-            return Err(Error::NegativeAmount);
+            return Err(GamblingError::NegativeAmount);
         }
 
         let mut row = SendHandler::row(pool, interaction.user.id)
@@ -151,7 +151,7 @@ impl Commands {
         row.verify_work::<Db, StaminaHandler>()?;
 
         if row.coins() < amount {
-            return Err(Error::InsufficientFunds {
+            return Err(GamblingError::InsufficientFunds {
                 required: amount - row.coins(),
                 currency: ShopCurrency::Coins,
             });
@@ -159,7 +159,7 @@ impl Commands {
 
         let max_send = row.max_bet();
         if amount > max_send {
-            return Err(Error::MaximumSendAmount(max_send));
+            return Err(GamblingError::MaximumSendAmount(max_send));
         }
 
         *row.coins_mut() -= amount;

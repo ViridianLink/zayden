@@ -7,7 +7,7 @@ use sqlx::{Database, Pool};
 
 use crate::common::shop::{ALL_INS, LUCKY_CHIP, SHOP_ITEMS, ShopItem};
 use crate::models::gambling::GamblingManager;
-use crate::{Error, Result, ShopCurrency};
+use crate::{GamblingError, Result, ShopCurrency};
 
 #[async_trait]
 pub trait EffectsManager<Db: Database>: Send {
@@ -42,7 +42,7 @@ pub trait EffectsManager<Db: Database>: Send {
         const MIN: i64 = 1;
 
         if bet < MIN {
-            return Err(Error::MinimumBetAmount(MIN));
+            return Err(GamblingError::MinimumBetAmount(MIN));
         }
 
         let user_id = user_id.into();
@@ -57,14 +57,14 @@ pub trait EffectsManager<Db: Database>: Send {
         } else {
             let max = GamblingHandler::max_bet(&mut *tx, user_id).await?;
             if bet > max {
-                return Err(Error::MaximumBetAmount(max));
+                return Err(GamblingError::MaximumBetAmount(max));
             }
         }
 
         tx.commit().await?;
 
         if bet > coins {
-            return Err(Error::InsufficientFunds {
+            return Err(GamblingError::InsufficientFunds {
                 required: bet - coins,
                 currency: ShopCurrency::Coins,
             });

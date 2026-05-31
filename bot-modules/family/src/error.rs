@@ -6,11 +6,11 @@ use zayden_core::error::Respond;
 
 use crate::relationships::Relationships;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, FamilyError>;
 
 #[expect(clippy::error_impl_error, reason = "conventional error type naming")]
 #[derive(Debug)]
-pub enum Error {
+pub enum FamilyError {
     // region common
     Zayden,
     Bot,
@@ -73,7 +73,7 @@ pub enum Error {
     // endregion
 }
 
-impl Display for Error {
+impl Display for FamilyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UserSelfMarry => write!(f, "You can't marry yourself!"),
@@ -133,7 +133,7 @@ impl Display for Error {
     }
 }
 
-impl Respond for Error {
+impl Respond for FamilyError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::UserSelfMarry
@@ -170,7 +170,7 @@ impl Respond for Error {
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for FamilyError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Serenity(e) => Some(e),
@@ -207,19 +207,19 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<serenity::Error> for Error {
+impl From<serenity::Error> for FamilyError {
     fn from(e: serenity::Error) -> Self {
         Self::Serenity(e)
     }
 }
 
-impl From<sqlx::Error> for Error {
+impl From<sqlx::Error> for FamilyError {
     fn from(e: sqlx::Error) -> Self {
         Self::Sqlx(e)
     }
 }
 
-impl From<std::env::VarError> for Error {
+impl From<std::env::VarError> for FamilyError {
     fn from(e: std::env::VarError) -> Self {
         Self::EnvVar(e)
     }
@@ -237,19 +237,19 @@ impl From<std::env::VarError> for Error {
 //     }
 // }
 
-impl From<serenity::model::timestamp::InvalidTimestamp> for Error {
+impl From<serenity::model::timestamp::InvalidTimestamp> for FamilyError {
     fn from(e: serenity::model::timestamp::InvalidTimestamp) -> Self {
         Self::SerenityTimestamp(e)
     }
 }
 
-impl From<std::num::ParseIntError> for Error {
+impl From<std::num::ParseIntError> for FamilyError {
     fn from(e: std::num::ParseIntError) -> Self {
         Self::ParseIntError(e)
     }
 }
 
-impl From<serenity::all::ReactionConversionError> for Error {
+impl From<serenity::all::ReactionConversionError> for FamilyError {
     fn from(e: serenity::all::ReactionConversionError) -> Self {
         Self::ReactionConversionError(e)
     }

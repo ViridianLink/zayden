@@ -2,7 +2,7 @@ use serenity::all::{ComponentInteraction, MessageInteractionMetadata, UserId};
 use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     interaction: &ComponentInteraction,
@@ -10,8 +10,8 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
 ) -> Result<UserId> {
     let parent_user = match interaction.message.interaction_metadata.as_deref() {
         Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
-        None => return Err(Error::NoInteraction),
-        Some(_) => return Err(Error::InvalidUserId),
+        None => return Err(FamilyError::NoInteraction),
+        Some(_) => return Err(FamilyError::InvalidUserId),
     };
 
     let child_user = &interaction.user;
@@ -19,7 +19,7 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     if !interaction.message.mentions.contains(child_user)
         && child_user != parent_user
     {
-        return Err(Error::UnauthorisedUser);
+        return Err(FamilyError::UnauthorisedUser);
     }
 
     let mut row = Manager::row(pool, parent_user.id)
@@ -41,17 +41,17 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
 
 pub fn decline(interaction: &ComponentInteraction) -> Result<()> {
     if !interaction.message.mentions.contains(&interaction.user) {
-        return Err(Error::UnauthorisedUser);
+        return Err(FamilyError::UnauthorisedUser);
     }
 
     let command_author = match interaction.message.interaction_metadata.as_deref() {
         Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
-        None => return Err(Error::NoInteraction),
-        Some(_) => return Err(Error::InvalidUserId),
+        None => return Err(FamilyError::NoInteraction),
+        Some(_) => return Err(FamilyError::InvalidUserId),
     };
 
     if command_author == &interaction.user {
-        return Err(Error::AdoptCancelled);
+        return Err(FamilyError::AdoptCancelled);
     }
 
     Ok(())

@@ -41,7 +41,7 @@ impl Commands {
 
         let Some(ResolvedValue::String(leaderboard)) = options.remove("leaderboard")
         else {
-            return Err(crate::Error::InvalidAmount);
+            return Err(crate::GamblingError::InvalidAmount);
         };
 
         let global = match options.remove("global") {

@@ -22,7 +22,16 @@ use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use super::Commands;
 use crate::commands::inventory::InventoryManager;
-use crate::{Coins, GamblingItems, Gems, MaxBet, Prestige, Result, ShopItem};
+use crate::{
+    Coins,
+    GamblingError,
+    GamblingItems,
+    Gems,
+    MaxBet,
+    Prestige,
+    Result,
+    ShopItem,
+};
 
 #[async_trait]
 pub trait ProfileManager<Db: Database> {
@@ -165,7 +174,7 @@ impl Commands {
         let user = match options.pop() {
             Some(option) => {
                 let ResolvedValue::User(user, _) = option.value else {
-                    return Err(crate::Error::InvalidAmount);
+                    return Err(GamblingError::InvalidAmount);
                 };
                 user
             },

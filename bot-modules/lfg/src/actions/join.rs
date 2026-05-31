@@ -29,10 +29,6 @@ impl From<&ComponentInteraction> for JoinInteraction {
 
 impl From<&CommandInteraction> for JoinInteraction {
     fn from(value: &CommandInteraction) -> Self {
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees subcommand structure"
-        )]
         let ResolvedValue::SubCommand(subcommand) = value
             .data
             .options()
@@ -40,7 +36,7 @@ impl From<&CommandInteraction> for JoinInteraction {
             .expect("lfg action always has a subcommand")
             .value
         else {
-            unreachable!("Option must be subcommand")
+            todo!()
         };
 
         let mut options = parse_options(subcommand);

@@ -28,7 +28,7 @@ use crate::cron::create_reminders;
 use crate::templates::{DefaultTemplate, Template};
 use crate::{
     ACTIVITIES,
-    Error,
+    LfgError,
     PostBuilder,
     PostManager,
     PostRow,
@@ -84,7 +84,7 @@ impl Create {
         interaction: &ModalInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
+        let guild_id = interaction.guild_id.ok_or(LfgError::MissingGuildId)?;
 
         let mut inputs =
             parse_modal_components(interaction.data.components.as_slice());
@@ -137,11 +137,11 @@ impl Create {
         let row = DefaultTemplate::main_row();
 
         let lfg_guild =
-            GuildHandler::row(pool, guild_id).await?.ok_or(Error::MissingSetup)?;
+            GuildHandler::row(pool, guild_id).await?.ok_or(LfgError::MissingSetup)?;
 
         let channel = match lfg_guild.channel_id() {
             Some(id) => id.to_guild_channel(&ctx.http, Some(guild_id)).await?,
-            None => return Err(Error::MissingSetup),
+            None => return Err(LfgError::MissingSetup),
         };
 
         let tags = channel
@@ -187,7 +187,7 @@ impl Create {
                     ..
                 },
             ))) => {
-                return Err(Error::TagRequired);
+                return Err(LfgError::TagRequired);
             },
             r => r?,
         };

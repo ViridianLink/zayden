@@ -38,6 +38,7 @@ use crate::{
     CARD_DECK,
     EffectsManager,
     GamblingData,
+    GamblingError,
     GameCache,
     GameManager,
     GoalsManager,
@@ -63,7 +64,7 @@ impl Commands {
 
         let Some(ResolvedValue::Integer(bet)) = options.pop().map(|opt| opt.value)
         else {
-            return Err(crate::Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         let mut tx = pool.begin().await?;

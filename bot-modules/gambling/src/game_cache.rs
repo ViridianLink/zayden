@@ -6,7 +6,7 @@ use serenity::all::UserId;
 use tokio::sync::RwLock;
 
 use crate::ctx_data::GamblingData;
-use crate::{Error, Result};
+use crate::{GamblingError, Result};
 
 #[derive(Default)]
 pub struct GameCache(HashMap<UserId, Timestamp>);
@@ -27,7 +27,7 @@ impl GameCache {
         };
 
         if cooldown_over.is_some_and(|co| co >= Timestamp::now()) {
-            return Err(Error::Cooldown(
+            return Err(GamblingError::Cooldown(
                 cooldown_over.expect("checked above").as_second(),
             ));
         }

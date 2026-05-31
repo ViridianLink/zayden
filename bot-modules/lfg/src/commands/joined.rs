@@ -13,6 +13,7 @@ use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 
 use super::Command;
+use crate::Result;
 
 #[async_trait]
 pub trait JoinedManager<Db: Database> {
@@ -56,7 +57,7 @@ impl Command {
         http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
         let posts = Manager::upcoming(pool, interaction.user.id).await?;

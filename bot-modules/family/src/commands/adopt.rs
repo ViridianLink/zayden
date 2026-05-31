@@ -11,7 +11,7 @@ use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 pub struct Adopt;
 
@@ -22,21 +22,21 @@ impl Adopt {
         pool: &Pool<Db>,
     ) -> Result<UserId> {
         let options = interaction.data.options();
-        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let option = options.first().ok_or(FamilyError::InvalidUserId)?;
         let ResolvedValue::User(target_user, _) = option.value else {
-            return Err(Error::InvalidUserId);
+            return Err(FamilyError::InvalidUserId);
         };
 
         if interaction.user.id == target_user.id {
-            return Err(Error::UserSelfAdopt);
+            return Err(FamilyError::UserSelfAdopt);
         }
 
         if target_user.id == ctx.http.get_current_user().await?.id {
-            return Err(Error::Zayden);
+            return Err(FamilyError::Zayden);
         }
 
         if target_user.bot() {
-            return Err(Error::Bot);
+            return Err(FamilyError::Bot);
         }
 
         let row = Manager::row(pool, interaction.user.id)
@@ -44,12 +44,12 @@ impl Adopt {
             .unwrap_or_else(|| (&interaction.user).into());
 
         if !row.parent_ids.is_empty() {
-            return Err(Error::AlreadyAdopted(target_user.id));
+            return Err(FamilyError::AlreadyAdopted(target_user.id));
         }
 
         let relationship = row.relationship(interaction.user.id);
         if relationship != Relationships::None {
-            return Err(Error::AlreadyRelated {
+            return Err(FamilyError::AlreadyRelated {
                 target: target_user.id,
                 relationship: Relationships::Parent,
             });

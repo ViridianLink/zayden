@@ -30,7 +30,7 @@ use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 pub struct BotState {
     pub app: Arc<AppState>,
     pub started_cron: AtomicBool,
-    bungie_client: BungieClient,
+    bungie_client: Arc<BungieClient>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
     voice_stats: HashMap<UserId, CachedState>,
@@ -49,7 +49,7 @@ impl BotState {
         Self {
             app,
             started_cron: AtomicBool::new(false),
-            bungie_client,
+            bungie_client: Arc::new(bungie_client),
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),
             voice_stats: HashMap::new(),
@@ -102,8 +102,8 @@ impl BotState {
 // --- Trait implementations (trivial field accessors) ---
 
 impl BungieClientData for BotState {
-    fn bungie_client(&self) -> &BungieClient {
-        &self.bungie_client
+    fn bungie_client(&self) -> Arc<BungieClient> {
+        Arc::clone(&self.bungie_client)
     }
 }
 

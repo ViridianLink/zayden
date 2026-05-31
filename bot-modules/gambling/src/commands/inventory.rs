@@ -1,4 +1,5 @@
 use std::fmt::{Display, Write as _};
+use std::num::ParseIntError;
 
 use async_trait::async_trait;
 use serenity::all::{
@@ -26,8 +27,8 @@ use crate::shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
 use crate::{
     Coins,
     EffectsManager,
-    Error,
     GEM,
+    GamblingError,
     Gems,
     ItemInventory,
     Mining,
@@ -216,7 +217,7 @@ impl Commands {
             },
             "use" => {
                 let ResolvedValue::SubCommand(options) = subcommand.value else {
-                    return Err(Error::InvalidAmount);
+                    return Err(GamblingError::InvalidAmount);
                 };
 
                 use_item::<Data, Db, EffectsHandler, InventoryHandler>(
@@ -227,7 +228,7 @@ impl Commands {
                 )
                 .await
             },
-            _ => Err(Error::InvalidAmount),
+            _ => Err(GamblingError::InvalidAmount),
         }
     }
 
@@ -379,27 +380,27 @@ async fn use_item<
     let mut options = parse_options(options);
 
     let Some(ResolvedValue::String(item_id)) = options.remove("item") else {
-        return Err(Error::InvalidAmount);
+        return Err(GamblingError::InvalidAmount);
     };
 
     let item = SHOP_ITEMS.get(item_id).expect("item_id always valid shop item");
 
     let amount = match options.remove("amount") {
         Some(ResolvedValue::String(amount)) => {
-            amount.parse().map_err(|e: std::num::ParseIntError| {
+            amount.parse().map_err(|e: ParseIntError| {
                 tracing::debug!(error = %e, "failed to parse item amount");
-                Error::InvalidAmount
+                GamblingError::InvalidAmount
             })?
         },
         _ => 1,
     };
 
     if amount < 0 {
-        return Err(Error::NegativeAmount);
+        return Err(GamblingError::NegativeAmount);
     }
 
     if amount == 0 {
-        return Err(Error::ZeroAmount);
+        return Err(GamblingError::ZeroAmount);
     }
 
     let mut tx = pool.begin().await?;
@@ -413,7 +414,7 @@ async fn use_item<
     .await
     {
         Ok(q) => q,
-        Err(sqlx::Error::RowNotFound) => return Err(Error::InvalidAmount),
+        Err(sqlx::Error::RowNotFound) => return Err(GamblingError::InvalidAmount),
         r => r?,
     };
 

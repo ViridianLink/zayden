@@ -15,7 +15,7 @@ use sqlx::{Database, Pool};
 
 use super::Components;
 use crate::modals::modal_components;
-use crate::{Error, Result};
+use crate::{LfgError, Result};
 
 #[async_trait]
 pub trait EditManager<Db: Database> {
@@ -62,7 +62,7 @@ impl Components {
         let post = Manager::edit_row(pool, interaction.message.id).await?;
 
         if interaction.user.id != post.owner() {
-            return Err(Error::PermissionDenied(post.owner()));
+            return Err(LfgError::PermissionDenied(post.owner()));
         }
 
         let row = modal_components(

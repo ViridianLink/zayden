@@ -12,7 +12,7 @@ use sqlx::{Database, Pool};
 
 use super::Components;
 use crate::models::post::PostManager;
-use crate::{Error, PostRow, Result, Savable, actions};
+use crate::{LfgError, PostRow, Result, Savable, actions};
 
 impl Components {
     pub async fn kick<Db: Database, Manager: PostManager<Db>>(
@@ -23,7 +23,7 @@ impl Components {
         let owner = Manager::owner(pool, interaction.channel_id).await?;
 
         if interaction.user.id != owner {
-            return Err(Error::PermissionDenied(owner));
+            return Err(LfgError::PermissionDenied(owner));
         }
 
         let select_menu =
@@ -50,10 +50,6 @@ impl Components {
 pub struct KickComponent;
 
 impl KickComponent {
-    #[expect(
-        clippy::unreachable,
-        reason = "kick is only registered for UserSelect interactions"
-    )]
     pub async fn run<
         Db: Database,
         Manager: PostManager<Db> + Savable<Db, PostRow>,
@@ -74,7 +70,8 @@ impl KickComponent {
             | ComponentInteractionDataKind::MentionableSelect { .. }
             | ComponentInteractionDataKind::ChannelSelect { .. }
             | ComponentInteractionDataKind::Unknown(_) => {
-                unreachable!("KickComponent expects a UserSelect interaction")
+                error!("KickComponent expects a UserSelect interaction");
+                return Ok(());
             },
         };
 

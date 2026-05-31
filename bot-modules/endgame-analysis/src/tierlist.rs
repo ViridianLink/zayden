@@ -49,13 +49,15 @@ impl TierListCommand {
 
         let Some(ResolvedValue::String(archetype)) = options.remove("archetype")
         else {
-            unreachable!("Archetype is required");
+            return Ok(());
         };
 
-        let count = options.get("count").map(|c| match c {
-            ResolvedValue::Integer(c) => *c as usize,
-            _ => unreachable!("Count must be an integer"),
-        });
+        let count = match options.get("count") {
+            Some(ResolvedValue::Integer(count)) => {
+                usize::try_from(*count).expect("temp")
+            },
+            _ => usize::MAX,
+        };
 
         let tiers = match options.get("tier") {
             Some(ResolvedValue::String(tier)) => {
@@ -65,7 +67,7 @@ impl TierListCommand {
                     .copied()
                     .position(|t| t == tier)
                     .expect("tier always in TIERS list");
-                &TIERS[..=index]
+                TIERS.get(..=index).expect("temp")
             },
             _ => &TIERS,
         };
@@ -73,16 +75,17 @@ impl TierListCommand {
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
             Ok(w) => serde_json::from_str(&w).expect("valid JSON"),
             Err(_) => {
-                let item_manifest = {
+                let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
                     let data = data_lock.read().await;
-                    let client = data.bungie_client();
-                    let manifest = client.destiny_manifest().await?;
-                    client
-                        .destiny_inventory_item_definition(&manifest, "en")
-                        .await
-                        .expect("data invariant")
+                    data.bungie_client()
                 };
+
+                let manifest = client.destiny_manifest().await?;
+                let item_manifest = client
+                    .destiny_inventory_item_definition(&manifest, "en")
+                    .await
+                    .expect("data invariant");
 
                 EndgameAnalysisSheet::update(&item_manifest).await?;
                 let w = fs::read_to_string("weapons.json")
@@ -101,7 +104,7 @@ impl TierListCommand {
             .into_iter()
             .filter(|w| w.archetype() == archetype)
             .filter(|w| tiers.contains(&w.tier.tier))
-            .take(count.unwrap_or(usize::MAX))
+            .take(count)
             .fold(init_map, |mut map, w| {
                 map.get_mut(&w.tier.tier)
                     .expect("tier key always in map")
@@ -175,26 +178,29 @@ impl TierListCommand {
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
     ) -> Result<()> {
-        let weapons: Vec<Weapon> =
-            if let Ok(weapons) = fs::read_to_string("weapons.json") {
+        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
+            Ok(weapons) => {
                 serde_json::from_str(&weapons).expect("valid weapons JSON")
-            } else {
-                let item_manifest = {
+            },
+            Err(_) => {
+                let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
                     let data = data_lock.read().await;
-                    let client = data.bungie_client();
-                    let manifest = client.destiny_manifest().await?;
-                    client
-                        .destiny_inventory_item_definition(&manifest, "en")
-                        .await
-                        .expect("data invariant")
+                    data.bungie_client()
                 };
+
+                let manifest = client.destiny_manifest().await?;
+                let item_manifest = client
+                    .destiny_inventory_item_definition(&manifest, "en")
+                    .await
+                    .expect("data invariant");
 
                 EndgameAnalysisSheet::update(&item_manifest).await?;
                 let weapons = fs::read_to_string("weapons.json")
                     .expect("weapons.json readable");
                 serde_json::from_str(&weapons).expect("valid weapons JSON")
-            };
+            },
+        };
 
         let choices = match option.name {
             "archetype" => weapons
@@ -205,12 +211,6 @@ impl TierListCommand {
                 .filter(|t| t.to_lowercase().contains(&option.value.to_lowercase()))
                 .map(AutocompleteChoice::from)
                 .collect(),
-            // "tier" => {
-            //     tiers = TIERS
-            //         .iter()
-            //         .map(|t| AutocompleteChoice::from(t.to_string()))
-            //         .collect::<Vec<_>>();
-            // }
             _ => Vec::new(),
         };
 

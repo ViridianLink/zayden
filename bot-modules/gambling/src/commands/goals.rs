@@ -109,8 +109,7 @@ impl Commands {
         .expect("async call")
         .into_iter()
         .fold(String::new(), |mut acc, goal| {
-            acc.push_str(&goal.description());
-            acc.push_str("\n\n");
+            let _ = write!(acc, "{}\n\n", goal.description());
             acc
         });
 

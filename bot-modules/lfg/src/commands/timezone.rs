@@ -27,7 +27,7 @@ impl Command {
             reason = "Discord guarantees required options are present"
         )]
         let Some(ResolvedValue::String(region)) = options.remove("region") else {
-            unreachable!("Region is required")
+            return Ok(());
         };
 
         let tz = tz::db().get(region).unwrap_or(TimeZone::UTC);

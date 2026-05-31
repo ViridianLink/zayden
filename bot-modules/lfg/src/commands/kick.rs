@@ -12,7 +12,7 @@ use sqlx::{Database, Pool};
 
 use super::Command;
 use crate::models::post::PostManager;
-use crate::{Error, PostRow, Result, Savable, actions};
+use crate::{LfgError, PostRow, Result, Savable, actions};
 
 impl Command {
     pub async fn kick<
@@ -33,11 +33,11 @@ impl Command {
 
         let owner = match Manager::owner(pool, thread).await {
             Ok(owner) => owner,
-            Err(sqlx::Error::RowNotFound) => return Err(Error::ThreadNotFound),
-            Err(e) => return Err(Error::Sqlx(e)),
+            Err(sqlx::Error::RowNotFound) => return Err(LfgError::ThreadNotFound),
+            Err(e) => return Err(LfgError::Sqlx(e)),
         };
         if interaction.user.id != owner {
-            return Err(Error::PermissionDenied(owner));
+            return Err(LfgError::PermissionDenied(owner));
         }
 
         #[expect(
@@ -45,7 +45,7 @@ impl Command {
             reason = "Discord guarantees required options are present"
         )]
         let Some(ResolvedValue::User(user, _)) = options.remove("user") else {
-            unreachable!("User option is required")
+            return Ok(());
         };
 
         let (thread, embed) =

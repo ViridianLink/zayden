@@ -20,14 +20,11 @@ use zayden_core::{EmojiCache, EmojiCacheData, FormatNum, parse_options};
 
 use super::Commands;
 use crate::shop::ShopCurrency;
-use crate::{Error, Result};
+use crate::{GamblingError, Result};
 
 #[async_trait]
 pub trait CraftManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<CraftRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<CraftRow>>;
 
     async fn save(pool: &Pool<Db>, row: CraftRow) -> sqlx::Result<Db::QueryResult>;
 }
@@ -99,7 +96,7 @@ impl Commands {
         }
 
         let Some(ResolvedValue::String(kind)) = options.remove("type") else {
-            return Err(Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         let amount = match options.remove("amount") {
@@ -108,11 +105,11 @@ impl Commands {
         };
 
         if amount.is_negative() {
-            return Err(Error::NegativeAmount);
+            return Err(GamblingError::NegativeAmount);
         }
 
         if amount == 0 {
-            return Err(Error::ZeroAmount);
+            return Err(GamblingError::ZeroAmount);
         }
 
         let item: ShopCurrency = kind.parse().expect("kind is a valid ShopCurrency");
@@ -137,12 +134,14 @@ impl Commands {
                 | ShopCurrency::Gems
                 | ShopCurrency::Tech
                 | ShopCurrency::Utility
-                | ShopCurrency::Production => return Err(Error::InvalidAmount),
+                | ShopCurrency::Production => {
+                    return Err(GamblingError::InvalidAmount);
+                },
             };
 
             *fund -= cost;
             if *fund < 0 {
-                return Err(Error::InsufficientFunds {
+                return Err(GamblingError::InsufficientFunds {
                     required: fund.abs(),
                     currency,
                 });
@@ -170,7 +169,7 @@ impl Commands {
             | ShopCurrency::Redstone
             | ShopCurrency::Lapis
             | ShopCurrency::Diamonds
-            | ShopCurrency::Emeralds => return Err(Error::InvalidAmount),
+            | ShopCurrency::Emeralds => return Err(GamblingError::InvalidAmount),
         };
 
         Manager::save(pool, row).await?;

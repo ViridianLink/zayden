@@ -15,7 +15,7 @@ use crate::events::{Dispatch, Event, ShopPurchaseEvent};
 use crate::models::GamblingItem;
 use crate::{
     Coins,
-    Error,
+    GamblingError,
     GamblingItems,
     Gems,
     GoalsManager,
@@ -41,14 +41,14 @@ pub async fn buy<
     let mut options = parse_options_ref(options);
 
     let Some(ResolvedValue::String(item)) = options.remove("item") else {
-        return Err(Error::InvalidAmount);
+        return Err(GamblingError::InvalidAmount);
     };
 
     let item =
         SHOP_ITEMS.get(item).expect("Preset choices so item should always exist");
 
     let Some(ResolvedValue::String(amount)) = options.remove("amount") else {
-        return Err(Error::InvalidAmount);
+        return Err(GamblingError::InvalidAmount);
     };
 
     let mut row = BuyHandler::buy_row(pool, interaction.user.id)
@@ -58,7 +58,7 @@ pub async fn buy<
     let amount: i64 = match amount.parse() {
         Ok(x) => x,
         Err(_) if *amount == "a" => {
-            return Err(Error::PremiumRequired);
+            return Err(GamblingError::PremiumRequired);
 
             // match costs.first().copied() {
             //     Some((coins, ShopCurrency::Coins)) => row.coins() / coins,
@@ -67,15 +67,15 @@ pub async fn buy<
             //     None => unreachable!("No cost found"),
             // }
         },
-        _ => return Err(Error::InvalidAmount),
+        _ => return Err(GamblingError::InvalidAmount),
     };
 
     if amount.is_negative() {
-        return Err(Error::NegativeAmount);
+        return Err(GamblingError::NegativeAmount);
     }
 
     if amount == 0 {
-        return Err(Error::ZeroAmount);
+        return Err(GamblingError::ZeroAmount);
     }
 
     let costs = item.costs(amount);
@@ -93,13 +93,13 @@ pub async fn buy<
             | ShopCurrency::Redstone
             | ShopCurrency::Lapis
             | ShopCurrency::Diamonds
-            | ShopCurrency::Emeralds => return Err(Error::InvalidAmount),
+            | ShopCurrency::Emeralds => return Err(GamblingError::InvalidAmount),
         };
 
         *funds -= cost;
 
         if *funds < 0 {
-            return Err(Error::InsufficientFunds {
+            return Err(GamblingError::InsufficientFunds {
                 required: funds.abs(),
                 currency,
             });
@@ -186,7 +186,7 @@ fn edit_mine(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> Result<i64>
         "solar_system" => &mut row.solar_systems,
         "galaxy" => &mut row.galaxies,
         "universe" => &mut row.universes,
-        _ => return Err(Error::InvalidAmount),
+        _ => return Err(GamblingError::InvalidAmount),
     };
     let current = *value;
 
@@ -196,7 +196,7 @@ fn edit_mine(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> Result<i64>
     let max_value = *row.max_values().get(item.id).expect("item ID in max_values");
 
     if quantity > max_value {
-        return Err(Error::InsufficientCapacity(max_value - current));
+        return Err(GamblingError::InsufficientCapacity(max_value - current));
     }
 
     Ok(quantity)

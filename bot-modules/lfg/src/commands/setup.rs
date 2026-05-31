@@ -13,7 +13,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use super::Command;
-use crate::{Error, Result};
+use crate::{LfgError, Result};
 
 #[async_trait]
 pub trait SetupManager<Db: Database> {
@@ -34,14 +34,14 @@ impl Command {
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
+        let guild_id = interaction.guild_id.ok_or(LfgError::MissingGuildId)?;
 
         #[expect(
             clippy::unreachable,
             reason = "Discord guarantees required options are present"
         )]
         let Some(ResolvedValue::Channel(channel)) = options.remove("channel") else {
-            unreachable!("Channel is required")
+            return Ok(());
         };
 
         let role = match options.remove("role") {

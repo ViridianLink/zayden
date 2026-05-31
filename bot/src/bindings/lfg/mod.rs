@@ -12,10 +12,10 @@ use lfg::modals::create::{GuildManager, GuildRow};
 use lfg::models::timezone_manager::locale_to_timezone;
 use lfg::{
     Components,
-    Error,
     Join,
     JoinedRow,
     KickComponent,
+    LfgError,
     PostManager,
     PostRow,
     Savable,
@@ -92,7 +92,7 @@ impl PostManager<Postgres> for PostTable {
         id: impl Into<GenericChannelId> + Send,
         user: impl Into<UserId> + Send,
         alternative: bool,
-    ) -> Result<PostRow, Error> {
+    ) -> Result<PostRow, LfgError> {
         let id = id.into();
         let user = user.into();
 
@@ -117,7 +117,7 @@ impl PostManager<Postgres> for PostTable {
         .await?;
 
         if !alternative && row.fireteam_len() > row.fireteam_size() {
-            return Err(Error::FireteamFull);
+            return Err(LfgError::FireteamFull);
         }
 
         tx.commit().await?;

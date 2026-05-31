@@ -14,7 +14,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use super::Command;
-use crate::{Error, PostManager, Result};
+use crate::{LfgError, PostManager, Result};
 
 impl Command {
     pub async fn tags<Db: Database, Manager: PostManager<Db>>(
@@ -28,7 +28,7 @@ impl Command {
         let post_owner = Manager::owner(pool, interaction.channel_id).await?;
 
         if post_owner != interaction.user.id {
-            return Err(Error::PermissionDenied(post_owner));
+            return Err(LfgError::PermissionDenied(post_owner));
         }
 
         let thread_channel = interaction

@@ -219,6 +219,8 @@ pub fn shop_response<'a>(
     title: Option<&str>,
     page_change: i8,
 ) -> (CreateEmbed<'a>, CreateComponent<'a>) {
+    let page_change = usize::try_from(page_change).unwrap_or_default();
+
     let current_cat = title.map_or(ShopPage::Item, |title| {
         title
             .strip_suffix(" Shop")
@@ -234,11 +236,10 @@ pub fn shop_response<'a>(
     let category_idx = ShopPage::pages()
         .iter()
         .position(|cat| *cat == current_cat)
-        .expect("current_cat is always a valid ShopPage")
-        as i8;
+        .expect("current_cat is always a valid ShopPage");
 
     let category = ShopPage::pages()
-        .get(usize::try_from(category_idx + page_change).unwrap_or_default())
+        .get(category_idx + page_change)
         .copied()
         .unwrap_or(ShopPage::Item);
 

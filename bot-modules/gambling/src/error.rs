@@ -6,11 +6,11 @@ use zayden_core::{Error as ZaydenError, FormatNum};
 
 use crate::ShopCurrency;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, GamblingError>;
 
 #[expect(clippy::error_impl_error, reason = "conventional error type naming")]
 #[derive(Debug)]
-pub enum Error {
+pub enum GamblingError {
     Overflow(i64),
     MessageConflict,
 
@@ -37,7 +37,7 @@ pub enum Error {
     Sqlx(sqlx::Error),
 }
 
-impl std::fmt::Display for Error {
+impl std::fmt::Display for GamblingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Overflow(max) => {
@@ -101,7 +101,7 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for GamblingError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Serenity(e) => Some(e),
@@ -130,7 +130,7 @@ impl std::error::Error for Error {
     }
 }
 
-impl Respond for Error {
+impl Respond for GamblingError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::Serenity(_) | Self::Sqlx(_) => None,
@@ -160,13 +160,13 @@ impl Respond for Error {
     }
 }
 
-impl From<serenity::Error> for Error {
+impl From<serenity::Error> for GamblingError {
     fn from(value: serenity::Error) -> Self {
         Self::Serenity(value)
     }
 }
 
-impl From<sqlx::Error> for Error {
+impl From<sqlx::Error> for GamblingError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
     }

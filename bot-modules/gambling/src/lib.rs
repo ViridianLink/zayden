@@ -31,7 +31,7 @@ pub use common::{
     shop,
 };
 pub use ctx_data::GamblingData;
-pub use error::Error;
+pub use error::GamblingError;
 use error::Result;
 pub use game_cache::GameCache;
 pub use games::{HigherLower, Lotto, LottoManager, LottoRow, jackpot};

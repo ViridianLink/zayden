@@ -3,11 +3,11 @@ use std::fmt::Display;
 
 use zayden_core::error::Respond;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, GoldStarError>;
 
 #[expect(clippy::error_impl_error, reason = "module-level Error is idiomatic Rust")]
 #[derive(Debug)]
-pub enum Error {
+pub enum GoldStarError {
     SelfStar,
     NoStars(i64),
     InvalidOptions,
@@ -15,7 +15,7 @@ pub enum Error {
     Sqlx(sqlx::Error),
 }
 
-impl Display for Error {
+impl Display for GoldStarError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::SelfStar => write!(f, "You can't give yourself a star."),
@@ -30,7 +30,7 @@ impl Display for Error {
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for GoldStarError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Serenity(e) => Some(e),
@@ -40,7 +40,7 @@ impl std::error::Error for Error {
     }
 }
 
-impl Respond for Error {
+impl Respond for GoldStarError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::Serenity(_) | Self::Sqlx(_) => None,
@@ -51,13 +51,13 @@ impl Respond for Error {
     }
 }
 
-impl From<serenity::Error> for Error {
+impl From<serenity::Error> for GoldStarError {
     fn from(value: serenity::Error) -> Self {
         Self::Serenity(value)
     }
 }
 
-impl From<sqlx::Error> for Error {
+impl From<sqlx::Error> for GoldStarError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
     }

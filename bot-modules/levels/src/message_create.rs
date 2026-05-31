@@ -27,7 +27,7 @@ pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
 
     let new_level = row.new_message();
 
-    Manager::save(pool, row).await.ok()?;
+    Manager::save(pool, row).await.expect("temp");
 
     new_level
 }

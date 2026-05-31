@@ -37,26 +37,26 @@ impl WeaponCommand {
         interaction.defer(&ctx.http).await?;
 
         let options = interaction.data.options();
-        let options = parse_options(options);
+        let mut options = parse_options(options);
 
-        let name = match options.get("name") {
-            Some(ResolvedValue::String(name)) => name,
-            _ => unreachable!("Name is required"),
+        let Some(ResolvedValue::String(name)) = options.remove("name") else {
+            return Ok(());
         };
 
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
             Ok(w) => serde_json::from_str(&w).expect("valid JSON"),
             Err(_) => {
-                let item_manifest = {
+                let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
                     let data = data_lock.read().await;
-                    let client = data.bungie_client();
-                    let manifest = client.destiny_manifest().await?;
-                    client
-                        .destiny_inventory_item_definition(&manifest, "en")
-                        .await
-                        .expect("data invariant")
+                    data.bungie_client()
                 };
+
+                let manifest = client.destiny_manifest().await?;
+                let item_manifest = client
+                    .destiny_inventory_item_definition(&manifest, "en")
+                    .await
+                    .expect("data invariant");
 
                 EndgameAnalysisSheet::update(&item_manifest).await?;
                 let w = fs::read_to_string("weapons.json")
@@ -106,16 +106,17 @@ impl WeaponCommand {
         let weapons = match fs::read_to_string("weapons.json") {
             Ok(weapons) => weapons,
             Err(_) => {
-                let item_manifest = {
+                let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
                     let data = data_lock.read().await;
-                    let client = data.bungie_client();
-                    let manifest = client.destiny_manifest().await?;
-                    client
-                        .destiny_inventory_item_definition(&manifest, "en")
-                        .await
-                        .expect("data invariant")
+                    data.bungie_client()
                 };
+
+                let manifest = client.destiny_manifest().await?;
+                let item_manifest = client
+                    .destiny_inventory_item_definition(&manifest, "en")
+                    .await
+                    .expect("data invariant");
 
                 EndgameAnalysisSheet::update(&item_manifest).await?;
                 fs::read_to_string("weapons.json").expect("weapons.json readable")

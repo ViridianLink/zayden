@@ -23,7 +23,7 @@ use zayden_core::{EmojiCacheData, FormatNum};
 use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
     Coins,
-    Error,
+    GamblingError,
     GamblingManager,
     Gems,
     GoalsManager,
@@ -153,14 +153,14 @@ impl Commands {
         interaction.defer(&ctx.http).await?;
 
         let Some(option) = options.first() else {
-            return Err(Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
         let ResolvedValue::User(recipient, _) = option.value else {
-            return Err(Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         if recipient == &interaction.user {
-            return Err(Error::SelfGift);
+            return Err(GamblingError::SelfGift);
         }
 
         let mut user_row = GiftHandler::sender(pool, interaction.user.id)
@@ -171,7 +171,7 @@ impl Commands {
         let now = jiff::Timestamp::now().to_zoned(TimeZone::UTC);
 
         if user_row.gift.to_jiff().to_zoned(TimeZone::UTC).date() == now.date() {
-            return Err(Error::GiftUsed(tomorrow(Some(now.timestamp()))));
+            return Err(GamblingError::GiftUsed(tomorrow(Some(now.timestamp()))));
         }
 
         let amount = GIFT_AMOUNT * (user_row.prestige() + 1);

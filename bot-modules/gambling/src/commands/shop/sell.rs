@@ -12,7 +12,7 @@ use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
 use crate::shop::SALES_TAX;
-use crate::{Coins, Error, Result, SHOP_ITEMS, ShopManager};
+use crate::{Coins, GamblingError, Result, SHOP_ITEMS, ShopManager};
 
 #[derive(FromRow)]
 pub struct SellRow {
@@ -54,28 +54,23 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
     let mut options = parse_options_ref(options);
 
     let Some(ResolvedValue::String(item)) = options.remove("item") else {
-        return Err(Error::InvalidAmount);
+        return Err(GamblingError::InvalidAmount);
     };
 
     let Some(ResolvedValue::Integer(amount)) = options.remove("amount") else {
-        return Err(Error::InvalidAmount);
+        return Err(GamblingError::InvalidAmount);
     };
     let amount = *amount;
 
     if amount.is_negative() {
-        return Err(Error::NegativeAmount);
+        return Err(GamblingError::NegativeAmount);
     }
 
     let item =
         SHOP_ITEMS.get(item).expect("Preset choices so item should always exist");
-    #[expect(
-        clippy::cast_possible_truncation,
-        clippy::cast_precision_loss,
-        reason = "payment calculation: precision and truncation are acceptable for display"
-    )]
-    let payment = ((item.coin_cost().expect("item has a coin cost") as f64)
-        * (amount as f64)
-        * (1.0 - SALES_TAX)) as i64;
+
+    let total_coin_cost = item.coin_cost().expect("item has a coin cost") * amount;
+    let payment = (total_coin_cost as f64 * (1.0 - SALES_TAX)) as i64;
 
     let mut row = Manager::sell_row(pool, interaction.user.id, item.id)
         .await
@@ -84,13 +79,13 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
 
     let quantity = match &mut row.item_quantity {
         Some(quantity) if *quantity < amount => {
-            return Err(Error::InsufficientItemQuantity(*quantity));
+            return Err(GamblingError::InsufficientItemQuantity(*quantity));
         },
         Some(quantity) => {
             *quantity -= amount;
             *quantity
         },
-        None => return Err(Error::ItemNotInInventory),
+        None => return Err(GamblingError::ItemNotInInventory),
     };
 
     row.add_coins(payment);

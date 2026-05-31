@@ -13,7 +13,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 pub struct Partner;
 
@@ -36,19 +36,15 @@ impl Partner {
 
         if row.partner_ids.is_empty() {
             if user == &interaction.user {
-                return Err(Error::SelfNoPartners);
+                return Err(FamilyError::SelfNoPartners);
             }
 
-            return Err(Error::NoPartners(user.id));
+            return Err(FamilyError::NoPartners(user.id));
         }
 
         let partners: Vec<String> = stream::iter(row.partner_ids)
             .then(|id| async move {
-                #[expect(
-                    clippy::cast_sign_loss,
-                    reason = "stored IDs are always non-negative"
-                )]
-                let user_id = UserId::new(id as u64);
+                let user_id = UserId::new(id.cast_unsigned());
                 let user = user_id.to_user(ctx).await?;
 
                 Ok::<String, serenity::Error>(user.mention().to_string())

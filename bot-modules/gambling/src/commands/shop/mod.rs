@@ -21,7 +21,14 @@ use zayden_core::EmojiCacheData;
 use super::Commands;
 use crate::commands::inventory::InventoryManager;
 use crate::common::shop::ShopRow;
-use crate::{GoalsManager, Result, SHOP_ITEMS, ShopManager, ShopPage};
+use crate::{
+    GamblingError,
+    GoalsManager,
+    Result,
+    SHOP_ITEMS,
+    ShopManager,
+    ShopPage,
+};
 
 impl Commands {
     pub async fn shop<
@@ -40,7 +47,7 @@ impl Commands {
         let command = options.pop().expect("command always has a subcommand");
 
         let ResolvedValue::SubCommand(options) = &command.value else {
-            return Err(crate::Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         match command.name {
@@ -61,7 +68,7 @@ impl Commands {
                 sell::<Data, Db, ShopHandler>(ctx, interaction, pool, options)
                     .await?;
             },
-            _ => return Err(crate::Error::InvalidAmount),
+            _ => return Err(GamblingError::InvalidAmount),
         }
 
         Ok(())

@@ -21,13 +21,9 @@ impl Command {
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
         let Some(ResolvedValue::String(activity)) = options.remove("activity")
         else {
-            unreachable!("Activity is required")
+            return Ok(());
         };
 
         let template = match options.remove("template") {

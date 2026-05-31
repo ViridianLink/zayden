@@ -13,7 +13,7 @@ pub mod utils;
 pub use activities::{ACTIVITIES, Activity, ActivityCategory};
 pub use commands::{Command, JoinedManager, JoinedRow};
 pub use components::{Components, KickComponent, TagsComponent};
-pub use error::Error;
+pub use error::LfgError;
 use error::Result;
 pub use modals::{Create, Edit, GuildManager};
 pub use models::{

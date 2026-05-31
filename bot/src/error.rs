@@ -9,7 +9,7 @@ pub enum BotError {
     NegativeHours,
 
     EndgameAnalysis(endgame_analysis::EndgameAnalysisError),
-    Lfg(lfg::Error),
+    Lfg(lfg::LfgError),
     ReactionRole(reaction_roles::Error),
     Ticket(ticket::Error),
     TempVoice(temp_voice::Error),
@@ -100,8 +100,8 @@ impl From<endgame_analysis::EndgameAnalysisError> for BotError {
     }
 }
 
-impl From<lfg::Error> for BotError {
-    fn from(e: lfg::Error) -> Self {
+impl From<lfg::LfgError> for BotError {
+    fn from(e: lfg::LfgError) -> Self {
         Self::Lfg(e)
     }
 }

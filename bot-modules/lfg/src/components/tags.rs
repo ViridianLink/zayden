@@ -33,7 +33,8 @@ impl TagsComponent {
             | ComponentInteractionDataKind::MentionableSelect { .. }
             | ComponentInteractionDataKind::ChannelSelect { .. }
             | ComponentInteractionDataKind::Unknown(_) => {
-                unreachable!("Expected string select")
+                error!("Expected string select");
+                return Ok(());
             },
         };
 
@@ -54,10 +55,6 @@ impl TagsComponent {
         Ok(())
     }
 
-    #[expect(
-        clippy::unreachable,
-        reason = "remove is only registered for StringSelect"
-    )]
     pub async fn remove(
         http: &Http,
         interaction: &ComponentInteraction,
@@ -76,7 +73,8 @@ impl TagsComponent {
             | ComponentInteractionDataKind::MentionableSelect { .. }
             | ComponentInteractionDataKind::ChannelSelect { .. }
             | ComponentInteractionDataKind::Unknown(_) => {
-                unreachable!("Expected string select")
+                error!("Expected string select");
+                return Ok(());
             },
         };
 

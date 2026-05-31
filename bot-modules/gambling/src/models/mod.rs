@@ -24,7 +24,7 @@ use sqlx::Database;
 use zayden_core::{EmojiCache, FormatNum};
 
 use crate::shop::ShopCurrency;
-use crate::{Error, Result, StaminaCron, StaminaManager};
+use crate::{GamblingError, Result, StaminaCron, StaminaManager};
 
 pub trait Coins {
     fn coins(&self) -> i64;
@@ -59,16 +59,16 @@ pub trait Gems {
 }
 
 pub trait Stamina {
-    const MAX_STAMINA: i32 = 3;
+    const MAX_STAMINA: u8 = 3;
 
-    fn stamina(&self) -> i32;
+    fn stamina(&self) -> u8;
 
     #[expect(clippy::cast_sign_loss, reason = "stamina is always non-negative")]
     fn stamina_str(&self) -> String {
         format!(
             "{}{}",
             "🟩 ".repeat(self.stamina() as usize),
-            "⬛ ".repeat((Self::MAX_STAMINA - self.stamina()).max(0) as usize)
+            "⬛ ".repeat(usize::from((Self::MAX_STAMINA - self.stamina()).max(0)))
         )
     }
 
@@ -88,7 +88,7 @@ pub trait Stamina {
                 .unwrap_or_default()
                 .timestamp();
 
-            return Err(Error::OutOfStamina(next_timestamp));
+            return Err(GamblingError::OutOfStamina(next_timestamp));
         }
 
         Ok(())

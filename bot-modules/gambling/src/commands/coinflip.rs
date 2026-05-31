@@ -24,6 +24,7 @@ use crate::{
     Coins,
     EffectsManager,
     GamblingData,
+    GamblingError,
     GameCache,
     GameManager,
     GameRow,
@@ -51,12 +52,12 @@ impl Commands {
 
         let Some(ResolvedValue::String(prediction)) = options.remove("prediction")
         else {
-            return Err(crate::Error::InvalidPrediction);
+            return Err(GamblingError::InvalidPrediction);
         };
         let prediction = prediction.parse::<CoinSide>().expect("valid coin side");
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
-            return Err(crate::Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         let mut row = GameHandler::row(pool, interaction.user.id)

@@ -16,7 +16,7 @@ use zayden_core::CronJobData;
 
 use crate::cron::create_reminders;
 use crate::templates::TemplateInfo;
-use crate::{Error, GuildManager, PostManager, Result, actions};
+use crate::{GuildManager, LfgError, PostManager, Result, actions};
 
 pub async fn thread_delete<Db: Database, Manager: PostManager<Db>>(
     http: &Http,
@@ -63,7 +63,7 @@ pub async fn guild_create<
                 ..
             },
         ))) => return Ok(()),
-        Err(e) => return Err(Error::Serenity(e)),
+        Err(e) => return Err(LfgError::Serenity(e)),
     };
 
     let threads = guild

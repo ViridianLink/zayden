@@ -9,7 +9,7 @@ use sqlx::{Database, Pool};
 
 use super::Components;
 use crate::templates::{DefaultTemplate, Template};
-use crate::{Error, PostManager, Result};
+use crate::{LfgError, PostManager, Result};
 
 impl Components {
     pub async fn settings<Db: Database, Manager: PostManager<Db>>(
@@ -24,7 +24,7 @@ impl Components {
         };
 
         if interaction.user.id != owner {
-            return Err(Error::PermissionDenied(owner));
+            return Err(LfgError::PermissionDenied(owner));
         }
 
         let main_row = DefaultTemplate::main_row();

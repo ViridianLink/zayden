@@ -16,18 +16,21 @@ pub struct GameResult {
 }
 
 impl GameResult {
-    pub fn new(name: impl Into<String>, emoji: Emoji) -> Self {
-        Self { name: name.into(), emoji }
+    #[must_use]
+    pub const fn new(name: String, emoji: Emoji) -> Self {
+        Self { name, emoji }
     }
 
-    pub fn new_with_str(name: impl Into<String>, emoji: &'static str) -> Self {
-        Self { name: name.into(), emoji: Emoji::Str(emoji) }
+    #[must_use]
+    pub const fn new_with_str(name: String, emoji: &'static str) -> Self {
+        Self { name, emoji: Emoji::Str(emoji) }
     }
 }
 
 impl GameResult {
-    pub fn new_with_id(name: impl Into<String>, emoji: &'static str) -> Self {
-        Self { name: name.into(), emoji: Emoji::Id(emoji) }
+    #[must_use]
+    pub const fn new_with_id(name: String, emoji: &'static str) -> Self {
+        Self { name, emoji: Emoji::Id(emoji) }
     }
 
     #[must_use]

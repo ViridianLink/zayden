@@ -2,7 +2,7 @@ use serenity::all::{ComponentInteraction, CreateInteractionResponse, Http};
 use sqlx::{Database, Pool};
 
 use super::Components;
-use crate::{Error, PostManager, Result, actions};
+use crate::{LfgError, PostManager, Result, actions};
 
 impl Components {
     pub async fn delete<Db: Database, Manager: PostManager<Db>>(
@@ -13,7 +13,7 @@ impl Components {
         let owner = Manager::owner(pool, interaction.channel_id).await?;
 
         if interaction.user.id != owner {
-            return Err(Error::PermissionDenied(owner));
+            return Err(LfgError::PermissionDenied(owner));
         }
 
         actions::delete::<Db, Manager>(http, interaction.channel_id, pool).await?;

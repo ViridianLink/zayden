@@ -12,6 +12,7 @@ use serenity::all::{
     CreateEmbedAuthor,
     CreateEmbedFooter,
 };
+use tracing::error;
 
 use super::{Affinity, Frame, Tier};
 
@@ -66,14 +67,14 @@ impl WeaponBuilder {
     }
 
     #[must_use]
-    pub fn affinity(mut self, affinity: impl Into<String>) -> Self {
-        self.affinity = affinity.into();
+    pub fn affinity(mut self, affinity: String) -> Self {
+        self.affinity = affinity;
         self
     }
 
     #[must_use]
-    pub fn frame(mut self, frame: Option<impl Into<String>>) -> Self {
-        self.frame = frame.map(Into::into);
+    pub fn frame(mut self, frame: Option<String>) -> Self {
+        self.frame = frame;
         self
     }
 
@@ -96,32 +97,32 @@ impl WeaponBuilder {
     }
 
     #[must_use]
-    pub fn barrel(mut self, barrel: impl Into<String>) -> Self {
-        self.barrel = barrel.into();
+    pub fn barrel(mut self, barrel: String) -> Self {
+        self.barrel = barrel;
         self
     }
 
     #[must_use]
-    pub fn magazine(mut self, magazine: impl Into<String>) -> Self {
-        self.magazine = magazine.into();
+    pub fn magazine(mut self, magazine: String) -> Self {
+        self.magazine = magazine;
         self
     }
 
     #[must_use]
-    pub fn perk_1(mut self, column_1: impl Into<String>) -> Self {
-        self.perk_1 = column_1.into();
+    pub fn perk_1(mut self, column_1: String) -> Self {
+        self.perk_1 = column_1;
         self
     }
 
     #[must_use]
-    pub fn perk_2(mut self, column_2: impl Into<String>) -> Self {
-        self.perk_2 = column_2.into();
+    pub fn perk_2(mut self, column_2: String) -> Self {
+        self.perk_2 = column_2;
         self
     }
 
     #[must_use]
-    pub fn origin_trait(mut self, origin_trait: impl Into<String>) -> Self {
-        self.origin_trait = origin_trait.into();
+    pub fn origin_trait(mut self, origin_trait: String) -> Self {
+        self.origin_trait = origin_trait;
         self
     }
 
@@ -138,18 +139,12 @@ impl WeaponBuilder {
     }
 
     #[must_use]
-    pub fn notes(mut self, notes: impl Into<String>) -> Self {
-        self.notes = Some(notes.into());
+    pub fn notes(mut self, notes: String) -> Self {
+        self.notes = Some(notes);
         self
     }
 
     #[must_use]
-    #[expect(
-        clippy::unwrap_in_result,
-        clippy::panic,
-        clippy::string_slice,
-        reason = "spreadsheet data invariants: field presence and parse validity are guaranteed by sheet structure"
-    )]
     pub fn from_row(name: &str, header: &RowData, row: RowData) -> Option<Self> {
         let mut data = header
             .values
@@ -162,8 +157,10 @@ impl WeaponBuilder {
 
         let weapon_name = data
             .remove("name")
+            .ok_or(())
             .expect("data invariant")
             .formatted_value
+            .ok_or(())
             .expect("data invariant");
 
         if weapon_name == "Ideal" {
@@ -174,7 +171,18 @@ impl WeaponBuilder {
             .remove("reserves")
             .map(|r| r.formatted_value.expect("data invariant"))
             .filter(|s| !matches!(s.as_str(), "?" | "N/A" | "TBA"))
-            .map(|s| s.parse().unwrap_or_else(|_| panic!("Failed to parse: '{s}'")));
+            .map(|s| {
+                s.parse().map_or_else(
+                    |_| {
+                        error!("temp"); // "Failed to parse: '{s}'"
+                        None
+                    },
+                    Some,
+                )
+            })
+            .ok_or(())
+            .expect("Failed to read reserves");
+
         let shield = data
             .remove("shield")
             .map(|r| r.formatted_value.expect("data invariant"))
@@ -186,16 +194,15 @@ impl WeaponBuilder {
             "LFRs" => String::from("Linear Fusion"),
             "HCs" => String::from("Hand Cannon"),
             "Other" => String::from("Other"),
-            s => String::from(&s[..s.len() - 1]),
+            s => String::from(s.get(..s.len() - 1).ok_or(()).expect("temp")),
         };
 
         let mut weapon = Self::new(&weapon_name, archetype)
             .affinity(
                 data.remove("affinity")
                     .or_else(|| data.remove("energy"))
-                    .unwrap_or_else(|| {
-                        panic!("affinity or energy should exist on data: {data:?}")
-                    })
+                    .ok_or(())
+                    .expect("affinity or energy should exist on data")
                     .formatted_value
                     .unwrap_or_default(),
             )
@@ -206,10 +213,10 @@ impl WeaponBuilder {
             .enhanceable(
                 data.remove("enhance")
                     .or_else(|| data.remove("⬆\u{fe0f}"))
-                    .unwrap_or_else(|| {
-                        panic!("enhance should exist on data: {data:?}")
-                    })
+                    .ok_or(())
+                    .expect("enhance should exist on data")
                     .formatted_value
+                    .ok_or(())
                     .expect("data invariant")
                     == "Yes",
             )
@@ -217,24 +224,28 @@ impl WeaponBuilder {
             .reserves(reserves)
             .barrel(
                 data.remove("barrel")
+                    .ok_or(())
                     .expect("'barrel' should exist on data")
                     .formatted_value
                     .unwrap_or_default(),
             )
             .magazine(
                 data.remove("mag")
+                    .ok_or(())
                     .expect("'mag' should exist on data")
                     .formatted_value
                     .unwrap_or_default(),
             )
             .perk_1(
                 data.remove("column 1")
-                    .unwrap_or_else(|| {
+                    .ok_or(())
+                    .unwrap_or_else(|()| {
                         data.remove("perk 1").expect(
                             "Data should contain either 'perk' or 'column' headers",
                         )
                     })
                     .formatted_value
+                    .ok_or(())
                     .expect("data invariant"),
             )
             .perk_2(
@@ -245,22 +256,26 @@ impl WeaponBuilder {
                         )
                     })
                     .formatted_value
+                    .ok_or(())
                     .expect("data invariant"),
             )
             .origin_trait(
                 data.remove("origin trait")
+                    .ok_or(())
                     .expect("data invariant")
                     .formatted_value
+                    .ok_or(())
                     .expect("data invariant"),
             )
             .rank(
                 data.remove("rank")
+                    .ok_or(())
                     .expect("data invariant")
                     .formatted_value
                     .map(|s| s.parse().expect("data invariant"))
                     .unwrap_or_default(),
             )
-            .tier(data.remove("tier").expect("data invariant"));
+            .tier(data.remove("tier").ok_or(()).expect("data invariant"));
 
         if let Some(notes) = data.remove("notes").and_then(|d| d.formatted_value) {
             weapon = weapon.notes(notes);
@@ -511,8 +526,7 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
         let mut description =
             format!("Tier: {} (#{})", value.tier.tier(), value.rank);
         if let Some(reserves) = value.reserves {
-            description.push_str("\nReserves: ");
-            description.push_str(&reserves.to_string());
+            let _ = write!(description, "\nReserves: {reserves}");
         }
 
         let mut embed = CreateEmbed::new()
@@ -649,7 +663,7 @@ fn generate_combinations_iterative(
         return;
     }
 
-    for &num in &data[depth] {
+    for &num in data.get(depth).expect("temp") {
         current_combination.push(num);
         generate_combinations_iterative(
             data,

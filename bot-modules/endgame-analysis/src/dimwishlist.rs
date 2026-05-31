@@ -50,9 +50,11 @@ impl DimWishlistCommand {
         };
 
         let (item_manifest, perk_manifest) = {
-            let data_lock = ctx.data::<RwLock<Data>>();
-            let data = data_lock.read().await;
-            let client = data.bungie_client();
+            let client = {
+                let data_lock = ctx.data::<RwLock<Data>>();
+                let data = data_lock.read().await;
+                data.bungie_client()
+            };
             let manifest = client.destiny_manifest().await?;
 
             future::try_join(

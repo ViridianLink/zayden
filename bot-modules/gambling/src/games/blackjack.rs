@@ -34,6 +34,7 @@ use crate::{
     GameManager,
     GameRow,
     GoalsManager,
+    Result,
     card_deck,
 };
 
@@ -288,7 +289,7 @@ async fn game_end_common<
     channel_id: GenericChannelId,
     bet: i64,
     mut payout: i64,
-) -> crate::Result<(i64, i64)> {
+) -> Result<(i64, i64)> {
     let mut row = GameHandler::row(pool, user_id)
         .await?
         .unwrap_or_else(|| GameRow::new(user_id));
@@ -330,7 +331,7 @@ pub async fn game_end_draw<
     channel_id: GenericChannelId,
     game: GameDetails,
     dealer_hand: &[EmojiId],
-) -> crate::Result<EditInteractionResponse<'a>> {
+) -> Result<EditInteractionResponse<'a>> {
     let bet = game.bet();
     let dealer_value = sum_cards(emojis, dealer_hand);
 
@@ -382,7 +383,7 @@ pub async fn game_end_blackjack<
     channel_id: GenericChannelId,
     game: GameDetails,
     dealer_hand: &[EmojiId],
-) -> crate::Result<EditInteractionResponse<'a>> {
+) -> Result<EditInteractionResponse<'a>> {
     let bet = game.bet();
     let payout = bet + (3 * bet) / 2;
     let dealer_value = sum_cards(emojis, dealer_hand);

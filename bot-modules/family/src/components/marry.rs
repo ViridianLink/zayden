@@ -2,7 +2,7 @@ use serenity::all::{ComponentInteraction, MessageInteractionMetadata};
 use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     interaction: &ComponentInteraction,
@@ -10,14 +10,14 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
 ) -> Result<()> {
     let author = match interaction.message.interaction_metadata.as_deref() {
         Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
-        None => return Err(Error::NoInteraction),
-        Some(_) => return Err(Error::InvalidUserId),
+        None => return Err(FamilyError::NoInteraction),
+        Some(_) => return Err(FamilyError::InvalidUserId),
     };
 
     let partner = &interaction.user;
 
     if !interaction.message.mentions.contains(partner) && partner.id != author.id {
-        return Err(Error::UnauthorisedUser);
+        return Err(FamilyError::UnauthorisedUser);
     }
 
     let mut row =
@@ -37,17 +37,17 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
 
 pub fn decline(interaction: &ComponentInteraction) -> Result<()> {
     if !interaction.message.mentions.contains(&interaction.user) {
-        return Err(Error::UnauthorisedUser);
+        return Err(FamilyError::UnauthorisedUser);
     }
 
     let author = match interaction.message.interaction_metadata.as_deref() {
         Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
-        None => return Err(Error::NoInteraction),
-        Some(_) => return Err(Error::InvalidUserId),
+        None => return Err(FamilyError::NoInteraction),
+        Some(_) => return Err(FamilyError::InvalidUserId),
     };
 
     if author.id == interaction.user.id {
-        return Err(Error::MarryCancelled);
+        return Err(FamilyError::MarryCancelled);
     }
 
     Ok(())

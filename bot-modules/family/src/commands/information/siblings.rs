@@ -13,7 +13,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 pub struct Siblings;
 
@@ -37,27 +37,29 @@ impl Siblings {
 
         if row.parent_ids.is_empty() {
             if user == &interaction.user {
-                return Err(Error::SelfNoParents);
+                return Err(FamilyError::SelfNoParents);
             }
 
-            return Err(Error::NoParents(user.id));
+            return Err(FamilyError::NoParents(user.id));
         }
 
         let siblings: Vec<String> = stream::iter(row.parent_ids)
-            .map(|id| UserId::new(id as u64))
+            .map(|id| UserId::new(id.cast_unsigned()))
             .then(|id| async move {
                 if let Some(row) = Manager::row(pool, id).await? {
                     for sib_id in row.children_ids {
                         if sib_id != row.id {
-                            let user_id = UserId::new(sib_id as u64);
+                            let user_id = UserId::new(sib_id.cast_unsigned());
                             let user = user_id.to_user(ctx).await?;
 
-                            return Ok::<String, Error>(user.mention().to_string());
+                            return Ok::<String, FamilyError>(
+                                user.mention().to_string(),
+                            );
                         }
                     }
                 }
 
-                Err(Error::NoData(id))
+                Err(FamilyError::NoData(id))
             })
             .try_collect()
             .await?;

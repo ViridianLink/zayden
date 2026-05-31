@@ -11,7 +11,7 @@ use sqlx::{Database, Pool};
 
 use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
-use crate::{Error, Result};
+use crate::{FamilyError, Result};
 
 const MAX_PARTNERS: usize = 1;
 
@@ -24,42 +24,42 @@ impl Marry {
         pool: &Pool<Db>,
     ) -> Result<UserId> {
         let options = interaction.data.options();
-        let option = options.first().ok_or(Error::InvalidUserId)?;
+        let option = options.first().ok_or(FamilyError::InvalidUserId)?;
         let ResolvedValue::User(target_user, _) = option.value else {
-            return Err(Error::InvalidUserId);
+            return Err(FamilyError::InvalidUserId);
         };
 
         if interaction.user.id == target_user.id {
-            return Err(Error::UserSelfMarry);
+            return Err(FamilyError::UserSelfMarry);
         }
 
         if target_user.id == ctx.http.get_current_user().await?.id {
-            return Err(Error::Zayden);
+            return Err(FamilyError::Zayden);
         }
 
         if target_user.bot() {
-            return Err(Error::Bot);
+            return Err(FamilyError::Bot);
         }
 
         if let Some(row) = Manager::row(pool, interaction.user.id).await? {
             let relationship = row.relationship(target_user.id);
 
             if relationship != Relationships::None {
-                return Err(Error::AlreadyRelated {
+                return Err(FamilyError::AlreadyRelated {
                     target: target_user.id,
                     relationship,
                 });
             }
 
             if row.partner_ids.len() >= MAX_PARTNERS {
-                return Err(Error::MaxPartners);
+                return Err(FamilyError::MaxPartners);
             }
         }
 
         if let Some(row) = Manager::row(pool, target_user.id).await?
             && row.partner_ids.len() >= MAX_PARTNERS
         {
-            return Err(Error::MaxPartners);
+            return Err(FamilyError::MaxPartners);
         }
 
         Ok(target_user.id)

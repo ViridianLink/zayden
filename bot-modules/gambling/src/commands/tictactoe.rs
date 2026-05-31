@@ -26,6 +26,7 @@ use crate::{
     Coins,
     EffectsManager,
     GamblingData,
+    GamblingError,
     GameCache,
     GameManager,
     GameRow,
@@ -61,11 +62,11 @@ impl Commands {
         let mut options = parse_options(options);
 
         let Some(ResolvedValue::String(size)) = options.remove("size") else {
-            return Err(crate::Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
-            return Err(crate::Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         EffectsHandler::bet_limit::<GamblingHandler>(

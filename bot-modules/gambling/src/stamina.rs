@@ -11,8 +11,6 @@ pub trait StaminaManager<Db: Database> {
 pub struct StaminaCron;
 
 impl StaminaCron {
-    /// # Errors
-    /// Returns an error if the cron schedule string is invalid.
     pub fn cron_job<Db: Database, Manager: StaminaManager<Db>>()
     -> Result<CronJob<Db>, jiff_cron::error::Error> {
         Ok(CronJob::new("stamina", "0 */10 * * * * *")?.set_action(

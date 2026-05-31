@@ -21,7 +21,7 @@ use crate::utils::{GameResult, game_embed};
 use crate::{
     Coins,
     EffectsManager,
-    Error,
+    GamblingError,
     GamblingData,
     GameCache,
     GameManager,
@@ -49,14 +49,14 @@ impl Commands {
         let mut options = parse_options(options);
 
         let Some(ResolvedValue::String(dice)) = options.remove("dice") else {
-            return Err(Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         let n_sides = dice.parse::<i64>().expect("dice notation is a valid integer");
 
         let Some(ResolvedValue::Integer(prediction)) = options.remove("prediction")
         else {
-            return Err(Error::InvalidPrediction);
+            return Err(GamblingError::InvalidPrediction);
         };
 
         verify_prediction(prediction, 1, n_sides)?;
@@ -71,7 +71,7 @@ impl Commands {
         GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
-            return Err(Error::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         EffectsHandler::bet_limit::<GamblingHandler>(
@@ -183,7 +183,7 @@ impl Commands {
 
 const fn verify_prediction(prediction: i64, min: i64, max: i64) -> Result<()> {
     if prediction > max || prediction < min {
-        return Err(Error::InvalidPrediction);
+        return Err(GamblingError::InvalidPrediction);
     }
 
     Ok(())

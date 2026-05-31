@@ -17,7 +17,7 @@ use zayden_core::{EmojiCacheData, FormatNum};
 use super::Commands;
 use crate::{
     Coins,
-    Error,
+    GamblingError,
     GamblingGoalsRow,
     Gems,
     GoalHandler,
@@ -120,7 +120,7 @@ impl Commands {
         let today = now.to_zoned(TimeZone::UTC).date();
 
         if row.daily.to_jiff() == today {
-            return Err(Error::DailyClaimed(tomorrow(Some(now))));
+            return Err(GamblingError::DailyClaimed(tomorrow(Some(now))));
         }
 
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);

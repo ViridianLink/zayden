@@ -1,4 +1,4 @@
-use jiff::{Span, Timestamp};
+use jiff::Timestamp;
 use serenity::all::{
     CommandInteraction,
     CommandOptionType,
@@ -15,7 +15,7 @@ use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
 use crate::manager::GoldStarRow;
-use crate::{Error, GiveStar, GoldStarManager, Result};
+use crate::{GiveStar, GoldStarError, GoldStarManager, Result};
 
 impl GiveStar {
     pub async fn run<Db: Database, Manager: GoldStarManager<Db>>(
@@ -28,11 +28,11 @@ impl GiveStar {
 
         let Some(ResolvedValue::User(target_user, _)) = options.remove("member")
         else {
-            return Err(Error::InvalidOptions);
+            return Err(GoldStarError::InvalidOptions);
         };
 
         if interaction.user.id == target_user.id {
-            return Err(Error::SelfStar);
+            return Err(GoldStarError::SelfStar);
         }
 
         let mut author_row = Manager::get_row(pool, interaction.user.id)
@@ -51,7 +51,7 @@ impl GiveStar {
         let free_star = next_free_star <= Timestamp::now();
 
         if author_row.number_of_stars < 1 && !free_star {
-            return Err(Error::NoStars(next_free_star.as_second()));
+            return Err(GoldStarError::NoStars(next_free_star.as_second()));
         }
 
         if free_star {
@@ -71,8 +71,7 @@ impl GiveStar {
         );
 
         if let Some(ResolvedValue::String(reason)) = options.remove("reason") {
-            description.push_str("\nReason: ");
-            description.push_str(reason);
+            let _ = write!(description, "\nReason: {reason}");
         }
 
         interaction

@@ -101,12 +101,8 @@ impl Default for RankRow {
 }
 
 impl LevelsRow for RankRow {
-    #[expect(
-        clippy::unreachable,
-        reason = "user_id is not stored on this view row type"
-    )]
     fn user_id(&self) -> UserId {
-        unreachable!("user_id is not available on RankRow")
+        UserId::default()
     }
 
     fn xp(&self) -> i32 {
@@ -149,7 +145,7 @@ impl LevelsRow for XpRow {
         reason = "user_id is not stored on this view row type"
     )]
     fn user_id(&self) -> UserId {
-        unreachable!("user_id is not available on XpRow")
+        UserId::default()
     }
 
     fn xp(&self) -> i32 {

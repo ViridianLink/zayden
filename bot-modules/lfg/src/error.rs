@@ -4,14 +4,14 @@ use serenity::all::{Mentionable, UserId};
 use zayden_core::Error as ZaydenError;
 use zayden_core::error::Respond;
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, LfgError>;
 
 #[expect(
     clippy::error_impl_error,
     reason = "conventional error type name in domain crate"
 )]
 #[derive(Debug)]
-pub enum Error {
+pub enum LfgError {
     MissingGuildId,
     MissingSetup,
     FireteamFull,
@@ -25,7 +25,7 @@ pub enum Error {
     Sqlx(sqlx::Error),
 }
 
-impl std::fmt::Display for Error {
+impl std::fmt::Display for LfgError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingGuildId => ZaydenError::MissingGuildId.fmt(f),
@@ -61,7 +61,7 @@ impl std::fmt::Display for Error {
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for LfgError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Serenity(e) => Some(e),
@@ -78,7 +78,7 @@ impl std::error::Error for Error {
     }
 }
 
-impl Respond for Error {
+impl Respond for LfgError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::Serenity(_) | Self::Sqlx(_) => None,
@@ -94,13 +94,13 @@ impl Respond for Error {
     }
 }
 
-impl From<serenity::Error> for Error {
+impl From<serenity::Error> for LfgError {
     fn from(value: serenity::Error) -> Self {
         Self::Serenity(value)
     }
 }
 
-impl From<sqlx::Error> for Error {
+impl From<sqlx::Error> for LfgError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
     }
