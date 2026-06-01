@@ -19,7 +19,7 @@ impl Handler {
 
         ctx.set_presence(None, OnlineStatus::Online);
 
-        let pool = self.bot_state.read().await.app.db.clone();
+        let pool = self.app.db.clone();
         BotState::ready(ctx, ready, &pool).await;
 
         let already_started =
@@ -35,7 +35,7 @@ impl Handler {
             }
 
             let ctx = ctx.clone();
-            let pool = self.bot_state.read().await.app.db.clone();
+            let pool = self.app.db.clone();
             tokio::spawn(async move { start_cron_jobs(ctx, pool).await });
         }
 

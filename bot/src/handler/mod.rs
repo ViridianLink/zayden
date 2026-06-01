@@ -6,6 +6,7 @@ use serenity::model::prelude::Interaction;
 use serenity::prelude::Context;
 use tokio::sync::RwLock;
 use tracing::{error, trace, warn};
+use zayden_app::state::AppState;
 
 mod entitlement;
 mod guild_create;
@@ -21,6 +22,7 @@ mod voice_state_update;
 use crate::{BotState, CommandRegistry};
 
 pub struct Handler {
+    pub app: Arc<AppState>,
     pub bot_state: Arc<RwLock<BotState>>,
     pub registry: Arc<CommandRegistry>,
 }
@@ -128,14 +130,14 @@ impl EventHandler for Handler {
             _ => "",
         };
 
-        let pool = self.bot_state.read().await.app.db.clone();
+        let pool = self.app.db.clone();
 
         let result = match ev {
             FullEvent::GuildCreate { guild, .. } => {
                 Self::guild_create(self, ctx, guild, &pool).await
             },
             FullEvent::Message { new_message, .. } => {
-                let app = Arc::clone(&self.bot_state.read().await.app);
+                let app = Arc::clone(&self.app);
                 Self::message_create(ctx, new_message, &pool, app).await
             },
             FullEvent::ReactionAdd { add_reaction, .. } => {
@@ -156,7 +158,7 @@ impl EventHandler for Handler {
                 Self::voice_state_update(ctx, new, &pool).await
             },
             FullEvent::InteractionCreate { interaction, .. } => {
-                let app = Arc::clone(&self.bot_state.read().await.app);
+                let app = Arc::clone(&self.app);
                 let registry = Arc::clone(&self.registry);
                 Self::interaction_create(ctx, interaction, app, registry).await
             },

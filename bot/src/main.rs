@@ -101,7 +101,11 @@ async fn main() -> Result<()> {
             | GatewayIntents::GUILD_PRESENCES,
     )
     .data(Arc::clone(&bot_state))
-    .event_handler(Arc::new(Handler { bot_state, registry }))
+    .event_handler(Arc::new(Handler {
+        app: Arc::clone(&app_state),
+        bot_state,
+        registry,
+    }))
     .await?;
 
     logging(
