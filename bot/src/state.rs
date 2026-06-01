@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 
 use bungie_api::{BungieClient, BungieClientBuilder};
 use destiny2_core::BungieClientData;
@@ -29,7 +28,6 @@ use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 /// Stored as `Arc<RwLock<BotState>>` in `ctx.data`.
 pub struct BotState {
     pub app: Arc<AppState>,
-    pub started_cron: AtomicBool,
     bungie_client: Arc<BungieClient>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
@@ -48,7 +46,6 @@ impl BotState {
 
         Self {
             app,
-            started_cron: AtomicBool::new(false),
             bungie_client: Arc::new(bungie_client),
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),

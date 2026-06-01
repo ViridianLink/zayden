@@ -1,5 +1,4 @@
 use std::num::NonZeroU16;
-use std::sync::atomic::Ordering;
 
 use serenity::all::{Context, OnlineStatus, Ready};
 use tracing::info;
@@ -22,16 +21,9 @@ impl Handler {
         let pool = self.app.db.clone();
         BotState::ready(ctx, ready, &pool).await;
 
-        let already_started =
-            self.bot_state.read().await.started_cron.load(Ordering::Relaxed);
-
-        if !already_started {
-            {
-                let mut data = self.bot_state.write().await;
-                if ready.application.id.get() == ZAYDEN_ID.get() {
-                    data.setup_static_cron();
-                }
-                data.started_cron.store(true, Ordering::Relaxed);
+        if self.cron_started.set(()).is_ok() {
+            if ready.application.id.get() == ZAYDEN_ID.get() {
+                self.bot_state.write().await.setup_static_cron();
             }
 
             let ctx = ctx.clone();

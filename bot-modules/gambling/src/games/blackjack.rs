@@ -22,6 +22,7 @@ use serenity::all::{
 use serenity::small_fixed_array::FixedString;
 use sqlx::{Database, Pool};
 use zayden_core::{EmojiCache, FormatNum};
+
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::{
     CARD_DECK,

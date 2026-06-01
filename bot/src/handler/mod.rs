@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use serenity::all::{Event, EventHandler, FullEvent, RatelimitInfo};
 use serenity::async_trait;
@@ -25,6 +25,7 @@ pub struct Handler {
     pub app: Arc<AppState>,
     pub bot_state: Arc<RwLock<BotState>>,
     pub registry: Arc<CommandRegistry>,
+    pub cron_started: OnceLock<()>,
 }
 
 #[async_trait]

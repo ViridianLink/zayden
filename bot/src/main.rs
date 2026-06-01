@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
 use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Http, Token, UserId};
@@ -105,6 +105,7 @@ async fn main() -> Result<()> {
         app: Arc::clone(&app_state),
         bot_state,
         registry,
+        cron_started: OnceLock::new(),
     }))
     .await?;
 

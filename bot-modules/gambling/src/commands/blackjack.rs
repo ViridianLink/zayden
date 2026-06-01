@@ -110,41 +110,33 @@ impl Commands {
         let game = GameDetails::new(bet, player_hand, dealer_hand[0]);
 
         if player_value == 21 && dealer_value == 21 {
-            let response = game_end_draw::<
-                Db,
-                GoalsHandler,
-                EffectsHandler,
-                GameHandler,
-            >(
-                ctx,
-                pool,
-                &emojis,
-                interaction.user.id,
-                interaction.channel_id,
-                game,
-                &dealer_hand,
-            )
-            .await?;
+            let response =
+                game_end_draw::<Db, GoalsHandler, EffectsHandler, GameHandler>(
+                    ctx,
+                    pool,
+                    &emojis,
+                    interaction.user.id,
+                    interaction.channel_id,
+                    game,
+                    &dealer_hand,
+                )
+                .await?;
 
             interaction.edit_response(&ctx.http, response).await?;
 
             return Ok(());
         } else if player_value == 21 {
-            let response = game_end_blackjack::<
-                Db,
-                GoalsHandler,
-                EffectsHandler,
-                GameHandler,
-            >(
-                ctx,
-                pool,
-                &emojis,
-                interaction.user.id,
-                interaction.channel_id,
-                game,
-                &dealer_hand,
-            )
-            .await?;
+            let response =
+                game_end_blackjack::<Db, GoalsHandler, EffectsHandler, GameHandler>(
+                    ctx,
+                    pool,
+                    &emojis,
+                    interaction.user.id,
+                    interaction.channel_id,
+                    game,
+                    &dealer_hand,
+                )
+                .await?;
 
             interaction.edit_response(&ctx.http, response).await?;
 
