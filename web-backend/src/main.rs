@@ -33,7 +33,7 @@ use tracing::warn;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::{Layer, Registry, filter, fmt};
+use tracing_subscriber::{Layer, Registry, fmt};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
@@ -130,8 +130,8 @@ async fn main() {
     let addr = SocketAddr::from((ip, 3000));
     println!("Dashboard listening on http://{addr}");
 
-    let listener = TcpListener::bind(addr).await.expect();
-    axum::serve(listener, app).await.expect();
+    let listener = TcpListener::bind(addr).await.expect("failed to bind to address");
+    axum::serve(listener, app).await.expect("server error");
 }
 
 fn logging() {

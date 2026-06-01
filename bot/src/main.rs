@@ -30,7 +30,6 @@ use crate::sqlx_lib::new_pool_with_retry;
 use crate::webhook_logger::WebhookLogger;
 
 pub const OSCAR_SIX: UserId = UserId::new(211_486_447_369_322_506);
-pub const BRADSTER_GUILD: GuildId = GuildId::new(1_255_957_182_457_974_875);
 pub const ZAYDEN_GUILD: GuildId = GuildId::new(1_222_360_995_700_150_443);
 pub const LLAMAD2_GUILD: GuildId = GuildId::new(1_133_034_263_579_734_037);
 pub const ZAYDEN_ID: UserId = UserId::new(787_490_197_943_091_211);

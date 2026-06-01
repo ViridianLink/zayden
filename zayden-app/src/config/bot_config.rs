@@ -8,7 +8,6 @@ use crate::{Error, Result};
 
 // Defaults matching the current hardcoded constants in bot/src/main.rs.
 const DEFAULT_OSCAR_SIX: u64 = 211_486_447_369_322_506;
-const DEFAULT_BRADSTER_GUILD: u64 = 1_255_957_182_457_974_875;
 const DEFAULT_ZAYDEN_GUILD: u64 = 1_222_360_995_700_150_443;
 const DEFAULT_LLAMAD2_GUILD: u64 = 1_133_034_263_579_734_037;
 const DEFAULT_ZAYDEN_ID: u64 = 787_490_197_943_091_211;
@@ -35,8 +34,6 @@ pub struct BotConfig {
 
     /// Discord user ID of the bot owner (Oscar Six).
     pub oscar_six: u64,
-    /// Guild ID of the Bradster server (to be removed in M5).
-    pub bradster_guild: u64,
     /// Guild ID of the primary Zayden server.
     pub zayden_guild: u64,
     /// Guild ID of the `LlamaD2` server.
@@ -76,10 +73,6 @@ impl BotConfig {
             discord_client_secret,
 
             oscar_six: toml_cfg.ids.oscar_six.unwrap_or(DEFAULT_OSCAR_SIX),
-            bradster_guild: toml_cfg
-                .ids
-                .bradster_guild
-                .unwrap_or(DEFAULT_BRADSTER_GUILD),
             zayden_guild: toml_cfg.ids.zayden_guild.unwrap_or(DEFAULT_ZAYDEN_GUILD),
             llamad2_guild: toml_cfg
                 .ids
@@ -147,7 +140,6 @@ struct TomlConfig {
 #[derive(Debug, Default, Deserialize)]
 struct TomlIds {
     oscar_six: Option<u64>,
-    bradster_guild: Option<u64>,
     zayden_guild: Option<u64>,
     llamad2_guild: Option<u64>,
     zayden_id: Option<u64>,

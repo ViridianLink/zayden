@@ -7,8 +7,6 @@ pub mod ai;
 
 pub mod destiny2;
 
-pub mod events;
-
 pub mod family;
 
 pub mod gambling;
@@ -37,7 +35,6 @@ pub fn build_registry() -> Result<Arc<CommandRegistry>, OverlapError> {
     let mut builder = crate::RegistryBuilder::new();
     ai::register(&mut builder);
     destiny2::register(&mut builder);
-    events::register(&mut builder);
     family::register(&mut builder)?;
     gambling::register(&mut builder)?;
     gold_star::register(&mut builder);

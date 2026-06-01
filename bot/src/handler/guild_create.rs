@@ -6,7 +6,7 @@ use tracing::info;
 use super::Handler;
 use crate::bindings::lfg::PostTable;
 use crate::sqlx_lib::GuildTable;
-use crate::{BRADSTER_GUILD, BotState, Result};
+use crate::{BotState, Result};
 
 impl Handler {
     pub async fn guild_create(
@@ -27,16 +27,8 @@ impl Handler {
 
         let commands = self.registry.definitions_for(guild.id);
 
-        match guild.id {
-            BRADSTER_GUILD => {
-                BRADSTER_GUILD.set_commands(&ctx.http, &commands).await?;
-
-                info!("Registered {}", guild.name);
-            },
-            id => {
-                id.set_commands(&ctx.http, &commands).await?;
-            },
-        }
+        guild.id.set_commands(&ctx.http, &commands).await?;
+        info!("Registered {}", guild.name);
 
         Ok(())
     }
