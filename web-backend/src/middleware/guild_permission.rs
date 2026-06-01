@@ -19,12 +19,6 @@ struct PartialGuild {
     permissions: String,
 }
 
-/// Axum middleware that verifies the authenticated user has `MANAGE_GUILD` (or
-/// `ADMINISTRATOR`) permission in the guild identified by the `{id}` path
-/// segment.
-///
-/// Expects [`AuthToken`] to be present in request extensions (set by
-/// [`super::auth::require_auth`] as the outer layer).
 pub(crate) async fn require_guild_permission(
     State(state): State<WebState>,
     Extension(AuthToken(token)): Extension<AuthToken>,

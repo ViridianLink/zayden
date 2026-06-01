@@ -13,7 +13,7 @@ use crate::WebState;
 use crate::middleware::auth::require_auth;
 use crate::middleware::guild_permission::require_guild_permission;
 use crate::middleware::tier::require_pro;
-use crate::web::routes_guild::{channels, guild, settings, zayden};
+use crate::web::routes_guild::{channels, guild, settings, settings_patch, zayden};
 
 pub(crate) fn routes(state: WebState) -> Router<WebState> {
     // Free guild routes: auth + MANAGE_GUILD only.
@@ -24,7 +24,7 @@ pub(crate) fn routes(state: WebState) -> Router<WebState> {
 
     // Premium guild routes: auth + MANAGE_GUILD + Pro tier.
     let pro_guild_routes = Router::new()
-        .route("/guild/{id}/settings", get(settings))
+        .route("/guild/{id}/settings", get(settings).patch(settings_patch))
         .route_layer(from_fn_with_state(state.clone(), require_pro))
         .route_layer(from_fn_with_state(state.clone(), require_guild_permission));
 

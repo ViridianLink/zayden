@@ -11,24 +11,15 @@ use crate::web::AUTH_TOKEN;
 
 const DISCORD_API: &str = "https://discord.com/api/v10";
 
-/// Raw Discord Bearer token stored in request extensions by [`require_auth`]
-/// for downstream middleware that needs to make user-scoped Discord API calls.
 #[derive(Clone)]
 pub(crate) struct AuthToken(pub(crate) String);
 
-/// Verified Discord user attached to authenticated requests via [`Request`]
-/// extensions.
 #[derive(Clone, Deserialize)]
 pub(crate) struct AuthUser {
     pub(crate) id: String,
     pub(crate) username: String,
 }
 
-/// Axum middleware that validates the Discord access token stored in the
-/// `auth-token` cookie.
-///
-/// On success, inserts [`AuthUser`] into request extensions. Returns 401 if the
-/// cookie is absent or the token is rejected by Discord's API.
 pub(crate) async fn require_auth(
     cookies: Cookies,
     State(state): State<WebState>,
