@@ -29,6 +29,4 @@ tower-cookies = { workspace = true, features = ["axum-core"] }
 tower-http = { workspace = true, features = ["cors", "fs"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "fmt"] }
-twilight-http = { workspace = true, default-features = true }
-twilight-model = { workspace = true }
 zayden-app = { workspace = true }

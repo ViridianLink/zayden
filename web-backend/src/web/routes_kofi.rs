@@ -4,14 +4,21 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use serde::Deserialize;
 use tracing::warn;
-use zayden_app::entitlement::{EntitlementProvider, EntitlementScope, GrantData, KoFiPayload, KoFiProvider, Tier};
+use zayden_app::entitlement::{
+    EntitlementProvider,
+    EntitlementScope,
+    GrantData,
+    KoFiPayload,
+    KoFiProvider,
+    Tier,
+};
 
-use crate::AppState;
+use crate::WebState;
 
 /// Ko-fi sends a `application/x-www-form-urlencoded` body with a single `data`
 /// field that is a URL-encoded JSON string.
 #[derive(Deserialize)]
-pub struct KoFiForm {
+pub(super) struct KoFiForm {
     data: String,
 }
 
@@ -19,8 +26,8 @@ pub struct KoFiForm {
 ///
 /// Handles Ko-fi donation and subscription webhook notifications.
 /// The endpoint always returns 200 so Ko-fi doesn't retry on transient DB errors.
-pub async fn kofi_webhook_handler(
-    State(state): State<AppState>,
+pub(super) async fn kofi_webhook_handler(
+    State(state): State<WebState>,
     Form(form): Form<KoFiForm>,
 ) -> impl IntoResponse {
     let payload: KoFiPayload = match serde_json::from_str(&form.data) {
@@ -28,10 +35,11 @@ pub async fn kofi_webhook_handler(
         Err(e) => {
             warn!(?e, "failed to parse Ko-fi webhook payload");
             return StatusCode::OK;
-        }
+        },
     };
 
-    // Only record subscription payments; donations are one-offs without a recurring tier.
+    // Only record subscription payments; donations are one-offs without a recurring
+    // tier.
     if !payload.is_subscription_payment && payload.kind != "Subscription" {
         return StatusCode::OK;
     }
@@ -49,19 +57,17 @@ pub async fn kofi_webhook_handler(
         expires_at: None, // Ko-fi webhooks fire per-payment; no explicit end date
     };
 
-    if let Err(e) = KoFiProvider.grant(&*state.entitlements, grant_data).await {
+    if let Err(e) = KoFiProvider.grant(&state.app.entitlements, grant_data).await {
         warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to record Ko-fi entitlement");
     }
 
     StatusCode::OK
 }
 
-/// Produce a stable `u64` from a string via FNV-1a. Used as a placeholder scope_id
-/// for Ko-fi subscribers until their Discord account is linked.
+/// Produce a stable `u64` from a string via FNV-1a. Used as a placeholder
+/// `scope_id` for Ko-fi subscribers until their Discord account is linked.
 fn stable_u64_hash(s: &str) -> u64 {
     const OFFSET: u64 = 14_695_981_039_346_656_037;
     const PRIME: u64 = 1_099_511_628_211;
-    s.bytes().fold(OFFSET, |acc, b| {
-        acc.wrapping_mul(PRIME) ^ (b as u64)
-    })
+    s.bytes().fold(OFFSET, |acc, b| acc.wrapping_mul(PRIME) ^ (u64::from(b)))
 }

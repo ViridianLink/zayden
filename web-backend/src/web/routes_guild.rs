@@ -1,68 +1,72 @@
-use std::env;
-use std::time::Duration;
-
 use axum::Json;
 use axum::extract::{Path, State};
-use serde::{Deserialize, Serialize};
-use twilight_http::Client;
-use twilight_http::request::guild;
-use twilight_model::channel::Channel;
-use twilight_model::guild::{Guild, Member};
-use twilight_model::id::Id;
+use axum::http::StatusCode;
+use serde_json::Value;
+use tracing::warn;
 
-use crate::{AppState, CLIENT_ID, Result};
+use crate::{Result, WebState};
 
-pub async fn guild(
-    Path(id): Path<String>,
-    State(state): State<AppState>,
-) -> Result<Json<Option<Guild>>> {
-    // TODO: Recieve & validate user auth-token
+const DISCORD_API: &str = "https://discord.com/api/v10";
 
-    let guild_id = Id::new(id.parse().unwrap());
-
-    match state.discord_client.guild(guild_id).with_counts(true).await {
-        Ok(response) => {
-            let guild = response.model().await.unwrap();
-            Ok(Json(Some(guild)))
-        }
-        Err(e) => Ok(Json(None)),
-    }
-}
-
-pub async fn channels(
-    Path(id): Path<String>,
-    State(state): State<AppState>,
-) -> Result<Json<Option<Vec<Channel>>>> {
-    let guild_id = Id::new(id.parse().unwrap());
-
-    match state.discord_client.guild_channels(guild_id).await {
-        Ok(response) => {
-            let guild = response.model().await.unwrap();
-            Ok(Json(Some(guild)))
-        }
-        Err(e) => Ok(Json(None)),
-    }
-}
-
-pub async fn zayden(
-    Path(guild_id): Path<String>,
-    State(state): State<AppState>,
-) -> Result<Json<Option<Member>>> {
-    let guild_id = Id::new(guild_id.parse().unwrap());
-
+async fn discord_get(state: &WebState, path: &str) -> Option<Value> {
+    let url = format!("{DISCORD_API}{path}");
     match state
-        .discord_client
-        .current_user_guild_member(guild_id)
+        .app
+        .http
+        .get(&url)
+        .header("Authorization", format!("Bot {}", state.discord_token))
+        .send()
         .await
     {
-        Ok(response) => {
-            let member = response.model().await.unwrap();
-            Ok(Json(Some(member)))
-        }
-        Err(e) => Ok(Json(None)),
+        Ok(resp) if resp.status().is_success() => resp.json().await.ok(),
+        Ok(resp) => {
+            warn!(status = %resp.status(), url, "Discord API error");
+            None
+        },
+        Err(e) => {
+            warn!(?e, url, "Discord API request failed");
+            None
+        },
     }
 }
 
-pub async fn settings(Path(guild_id): Path<String>, State(state): State<AppState>) -> Result<()> {
-    todo!()
+pub(super) async fn guild(
+    Path(id): Path<String>,
+    State(state): State<WebState>,
+) -> Result<Json<Option<Value>>> {
+    let Ok(guild_id) = id.parse::<u64>() else {
+        return Ok(Json(None));
+    };
+    Ok(Json(
+        discord_get(&state, &format!("/guilds/{guild_id}?with_counts=true")).await,
+    ))
+}
+
+pub(super) async fn channels(
+    Path(id): Path<String>,
+    State(state): State<WebState>,
+) -> Result<Json<Option<Value>>> {
+    let Ok(guild_id) = id.parse::<u64>() else {
+        return Ok(Json(None));
+    };
+    Ok(Json(discord_get(&state, &format!("/guilds/{guild_id}/channels")).await))
+}
+
+pub(super) async fn zayden(
+    Path(guild_id): Path<String>,
+    State(state): State<WebState>,
+) -> Result<Json<Option<Value>>> {
+    let Ok(guild_id) = guild_id.parse::<u64>() else {
+        return Ok(Json(None));
+    };
+    Ok(Json(
+        discord_get(&state, &format!("/users/@me/guilds/{guild_id}/member")).await,
+    ))
+}
+
+pub(super) async fn settings(
+    Path(_guild_id): Path<String>,
+    State(_state): State<WebState>,
+) -> StatusCode {
+    StatusCode::NOT_IMPLEMENTED
 }
