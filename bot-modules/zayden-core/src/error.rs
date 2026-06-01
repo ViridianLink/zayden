@@ -14,14 +14,18 @@ pub trait Respond: std::error::Error {
     }
 }
 
-/// A type-erased error returned by all module handler traits.
-///
-/// Wraps any `std::error::Error + Send + Sync` and carries an optional
-/// user-visible message extracted from the original error's [`Respond`] impl.
 #[derive(Debug)]
-pub struct HandlerError {
-    inner: Box<dyn std::error::Error + Send + Sync>,
-    user_message: Option<String>,
+pub enum HandlerError {
+    /// A database error from sqlx.
+    Database(sqlx::Error),
+    /// A Discord API error from serenity.
+    Discord(serenity::Error),
+    /// An error originating from a module handler, with an optional
+    /// user-visible message extracted from a [`Respond`] impl.
+    Module {
+        source: Box<dyn std::error::Error + Send + Sync>,
+        user_message: Option<String>,
+    },
 }
 
 impl HandlerError {
@@ -29,7 +33,7 @@ impl HandlerError {
     where
         E: std::error::Error + Send + Sync + 'static,
     {
-        Self { inner: Box::new(err), user_message: None }
+        Self::Module { source: Box::new(err), user_message: None }
     }
 
     pub fn from_respond<E>(err: E) -> Self
@@ -37,29 +41,56 @@ impl HandlerError {
         E: Respond + Send + Sync + 'static,
     {
         let user_message = err.user_message().map(Cow::into_owned);
-        Self { inner: Box::new(err), user_message }
+        Self::Module { source: Box::new(err), user_message }
     }
 
     #[must_use]
     pub fn user_message(&self) -> Option<&str> {
-        self.user_message.as_deref()
+        match self {
+            Self::Database(_) | Self::Discord(_) => None,
+            Self::Module { user_message, .. } => user_message.as_deref(),
+        }
     }
 
     #[must_use]
     pub fn inner(&self) -> &(dyn std::error::Error + Send + Sync) {
-        &*self.inner
+        match self {
+            Self::Database(e) => e,
+            Self::Discord(e) => e,
+            Self::Module { source, .. } => source.as_ref(),
+        }
     }
 }
 
 impl std::fmt::Display for HandlerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.inner.fmt(f)
+        match self {
+            Self::Database(e) => write!(f, "database error: {e}"),
+            Self::Discord(e) => write!(f, "discord error: {e}"),
+            Self::Module { source, .. } => source.fmt(f),
+        }
     }
 }
 
 impl std::error::Error for HandlerError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&*self.inner)
+        match self {
+            Self::Database(e) => Some(e),
+            Self::Discord(e) => Some(e),
+            Self::Module { source, .. } => Some(source.as_ref()),
+        }
+    }
+}
+
+impl From<sqlx::Error> for HandlerError {
+    fn from(e: sqlx::Error) -> Self {
+        Self::Database(e)
+    }
+}
+
+impl From<serenity::Error> for HandlerError {
+    fn from(e: serenity::Error) -> Self {
+        Self::Discord(e)
     }
 }
 

@@ -7,8 +7,11 @@ edition = "2024"
 workspace = true
 
 [dependencies]
+zayden-core = { workspace = true }
+
 serde = { workspace = true }
 serde_json = { workspace = true }
 serenity = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

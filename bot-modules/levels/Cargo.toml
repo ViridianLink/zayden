@@ -16,4 +16,5 @@ futures = { workspace = true }
 rand = { workspace = true, features = ["thread_rng"] }
 serenity = { workspace = true, features = ["collector"] }
 sqlx = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true }

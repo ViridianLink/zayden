@@ -1,5 +1,8 @@
 use serenity::all::{GuildId, UserId};
 
+pub mod error;
+pub use error::{LlamaD2Error, Result};
+
 mod behind_the_scenes;
 mod counting_fail;
 mod dungeon_report;

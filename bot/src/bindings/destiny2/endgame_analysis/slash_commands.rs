@@ -98,9 +98,13 @@ impl ModuleCommand for Weapon {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        WeaponCommand::run::<BotState>(cx.ctx, cx.interaction, &cx.app.google_api_key)
-            .await
-            .map_err(HandlerError::from_respond)
+        WeaponCommand::run::<BotState>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.google_api_key,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 

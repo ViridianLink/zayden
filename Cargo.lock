@@ -40,6 +40,7 @@ dependencies = [
  "serde",
  "serde_json",
  "url",
+ "zayden-core",
 ]
 
 [[package]]
@@ -683,6 +684,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
  "zayden-core",
@@ -1667,6 +1669,7 @@ dependencies = [
  "rand 0.10.1",
  "serenity",
  "sqlx",
+ "thiserror 1.0.69",
  "tokio",
  "zayden-core",
 ]
@@ -1739,8 +1742,10 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
+ "zayden-core",
 ]
 
 [[package]]
@@ -3829,6 +3834,8 @@ name = "verify"
 version = "0.1.0"
 dependencies = [
  "serenity",
+ "thiserror 1.0.69",
+ "zayden-core",
 ]
 
 [[package]]

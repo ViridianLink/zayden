@@ -1,5 +1,7 @@
 use std::fmt;
 
+use zayden_core::error::Respond;
+
 #[derive(Debug)]
 pub enum AiError {
     Reqwest(reqwest::Error),
@@ -36,3 +38,5 @@ impl From<reqwest::Error> for AiError {
         Self::Reqwest(e)
     }
 }
+
+impl Respond for AiError {}

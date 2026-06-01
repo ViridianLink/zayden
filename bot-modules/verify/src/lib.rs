@@ -1,3 +1,5 @@
+pub mod error;
+pub use error::{Result, VerifyError};
 use serenity::all::{
     ButtonStyle,
     Colour,
@@ -22,7 +24,7 @@ impl Panel {
     pub async fn run_command(
         http: &Http,
         interaction: &CommandInteraction,
-    ) -> serenity::Result<()> {
+    ) -> Result<()> {
         let embed = CreateEmbed::new()
             .description("Click the green button below to verify")
             .colour(Colour::DARK_GREEN);
@@ -58,7 +60,7 @@ impl Panel {
     pub async fn run_component(
         http: &Http,
         interaction: &ComponentInteraction,
-    ) -> Result<(), serenity::Error> {
+    ) -> Result<()> {
         let Some(member) = interaction.member.as_ref() else {
             return Ok(());
         };

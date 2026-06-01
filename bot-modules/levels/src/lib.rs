@@ -1,7 +1,9 @@
 pub mod commands;
 pub mod common;
 pub mod components;
+pub mod error;
 pub use commands::{Rank, Xp};
+pub use error::{LevelsError, Result};
 
 pub mod message_create;
 pub use message_create::message_create;
