@@ -1,46 +1,30 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
+use dashmap::DashMap;
+use dashmap::mapref::entry::Entry;
 use jiff::{Span, Timestamp};
 use serenity::all::UserId;
-use tokio::sync::RwLock;
 
-use crate::ctx_data::GamblingData;
 use crate::{GamblingError, Result};
 
 #[derive(Default)]
-pub struct GameCache(HashMap<UserId, Timestamp>);
+pub struct GameCache(DashMap<UserId, Timestamp>);
 
 impl GameCache {
-    pub async fn can_play<D: GamblingData>(
-        data: Arc<RwLock<D>>,
-        id: impl Into<UserId>,
-    ) -> Result<()> {
-        let id = id.into();
+    pub fn check_and_set(&self, id: UserId) -> Result<()> {
+        let now = Timestamp::now();
 
-        let cooldown_over = {
-            let data = data.read().await;
-            data.game_cache()
-                .0
-                .get(&id)
-                .map(|last_played| *last_played + Span::new().seconds(5))
-        };
-
-        if cooldown_over.is_some_and(|co| co >= Timestamp::now()) {
-            return Err(GamblingError::Cooldown(
-                cooldown_over.expect("checked above").as_second(),
-            ));
+        match self.0.entry(id) {
+            Entry::Vacant(e) => {
+                e.insert(now);
+            },
+            Entry::Occupied(mut e) => {
+                let cooldown_over = *e.get() + Span::new().seconds(5);
+                if cooldown_over >= now {
+                    return Err(GamblingError::Cooldown(cooldown_over.as_second()));
+                }
+                *e.get_mut() = now;
+            },
         }
 
         Ok(())
-    }
-
-    pub async fn update<D: GamblingData>(
-        data: Arc<RwLock<D>>,
-        id: impl Into<UserId>,
-    ) {
-        let id = id.into();
-        let now = Timestamp::now();
-        data.write().await.game_cache_mut().0.insert(id, now);
     }
 }

@@ -21,16 +21,12 @@ use serenity::all::{
 };
 use serenity::small_fixed_array::FixedString;
 use sqlx::{Database, Pool};
-use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
-
-use crate::ctx_data::GamblingData;
+use zayden_core::{EmojiCache, FormatNum};
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::{
     CARD_DECK,
     Coins,
     EffectsManager,
-    GameCache,
     GameManager,
     GameRow,
     GoalsManager,
@@ -276,7 +272,6 @@ pub fn surrender_button<'a>() -> CreateButton<'a> {
 }
 
 async fn game_end_common<
-    Data: GamblingData,
     Db: Database,
     GoalsHandler: GoalsManager<Db> + Send + Sync,
     EffectsHandler: EffectsManager<Db> + Send,
@@ -311,14 +306,12 @@ async fn game_end_common<
     let coins = row.coins();
 
     GameHandler::save(pool, row).await?;
-    GameCache::update(ctx.data::<RwLock<Data>>(), user_id).await;
 
     Ok((payout, coins))
 }
 
 pub async fn game_end_draw<
     'a,
-    Data: GamblingData + EmojiCacheData,
     Db: Database,
     GoalsHandler: GoalsManager<Db> + Send + Sync,
     EffectsHandler: EffectsManager<Db> + Send,
@@ -336,7 +329,7 @@ pub async fn game_end_draw<
     let dealer_value = sum_cards(emojis, dealer_hand);
 
     let (_, coins) =
-        game_end_common::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
+        game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx, pool, emojis, user_id, channel_id, bet, bet,
         )
         .await?;
@@ -370,7 +363,6 @@ pub async fn game_end_draw<
 
 pub async fn game_end_blackjack<
     'a,
-    Data: GamblingData,
     Db: Database,
     GoalsHandler: GoalsManager<Db> + Send + Sync,
     EffectsHandler: EffectsManager<Db>,
@@ -389,7 +381,7 @@ pub async fn game_end_blackjack<
     let dealer_value = sum_cards(emojis, dealer_hand);
 
     let (payout, coins) =
-        game_end_common::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
+        game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx, pool, emojis, user_id, channel_id, bet, payout,
         )
         .await?;

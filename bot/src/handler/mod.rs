@@ -167,16 +167,13 @@ impl EventHandler for Handler {
             },
 
             FullEvent::EntitlementCreate { entitlement, .. } => {
-                let bot_state = self.bot_state.read().await;
-                entitlement::entitlement_create(ctx, entitlement, &bot_state).await
+                entitlement::entitlement_create(ctx, entitlement, &self.app).await
             },
             FullEvent::EntitlementUpdate { entitlement, .. } => {
-                let bot_state = self.bot_state.read().await;
-                entitlement::entitlement_update(ctx, entitlement, &bot_state).await
+                entitlement::entitlement_update(ctx, entitlement, &self.app).await
             },
             FullEvent::EntitlementDelete { entitlement, .. } => {
-                let bot_state = self.bot_state.read().await;
-                entitlement::entitlement_delete(ctx, entitlement, &bot_state).await
+                entitlement::entitlement_delete(ctx, entitlement, &self.app).await
             },
 
             _ => Ok(()),

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rand::rng;
 use rand::seq::SliceRandom;
 use serenity::all::{
@@ -15,15 +13,7 @@ use zayden_core::EmojiCacheData;
 
 use super::Commands;
 use crate::games::higherlower::create_embed;
-use crate::{
-    CARD_DECK,
-    CARD_TO_NUM,
-    GamblingData,
-    GameCache,
-    Result,
-    card_deck,
-    card_to_num,
-};
+use crate::{CARD_DECK, CARD_TO_NUM, GamblingData, Result, card_deck, card_to_num};
 
 impl Commands {
     pub async fn higher_lower<Data: GamblingData + EmojiCacheData>(
@@ -36,7 +26,7 @@ impl Commands {
             data.emojis()
         };
 
-        GameCache::can_play(Arc::clone(&data_lock), interaction.user.id).await?;
+        data_lock.read().await.game_cache().check_and_set(interaction.user.id)?;
 
         let mut deck = CARD_DECK.get_or_init(|| card_deck(&emojis)).clone();
         deck.shuffle(&mut rng());
@@ -63,8 +53,6 @@ impl Commands {
                 ),
             )
             .await?;
-
-        GameCache::update(data_lock, interaction.user.id).await;
 
         Ok(())
     }

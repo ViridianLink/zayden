@@ -11,6 +11,7 @@ zayden-core = { workspace = true }
 levels = { workspace = true }
 
 async-trait = { workspace = true }
+dashmap = { workspace = true }
 jiff = { workspace = true }
 jiff-cron = { workspace = true }
 jiff-sqlx = { workspace = true }

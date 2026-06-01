@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use std::sync::Arc;
 
 use serenity::all::{
     ButtonStyle,
@@ -27,7 +26,6 @@ use crate::{
     EffectsManager,
     GamblingData,
     GamblingError,
-    GameCache,
     GameManager,
     GameRow,
     GoalsManager,
@@ -57,7 +55,7 @@ impl Commands {
 
         let data_lock = ctx.data::<RwLock<Data>>();
 
-        GameCache::can_play(Arc::clone(&data_lock), interaction.user.id).await?;
+        data_lock.read().await.game_cache().check_and_set(interaction.user.id)?;
 
         let mut options = parse_options(options);
 
@@ -78,7 +76,6 @@ impl Commands {
         .await?;
 
         GameHandler::save(pool, row).await?;
-        GameCache::update(Arc::clone(&data_lock), interaction.user.id).await;
 
         let coin = data_lock
             .read()

@@ -1,6 +1,5 @@
 use std::fmt::Display;
 use std::str::FromStr;
-use std::sync::Arc;
 
 use rand::seq::IndexedRandom;
 use serenity::all::{
@@ -27,7 +26,6 @@ use crate::{
     EffectsManager,
     GamblingData,
     GamblingError,
-    GameCache,
     GameManager,
     GameRow,
     GoalsManager,
@@ -68,7 +66,7 @@ impl Commands {
 
         let data = ctx.data::<RwLock<Data>>();
 
-        GameCache::can_play(Arc::clone(&data), interaction.user.id).await?;
+        data.read().await.game_cache().check_and_set(interaction.user.id)?;
         EffectsHandler::bet_limit::<GamblingHandler>(
             pool,
             interaction.user.id,
@@ -119,7 +117,6 @@ impl Commands {
         let coins = row.coins();
 
         GameHandler::save(pool, row).await?;
-        GameCache::update(data, interaction.user.id).await;
 
         let title = if winner == Some(true) {
             "Rock 🪨 Paper 🗞️ Scissors ✂ - You Won!"

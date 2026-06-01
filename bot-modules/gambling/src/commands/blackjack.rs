@@ -39,7 +39,6 @@ use crate::{
     EffectsManager,
     GamblingData,
     GamblingError,
-    GameCache,
     GameManager,
     GoalsManager,
     Result,
@@ -73,7 +72,11 @@ impl Commands {
 
         tx.commit().await?;
 
-        GameCache::can_play(ctx.data::<RwLock<Data>>(), interaction.user.id).await?;
+        ctx.data::<RwLock<Data>>()
+            .read()
+            .await
+            .game_cache()
+            .check_and_set(interaction.user.id)?;
         EffectsHandler::bet_limit::<GamblingHandler>(
             pool,
             interaction.user.id,
@@ -108,7 +111,6 @@ impl Commands {
 
         if player_value == 21 && dealer_value == 21 {
             let response = game_end_draw::<
-                Data,
                 Db,
                 GoalsHandler,
                 EffectsHandler,
@@ -129,7 +131,6 @@ impl Commands {
             return Ok(());
         } else if player_value == 21 {
             let response = game_end_blackjack::<
-                Data,
                 Db,
                 GoalsHandler,
                 EffectsHandler,

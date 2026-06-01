@@ -151,10 +151,6 @@ impl GamblingData for BotState {
     fn game_cache(&self) -> &GameCache {
         &self.gambling_cache
     }
-
-    fn game_cache_mut(&mut self) -> &mut GameCache {
-        &mut self.gambling_cache
-    }
 }
 
 impl GoodMorningCache for BotState {

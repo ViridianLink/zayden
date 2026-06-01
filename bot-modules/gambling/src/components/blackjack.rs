@@ -37,7 +37,6 @@ use crate::{
     EffectsManager,
     GamblingData,
     GamblingManager,
-    GameCache,
     GameManager,
     GameRow,
     GoalsManager,
@@ -69,7 +68,7 @@ impl Blackjack {
         game.add_card();
 
         if game.player_value(&emojis) > 21 {
-            game_end::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
+            game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
                 ctx,
                 interaction,
                 pool,
@@ -135,7 +134,7 @@ impl Blackjack {
             data.emojis()
         };
 
-        game_end::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
+        game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx,
             interaction,
             pool,
@@ -172,7 +171,7 @@ impl Blackjack {
         game.double_bet();
         game.add_card();
 
-        game_end::<Data, Db, GoalsHandler, EffectsHandler, GameHandler>(
+        game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx,
             interaction,
             pool,
@@ -267,7 +266,6 @@ impl Blackjack {
         let coins = row.coins();
 
         GameHandler::save(pool, row).await?;
-        GameCache::update(ctx.data::<RwLock<Data>>(), interaction.user.id).await;
 
         let card_to_num = CARD_VALUES.get_or_init(|| card_values(&emojis));
         let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
@@ -327,7 +325,6 @@ fn text(interaction: &ComponentInteraction) -> &str {
 }
 
 async fn game_end<
-    Data: GamblingData,
     Db: Database,
     GoalsHandler: GoalsManager<Db> + Send + Sync,
     EffectsHandler: EffectsManager<Db>,
@@ -421,7 +418,6 @@ async fn game_end<
     let coins = row.coins();
 
     GameHandler::save(pool, row).await?;
-    GameCache::update(ctx.data::<RwLock<Data>>(), interaction.user.id).await;
 
     let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
     let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");

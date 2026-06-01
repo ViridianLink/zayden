@@ -155,6 +155,7 @@ toml = { version = "*", default-features = false, features = [
 async-openai = { version = "*", features = ["chat-completion"] }
 async-trait = { version = "*", default-features = false }
 axum = { version = "*", default-features = false }
+dashmap = { version = "*", default-features = false }
 base64 = { version = "*", default-features = false }
 bigdecimal = { version = "*", default-features = false }
 charming = { version = "*", default-features = false }

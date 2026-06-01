@@ -1,13 +1,14 @@
 use serenity::all::{Context, Entitlement, GuildId, UserId};
 use tracing::warn;
 use zayden_app::entitlement::{DiscordProvider, EntitlementProvider};
+use zayden_app::state::AppState;
 
-use crate::{BotError, BotState, Result};
+use crate::{BotError, Result};
 
 pub(super) async fn entitlement_create(
     _ctx: &Context,
     entitlement: &Entitlement,
-    bot_state: &BotState,
+    app: &AppState,
 ) -> Result<()> {
     let Some(grant_data) = DiscordProvider::build_grant(
         entitlement.id.get(),
@@ -18,29 +19,27 @@ pub(super) async fn entitlement_create(
         return Ok(());
     };
 
-    DiscordProvider.grant(&bot_state.app.entitlements, grant_data).await.map_err(
-        |e| {
-            warn!(?e, "failed to record Discord entitlement");
-            BotError::from(e)
-        },
-    )
+    DiscordProvider.grant(&app.entitlements, grant_data).await.map_err(|e| {
+        warn!(?e, "failed to record Discord entitlement");
+        BotError::from(e)
+    })
 }
 
 pub(super) async fn entitlement_update(
     ctx: &Context,
     entitlement: &Entitlement,
-    bot_state: &BotState,
+    app: &AppState,
 ) -> Result<()> {
-    entitlement_create(ctx, entitlement, bot_state).await
+    entitlement_create(ctx, entitlement, app).await
 }
 
 pub(super) async fn entitlement_delete(
     _ctx: &Context,
     entitlement: &Entitlement,
-    bot_state: &BotState,
+    app: &AppState,
 ) -> Result<()> {
     DiscordProvider
-        .revoke(&bot_state.app.entitlements, &entitlement.id.get().to_string())
+        .revoke(&app.entitlements, &entitlement.id.get().to_string())
         .await
         .map_err(|e| {
             warn!(?e, "failed to revoke Discord entitlement");
