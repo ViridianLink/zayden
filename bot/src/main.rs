@@ -101,14 +101,23 @@ async fn main() -> Result<()> {
     .event_handler(Arc::new(Handler { bot_state, registry }))
     .await?;
 
-    logging(Arc::clone(&client.http)).await;
+    logging(
+        Arc::clone(&client.http),
+        bot_config.error_log_webhook.as_deref(),
+        bot_config.normal_log_webhook.as_deref(),
+    )
+    .await;
 
     client.start_autosharded().await?;
 
     Ok(())
 }
 
-async fn logging(http: Arc<Http>) {
+async fn logging(
+    http: Arc<Http>,
+    error_log_url: Option<&str>,
+    normal_log_url: Option<&str>,
+) {
     let log_file = File::create("log.txt").expect("Failed to create log.txt");
     let debug_log =
         fmt::layer().with_writer(log_file).with_filter(filter::LevelFilter::INFO);
@@ -117,7 +126,7 @@ async fn logging(http: Arc<Http>) {
         .with_writer(std::io::stdout)
         .with_filter(filter::LevelFilter::INFO);
 
-    let webhook_log = WebhookLogger::new(http).await;
+    let webhook_log = WebhookLogger::new(http, error_log_url, normal_log_url).await;
 
     Registry::default().with(debug_log).with(stdout_log).with(webhook_log).init();
 }

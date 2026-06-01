@@ -5,9 +5,6 @@ use serenity::all::{ExecuteWebhook, Http, Webhook};
 use serenity::small_fixed_array::FixedString;
 use tracing::error;
 
-const ERROR_LOGS: &str = "https://discord.com/api/webhooks/1502635500211535964/z3arVVSEK1JORzPUz-UAl9d4mGblA2X1kS-HwhcB20sZfCRfi_HooMHyp6deVOn6JPZC";
-const NORMAL_LOGS: &str = "https://discord.com/api/webhooks/1502635665509056633/BLo49gZk5ECTo9yTQIsN_C9tAsJHyZCw-5pzVcOe7PliYJFJ5FhKLXORKDFdfzSe8F8G";
-
 const fn get_avatar(level: tracing::Level) -> &'static str {
     match level {
         tracing::Level::TRACE | tracing::Level::DEBUG => {
@@ -23,31 +20,45 @@ struct Inner {
     http: Arc<Http>,
     bot_name: FixedString<u8>,
 
-    error_logs: Webhook,
-    normal_logs: Webhook,
+    error_logs: Option<Webhook>,
+    normal_logs: Option<Webhook>,
 }
 
 #[derive(Clone)]
 pub struct WebhookLogger(Arc<Inner>);
 
+async fn resolve_webhook(
+    http: &Http,
+    url: Option<&str>,
+    name: &str,
+) -> Option<Webhook> {
+    let url = url?;
+    match Webhook::from_url(http, url).await {
+        Ok(w) => Some(w),
+        Err(e) => {
+            eprintln!("webhook_logger: failed to load {name}: {e}");
+            None
+        },
+    }
+}
+
 impl WebhookLogger {
-    pub async fn new(http: Arc<Http>) -> Self {
+    pub async fn new(
+        http: Arc<Http>,
+        error_log_url: Option<&str>,
+        normal_log_url: Option<&str>,
+    ) -> Self {
         let bot_name = http.get_current_user().await.map_or_else(
             |_| FixedString::<u8>::from_static_trunc("Default"),
             |mut u| std::mem::take(&mut u.name),
         );
 
-        let error_webhook =
-            Webhook::from_url(&http, ERROR_LOGS).await.expect("URL is static");
-        let normal_webhook =
-            Webhook::from_url(&http, NORMAL_LOGS).await.expect("URL is static");
+        let error_logs =
+            resolve_webhook(&http, error_log_url, "error_log_webhook").await;
+        let normal_logs =
+            resolve_webhook(&http, normal_log_url, "normal_log_webhook").await;
 
-        Self(Arc::new(Inner {
-            http,
-            bot_name,
-            error_logs: error_webhook,
-            normal_logs: normal_webhook,
-        }))
+        Self(Arc::new(Inner { http, bot_name, error_logs, normal_logs }))
     }
 
     pub async fn send_log(
@@ -57,12 +68,15 @@ impl WebhookLogger {
         message: String,
     ) {
         let inner = &self.0;
-        let webook = match level {
-            tracing::Level::ERROR | tracing::Level::WARN => &inner.error_logs,
-            tracing::Level::INFO => &inner.normal_logs,
-            _ => {
-                return;
+        let webhook = match level {
+            tracing::Level::ERROR | tracing::Level::WARN => {
+                inner.error_logs.as_ref()
             },
+            tracing::Level::INFO => inner.normal_logs.as_ref(),
+            _ => return,
+        };
+        let Some(webook) = webhook else {
+            return;
         };
 
         let webhook_name =
