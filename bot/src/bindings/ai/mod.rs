@@ -1,5 +1,5 @@
-use ai::chat::{Input, ResponseBody, Role};
-use ai::openai::OpenAI;
+use ai::chat::{Message as ChatMessage, Role};
+use ai::openai::AiClient;
 use serenity::all::{Context, GenericChannelId, Message};
 use zayden_app::state::AppState;
 
@@ -48,44 +48,28 @@ impl Ai {
         parsed_content
     }
 
-    async fn reply(ctx: &Context, message: &Message, api_key: &str) -> Result<()> {
-        let mut body = ResponseBody::basic().instructions(PERSONALITY);
+    async fn reply(
+        ctx: &Context,
+        message: &Message,
+        api_key: &str,
+        endpoint: &str,
+        model: &str,
+    ) -> Result<()> {
+        let mut messages = vec![ChatMessage::new(Role::System, PERSONALITY)];
 
-        body = Self::process_referenced_messages(message).into_iter().fold(
-            body,
-            |body, (bot, content)| {
-                body.input(Input::new(
-                    content,
-                    if bot { Role::Assistant } else { Role::User },
-                ))
-            },
-        );
+        for (bot, content) in Self::process_referenced_messages(message) {
+            messages.push(ChatMessage::new(
+                if bot { Role::Assistant } else { Role::User },
+                content,
+            ));
+        }
+        messages.push(ChatMessage::new(Role::User, Self::parse_mentions(message)));
 
-        body = body.input(Input::new(Self::parse_mentions(message), Role::User));
+        let client =
+            AiClient::new(api_key, endpoint, model).map_err(BotError::Ai)?;
+        let text = client.chat(messages, 200).await?;
 
-        let openai = OpenAI::new(api_key).map_err(BotError::Ai)?;
-        let response = openai.create_response(&body).await?;
-
-        let text = response
-            .output
-            .iter()
-            .find_map(|output| {
-                if output.kind == "message"
-                    && let Some(content_vec) = &output.content
-                    && let [content] = content_vec.as_slice()
-                {
-                    Some(&content.text)
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| {
-                BotError::Other(
-                    "OpenAI response contained no usable message text".to_owned(),
-                )
-            })?;
-
-        message.reply(&ctx.http, text).await?;
+        message.reply(&ctx.http, &text).await?;
         Ok(())
     }
 
@@ -113,7 +97,15 @@ impl Ai {
             return Ok(());
         }
 
-        if let Err(e) = Self::reply(ctx, message, &app.openai_api_key).await {
+        if let Err(e) = Self::reply(
+            ctx,
+            message,
+            &app.ai_provider_key,
+            &app.ai_api_endpoint,
+            &app.ai_model,
+        )
+        .await
+        {
             tracing::error!(error = ?e, channel_id = %message.channel_id, "AI reply failed");
         }
 

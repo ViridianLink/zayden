@@ -1,24 +1,23 @@
 use std::fmt;
 
+use async_openai::error::OpenAIError;
 use zayden_core::error::{HandlerError, Respond};
 
 #[derive(Debug)]
 pub enum AiError {
+    OpenAI(OpenAIError),
+    /// Custom `reqwest::Client` construction failed (TLS / DNS misconfiguration).
     Reqwest(reqwest::Error),
-    ParseResponse { source: serde_json::Error, body: String },
-    InvalidHeader(String),
-    InvalidUrl(String),
+    /// The provider returned a response with no text content in any choice.
+    NoContent,
 }
 
 impl fmt::Display for AiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Reqwest(e) => write!(f, "reqwest: {e}"),
-            Self::ParseResponse { source, .. } => {
-                write!(f, "parse response: {source}")
-            },
-            Self::InvalidHeader(s) => write!(f, "invalid header: {s}"),
-            Self::InvalidUrl(s) => write!(f, "invalid URL: {s}"),
+            Self::OpenAI(e) => write!(f, "AI client error: {e}"),
+            Self::Reqwest(e) => write!(f, "HTTP client build error: {e}"),
+            Self::NoContent => write!(f, "AI response contained no text"),
         }
     }
 }
@@ -26,10 +25,16 @@ impl fmt::Display for AiError {
 impl std::error::Error for AiError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            Self::OpenAI(e) => Some(e),
             Self::Reqwest(e) => Some(e),
-            Self::ParseResponse { source, .. } => Some(source),
-            Self::InvalidHeader(_) | Self::InvalidUrl(_) => None,
+            Self::NoContent => None,
         }
+    }
+}
+
+impl From<OpenAIError> for AiError {
+    fn from(e: OpenAIError) -> Self {
+        Self::OpenAI(e)
     }
 }
 

@@ -12,6 +12,10 @@ const DEFAULT_ZAYDEN_GUILD: u64 = 1_222_360_995_700_150_443;
 const DEFAULT_LLAMAD2_GUILD: u64 = 1_133_034_263_579_734_037;
 const DEFAULT_ZAYDEN_ID: u64 = 787_490_197_943_091_211;
 
+// AI provider defaults (OpenRouter free tier).
+const DEFAULT_AI_ENDPOINT: &str = "https://openrouter.ai/api/v1";
+const DEFAULT_AI_MODEL: &str = "google/gemma-4-31b-it:free";
+
 /// Static + deployment-level configuration for the bot process.
 ///
 /// Populated once at startup via `BotConfig::load`; thereafter immutable.
@@ -25,12 +29,17 @@ pub struct BotConfig {
     pub discord_token: String,
     /// Bungie API key for Destiny 2 integration.
     pub bungie_api_key: String,
-    /// `OpenAI` API key for AI features.
-    pub openai_api_key: String,
+    /// AI provider API key (used for `OpenRouter` or any OpenAI-compatible API).
+    pub ai_provider_key: String,
     /// Google Sheets API key for endgame analysis / destiny2 compendium.
     pub google_api_key: String,
     /// Discord `OAuth2` client secret for the web dashboard.
     pub discord_client_secret: String,
+
+    /// Base URL of the AI provider endpoint (e.g. `https://openrouter.ai/api/v1`).
+    pub ai_api_endpoint: String,
+    /// Model identifier passed to the AI provider (e.g. `google/gemini-2.5-flash`).
+    pub ai_model: String,
 
     /// Discord user ID of the bot owner (Oscar Six).
     pub oscar_six: u64,
@@ -55,7 +64,7 @@ impl BotConfig {
         // 1. Required env vars — fail early with a clear message.
         let discord_token = require_env("DISCORD_TOKEN")?;
         let bungie_api_key = require_env("BUNGIE_API_KEY")?;
-        let openai_api_key = require_env("OPENAI_API_KEY")?;
+        let ai_provider_key = require_env("AI_PROVIDER_KEY")?;
         let google_api_key = require_env("GOOGLE_API_KEY")?;
         let discord_client_secret = require_env("DISCORD_CLIENT_SECRET")?;
 
@@ -68,9 +77,18 @@ impl BotConfig {
         Ok(Self {
             discord_token,
             bungie_api_key,
-            openai_api_key,
+            ai_provider_key,
             google_api_key,
             discord_client_secret,
+
+            ai_api_endpoint: toml_cfg
+                .ai
+                .endpoint
+                .unwrap_or_else(|| DEFAULT_AI_ENDPOINT.to_owned()),
+            ai_model: toml_cfg
+                .ai
+                .model
+                .unwrap_or_else(|| DEFAULT_AI_MODEL.to_owned()),
 
             oscar_six: toml_cfg.ids.oscar_six.unwrap_or(DEFAULT_OSCAR_SIX),
             zayden_guild: toml_cfg.ids.zayden_guild.unwrap_or(DEFAULT_ZAYDEN_GUILD),
@@ -132,9 +150,19 @@ async fn load_db_row(pool: &PgPool) -> Result<Option<DbConfigRow>> {
 #[derive(Debug, Default, Deserialize)]
 struct TomlConfig {
     #[serde(default)]
+    ai: TomlAi,
+    #[serde(default)]
     ids: TomlIds,
     #[serde(default)]
     webhooks: TomlWebhooks,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlAi {
+    /// Base URL of the AI provider (default: `OpenRouter`).
+    endpoint: Option<String>,
+    /// Model identifier (default: `google/gemini-2.5-flash`).
+    model: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]

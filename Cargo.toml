@@ -152,6 +152,7 @@ toml = { version = "*", default-features = false, features = [
   "serde",
 ] }
 
+async-openai = { version = "*", features = ["chat-completion"] }
 async-trait = { version = "*", default-features = false }
 axum = { version = "*", default-features = false }
 base64 = { version = "*", default-features = false }

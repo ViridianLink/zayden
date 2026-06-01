@@ -19,7 +19,12 @@ pub struct AppState {
     /// …).
     pub events: broadcast::Sender<AppEvent>,
     pub http: reqwest::Client,
-    pub openai_api_key: String,
+    /// AI provider API key (`OpenRouter` or any OpenAI-compatible provider).
+    pub ai_provider_key: String,
+    /// Base URL of the AI provider endpoint.
+    pub ai_api_endpoint: String,
+    /// Model identifier passed to the AI provider.
+    pub ai_model: String,
     /// Google Sheets API key for endgame-analysis and destiny2 compendium.
     pub google_api_key: String,
 }
@@ -51,7 +56,9 @@ impl AppState {
             entitlements,
             events,
             http: reqwest::Client::new(),
-            openai_api_key: config.openai_api_key.clone(),
+            ai_provider_key: config.ai_provider_key.clone(),
+            ai_api_endpoint: config.ai_api_endpoint.clone(),
+            ai_model: config.ai_model.clone(),
             google_api_key: config.google_api_key.clone(),
         }
     }
