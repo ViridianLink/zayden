@@ -16,6 +16,7 @@ axum = { workspace = true, features = [
 ], default-features = true }
 dotenvy = { workspace = true }
 oauth2 = { workspace = true, features = ["reqwest"] }
+leptos = { version = "*" }
 reqwest = { version = "0.12" }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
