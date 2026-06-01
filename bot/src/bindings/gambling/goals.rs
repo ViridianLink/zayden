@@ -129,7 +129,7 @@ impl ModuleCommand for Goals {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

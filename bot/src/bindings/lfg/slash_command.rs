@@ -29,8 +29,8 @@ impl ModuleCommand for Lfg {
             options,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -44,8 +44,7 @@ impl ModuleAutocomplete for Lfg {
         let Some(option) = cx.interaction.data.autocomplete() else {
             return Ok(());
         };
-        lfg::Command::autocomplete(&cx.ctx.http, cx.interaction, option)
-            .await
-            .map_err(HandlerError::from_respond)
+        lfg::Command::autocomplete(&cx.ctx.http, cx.interaction, option).await?;
+        Ok(())
     }
 }

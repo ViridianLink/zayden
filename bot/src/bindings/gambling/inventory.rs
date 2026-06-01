@@ -119,7 +119,7 @@ impl ModuleCommand for Inventory {
             options,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

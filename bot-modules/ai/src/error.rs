@@ -1,6 +1,6 @@
 use std::fmt;
 
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 #[derive(Debug)]
 pub enum AiError {
@@ -40,3 +40,9 @@ impl From<reqwest::Error> for AiError {
 }
 
 impl Respond for AiError {}
+
+impl From<AiError> for HandlerError {
+    fn from(e: AiError) -> Self {
+        Self::from_respond(e)
+    }
+}

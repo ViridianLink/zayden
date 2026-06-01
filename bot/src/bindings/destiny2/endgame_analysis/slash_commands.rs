@@ -33,8 +33,7 @@ impl ModuleCommand for DimWishlist {
             options,
             &cx.app.google_api_key,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
         Ok(())
     }
 }
@@ -59,8 +58,8 @@ impl ModuleCommand for TierList {
             options,
             &cx.app.google_api_key,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -78,8 +77,7 @@ impl ModuleAutocomplete for TierList {
                 option,
                 &cx.app.google_api_key,
             )
-            .await
-            .map_err(HandlerError::from_respond)?;
+            .await?;
         }
         Ok(())
     }
@@ -103,8 +101,8 @@ impl ModuleCommand for Weapon {
             cx.interaction,
             &cx.app.google_api_key,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -122,8 +120,7 @@ impl ModuleAutocomplete for Weapon {
                 option,
                 &cx.app.google_api_key,
             )
-            .await
-            .map_err(HandlerError::from_respond)?;
+            .await?;
         }
         Ok(())
     }

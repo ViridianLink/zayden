@@ -21,9 +21,7 @@ impl ModuleCommand for RaidReport {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        llamad2::RaidReport::run(cx.ctx, cx.interaction)
-            .await
-            .map_err(HandlerError::new)?;
+        llamad2::RaidReport::run(cx.ctx, cx.interaction).await?;
         Ok(())
     }
 }

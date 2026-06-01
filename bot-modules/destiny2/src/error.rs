@@ -1,4 +1,4 @@
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, DestinyError>;
 
@@ -11,3 +11,9 @@ pub enum DestinyError {
 }
 
 impl Respond for DestinyError {}
+
+impl From<DestinyError> for HandlerError {
+    fn from(e: DestinyError) -> Self {
+        Self::from_respond(e)
+    }
+}

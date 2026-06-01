@@ -195,8 +195,8 @@ impl ModuleCommand for Prestige {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -208,19 +208,22 @@ impl ModuleComponent for Prestige {
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         match cx.interaction.data.custom_id.as_str() {
-            "prestige_confirm" => Commands::confirm_prestige::<
-                Postgres,
-                PrestigeTable,
-            >(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond),
-            "prestige_cancel" => Commands::cancel_prestige(cx.ctx, cx.interaction)
-                .await
-                .map_err(HandlerError::from_respond),
+            "prestige_confirm" => {
+                Commands::confirm_prestige::<Postgres, PrestigeTable>(
+                    cx.ctx,
+                    cx.interaction,
+                    &cx.app.db,
+                )
+                .await?;
+            },
+            "prestige_cancel" => {
+                Commands::cancel_prestige(cx.ctx, cx.interaction).await?;
+            },
             _ => {
                 warn!(custom_id = %cx.interaction.data.custom_id, "unknown prestige component");
-                Ok(())
             },
         }
+
+        Ok(())
     }
 }

@@ -34,9 +34,8 @@ impl ModuleCommand for Panel {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        verify::Panel::run_command(&cx.ctx.http, cx.interaction)
-            .await
-            .map_err(HandlerError::new)
+        verify::Panel::run_command(&cx.ctx.http, cx.interaction).await?;
+        Ok(())
     }
 }
 
@@ -47,9 +46,8 @@ impl ModuleComponent for Panel {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        verify::Panel::run_component(&cx.ctx.http, cx.interaction)
-            .await
-            .map_err(HandlerError::new)
+        verify::Panel::run_component(&cx.ctx.http, cx.interaction).await?;
+        Ok(())
     }
 }
 
@@ -84,9 +82,8 @@ impl ModuleCommand for ManVerify {
             return Ok(());
         };
 
-        let guild_id = cx.interaction.guild_id.ok_or_else(|| {
-            HandlerError::from_respond(zayden_core::Error::MissingGuildId)
-        })?;
+        let guild_id =
+            cx.interaction.guild_id.ok_or(zayden_core::Error::MissingGuildId)?;
 
         cx.ctx
             .http
@@ -99,8 +96,7 @@ impl ModuleCommand for ManVerify {
                     cx.interaction.user.display_name()
                 )),
             )
-            .await
-            .map_err(HandlerError::new)?;
+            .await?;
 
         Ok(())
     }

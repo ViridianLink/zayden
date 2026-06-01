@@ -26,7 +26,7 @@ impl ModuleCommand for FetchSuggestions {
             cx.interaction.data.options(),
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

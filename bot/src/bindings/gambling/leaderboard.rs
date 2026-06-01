@@ -299,8 +299,8 @@ impl ModuleCommand for Leaderboard {
             options,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -316,7 +316,7 @@ impl ModuleComponent for Leaderboard {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

@@ -48,9 +48,8 @@ impl ModuleCommand for HigherLower {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Commands::higher_lower::<BotState>(cx.ctx, cx.interaction)
-            .await
-            .map_err(HandlerError::from_respond)
+        Commands::higher_lower::<BotState>(cx.ctx, cx.interaction).await?;
+        Ok(())
     }
 }
 
@@ -79,7 +78,7 @@ impl ModuleComponent for HigherLower {
             GoalsTable,
             StatsTable,
         >(cx.ctx, cx.interaction, &cx.app.db)
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

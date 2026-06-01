@@ -315,8 +315,7 @@ impl ModuleCommand for MarryCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let target_id =
             Marry::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
-                .await
-                .map_err(HandlerError::from_respond)?;
+                .await?;
 
         let content = format!(
             "{}, {} wants to marry you! Do you accept?",
@@ -336,8 +335,8 @@ impl ModuleCommand for MarryCmd {
                         )]),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -356,8 +355,7 @@ impl ModuleCommand for AdoptCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let target_id =
             Adopt::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
-                .await
-                .map_err(HandlerError::from_respond)?;
+                .await?;
 
         let content = format!(
             "{}, {} wants to adopt you! Do you accept?",
@@ -377,8 +375,8 @@ impl ModuleCommand for AdoptCmd {
                         )]),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -396,8 +394,7 @@ impl ModuleCommand for BlockCmd {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         Block::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)?;
+            .await?;
 
         cx.interaction
             .create_response(
@@ -408,8 +405,8 @@ impl ModuleCommand for BlockCmd {
                         .ephemeral(true),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -427,8 +424,7 @@ impl ModuleCommand for UnblockCmd {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         Unblock::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond)?;
+            .await?;
 
         cx.interaction
             .create_response(
@@ -439,8 +435,8 @@ impl ModuleCommand for UnblockCmd {
                         .ephemeral(true),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -457,15 +453,14 @@ impl ModuleCommand for ChildrenCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        cx.interaction.defer(&cx.ctx.http).await.map_err(HandlerError::new)?;
+        cx.interaction.defer(&cx.ctx.http).await?;
 
         let (user_id, names) = Children::run::<Postgres, FamilyTable>(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         let content =
             format!("{}'s children: {}", user_id.mention(), names.join(", "));
@@ -475,9 +470,9 @@ impl ModuleCommand for ChildrenCmd {
                 &cx.ctx.http,
                 EditInteractionResponse::new().content(content),
             )
-            .await
-            .map_err(HandlerError::new)
-            .map(|_| ())
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -494,15 +489,14 @@ impl ModuleCommand for ParentsCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        cx.interaction.defer(&cx.ctx.http).await.map_err(HandlerError::new)?;
+        cx.interaction.defer(&cx.ctx.http).await?;
 
         let (user_id, names) = Parents::run::<Postgres, FamilyTable>(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         let content =
             format!("{}'s parents: {}", user_id.mention(), names.join(", "));
@@ -512,9 +506,9 @@ impl ModuleCommand for ParentsCmd {
                 &cx.ctx.http,
                 EditInteractionResponse::new().content(content),
             )
-            .await
-            .map_err(HandlerError::new)
-            .map(|_| ())
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -531,15 +525,14 @@ impl ModuleCommand for PartnerCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        cx.interaction.defer(&cx.ctx.http).await.map_err(HandlerError::new)?;
+        cx.interaction.defer(&cx.ctx.http).await?;
 
         let (user_id, names) = Partner::run::<Postgres, FamilyTable>(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         let content =
             format!("{}'s partners: {}", user_id.mention(), names.join(", "));
@@ -549,9 +542,9 @@ impl ModuleCommand for PartnerCmd {
                 &cx.ctx.http,
                 EditInteractionResponse::new().content(content),
             )
-            .await
-            .map_err(HandlerError::new)
-            .map(|_| ())
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -568,15 +561,14 @@ impl ModuleCommand for SiblingsCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        cx.interaction.defer(&cx.ctx.http).await.map_err(HandlerError::new)?;
+        cx.interaction.defer(&cx.ctx.http).await?;
 
         let (user_id, names) = Siblings::run::<Postgres, FamilyTable>(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         let content =
             format!("{}'s siblings: {}", user_id.mention(), names.join(", "));
@@ -586,9 +578,9 @@ impl ModuleCommand for SiblingsCmd {
                 &cx.ctx.http,
                 EditInteractionResponse::new().content(content),
             )
-            .await
-            .map_err(HandlerError::new)
-            .map(|_| ())
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -611,8 +603,7 @@ impl ModuleCommand for RelationshipCmd {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         let content = format!(
             "{} and {} are: **{}**",
@@ -626,9 +617,9 @@ impl ModuleCommand for RelationshipCmd {
                 &cx.ctx.http,
                 EditInteractionResponse::new().content(content),
             )
-            .await
-            .map_err(HandlerError::new)
-            .map(|_| ())
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -650,8 +641,7 @@ impl ModuleCommand for ResetFamilyCmd {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         cx.interaction
             .create_response(
@@ -662,8 +652,8 @@ impl ModuleCommand for ResetFamilyCmd {
                         .ephemeral(true),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -680,7 +670,7 @@ impl ModuleCommand for TreeCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        cx.interaction.defer(&cx.ctx.http).await.map_err(HandlerError::new)?;
+        cx.interaction.defer(&cx.ctx.http).await?;
 
         let user = match cx.interaction.data.options().first() {
             Some(ResolvedOption { value: ResolvedValue::User(user, _), .. }) => {
@@ -690,14 +680,10 @@ impl ModuleCommand for TreeCmd {
         };
 
         let row = FamilyTable::row(&cx.app.db, user.id)
-            .await
-            .map_err(HandlerError::new)?
+            .await?
             .unwrap_or_else(|| user.into());
 
-        let tree = row
-            .tree::<Postgres, FamilyTable>(&cx.app.db)
-            .await
-            .map_err(HandlerError::new)?;
+        let tree = row.tree::<Postgres, FamilyTable>(&cx.app.db).await?;
 
         let content = format_tree(&tree, user.id);
 
@@ -706,9 +692,9 @@ impl ModuleCommand for TreeCmd {
                 &cx.ctx.http,
                 EditInteractionResponse::new().content(content),
             )
-            .await
-            .map_err(HandlerError::new)
-            .map(|_| ())
+            .await?;
+
+        Ok(())
     }
 }
 
@@ -769,8 +755,7 @@ impl ModuleComponent for MarryAccept {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         cx.interaction
             .create_response(
@@ -781,8 +766,8 @@ impl ModuleComponent for MarryAccept {
                         .components(vec![]),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -795,8 +780,7 @@ impl ModuleComponent for MarryDecline {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        family::components::marry::decline(cx.interaction)
-            .map_err(HandlerError::from_respond)?;
+        family::components::marry::decline(cx.interaction)?;
 
         cx.interaction
             .create_response(
@@ -807,8 +791,8 @@ impl ModuleComponent for MarryDecline {
                         .components(vec![]),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -825,8 +809,7 @@ impl ModuleComponent for AdoptAccept {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)?;
+        .await?;
 
         cx.interaction
             .create_response(
@@ -837,8 +820,8 @@ impl ModuleComponent for AdoptAccept {
                         .components(vec![]),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }
 
@@ -851,8 +834,7 @@ impl ModuleComponent for AdoptDecline {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        family::components::adopt::decline(cx.interaction)
-            .map_err(HandlerError::from_respond)?;
+        family::components::adopt::decline(cx.interaction)?;
 
         cx.interaction
             .create_response(
@@ -863,7 +845,7 @@ impl ModuleComponent for AdoptDecline {
                         .components(vec![]),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)
+            .await?;
+        Ok(())
     }
 }

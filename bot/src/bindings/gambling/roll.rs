@@ -33,7 +33,7 @@ impl ModuleCommand for Roll {
             EffectsTable,
             GameTable,
         >(cx.ctx, cx.interaction, options, &cx.app.db)
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

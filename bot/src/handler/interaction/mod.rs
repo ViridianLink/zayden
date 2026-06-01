@@ -121,10 +121,28 @@ pub(super) async fn respond_with_error(
     interaction: &impl Respondable,
     err: HandlerError,
 ) {
-    match err.user_message() {
-        Some(msg) => {
+    match &err {
+        HandlerError::Database(db_err) => {
+            error!(
+                error = ?db_err,
+                name = interaction.interaction_name(),
+                user = interaction.user_name(),
+                "database error in interaction handler",
+            );
+        },
+        HandlerError::Discord(discord_err) => {
+            error!(
+                error = ?discord_err,
+                name = interaction.interaction_name(),
+                user = interaction.user_name(),
+                "discord error in interaction handler",
+            );
+        },
+        HandlerError::Module { user_message: Some(msg), .. } => {
+            let msg = msg.clone();
             let _ = interaction.defer_ephemeral_(&ctx.http).await;
-            if let Err(send_err) = interaction.send_error_reply(&ctx.http, msg).await
+            if let Err(send_err) =
+                interaction.send_error_reply(&ctx.http, &msg).await
             {
                 error!(
                     error = ?err,
@@ -135,12 +153,12 @@ pub(super) async fn respond_with_error(
                 );
             }
         },
-        None => {
+        HandlerError::Module { user_message: None, source } => {
             error!(
-                error = ?err,
+                error = ?source,
                 name = interaction.interaction_name(),
                 user = interaction.user_name(),
-                "internal error in interaction handler",
+                "module error in interaction handler",
             );
         },
     }

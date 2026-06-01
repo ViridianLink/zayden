@@ -21,9 +21,7 @@ impl ModuleCommand for Socials {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        llamad2::Socials::run(cx.ctx, cx.interaction)
-            .await
-            .map_err(HandlerError::new)?;
+        llamad2::Socials::run(cx.ctx, cx.interaction).await?;
         Ok(())
     }
 }

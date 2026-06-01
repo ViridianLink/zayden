@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use serenity::all::{Mentionable, UserId};
 use zayden_core::Error as ZaydenError;
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, LfgError>;
 
@@ -99,5 +99,11 @@ impl From<serenity::Error> for LfgError {
 impl From<sqlx::Error> for LfgError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
+    }
+}
+
+impl From<LfgError> for HandlerError {
+    fn from(e: LfgError) -> Self {
+        Self::from_respond(e)
     }
 }

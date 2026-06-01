@@ -21,9 +21,7 @@ impl ModuleCommand for Goof {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        llamad2::Goof::run(cx.ctx, cx.interaction)
-            .await
-            .map_err(HandlerError::new)?;
+        llamad2::Goof::run(cx.ctx, cx.interaction).await?;
         Ok(())
     }
 }

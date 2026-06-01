@@ -404,8 +404,8 @@ impl ModuleComponent for LfgJoin {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -423,8 +423,8 @@ impl ModuleComponent for LfgLeave {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -442,8 +442,8 @@ impl ModuleComponent for LfgAlternative {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -461,8 +461,8 @@ impl ModuleComponent for LfgSettings {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -480,8 +480,8 @@ impl ModuleComponent for LfgEditComponent {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -499,8 +499,8 @@ impl ModuleComponent for LfgCopy {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -518,8 +518,8 @@ impl ModuleComponent for LfgKick {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -537,8 +537,8 @@ impl ModuleComponent for LfgKickMenu {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -556,8 +556,8 @@ impl ModuleComponent for LfgDelete {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -570,9 +570,8 @@ impl ModuleComponent for LfgTagsAdd {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TagsComponent::add(&cx.ctx.http, cx.interaction)
-            .await
-            .map_err(HandlerError::from_respond)
+        TagsComponent::add(&cx.ctx.http, cx.interaction).await?;
+        Ok(())
     }
 }
 
@@ -585,9 +584,8 @@ impl ModuleComponent for LfgTagsRemove {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TagsComponent::remove(&cx.ctx.http, cx.interaction)
-            .await
-            .map_err(HandlerError::from_respond)
+        TagsComponent::remove(&cx.ctx.http, cx.interaction).await?;
+        Ok(())
     }
 }
 
@@ -609,8 +607,8 @@ impl ModuleModal for LfgEditModal {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -630,8 +628,8 @@ impl ModuleModal for LfgCreateModal {
             PostTable,
             UsersTable,
         >(cx.ctx, cx.interaction, &cx.app.db)
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 

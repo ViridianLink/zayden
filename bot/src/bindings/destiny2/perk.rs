@@ -49,8 +49,7 @@ impl ModuleAutocomplete for Perk {
                 option,
                 &cx.app.google_api_key,
             )
-            .await
-            .map_err(HandlerError::new)?;
+            .await?;
         }
         Ok(())
     }

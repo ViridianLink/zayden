@@ -61,8 +61,8 @@ impl ModuleComponent for TicketCreate {
             cx.interaction,
             make_ticket_modal_components(),
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -80,8 +80,8 @@ impl ModuleComponent for SupportTicket {
             cx.interaction,
             make_ticket_modal_components(),
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -94,9 +94,8 @@ impl ModuleComponent for SupportClose {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TicketComponent::support_close(&cx.ctx.http, cx.interaction)
-            .await
-            .map_err(HandlerError::from_respond)
+        TicketComponent::support_close(&cx.ctx.http, cx.interaction).await?;
+        Ok(())
     }
 }
 
@@ -114,8 +113,8 @@ impl ModuleComponent for SupportFaq {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -133,7 +132,7 @@ impl ModuleModal for CreateTicketModal {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

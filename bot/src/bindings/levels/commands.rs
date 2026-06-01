@@ -29,8 +29,8 @@ impl ModuleCommand for Levels {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::new)
+        .await?;
+        Ok(())
     }
 }
 
@@ -46,8 +46,8 @@ impl ModuleComponent for Levels {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::new)
+        .await?;
+        Ok(())
     }
 }
 
@@ -71,8 +71,8 @@ impl ModuleCommand for Rank {
             options,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::new)
+        .await?;
+        Ok(())
     }
 }
 
@@ -96,7 +96,7 @@ impl ModuleCommand for Xp {
             options,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::new)
+        .await?;
+        Ok(())
     }
 }

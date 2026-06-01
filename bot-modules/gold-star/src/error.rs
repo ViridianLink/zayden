@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fmt::Display;
 
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, GoldStarError>;
 
@@ -59,5 +59,11 @@ impl From<serenity::Error> for GoldStarError {
 impl From<sqlx::Error> for GoldStarError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
+    }
+}
+
+impl From<GoldStarError> for HandlerError {
+    fn from(e: GoldStarError) -> Self {
+        Self::from_respond(e)
     }
 }

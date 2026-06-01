@@ -55,8 +55,7 @@ impl ModuleCommand for CustomMsg {
         cx.interaction
             .channel_id
             .send_message(&cx.ctx.http, CreateMessage::new().embed(embed))
-            .await
-            .map_err(HandlerError::new)?;
+            .await?;
 
         cx.interaction
             .create_response(
@@ -67,8 +66,7 @@ impl ModuleCommand for CustomMsg {
                         .ephemeral(true),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)?;
+            .await?;
 
         Ok(())
     }

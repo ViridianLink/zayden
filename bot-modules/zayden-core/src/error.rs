@@ -94,6 +94,12 @@ impl From<serenity::Error> for HandlerError {
     }
 }
 
+impl From<CoreError> for HandlerError {
+    fn from(e: CoreError) -> Self {
+        Self::from_respond(e)
+    }
+}
+
 #[derive(Debug)]
 pub enum CoreError {
     MissingGuildId,

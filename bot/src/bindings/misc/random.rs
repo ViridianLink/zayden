@@ -174,8 +174,7 @@ impl ModuleCommand for Random {
                     CreateInteractionResponseMessage::new().embed(embed),
                 ),
             )
-            .await
-            .map_err(HandlerError::new)?;
+            .await?;
 
         Ok(())
     }

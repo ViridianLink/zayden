@@ -1,4 +1,4 @@
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, LlamaD2Error>;
 
@@ -9,3 +9,9 @@ pub enum LlamaD2Error {
 }
 
 impl Respond for LlamaD2Error {}
+
+impl From<LlamaD2Error> for HandlerError {
+    fn from(e: LlamaD2Error) -> Self {
+        Self::from_respond(e)
+    }
+}

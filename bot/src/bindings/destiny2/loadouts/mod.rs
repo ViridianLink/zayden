@@ -29,7 +29,7 @@ impl ModuleCommand for Loadout {
             options,
             zayden_token,
         )
-        .await
-        .map_err(HandlerError::new)
+        .await?;
+        Ok(())
     }
 }

@@ -34,8 +34,8 @@ impl ModuleCommand for TicTacToe {
             EffectsTable,
             GameTable,
         >(cx.ctx, cx.interaction, options, &cx.app.db)
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -53,7 +53,7 @@ impl ModuleComponent for TicTacToe {
             EffectsTable,
             GameTable,
         >(cx.ctx, cx.interaction, &cx.app.db)
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

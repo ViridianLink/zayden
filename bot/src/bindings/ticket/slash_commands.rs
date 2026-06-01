@@ -30,8 +30,8 @@ impl ModuleCommand for TicketCommand {
             &cx.app.db,
             cx.interaction.data.options(),
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -54,7 +54,7 @@ impl ModuleCommand for SupportCommand {
             &cx.app.db,
             cx.interaction.data.options(),
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

@@ -32,8 +32,8 @@ impl ModuleCommand for GiveStarCmd {
             cx.interaction.data.options(),
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -56,8 +56,8 @@ impl ModuleCommand for StarsCmd {
             cx.interaction.data.options(),
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 

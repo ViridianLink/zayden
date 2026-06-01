@@ -83,7 +83,7 @@ impl ModuleCommand for Lotto {
             cx.interaction,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

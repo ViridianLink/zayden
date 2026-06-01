@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use jiff::Timestamp;
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 use zayden_core::{Error as ZaydenError, FormatNum};
 
 use crate::ShopCurrency;
@@ -168,5 +168,11 @@ impl From<serenity::Error> for GamblingError {
 impl From<sqlx::Error> for GamblingError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
+    }
+}
+
+impl From<GamblingError> for HandlerError {
+    fn from(e: GamblingError) -> Self {
+        Self::from_respond(e)
     }
 }

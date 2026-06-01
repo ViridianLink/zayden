@@ -44,9 +44,8 @@ impl ModuleModal for SuggestionsAcceptModal {
     }
 
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
-        Suggestions::modal(&cx.ctx.http, cx.interaction, true)
-            .await
-            .map_err(HandlerError::from_respond)
+        Suggestions::modal(&cx.ctx.http, cx.interaction, true).await?;
+        Ok(())
     }
 }
 
@@ -59,8 +58,7 @@ impl ModuleModal for SuggestionsRejectModal {
     }
 
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
-        Suggestions::modal(&cx.ctx.http, cx.interaction, false)
-            .await
-            .map_err(HandlerError::from_respond)
+        Suggestions::modal(&cx.ctx.http, cx.interaction, false).await?;
+        Ok(())
     }
 }

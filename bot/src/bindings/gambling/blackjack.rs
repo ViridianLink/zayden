@@ -34,8 +34,8 @@ impl ModuleCommand for Blackjack {
             EffectsTable,
             GameTable,
         >(cx.ctx, cx.interaction, options, &cx.app.db)
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }
 
@@ -57,44 +57,48 @@ impl ModuleComponent for Blackjack {
         }
 
         match cx.interaction.data.custom_id.as_str() {
-            "blackjack_hit" => gambling::components::Blackjack::hit::<
-                BotState,
-                Postgres,
-                GoalsTable,
-                EffectsTable,
-                GameTable,
-            >(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond),
-            "blackjack_stand" => gambling::components::Blackjack::stand::<
-                BotState,
-                Postgres,
-                GoalsTable,
-                EffectsTable,
-                GameTable,
-            >(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond),
-            "blackjack_double" => gambling::components::Blackjack::double::<
-                BotState,
-                Postgres,
-                GamblingTable,
-                GoalsTable,
-                EffectsTable,
-                GameTable,
-            >(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond),
-            "blackjack_split" => gambling::components::Blackjack::split::<
-                BotState,
-                Postgres,
-                GamblingTable,
-                GoalsTable,
-                EffectsTable,
-                GameTable,
-            >(cx.ctx, cx.interaction, &cx.app.db)
-            .await
-            .map_err(HandlerError::from_respond),
+            "blackjack_hit" => {
+                gambling::components::Blackjack::hit::<
+                    BotState,
+                    Postgres,
+                    GoalsTable,
+                    EffectsTable,
+                    GameTable,
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await?;
+            },
+            "blackjack_stand" => {
+                gambling::components::Blackjack::stand::<
+                    BotState,
+                    Postgres,
+                    GoalsTable,
+                    EffectsTable,
+                    GameTable,
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await?;
+            },
+            "blackjack_double" => {
+                gambling::components::Blackjack::double::<
+                    BotState,
+                    Postgres,
+                    GamblingTable,
+                    GoalsTable,
+                    EffectsTable,
+                    GameTable,
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await?;
+            },
+            "blackjack_split" => {
+                gambling::components::Blackjack::split::<
+                    BotState,
+                    Postgres,
+                    GamblingTable,
+                    GoalsTable,
+                    EffectsTable,
+                    GameTable,
+                >(cx.ctx, cx.interaction, &cx.app.db)
+                .await?;
+            },
             "blackjack_surrender" => {
                 gambling::components::Blackjack::surrender::<
                     BotState,
@@ -103,10 +107,11 @@ impl ModuleComponent for Blackjack {
                     EffectsTable,
                     GameTable,
                 >(cx.ctx, cx.interaction, &cx.app.db)
-                .await
-                .map_err(HandlerError::from_respond)
+                .await?;
             },
-            _ => Ok(()),
+            _ => (),
         }
+
+        Ok(())
     }
 }

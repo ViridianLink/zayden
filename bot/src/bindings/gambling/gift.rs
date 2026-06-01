@@ -102,7 +102,7 @@ impl ModuleCommand for Gift {
             options,
             &cx.app.db,
         )
-        .await
-        .map_err(HandlerError::from_respond)
+        .await?;
+        Ok(())
     }
 }

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::fmt::Display;
 
 use serenity::all::{Mentionable, UserId};
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 use crate::relationships::Relationships;
 
@@ -251,6 +251,12 @@ impl From<std::num::ParseIntError> for FamilyError {
 impl From<serenity::all::ReactionConversionError> for FamilyError {
     fn from(e: serenity::all::ReactionConversionError) -> Self {
         Self::ReactionConversionError(e)
+    }
+}
+
+impl From<FamilyError> for HandlerError {
+    fn from(e: FamilyError) -> Self {
+        Self::from_respond(e)
     }
 }
 

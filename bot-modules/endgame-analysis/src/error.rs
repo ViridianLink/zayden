@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use zayden_core::Error as ZaydenError;
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, EndgameAnalysisError>;
 
@@ -61,5 +61,11 @@ impl From<bungie_api::Error> for EndgameAnalysisError {
 impl From<google_sheets_api::Error> for EndgameAnalysisError {
     fn from(e: google_sheets_api::Error) -> Self {
         Self::GoogleSheets(e)
+    }
+}
+
+impl From<EndgameAnalysisError> for HandlerError {
+    fn from(e: EndgameAnalysisError) -> Self {
+        Self::from_respond(e)
     }
 }

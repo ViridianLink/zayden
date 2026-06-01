@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -63,5 +63,11 @@ impl From<serenity::Error> for Error {
 impl From<sqlx::Error> for Error {
     fn from(value: sqlx::Error) -> Self {
         Self::Zayden(zayden_core::Error::Sqlx(value))
+    }
+}
+
+impl From<Error> for HandlerError {
+    fn from(e: Error) -> Self {
+        Self::from_respond(e)
     }
 }
