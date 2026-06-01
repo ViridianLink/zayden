@@ -27,6 +27,7 @@ impl WeaponCommand {
     pub async fn run<Data: BungieClientData>(
         ctx: &Context,
         interaction: &CommandInteraction,
+        api_key: &str,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -52,7 +53,7 @@ impl WeaponCommand {
                     .await
                     .expect("data invariant");
 
-                EndgameAnalysisSheet::update(&item_manifest).await?;
+                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
                 let w = fs::read_to_string("weapons.json")
                     .expect("weapons.json readable");
                 serde_json::from_str(&w).expect("valid JSON")
@@ -92,6 +93,7 @@ impl WeaponCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        api_key: &str,
     ) -> Result<()> {
         let weapons = match fs::read_to_string("weapons.json") {
             Ok(weapons) => weapons,
@@ -108,7 +110,7 @@ impl WeaponCommand {
                     .await
                     .expect("data invariant");
 
-                EndgameAnalysisSheet::update(&item_manifest).await?;
+                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
                 fs::read_to_string("weapons.json").expect("weapons.json readable")
             },
         };

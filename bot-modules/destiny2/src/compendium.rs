@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env;
 
 use google_sheets_api::SheetsClientBuilder;
 use serde::{Deserialize, Serialize};
@@ -12,10 +11,7 @@ pub struct PerkInfo {
     pub description: String,
 }
 
-pub async fn update() {
-    let api_key =
-        env::var("GOOGLE_API_KEY").expect("GOOGLE_API_KEY env var must be set");
-
+pub async fn update(api_key: &str) {
     let client =
         SheetsClientBuilder::new(api_key).build().expect("sheets client build");
 

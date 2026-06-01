@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env;
 
 use bungie_api::DestinyInventoryItemDefinition;
 use destiny2_core::BungieClientData;
@@ -64,9 +63,8 @@ impl EndgameAnalysisSheet {
 
     pub async fn update(
         manifest: &HashMap<String, DestinyInventoryItemDefinition>,
+        api_key: &str,
     ) -> Result<()> {
-        let api_key = env::var("GOOGLE_API_KEY").expect("data invariant");
-
         let client =
             SheetsClientBuilder::new(api_key).build().expect("data invariant");
 

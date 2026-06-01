@@ -76,10 +76,10 @@ async fn main() -> Result<()> {
 
     if !cfg!(debug_assertions) {
         let manifest = EndgameAnalysisSheet::item_manifest(&bot_state).await;
-        EndgameAnalysisSheet::update(&manifest)
+        EndgameAnalysisSheet::update(&manifest, &bot_config.google_api_key)
             .await
             .expect("EndgameAnalysisSheet update failed at startup");
-        destiny2::compendium::update().await;
+        destiny2::compendium::update(&bot_config.google_api_key).await;
     }
 
     let bot_state = Arc::new(RwLock::new(bot_state));
@@ -89,7 +89,10 @@ async fn main() -> Result<()> {
     );
 
     let mut client = ClientBuilder::new(
-        Token::from_env("DISCORD_TOKEN").expect("DISCORD_TOKEN env var must be set"),
+        bot_config
+            .discord_token
+            .parse::<Token>()
+            .expect("DISCORD_TOKEN in BotConfig is not a valid Discord token"),
         GatewayIntents::GUILDS
             | GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::GUILD_MESSAGE_REACTIONS

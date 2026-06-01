@@ -33,6 +33,7 @@ impl TierListCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
+        api_key: &str,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -80,7 +81,7 @@ impl TierListCommand {
                     .await
                     .expect("data invariant");
 
-                EndgameAnalysisSheet::update(&item_manifest).await?;
+                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
                 let w = fs::read_to_string("weapons.json")
                     .expect("weapons.json readable");
                 serde_json::from_str(&w).expect("valid JSON")
@@ -166,6 +167,7 @@ impl TierListCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        api_key: &str,
     ) -> Result<()> {
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
             Ok(weapons) => {
@@ -184,7 +186,7 @@ impl TierListCommand {
                     .await
                     .expect("data invariant");
 
-                EndgameAnalysisSheet::update(&item_manifest).await?;
+                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
                 let weapons = fs::read_to_string("weapons.json")
                     .expect("weapons.json readable");
                 serde_json::from_str(&weapons).expect("valid weapons JSON")

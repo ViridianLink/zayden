@@ -27,9 +27,14 @@ impl ModuleCommand for DimWishlist {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        DimWishlistCommand::run::<BotState>(cx.ctx, cx.interaction, options)
-            .await
-            .map_err(HandlerError::from_respond)?;
+        DimWishlistCommand::run::<BotState>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.google_api_key,
+        )
+        .await
+        .map_err(HandlerError::from_respond)?;
         Ok(())
     }
 }
@@ -48,9 +53,14 @@ impl ModuleCommand for TierList {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        TierListCommand::run::<BotState>(cx.ctx, cx.interaction, options)
-            .await
-            .map_err(HandlerError::from_respond)
+        TierListCommand::run::<BotState>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.google_api_key,
+        )
+        .await
+        .map_err(HandlerError::from_respond)
     }
 }
 
@@ -66,6 +76,7 @@ impl ModuleAutocomplete for TierList {
                 cx.ctx,
                 cx.interaction,
                 option,
+                &cx.app.google_api_key,
             )
             .await
             .map_err(HandlerError::from_respond)?;
@@ -87,7 +98,7 @@ impl ModuleCommand for Weapon {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        WeaponCommand::run::<BotState>(cx.ctx, cx.interaction)
+        WeaponCommand::run::<BotState>(cx.ctx, cx.interaction, &cx.app.google_api_key)
             .await
             .map_err(HandlerError::from_respond)
     }
@@ -101,9 +112,14 @@ impl ModuleAutocomplete for Weapon {
 
     async fn run(&self, cx: &AutocompleteCtx<'_>) -> Result<(), HandlerError> {
         if let Some(option) = cx.interaction.data.autocomplete() {
-            WeaponCommand::autocomplete::<BotState>(cx.ctx, cx.interaction, option)
-                .await
-                .map_err(HandlerError::from_respond)?;
+            WeaponCommand::autocomplete::<BotState>(
+                cx.ctx,
+                cx.interaction,
+                option,
+                &cx.app.google_api_key,
+            )
+            .await
+            .map_err(HandlerError::from_respond)?;
         }
         Ok(())
     }

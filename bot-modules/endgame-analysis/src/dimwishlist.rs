@@ -24,6 +24,7 @@ impl DimWishlistCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
+        api_key: &str,
     ) -> Result<(), EndgameAnalysisError> {
         interaction.defer_ephemeral(&ctx.http).await?;
 
@@ -64,7 +65,7 @@ impl DimWishlistCommand {
         let weapons = match std::fs::read_to_string("weapons.json") {
             Ok(weapons) => weapons,
             Err(_) => {
-                EndgameAnalysisSheet::update(&item_manifest).await?;
+                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
                 std::fs::read_to_string("weapons.json")
                     .expect("weapons.json readable")
             },

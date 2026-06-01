@@ -29,6 +29,7 @@ impl Perk {
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
+        api_key: &str,
     ) -> Result<(), Error> {
         interaction.defer(&ctx.http).await?;
 
@@ -41,7 +42,7 @@ impl Perk {
         let perks = match std::fs::read_to_string("perks.json") {
             Ok(perks) => perks,
             Err(_) => {
-                compendium::update().await;
+                compendium::update(api_key).await;
                 std::fs::read_to_string("perks.json")
                     .expect("perks.json readable after update")
             },
@@ -84,11 +85,12 @@ impl Perk {
         http: &Http,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        api_key: &str,
     ) -> Result<(), Error> {
         let perks = match std::fs::read_to_string("perks.json") {
             Ok(perks) => perks,
             Err(_) => {
-                compendium::update().await;
+                compendium::update(api_key).await;
                 std::fs::read_to_string("perks.json")
                     .expect("perks.json readable after update")
             },

@@ -28,6 +28,7 @@ impl ModuleCommand for Perk {
             cx.ctx,
             cx.interaction,
             options,
+            &cx.app.google_api_key,
         )
         .await;
         Ok(())
@@ -46,6 +47,7 @@ impl ModuleAutocomplete for Perk {
                 &cx.ctx.http,
                 cx.interaction,
                 option,
+                &cx.app.google_api_key,
             )
             .await
             .map_err(HandlerError::new)?;

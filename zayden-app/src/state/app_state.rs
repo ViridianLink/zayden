@@ -20,6 +20,8 @@ pub struct AppState {
     pub events: broadcast::Sender<AppEvent>,
     pub http: reqwest::Client,
     pub openai_api_key: String,
+    /// Google Sheets API key for endgame-analysis and destiny2 compendium.
+    pub google_api_key: String,
 }
 
 impl AppState {
@@ -50,6 +52,7 @@ impl AppState {
             events,
             http: reqwest::Client::new(),
             openai_api_key: config.openai_api_key.clone(),
+            google_api_key: config.google_api_key.clone(),
         }
     }
 
