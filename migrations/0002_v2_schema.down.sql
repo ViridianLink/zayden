@@ -1,11 +1,22 @@
 DROP TABLE IF EXISTS kofi_links;
+
 DROP TABLE IF EXISTS entitlement_cache;
+
 DROP TRIGGER IF EXISTS notify_entitlement_changed ON entitlements;
-DROP FUNCTION IF EXISTS notify_entitlement_changed();
+
+DROP FUNCTION IF EXISTS notify_entitlement_changed ();
+
 DROP TABLE IF EXISTS entitlements;
+
 DROP TRIGGER IF EXISTS guild_settings_kv_notify ON guild_settings_kv;
+
 DROP TRIGGER IF EXISTS guild_config_notify ON guild_config;
-DROP FUNCTION IF EXISTS notify_config_changed();
+
+DROP FUNCTION IF EXISTS notify_config_changed ();
+
 DROP TABLE IF EXISTS guild_settings_kv;
-ALTER TABLE guild_config DROP COLUMN IF EXISTS updated_at;
+
+ALTER TABLE guild_config
+DROP COLUMN IF EXISTS updated_at;
+
 DROP TABLE IF EXISTS bot_config;
