@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use moka::future::Cache;
 use sqlx::PgPool;
@@ -19,7 +20,10 @@ pub struct EntitlementService {
 impl EntitlementService {
     #[must_use]
     pub fn new(db: PgPool, events: broadcast::Sender<AppEvent>) -> Self {
-        let cache = Cache::builder().max_capacity(4096).build();
+        let cache = Cache::builder()
+            .max_capacity(4096)
+            .time_to_live(Duration::from_mins(10))
+            .build();
         Self { db, cache, events }
     }
 

@@ -25,6 +25,7 @@ use tracing::warn;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Layer, Registry, filter, fmt};
+use zayden_app::events::listener::EventListener;
 
 use crate::sqlx_lib::new_pool_with_retry;
 use crate::webhook_logger::WebhookLogger;
@@ -60,17 +61,7 @@ async fn main() -> Result<()> {
         Arc::new(zayden_app::state::AppState::new(pool.clone(), &bot_config));
     info!("AppState constructed successfully");
 
-    {
-        let events_tx = app_state.events.clone();
-        let listener_pool = pool.clone();
-        tokio::spawn(async move {
-            zayden_app::events::listener::ConfigListener::listen(
-                &listener_pool,
-                events_tx,
-            )
-            .await;
-        });
-    }
+    EventListener::spawn(pool.clone(), app_state.events.clone());
 
     let bot_state = BotState::new(Arc::clone(&app_state), &bot_config);
 

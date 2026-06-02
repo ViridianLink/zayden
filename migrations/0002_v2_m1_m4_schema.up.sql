@@ -71,6 +71,34 @@ CREATE TABLE entitlements (
     UNIQUE (provider, external_id)
 );
 
+-- M10.1: LISTEN/NOTIFY trigger so EntitlementService can evict its in-process cache
+-- when another process writes an entitlement change. Fires on `entitlements` only
+-- (not `entitlement_cache`) to prevent double-fire.
+CREATE OR REPLACE FUNCTION notify_entitlement_changed()
+RETURNS TRIGGER AS $$
+DECLARE
+    scope_type_val         TEXT;
+    scope_id_val           TEXT;
+    scope_secondary_id_val TEXT;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        scope_type_val         := OLD.scope_type;
+        scope_id_val           := OLD.scope_id::text;
+        scope_secondary_id_val := COALESCE(OLD.scope_secondary_id::text, '');
+    ELSE
+        scope_type_val         := NEW.scope_type;
+        scope_id_val           := NEW.scope_id::text;
+        scope_secondary_id_val := COALESCE(NEW.scope_secondary_id::text, '');
+    END IF;
+    PERFORM pg_notify('entitlement_changed', scope_type_val || ':' || scope_id_val || ':' || scope_secondary_id_val);
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER notify_entitlement_changed
+    AFTER INSERT OR UPDATE OR DELETE ON entitlements
+    FOR EACH ROW EXECUTE FUNCTION notify_entitlement_changed();
+
 -- M4.1: denormalised per-scope maximum tier, kept fresh by writes to `entitlements`.
 CREATE TABLE entitlement_cache (
     scope_type         TEXT        NOT NULL,

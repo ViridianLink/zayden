@@ -231,7 +231,7 @@ impl ConfigStore {
     /// `AppEvent::ConfigChanged`.
     ///
     /// This is the cross-process invalidation path: when another OS process
-    /// writes a guild config, the `ConfigListener` Postgres LISTEN task emits
+    /// writes a guild config, the `EventListener` Postgres LISTEN task emits
     /// `ConfigChanged` onto the broadcast, which this task receives and acts
     /// on.
     pub fn spawn_invalidator(

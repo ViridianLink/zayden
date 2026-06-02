@@ -1,4 +1,19 @@
+use std::error::Error;
+use std::fmt;
+use std::fmt::{Display, Formatter};
+
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug)]
+pub struct ParseError(String);
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl Error for ParseError {}
 
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
@@ -76,5 +91,84 @@ impl EntitlementScope {
             },
             Self::User(_) | Self::Guild(_) => 0,
         }
+    }
+
+    /// Encodes the scope as a `pg_notify` payload string:
+    /// `"scope_type:scope_id:scope_secondary_id"`.
+    #[must_use]
+    pub fn to_notify_payload(&self) -> String {
+        format!(
+            "{}:{}:{}",
+            self.scope_type(),
+            self.scope_id(),
+            self.scope_secondary_id()
+        )
+    }
+
+    /// Decodes a `pg_notify` payload string produced by `to_notify_payload`.
+    pub fn from_notify_payload(s: &str) -> Result<Self, ParseError> {
+        let mut parts = s.splitn(3, ':');
+        let scope_type =
+            parts.next().ok_or_else(|| ParseError("missing scope_type".into()))?;
+        let scope_id_str =
+            parts.next().ok_or_else(|| ParseError("missing scope_id".into()))?;
+        let scope_secondary_id_str = parts.next().unwrap_or("0");
+
+        let scope_id: i64 = scope_id_str
+            .parse()
+            .map_err(|e| ParseError(format!("invalid scope_id: {e}")))?;
+        let scope_secondary_id: i64 = if scope_secondary_id_str.is_empty() {
+            0
+        } else {
+            scope_secondary_id_str.parse().map_err(|e| {
+                ParseError(format!("invalid scope_secondary_id: {e}"))
+            })?
+        };
+
+        let to_u64 = |n: i64| -> Result<u64, ParseError> {
+            u64::try_from(n)
+                .map_err(|_e| ParseError(format!("negative snowflake: {n}")))
+        };
+
+        match scope_type {
+            "user" => Ok(Self::User(to_u64(scope_id)?)),
+            "guild" => Ok(Self::Guild(to_u64(scope_id)?)),
+            "user_in_guild" => {
+                Ok(Self::UserInGuild(to_u64(scope_id)?, to_u64(scope_secondary_id)?))
+            },
+            other => Err(ParseError(format!("unknown scope_type: {other}"))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn notify_payload_round_trips_all_variants() {
+        let cases = [
+            EntitlementScope::User(123_456_789),
+            EntitlementScope::Guild(987_654_321),
+            EntitlementScope::UserInGuild(111_111_111, 222_222_222),
+        ];
+        for scope in &cases {
+            let payload = scope.to_notify_payload();
+            let result = EntitlementScope::from_notify_payload(&payload);
+            assert!(
+                result.is_ok(),
+                "round-trip failed for {scope:?}: {:?}",
+                result.err()
+            );
+            let decoded = result.expect("checked above");
+            assert_eq!(scope, &decoded, "payload was: {payload:?}");
+        }
+    }
+
+    #[test]
+    fn from_notify_payload_rejects_invalid_input() {
+        assert!(EntitlementScope::from_notify_payload("badtype:1:0").is_err());
+        assert!(EntitlementScope::from_notify_payload("user:notanumber:0").is_err());
+        assert!(EntitlementScope::from_notify_payload("").is_err());
     }
 }

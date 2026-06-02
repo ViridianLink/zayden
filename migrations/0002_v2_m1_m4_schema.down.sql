@@ -1,5 +1,7 @@
 -- Reverses 0002_v2_m1_m4_schema.up.sql.
 DROP TABLE IF EXISTS entitlement_cache;
+DROP TRIGGER IF EXISTS notify_entitlement_changed ON entitlements;
+DROP FUNCTION IF EXISTS notify_entitlement_changed();
 DROP TABLE IF EXISTS entitlements;
 DROP TRIGGER IF EXISTS guild_settings_kv_notify ON guild_settings_kv;
 DROP TRIGGER IF EXISTS guild_config_notify ON guild_config;

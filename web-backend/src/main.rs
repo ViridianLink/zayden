@@ -35,6 +35,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Layer, Registry, fmt};
 use zayden_app::config::BotConfig;
+use zayden_app::events::listener::EventListener;
 use zayden_app::state::AppState as ZaydenAppState;
 
 const FRONTEND_URL: &str = "http://localhost:5173";
@@ -109,6 +110,7 @@ async fn main() {
     let config = BotConfig::load(&pool).await.expect("failed to load BotConfig");
 
     let app_state = Arc::new(ZaydenAppState::new(pool, &config));
+    EventListener::spawn(app_state.db.clone(), app_state.events.clone());
     let state = WebState::new(Arc::clone(&app_state), &config);
 
     let cors = CorsLayer::new()
