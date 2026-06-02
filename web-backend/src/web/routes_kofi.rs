@@ -1,8 +1,9 @@
-use axum::Form;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
+use axum::{Extension, Form, Json};
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 use tracing::warn;
 use zayden_app::entitlement::{
     EntitlementProvider,
@@ -14,6 +15,7 @@ use zayden_app::entitlement::{
 };
 
 use crate::WebState;
+use crate::middleware::auth::AuthUser;
 
 /// Ko-fi sends a `application/x-www-form-urlencoded` body with a single `data`
 /// field that is a URL-encoded JSON string.
@@ -70,4 +72,52 @@ fn stable_u64_hash(s: &str) -> u64 {
     const OFFSET: u64 = 14_695_981_039_346_656_037;
     const PRIME: u64 = 1_099_511_628_211;
     s.bytes().fold(OFFSET, |acc, b| acc.wrapping_mul(PRIME) ^ (u64::from(b)))
+}
+
+#[derive(Deserialize)]
+pub(super) struct KoFiLinkBody {
+    email: String,
+}
+
+/// POST /kofi/link
+///
+/// Links the authenticated Discord user's account to a Ko-fi email address.
+/// Stores `sha256(lowercase(email))` so plain-text addresses are never persisted.
+pub(super) async fn kofi_link_handler(
+    Extension(user): Extension<AuthUser>,
+    State(state): State<WebState>,
+    Json(body): Json<KoFiLinkBody>,
+) -> Response {
+    let email_hash = {
+        let digest = Sha256::digest(body.email.to_lowercase());
+        digest.iter().map(|b| format!("{b:02x}")).collect::<String>()
+    };
+
+    let Ok(discord_user_id) = user.id.parse::<i64>() else {
+        return StatusCode::BAD_REQUEST.into_response();
+    };
+
+    match sqlx::query!(
+        "INSERT INTO kofi_links (email_hash, discord_user_id) VALUES ($1, $2)",
+        email_hash,
+        discord_user_id,
+    )
+    .execute(&state.app.db)
+    .await
+    {
+        Ok(_) => StatusCode::CREATED.into_response(),
+        Err(sqlx::Error::Database(e))
+            if e.constraint() == Some("kofi_links_email_hash_key") =>
+        {
+            (
+                StatusCode::CONFLICT,
+                Json(serde_json::json!({"error": "This Ko-fi email is already linked to another account"})),
+            )
+                .into_response()
+        },
+        Err(e) => {
+            warn!(?e, "failed to insert kofi_links row");
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        },
+    }
 }

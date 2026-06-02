@@ -29,6 +29,7 @@ pub(crate) fn routes(state: WebState) -> Router<WebState> {
         .route_layer(from_fn_with_state(state.clone(), require_guild_permission));
 
     let protected = Router::new()
+        .route("/kofi/link", post(routes_kofi::kofi_link_handler))
         .route("/users/@me/guilds/{id}/member", get(zayden))
         .merge(guild_routes)
         .merge(pro_guild_routes)
