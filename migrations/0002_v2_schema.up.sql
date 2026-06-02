@@ -1,8 +1,3 @@
--- Schema additions introduced in milestones M1–M4.
--- Applied on top of 0001_v1_init.
-
--- M1.2: deployment-level runtime overrides (single-row, enforced by CHECK).
--- Insert a row to activate overrides: INSERT INTO bot_config DEFAULT VALUES;
 CREATE TABLE bot_config (
     id                 SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     error_log_webhook  TEXT,
@@ -10,11 +5,9 @@ CREATE TABLE bot_config (
     feature_flags      JSONB NOT NULL DEFAULT '{}'
 );
 
--- M2.1: track last-modified time on every guild config row.
 ALTER TABLE guild_config
     ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
--- M2.1: per-module extensible key-value settings; new modules never require ALTER TABLE.
 CREATE TABLE guild_settings_kv (
     guild_id   BIGINT NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
     module     TEXT   NOT NULL,
@@ -24,8 +17,6 @@ CREATE TABLE guild_settings_kv (
     PRIMARY KEY (guild_id, module, key)
 );
 
--- M2.1: LISTEN/NOTIFY trigger so ConfigStore can evict its in-process cache
--- when another process (web backend) writes a guild config change.
 CREATE OR REPLACE FUNCTION notify_config_changed()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -57,7 +48,6 @@ CREATE TRIGGER guild_settings_kv_notify
     AFTER INSERT OR UPDATE OR DELETE ON guild_settings_kv
     FOR EACH ROW EXECUTE FUNCTION notify_config_changed();
 
--- M4.1: one row per active subscription from any provider.
 CREATE TABLE entitlements (
     id                 BIGSERIAL   PRIMARY KEY,
     provider           TEXT        NOT NULL,
@@ -71,9 +61,6 @@ CREATE TABLE entitlements (
     UNIQUE (provider, external_id)
 );
 
--- M10.1: LISTEN/NOTIFY trigger so EntitlementService can evict its in-process cache
--- when another process writes an entitlement change. Fires on `entitlements` only
--- (not `entitlement_cache`) to prevent double-fire.
 CREATE OR REPLACE FUNCTION notify_entitlement_changed()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -99,7 +86,6 @@ CREATE TRIGGER notify_entitlement_changed
     AFTER INSERT OR UPDATE OR DELETE ON entitlements
     FOR EACH ROW EXECUTE FUNCTION notify_entitlement_changed();
 
--- M4.1: denormalised per-scope maximum tier, kept fresh by writes to `entitlements`.
 CREATE TABLE entitlement_cache (
     scope_type         TEXT        NOT NULL,
     scope_id           BIGINT      NOT NULL,
@@ -109,9 +95,6 @@ CREATE TABLE entitlement_cache (
     PRIMARY KEY (scope_type, scope_id, scope_secondary_id)
 );
 
--- M10.5: maps a SHA-256 hash of a Ko-fi email to a Discord snowflake so the
--- Ko-fi webhook can grant entitlements to the correct user without storing
--- plain-text email addresses.
 CREATE TABLE kofi_links (
     id               SERIAL      PRIMARY KEY,
     email_hash       TEXT        NOT NULL UNIQUE,

@@ -1,4 +1,3 @@
--- Drops all objects created by 0001_v1_init.up.sql in reverse FK dependency order.
 DROP TABLE IF EXISTS voice_channel_invites;
 DROP TABLE IF EXISTS voice_channel_trusted_users;
 DROP TABLE IF EXISTS voice_channels;

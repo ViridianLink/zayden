@@ -1,8 +1,3 @@
--- Consolidated v1 baseline schema.
--- Equivalent to running 0001_v1_baseline + 20260305201353_v2-init in sequence
--- against an empty database, expressed as clean CREATE statements without
--- intermediate data-migration steps.
-
 CREATE TYPE temp_voice_mode AS ENUM (
     'open',
     'spectator',
