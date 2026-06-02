@@ -46,17 +46,41 @@ pub(super) async fn kofi_webhook_handler(
         return StatusCode::OK;
     }
 
-    // Ko-fi does not send Discord IDs directly. Map via email → user lookup is a
-    // future M5 concern. For now we store the email as scope_id using a stable hash
-    // so the row can be matched later when the Discord<->KoFi link is established.
-    let scope_id = stable_u64_hash(&payload.email);
-    let scope = EntitlementScope::User(scope_id);
+    let email_hash = {
+        let digest = Sha256::digest(payload.email.to_lowercase());
+        digest.iter().fold(String::with_capacity(64), |mut s, b| {
+            use std::fmt::Write as _;
+            let _ = write!(s, "{b:02x}");
+            s
+        })
+    };
+
+    let discord_user_id = match sqlx::query_scalar::<_, i64>(
+        "SELECT discord_user_id FROM kofi_links WHERE email_hash = $1",
+    )
+    .bind(&email_hash)
+    .fetch_optional(&state.app.db)
+    .await
+    {
+        Ok(Some(id)) => id.cast_unsigned(),
+        Ok(None) => {
+            warn!(
+                transaction_id = %payload.kofi_transaction_id,
+                "Ko-fi payment received but email is not linked to a Discord account; skipping grant"
+            );
+            return StatusCode::OK;
+        },
+        Err(e) => {
+            warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to query kofi_links");
+            return StatusCode::OK;
+        },
+    };
 
     let grant_data = GrantData {
         external_id: payload.kofi_transaction_id.clone(),
-        scope,
+        scope: EntitlementScope::User(discord_user_id),
         tier: Tier::Pro,
-        expires_at: None, // Ko-fi webhooks fire per-payment; no explicit end date
+        expires_at: None,
     };
 
     if let Err(e) = KoFiProvider.grant(&state.app.entitlements, grant_data).await {
@@ -64,14 +88,6 @@ pub(super) async fn kofi_webhook_handler(
     }
 
     StatusCode::OK
-}
-
-/// Produce a stable `u64` from a string via FNV-1a. Used as a placeholder
-/// `scope_id` for Ko-fi subscribers until their Discord account is linked.
-fn stable_u64_hash(s: &str) -> u64 {
-    const OFFSET: u64 = 14_695_981_039_346_656_037;
-    const PRIME: u64 = 1_099_511_628_211;
-    s.bytes().fold(OFFSET, |acc, b| acc.wrapping_mul(PRIME) ^ (u64::from(b)))
 }
 
 #[derive(Deserialize)]
