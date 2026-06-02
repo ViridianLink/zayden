@@ -243,8 +243,7 @@ impl<'a> Loadout<'a> {
     ) -> CreateComponent<'a> {
         let data_lock = ctx.data::<RwLock<Data>>();
         let mut data = data_lock.write().await;
-        let emoji_cache =
-            data.emojis_mut().expect("Only 1 references should exist here");
+        let emoji_cache = data.emojis_mut();
 
         let mut components = Vec::with_capacity(21);
 

@@ -42,10 +42,10 @@ pub trait GuildMembersCache: Send + Sync + 'static {
 pub trait EmojiCacheData: Send + Sync + 'static {
     fn emojis(&self) -> Arc<EmojiCache>;
 
-    fn emojis_mut(&mut self) -> Option<&mut EmojiCache>;
+    fn emojis_mut(&mut self) -> &mut EmojiCache;
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct EmojiCache(HashMap<FixedString<u8>, EmojiId>);
 
 impl EmojiCache {

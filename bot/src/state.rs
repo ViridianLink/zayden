@@ -109,8 +109,8 @@ impl EmojiCacheData for BotState {
         Arc::clone(&self.emoji_cache)
     }
 
-    fn emojis_mut(&mut self) -> Option<&mut EmojiCache> {
-        Arc::get_mut(&mut self.emoji_cache)
+    fn emojis_mut(&mut self) -> &mut EmojiCache {
+        Arc::make_mut(&mut self.emoji_cache)
     }
 }
 
