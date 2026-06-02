@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["bot", "bot-modules/*", "web-backend", "zayden-app"]
+members = ["bot", "bot-modules/*", "dashboard", "zayden-app"]
 
 [workspace.lints.rust]
 unsafe_code = "deny"
