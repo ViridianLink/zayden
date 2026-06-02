@@ -108,3 +108,13 @@ CREATE TABLE entitlement_cache (
     refreshed_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (scope_type, scope_id, scope_secondary_id)
 );
+
+-- M10.5: maps a SHA-256 hash of a Ko-fi email to a Discord snowflake so the
+-- Ko-fi webhook can grant entitlements to the correct user without storing
+-- plain-text email addresses.
+CREATE TABLE kofi_links (
+    id               SERIAL      PRIMARY KEY,
+    email_hash       TEXT        NOT NULL UNIQUE,
+    discord_user_id  BIGINT      NOT NULL,
+    linked_at        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
