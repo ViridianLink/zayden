@@ -1,4 +1,4 @@
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     bot_config (
         id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
         error_log_webhook TEXT,
@@ -7,9 +7,9 @@ CREATE TABLE
     );
 
 ALTER TABLE guild_config
-ADD COLUMN updated_at TIMESTAMPTZ NOT NULL DEFAULT now ();
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now ();
 
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
     guild_settings_kv (
         guild_id BIGINT NOT NULL REFERENCES guilds (id) ON DELETE CASCADE,
         module TEXT NOT NULL,
@@ -42,12 +42,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER guild_config_notify AFTER INSERT
+CREATE OR REPLACE TRIGGER guild_config_notify AFTER INSERT
 OR
 UPDATE
 OR DELETE ON guild_config FOR EACH ROW EXECUTE FUNCTION notify_config_changed ();
 
-CREATE TRIGGER guild_settings_kv_notify AFTER INSERT
+CREATE OR REPLACE TRIGGER guild_settings_kv_notify AFTER INSERT
 OR
 UPDATE
 OR DELETE ON guild_settings_kv FOR EACH ROW EXECUTE FUNCTION notify_config_changed ();
