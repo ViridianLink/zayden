@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT partner_id FROM family_partners WHERE user_id = $1 UNION ALL SELECT user_id FROM family_partners WHERE partner_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "partner_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c227ec565de57588366e4681877d17ef376a019b9cdc121290cfcff7333a18ab"
+}
