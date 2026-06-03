@@ -1,37 +1,49 @@
+use std::sync::Arc;
+
 use axum::Extension;
 use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::WebState;
-use crate::middleware::auth::AuthToken;
+use crate::middleware::auth::{AuthToken, AuthUser};
 
 const DISCORD_API: &str = "https://discord.com/api/v10";
 const MANAGE_GUILD: u64 = 0x0000_0000_0000_0020;
 const ADMINISTRATOR: u64 = 0x0000_0000_0000_0008;
 
-#[derive(Deserialize)]
-struct PartialGuild {
-    id: String,
-    permissions: String,
+#[derive(Clone, Deserialize)]
+pub(crate) struct PartialGuild {
+    pub(crate) id: String,
+    pub(crate) permissions: String,
 }
 
 pub(crate) async fn require_guild_permission(
     State(state): State<WebState>,
     Extension(AuthToken(token)): Extension<AuthToken>,
+    Extension(AuthUser { id: user_id }): Extension<AuthUser>,
     req: Request,
     next: Next,
 ) -> Response {
-    let Some(guild_id) = guild_id_from_path(req.uri().path()) else {
+    let Some(guild_id) = super::guild_id_from_path(req.uri().path()) else {
         return StatusCode::BAD_REQUEST.into_response();
     };
 
-    let Some(guilds) = fetch_user_guilds(&state, &token).await else {
-        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-    };
+    let guilds: Arc<[PartialGuild]> =
+        if let Some(cached) = state.guild_cache.get(&user_id).await {
+            debug!(user_id, "guild membership cache hit");
+            cached
+        } else {
+            let Some(fetched) = fetch_user_guilds(&state, &token).await else {
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            };
+            let arc: Arc<[PartialGuild]> = fetched.into();
+            state.guild_cache.insert(user_id, Arc::clone(&arc)).await;
+            arc
+        };
 
     let can_manage = guilds.iter().any(|g| {
         g.id.parse::<u64>().ok() == Some(guild_id)
@@ -45,11 +57,6 @@ pub(crate) async fn require_guild_permission(
     }
 
     next.run(req).await
-}
-
-fn guild_id_from_path(path: &str) -> Option<u64> {
-    // All guild-scoped routes have the form /guild/{id}[/...].
-    path.split('/').nth(2)?.parse().ok()
 }
 
 async fn fetch_user_guilds(

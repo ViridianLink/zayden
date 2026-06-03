@@ -15,6 +15,7 @@ use family::commands::{
     Unblock,
 };
 use family::{FamilyManager, FamilyRow};
+use futures::TryStreamExt;
 use serenity::all::{
     ButtonStyle,
     CreateActionRow,
@@ -71,12 +72,12 @@ impl FamilyManager<Postgres> for FamilyTable {
     ) -> sqlx::Result<Option<FamilyRow>> {
         let uid: i64 = user_id.into().get().cast_signed();
 
-        let username: Option<String> = sqlx::query_scalar(
+        let username: Option<String> = sqlx::query_scalar!(
             "SELECT u.username FROM family f \
              JOIN users u ON u.id = f.user_id \
              WHERE f.user_id = $1",
+            uid
         )
-        .bind(uid)
         .fetch_optional(pool)
         .await?;
 
@@ -85,33 +86,35 @@ impl FamilyManager<Postgres> for FamilyTable {
         };
 
         // family_partners stores (LEAST, GREATEST) so we query both columns.
-        let partner_ids: Vec<i64> = sqlx::query_scalar(
+        let partner_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT partner_id FROM family_partners WHERE user_id = $1 \
              UNION ALL \
              SELECT user_id FROM family_partners WHERE partner_id = $1",
+            uid
         )
-        .bind(uid)
-        .fetch_all(pool)
+        .fetch(pool)
+        .try_filter_map(|x| std::future::ready(Ok(x)))
+        .try_collect()
         .await?;
 
-        let parent_ids: Vec<i64> = sqlx::query_scalar(
+        let parent_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT parent_id FROM family_parent_child WHERE child_id = $1",
+            uid
         )
-        .bind(uid)
         .fetch_all(pool)
         .await?;
 
-        let children_ids: Vec<i64> = sqlx::query_scalar(
+        let children_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT child_id FROM family_parent_child WHERE parent_id = $1",
+            uid
         )
-        .bind(uid)
         .fetch_all(pool)
         .await?;
 
-        let blocked_ids: Vec<i64> = sqlx::query_scalar(
+        let blocked_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT blocked_id FROM family_blocks WHERE user_id = $1",
+            uid
         )
-        .bind(uid)
         .fetch_all(pool)
         .await?;
 
@@ -193,25 +196,24 @@ impl FamilyManager<Postgres> for FamilyTable {
     }
 
     async fn reset(pool: &PgPool) -> sqlx::Result<()> {
-        // ON DELETE CASCADE cleans up all junction tables.
-        sqlx::query("DELETE FROM family").execute(pool).await?;
+        sqlx::query!("DELETE FROM family").execute(pool).await?;
         Ok(())
     }
 
     async fn save(pool: &PgPool, row: &FamilyRow) -> sqlx::Result<()> {
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO users (id, username) VALUES ($1, $2) \
              ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username",
+            row.id,
+            &row.username
         )
-        .bind(row.id)
-        .bind(&row.username)
         .execute(pool)
         .await?;
 
-        sqlx::query(
+        sqlx::query!(
             "INSERT INTO family (user_id) VALUES ($1) ON CONFLICT DO NOTHING",
+            row.id
         )
-        .bind(row.id)
         .execute(pool)
         .await?;
 
@@ -223,12 +225,12 @@ impl FamilyManager<Postgres> for FamilyTable {
             } else {
                 (partner_id, row.id)
             };
-            sqlx::query(
+            sqlx::query!(
                 "INSERT INTO family_partners (user_id, partner_id) VALUES ($1, $2) \
                  ON CONFLICT DO NOTHING",
+                uid,
+                pid
             )
-            .bind(uid)
-            .bind(pid)
             .execute(pool)
             .await?;
         }
@@ -236,12 +238,10 @@ impl FamilyManager<Postgres> for FamilyTable {
         // Sync children (this user is the parent).
         for &child_id in &row.children_ids {
             ensure_family_user(pool, child_id).await?;
-            sqlx::query(
+            sqlx::query!(
                 "INSERT INTO family_parent_child (parent_id, child_id) VALUES ($1, $2) \
-                 ON CONFLICT DO NOTHING",
+                 ON CONFLICT DO NOTHING", row.id, child_id
             )
-            .bind(row.id)
-            .bind(child_id)
             .execute(pool)
             .await?;
         }
@@ -249,12 +249,10 @@ impl FamilyManager<Postgres> for FamilyTable {
         // Sync parents (this user is the child).
         for &parent_id in &row.parent_ids {
             ensure_family_user(pool, parent_id).await?;
-            sqlx::query(
+            sqlx::query!(
                 "INSERT INTO family_parent_child (parent_id, child_id) VALUES ($1, $2) \
-                 ON CONFLICT DO NOTHING",
+                 ON CONFLICT DO NOTHING", parent_id, row.id
             )
-            .bind(parent_id)
-            .bind(row.id)
             .execute(pool)
             .await?;
         }
@@ -262,12 +260,12 @@ impl FamilyManager<Postgres> for FamilyTable {
         // Sync blocked users.
         for &blocked_id in &row.blocked_ids {
             ensure_family_user(pool, blocked_id).await?;
-            sqlx::query(
+            sqlx::query!(
                 "INSERT INTO family_blocks (user_id, blocked_id) VALUES ($1, $2) \
                  ON CONFLICT DO NOTHING",
+                row.id,
+                blocked_id
             )
-            .bind(row.id)
-            .bind(blocked_id)
             .execute(pool)
             .await?;
         }
@@ -277,16 +275,19 @@ impl FamilyManager<Postgres> for FamilyTable {
 }
 
 async fn ensure_family_user(pool: &PgPool, id: i64) -> sqlx::Result<()> {
-    sqlx::query(
-        "INSERT INTO users (id, username) VALUES ($1, 'Unknown') ON CONFLICT DO NOTHING",
+    sqlx::query!(
+        "INSERT INTO users (id, username) VALUES ($1, 'Unknown') ON CONFLICT DO NOTHING", id
     )
-    .bind(id)
     .execute(pool)
     .await?;
-    sqlx::query("INSERT INTO family (user_id) VALUES ($1) ON CONFLICT DO NOTHING")
-        .bind(id)
-        .execute(pool)
-        .await?;
+
+    sqlx::query!(
+        "INSERT INTO family (user_id) VALUES ($1) ON CONFLICT DO NOTHING",
+        id
+    )
+    .execute(pool)
+    .await?;
+
     Ok(())
 }
 

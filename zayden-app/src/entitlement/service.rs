@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use jiff_sqlx::Timestamp;
 use moka::future::Cache;
 use sqlx::PgPool;
 use tokio::sync::broadcast;
@@ -72,9 +73,13 @@ impl EntitlementService {
         external_id: &str,
         expires_at: Option<jiff::Timestamp>,
     ) -> Result<(), sqlx::Error> {
-        let expires_at_pg: Option<jiff_sqlx::Timestamp> = expires_at.map(Into::into);
+        let expires_at_pg = expires_at.map(Timestamp::from);
 
-        sqlx::query(
+        #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
+        sqlx::query!(
             r"
             INSERT INTO entitlements
                 (provider, external_id, scope_type, scope_id, scope_secondary_id, tier, expires_at)
@@ -87,15 +92,8 @@ impl EntitlementService {
                 tier               = EXCLUDED.tier,
                 expires_at         = EXCLUDED.expires_at,
                 granted_at         = now()
-            ",
+            ", provider, external_id, scope.scope_type(), scope.scope_id(), scope.scope_secondary_id(), tier.as_str(), expires_at_pg as Option<Timestamp>
         )
-        .bind(provider)
-        .bind(external_id)
-        .bind(scope.scope_type())
-        .bind(scope.scope_id())
-        .bind(scope.scope_secondary_id())
-        .bind(tier.as_str())
-        .bind(expires_at_pg)
         .execute(&self.db)
         .await?;
 

@@ -39,10 +39,10 @@ impl TicketGuildManager<Postgres> for GuildTable {
         };
 
         // guild_support_roles is a separate table — still queried directly.
-        let support_role_ids: Vec<i64> = sqlx::query_scalar(
+        let support_role_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT role_id FROM guild_support_roles WHERE guild_id = $1",
+            id.get().cast_signed()
         )
-        .bind(id.get().cast_signed())
         .fetch_all(pool)
         .await?;
 

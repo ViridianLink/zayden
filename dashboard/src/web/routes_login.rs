@@ -5,8 +5,7 @@ use axum::body::Body;
 use axum::extract::{Query, State};
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
-use jiff::SignedDuration;
-use jiff_sqlx::Timestamp as SqlxTimestamp;
+use jiff::{SignedDuration, Timestamp};
 use oauth2::{AuthorizationCode, TokenResponse};
 use rand::RngCore;
 use rand::rngs::OsRng;
@@ -93,19 +92,24 @@ pub(super) async fn discord_auth_callback_handler(
         s
     });
 
-    let expires_at: SqlxTimestamp = jiff::Timestamp::now()
+    let expires_at = Timestamp::now()
         .saturating_add(SignedDuration::from_hours(SESSION_TTL_HOURS))
-        .expect("7-day session TTL addition is within timestamp range")
-        .into();
+        .expect("7-day session TTL addition is within timestamp range");
+    let expires_at = jiff_sqlx::Timestamp::from(expires_at);
 
-    let insert_result = sqlx::query(
-        "INSERT INTO web_sessions (token, discord_user_id, discord_access_token, expires_at) \
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
+    let insert_result = sqlx::query!(
+        "INSERT INTO web_sessions \
+             (token, discord_user_id, discord_access_token, expires_at) \
          VALUES ($1, $2, $3, $4)",
+        &session_token,
+        discord_user_id,
+        &discord_access_token,
+        expires_at as jiff_sqlx::Timestamp
     )
-    .bind(&session_token)
-    .bind(discord_user_id)
-    .bind(&discord_access_token)
-    .bind(expires_at)
     .execute(&state.app.db)
     .await;
 

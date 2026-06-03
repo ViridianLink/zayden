@@ -1,10 +1,3 @@
-#![expect(
-    clippy::redundant_pub_crate,
-    reason = "`redundant_pub_crate` and `unreachable_pub` are contradictory in \
-              binary-crate submodules: every visibility that grants parent access \
-              triggers one lint or the other."
-)]
-
 use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};

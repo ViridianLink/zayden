@@ -1,19 +1,12 @@
-#![expect(
-    clippy::redundant_pub_crate,
-    reason = "`redundant_pub_crate` and `unreachable_pub` are contradictory in \
-              binary-crate submodules: every visibility that grants parent access \
-              triggers one lint or the other."
-)]
-
 pub mod error;
 pub mod middleware;
-pub(crate) mod state;
+pub mod state;
 pub mod web;
 use std::io;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use axum::Router;
 use axum::extract::State;
@@ -22,6 +15,7 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use dashmap::DashMap;
 pub use error::{Error, Result};
+use moka::future::Cache;
 use oauth2::basic::BasicClient;
 use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
 use reqwest::header::AUTHORIZATION;
@@ -54,6 +48,9 @@ pub(crate) struct WebState {
     pub(crate) oauth_states: Arc<DashMap<String, Instant>>,
     pub(crate) frontend_url: String,
     pub(crate) invite_url: Option<String>,
+    pub(crate) session_cache: Cache<String, (String, i64)>,
+    pub(crate) guild_cache:
+        Cache<String, Arc<[middleware::guild_permission::PartialGuild]>>,
 }
 
 impl WebState {
@@ -65,6 +62,14 @@ impl WebState {
             oauth_states: Arc::new(DashMap::new()),
             frontend_url: config.frontend_url.clone(),
             invite_url: config.invite_url.clone(),
+            session_cache: Cache::builder()
+                .max_capacity(1024)
+                .time_to_live(Duration::from_mins(1))
+                .build(),
+            guild_cache: Cache::builder()
+                .max_capacity(1024)
+                .time_to_live(Duration::from_mins(1))
+                .build(),
         }
     }
 }

@@ -48,8 +48,9 @@ impl ConfigStore {
             return Ok(Some(cached));
         }
 
-        let row: Option<GuildConfig> = sqlx::query_as(
-            r"
+        let row: Option<GuildConfig> = sqlx::query_as!(
+            GuildConfig,
+            r#"
             SELECT
                 id,
                 support_channel_id,
@@ -69,12 +70,12 @@ impl ConfigStore {
                 lfg_channel_id,
                 lfg_role_id,
                 lfg_scheduled_thread_id,
-                updated_at
+                updated_at AS "updated_at: jiff_sqlx::Timestamp"
             FROM guild_config
             WHERE id = $1
-            ",
+            "#,
+            guild_id
         )
-        .bind(guild_id)
         .fetch_optional(&self.db)
         .await?;
 

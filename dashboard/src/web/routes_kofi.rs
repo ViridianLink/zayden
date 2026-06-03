@@ -129,11 +129,9 @@ pub(super) async fn kofi_link_handler(
         return StatusCode::BAD_REQUEST.into_response();
     };
 
-    match sqlx::query(
-        "INSERT INTO kofi_links (email_hash, discord_user_id) VALUES ($1, $2)",
+    match sqlx::query!(
+        "INSERT INTO kofi_links (email_hash, discord_user_id) VALUES ($1, $2)", &email_hash, discord_user_id
     )
-    .bind(&email_hash)
-    .bind(discord_user_id)
     .execute(&state.app.db)
     .await
     {

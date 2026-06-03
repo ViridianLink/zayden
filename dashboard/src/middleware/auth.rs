@@ -29,6 +29,15 @@ pub(crate) async fn require_auth(
         return StatusCode::UNAUTHORIZED.into_response();
     };
 
+    if let Some((discord_access_token, discord_user_id)) =
+        state.session_cache.get(&session_token).await
+    {
+        debug!(user_id = discord_user_id, "authenticated request (cache hit)");
+        req.extensions_mut().insert(AuthToken(discord_access_token));
+        req.extensions_mut().insert(AuthUser { id: discord_user_id.to_string() });
+        return next.run(req).await;
+    }
+
     let row = sqlx::query(
         "SELECT discord_access_token, discord_user_id FROM web_sessions \
          WHERE token = $1 AND expires_at > now()",
@@ -48,6 +57,11 @@ pub(crate) async fn require_auth(
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         },
     };
+
+    state
+        .session_cache
+        .insert(session_token, (discord_access_token.clone(), discord_user_id))
+        .await;
 
     debug!(user_id = discord_user_id, "authenticated request");
     req.extensions_mut().insert(AuthToken(discord_access_token));
