@@ -109,3 +109,11 @@ CREATE TABLE
         discord_user_id BIGINT NOT NULL,
         linked_at TIMESTAMPTZ NOT NULL DEFAULT now ()
     );
+
+CREATE TABLE
+    web_sessions (
+        token TEXT PRIMARY KEY,
+        discord_user_id BIGINT NOT NULL,
+        discord_access_token TEXT NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL
+    );

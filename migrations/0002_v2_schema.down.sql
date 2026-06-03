@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS web_sessions;
+
 DROP TABLE IF EXISTS kofi_links;
 
 DROP TABLE IF EXISTS entitlement_cache;
