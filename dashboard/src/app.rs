@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use leptos_meta::provide_meta_context;
-use leptos_router::components::{Route, Router, Routes};
+use leptos_meta::{Title, provide_meta_context};
+use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
 use leptos_router::path;
 
 /// HTML document shell — wraps the hydrated app in a full HTML page.
@@ -31,9 +31,6 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     }
 }
 
-/// Root application component.
-///
-/// Placeholder — routes are added in M11.7.3.
 #[expect(
     clippy::must_use_candidate,
     reason = "Leptos component; return value is consumed by the view system"
@@ -44,11 +41,115 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Router>
-            <main>
-                <Routes fallback=|| view! { <p>"Page not found."</p> }>
-                    <Route path=path!("/") view=|| ()/>
-                </Routes>
-            </main>
+            <Routes fallback=|| view! { <NotFound/> }>
+                <Route path=path!("/login") view=LoginPage/>
+                <ParentRoute path=path!("/") view=Layout>
+                    <Route path=path!("") view=Home/>
+                    <Route path=path!("guilds") view=GuildListPage/>
+                    <Route path=path!("guild/:id/settings") view=GuildSettingsPage/>
+                </ParentRoute>
+            </Routes>
         </Router>
+    }
+}
+
+/// Top nav-bar + collapsible sidebar wrapping the active child route via
+/// `<Outlet/>`.
+#[component]
+fn Layout() -> impl IntoView {
+    view! {
+        <div class="layout">
+            <Title text="Zayden Dashboard"/>
+            <NavBar/>
+            <div class="layout-body">
+                <Sidebar/>
+                <main class="layout-main">
+                    <Outlet/>
+                </main>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn NavBar() -> impl IntoView {
+    view! {
+        <nav class="navbar">
+            <A href="/" attr:class="navbar-brand">"Zayden"</A>
+            <div class="navbar-links">
+                <A href="/guilds">"Servers"</A>
+            </div>
+        </nav>
+    }
+}
+
+#[component]
+fn Sidebar() -> impl IntoView {
+    let open = RwSignal::new(true);
+
+    view! {
+        <aside class="sidebar">
+            <button
+                class="sidebar-toggle"
+                on:click=move |_| open.update(|v| *v = !*v)
+            >
+                {move || if open.get() { "←" } else { "→" }}
+            </button>
+            <Show when=move || open.get()>
+                <nav class="sidebar-nav">
+                    <A href="/guilds">"Servers"</A>
+                </nav>
+            </Show>
+        </aside>
+    }
+}
+
+#[component]
+fn Home() -> impl IntoView {
+    view! {
+        <div class="page">
+            <h1>"Dashboard"</h1>
+            <p>"Select a server from the sidebar to manage its settings."</p>
+        </div>
+    }
+}
+
+#[component]
+fn LoginPage() -> impl IntoView {
+    view! {
+        <div class="page login-page">
+            <h1>"Sign in"</h1>
+            <p>"Sign in with Discord to continue."</p>
+        </div>
+    }
+}
+
+#[component]
+fn GuildListPage() -> impl IntoView {
+    view! {
+        <div class="page">
+            <h1>"Your Servers"</h1>
+            <p>"Loading servers\u{2026}"</p>
+        </div>
+    }
+}
+
+#[component]
+fn GuildSettingsPage() -> impl IntoView {
+    view! {
+        <div class="page">
+            <h1>"Server Settings"</h1>
+            <p>"Loading settings\u{2026}"</p>
+        </div>
+    }
+}
+
+#[component]
+fn NotFound() -> impl IntoView {
+    view! {
+        <div class="page">
+            <h1>"404"</h1>
+            <p>"Page not found."</p>
+        </div>
     }
 }
