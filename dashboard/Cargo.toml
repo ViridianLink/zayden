@@ -1,6 +1,6 @@
 [package]
 name = "dashboard"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 
 [lints]
@@ -97,7 +97,7 @@ zayden-app = { workspace = true, optional = true }
 
 # ── Hydrate-only ─────────────────────────────────────────────────────────────
 
-wasm-bindgen = { version = "0.2", optional = true }
+wasm-bindgen = { version = "*", optional = true }
 
 # ── cargo-leptos build configuration ─────────────────────────────────────────
 
