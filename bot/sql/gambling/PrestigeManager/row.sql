@@ -26,7 +26,7 @@ SELECT
     m.production
 FROM
     gambling g
-LEFT JOIN gambling_mine m ON g.user_id = m.user_id
+JOIN gambling_mine m ON g.user_id = m.user_id
 WHERE
     g.user_id = $1;
 

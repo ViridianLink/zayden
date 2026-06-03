@@ -26,20 +26,17 @@ impl SendManager<Postgres> for SendTable {
 
         sqlx::query_as!(
             SendRow,
-            "SELECT
+            r#"SELECT
                 g.user_id,
                 g.coins,
                 g.gems,
                 g.stamina,
-
-                COALESCE(l.level, 0) AS level,
-                
-                m.prestige
-
+                COALESCE(l.level, 0) AS "level!: i32",
+                COALESCE(m.prestige, 0) AS "prestige!: i64"
                 FROM gambling g
                 LEFT JOIN levels l ON g.user_id = l.user_id
                 LEFT JOIN gambling_mine m on g.user_id = m.user_id
-                WHERE g.user_id = $1;",
+                WHERE g.user_id = $1"#,
             id.get().cast_signed()
         )
         .fetch_optional(pool)

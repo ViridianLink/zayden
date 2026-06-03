@@ -9,5 +9,5 @@ workspace = true
 [dependencies]
 zayden-core = { workspace = true }
 
-async-openai = { workspace = true }
+async-openai = { workspace = true, features = ["chat-completion"] }
 reqwest = { workspace = true }

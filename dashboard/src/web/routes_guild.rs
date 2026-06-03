@@ -1,34 +1,36 @@
 use axum::Json;
 use axum::extract::{Path, State};
+use axum::http::StatusCode;
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::warn;
 use zayden_app::config::guild_config::{GuildConfig, GuildConfigPatch};
 
-use crate::{Result, WebState};
+use crate::{Error, Result, WebState};
 
 const DISCORD_API: &str = "https://discord.com/api/v10";
 
-async fn discord_get(state: &WebState, path: &str) -> Option<Value> {
+async fn discord_get(state: &WebState, path: &str) -> Result<Value> {
     let url = format!("{DISCORD_API}{path}");
-    match state
+    let resp = state
         .app
         .http
         .get(&url)
         .header("Authorization", format!("Bot {}", state.discord_token))
         .send()
         .await
-    {
-        Ok(resp) if resp.status().is_success() => resp.json().await.ok(),
-        Ok(resp) => {
-            warn!(status = %resp.status(), url, "Discord API error");
-            None
-        },
-        Err(e) => {
-            warn!(?e, url, "Discord API request failed");
-            None
-        },
+        .map_err(|e| Error::Upstream(e.to_string()))?;
+
+    if resp.status() == StatusCode::NOT_FOUND {
+        return Err(Error::NotFound);
     }
+
+    if !resp.status().is_success() {
+        warn!(status = %resp.status(), url, "Discord API error");
+        return Err(Error::Upstream(format!("Discord returned {}", resp.status())));
+    }
+
+    resp.json().await.map_err(|e| Error::Upstream(e.to_string()))
 }
 
 fn guild_config_to_json(cfg: &GuildConfig) -> Value {
@@ -57,34 +59,38 @@ fn guild_config_to_json(cfg: &GuildConfig) -> Value {
 pub(super) async fn guild(
     Path(id): Path<String>,
     State(state): State<WebState>,
-) -> Result<Json<Option<Value>>> {
+) -> Result<Json<Value>> {
     let Ok(guild_id) = id.parse::<u64>() else {
-        return Ok(Json(None));
+        return Err(Error::BadRequest);
     };
-    Ok(Json(
-        discord_get(&state, &format!("/guilds/{guild_id}?with_counts=true")).await,
-    ))
+
+    let json =
+        discord_get(&state, &format!("/guilds/{guild_id}?with_counts=true")).await?;
+
+    Ok(Json(json))
 }
 
 pub(super) async fn channels(
     Path(id): Path<String>,
     State(state): State<WebState>,
-) -> Result<Json<Option<Value>>> {
+) -> Result<Json<Value>> {
     let Ok(guild_id) = id.parse::<u64>() else {
-        return Ok(Json(None));
+        return Err(Error::BadRequest);
     };
-    Ok(Json(discord_get(&state, &format!("/guilds/{guild_id}/channels")).await))
+
+    Ok(Json(discord_get(&state, &format!("/guilds/{guild_id}/channels")).await?))
 }
 
 pub(super) async fn zayden(
     Path(guild_id): Path<String>,
     State(state): State<WebState>,
-) -> Result<Json<Option<Value>>> {
+) -> Result<Json<Value>> {
     let Ok(guild_id) = guild_id.parse::<u64>() else {
-        return Ok(Json(None));
+        return Err(Error::BadRequest);
     };
+
     Ok(Json(
-        discord_get(&state, &format!("/users/@me/guilds/{guild_id}/member")).await,
+        discord_get(&state, &format!("/users/@me/guilds/{guild_id}/member")).await?,
     ))
 }
 
@@ -112,7 +118,7 @@ pub(super) async fn settings(
     State(state): State<WebState>,
 ) -> Result<Json<Value>> {
     let Ok(guild_id) = id.parse::<i64>() else {
-        return Ok(Json(Value::Null));
+        return Err(Error::BadRequest);
     };
 
     let cfg = state.app.config_store.try_get(guild_id).await?;
@@ -131,7 +137,7 @@ pub(super) async fn settings_patch(
     Json(body): Json<SettingsPatch>,
 ) -> Result<Json<Value>> {
     let Ok(guild_id) = id.parse::<i64>() else {
-        return Ok(Json(Value::Null));
+        return Err(Error::BadRequest);
     };
 
     let updated = state

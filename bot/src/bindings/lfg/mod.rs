@@ -289,21 +289,18 @@ impl JoinedManager<Postgres> for PostTable {
 
 #[async_trait]
 impl EditManager<Postgres> for PostTable {
-    async fn edit_row(
-        pool: &PgPool,
-        id: impl Into<MessageId> + Send,
-    ) -> sqlx::Result<EditRow> {
-        let id = id.into();
+    async fn edit_row(pool: &PgPool, id: MessageId) -> sqlx::Result<EditRow> {
+        let id = id.get().cast_signed();
 
         sqlx::query_as!(
             EditRow,
             r#"
             SELECT
-                p.owner_id,
-                p.activity,
-                p.start_time as "start_time: jiff_sqlx::Timestamp",
-                p.description,
-                p.fireteam_size,
+                p.owner_id AS "owner_id!",
+                p.activity AS "activity!",
+                p.start_time AS "start_time!: jiff_sqlx::Timestamp",
+                p.description AS "description!",
+                p.fireteam_size AS "fireteam_size!",
                 u.timezone AS "timezone?"
             FROM
                 lfg_posts AS p
@@ -312,7 +309,7 @@ impl EditManager<Postgres> for PostTable {
             WHERE
                 p.id = $1
             "#,
-            id.get().cast_signed()
+            id
         )
         .fetch_one(pool)
         .await

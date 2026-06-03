@@ -7,8 +7,7 @@ use axum::http::header;
 use axum::response::{IntoResponse, Response};
 use jiff::{SignedDuration, Timestamp};
 use oauth2::{AuthorizationCode, TokenResponse};
-use rand::RngCore;
-use rand::rngs::OsRng;
+use rand::RngExt;
 use reqwest::StatusCode;
 use serde::Deserialize;
 use tower_cookies::Cookie;
@@ -54,7 +53,7 @@ pub(super) async fn discord_auth_callback_handler(
     let token_result = state
         .oauth_client
         .exchange_code(AuthorizationCode::new(query.code))
-        .request_async(&state.app.http)
+        .request_async(&state.http_oauth)
         .await;
 
     let discord_access_token = match token_result {
@@ -86,7 +85,7 @@ pub(super) async fn discord_auth_callback_handler(
     // Generate a 32-byte cryptographically random session token encoded as 64 hex
     // chars.
     let mut bytes = [0u8; 32];
-    OsRng.fill_bytes(&mut bytes);
+    rand::rng().fill(&mut bytes[..]);
     let session_token = bytes.iter().fold(String::with_capacity(64), |mut s, b| {
         let _ = write!(s, "{b:02x}");
         s

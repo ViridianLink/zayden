@@ -44,6 +44,7 @@ pub(crate) struct WebState {
         EndpointNotSet,
         EndpointSet,
     >,
+    pub(crate) http_oauth: oauth2::reqwest::Client,
     pub(crate) discord_token: String,
     pub(crate) oauth_states: Arc<DashMap<String, Instant>>,
     pub(crate) frontend_url: String,
@@ -58,6 +59,7 @@ impl WebState {
         Self {
             app,
             oauth_client: state::build_oauth_client(config),
+            http_oauth: oauth2::reqwest::Client::new(),
             discord_token: config.discord_token.clone(),
             oauth_states: Arc::new(DashMap::new()),
             frontend_url: config.frontend_url.clone(),

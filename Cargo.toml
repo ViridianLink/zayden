@@ -145,26 +145,18 @@ zayden-app = { path = "./zayden-app" }
 
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
 
-moka = { version = "*", default-features = false }
-thiserror = { version = "*", default-features = false }
-toml = { version = "*", default-features = false, features = [
-  "parse",
-  "serde",
-] }
-
-async-openai = { version = "*", features = ["chat-completion"] }
+async-openai = { version = "*", default-features = false }
 async-trait = { version = "*", default-features = false }
-axum = { version = "*", default-features = false }
 dashmap = { version = "*", default-features = false }
 base64 = { version = "*", default-features = false }
 bigdecimal = { version = "*", default-features = false }
 charming = { version = "*", default-features = false }
 dotenvy = { version = "*", default-features = false }
 futures = { version = "*", default-features = false }
-jiff = { version = "*" }
-jiff-cron = { git = "https://github.com/jiff-cron/jiff-cron.git", branch = "main" }
-jiff-sqlx = { version = "*" }
-oauth2 = { version = "*", default-features = false }
+jiff = { version = "*", default-features = false }
+jiff-cron = { version = "*", default-features = false }
+jiff-sqlx = { version = "*", default-features = false }
+moka = { version = "*", default-features = false }
 rand = { version = "*", default-features = false }
 rand_distr = { version = "*", default-features = false }
 regex = { version = "*", default-features = false }
@@ -172,19 +164,21 @@ reqwest = { version = "*", default-features = false, features = ["rustls"] }
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", default-features = false, features = [
+  "rustls_backend",
   "transport_compression_zlib",
   "transport_compression_zstd",
 ] }
-sqlx = { version = "*", default-features = false }
+sqlx = { version = "*", default-features = false, features = [
+  "macros",
+  "postgres",
+  "tls-rustls-aws-lc-rs",
+  "runtime-tokio",
+] }
+thiserror = { version = "*", default-features = false }
 tokio = { version = "*", default-features = false }
-tower-cookies = { version = "*", default-features = false }
-tower-http = { version = "*", default-features = false }
+toml = { version = "*", default-features = false }
 tracing = { version = "*", default-features = false }
 tracing-subscriber = { version = "*", default-features = false }
-twilight-http = { version = "*", default-features = false }
-twilight-model = { version = "*", default-features = false }
-sha2 = { version = "*", default-features = false }
-url = { version = "*", default-features = false }
 
 # [profile.release]
 # opt-level = 3

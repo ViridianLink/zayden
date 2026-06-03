@@ -12,6 +12,7 @@ use serenity::all::{
     Http,
     Mentionable,
     Permissions,
+    ReactionTypes,
     ResolvedOption,
     ResolvedValue,
 };
@@ -65,7 +66,8 @@ impl FetchSuggestions {
                         http,
                         thread.id.get().into(),
                         '👍',
-                        Some(100),
+                        Some(ReactionTypes::Normal),
+                        None,
                         None,
                     )
                     .await

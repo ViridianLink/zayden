@@ -7,24 +7,24 @@ edition = "2024"
 workspace = true
 
 [dependencies]
-axum = { workspace = true, features = [
+axum = { version = "*", default-features = true, features = [
   "query",
   "tokio",
   "http2",
   "json",
   "macros",
-], default-features = true }
+] }
 dashmap = { workspace = true }
 dotenvy = { workspace = true }
-oauth2 = { workspace = true, features = ["reqwest"] }
+oauth2 = { version = "*", default-features = false, features = ["reqwest"] }
 leptos = { version = "*" }
 reqwest = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 jiff = { workspace = true }
 jiff-sqlx = { workspace = true }
 moka = { workspace = true, features = ["future"] }
-rand = { workspace = true }
-sha2 = { workspace = true }
+rand = { workspace = true, features = ["thread_rng"] }
+sha2 = { version = "*", default-features = false }
 serde_json = { workspace = true }
 sqlx = { workspace = true, features = [
   "postgres",
@@ -33,8 +33,13 @@ sqlx = { workspace = true, features = [
   "macros",
 ] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
-tower-cookies = { workspace = true, features = ["axum-core"] }
-tower-http = { workspace = true, features = ["cors", "fs"] }
+tower-cookies = { version = "*", default-features = false, features = [
+  "axum-core",
+] }
+tower-http = { version = "*", default-features = false, features = [
+  "cors",
+  "fs",
+] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "fmt"] }
 zayden-app = { workspace = true }
