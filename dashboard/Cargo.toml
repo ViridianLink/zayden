@@ -14,6 +14,7 @@ axum = { workspace = true, features = [
   "json",
   "macros",
 ], default-features = true }
+dashmap = { workspace = true }
 dotenvy = { workspace = true }
 oauth2 = { workspace = true, features = ["reqwest"] }
 leptos = { version = "*" }

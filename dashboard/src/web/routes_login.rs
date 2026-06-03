@@ -1,4 +1,5 @@
 use std::fmt::Write;
+use std::time::Duration;
 
 use axum::body::Body;
 use axum::extract::{Query, State};
@@ -19,11 +20,12 @@ use crate::{FRONTEND_URL, WebState};
 
 const DISCORD_API: &str = "https://discord.com/api/v10";
 const SESSION_TTL_HOURS: i64 = 24 * 7;
+const STATE_TTL: Duration = Duration::from_mins(10);
 
 #[derive(Deserialize)]
 pub(super) struct DiscordAuthCallback {
     code: String,
-    _state: String, // TODO: verify the CSRF token (M11.2.4)
+    state: String,
 }
 
 #[derive(Deserialize)]
@@ -43,6 +45,11 @@ pub(super) async fn discord_auth_callback_handler(
     Query(query): Query<DiscordAuthCallback>,
     State(state): State<WebState>,
 ) -> impl IntoResponse {
+    match state.oauth_states.remove(&query.state) {
+        Some((_, created_at)) if created_at.elapsed() <= STATE_TTL => {},
+        _ => return error_redirect(),
+    }
+
     let token_result = state
         .oauth_client
         .exchange_code(AuthorizationCode::new(query.code))

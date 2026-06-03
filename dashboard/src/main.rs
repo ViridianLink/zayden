@@ -5,12 +5,14 @@ use std::io;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Instant;
 
 use axum::Router;
 use axum::extract::State;
 use axum::middleware::map_response;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
+use dashmap::DashMap;
 pub use error::{Error, Result};
 use oauth2::basic::BasicClient;
 use oauth2::{
@@ -59,6 +61,7 @@ pub(crate) struct WebState {
         EndpointSet,
     >,
     pub(crate) discord_token: String,
+    pub(crate) oauth_states: Arc<DashMap<String, Instant>>,
 }
 
 impl WebState {
@@ -83,7 +86,12 @@ impl WebState {
                         .expect("static redirect URI is valid"),
                 );
 
-        Self { app, oauth_client, discord_token: config.discord_token.clone() }
+        Self {
+            app,
+            oauth_client,
+            discord_token: config.discord_token.clone(),
+            oauth_states: Arc::new(DashMap::new()),
+        }
     }
 }
 
@@ -150,7 +158,7 @@ async fn invite_handler() -> impl IntoResponse {
 }
 
 async fn login_handler(State(state): State<WebState>) -> impl IntoResponse {
-    let (auth_url, _csrf_token) = state
+    let (auth_url, csrf_token) = state
         .oauth_client
         .authorize_url(CsrfToken::new_random)
         .add_scopes([
@@ -160,6 +168,8 @@ async fn login_handler(State(state): State<WebState>) -> impl IntoResponse {
             Scope::new("applications.commands.permissions.update".to_string()),
         ])
         .url();
+
+    state.oauth_states.insert(csrf_token.secret().clone(), Instant::now());
 
     Redirect::to(auth_url.as_str())
 }
