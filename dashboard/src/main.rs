@@ -10,8 +10,7 @@ use std::time::Instant;
 use axum::Router;
 use axum::extract::State;
 use axum::http::{HeaderValue, Method};
-use axum::middleware::map_response;
-use axum::response::{IntoResponse, Redirect, Response};
+use axum::response::{IntoResponse, Redirect};
 use axum::routing::get;
 use dashmap::DashMap;
 pub use error::{Error, Result};
@@ -32,7 +31,7 @@ use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
 use tower_http::cors::CorsLayer;
-use tracing::warn;
+use tracing::{info, warn};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -96,12 +95,6 @@ impl WebState {
     }
 }
 
-async fn main_response_mapper(res: Response) -> Response {
-    println!("->> {:<12} - main_response_mapper", "RES_MAPPER");
-    println!();
-    res
-}
-
 #[tokio::main]
 async fn main() {
     logging();
@@ -133,7 +126,6 @@ async fn main() {
         .route("/invite", get(invite_handler))
         .route("/login", get(login_handler))
         .merge(web::routes(state.clone()))
-        .layer(map_response(main_response_mapper))
         .layer(cors)
         .layer(CookieManagerLayer::new())
         .with_state(state);
@@ -141,7 +133,7 @@ async fn main() {
     let ip = if cfg!(debug_assertions) { [127, 0, 0, 1] } else { [0, 0, 0, 0] };
 
     let addr = SocketAddr::from((ip, 3000));
-    println!("Dashboard listening on http://{addr}");
+    info!("Dashboard listening on http://{addr}");
 
     let listener = TcpListener::bind(addr).await.expect("failed to bind to address");
     axum::serve(listener, app).await.expect("server error");
