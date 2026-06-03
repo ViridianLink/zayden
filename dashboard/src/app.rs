@@ -1,13 +1,57 @@
 use leptos::prelude::*;
 use leptos_meta::{Title, provide_meta_context};
-use leptos_router::components::{A, Outlet, ParentRoute, Route, Router, Routes};
+use leptos_router::components::{
+    A,
+    Outlet,
+    ParentRoute,
+    Redirect,
+    Route,
+    Router,
+    Routes,
+};
 use leptos_router::path;
 
-/// HTML document shell — wraps the hydrated app in a full HTML page.
-///
-/// Only compiled in SSR mode. Serves as the Leptos page template and is used
-/// both by `leptos_routes_with_context` (for SSR) and `file_and_error_handler`
-/// (for unmatched paths / 404 fallback).
+/// Server function that checks whether the current request carries a valid
+/// `session` cookie.  On the server, if the session is valid, it also calls
+/// `leptos_axum::redirect("/guilds")` so that the HTTP response becomes a 302
+/// before any page HTML is sent to the client.
+#[server]
+async fn check_session() -> Result<bool, ServerFnError> {
+    use leptos_axum::extract;
+    use sqlx::PgPool;
+    use tower_cookies::Cookies;
+
+    let Some(pool) = use_context::<PgPool>() else {
+        return Err(ServerFnError::ServerError("missing database pool".to_string()));
+    };
+
+    let cookies: Cookies = match extract().await {
+        Ok(c) => c,
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+
+    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
+        return Ok(false);
+    };
+
+    match sqlx::query(
+        "SELECT 1 FROM web_sessions WHERE token = $1 AND expires_at > now()",
+    )
+    .bind(&token)
+    .fetch_optional(&pool)
+    .await
+    {
+        Ok(row) => {
+            let logged_in = row.is_some();
+            if logged_in {
+                leptos_axum::redirect("/guilds");
+            }
+            Ok(logged_in)
+        },
+        Err(e) => Err(ServerFnError::ServerError(e.to_string())),
+    }
+}
+
 #[cfg(feature = "ssr")]
 #[must_use]
 pub fn shell(options: LeptosOptions) -> impl IntoView {
@@ -116,10 +160,27 @@ fn Home() -> impl IntoView {
 
 #[component]
 fn LoginPage() -> impl IntoView {
+    // Blocking resource: SSR waits for this before sending HTML.
+    // If the session is valid, check_session calls leptos_axum::redirect("/guilds")
+    // server-side, so logged-in visitors are redirected before seeing this page.
+    let session = Resource::new_blocking(|| (), |()| check_session());
+
     view! {
-        <div class="page login-page">
-            <h1>"Sign in"</h1>
-            <p>"Sign in with Discord to continue."</p>
+        <Title text="Sign In — Zayden Dashboard"/>
+        // When the resource resolves as logged-in, render <Redirect> which fires
+        // the 302 on SSR (via ServerRedirectFunction) and navigates client-side.
+        <Suspense fallback=|| ()>
+            {move || {
+                session.get()
+                    .and_then(Result::ok)
+                    .filter(|&logged_in| logged_in)
+                    .map(|_| view! { <Redirect path="/guilds"/> })
+            }}
+        </Suspense>
+        <div class="login-page">
+            <h1>"Sign in to Zayden Dashboard"</h1>
+            <p>"Connect your Discord account to manage server settings."</p>
+            <a href="/auth/discord">"Sign in with Discord"</a>
         </div>
     }
 }

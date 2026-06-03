@@ -17,6 +17,7 @@ use dashboard::app::{App, shell};
 use dashmap::DashMap;
 pub use error::{Error, Result};
 use leptos::config::{LeptosOptions, get_configuration};
+use leptos::prelude::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list};
 use moka::future::Cache;
 use oauth2::basic::BasicClient;
@@ -128,9 +129,13 @@ async fn main() {
 
     let app: Router = Router::new()
         .route("/invite", get(invite_handler))
-        .route("/login", get(login_handler))
+        // /auth/discord starts the OAuth2 flow; /login is now the Leptos page.
+        .route("/auth/discord", get(login_handler))
         .merge(web::routes(web_state.clone()))
-        .leptos_routes_with_context(&web_state, routes, || {}, {
+        .leptos_routes_with_context(&web_state, routes, {
+            let db = web_state.app.db.clone();
+            move || provide_context(db.clone())
+        }, {
             let lo = web_state.leptos_options.clone();
             move || shell(lo.clone())
         })
