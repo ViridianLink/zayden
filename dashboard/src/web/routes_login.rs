@@ -16,7 +16,7 @@ use tower_cookies::Cookie;
 use tower_cookies::cookie::SameSite;
 
 use super::SESSION_COOKIE;
-use crate::{FRONTEND_URL, WebState};
+use crate::WebState;
 
 const DISCORD_API: &str = "https://discord.com/api/v10";
 const SESSION_TTL_HOURS: i64 = 24 * 7;
@@ -33,10 +33,10 @@ struct DiscordUser {
     id: String,
 }
 
-fn error_redirect() -> Response {
+fn error_redirect(frontend_url: &str) -> Response {
     Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header(header::LOCATION, format!("{FRONTEND_URL}/?error=auth_failed"))
+        .header(header::LOCATION, format!("{frontend_url}/?error=auth_failed"))
         .body(Body::empty())
         .expect("static HTTP response headers are valid")
 }
@@ -45,9 +45,11 @@ pub(super) async fn discord_auth_callback_handler(
     Query(query): Query<DiscordAuthCallback>,
     State(state): State<WebState>,
 ) -> impl IntoResponse {
+    let frontend_url = state.frontend_url.as_str();
+
     match state.oauth_states.remove(&query.state) {
         Some((_, created_at)) if created_at.elapsed() <= STATE_TTL => {},
-        _ => return error_redirect(),
+        _ => return error_redirect(frontend_url),
     }
 
     let token_result = state
@@ -58,7 +60,7 @@ pub(super) async fn discord_auth_callback_handler(
 
     let discord_access_token = match token_result {
         Ok(t) => t.access_token().secret().clone(),
-        Err(_) => return error_redirect(),
+        Err(_) => return error_redirect(frontend_url),
     };
 
     let user_resp = state
@@ -72,14 +74,14 @@ pub(super) async fn discord_auth_callback_handler(
     let discord_user: DiscordUser = match user_resp {
         Ok(r) if r.status().is_success() => match r.json().await {
             Ok(u) => u,
-            Err(_) => return error_redirect(),
+            Err(_) => return error_redirect(frontend_url),
         },
-        _ => return error_redirect(),
+        _ => return error_redirect(frontend_url),
     };
 
     let discord_user_id: i64 = match discord_user.id.parse() {
         Ok(id) => id,
-        Err(_) => return error_redirect(),
+        Err(_) => return error_redirect(frontend_url),
     };
 
     // Generate a 32-byte cryptographically random session token encoded as 64 hex
@@ -108,7 +110,7 @@ pub(super) async fn discord_auth_callback_handler(
     .await;
 
     if insert_result.is_err() {
-        return error_redirect();
+        return error_redirect(frontend_url);
     }
 
     let cookie = Cookie::build((SESSION_COOKIE, session_token))
@@ -119,7 +121,7 @@ pub(super) async fn discord_auth_callback_handler(
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header(header::LOCATION, format!("{FRONTEND_URL}/dashboard"))
+        .header(header::LOCATION, format!("{frontend_url}/dashboard"))
         .header(header::SET_COOKIE, cookie.to_string())
         .body(Body::empty())
         .expect("static HTTP response headers are valid")

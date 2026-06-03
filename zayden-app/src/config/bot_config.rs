@@ -18,6 +18,8 @@ const DEFAULT_AI_MODEL: &str = "google/gemma-4-31b-it:free";
 
 // Dashboard defaults.
 const DEFAULT_FRONTEND_URL: &str = "http://localhost:5173";
+const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
+const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
 
 /// Static + deployment-level configuration for the bot process.
 ///
@@ -61,6 +63,14 @@ pub struct BotConfig {
     /// Base URL of the Leptos/Svelte frontend (used for CORS and OAuth redirect
     /// errors).
     pub frontend_url: String,
+    /// Full `OAuth2` redirect URI registered with Discord
+    /// (e.g. `http://localhost:3000/auth/callback`).
+    pub redirect_uri: String,
+    /// Socket address the dashboard HTTP server binds to
+    /// (e.g. `0.0.0.0:3000`).
+    pub bind_addr: String,
+    /// Discord bot invite URL. If absent the `/invite` route returns 404.
+    pub invite_url: Option<String>,
 }
 
 impl BotConfig {
@@ -119,6 +129,15 @@ impl BotConfig {
                 .dashboard
                 .frontend_url
                 .unwrap_or_else(|| DEFAULT_FRONTEND_URL.to_owned()),
+            redirect_uri: toml_cfg
+                .dashboard
+                .redirect_uri
+                .unwrap_or_else(|| DEFAULT_REDIRECT_URI.to_owned()),
+            bind_addr: toml_cfg
+                .dashboard
+                .bind_addr
+                .unwrap_or_else(|| DEFAULT_BIND_ADDR.to_owned()),
+            invite_url: toml_cfg.dashboard.invite_url,
         })
     }
 }
@@ -196,9 +215,10 @@ struct TomlWebhooks {
 #[derive(Debug, Default, Deserialize)]
 struct TomlDashboard {
     frontend_url: Option<String>,
+    redirect_uri: Option<String>,
+    bind_addr: Option<String>,
+    invite_url: Option<String>,
 }
-
-// --- DB row struct ---
 
 #[derive(sqlx::FromRow)]
 struct DbConfigRow {

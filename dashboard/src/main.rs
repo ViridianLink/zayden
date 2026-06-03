@@ -1,5 +1,13 @@
+#![expect(
+    clippy::redundant_pub_crate,
+    reason = "`redundant_pub_crate` and `unreachable_pub` are contradictory in \
+              binary-crate submodules: every visibility that grants parent access \
+              triggers one lint or the other."
+)]
+
 pub mod error;
 pub mod middleware;
+pub(crate) mod state;
 pub mod web;
 use std::io;
 use std::net::SocketAddr;
@@ -9,23 +17,13 @@ use std::time::Instant;
 
 use axum::Router;
 use axum::extract::State;
-use axum::http::{HeaderValue, Method};
-use axum::response::{IntoResponse, Redirect};
+use axum::http::{HeaderValue, Method, StatusCode};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use dashmap::DashMap;
 pub use error::{Error, Result};
 use oauth2::basic::BasicClient;
-use oauth2::{
-    AuthUrl,
-    ClientId,
-    ClientSecret,
-    CsrfToken,
-    EndpointNotSet,
-    EndpointSet,
-    RedirectUrl,
-    Scope,
-    TokenUrl,
-};
+use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
 use reqwest::header::AUTHORIZATION;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
@@ -40,20 +38,12 @@ use zayden_app::config::BotConfig;
 use zayden_app::events::listener::EventListener;
 use zayden_app::state::AppState as ZaydenAppState;
 
-const FRONTEND_URL: &str = "http://localhost:5173";
-
-const REDIRECT_URI: &str = if cfg!(debug_assertions) {
-    "http://localhost:3000/auth/callback"
-} else {
-    "http://145.40.184.89:80/auth/callback"
-};
-
 /// Web-backend-specific state wrapping the shared [`ZaydenAppState`] plus
 /// OAuth and Discord HTTP fields that are only needed by the dashboard process.
 #[derive(Clone)]
 pub(crate) struct WebState {
     pub(crate) app: Arc<ZaydenAppState>,
-    oauth_client: BasicClient<
+    pub(crate) oauth_client: BasicClient<
         EndpointSet,
         EndpointNotSet,
         EndpointNotSet,
@@ -62,35 +52,19 @@ pub(crate) struct WebState {
     >,
     pub(crate) discord_token: String,
     pub(crate) oauth_states: Arc<DashMap<String, Instant>>,
+    pub(crate) frontend_url: String,
+    pub(crate) invite_url: Option<String>,
 }
 
 impl WebState {
     pub(crate) fn new(app: Arc<ZaydenAppState>, config: &BotConfig) -> Self {
-        let oauth_client =
-            BasicClient::new(ClientId::new(config.zayden_id.to_string()))
-                .set_client_secret(ClientSecret::new(
-                    config.discord_client_secret.clone(),
-                ))
-                .set_auth_uri(
-                    AuthUrl::new("https://discord.com/oauth2/authorize".to_string())
-                        .expect("static OAuth2 auth URL is valid"),
-                )
-                .set_token_uri(
-                    TokenUrl::new(
-                        "https://discord.com/api/oauth2/token".to_string(),
-                    )
-                    .expect("static OAuth2 token URL is valid"),
-                )
-                .set_redirect_uri(
-                    RedirectUrl::new(REDIRECT_URI.to_string())
-                        .expect("static redirect URI is valid"),
-                );
-
         Self {
             app,
-            oauth_client,
+            oauth_client: state::build_oauth_client(config),
             discord_token: config.discord_token.clone(),
             oauth_states: Arc::new(DashMap::new()),
+            frontend_url: config.frontend_url.clone(),
+            invite_url: config.invite_url.clone(),
         }
     }
 }
@@ -113,7 +87,7 @@ async fn main() {
 
     let app_state = Arc::new(ZaydenAppState::new(pool, &config));
     EventListener::spawn(app_state.db.clone(), app_state.events.clone());
-    let state = WebState::new(Arc::clone(&app_state), &config);
+    let web_state = WebState::new(Arc::clone(&app_state), &config);
 
     let cors_origin = HeaderValue::from_str(&config.frontend_url)
         .expect("BotConfig::frontend_url is a valid HTTP header value");
@@ -125,15 +99,16 @@ async fn main() {
     let app: Router = Router::new()
         .route("/invite", get(invite_handler))
         .route("/login", get(login_handler))
-        .merge(web::routes(state.clone()))
+        .merge(web::routes(web_state.clone()))
         .layer(cors)
         .layer(CookieManagerLayer::new())
-        .with_state(state);
+        .with_state(web_state);
 
-    let ip = if cfg!(debug_assertions) { [127, 0, 0, 1] } else { [0, 0, 0, 0] };
-
-    let addr = SocketAddr::from((ip, 3000));
-    info!("Dashboard listening on http://{addr}");
+    let addr: SocketAddr = config
+        .bind_addr
+        .parse()
+        .expect("BotConfig::bind_addr is a valid SocketAddr");
+    info!("Dashboard listening on {addr}");
 
     let listener = TcpListener::bind(addr).await.expect("failed to bind to address");
     axum::serve(listener, app).await.expect("server error");
@@ -146,10 +121,11 @@ fn logging() {
     Registry::default().with(stdout_log).init();
 }
 
-async fn invite_handler() -> impl IntoResponse {
-    const INVITE_URL: &str = "https://discord.com/oauth2/authorize?client_id=787490197943091211&permissions=8&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A3000%2Fauth%2Fcallback&integration_type=0&scope=identify+bot+guilds+applications.commands";
-
-    Redirect::to(INVITE_URL)
+async fn invite_handler(State(state): State<WebState>) -> Response {
+    state.invite_url.as_deref().map_or_else(
+        || StatusCode::NOT_FOUND.into_response(),
+        |url| Redirect::to(url).into_response(),
+    )
 }
 
 async fn login_handler(State(state): State<WebState>) -> impl IntoResponse {
