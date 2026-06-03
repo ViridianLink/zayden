@@ -2,22 +2,19 @@ use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use serde::Deserialize;
+use sqlx::Row;
 use tower_cookies::Cookies;
 use tracing::{debug, warn};
 
 use crate::WebState;
-use crate::web::AUTH_TOKEN;
-
-const DISCORD_API: &str = "https://discord.com/api/v10";
+use crate::web::SESSION_COOKIE;
 
 #[derive(Clone)]
 pub(crate) struct AuthToken(pub(crate) String);
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone)]
 pub(crate) struct AuthUser {
     pub(crate) id: String,
-    pub(crate) username: String,
 }
 
 pub(crate) async fn require_auth(
@@ -26,39 +23,34 @@ pub(crate) async fn require_auth(
     mut req: Request,
     next: Next,
 ) -> Response {
-    let Some(token) = cookies.get(AUTH_TOKEN).map(|c| c.value().to_owned()) else {
+    let Some(session_token) =
+        cookies.get(SESSION_COOKIE).map(|c| c.value().to_owned())
+    else {
         return StatusCode::UNAUTHORIZED.into_response();
     };
 
-    let resp = match state
-        .app
-        .http
-        .get(format!("{DISCORD_API}/users/@me"))
-        .header("Authorization", format!("Bearer {token}"))
-        .send()
-        .await
-    {
-        Ok(r) => r,
+    let row = sqlx::query(
+        "SELECT discord_access_token, discord_user_id FROM web_sessions \
+         WHERE token = $1 AND expires_at > now()",
+    )
+    .bind(&session_token)
+    .fetch_optional(&state.app.db)
+    .await;
+
+    let (discord_access_token, discord_user_id) = match row {
+        Ok(Some(r)) => (
+            r.get::<String, _>("discord_access_token"),
+            r.get::<i64, _>("discord_user_id"),
+        ),
+        Ok(None) => return StatusCode::UNAUTHORIZED.into_response(),
         Err(e) => {
-            warn!(?e, "Discord /users/@me request failed");
+            warn!(?e, "Failed to look up session token");
             return StatusCode::INTERNAL_SERVER_ERROR.into_response();
         },
     };
 
-    if !resp.status().is_success() {
-        return StatusCode::UNAUTHORIZED.into_response();
-    }
-
-    let user = match resp.json::<AuthUser>().await {
-        Ok(u) => u,
-        Err(e) => {
-            warn!(?e, "Failed to parse Discord user response");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        },
-    };
-
-    debug!(user_id = %user.id, username = %user.username, "authenticated request");
-    req.extensions_mut().insert(AuthToken(token));
-    req.extensions_mut().insert(user);
+    debug!(user_id = discord_user_id, "authenticated request");
+    req.extensions_mut().insert(AuthToken(discord_access_token));
+    req.extensions_mut().insert(AuthUser { id: discord_user_id.to_string() });
     next.run(req).await
 }

@@ -2,7 +2,6 @@ mod routes_guild;
 mod routes_kofi;
 mod routes_login;
 
-pub(crate) const AUTH_TOKEN: &str = "auth-token";
 pub(crate) const SESSION_COOKIE: &str = "session";
 
 use axum::Router;
