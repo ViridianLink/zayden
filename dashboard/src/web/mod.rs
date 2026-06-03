@@ -1,3 +1,4 @@
+mod routes_entitlement;
 mod routes_guild;
 mod routes_kofi;
 mod routes_login;
@@ -6,13 +7,14 @@ pub(crate) const SESSION_COOKIE: &str = "session";
 
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{get, patch, post};
 use routes_login::discord_auth_callback_handler;
 
 use crate::WebState;
 use crate::middleware::auth::require_auth;
 use crate::middleware::guild_permission::require_guild_permission;
 use crate::middleware::tier::require_pro;
+use crate::web::routes_entitlement::{admin_grant, guild_tier, user_tier};
 use crate::web::routes_guild::{channels, guild, settings, settings_patch, zayden};
 
 pub(crate) fn routes(state: WebState) -> Router<WebState> {
@@ -20,17 +22,21 @@ pub(crate) fn routes(state: WebState) -> Router<WebState> {
     let guild_routes = Router::new()
         .route("/guild/{id}", get(guild))
         .route("/guild/{id}/channels", get(channels))
+        .route("/guild/{id}/settings", get(settings))
+        .route("/guild/{id}/tier", get(guild_tier))
         .route_layer(from_fn_with_state(state.clone(), require_guild_permission));
 
-    // Premium guild routes: auth + MANAGE_GUILD + Pro tier.
+    // Premium guild routes: auth + MANAGE_GUILD + Pro tier (writes only).
     let pro_guild_routes = Router::new()
-        .route("/guild/{id}/settings", get(settings).patch(settings_patch))
+        .route("/guild/{id}/settings", patch(settings_patch))
         .route_layer(from_fn_with_state(state.clone(), require_pro))
         .route_layer(from_fn_with_state(state.clone(), require_guild_permission));
 
     let protected = Router::new()
         .route("/kofi/link", post(routes_kofi::kofi_link_handler))
         .route("/users/@me/guilds/{id}/member", get(zayden))
+        .route("/user/tier", get(user_tier))
+        .route("/admin/entitlement/grant", post(admin_grant))
         .merge(guild_routes)
         .merge(pro_guild_routes)
         .route_layer(from_fn_with_state(state, require_auth));

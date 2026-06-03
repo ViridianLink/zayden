@@ -46,8 +46,8 @@ pub struct BotConfig {
     /// Model identifier passed to the AI provider (e.g. `google/gemini-2.5-flash`).
     pub ai_model: String,
 
-    /// Discord user ID of the bot owner (Oscar Six).
-    pub oscar_six: u64,
+    /// Discord user ID of the bot owner.
+    pub bot_owner: u64,
     /// Guild ID of the primary Zayden server.
     pub zayden_guild: u64,
     /// Guild ID of the `LlamaD2` server.
@@ -107,7 +107,7 @@ impl BotConfig {
                 .model
                 .unwrap_or_else(|| DEFAULT_AI_MODEL.to_owned()),
 
-            oscar_six: toml_cfg.ids.oscar_six.unwrap_or(DEFAULT_OSCAR_SIX),
+            bot_owner: toml_cfg.ids.oscar_six.unwrap_or(DEFAULT_OSCAR_SIX),
             zayden_guild: toml_cfg.ids.zayden_guild.unwrap_or(DEFAULT_ZAYDEN_GUILD),
             llamad2_guild: toml_cfg
                 .ids

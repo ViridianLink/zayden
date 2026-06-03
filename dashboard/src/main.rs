@@ -49,6 +49,7 @@ pub(crate) struct WebState {
     pub(crate) oauth_states: Arc<DashMap<String, Instant>>,
     pub(crate) frontend_url: String,
     pub(crate) invite_url: Option<String>,
+    pub(crate) bot_owner: u64,
     pub(crate) session_cache: Cache<String, (String, i64)>,
     pub(crate) guild_cache:
         Cache<String, Arc<[middleware::guild_permission::PartialGuild]>>,
@@ -62,6 +63,7 @@ impl WebState {
             http_oauth: oauth2::reqwest::Client::new(),
             discord_token: config.discord_token.clone(),
             oauth_states: Arc::new(DashMap::new()),
+            bot_owner: config.bot_owner,
             frontend_url: config.frontend_url.clone(),
             invite_url: config.invite_url.clone(),
             session_cache: Cache::builder()

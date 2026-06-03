@@ -13,6 +13,7 @@ pub enum Error {
     NotFound,
     Upstream(String),
     BadRequest,
+    Forbidden,
 }
 
 impl IntoResponse for Error {
@@ -45,6 +46,10 @@ impl IntoResponse for Error {
             },
             Self::BadRequest => {
                 (StatusCode::BAD_REQUEST, Json(json!({"error": "bad request"})))
+                    .into_response()
+            },
+            Self::Forbidden => {
+                (StatusCode::FORBIDDEN, Json(json!({"error": "forbidden"})))
                     .into_response()
             },
         }
