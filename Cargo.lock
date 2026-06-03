@@ -73,6 +73,7 @@ checksum = "1384d3fe1eecb464229fcf6eebb72306591c56bf27b373561489458a7c73027d"
 dependencies = [
  "futures",
  "thiserror 2.0.18",
+ "tokio",
  "wasm-bindgen-futures",
 ]
 
@@ -239,6 +240,7 @@ checksum = "31b698c5f9a010f6573133b09e0de5408834d0c82f8d7475a89fc1867a71cd90"
 dependencies = [
  "axum-core",
  "axum-macros",
+ "base64",
  "bytes",
  "form_urlencoded",
  "futures-util",
@@ -251,14 +253,17 @@ dependencies = [
  "matchit",
  "memchr",
  "mime",
+ "multer",
  "percent-encoding",
  "pin-project-lite",
  "serde_core",
  "serde_json",
  "serde_path_to_error",
  "serde_urlencoded",
+ "sha1 0.10.6",
  "sync_wrapper",
  "tokio",
+ "tokio-tungstenite 0.29.0",
  "tower",
  "tower-layer",
  "tower-service",
@@ -857,6 +862,9 @@ dependencies = [
  "jiff",
  "jiff-sqlx",
  "leptos",
+ "leptos_axum",
+ "leptos_meta",
+ "leptos_router",
  "moka",
  "oauth2",
  "rand 0.10.1",
@@ -870,6 +878,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "wasm-bindgen",
  "zayden-app",
 ]
 
@@ -956,7 +965,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "zayden-core",
@@ -1042,6 +1051,15 @@ checksum = "5060e0a4cbf26a87550792688ade88e6b8aec9208613631a7a363bda7bc2d4cd"
 dependencies = [
  "paste",
  "pin-project-lite",
+]
+
+[[package]]
+name = "encoding_rs"
+version = "0.8.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+dependencies = [
+ "cfg-if",
 ]
 
 [[package]]
@@ -1393,11 +1411,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0de51e6874e94e7bf76d726fc5d13ba782deca734ff60d5bb2fb2607c7406555"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi 6.0.0",
  "rand_core 0.10.1",
  "wasip2",
  "wasip3",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1635,11 +1655,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8714ae4adeaa846d838f380fbd72f049197de629948f91bf045329e0cf0a283"
 dependencies = [
  "futures",
+ "js-sys",
  "once_cell",
  "or_poisoned",
  "pin-project-lite",
  "serde",
  "throw_error",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -1887,6 +1909,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "71dd52191aae121e8611f1e8dc3e324dd0dd1dee1e6dd91d10ee07a3cfb4d9d8"
 
 [[package]]
+name = "inventory"
+version = "0.3.24"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4f0c30c76f2f4ccee3fe55a2435f691ca00c0e4bd87abe4f4a851b1d4dac39b"
+dependencies = [
+ "rustversion",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2074,9 +2105,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "efa3982e7fe36c1de68f91f3c9083124f389a975523881f3d7e3363362feda41"
 dependencies = [
  "any_spawner",
+ "base64",
  "cfg-if",
  "either_of",
  "futures",
+ "getrandom 0.4.2",
  "hydration_context",
  "leptos_config",
  "leptos_dom",
@@ -2086,6 +2119,7 @@ dependencies = [
  "oco_ref",
  "or_poisoned",
  "paste",
+ "rand 0.9.4",
  "reactive_graph",
  "rustc-hash",
  "rustc_version",
@@ -2104,6 +2138,29 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm_split_helpers",
  "web-sys",
+]
+
+[[package]]
+name = "leptos_axum"
+version = "0.8.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2ac7734eed700b0170dffbfc93b03491ed1f306622d79625323a21ed0eedac0"
+dependencies = [
+ "any_spawner",
+ "axum",
+ "futures",
+ "hydration_context",
+ "leptos",
+ "leptos_integration_utils",
+ "leptos_macro",
+ "leptos_meta",
+ "leptos_router",
+ "or_poisoned",
+ "server_fn",
+ "tachys",
+ "tokio",
+ "tower",
+ "tower-http",
 ]
 
 [[package]]
@@ -2153,6 +2210,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "leptos_integration_utils"
+version = "0.8.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c097f89cd9aa606297672f56fa5bdda09f01609a9f4eefaccdbb5ab5afea4279"
+dependencies = [
+ "futures",
+ "hydration_context",
+ "leptos",
+ "leptos_config",
+ "leptos_meta",
+ "leptos_router",
+ "reactive_graph",
+]
+
+[[package]]
 name = "leptos_macro"
 version = "0.8.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2174,6 +2246,58 @@ dependencies = [
  "server_fn_macro",
  "syn",
  "uuid",
+]
+
+[[package]]
+name = "leptos_meta"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c3efe657b4c55ed2e078922786ffe20acfb71767c3dd913767b09a35c75c890"
+dependencies = [
+ "futures",
+ "indexmap 2.14.0",
+ "leptos",
+ "or_poisoned",
+ "send_wrapper",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "leptos_router"
+version = "0.8.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c15158449162e099e2273442f7fd9b924f5cefd935d52af5755ec62aa819fa52"
+dependencies = [
+ "any_spawner",
+ "either_of",
+ "futures",
+ "gloo-net",
+ "js-sys",
+ "leptos",
+ "leptos_router_macro",
+ "or_poisoned",
+ "percent-encoding",
+ "reactive_graph",
+ "rustc_version",
+ "send_wrapper",
+ "tachys",
+ "thiserror 2.0.18",
+ "url",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "leptos_router_macro"
+version = "0.8.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "409c0bd99f986c3cfa1a4db2443c835bc602ded1a12784e22ecb28c3ed5a2ae2"
+dependencies = [
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -2207,7 +2331,7 @@ dependencies = [
  "rand 0.10.1",
  "serenity",
  "sqlx",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "zayden-core",
 ]
@@ -2268,7 +2392,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "tracing",
  "zayden-core",
@@ -2401,6 +2525,23 @@ dependencies = [
  "smallvec",
  "tagptr",
  "uuid",
+]
+
+[[package]]
+name = "multer"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83e87776546dc87511aa5ee218730c92b666d7264ab6ed41f9d215af9cd5224b"
+dependencies = [
+ "bytes",
+ "encoding_rs",
+ "futures-util",
+ "http",
+ "httparse",
+ "memchr",
+ "mime",
+ "spin",
+ "version_check",
 ]
 
 [[package]]
@@ -3585,7 +3726,7 @@ dependencies = [
  "time",
  "to-arraystring",
  "tokio",
- "tokio-tungstenite",
+ "tokio-tungstenite 0.28.0",
  "tracing",
  "url",
  "zeroize",
@@ -3598,6 +3739,7 @@ version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d60e4c1dfccd91fe0990141f69f1d5cf5679797ad53aa1b45e5bd658eb119f0"
 dependencies = [
+ "axum",
  "base64",
  "bytes",
  "const-str",
@@ -3605,6 +3747,9 @@ dependencies = [
  "futures",
  "gloo-net",
  "http",
+ "http-body-util",
+ "hyper",
+ "inventory",
  "js-sys",
  "or_poisoned",
  "pin-project-lite",
@@ -3617,6 +3762,9 @@ dependencies = [
  "server_fn_macro_default",
  "thiserror 2.0.18",
  "throw_error",
+ "tokio",
+ "tower",
+ "tower-layer",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -4342,8 +4490,20 @@ dependencies = [
  "tokio",
  "tokio-native-tls",
  "tokio-rustls",
- "tungstenite",
+ "tungstenite 0.28.0",
  "webpki-roots 0.26.11",
+]
+
+[[package]]
+name = "tokio-tungstenite"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f72a05e828585856dacd553fba484c242c46e391fb0e58917c942ee9202915c"
+dependencies = [
+ "futures-util",
+ "log",
+ "tokio",
+ "tungstenite 0.29.0",
 ]
 
 [[package]]
@@ -4534,6 +4694,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "tungstenite"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c01152af293afb9c7c2a57e4b559c5620b421f6d133261c60dd2d0cdb38e6b8"
+dependencies = [
+ "bytes",
+ "data-encoding",
+ "http",
+ "httparse",
+ "log",
+ "rand 0.9.4",
+ "sha1 0.10.6",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "typed-builder"
 version = "0.23.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4675,7 +4851,7 @@ name = "verify"
 version = "0.1.0"
 dependencies = [
  "serenity",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "zayden-core",
 ]
 
@@ -5285,7 +5461,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "toml",
  "tracing",

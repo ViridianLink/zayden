@@ -186,3 +186,10 @@ tracing-subscriber = { version = "*", default-features = false }
 # strip = true
 # codegen-units = 1
 # lto = "fat"
+
+[profile.wasm-release]
+inherits = "release"
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = "abort"

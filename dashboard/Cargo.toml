@@ -6,40 +6,111 @@ edition = "2024"
 [lints]
 workspace = true
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "dashboard"
+path = "src/main.rs"
+required-features = ["ssr"]
+
+# Exactly one of ssr / hydrate should be active during any given compilation.
+# cargo-leptos handles this automatically.  For manual cargo check:
+#   cargo +nightly check -p dashboard --features ssr
+#   cargo +nightly check -p dashboard --target wasm32-unknown-unknown --features hydrate
+[features]
+default = []
+
+hydrate = ["leptos/hydrate", "dep:wasm-bindgen"]
+
+ssr = [
+  "leptos/ssr",
+  "dep:leptos_axum",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+  "dep:axum",
+  "dep:dashmap",
+  "dep:dotenvy",
+  "dep:jiff",
+  "dep:jiff-sqlx",
+  "dep:moka",
+  "dep:oauth2",
+  "dep:rand",
+  "dep:reqwest",
+  "dep:sha2",
+  "dep:sqlx",
+  "dep:tokio",
+  "dep:tower-cookies",
+  "dep:tower-http",
+  "dep:tracing-subscriber",
+  "dep:zayden-app",
+]
+
 [dependencies]
-axum = { version = "*", default-features = true, features = [
+leptos = { version = "*", default-features = false }
+leptos_meta = { version = "*", default-features = false }
+leptos_router = { version = "*", default-features = false }
+
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+
+leptos_axum = { version = "*", optional = true }
+
+axum = { version = "*", optional = true, default-features = true, features = [
   "query",
   "tokio",
   "http2",
   "json",
   "macros",
 ] }
-dashmap = { workspace = true }
-dotenvy = { workspace = true }
-oauth2 = { version = "*", default-features = false, features = ["reqwest"] }
-leptos = { version = "*" }
-reqwest = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-jiff = { workspace = true }
-jiff-sqlx = { workspace = true }
-moka = { workspace = true, features = ["future"] }
-rand = { workspace = true, features = ["thread_rng"] }
-sha2 = { version = "*", default-features = false }
-serde_json = { workspace = true }
+dashmap = { workspace = true, optional = true }
+dotenvy = { workspace = true, optional = true }
+jiff = { workspace = true, optional = true }
+jiff-sqlx = { workspace = true, optional = true }
+moka = { workspace = true, features = ["future"], optional = true }
+oauth2 = { version = "*", default-features = false, features = [
+  "reqwest",
+], optional = true }
+rand = { workspace = true, features = ["thread_rng"], optional = true }
+reqwest = { workspace = true, optional = true }
+sha2 = { version = "*", default-features = false, optional = true }
 sqlx = { workspace = true, features = [
   "postgres",
   "runtime-tokio",
   "tls-rustls-aws-lc-rs",
   "macros",
-] }
-tokio = { workspace = true, features = ["rt-multi-thread"] }
+], optional = true }
+tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
 tower-cookies = { version = "*", default-features = false, features = [
   "axum-core",
-] }
+], optional = true }
 tower-http = { version = "*", default-features = false, features = [
   "cors",
   "fs",
-] }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["ansi", "fmt"] }
-zayden-app = { workspace = true }
+], optional = true }
+tracing-subscriber = { workspace = true, features = [
+  "ansi",
+  "fmt",
+], optional = true }
+zayden-app = { workspace = true, optional = true }
+
+# ── Hydrate-only ─────────────────────────────────────────────────────────────
+
+wasm-bindgen = { version = "0.2", optional = true }
+
+# ── cargo-leptos build configuration ─────────────────────────────────────────
+
+[package.metadata.leptos]
+output-name = "dashboard"
+site-root = "target/site"
+site-pkg-dir = "pkg"
+assets-dir = "public"
+site-addr = "0.0.0.0:3000"
+reload-port = 3001
+env = "DEV"
+bin-features = ["ssr"]
+bin-default-features = false
+lib-features = ["hydrate"]
+lib-default-features = false
+lib-profile-release = "wasm-release"
