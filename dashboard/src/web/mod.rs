@@ -3,6 +3,7 @@ mod routes_kofi;
 mod routes_login;
 
 pub(crate) const AUTH_TOKEN: &str = "auth-token";
+pub(crate) const SESSION_COOKIE: &str = "session";
 
 use axum::Router;
 use axum::middleware::from_fn_with_state;
