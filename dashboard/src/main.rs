@@ -9,6 +9,7 @@ use std::time::Instant;
 
 use axum::Router;
 use axum::extract::State;
+use axum::http::{HeaderValue, Method};
 use axum::middleware::map_response;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
@@ -30,7 +31,7 @@ use reqwest::header::AUTHORIZATION;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tower_cookies::CookieManagerLayer;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::warn;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -121,9 +122,11 @@ async fn main() {
     EventListener::spawn(app_state.db.clone(), app_state.events.clone());
     let state = WebState::new(Arc::clone(&app_state), &config);
 
+    let cors_origin = HeaderValue::from_str(&config.frontend_url)
+        .expect("BotConfig::frontend_url is a valid HTTP header value");
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
+        .allow_origin(cors_origin)
+        .allow_methods([Method::GET, Method::POST, Method::PATCH])
         .allow_headers([AUTHORIZATION]);
 
     let app: Router = Router::new()

@@ -16,6 +16,9 @@ const DEFAULT_ZAYDEN_ID: u64 = 787_490_197_943_091_211;
 const DEFAULT_AI_ENDPOINT: &str = "https://openrouter.ai/api/v1";
 const DEFAULT_AI_MODEL: &str = "google/gemma-4-31b-it:free";
 
+// Dashboard defaults.
+const DEFAULT_FRONTEND_URL: &str = "http://localhost:5173";
+
 /// Static + deployment-level configuration for the bot process.
 ///
 /// Populated once at startup via `BotConfig::load`; thereafter immutable.
@@ -54,6 +57,10 @@ pub struct BotConfig {
     pub error_log_webhook: Option<String>,
     /// Discord webhook URL for info/warn-level log messages.
     pub normal_log_webhook: Option<String>,
+
+    /// Base URL of the Leptos/Svelte frontend (used for CORS and OAuth redirect
+    /// errors).
+    pub frontend_url: String,
 }
 
 impl BotConfig {
@@ -107,6 +114,11 @@ impl BotConfig {
                 .as_ref()
                 .and_then(|r| r.normal_log_webhook.clone())
                 .or(toml_cfg.webhooks.normal_log),
+
+            frontend_url: toml_cfg
+                .dashboard
+                .frontend_url
+                .unwrap_or_else(|| DEFAULT_FRONTEND_URL.to_owned()),
         })
     }
 }
@@ -155,6 +167,8 @@ struct TomlConfig {
     ids: TomlIds,
     #[serde(default)]
     webhooks: TomlWebhooks,
+    #[serde(default)]
+    dashboard: TomlDashboard,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -177,6 +191,11 @@ struct TomlIds {
 struct TomlWebhooks {
     error_log: Option<String>,
     normal_log: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlDashboard {
+    frontend_url: Option<String>,
 }
 
 // --- DB row struct ---
