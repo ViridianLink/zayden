@@ -40,9 +40,8 @@ pub(super) async fn kofi_webhook_handler(
         },
     };
 
-    // Only record subscription payments; donations are one-offs without a recurring
-    // tier.
-    if !payload.is_subscription_payment && payload.kind != "Subscription" {
+    // Only handle subscription events; Ignore one-off donations and shop orders
+    if payload.kind != "Subscription" {
         return StatusCode::OK;
     }
 
@@ -66,7 +65,7 @@ pub(super) async fn kofi_webhook_handler(
         Ok(None) => {
             warn!(
                 transaction_id = %payload.kofi_transaction_id,
-                "Ko-fi payment received but email is not linked to a Discord account; skipping grant"
+                "Ko-fi subscription event received but email is not linked to a Discord account; skipping"
             );
             return StatusCode::OK;
         },
@@ -76,15 +75,28 @@ pub(super) async fn kofi_webhook_handler(
         },
     };
 
-    let grant_data = GrantData {
-        external_id: payload.kofi_transaction_id.clone(),
-        scope: EntitlementScope::User(discord_user_id),
-        tier: Tier::Pro,
-        expires_at: None,
-    };
+    let scope = EntitlementScope::User(discord_user_id);
 
-    if let Err(e) = KoFiProvider.grant(&state.app.entitlements, grant_data).await {
-        warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to record Ko-fi entitlement");
+    if payload.is_subscription_payment {
+        let grant_data = GrantData {
+            external_id: payload.kofi_transaction_id.clone(),
+            scope,
+            tier: Tier::Pro,
+            expires_at: None,
+        };
+        if let Err(e) = KoFiProvider.grant(&state.app.entitlements, grant_data).await
+        {
+            warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to record Ko-fi entitlement");
+        }
+    } else {
+        // Subscription cancelled or expired — revoke all Ko-fi entitlements for this
+        // user. Cancellation webhooks do not carry the original grant
+        // transaction ID, only the email.
+        if let Err(e) =
+            state.app.entitlements.revoke_all_by_scope("kofi", &scope).await
+        {
+            warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to revoke Ko-fi entitlement");
+        }
     }
 
     StatusCode::OK

@@ -105,6 +105,31 @@ impl EntitlementService {
         Ok(())
     }
 
+    pub async fn revoke_all_by_scope(
+        &self,
+        provider: &str,
+        scope: &EntitlementScope,
+    ) -> Result<(), sqlx::Error> {
+        let rows_deleted = sqlx::query(
+            "DELETE FROM entitlements \
+             WHERE provider = $1 AND scope_type = $2 AND scope_id = $3 AND scope_secondary_id = $4",
+        )
+        .bind(provider)
+        .bind(scope.scope_type())
+        .bind(scope.scope_id())
+        .bind(scope.scope_secondary_id())
+        .execute(&self.db)
+        .await?
+        .rows_affected();
+
+        if rows_deleted > 0 {
+            self.refresh_cache_row_from_db(scope).await?;
+            self.cache.invalidate(scope).await;
+            let _ = self.events.send(AppEvent::EntitlementChanged(scope.clone()));
+        }
+        Ok(())
+    }
+
     /// Remove an entitlement by `provider` + `external_id` and refresh the
     /// cache row.
     pub async fn revoke(
