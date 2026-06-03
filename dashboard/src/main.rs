@@ -9,12 +9,15 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use axum::Router;
-use axum::extract::State;
+use axum::extract::{FromRef, State};
 use axum::http::{HeaderValue, Method, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
+use dashboard::app::{App, shell};
 use dashmap::DashMap;
 pub use error::{Error, Result};
+use leptos::config::{LeptosOptions, get_configuration};
+use leptos_axum::{LeptosRoutes, generate_route_list};
 use moka::future::Cache;
 use oauth2::basic::BasicClient;
 use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
@@ -53,10 +56,15 @@ pub(crate) struct WebState {
     pub(crate) session_cache: Cache<String, (String, i64)>,
     pub(crate) guild_cache:
         Cache<String, Arc<[middleware::guild_permission::PartialGuild]>>,
+    pub(crate) leptos_options: LeptosOptions,
 }
 
 impl WebState {
-    pub(crate) fn new(app: Arc<ZaydenAppState>, config: &BotConfig) -> Self {
+    pub(crate) fn new(
+        app: Arc<ZaydenAppState>,
+        config: &BotConfig,
+        leptos_options: LeptosOptions,
+    ) -> Self {
         Self {
             app,
             oauth_client: state::build_oauth_client(config),
@@ -74,7 +82,14 @@ impl WebState {
                 .max_capacity(1024)
                 .time_to_live(Duration::from_mins(1))
                 .build(),
+            leptos_options,
         }
+    }
+}
+
+impl FromRef<WebState> for LeptosOptions {
+    fn from_ref(state: &WebState) -> Self {
+        state.leptos_options.clone()
     }
 }
 
@@ -94,9 +109,13 @@ async fn main() {
 
     let config = BotConfig::load(&pool).await.expect("failed to load BotConfig");
 
+    let leptos_options = get_configuration(Some("Cargo.toml"))
+        .expect("failed to load Leptos config from Cargo.toml")
+        .leptos_options;
+
     let app_state = Arc::new(ZaydenAppState::new(pool, &config));
     EventListener::spawn(app_state.db.clone(), app_state.events.clone());
-    let web_state = WebState::new(Arc::clone(&app_state), &config);
+    let web_state = WebState::new(Arc::clone(&app_state), &config, leptos_options);
 
     let cors_origin = HeaderValue::from_str(&config.frontend_url)
         .expect("BotConfig::frontend_url is a valid HTTP header value");
@@ -105,10 +124,17 @@ async fn main() {
         .allow_methods([Method::GET, Method::POST, Method::PATCH])
         .allow_headers([AUTHORIZATION]);
 
+    let routes = generate_route_list(App);
+
     let app: Router = Router::new()
         .route("/invite", get(invite_handler))
         .route("/login", get(login_handler))
         .merge(web::routes(web_state.clone()))
+        .leptos_routes_with_context(&web_state, routes, || {}, {
+            let lo = web_state.leptos_options.clone();
+            move || shell(lo.clone())
+        })
+        .fallback(leptos_axum::file_and_error_handler::<WebState, _>(shell))
         .layer(cors)
         .layer(CookieManagerLayer::new())
         .with_state(web_state);

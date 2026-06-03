@@ -43,7 +43,7 @@ dependencies = [
 
 [[package]]
 name = "ai"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-openai",
  "reqwest 0.13.4",
@@ -367,7 +367,7 @@ dependencies = [
 
 [[package]]
 name = "bot"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "ai",
  "async-trait",
@@ -854,7 +854,7 @@ dependencies = [
 
 [[package]]
 name = "dashboard"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "axum",
  "dashmap",
@@ -957,7 +957,7 @@ dependencies = [
 
 [[package]]
 name = "destiny2"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bungie-api",
  "destiny2-core",
@@ -973,7 +973,7 @@ dependencies = [
 
 [[package]]
 name = "destiny2-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bungie-api",
 ]
@@ -1064,7 +1064,7 @@ dependencies = [
 
 [[package]]
 name = "endgame-analysis"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bungie-api",
  "destiny2-core",
@@ -1154,7 +1154,7 @@ dependencies = [
 
 [[package]]
 name = "family"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "charming",
@@ -1347,7 +1347,7 @@ dependencies = [
 
 [[package]]
 name = "gambling"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "dashmap",
@@ -1456,7 +1456,7 @@ dependencies = [
 
 [[package]]
 name = "gold-star"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "jiff",
@@ -2322,7 +2322,7 @@ dependencies = [
 
 [[package]]
 name = "levels"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -2338,7 +2338,7 @@ dependencies = [
 
 [[package]]
 name = "lfg"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -2387,7 +2387,7 @@ checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
 
 [[package]]
 name = "llamad2"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -3128,7 +3128,7 @@ dependencies = [
 
 [[package]]
 name = "reaction-roles"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serenity",
  "sqlx",
@@ -4166,7 +4166,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "suggestions"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -4259,7 +4259,7 @@ checksum = "7b2093cf4c8eb1e67749a6762251bc9cd836b6fc171623bd0a9d324d37af2417"
 
 [[package]]
 name = "temp-voice"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -4343,7 +4343,7 @@ dependencies = [
 
 [[package]]
 name = "ticket"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "futures",
@@ -4848,7 +4848,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "verify"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serenity",
  "thiserror 2.0.18",
@@ -5451,7 +5451,7 @@ dependencies = [
 
 [[package]]
 name = "zayden-app"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "jiff",
@@ -5469,7 +5469,7 @@ dependencies = [
 
 [[package]]
 name = "zayden-core"
-version = "0.9.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "base64",
