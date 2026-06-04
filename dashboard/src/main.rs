@@ -13,7 +13,7 @@ use axum::extract::{FromRef, State};
 use axum::http::{HeaderValue, Method, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
-use dashboard::app::{App, shell};
+use dashboard::app::{App, UpgradeUrl, shell};
 use dashmap::DashMap;
 pub use error::{Error, Result};
 use leptos::config::{LeptosOptions, get_configuration};
@@ -54,6 +54,7 @@ pub(crate) struct WebState {
     pub(crate) frontend_url: String,
     pub(crate) invite_url: Option<String>,
     pub(crate) bot_owner: u64,
+    pub(crate) upgrade_url: Option<String>,
     pub(crate) session_cache: Cache<String, (String, i64)>,
     pub(crate) guild_cache:
         Cache<String, Arc<[middleware::guild_permission::PartialGuild]>>,
@@ -73,6 +74,7 @@ impl WebState {
             discord_token: config.discord_token.clone(),
             oauth_states: Arc::new(DashMap::new()),
             bot_owner: config.bot_owner,
+            upgrade_url: config.upgrade_url.clone(),
             frontend_url: config.frontend_url.clone(),
             invite_url: config.invite_url.clone(),
             session_cache: Cache::builder()
@@ -135,9 +137,13 @@ async fn main() {
         .leptos_routes_with_context(&web_state, routes, {
             let db = web_state.app.db.clone();
             let http = web_state.app.http.clone();
+            let app = Arc::clone(&web_state.app);
+            let upgrade_url = web_state.upgrade_url.clone();
             move || {
                 provide_context(db.clone());
                 provide_context(http.clone());
+                provide_context(Arc::clone(&app));
+                provide_context(UpgradeUrl(upgrade_url.clone()));
             }
         }, {
             let lo = web_state.leptos_options.clone();

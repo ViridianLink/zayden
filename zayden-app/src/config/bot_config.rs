@@ -71,6 +71,9 @@ pub struct BotConfig {
     pub bind_addr: String,
     /// Discord bot invite URL. If absent the `/invite` route returns 404.
     pub invite_url: Option<String>,
+    /// URL for the Pro subscription checkout (e.g. a Ko-fi page).
+    /// When set, free-tier users see an "Upgrade to Pro" link in the dashboard.
+    pub upgrade_url: Option<String>,
 }
 
 impl BotConfig {
@@ -138,6 +141,7 @@ impl BotConfig {
                 .bind_addr
                 .unwrap_or_else(|| DEFAULT_BIND_ADDR.to_owned()),
             invite_url: toml_cfg.dashboard.invite_url,
+            upgrade_url: toml_cfg.dashboard.upgrade_url,
         })
     }
 }
@@ -218,6 +222,7 @@ struct TomlDashboard {
     redirect_uri: Option<String>,
     bind_addr: Option<String>,
     invite_url: Option<String>,
+    upgrade_url: Option<String>,
 }
 
 #[derive(sqlx::FromRow)]
