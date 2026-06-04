@@ -6,6 +6,7 @@ use family::commands::{
     Adopt,
     Block,
     Children,
+    Divorce,
     Marry,
     Parents,
     Partner,
@@ -44,6 +45,7 @@ use crate::registry::OverlapError;
 pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
     builder
         .add_command(MarryCmd)
+        .add_command(DivorceCmd)
         .add_command(AdoptCmd)
         .add_command(BlockCmd)
         .add_command(UnblockCmd)
@@ -272,6 +274,26 @@ impl FamilyManager<Postgres> for FamilyTable {
 
         Ok(())
     }
+
+    async fn remove_partner(
+        pool: &PgPool,
+        user_id: UserId,
+        partner_id: UserId,
+    ) -> sqlx::Result<()> {
+        let uid: i64 = user_id.get().cast_signed();
+        let pid: i64 = partner_id.get().cast_signed();
+        let (lo, hi) = if uid < pid { (uid, pid) } else { (pid, uid) };
+
+        sqlx::query!(
+            "DELETE FROM family_partners WHERE user_id = $1 AND partner_id = $2",
+            lo,
+            hi
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 async fn ensure_family_user(pool: &PgPool, id: i64) -> sqlx::Result<()> {
@@ -334,6 +356,42 @@ impl ModuleCommand for MarryCmd {
                             "marry_accept",
                             "marry_decline",
                         )]),
+                ),
+            )
+            .await?;
+        Ok(())
+    }
+}
+
+pub struct DivorceCmd;
+
+#[async_trait]
+impl ModuleCommand for DivorceCmd {
+    fn name(&self) -> Cow<'static, str> {
+        Cow::Borrowed("divorce")
+    }
+
+    fn definition(&self) -> CreateCommand<'static> {
+        Divorce::register()
+    }
+
+    async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let partner_id = Divorce::run::<Postgres, FamilyTable>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
+        .await?;
+
+        let content = format!("You have divorced {}.", partner_id.mention());
+
+        cx.interaction
+            .create_response(
+                &cx.ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .content(content)
+                        .ephemeral(true),
                 ),
             )
             .await?;

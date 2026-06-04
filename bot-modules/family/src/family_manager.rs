@@ -26,6 +26,12 @@ pub trait FamilyManager<Db: Database> {
     async fn reset(pool: &Pool<Db>) -> sqlx::Result<()>;
 
     async fn save(pool: &Pool<Db>, row: &FamilyRow) -> sqlx::Result<()>;
+
+    async fn remove_partner(
+        pool: &Pool<Db>,
+        user_id: UserId,
+        partner_id: UserId,
+    ) -> sqlx::Result<()>;
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromRow)]

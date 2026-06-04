@@ -41,6 +41,7 @@ pub enum FamilyError {
     UserSelfMarry,
     MaxPartners,
     MarryCancelled,
+    NotPartners(UserId),
     // endregion
 
     // region parents
@@ -91,6 +92,9 @@ impl Display for FamilyError {
                     "You're already at your partner limit! Use `/divorce` to break up with someone."
                 )
             },
+            Self::NotPartners(user_id) => {
+                write!(f, "You are not married to {}.", user_id.mention())
+            },
             Self::UnauthorisedUser => {
                 write!(f, "You can't respond to this interaction.")
             },
@@ -140,6 +144,7 @@ impl Respond for FamilyError {
             | Self::Zayden
             | Self::AlreadyRelated { .. }
             | Self::MaxPartners
+            | Self::NotPartners(_)
             | Self::UnauthorisedUser
             | Self::SameUser(_)
             | Self::UserSelfAdopt
@@ -180,6 +185,7 @@ impl std::error::Error for FamilyError {
             Self::ReactionConversionError(e) => Some(e),
             Self::UserSelfMarry
             | Self::MaxPartners
+            | Self::NotPartners(_)
             | Self::Zayden
             | Self::Bot
             | Self::InvalidUserId

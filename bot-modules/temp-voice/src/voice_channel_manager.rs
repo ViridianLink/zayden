@@ -37,8 +37,9 @@ pub struct VoiceChannelRow {
 }
 
 impl VoiceChannelRow {
+    #[must_use]
     #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
-    pub fn new(id: ChannelId, owner_id: UserId) -> Self {
+    pub const fn new(id: ChannelId, owner_id: UserId) -> Self {
         Self {
             id: id.get() as i64,
             owner_id: owner_id.get() as i64,
@@ -50,8 +51,9 @@ impl VoiceChannelRow {
         }
     }
 
+    #[must_use]
     #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
-    pub fn new_persistent(id: ChannelId, owner_id: UserId) -> Self {
+    pub const fn new_persistent(id: ChannelId, owner_id: UserId) -> Self {
         Self {
             id: id.get() as i64,
             owner_id: owner_id.get() as i64,
