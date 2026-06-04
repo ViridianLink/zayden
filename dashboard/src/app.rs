@@ -10,6 +10,106 @@ use leptos_router::components::{
     Routes,
 };
 use leptos_router::path;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize)]
+struct GuildInfo {
+    id: String,
+    name: String,
+    icon: Option<String>,
+}
+
+/// Server function that retrieves the list of Discord guilds the current user
+/// can manage (has `MANAGE_GUILD` or `ADMINISTRATOR` permission bits).
+///
+/// Returns a redirect to `/login` on the server side when the session is
+/// missing or expired, and propagates the error to the caller so the component
+/// can display a sensible message on the client side.
+#[server]
+async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
+    use leptos_axum::extract;
+    use reqwest::Client;
+    use sqlx::{PgPool, Row};
+    use tower_cookies::Cookies;
+
+    #[derive(serde::Deserialize)]
+    struct DiscordGuild {
+        id: String,
+        name: String,
+        icon: Option<String>,
+        permissions: String,
+    }
+
+    const MANAGE_GUILD: u64 = 0x20;
+    const ADMINISTRATOR: u64 = 0x08;
+
+    let Some(pool) = use_context::<PgPool>() else {
+        return Err(ServerFnError::ServerError("missing database pool".to_string()));
+    };
+    let Some(http) = use_context::<Client>() else {
+        return Err(ServerFnError::ServerError("missing HTTP client".to_string()));
+    };
+
+    let cookies: Cookies = match extract().await {
+        Ok(c) => c,
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+
+    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
+        leptos_axum::redirect("/login");
+        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
+    };
+
+    let access_token: String = match sqlx::query(
+        "SELECT discord_access_token FROM web_sessions \
+         WHERE token = $1 AND expires_at > now()",
+    )
+    .bind(&token)
+    .fetch_optional(&pool)
+    .await
+    {
+        Ok(Some(r)) => r.get("discord_access_token"),
+        Ok(None) => {
+            leptos_axum::redirect("/login");
+            return Err(ServerFnError::ServerError("unauthenticated".to_string()));
+        },
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+
+    let resp = match http
+        .get("https://discord.com/api/v10/users/@me/guilds")
+        .header("Authorization", format!("Bearer {access_token}"))
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+
+    if !resp.status().is_success() {
+        return Err(ServerFnError::ServerError(format!(
+            "Discord API returned {}",
+            resp.status()
+        )));
+    }
+
+    let all_guilds: Vec<DiscordGuild> = match resp.json().await {
+        Ok(v) => v,
+        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
+    };
+
+    let guilds = all_guilds
+        .into_iter()
+        .filter(|g| {
+            g.permissions
+                .parse::<u64>()
+                .is_ok_and(|p| p & ADMINISTRATOR != 0 || p & MANAGE_GUILD != 0)
+        })
+        .map(|g| GuildInfo { id: g.id, name: g.name, icon: g.icon })
+        .collect();
+
+    Ok(guilds)
+}
 
 /// Server function that checks whether the current request carries a valid
 /// `session` cookie.  On the server, if the session is valid, it also calls
@@ -187,10 +287,47 @@ fn LoginPage() -> impl IntoView {
 
 #[component]
 fn GuildListPage() -> impl IntoView {
+    // Blocking resource: SSR waits for the guild list before sending HTML so
+    // the unauthenticated redirect fires before any page content is sent.
+    let guilds = Resource::new_blocking(|| (), |()| list_manageable_guilds());
+
     view! {
+        <Title text="Servers — Zayden Dashboard"/>
         <div class="page">
             <h1>"Your Servers"</h1>
-            <p>"Loading servers\u{2026}"</p>
+            <Suspense fallback=|| view! { <p class="loading">"Loading servers\u{2026}"</p> }>
+                {move || guilds.get().map(|result| match result {
+                    Err(e) => view! {
+                        <p class="error">"Failed to load servers: " {e.to_string()}</p>
+                    }.into_any(),
+                    Ok(list) if list.is_empty() => view! {
+                        <p class="empty">"You manage no servers with this account."</p>
+                    }.into_any(),
+                    Ok(list) => view! {
+                        <ul class="guild-list">
+                            {list.into_iter().map(|g| {
+                                let icon_url = g.icon.map(|hash| {
+                                    format!(
+                                        "https://cdn.discordapp.com/icons/{}/{}.png?size=64",
+                                        g.id, hash,
+                                    )
+                                });
+                                let href = format!("/guild/{}/settings", g.id);
+                                view! {
+                                    <li class="guild-item">
+                                        <A href=href>
+                                            {icon_url.map(|url| view! {
+                                                <img src=url alt="" class="guild-icon"/>
+                                            })}
+                                            <span class="guild-name">{g.name}</span>
+                                        </A>
+                                    </li>
+                                }
+                            }).collect_view()}
+                        </ul>
+                    }.into_any(),
+                })}
+            </Suspense>
         </div>
     }
 }

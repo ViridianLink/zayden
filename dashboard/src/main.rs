@@ -134,7 +134,11 @@ async fn main() {
         .merge(web::routes(web_state.clone()))
         .leptos_routes_with_context(&web_state, routes, {
             let db = web_state.app.db.clone();
-            move || provide_context(db.clone())
+            let http = web_state.app.http.clone();
+            move || {
+                provide_context(db.clone());
+                provide_context(http.clone());
+            }
         }, {
             let lo = web_state.leptos_options.clone();
             move || shell(lo.clone())
