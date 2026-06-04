@@ -11,6 +11,7 @@ use serenity::all::{
     CreateButton,
     CreateComponent,
     CreateEmbed,
+    CreateEmbedFooter,
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     EditInteractionResponse,
@@ -26,6 +27,8 @@ use zayden_core::{EmojiCache, EmojiCacheData};
 
 use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
 use crate::{Coins, EffectsManager, GamblingManager, GameManager, GameRow, Result};
+
+type Board = Vec<Vec<Option<ReactionType>>>;
 
 pub struct TicTacToe {
     size: usize,
@@ -71,93 +74,31 @@ impl TicTacToe {
                 )
                 .await?;
             },
-            _ => {},
+            custom_id => {
+                let Some(pos_str) = custom_id.strip_prefix("ttt_") else {
+                    return Ok(());
+                };
+
+                let mut chars = pos_str.chars();
+                let Some(i) = chars.next().and_then(|c| c.to_digit(10)) else {
+                    return Ok(());
+                };
+                let Some(j) = chars.next().and_then(|c| c.to_digit(10)) else {
+                    return Ok(());
+                };
+
+                make_move::<Db, GameHandler>(
+                    &ctx.http,
+                    interaction,
+                    pool,
+                    i as usize,
+                    j as usize,
+                )
+                .await?;
+            },
         }
 
         Ok(())
-
-        // if interaction.user.id != state.current_turn {
-        //     return Ok(true);
-        // }
-
-        // let mut pos = custom_id.strip_prefix("ttt_").unwrap().chars();
-        // let i = pos.next().unwrap().to_digit(10).unwrap() as usize;
-        // let j = pos.next().unwrap().to_digit(10).unwrap() as usize;
-
-        // let mut components = interaction.message.components.clone();
-
-        // let Component::ActionRow(action_row) = components.get_mut(i).unwrap()
-        // else {     unreachable!("Component must be an action row")
-        // };
-
-        // let ActionRowComponent::Button(button) =
-        // action_row.components.get_mut(j).unwrap() else {
-        //     unreachable!("Component must be a button")
-        // };
-
-        // if button.emoji == Some(EMOJI_P1.into()) || button.emoji ==
-        // Some(EMOJI_P2.into()) {     return Ok(true);
-        // }
-
-        // let emoji = if state.current_turn == state.players[0] {
-        //     ReactionType::from(EMOJI_P1)
-        // } else {
-        //     ReactionType::from(EMOJI_P2)
-        // };
-
-        // button.emoji = Some(emoji.clone());
-
-        // if check_win(&state, &components, emoji) {
-        //     let winner = Some(state.current_turn);
-        //     return Ok(false);
-        // } else if check_draw(&components) {
-        //     return Ok(false);
-        // }
-
-        // let components = components
-        //     .into_iter()
-        //     .map(|component| {
-        //         let Component::ActionRow(row) = component else {
-        //             unreachable!("Component must be an action row")
-        //         };
-
-        //         let buttons = row
-        //             .components
-        //             .into_iter()
-        //             .map(|c| {
-        //                 let ActionRowComponent::Button(b) = c else {
-        //                     unreachable!("Component must be of type Button")
-        //                 };
-
-        //                 b.into()
-        //             })
-        //             .collect::<Vec<CreateButton>>();
-
-        //         CreateComponent::ActionRow(CreateActionRow::buttons(buttons))
-        //     })
-        //     .collect::<Vec<_>>();
-
-        // // Next player
-        // state.current_turn = if state.current_turn == state.players[0] {
-        //     state.players[1]
-        // } else {
-        //     state.players[0]
-        // };
-
-        // let embed = CreateEmbed::new()
-        //     .title("TicTacToe")
-        //     .description(format!("{}'s Turn", state.current_turn.mention()));
-
-        // let msg = CreateInteractionResponseMessage::new()
-        //     .embed(embed)
-        //     .components(components);
-
-        // interaction
-        //     .create_response(&ctx.http,
-        // CreateInteractionResponse::UpdateMessage(msg))     .await
-        //     .unwrap();
-
-        // Ok(true)
     }
 
     async fn p1_row<Db: Database, Manager: GameManager<Db>>(
@@ -288,7 +229,11 @@ async fn accept<
 
     let embed = CreateEmbed::new()
         .title("TicTacToe")
-        .description(format!("{}'s Turn", state.current_turn.mention()));
+        .description(format!("{}'s Turn", state.current_turn.mention()))
+        .footer(CreateEmbedFooter::new(format!(
+            "{}:{}:{}",
+            state.players[0], state.players[1], state.bet
+        )));
 
     let components = (0..state.size)
         .map(|i| {
@@ -314,85 +259,263 @@ async fn accept<
     Ok(())
 }
 
-#[expect(dead_code, reason = "used for future TicTacToe win/draw detection")]
-fn check_win(
-    state: &TicTacToe,
-    components: &[Component],
-    target: ReactionType,
-) -> bool {
-    let get_emoji = |r: usize, c: usize| -> Option<&ReactionType> {
-        let Component::ActionRow(action_row) = components.get(r)? else {
-            return None;
-        };
-
-        match action_row.components.get(c) {
-            Some(ActionRowComponent::Button(b)) => b.emoji.as_ref(),
-            _ => None,
-        }
+async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
+    http: &Http,
+    interaction: &ComponentInteraction,
+    pool: &Pool<Db>,
+    i: usize,
+    j: usize,
+) -> Result<()> {
+    let Some((p1, p2, bet)) = parse_footer(interaction) else {
+        return Ok(());
+    };
+    let Some(current_turn) = parse_current_turn(interaction) else {
+        return Ok(());
     };
 
+    let players = [p1, p2];
+    let size = interaction.message.components.len() as usize;
+
+    if interaction.user.id != current_turn {
+        interaction.defer(http).await?;
+        return Ok(());
+    }
+
+    let x_emoji = ReactionType::from(EMOJI_P1);
+    let o_emoji = ReactionType::from(EMOJI_P2);
+
+    let cell_occupied = interaction
+        .message
+        .components
+        .get(i)
+        .and_then(|c| {
+            if let Component::ActionRow(row) = c {
+                row.components.get(j)
+            } else {
+                None
+            }
+        })
+        .and_then(|c| {
+            if let ActionRowComponent::Button(btn) = c {
+                btn.emoji.as_ref()
+            } else {
+                None
+            }
+        })
+        .is_some_and(|e| e == &x_emoji || e == &o_emoji);
+
+    if cell_occupied {
+        interaction.defer(http).await?;
+        return Ok(());
+    }
+
+    let player_emoji = if current_turn == players[0] { x_emoji } else { o_emoji };
+
+    let board =
+        build_board(&interaction.message.components, size, i, j, &player_emoji);
+
+    let won = check_win(&board, &player_emoji);
+    let draw = !won && check_draw(&board);
+
+    if won {
+        let winner = current_turn;
+        let mut row = GameHandler::row(pool, winner)
+            .await
+            .expect("async call")
+            .unwrap_or_else(|| GameRow::new(winner));
+        row.add_coins(2 * bet);
+        GameHandler::save(pool, row).await?;
+
+        let embed = CreateEmbed::new()
+            .title("TicTacToe")
+            .description(format!("{} wins!", winner.mention()));
+
+        interaction
+            .create_response(
+                http,
+                CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::new()
+                        .embed(embed)
+                        .components(board_to_components(&board, true)),
+                ),
+            )
+            .await?;
+    } else if draw {
+        for &player in &players {
+            let mut row = GameHandler::row(pool, player)
+                .await
+                .expect("async call")
+                .unwrap_or_else(|| GameRow::new(player));
+            row.add_coins(bet);
+            GameHandler::save(pool, row).await?;
+        }
+
+        let embed =
+            CreateEmbed::new().title("TicTacToe").description("It's a draw!");
+
+        interaction
+            .create_response(
+                http,
+                CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::new()
+                        .embed(embed)
+                        .components(board_to_components(&board, true)),
+                ),
+            )
+            .await?;
+    } else {
+        let next_turn =
+            if current_turn == players[0] { players[1] } else { players[0] };
+
+        let embed = CreateEmbed::new()
+            .title("TicTacToe")
+            .description(format!("{}'s Turn", next_turn.mention()))
+            .footer(CreateEmbedFooter::new(format!(
+                "{}:{}:{}",
+                players[0], players[1], bet
+            )));
+
+        interaction
+            .create_response(
+                http,
+                CreateInteractionResponse::UpdateMessage(
+                    CreateInteractionResponseMessage::new()
+                        .embed(embed)
+                        .components(board_to_components(&board, false)),
+                ),
+            )
+            .await?;
+    }
+
+    Ok(())
+}
+
+fn parse_footer(
+    interaction: &ComponentInteraction,
+) -> Option<(UserId, UserId, i64)> {
+    let embed = interaction.message.embeds.first()?;
+    let footer = embed.footer.as_ref()?;
+    let text: &str = &footer.text;
+    let mut parts = text.split(':');
+    let p1: u64 = parts.next()?.parse().ok()?;
+    let p2: u64 = parts.next()?.parse().ok()?;
+    let bet: i64 = parts.next()?.parse().ok()?;
+
+    Some((UserId::new(p1), UserId::new(p2), bet))
+}
+
+fn parse_current_turn(interaction: &ComponentInteraction) -> Option<UserId> {
+    let embed = interaction.message.embeds.first()?;
+    let desc: &str = embed.description.as_deref()?;
+
+    let mention = desc.strip_suffix("'s Turn")?.trim();
+    let id_str = mention.strip_prefix("<@")?.strip_suffix('>')?;
+    let id: u64 = id_str.parse().ok()?;
+    Some(UserId::new(id))
+}
+
+fn build_board(
+    components: &[Component],
+    size: usize,
+    move_i: usize,
+    move_j: usize,
+    move_emoji: &ReactionType,
+) -> Board {
+    (0..size)
+        .map(|r| {
+            (0..size)
+                .map(|c| {
+                    if r == move_i && c == move_j {
+                        return Some(move_emoji.clone());
+                    }
+                    components
+                        .get(r)
+                        .and_then(|comp| {
+                            if let Component::ActionRow(row) = comp {
+                                row.components.get(c)
+                            } else {
+                                None
+                            }
+                        })
+                        .and_then(|cell| {
+                            if let ActionRowComponent::Button(btn) = cell {
+                                btn.emoji.clone()
+                            } else {
+                                None
+                            }
+                        })
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn board_to_components(board: &Board, disabled: bool) -> Vec<CreateComponent<'_>> {
+    board
+        .iter()
+        .enumerate()
+        .map(|(r, row)| {
+            let buttons = row
+                .iter()
+                .enumerate()
+                .map(|(c, cell)| {
+                    let mut btn = CreateButton::new(format!("ttt_{r}{c}"))
+                        .style(ButtonStyle::Secondary)
+                        .disabled(disabled);
+                    if let Some(emoji) = cell {
+                        btn = btn.emoji(emoji.clone());
+                    }
+                    btn
+                })
+                .collect::<Vec<_>>();
+            CreateComponent::ActionRow(CreateActionRow::buttons(buttons))
+        })
+        .collect()
+}
+
+fn check_win(board: &Board, target: &ReactionType) -> bool {
+    let n = board.len();
     let target = Some(target);
 
-    // Check rows
-    for r in 0..3 {
-        if (0..state.size)
-            .map(|c| get_emoji(r, c))
-            .all(|emoji| emoji == target.as_ref())
-        {
-            return true;
-        }
+    // Rows
+    if board.iter().any(|row| row.iter().all(|e| e.as_ref() == target)) {
+        return true;
     }
 
-    // Check columns
-    for c in 0..3 {
-        if (0..state.size)
-            .map(|r| get_emoji(r, c))
-            .all(|emoji| emoji == target.as_ref())
-        {
-            return true;
-        }
+    // Columns
+    if (0..n).any(|c| {
+        board.iter().all(|row| row.get(c).and_then(Option::as_ref) == target)
+    }) {
+        return true;
     }
 
-    // Check diagonals
-    if (0..state.size).map(|i| get_emoji(i, i)).all(|emoji| emoji == target.as_ref())
+    // Main diagonal
+    if board
+        .iter()
+        .enumerate()
+        .all(|(i, row)| row.get(i).and_then(Option::as_ref) == target)
     {
         return true;
     }
 
-    if (0..state.size)
-        .map(|row| get_emoji(row, state.size - 1 - row)) // Get element at (row, n-1-row)
-        .all(|emoji| emoji == target.as_ref())
+    // Anti-diagonal
+    if board
+        .iter()
+        .zip((0..n).rev())
+        .all(|(row, c)| row.get(c).and_then(Option::as_ref) == target)
     {
         return true;
     }
 
-    // No win condition met
     false
 }
 
-#[expect(dead_code, reason = "used for future TicTacToe win/draw detection")]
-fn check_draw(components: &[Component]) -> bool {
-    let x_emoji = Some(ReactionType::from(EMOJI_P1));
-    let o_emoji = Some(ReactionType::from(EMOJI_P2));
+fn check_draw(board: &Board) -> bool {
+    let x_emoji = ReactionType::from(EMOJI_P1);
+    let o_emoji = ReactionType::from(EMOJI_P2);
 
-    components
+    board
         .iter()
-        .filter_map(|component| match component {
-            Component::ActionRow(action_row) => Some(action_row.components.iter()),
-            Component::Section(_)
-            | Component::TextDisplay(_)
-            | Component::MediaGallery(_)
-            | Component::File(_)
-            | Component::Separator(_)
-            | Component::Container(_)
-            | Component::Label(_)
-            | Component::Unknown(_)
-            | _ => None,
-        })
         .flatten()
-        .filter_map(|component| match component {
-            ActionRowComponent::Button(button) => Some(button),
-            ActionRowComponent::SelectMenu(_) | _ => None,
-        })
-        .all(|button| button.emoji == x_emoji || button.emoji == o_emoji)
+        .all(|cell| cell.as_ref().is_some_and(|e| e == &x_emoji || e == &o_emoji))
 }
