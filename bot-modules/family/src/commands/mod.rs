@@ -1,6 +1,5 @@
 mod adopt;
 mod block;
-// mod cache;
 mod divorce;
 mod information;
 mod marry;
