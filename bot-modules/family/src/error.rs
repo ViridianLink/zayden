@@ -63,7 +63,6 @@ pub enum FamilyError {
     Serenity(serenity::Error),
     SerenityTimestamp(serenity::model::timestamp::InvalidTimestamp),
     Sqlx(sqlx::Error),
-    EnvVar(std::env::VarError),
     // Reqwest(reqwest::Error),
     // Cron(cron::error::Error),
     ParseIntError(std::num::ParseIntError),
@@ -138,7 +137,6 @@ impl Display for FamilyError {
             Self::NoInteraction
             | Self::SerenityTimestamp(_)
             | Self::Sqlx(_)
-            | Self::EnvVar(_)
             | Self::ParseIntError(_)
             | Self::ReactionConversionError(_)
             | Self::Serenity(_) => write!(f, "{self:?}"),
@@ -177,7 +175,6 @@ impl Respond for FamilyError {
             Self::NoInteraction
             | Self::SerenityTimestamp(_)
             | Self::Sqlx(_)
-            | Self::EnvVar(_)
             | Self::ParseIntError(_)
             | Self::ReactionConversionError(_)
             | Self::Serenity(_) => None,
@@ -191,7 +188,6 @@ impl std::error::Error for FamilyError {
             Self::Serenity(e) => Some(e),
             Self::SerenityTimestamp(e) => Some(e),
             Self::Sqlx(e) => Some(e),
-            Self::EnvVar(e) => Some(e),
             Self::ParseIntError(e) => Some(e),
             Self::ReactionConversionError(e) => Some(e),
             Self::UserSelfMarry
@@ -232,12 +228,6 @@ impl From<serenity::Error> for FamilyError {
 impl From<sqlx::Error> for FamilyError {
     fn from(e: sqlx::Error) -> Self {
         Self::Sqlx(e)
-    }
-}
-
-impl From<std::env::VarError> for FamilyError {
-    fn from(e: std::env::VarError) -> Self {
-        Self::EnvVar(e)
     }
 }
 
