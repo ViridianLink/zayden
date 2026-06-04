@@ -111,21 +111,31 @@ impl Display for FamilyError {
                     user_id.mention()
                 )
             },
-            Self::InvalidUserId
-            | Self::NoMentionedUser
-            | Self::NoInteraction
-            | Self::NoData(_)
-            | Self::AdoptCancelled
-            | Self::UserSelfBlock
-            | Self::SelfNoChildren
-            | Self::NoChildren(_)
-            | Self::MarryCancelled
-            | Self::SelfNoParents
-            | Self::NoParents(_)
-            | Self::SelfNoPartners
-            | Self::NoPartners(_)
-            | Self::SelfNoSiblings
-            | Self::NoSiblings(_)
+            Self::InvalidUserId => write!(f, "Invalid user."),
+            Self::NoMentionedUser => write!(f, "You must mention a user."),
+            Self::NoData(user_id) => {
+                write!(f, "There's no family data for {}.", user_id.mention())
+            },
+            Self::AdoptCancelled => write!(f, "Adoption request was cancelled."),
+            Self::UserSelfBlock => write!(f, "You can't block yourself!"),
+            Self::SelfNoChildren => write!(f, "You have no children."),
+            Self::NoChildren(user_id) => {
+                write!(f, "{} has no children.", user_id.mention())
+            },
+            Self::MarryCancelled => write!(f, "Marriage request was cancelled."),
+            Self::SelfNoParents => write!(f, "You have no parents."),
+            Self::NoParents(user_id) => {
+                write!(f, "{} has no parents.", user_id.mention())
+            },
+            Self::SelfNoPartners => write!(f, "You have no partners."),
+            Self::NoPartners(user_id) => {
+                write!(f, "{} has no partners.", user_id.mention())
+            },
+            Self::SelfNoSiblings => write!(f, "You have no siblings."),
+            Self::NoSiblings(user_id) => {
+                write!(f, "{} has no siblings.", user_id.mention())
+            },
+            Self::NoInteraction
             | Self::SerenityTimestamp(_)
             | Self::Sqlx(_)
             | Self::EnvVar(_)
@@ -148,10 +158,9 @@ impl Respond for FamilyError {
             | Self::UnauthorisedUser
             | Self::SameUser(_)
             | Self::UserSelfAdopt
-            | Self::AlreadyAdopted(_) => Some(Cow::Owned(self.to_string())),
-            Self::InvalidUserId
+            | Self::AlreadyAdopted(_)
+            | Self::InvalidUserId
             | Self::NoMentionedUser
-            | Self::NoInteraction
             | Self::NoData(_)
             | Self::AdoptCancelled
             | Self::UserSelfBlock
@@ -163,7 +172,9 @@ impl Respond for FamilyError {
             | Self::SelfNoPartners
             | Self::NoPartners(_)
             | Self::SelfNoSiblings
-            | Self::NoSiblings(_)
+            | Self::NoSiblings(_) => Some(Cow::Owned(self.to_string())),
+            // Internal errors — no actionable message to show the user.
+            Self::NoInteraction
             | Self::SerenityTimestamp(_)
             | Self::Sqlx(_)
             | Self::EnvVar(_)
