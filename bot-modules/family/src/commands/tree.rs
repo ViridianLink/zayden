@@ -129,11 +129,11 @@ impl Tree {
 
     pub fn register<'a>() -> CreateCommand<'a> {
         CreateCommand::new("tree")
-            .description("Adopt another user into your family.")
+            .description("Display your family tree.")
             .add_option(CreateCommandOption::new(
                 CommandOptionType::User,
                 "user",
-                "The user to adopt.",
+                "The user whose family tree to display.",
             ))
     }
 }
