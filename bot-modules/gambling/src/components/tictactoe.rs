@@ -176,7 +176,7 @@ impl TicTacToe {
         &self,
         pool: &Pool<Db>,
     ) -> GameRow {
-        let id = self.players[0];
+        let id = self.players[1];
 
         Manager::row(pool, id)
             .await
