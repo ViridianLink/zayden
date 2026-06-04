@@ -1,6 +1,6 @@
 use leptos::form::ActionForm;
 use leptos::prelude::*;
-use leptos_meta::{Title, provide_meta_context};
+use leptos_meta::{Stylesheet, Title, provide_meta_context};
 use leptos_router::components::{
     A,
     Outlet,
@@ -685,6 +685,7 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
+        <Stylesheet id="leptos" href="/pkg/dashboard.css"/>
         <Router>
             <Routes fallback=|| view! { <NotFound/> }>
                 <Route path=path!("/login") view=LoginPage/>
