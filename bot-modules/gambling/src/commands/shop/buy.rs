@@ -58,14 +58,31 @@ pub async fn buy<
     let amount: i64 = match amount.parse() {
         Ok(x) => x,
         Err(_) if *amount == "a" => {
-            return Err(GamblingError::PremiumRequired);
-
-            // match costs.first().copied() {
-            //     Some((coins, ShopCurrency::Coins)) => row.coins() / coins,
-            //     Some((gems, ShopCurrency::Gems)) => row.gems() / gems,
-            //     Some(_) => unimplemented!("Currency not implimented"),
-            //     None => unreachable!("No cost found"),
-            // }
+            let unit_costs = item.costs(1);
+            if unit_costs.is_empty() {
+                return Err(GamblingError::InvalidAmount);
+            }
+            let mut affordable = i64::MAX;
+            for (unit_cost, currency) in unit_costs {
+                let balance = match currency {
+                    ShopCurrency::Coins => row.coins(),
+                    ShopCurrency::Gems => row.gems(),
+                    ShopCurrency::Tech => row.tech,
+                    ShopCurrency::Utility => row.utility,
+                    ShopCurrency::Production => row.production,
+                    ShopCurrency::Coal
+                    | ShopCurrency::Iron
+                    | ShopCurrency::Gold
+                    | ShopCurrency::Redstone
+                    | ShopCurrency::Lapis
+                    | ShopCurrency::Diamonds
+                    | ShopCurrency::Emeralds => {
+                        return Err(GamblingError::InvalidAmount);
+                    },
+                };
+                affordable = affordable.min(balance / unit_cost);
+            }
+            affordable
         },
         _ => return Err(GamblingError::InvalidAmount),
     };
