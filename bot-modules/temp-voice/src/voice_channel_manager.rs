@@ -25,7 +25,7 @@ pub trait VoiceChannelManager<Db: Database> {
     -> sqlx::Result<Db::QueryResult>;
 }
 
-#[derive(FromRow)]
+#[derive(FromRow, Clone)]
 pub struct VoiceChannelRow {
     pub id: i64,
     pub owner_id: i64,
@@ -38,10 +38,10 @@ pub struct VoiceChannelRow {
 
 impl VoiceChannelRow {
     #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
-    pub fn new(id: impl Into<ChannelId>, owner_id: impl Into<UserId>) -> Self {
+    pub fn new(id: ChannelId, owner_id: UserId) -> Self {
         Self {
-            id: id.into().get() as i64,
-            owner_id: owner_id.into().get() as i64,
+            id: id.get() as i64,
+            owner_id: owner_id.get() as i64,
             trusted_ids: Vec::new(),
             invites: Vec::new(),
             password: None,
@@ -51,13 +51,10 @@ impl VoiceChannelRow {
     }
 
     #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
-    pub fn new_persistent(
-        id: impl Into<ChannelId>,
-        owner_id: impl Into<UserId>,
-    ) -> Self {
+    pub fn new_persistent(id: ChannelId, owner_id: UserId) -> Self {
         Self {
-            id: id.into().get() as i64,
-            owner_id: owner_id.into().get() as i64,
+            id: id.get() as i64,
+            owner_id: owner_id.get() as i64,
             trusted_ids: Vec::new(),
             invites: Vec::new(),
             password: None,
@@ -167,7 +164,7 @@ impl VoiceChannelRow {
     }
 }
 
-#[derive(sqlx::Type)]
+#[derive(sqlx::Type, Clone)]
 #[sqlx(rename_all = "lowercase")]
 pub enum VoiceChannelMode {
     Open,

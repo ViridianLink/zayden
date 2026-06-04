@@ -51,7 +51,7 @@ use untrust::untrust;
 use zayden_core::parse_options;
 
 use crate::guild_manager::TempVoiceGuildManager;
-use crate::{Error, Result, VoiceChannelManager, VoiceStateCache};
+use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow, VoiceStateCache};
 
 pub struct VoiceCommand;
 
@@ -118,9 +118,26 @@ impl VoiceCommand {
 
         let row = match ChannelManager::get(pool, channel_id).await {
             Ok(Some(row)) => row,
-            // TODO: If user has "ManageChannel" permission then add the channel to
-            // the DB
-            Ok(None) => return Err(Error::IneligibleChannel),
+            Ok(None) => {
+                let has_manage_channels = interaction
+                    .member
+                    .as_ref()
+                    .expect("guild command always has a member")
+                    .permissions
+                    .expect("guild member always has permissions")
+                    .manage_channels();
+
+                if !has_manage_channels {
+                    return Err(Error::IneligibleChannel);
+                }
+
+                let row =
+                    VoiceChannelRow::new_persistent(channel_id, interaction.user.id);
+
+                ChannelManager::save(pool, row.clone()).await?;
+
+                row
+            },
             Err(e) => return Err(Error::Sqlx(e)),
         };
 
