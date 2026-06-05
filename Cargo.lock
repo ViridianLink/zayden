@@ -1067,12 +1067,15 @@ name = "endgame-analysis"
 version = "1.0.0"
 dependencies = [
  "bungie-api",
+ "destiny2",
  "destiny2-core",
  "futures",
  "google-sheets-api",
+ "jiff-cron",
  "serde",
  "serde_json",
  "serenity",
+ "sqlx",
  "tokio",
  "tracing",
  "zayden-core",

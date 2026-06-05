@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use serenity::all::CreateUnfurledMediaItem;
+
 #[derive(Clone, Copy)]
 pub enum Weapon {
     LordOfWolves,
@@ -15,15 +17,11 @@ impl Display for Weapon {
     }
 }
 
-// impl<'a> From<Weapon> for CreateUnfurledMediaItem<'a> {
-//     fn from(value: Weapon) -> Self {
-//         match value {
-//             Weapon::LordOfWolves => CreateUnfurledMediaItem::new(
-//                 "https://www.bungie.net/common/destiny2_content/icons/6bd65ae8981e4cac3c00825abedd3fbb.jpg",
-//             ),
-//             Weapon::Queenbreaker => CreateUnfurledMediaItem::new(
-//                 "https://www.bungie.net/common/destiny2_content/icons/6bd65ae8981e4cac3c00825abedd3fbb.jpg",
-//             ),
-//         }
-//     }
-// }
+impl From<Weapon> for CreateUnfurledMediaItem<'static> {
+    fn from(_value: Weapon) -> Self {
+        // TODO: use per-weapon Bungie CDN URLs once confirmed
+        Self::new(
+            "https://www.bungie.net/common/destiny2_content/icons/6bd65ae8981e4cac3c00825abedd3fbb.jpg",
+        )
+    }
+}

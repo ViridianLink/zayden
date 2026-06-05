@@ -2,7 +2,6 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
-use endgame_analysis::endgame_analysis::EndgameAnalysisSheet;
 use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Http, Token, UserId};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
@@ -63,17 +62,8 @@ async fn main() -> Result<()> {
 
     EventListener::spawn(pool.clone(), app_state.events.clone());
 
-    let bot_state = BotState::new(Arc::clone(&app_state), &bot_config);
-
-    if !cfg!(debug_assertions) {
-        let manifest = EndgameAnalysisSheet::item_manifest(&bot_state).await;
-        EndgameAnalysisSheet::update(&manifest, &bot_config.google_api_key)
-            .await
-            .expect("EndgameAnalysisSheet update failed at startup");
-        destiny2::compendium::update(&bot_config.google_api_key).await;
-    }
-
-    let bot_state = Arc::new(RwLock::new(bot_state));
+    let bot_state =
+        Arc::new(RwLock::new(BotState::new(Arc::clone(&app_state), &bot_config)));
 
     let registry = bindings::build_registry().expect(
         "overlapping prefix registered at startup — this is a programmer error",

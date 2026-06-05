@@ -8,7 +8,10 @@ workspace = true
 
 [dependencies]
 bungie-api = { workspace = true }
+destiny2 = { workspace = true }
 destiny2-core = { workspace = true }
+jiff-cron = { workspace = true }
+sqlx = { workspace = true }
 futures = { workspace = true }
 google-sheets-api = { git = "https://github.com/ViridianLink/google-sheets-api.git", branch = "main" }
 serde = { workspace = true }

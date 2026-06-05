@@ -1,9 +1,11 @@
+pub mod cron;
 pub mod dimwishlist;
 pub mod endgame_analysis;
 pub mod error;
 pub mod tierlist;
 pub mod weapon;
 
+pub use cron::EndgameAnalysisSheetCron;
 pub use dimwishlist::DimWishlistCommand;
 pub use error::EndgameAnalysisError;
 use error::Result;

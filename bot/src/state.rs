@@ -61,6 +61,10 @@ impl BotState {
             StaminaCron::cron_job::<Postgres, StaminaTable>(),
             Lotto::cron_job::<Self, Postgres, GamblingTable, LottoTable>(),
             HigherLower::cron_job::<Postgres, GamblingTable, HigherLowerTable>(),
+            endgame_analysis::EndgameAnalysisSheetCron::cron_job::<Postgres>(
+                Arc::clone(&self.bungie_client),
+                self.app.google_api_key.clone(),
+            ),
         ];
         for job in jobs {
             match job {
