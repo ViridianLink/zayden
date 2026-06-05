@@ -24,6 +24,9 @@ pub use format_num::FormatNum;
 pub mod scope;
 pub use scope::{CommandMetadata, CommandScope, IdMatch};
 
+pub mod snowflake;
+pub use snowflake::{as_i64, as_u64};
+
 pub mod ctx;
 pub use ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 
