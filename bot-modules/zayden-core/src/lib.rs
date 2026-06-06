@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::fmt::Write as _;
+use std::hash::BuildHasher;
 
-use serenity::all::{ResolvedOption, ResolvedValue};
+use serenity::all::{PartialMember, ResolvedOption, ResolvedValue, Role, User};
 
 pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
@@ -33,6 +34,61 @@ pub use ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 pub mod module;
 pub use module::{ModuleAutocomplete, ModuleCommand, ModuleComponent, ModuleModal};
 use tracing::warn;
+
+pub trait FromOption<'a>: Sized {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self>;
+}
+
+impl<'a> FromOption<'a> for &'a str {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::String(s) = value { Some(s) } else { None }
+    }
+}
+
+impl<'a> FromOption<'a> for i64 {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::Integer(i) = value { Some(i) } else { None }
+    }
+}
+
+impl<'a> FromOption<'a> for f64 {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::Number(n) = value { Some(n) } else { None }
+    }
+}
+
+impl<'a> FromOption<'a> for bool {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::Boolean(b) = value { Some(b) } else { None }
+    }
+}
+
+impl<'a> FromOption<'a> for &'a Role {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::Role(r) = value { Some(r) } else { None }
+    }
+}
+
+impl<'a> FromOption<'a> for &'a User {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::User(u, _) = value { Some(u) } else { None }
+    }
+}
+
+impl<'a> FromOption<'a> for (&'a User, Option<&'a PartialMember>) {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::User(u, m) = value { Some((u, m)) } else { None }
+    }
+}
+
+pub fn required_option<'a, T: FromOption<'a>, S: BuildHasher>(
+    options: &mut HashMap<&str, ResolvedValue<'a>, S>,
+    name: &str,
+) -> Result<T, HandlerError> {
+    options.remove(name).and_then(T::from_option).ok_or_else(|| {
+        HandlerError::from_respond(Error::InvalidOption(name.to_string()))
+    })
+}
 
 pub fn parse_options<'a>(
     options: impl IntoIterator<Item = ResolvedOption<'a>>,

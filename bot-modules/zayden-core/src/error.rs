@@ -107,6 +107,8 @@ pub enum CoreError {
 
     MessageConflict,
 
+    InvalidOption(String),
+
     Serenity(serenity::Error),
     // region: Sqlx
     Sqlx(sqlx::Error),
@@ -121,6 +123,12 @@ impl std::fmt::Display for CoreError {
             },
             Self::NotInteractionAuthor => {
                 write!(f, "You are not the author of this interaction.")
+            },
+            Self::InvalidOption(name) => {
+                write!(
+                    f,
+                    "Required option `{name}` is missing or has an unexpected type"
+                )
             },
             Self::MessageConflict => write!(
                 f,
@@ -195,7 +203,8 @@ impl std::error::Error for CoreError {
             Self::Sqlx(e) => Some(e),
             Self::MissingGuildId
             | Self::NotInteractionAuthor
-            | Self::MessageConflict => None,
+            | Self::MessageConflict
+            | Self::InvalidOption(_) => None,
         }
     }
 }
@@ -242,7 +251,7 @@ impl Respond for CoreError {
                 Some(Cow::Owned(self.to_string()))
             },
 
-            Self::Serenity(_) | Self::Sqlx(_) => None,
+            Self::InvalidOption(_) | Self::Serenity(_) | Self::Sqlx(_) => None,
         }
     }
 }
