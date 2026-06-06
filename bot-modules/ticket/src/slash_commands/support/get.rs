@@ -10,6 +10,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use zayden_core::required_option;
 
 use crate::{Error, Result, Support, TicketGuildManager};
 
@@ -23,13 +24,7 @@ impl Support {
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let Some(ResolvedValue::String(id)) = options.remove("id") else {
-            unreachable!("ID is required")
-        };
+        let id: &str = required_option(&mut options, "id")?;
 
         let faq_channel_id = GuildManager::get(pool, guild_id)
             .await?

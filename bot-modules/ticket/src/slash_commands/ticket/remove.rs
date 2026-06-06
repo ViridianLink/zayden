@@ -8,7 +8,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::as_u64;
+use zayden_core::{as_u64, required_option};
 
 use crate::{Result, Ticket, TicketManager};
 
@@ -21,14 +21,9 @@ impl Ticket {
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let message_id = match options.remove("message") {
-            Some(ResolvedValue::Integer(id)) => MessageId::new(as_u64(id)),
-            _ => unreachable!("ID is required"),
-        };
+        let id: i64 = required_option(&mut options, "message")?;
+
+        let message_id = MessageId::new(as_u64(id));
 
         let channel_id = match options.remove("channel") {
             Some(ResolvedValue::Channel(channel)) => channel.id(),

@@ -79,3 +79,13 @@ impl From<Error> for HandlerError {
         Self::from_respond(e)
     }
 }
+
+impl From<HandlerError> for Error {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Database(e) => Self::Sqlx(e),
+            HandlerError::Discord(e) => Self::Serenity(e),
+            HandlerError::Module { .. } => Self::MissingGuildId,
+        }
+    }
+}

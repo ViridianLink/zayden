@@ -10,7 +10,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_options;
+use zayden_core::{parse_subcommand, required_option};
 
 mod add;
 mod remove;
@@ -30,33 +30,18 @@ impl ReactionRoleCommand {
 
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
-        let command = interaction.data.options().remove(0);
-
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees subcommand structure"
-        )]
-        let ResolvedValue::SubCommand(options) = command.value else {
-            unreachable!("Subcommand is required")
-        };
-        let mut options = parse_options(options);
+        let (name, mut options) = parse_subcommand(interaction.data.options())?;
 
         let channel_id = match options.remove("channel") {
             Some(ResolvedValue::Channel(channel)) => channel.id(),
             _ => interaction.channel_id,
         };
 
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let Some(ResolvedValue::String(emoji)) = options.remove("emoji") else {
-            unreachable!("Emoji is required")
-        };
+        let emoji: &str = required_option(&mut options, "emoji")?;
 
         let reaction = ReactionType::try_from(emoji)?;
 
-        match command.name {
+        match name {
             "add" => {
                 Self::add::<Db, Manager>(
                     http, pool, guild_id, channel_id, reaction, options,

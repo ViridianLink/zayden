@@ -10,7 +10,7 @@ use serenity::all::{
     UserId,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_options;
+use zayden_core::parse_subcommand;
 
 use crate::models::Savable;
 use crate::templates::DefaultTemplate;
@@ -29,21 +29,8 @@ pub struct LeaveInteraction {
 
 impl From<&CommandInteraction> for LeaveInteraction {
     fn from(value: &CommandInteraction) -> Self {
-        #[expect(
-            clippy::unreachable,
-            reason = "lfg command options are always SubCommand"
-        )]
-        let ResolvedValue::SubCommand(subcommand) = value
-            .data
-            .options()
-            .pop()
-            .expect("lfg action always has a subcommand")
-            .value
-        else {
-            unreachable!("lfg command options are always SubCommand")
-        };
-
-        let mut options = parse_options(subcommand);
+        let (_, mut options) = parse_subcommand(value.data.options())
+            .expect("lfg leave command always has a subcommand");
         let thread = match options.remove("thread") {
             Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(
                 thread,

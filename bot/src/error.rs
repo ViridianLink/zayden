@@ -1,5 +1,5 @@
 use zayden_core::Error as ZaydenError;
-use zayden_core::error::Respond;
+use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, BotError>;
 
@@ -157,5 +157,17 @@ impl From<std::env::VarError> for BotError {
 impl From<zayden_app::AppError> for BotError {
     fn from(e: zayden_app::AppError) -> Self {
         Self::Config(e)
+    }
+}
+
+impl From<HandlerError> for BotError {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Database(e) => Self::ZaydenCore(ZaydenError::Sqlx(e)),
+            HandlerError::Discord(e) => Self::ZaydenCore(ZaydenError::Serenity(e)),
+            HandlerError::Module { source, .. } => {
+                Self::ZaydenCore(ZaydenError::InvalidOption(source.to_string()))
+            },
+        }
     }
 }

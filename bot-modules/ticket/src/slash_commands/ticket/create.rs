@@ -10,6 +10,7 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
+use zayden_core::required_option;
 
 use crate::{Result, Ticket};
 
@@ -19,30 +20,9 @@ impl Ticket {
         interaction: &CommandInteraction,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let Some(ResolvedValue::String(title)) = options.remove("title") else {
-            unreachable!("Title is required")
-        };
-
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let Some(ResolvedValue::String(description)) = options.remove("description")
-        else {
-            unreachable!("Description is required")
-        };
-
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let Some(ResolvedValue::String(label)) = options.remove("label") else {
-            unreachable!("Label is required")
-        };
+        let title: &str = required_option(&mut options, "title")?;
+        let description: &str = required_option(&mut options, "description")?;
+        let label: &str = required_option(&mut options, "label")?;
 
         interaction.defer_ephemeral(http).await?;
 

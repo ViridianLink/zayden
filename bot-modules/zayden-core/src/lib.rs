@@ -96,6 +96,19 @@ pub fn parse_options<'a>(
     options.into_iter().map(|option| (option.name, option.value)).collect()
 }
 
+pub fn parse_subcommand<'a>(
+    options: impl IntoIterator<Item = ResolvedOption<'a>>,
+) -> Result<(&'a str, HashMap<&'a str, ResolvedValue<'a>>), HandlerError> {
+    for option in options {
+        if let ResolvedValue::SubCommand(sub_opts)
+        | ResolvedValue::SubCommandGroup(sub_opts) = option.value
+        {
+            return Ok((option.name, parse_options(sub_opts)));
+        }
+    }
+    Err(HandlerError::from_respond(Error::InvalidOption("subcommand".to_string())))
+}
+
 pub fn parse_options_ref<'a>(
     options: impl IntoIterator<Item = &'a ResolvedOption<'a>>,
 ) -> HashMap<&'a str, &'a ResolvedValue<'a>> {

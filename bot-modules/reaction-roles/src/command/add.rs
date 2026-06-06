@@ -10,8 +10,10 @@ use serenity::all::{
     MessageId,
     ReactionType,
     ResolvedValue,
+    Role,
 };
 use sqlx::{Database, Pool};
+use zayden_core::required_option;
 
 use super::ReactionRoleCommand;
 use crate::reaction_roles_manager::ReactionRolesManager;
@@ -26,13 +28,7 @@ impl ReactionRoleCommand {
         reaction: ReactionType,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let Some(ResolvedValue::Role(role)) = options.remove("role") else {
-            unreachable!("Role is required")
-        };
+        let role: &Role = required_option(&mut options, "role")?;
 
         let message_id = match options.remove("message_id") {
             Some(ResolvedValue::String(id)) => Some(MessageId::new(

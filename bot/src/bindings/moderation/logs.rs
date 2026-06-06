@@ -1,10 +1,10 @@
 use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Permissions, Ready, ResolvedOption, ResolvedValue,
+    CreateEmbed, EditInteractionResponse, Permissions, Ready, ResolvedOption, ResolvedValue, User,
 };
 use sqlx::{PgPool, Postgres};
-use core::{SlashCommand, parse_options};
+use core::{SlashCommand, parse_options, required_option};
 
 use crate::{Error, Result};
 
@@ -24,9 +24,7 @@ impl SlashCommand<Error, Postgres> for Logs {
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::User(user, _)) = options.remove("user") else {
-            unreachable!("User option is required");
-        };
+        let user: &User = required_option(&mut options, "user")?;
 
         let filter = match options.remove("filter") {
             Some(ResolvedValue::String(filter)) => filter,

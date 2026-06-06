@@ -9,6 +9,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use zayden_core::required_option;
 
 use super::ReactionRoleCommand;
 use crate::reaction_roles_manager::ReactionRolesManager;
@@ -23,13 +24,7 @@ impl ReactionRoleCommand {
         reaction: ReactionType,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        #[expect(
-            clippy::unreachable,
-            reason = "Discord guarantees required options are present"
-        )]
-        let Some(ResolvedValue::String(id)) = options.remove("message_id") else {
-            unreachable!("Message ID is required")
-        };
+        let id: &str = required_option(&mut options, "message_id")?;
         let message_id = MessageId::new(
             id.parse().map_err(|_e| Error::InvalidMessageId(id.to_string()))?,
         );

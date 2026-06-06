@@ -13,6 +13,8 @@ use serenity::model::{Permissions, Timestamp};
 use serenity::prelude::Context;
 use sqlx::{PgPool, Pool, Postgres};
 
+use zayden_core::required_option;
+
 use crate::{Error, Result};
 
 use super::{InfractionKind, InfractionRow};
@@ -33,9 +35,7 @@ impl SlashCommand<Error, Postgres> for Infraction {
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::User(user, _)) = options.remove("user") else {
-            unreachable!("User option is required");
-        };
+        let user: &User = required_option(&mut options, "user")?;
 
         let points = match options.remove("points") {
             Some(ResolvedValue::Integer(points)) => points as i32,

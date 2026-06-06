@@ -72,3 +72,15 @@ impl From<Error> for HandlerError {
         Self::from_respond(e)
     }
 }
+
+impl From<HandlerError> for Error {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Database(e) => Self::ZaydenCore(ZaydenError::Sqlx(e)),
+            HandlerError::Discord(e) => Self::ZaydenCore(ZaydenError::Serenity(e)),
+            HandlerError::Module { source, .. } => {
+                Self::ZaydenCore(ZaydenError::InvalidOption(source.to_string()))
+            },
+        }
+    }
+}
