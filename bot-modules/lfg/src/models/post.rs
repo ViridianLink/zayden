@@ -5,6 +5,7 @@ use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{GenericChannelId, MessageId, ThreadId, UserId};
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
+use zayden_core::{as_i64, as_u64};
 
 use crate::templates::TemplateInfo;
 use crate::{Join, Result};
@@ -91,8 +92,8 @@ impl PostBuilder {
     #[must_use]
     pub fn build(self) -> PostRow {
         PostRow {
-            id: self.id.get().cast_signed(),
-            owner_id: self.owner.get().cast_signed(),
+            id: as_i64(self.id.get()),
+            owner_id: as_i64(self.owner.get()),
             activity: self.activity,
             start_time: self.start_time.timestamp().to_sqlx(),
             description: self.description,
@@ -100,17 +101,15 @@ impl PostBuilder {
             fireteam: self
                 .fireteam
                 .into_iter()
-                .map(|user| user.get().cast_signed())
+                .map(|user| as_i64(user.get()))
                 .collect(),
             alternatives: self
                 .alternatives
                 .into_iter()
-                .map(|user| user.get().cast_signed())
+                .map(|user| as_i64(user.get()))
                 .collect(),
-            alt_channel: self
-                .schedule_channel
-                .map(|channel| channel.get().cast_signed()),
-            alt_message: self.alt_message.map(|message| message.get().cast_signed()),
+            alt_channel: self.schedule_channel.map(|channel| as_i64(channel.get())),
+            alt_message: self.alt_message.map(|message| as_i64(message.get())),
         }
     }
 }
@@ -152,7 +151,7 @@ impl TemplateInfo for PostBuilder {
 impl From<PostRow> for PostBuilder {
     fn from(value: PostRow) -> Self {
         Self {
-            id: ThreadId::new(value.id.cast_unsigned()),
+            id: ThreadId::new(as_u64(value.id)),
             owner: value.owner(),
             activity: value.activity,
             start_time: value.start_time.to_jiff().to_zoned(TimeZone::UTC),
@@ -161,19 +160,17 @@ impl From<PostRow> for PostBuilder {
             fireteam: value
                 .fireteam
                 .into_iter()
-                .map(|id| UserId::new(id.cast_unsigned()))
+                .map(|id| UserId::new(as_u64(id)))
                 .collect(),
             alternatives: value
                 .alternatives
                 .into_iter()
-                .map(|id| UserId::new(id.cast_unsigned()))
+                .map(|id| UserId::new(as_u64(id)))
                 .collect(),
             schedule_channel: value
                 .alt_channel
-                .map(|id| GenericChannelId::new(id.cast_unsigned())),
-            alt_message: value
-                .alt_message
-                .map(|id| MessageId::new(id.cast_unsigned())),
+                .map(|id| GenericChannelId::new(as_u64(id))),
+            alt_message: value.alt_message.map(|id| MessageId::new(as_u64(id))),
         }
     }
 }
@@ -234,17 +231,17 @@ pub struct PostRow {
 impl PostRow {
     #[must_use]
     pub const fn thread(&self) -> ThreadId {
-        ThreadId::new(self.id.cast_unsigned())
+        ThreadId::new(as_u64(self.id))
     }
 
     #[must_use]
     pub const fn message(&self) -> MessageId {
-        MessageId::new(self.id.cast_unsigned())
+        MessageId::new(as_u64(self.id))
     }
 
     #[must_use]
     pub const fn owner(&self) -> UserId {
-        UserId::new(self.owner_id.cast_unsigned())
+        UserId::new(as_u64(self.owner_id))
     }
 }
 
@@ -254,7 +251,7 @@ impl Join for PostRow {
     }
 
     fn fireteam(&self) -> impl Iterator<Item = UserId> {
-        self.fireteam.iter().map(|&id| UserId::new(id.cast_unsigned()))
+        self.fireteam.iter().map(|&id| UserId::new(as_u64(id)))
     }
 
     fn fireteam_len(&self) -> i16 {
@@ -262,7 +259,7 @@ impl Join for PostRow {
     }
 
     fn alternatives(&self) -> impl Iterator<Item = UserId> {
-        self.alternatives.iter().map(|&id| UserId::new(id.cast_unsigned()))
+        self.alternatives.iter().map(|&id| UserId::new(as_u64(id)))
     }
 }
 
@@ -284,18 +281,18 @@ impl TemplateInfo for PostRow {
     }
 
     fn fireteam(&self) -> impl Iterator<Item = UserId> {
-        self.fireteam.iter().map(|&id| UserId::new(id.cast_unsigned()))
+        self.fireteam.iter().map(|&id| UserId::new(as_u64(id)))
     }
 
     fn alternatives(&self) -> impl Iterator<Item = UserId> {
-        self.alternatives.iter().map(|&id| UserId::new(id.cast_unsigned()))
+        self.alternatives.iter().map(|&id| UserId::new(as_u64(id)))
     }
 
     fn schedule_channel(&self) -> Option<GenericChannelId> {
-        self.alt_channel.map(|id| GenericChannelId::new(id.cast_unsigned()))
+        self.alt_channel.map(|id| GenericChannelId::new(as_u64(id)))
     }
 
     fn alt_message(&self) -> Option<MessageId> {
-        self.alt_message.map(|id| MessageId::new(id.cast_unsigned()))
+        self.alt_message.map(|id| MessageId::new(as_u64(id)))
     }
 }

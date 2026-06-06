@@ -17,6 +17,7 @@ use levels::{FullLevelRow, LeaderboardRow, LevelsManager, RankRow, XpRow};
 use serenity::all::UserId;
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
+use zayden_core::as_i64;
 
 use crate::RegistryBuilder;
 use crate::registry::OverlapError;
@@ -46,7 +47,7 @@ impl LevelsManager<Postgres> for LevelsTable {
         pool: &PgPool,
         user_id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<i64>> {
-        let id = user_id.into().get().cast_signed();
+        let id = as_i64(user_id.into().get());
 
         sqlx::query_scalar!(
     "SELECT row_number FROM (SELECT user_id, ROW_NUMBER() OVER (ORDER BY level DESC, xp DESC) FROM levels) AS ranked WHERE user_id = $1",
@@ -65,7 +66,7 @@ impl LevelsManager<Postgres> for LevelsTable {
         sqlx::query_as!(
             RankRow,
             "SELECT xp, level FROM levels WHERE user_id = $1",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -80,7 +81,7 @@ impl LevelsManager<Postgres> for LevelsTable {
         sqlx::query_as!(
             XpRow,
             "SELECT xp, level, total_xp FROM levels WHERE user_id = $1",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -95,7 +96,7 @@ impl LevelsManager<Postgres> for LevelsTable {
         sqlx::query_as!(
             FullLevelRow,
             r#"SELECT user_id, xp, level, total_xp, message_count, last_xp as "last_xp: jiff_sqlx::Timestamp" FROM levels WHERE user_id = $1"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await

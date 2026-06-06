@@ -23,7 +23,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData};
+use zayden_core::{EmojiCache, EmojiCacheData, as_u64};
 
 use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
 use crate::{Coins, EffectsManager, GamblingManager, GameManager, GameRow, Result};
@@ -203,14 +203,14 @@ async fn accept<
 
     EffectsHandler::bet_limit::<GamblingHandler>(
         pool,
-        p1_row.user_id.cast_unsigned(),
+        as_u64(p1_row.user_id),
         state.bet,
         p1_row.coins(),
     )
     .await?;
     EffectsHandler::bet_limit::<GamblingHandler>(
         pool,
-        p2_row.user_id.cast_unsigned(),
+        as_u64(p2_row.user_id),
         state.bet,
         p2_row.coins(),
     )

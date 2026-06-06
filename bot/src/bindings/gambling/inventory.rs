@@ -5,6 +5,7 @@ use gambling::commands::inventory::{InventoryManager, InventoryRow};
 use gambling::{Commands, GamblingItem, GamblingItems};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgConnection, PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -38,7 +39,7 @@ impl InventoryManager<Postgres> for InventoryTable {
             COALESCE(m.emeralds, 0) AS "emeralds!"
 
             FROM gambling g LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -53,7 +54,7 @@ impl InventoryManager<Postgres> for InventoryTable {
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_all(pool)
         .await?;
@@ -90,7 +91,7 @@ impl InventoryManager<Postgres> for InventoryTable {
         FROM
             updated_row ur
         "#,
-            id.get().cast_signed(),
+            as_i64(id.get()),
             item_id,
             amount
         )

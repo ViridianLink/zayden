@@ -7,6 +7,7 @@ use gambling::{Commands, GamblingItem, GamblingItems, ShopManager, ShopRow};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -47,7 +48,7 @@ impl ShopManager<Postgres> for ShopTable {
             COALESCE(m.production, 0) AS "production!"
 
             FROM gambling g LEFT JOIN levels l ON g.user_id = l.user_id LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1;"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         ).fetch_optional(pool).await
     }
 
@@ -123,7 +124,7 @@ impl ShopManager<Postgres> for ShopTable {
             SELECT $1, * FROM UNNEST($2::text[], $3::bigint[])
             ON CONFLICT (user_id, item_id) DO UPDATE
             SET quantity = EXCLUDED.quantity",
-            user_id.get().cast_signed(),
+            as_i64(user_id.get()),
             &item_ids,
             &quantities
         )
@@ -154,7 +155,7 @@ impl ShopManager<Postgres> for ShopTable {
             WHERE
                 g.user_id = $1
             "#,
-            id.get().cast_signed(),
+            as_i64(id.get()),
             item_id
         )
         .fetch_optional(pool)
@@ -218,7 +219,7 @@ impl InventoryManager<Postgres> for ShopTable {
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_all(pool)
         .await?;

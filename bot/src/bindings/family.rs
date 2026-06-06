@@ -36,6 +36,7 @@ use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
+use zayden_core::{as_i64, as_u64};
 
 use crate::RegistryBuilder;
 use crate::registry::OverlapError;
@@ -72,7 +73,7 @@ impl FamilyManager<Postgres> for FamilyTable {
         pool: &PgPool,
         user_id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<FamilyRow>> {
-        let uid: i64 = user_id.into().get().cast_signed();
+        let uid: i64 = as_i64(user_id.into().get());
 
         let username: Option<String> = sqlx::query_scalar!(
             "SELECT u.username FROM family f \
@@ -139,7 +140,7 @@ impl FamilyManager<Postgres> for FamilyTable {
         add_partners: bool,
     ) -> sqlx::Result<HashMap<i32, Vec<FamilyRow>>> {
         let user_id = user_id.into();
-        let signed_id = user_id.get().cast_signed();
+        let signed_id = as_i64(user_id.get());
 
         // Cycle prevention: skip if already in tree.
         if tree.values().flatten().any(|row| row.id == signed_id) {
@@ -158,7 +159,7 @@ impl FamilyManager<Postgres> for FamilyTable {
 
         if add_parents {
             for parent_id in parent_ids {
-                let pid = UserId::new(parent_id.cast_unsigned());
+                let pid = UserId::new(as_u64(parent_id));
                 tree = Box::pin(Self::tree(
                     pool,
                     pid,
@@ -173,7 +174,7 @@ impl FamilyManager<Postgres> for FamilyTable {
 
         if add_partners {
             for partner_id in partner_ids {
-                let pid = UserId::new(partner_id.cast_unsigned());
+                let pid = UserId::new(as_u64(partner_id));
                 // Don't recurse into partners' partners to prevent runaway
                 // expansion.
                 tree = Box::pin(Self::tree(pool, pid, tree, depth, false, false))
@@ -182,7 +183,7 @@ impl FamilyManager<Postgres> for FamilyTable {
         }
 
         for child_id in children_ids {
-            let cid = UserId::new(child_id.cast_unsigned());
+            let cid = UserId::new(as_u64(child_id));
             tree = Box::pin(Self::tree(
                 pool,
                 cid,
@@ -280,8 +281,8 @@ impl FamilyManager<Postgres> for FamilyTable {
         user_id: UserId,
         partner_id: UserId,
     ) -> sqlx::Result<()> {
-        let uid: i64 = user_id.get().cast_signed();
-        let pid: i64 = partner_id.get().cast_signed();
+        let uid: i64 = as_i64(user_id.get());
+        let pid: i64 = as_i64(partner_id.get());
         let (lo, hi) = if uid < pid { (uid, pid) } else { (pid, uid) };
 
         sqlx::query!(
@@ -765,7 +766,7 @@ fn format_tree(tree: &HashMap<i32, Vec<FamilyRow>>, root_id: UserId) -> String {
     let mut keys: Vec<i32> = tree.keys().copied().collect();
     keys.sort_unstable();
 
-    let root_signed = root_id.get().cast_signed();
+    let root_signed = as_i64(root_id.get());
     let mut lines = Vec::new();
 
     for depth in keys {

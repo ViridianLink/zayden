@@ -7,6 +7,7 @@ use gambling::games::higherlower::HigherLowerManager;
 use serenity::all::{CreateCommand, MessageInteractionMetadata, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, Postgres};
+use zayden_core::as_u64;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
@@ -23,7 +24,7 @@ impl HigherLowerManager<Postgres> for HigherLowerTable {
     async fn winners(conn: &mut PgConnection) -> sqlx::Result<Vec<UserId>> {
         sqlx::query_file_scalar!("sql/gambling/HigherLowerManager/winners.sql")
             .fetch(conn)
-            .map_ok(|id| UserId::new(id.cast_unsigned()))
+            .map_ok(|id| UserId::new(as_u64(id)))
             .try_collect()
             .await
     }

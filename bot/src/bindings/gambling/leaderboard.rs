@@ -15,6 +15,7 @@ use gambling::common::{LeaderboardManager, LeaderboardRow};
 use gambling::shop::{EGGPLANT, LOTTO_TICKET};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
@@ -62,7 +63,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/coins_row_number.sql",
             global,
             users,
-            user_id.get().cast_signed()
+            as_i64(user_id.get())
         )
         .fetch_optional(pool)
         .await
@@ -103,7 +104,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/gems_row_number.sql",
             global,
             users,
-            user_id.get().cast_signed()
+            as_i64(user_id.get())
         )
         .fetch_optional(pool)
         .await
@@ -146,7 +147,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             global,
             users,
             EGGPLANT.id,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -189,7 +190,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             global,
             users,
             LOTTO_TICKET.id,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -230,7 +231,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/higherlower_row_number.sql",
             global,
             users,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -271,7 +272,7 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
             "sql/gambling/LeaderboardManager/weekly_higherlower_row_number.sql",
             global,
             users,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await

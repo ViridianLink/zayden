@@ -16,7 +16,7 @@ use serenity::all::{
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData, FormatNum, parse_options};
+use zayden_core::{EmojiCache, EmojiCacheData, FormatNum, as_i64, parse_options};
 
 use super::Commands;
 use crate::shop::ShopCurrency;
@@ -49,7 +49,7 @@ impl CraftRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coal: 0,
             iron: 0,
             gold: 0,

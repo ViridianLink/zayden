@@ -8,6 +8,7 @@ use jiff_sqlx::Date;
 use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -27,7 +28,7 @@ impl DailyManager<Postgres> for DailyTable {
         sqlx::query_file_as!(
             DailyRow,
             "sql/gambling/DailyManager/daily_row.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -40,7 +41,7 @@ impl DailyManager<Postgres> for DailyTable {
         sqlx::query_file_as!(
             GamblingGoalsRow,
             "sql/gambling/DailyManager/goal_rows.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_all(pool)
         .await

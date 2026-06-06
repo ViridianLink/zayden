@@ -8,6 +8,7 @@ use serenity::all::UserId;
 use sqlx::postgres::PgQueryResult;
 use sqlx::postgres::types::PgInterval;
 use sqlx::{PgConnection, Postgres};
+use zayden_core::as_i64;
 
 pub struct EffectsTable;
 
@@ -22,7 +23,7 @@ impl EffectsManager<Postgres> for EffectsTable {
         sqlx::query_as!(
             EffectsRow,
             r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1"#,
-            user_id.get().cast_signed(),
+            as_i64(user_id.get()),
         )
         .fetch(conn).map_ok(|row| (row.item_id, row.id)).try_collect()
         .await
@@ -38,7 +39,7 @@ impl EffectsManager<Postgres> for EffectsTable {
         sqlx::query_as!(
             EffectsRow,
             r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1 AND item_id = $2"#,
-            user_id.get().cast_signed(),
+            as_i64(user_id.get()),
             effect
         )
         .fetch_optional(conn)
@@ -63,7 +64,7 @@ impl EffectsManager<Postgres> for EffectsTable {
             ON CONFLICT (user_id, item_id)
             DO UPDATE SET
                 expiry = GREATEST(gambling_effects.expiry + $3, EXCLUDED.expiry)",
-            user_id.get().cast_signed(),
+            as_i64(user_id.get()),
             item.id,
             duration
         )

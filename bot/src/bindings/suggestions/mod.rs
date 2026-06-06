@@ -3,6 +3,7 @@ use serenity::all::GuildId;
 use sqlx::{PgPool, Postgres};
 use suggestions::{SuggestionsGuildManager, SuggestionsGuildRow};
 use zayden_app::config::ConfigStore;
+use zayden_core::as_i64;
 
 mod components;
 pub mod slash_command;
@@ -21,9 +22,8 @@ impl SuggestionsGuildManager<Postgres> for GuildTable {
     ) -> sqlx::Result<Option<SuggestionsGuildRow>> {
         let id = id.into();
 
-        let Some(cfg) = ConfigStore::from_pool(pool.clone())
-            .try_get(id.get().cast_signed())
-            .await?
+        let Some(cfg) =
+            ConfigStore::from_pool(pool.clone()).try_get(as_i64(id.get())).await?
         else {
             return Ok(None);
         };

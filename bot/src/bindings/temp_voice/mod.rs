@@ -21,6 +21,7 @@ use temp_voice::{
     VoiceChannelRow,
 };
 use zayden_app::config::ConfigStore;
+use zayden_core::{as_i64, as_u64};
 
 use crate::sqlx_lib::GuildTable;
 
@@ -33,10 +34,10 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
         creator_channel: ChannelId,
     ) -> sqlx::Result<PgQueryResult> {
         ConfigStore::from_pool(pool.clone())
-            .update(id.get().cast_signed(), |patch| {
-                patch.temp_voice_category = Some(category.get().cast_signed());
+            .update(as_i64(id.get()), |patch| {
+                patch.temp_voice_category = Some(as_i64(category.get()));
                 patch.temp_voice_creator_channel =
-                    Some(creator_channel.get().cast_signed());
+                    Some(as_i64(creator_channel.get()));
             })
             .await?;
 
@@ -44,8 +45,7 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
     }
 
     async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<TempVoiceRow> {
-        let cfg =
-            ConfigStore::from_pool(pool.clone()).get(id.get().cast_signed()).await?;
+        let cfg = ConfigStore::from_pool(pool.clone()).get(as_i64(id.get())).await?;
 
         Ok(TempVoiceRow {
             id: cfg.id,
@@ -55,23 +55,19 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
     }
 
     async fn get_category(pool: &PgPool, id: GuildId) -> sqlx::Result<ChannelId> {
-        let cfg =
-            ConfigStore::from_pool(pool.clone()).get(id.get().cast_signed()).await?;
+        let cfg = ConfigStore::from_pool(pool.clone()).get(as_i64(id.get())).await?;
 
         let category = cfg.temp_voice_category.ok_or(sqlx::Error::RowNotFound)?;
-        Ok(ChannelId::new(category.cast_unsigned()))
+        Ok(ChannelId::new(as_u64(category)))
     }
 
     async fn get_creator_channel(
         pool: &PgPool,
         id: GuildId,
     ) -> sqlx::Result<Option<ChannelId>> {
-        let cfg =
-            ConfigStore::from_pool(pool.clone()).get(id.get().cast_signed()).await?;
+        let cfg = ConfigStore::from_pool(pool.clone()).get(as_i64(id.get())).await?;
 
-        Ok(cfg
-            .temp_voice_creator_channel
-            .map(|id| ChannelId::new(id.cast_unsigned())))
+        Ok(cfg.temp_voice_creator_channel.map(|id| ChannelId::new(as_u64(id))))
     }
 }
 
@@ -117,7 +113,7 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
                 vc.mode AS "mode: TempVoiceMode" 
             FROM voice_channels vc
             WHERE vc.id = $1;"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await?;
@@ -131,7 +127,7 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
     ) -> sqlx::Result<i64> {
         let count = sqlx::query!(
             r#"SELECT COUNT(*) FROM voice_channels WHERE owner_id = $1 AND persistent = true"#,
-            user_id.get().cast_signed()
+            as_i64(user_id.get())
         )
         .fetch_one(pool)
         .await?
@@ -204,11 +200,8 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
     }
 
     async fn delete(pool: &PgPool, id: ChannelId) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            r#"DELETE FROM voice_channels WHERE id = $1"#,
-            id.get().cast_signed()
-        )
-        .execute(pool)
-        .await
+        sqlx::query!(r#"DELETE FROM voice_channels WHERE id = $1"#, as_i64(id.get()))
+            .execute(pool)
+            .await
     }
 }

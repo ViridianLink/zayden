@@ -6,7 +6,7 @@ use serenity::all::{ChannelId, CreateEmbed, CreateMessage, Mentionable, UserId};
 use sqlx::{Database, FromRow};
 use tokio::sync::RwLock;
 use tracing::error;
-use zayden_core::{CronJob, EmojiCacheData, FormatNum};
+use zayden_core::{CronJob, EmojiCacheData, FormatNum, as_i64, as_u64};
 
 use crate::shop::LOTTO_TICKET;
 use crate::{Coins, GamblingManager, bot_id};
@@ -40,11 +40,11 @@ impl LottoRow {
     pub fn new(id: impl Into<UserId> + Send) -> Self {
         let id: UserId = id.into();
 
-        Self { user_id: id.get().cast_signed(), coins: 0, quantity: Some(0) }
+        Self { user_id: as_i64(id.get()), coins: 0, quantity: Some(0) }
     }
 
     const fn user_id(&self) -> UserId {
-        UserId::new(self.user_id.cast_unsigned())
+        UserId::new(as_u64(self.user_id))
     }
 
     #[must_use]
@@ -92,7 +92,7 @@ impl Lotto {
 
                 let total_tickets: i64 = rows.iter().map(LottoRow::quantity).sum();
 
-                rows.retain(|row| row.user_id.cast_unsigned() != bot_id.get());
+                rows.retain(|row| as_u64(row.user_id) != bot_id.get());
 
                 let prize_share = [0.5, 0.3, 0.2];
                 let expected_winners = prize_share.len();

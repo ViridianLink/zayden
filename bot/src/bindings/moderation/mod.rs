@@ -4,6 +4,7 @@ use chrono::NaiveDateTime;
 use serenity::all::{Context, CreateCommand, GuildId, Ready, User, UserId};
 use sqlx::{postgres::PgQueryResult, FromRow, PgPool};
 use core::SlashCommand;
+use zayden_core::as_i64;
 
 pub use infraction::Infraction;
 pub use logs::Logs;
@@ -53,11 +54,11 @@ impl InfractionRow {
     ) -> Result<Self> {
         Ok(Self {
             id: 0,
-            user_id: user_id.get().cast_signed(),
+            user_id: as_i64(user_id.get()),
             username: username.into(),
-            guild_id: guild_id.get().cast_signed(),
+            guild_id: as_i64(guild_id.get()),
             infraction_type: infraction_kind.to_string(),
-            moderator_id: moderator.id.get().cast_signed(),
+            moderator_id: as_i64(moderator.id.get()),
             moderator_username: moderator.name.clone(),
             points,
             reason: reason.into(),
@@ -70,7 +71,7 @@ impl InfractionRow {
         user_id: UserId,
         recent: bool,
     ) -> Result<Vec<InfractionRow>> {
-        let user_id = user_id.get().cast_signed();
+        let user_id = as_i64(user_id.get());
 
         let infractions = if recent {
             sqlx::query_as!(

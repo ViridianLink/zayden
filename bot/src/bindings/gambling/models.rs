@@ -3,6 +3,7 @@ use gambling::{GamblingManager, GameManager, GameRow, StatsManager};
 use serenity::all::UserId;
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
+use zayden_core::as_i64;
 
 pub struct GamblingTable;
 
@@ -16,7 +17,7 @@ impl GamblingManager<Postgres> for GamblingTable {
 
         sqlx::query_file_scalar!(
             "./sql/gambling/GamblingManager/coins.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_one(conn)
         .await
@@ -42,7 +43,7 @@ impl GamblingManager<Postgres> for GamblingTable {
             WHERE
                 l.user_id = $1
             "#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_one(conn)
         .await
@@ -59,7 +60,7 @@ impl GamblingManager<Postgres> for GamblingTable {
 
         sqlx::query_file!(
             "./sql/gambling/GamblingManager/bet.sql",
-            id.get().cast_signed(),
+            as_i64(id.get()),
             bet
         )
         .execute(pool)
@@ -75,7 +76,7 @@ impl GamblingManager<Postgres> for GamblingTable {
 
         sqlx::query_file!(
             "./sql/gambling/GamblingManager/add_coins.sql",
-            id.get().cast_signed(),
+            as_i64(id.get()),
             amount
         )
         .execute(conn)
@@ -91,7 +92,7 @@ impl GamblingManager<Postgres> for GamblingTable {
 
         sqlx::query_file!(
             "./sql/gambling/GamblingManager/add_gems.sql",
-            id.get().cast_signed(),
+            as_i64(id.get()),
             amount
         )
         .execute(conn)
@@ -112,7 +113,7 @@ impl GameManager<Postgres> for GameTable {
         sqlx::query_file_as!(
             GameRow,
             "./sql/gambling/GameManager/row.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -146,7 +147,7 @@ impl StatsManager<Postgres> for StatsTable {
 
         sqlx::query_file!(
             "sql/gambling/StatsManager/higherlower.sql",
-            user_id.get().cast_signed(),
+            as_i64(user_id.get()),
             score
         )
         .execute(conn)

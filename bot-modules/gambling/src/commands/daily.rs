@@ -12,7 +12,7 @@ use serenity::all::{
 };
 use sqlx::{Database, FromRow, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCacheData, FormatNum};
+use zayden_core::{EmojiCacheData, FormatNum, as_i64};
 
 use super::Commands;
 use crate::{
@@ -57,7 +57,7 @@ impl DailyRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coins: 0,
             gems: 0,
             daily: jiff::civil::Date::default().to_sqlx(),

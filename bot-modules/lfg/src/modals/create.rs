@@ -21,7 +21,7 @@ use serenity::all::{
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tracing::warn;
-use zayden_core::{CronJobData, parse_modal_components};
+use zayden_core::{CronJobData, as_u64, parse_modal_components};
 
 use super::start_time;
 use crate::cron::create_reminders;
@@ -55,18 +55,17 @@ pub struct GuildRow {
 impl GuildRow {
     #[must_use]
     pub fn channel_id(&self) -> Option<ChannelId> {
-        self.lfg_channel_id.map(|id| ChannelId::new(id.cast_unsigned()))
+        self.lfg_channel_id.map(|id| ChannelId::new(as_u64(id)))
     }
 
     #[must_use]
     pub fn role_id(&self) -> Option<RoleId> {
-        self.lfg_role_id.map(|id| RoleId::new(id.cast_unsigned()))
+        self.lfg_role_id.map(|id| RoleId::new(as_u64(id)))
     }
 
     #[must_use]
     pub fn scheduled_channel(&self) -> Option<GenericChannelId> {
-        self.lfg_scheduled_thread_id
-            .map(|id| GenericChannelId::new(id.cast_unsigned()))
+        self.lfg_scheduled_thread_id.map(|id| GenericChannelId::new(as_u64(id)))
     }
 }
 

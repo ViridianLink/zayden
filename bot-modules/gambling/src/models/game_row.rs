@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serenity::all::UserId;
 use sqlx::{Database, FromRow, Pool};
+use zayden_core::as_i64;
 
 use super::{Coins, Gems, MaxBet};
 use crate::Prestige;
@@ -29,7 +30,7 @@ impl GameRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coins: 0,
             gems: 0,
             level: Some(0),

@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use async_trait::async_trait;
 use serenity::all::{User, UserId};
 use sqlx::{Database, FromRow, Pool};
+use zayden_core::{as_i64, as_u64};
 
 use crate::Result;
 use crate::relationships::Relationships;
@@ -51,11 +52,11 @@ impl FamilyRow {
     }
 
     pub fn add_blocked(&mut self, user_id: UserId) {
-        self.blocked_ids.push(user_id.get().cast_signed());
+        self.blocked_ids.push(as_i64(user_id.get()));
     }
 
     pub fn remove_blocked(&mut self, user_id: UserId) {
-        self.blocked_ids.retain(|id| *id != user_id.get().cast_signed());
+        self.blocked_ids.retain(|id| *id != as_i64(user_id.get()));
     }
 
     pub fn add_child(&mut self, child: &Self) {
@@ -72,7 +73,7 @@ impl FamilyRow {
 
     #[must_use]
     pub fn relationship(&self, user_id: UserId) -> Relationships {
-        let user_id = user_id.get().cast_signed();
+        let user_id = as_i64(user_id.get());
 
         if self.partner_ids.contains(&user_id) {
             Relationships::Partner
@@ -91,7 +92,7 @@ impl FamilyRow {
     ) -> Result<HashMap<i32, Vec<Self>>> {
         let tree = Manager::tree(
             pool,
-            UserId::new(self.id.cast_unsigned()),
+            UserId::new(as_u64(self.id)),
             HashMap::new(),
             0,
             true,
@@ -114,7 +115,7 @@ impl FamilyRow {
 impl From<&User> for FamilyRow {
     fn from(user: &User) -> Self {
         Self {
-            id: user.id.get().cast_signed(),
+            id: as_i64(user.id.get()),
             username: user.display_name().to_string(),
             ..Default::default()
         }

@@ -12,6 +12,7 @@ use serenity::all::{
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
+use zayden_core::as_u64;
 
 use super::Components;
 use crate::modals::modal_components;
@@ -35,7 +36,7 @@ pub struct EditRow {
 impl EditRow {
     #[must_use]
     pub const fn owner(&self) -> UserId {
-        UserId::new(self.owner_id.cast_unsigned())
+        UserId::new(as_u64(self.owner_id))
     }
 
     #[must_use]

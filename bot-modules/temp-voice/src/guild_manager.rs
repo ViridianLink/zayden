@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId};
 use sqlx::{Database, FromRow, Pool};
+use zayden_core::as_u64;
 
 #[async_trait]
 pub trait TempVoiceGuildManager<Db: Database> {
@@ -30,23 +31,20 @@ pub struct TempVoiceRow {
 
 impl TempVoiceRow {
     #[must_use]
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn guild_id(&self) -> GuildId {
-        GuildId::from(self.id as u64)
+        GuildId::from(as_u64(self.id))
     }
 
     #[must_use]
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn category(&self) -> ChannelId {
-        ChannelId::from(
-            self.temp_voice_category.expect("temp voice category must be configured")
-                as u64,
-        )
+        ChannelId::from(as_u64(
+            self.temp_voice_category
+                .expect("temp voice category must be configured"),
+        ))
     }
 
     #[must_use]
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn creator_channel(&self) -> Option<ChannelId> {
-        self.temp_voice_creator_channel.map(|id| ChannelId::from(id as u64))
+        self.temp_voice_creator_channel.map(|id| ChannelId::from(as_u64(id)))
     }
 }

@@ -6,6 +6,7 @@ use gambling::commands::profile::{ProfileManager, ProfileRow};
 use gambling::{Commands, GamblingItem, GamblingItems};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgConnection, PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -37,7 +38,7 @@ impl ProfileManager<Postgres> for ProfileTable {
             LEFT JOIN levels l ON g.user_id = l.user_id
             LEFT JOIN gambling_mine m on g.user_id = m.user_id
             WHERE g.user_id = $1;"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -62,7 +63,7 @@ impl InventoryManager<Postgres> for ProfileTable {
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_all(pool)
         .await?;

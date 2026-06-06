@@ -1,7 +1,7 @@
 use serenity::all::{Context, CreateEmbed, CreateEmbedFooter, GuildId, Mentionable};
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::GuildMembersCache;
+use zayden_core::{GuildMembersCache, as_i64};
 
 use crate::{LeaderboardRow, LevelsManager, LevelsRow};
 
@@ -24,7 +24,7 @@ pub async fn create_embed<
             .get(&guild_id)
             .expect("guild should be in member cache")
             .iter()
-            .map(|id| id.get().cast_signed())
+            .map(|id| as_i64(id.get()))
             .collect::<Vec<_>>()
     };
 

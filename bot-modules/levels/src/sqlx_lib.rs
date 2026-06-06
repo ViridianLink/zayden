@@ -3,6 +3,7 @@ use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::UserId;
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
+use zayden_core::{as_i64, as_u64};
 
 use crate::level_up_xp;
 
@@ -64,7 +65,7 @@ pub struct LeaderboardRow {
 
 impl LevelsRow for LeaderboardRow {
     fn user_id(&self) -> UserId {
-        UserId::new(self.user_id.cast_unsigned())
+        UserId::new(as_u64(self.user_id))
     }
 
     fn xp(&self) -> i32 {
@@ -180,7 +181,7 @@ impl FullLevelRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             xp: 0,
             level: 0,
             total_xp: 0,
@@ -209,7 +210,7 @@ impl FullLevelRow {
 
 impl LevelsRow for FullLevelRow {
     fn user_id(&self) -> UserId {
-        UserId::new(self.user_id.cast_unsigned())
+        UserId::new(as_u64(self.user_id))
     }
 
     fn xp(&self) -> i32 {

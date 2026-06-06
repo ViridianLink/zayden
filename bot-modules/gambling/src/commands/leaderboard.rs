@@ -16,7 +16,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::cache::GuildMembersCache;
-use zayden_core::{EmojiCacheData, parse_options};
+use zayden_core::{EmojiCacheData, as_i64, parse_options};
 
 use super::Commands;
 use crate::Result;
@@ -63,7 +63,7 @@ impl Commands {
                     )
                     .expect("guild members cached when leaderboard command ran")
                     .iter()
-                    .map(|id| id.get().cast_signed())
+                    .map(|id| as_i64(id.get()))
                     .collect::<Vec<_>>()
             };
             Some(users)

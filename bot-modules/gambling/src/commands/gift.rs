@@ -18,7 +18,7 @@ use serenity::all::{
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCacheData, FormatNum};
+use zayden_core::{EmojiCacheData, FormatNum, as_i64};
 
 use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
@@ -71,7 +71,7 @@ impl SenderRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coins: 0,
             gems: 0,
             gift: jiff::Timestamp::default().to_sqlx(),
@@ -123,7 +123,7 @@ impl RecipientRow {
     pub fn new(id: impl Into<UserId>) -> Self {
         let id = id.into();
 
-        Self { id: id.get().cast_signed(), coins: 0 }
+        Self { id: as_i64(id.get()), coins: 0 }
     }
 }
 

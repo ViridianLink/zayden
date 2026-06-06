@@ -6,6 +6,7 @@ use gambling::{Commands, GamblingGoalsRow, GoalsManager};
 use jiff_sqlx::Date;
 use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -36,7 +37,7 @@ impl GoalsManager<Postgres> for GoalsTable {
                 LEFT JOIN levels l ON g.user_id = l.user_id
                 LEFT JOIN gambling_mine m on g.user_id = m.user_id
                 WHERE g.user_id = $1;",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -51,7 +52,7 @@ impl GoalsManager<Postgres> for GoalsTable {
         sqlx::query_as!(
             GamblingGoalsRow,
             r#"SELECT user_id, goal_id, day as "day: jiff_sqlx::Date", progress, target FROM gambling_goals WHERE user_id = $1"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_all(pool)
         .await

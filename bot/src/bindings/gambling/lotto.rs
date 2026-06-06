@@ -7,6 +7,7 @@ use gambling::{Commands, LottoManager, LottoRow};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -27,7 +28,7 @@ impl LottoManager<Postgres> for LottoTable {
         sqlx::query_file_as!(
             LottoRow,
             "sql/gambling/LottoManager/row.sql",
-            id.get().cast_signed(),
+            as_i64(id.get()),
             LOTTO_TICKET.id
         )
         .fetch_optional(conn)

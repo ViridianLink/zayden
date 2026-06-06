@@ -2,7 +2,7 @@ use jiff::tz::TimeZone;
 use jiff_sqlx::{Date, ToSqlx};
 use serenity::all::UserId;
 use sqlx::FromRow;
-use zayden_core::FormatNum;
+use zayden_core::{FormatNum, as_i64};
 
 use crate::goals::GOAL_REGISTRY;
 
@@ -24,7 +24,7 @@ impl GamblingGoalsRow {
         let user_id = user_id.into();
 
         Self {
-            user_id: user_id.get().cast_signed(),
+            user_id: as_i64(user_id.get()),
             goal_id: goal_id.into(),
             day: jiff::civil::Date::default().to_sqlx(),
             progress: 0,

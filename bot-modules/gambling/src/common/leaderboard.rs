@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serenity::all::{Mentionable, UserId};
 use sqlx::{Database, FromRow, Pool};
-use zayden_core::{EmojiCache, FormatNum};
+use zayden_core::{EmojiCache, FormatNum, as_u64};
 
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
 use crate::{Coins, Gems};
@@ -162,12 +162,12 @@ impl LeaderboardRow {
     #[must_use]
     pub const fn user_id(&self) -> UserId {
         match self {
-            Self::Coins(row) => UserId::new(row.user_id.cast_unsigned()),
-            Self::Gems(row) => UserId::new(row.user_id.cast_unsigned()),
-            Self::Eggplants(row) => UserId::new(row.user_id.cast_unsigned()),
-            Self::LottoTickets(row) => UserId::new(row.user_id.cast_unsigned()),
-            Self::HigherLower(row) => UserId::new(row.user_id.cast_unsigned()),
-            Self::WeeklyHigherLower(row) => UserId::new(row.user_id.cast_unsigned()),
+            Self::Coins(row) => UserId::new(as_u64(row.user_id)),
+            Self::Gems(row) => UserId::new(as_u64(row.user_id)),
+            Self::Eggplants(row) => UserId::new(as_u64(row.user_id)),
+            Self::LottoTickets(row) => UserId::new(as_u64(row.user_id)),
+            Self::HigherLower(row) => UserId::new(as_u64(row.user_id)),
+            Self::WeeklyHigherLower(row) => UserId::new(as_u64(row.user_id)),
         }
     }
 

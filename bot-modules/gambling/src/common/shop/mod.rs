@@ -10,7 +10,7 @@ use serenity::all::{
     UserId,
 };
 use sqlx::{Database, FromRow, Pool};
-use zayden_core::{EmojiCache, FormatNum};
+use zayden_core::{EmojiCache, FormatNum, as_i64};
 
 use crate::commands::shop::SellRow;
 use crate::{Coins, GamblingItems, Gems, MaxBet, Mining, Prestige};
@@ -81,7 +81,7 @@ impl ShopRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coins: 0,
             gems: 0,
             level: Some(0),

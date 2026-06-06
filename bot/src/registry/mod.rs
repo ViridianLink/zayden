@@ -19,6 +19,7 @@ use tracing::warn;
 use zayden_app::config::GuildConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState;
+use zayden_core::as_i64;
 use zayden_core::ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{
@@ -233,16 +234,16 @@ async fn resolve_guild_config(
         return Arc::new(GuildConfig::empty(0));
     };
 
-    match app.config_store.try_get(gid.get().cast_signed()).await {
+    match app.config_store.try_get(as_i64(gid.get())).await {
         Ok(Some(config)) => config,
-        Ok(None) => Arc::new(GuildConfig::empty(gid.get().cast_signed())),
+        Ok(None) => Arc::new(GuildConfig::empty(as_i64(gid.get()))),
         Err(err) => {
             warn!(
                 guild_id = %gid,
                 error = ?err,
                 "failed to fetch guild config; using empty config",
             );
-            Arc::new(GuildConfig::empty(gid.get().cast_signed()))
+            Arc::new(GuildConfig::empty(as_i64(gid.get())))
         },
     }
 }

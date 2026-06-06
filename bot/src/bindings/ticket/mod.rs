@@ -5,6 +5,7 @@ use ticket::TicketGuildManager;
 use ticket::support_guild_manager::TicketGuildRow;
 use ticket::ticket_manager::{TicketManager, TicketRow};
 use zayden_app::config::ConfigStore;
+use zayden_core::as_i64;
 
 use crate::RegistryBuilder;
 use crate::registry::OverlapError;
@@ -31,9 +32,8 @@ impl TicketGuildManager<Postgres> for GuildTable {
     ) -> sqlx::Result<Option<TicketGuildRow>> {
         let id = id.into();
 
-        let Some(cfg) = ConfigStore::from_pool(pool.clone())
-            .try_get(id.get().cast_signed())
-            .await?
+        let Some(cfg) =
+            ConfigStore::from_pool(pool.clone()).try_get(as_i64(id.get())).await?
         else {
             return Ok(None);
         };
@@ -41,7 +41,7 @@ impl TicketGuildManager<Postgres> for GuildTable {
         // guild_support_roles is a separate table — still queried directly.
         let support_role_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT role_id FROM guild_support_roles WHERE guild_id = $1",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_all(pool)
         .await?;
@@ -60,7 +60,7 @@ impl TicketGuildManager<Postgres> for GuildTable {
         id: impl Into<GuildId> + Send,
     ) -> sqlx::Result<()> {
         ConfigStore::from_pool(pool.clone())
-            .increment_thread_id(id.into().get().cast_signed())
+            .increment_thread_id(as_i64(id.into().get()))
             .await
     }
 }
@@ -79,7 +79,7 @@ impl TicketManager<Postgres> for TicketTable {
                         (SELECT array_agg(role_id) FROM ticket_roles WHERE ticket_id = t.thread_id), 
                         ARRAY[]::bigint[]
                     ) AS "role_ids!" FROM tickets t WHERE thread_id = $1"#,
-            id.into().get().cast_signed()
+            as_i64(id.into().get())
         )
         .fetch_one(pool)
         .await?;
@@ -93,7 +93,7 @@ impl TicketManager<Postgres> for TicketTable {
     ) -> sqlx::Result<()> {
         sqlx::query!(
             "DELETE FROM tickets WHERE thread_id = $1",
-            id.into().get().cast_signed()
+            as_i64(id.into().get())
         )
         .execute(pool)
         .await?;

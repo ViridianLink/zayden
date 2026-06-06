@@ -14,7 +14,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCacheData, FormatNum, parse_options};
+use zayden_core::{EmojiCacheData, FormatNum, as_i64, parse_options};
 
 use crate::events::{Dispatch, Event, SendEvent};
 use crate::{
@@ -46,7 +46,7 @@ impl SendRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coins: 0,
             gems: 0,
             stamina: 0,

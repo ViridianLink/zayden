@@ -6,6 +6,7 @@ use gambling::commands::craft::{CraftManager, CraftRow};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -20,7 +21,7 @@ impl CraftManager<Postgres> for CraftTable {
         sqlx::query_file_as!(
             CraftRow,
             "sql/gambling/CraftManager/craft-row.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await

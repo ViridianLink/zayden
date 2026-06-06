@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use serenity::all::{MessageId, RoleId};
 use sqlx::{Database, FromRow, Pool};
+use zayden_core::as_u64;
 
 #[async_trait]
 pub trait TicketManager<Db: Database> {
@@ -23,15 +24,11 @@ pub struct TicketRow {
 impl TicketRow {
     #[must_use]
     pub const fn message_id(&self) -> MessageId {
-        MessageId::new(self.thread_id.cast_unsigned())
+        MessageId::new(as_u64(self.thread_id))
     }
 
     #[must_use]
     pub fn role_ids(&self) -> Vec<RoleId> {
-        self.role_ids
-            .iter()
-            .copied()
-            .map(|id| RoleId::new(id.cast_unsigned()))
-            .collect()
+        self.role_ids.iter().copied().map(|id| RoleId::new(as_u64(id))).collect()
     }
 }

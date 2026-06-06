@@ -5,6 +5,7 @@ use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId};
 pub use slash_command::ReactionRoleCommand;
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
+use zayden_core::as_i64;
 
 pub mod slash_command;
 
@@ -33,10 +34,10 @@ impl ReactionRolesManager<Postgres> for ReactionRolesTable {
 
         sqlx::query_file!(
             "sql/reaction_roles/create.sql",
-            guild_id.get().cast_signed(),
-            channel_id.get().cast_signed(),
-            message_id.get().cast_signed(),
-            role_id.get().cast_signed(),
+            as_i64(guild_id.get()),
+            as_i64(channel_id.get()),
+            as_i64(message_id.get()),
+            as_i64(role_id.get()),
             emoji
         )
         .execute(pool)
@@ -52,7 +53,7 @@ impl ReactionRolesManager<Postgres> for ReactionRolesTable {
         sqlx::query_as!(
             ReactionRole,
             "SELECT * FROM reaction_roles WHERE guild_id = $1",
-            guild_id.get().cast_signed()
+            as_i64(guild_id.get())
         )
         .fetch_all(pool)
         .await
@@ -68,7 +69,7 @@ impl ReactionRolesManager<Postgres> for ReactionRolesTable {
         sqlx::query_as!(
             ReactionRole,
             "SELECT * FROM reaction_roles WHERE message_id = $1 AND emoji = $2",
-            message_id.get().cast_signed(),
+            as_i64(message_id.get()),
             emoji
         )
         .fetch_optional(pool)
@@ -86,7 +87,7 @@ impl ReactionRolesManager<Postgres> for ReactionRolesTable {
         let channel_id = channel_id.into();
         let message_id = message_id.into();
 
-        sqlx::query!("DELETE FROM reaction_roles WHERE guild_id = $1 AND channel_id = $2 AND message_id = $3 AND emoji = $4", guild_id.get().cast_signed(), channel_id.get().cast_signed(), message_id.get().cast_signed(), emoji)
+        sqlx::query!("DELETE FROM reaction_roles WHERE guild_id = $1 AND channel_id = $2 AND message_id = $3 AND emoji = $4", as_i64(guild_id.get()), as_i64(channel_id.get()), as_i64(message_id.get()), emoji)
             .execute(pool)
             .await
     }

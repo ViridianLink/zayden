@@ -8,6 +8,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use zayden_core::as_u64;
 
 use crate::{Result, Ticket, TicketManager};
 
@@ -25,7 +26,7 @@ impl Ticket {
             reason = "Discord guarantees required options are present"
         )]
         let message_id = match options.remove("message") {
-            Some(ResolvedValue::Integer(id)) => MessageId::new(id.cast_unsigned()),
+            Some(ResolvedValue::Integer(id)) => MessageId::new(as_u64(id)),
             _ => unreachable!("ID is required"),
         };
 

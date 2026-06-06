@@ -31,6 +31,7 @@ use zayden_core::ctx::{ComponentCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
 use zayden_core::scope::IdMatch;
+use zayden_core::{as_i64, as_u64};
 
 use crate::registry::OverlapError;
 use crate::sqlx_lib::GuildTable;
@@ -50,7 +51,7 @@ impl PostManager<Postgres> for PostTable {
 
         sqlx::query_scalar!(
             "SELECT EXISTS (SELECT 1 FROM lfg_posts WHERE id = $1)",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_one(pool)
         .await
@@ -65,11 +66,11 @@ impl PostManager<Postgres> for PostTable {
 
         sqlx::query_scalar!(
             "SELECT owner_id from lfg_posts WHERE id = $1",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_one(pool)
         .await
-        .map(|id| UserId::new(id.cast_unsigned()))
+        .map(|id| UserId::new(as_u64(id)))
     }
 
     async fn post_row(
@@ -81,7 +82,7 @@ impl PostManager<Postgres> for PostTable {
         sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/post_row.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_one(pool)
         .await
@@ -101,8 +102,8 @@ impl PostManager<Postgres> for PostTable {
         sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/join.sql",
-            id.get().cast_signed(),
-            user.get().cast_signed(),
+            as_i64(id.get()),
+            as_i64(user.get()),
             alternative
         )
         .execute(&mut *tx)
@@ -111,7 +112,7 @@ impl PostManager<Postgres> for PostTable {
         let row = sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/post_row.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_one(&mut *tx)
         .await?;
@@ -138,8 +139,8 @@ impl PostManager<Postgres> for PostTable {
         sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/leave.sql",
-            id.get().cast_signed(),
-            user.get().cast_signed(),
+            as_i64(id.get()),
+            as_i64(user.get()),
         )
         .execute(&mut *tx)
         .await?;
@@ -147,7 +148,7 @@ impl PostManager<Postgres> for PostTable {
         let row = sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/post_row.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_one(&mut *tx)
         .await?;
@@ -181,7 +182,7 @@ impl PostManager<Postgres> for PostTable {
     ) -> sqlx::Result<PgQueryResult> {
         let id = id.into();
 
-        sqlx::query!("DELETE FROM lfg_posts WHERE id = $1", id.get().cast_signed())
+        sqlx::query!("DELETE FROM lfg_posts WHERE id = $1", as_i64(id.get()))
             .execute(pool)
             .await
     }
@@ -243,9 +244,9 @@ impl SetupManager<Postgres> for PostTable {
         let channel = channel.into();
 
         ConfigStore::from_pool(pool.clone())
-            .update(id.get().cast_signed(), |patch| {
-                patch.lfg_channel_id = Some(channel.get().cast_signed());
-                patch.lfg_role_id = role.map(|r| r.get().cast_signed());
+            .update(as_i64(id.get()), |patch| {
+                patch.lfg_channel_id = Some(as_i64(channel.get()));
+                patch.lfg_role_id = role.map(|r| as_i64(r.get()));
             })
             .await?;
 
@@ -280,7 +281,7 @@ impl JoinedManager<Postgres> for PostTable {
             WHERE
                 f.user_id = $1
             "#,
-            user.get().cast_signed()
+            as_i64(user.get())
         )
         .fetch_all(pool)
         .await
@@ -290,7 +291,7 @@ impl JoinedManager<Postgres> for PostTable {
 #[async_trait]
 impl EditManager<Postgres> for PostTable {
     async fn edit_row(pool: &PgPool, id: MessageId) -> sqlx::Result<EditRow> {
-        let id = id.get().cast_signed();
+        let id = as_i64(id.get());
 
         sqlx::query_as!(
             EditRow,
@@ -327,7 +328,7 @@ impl TimezoneManager<Postgres> for UsersTable {
     async fn get(pool: &PgPool, id: UserId, locale: &str) -> sqlx::Result<TimeZone> {
         let row = sqlx::query!(
             "SELECT timezone FROM lfg_user_config WHERE id = $1",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await?;
@@ -349,7 +350,7 @@ impl TimezoneManager<Postgres> for UsersTable {
 
         sqlx::query!(
             "INSERT INTO lfg_user_config (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
-            id.get().cast_signed(),
+            as_i64(id.get()),
         tz_name)
         .execute(pool)
         .await
@@ -368,9 +369,8 @@ impl GuildManager<Postgres> for GuildTable {
     ) -> sqlx::Result<Option<GuildRow>> {
         let id = id.into();
 
-        let Some(cfg) = ConfigStore::from_pool(pool.clone())
-            .try_get(id.get().cast_signed())
-            .await?
+        let Some(cfg) =
+            ConfigStore::from_pool(pool.clone()).try_get(as_i64(id.get())).await?
         else {
             return Ok(None);
         };

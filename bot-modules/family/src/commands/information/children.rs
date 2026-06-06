@@ -11,6 +11,7 @@ use serenity::all::{
     UserId,
 };
 use sqlx::{Database, Pool};
+use zayden_core::as_u64;
 
 use crate::family_manager::FamilyManager;
 use crate::{FamilyError, Result};
@@ -44,7 +45,7 @@ impl Children {
 
         let children: Vec<String> = stream::iter(row.children_ids)
             .then(|id| async move {
-                let user_id = UserId::new(id.cast_unsigned());
+                let user_id = UserId::new(as_u64(id));
                 let user = user_id.to_user(ctx).await?;
 
                 Ok::<String, serenity::Error>(user.mention().to_string())

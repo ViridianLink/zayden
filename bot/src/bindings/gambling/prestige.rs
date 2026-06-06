@@ -9,6 +9,7 @@ use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool, Postgres};
 use tracing::warn;
+use zayden_core::as_i64;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
@@ -29,7 +30,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
 
         sqlx::query_scalar!(
             "SELECT miners FROM gambling_mine WHERE user_id = $1;",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -44,7 +45,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         sqlx::query_file_as!(
             PrestigeRow,
             "./sql/gambling/PrestigeManager/row.sql",
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_optional(pool)
         .await
@@ -53,7 +54,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
     async fn lotto(pool: &PgPool, tickets: i64) -> sqlx::Result<PgQueryResult> {
         sqlx::query_file!(
             "./sql/gambling/PrestigeManager/lotto.sql",
-            ZAYDEN_ID.get().cast_signed(),
+            as_i64(ZAYDEN_ID.get()),
             LOTTO_TICKET.id,
             tickets,
         )
@@ -159,7 +160,7 @@ impl InventoryManager<Postgres> for PrestigeTable {
             r#"SELECT item_id, quantity
             FROM gambling_inventory
             WHERE user_id = $1"#,
-            id.get().cast_signed()
+            as_i64(id.get())
         )
         .fetch_all(pool)
         .await?;

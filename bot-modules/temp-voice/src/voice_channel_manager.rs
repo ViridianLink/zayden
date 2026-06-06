@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use serenity::all::{ChannelId, UserId};
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
+use zayden_core::{as_i64, as_u64};
 
 use crate::Result;
 
@@ -38,11 +39,10 @@ pub struct VoiceChannelRow {
 
 impl VoiceChannelRow {
     #[must_use]
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub const fn new(id: ChannelId, owner_id: UserId) -> Self {
         Self {
-            id: id.get() as i64,
-            owner_id: owner_id.get() as i64,
+            id: as_i64(id.get()),
+            owner_id: as_i64(owner_id.get()),
             trusted_ids: Vec::new(),
             invites: Vec::new(),
             password: None,
@@ -52,11 +52,10 @@ impl VoiceChannelRow {
     }
 
     #[must_use]
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub const fn new_persistent(id: ChannelId, owner_id: UserId) -> Self {
         Self {
-            id: id.get() as i64,
-            owner_id: owner_id.get() as i64,
+            id: as_i64(id.get()),
+            owner_id: as_i64(owner_id.get()),
             trusted_ids: Vec::new(),
             invites: Vec::new(),
             password: None,
@@ -66,36 +65,31 @@ impl VoiceChannelRow {
     }
 
     #[must_use]
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub const fn channel_id(&self) -> ChannelId {
-        ChannelId::new(self.id as u64)
+        ChannelId::new(as_u64(self.id))
     }
 
     #[must_use]
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub const fn owner_id(&self) -> UserId {
-        UserId::new(self.owner_id as u64)
+        UserId::new(as_u64(self.owner_id))
     }
 
     #[must_use]
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn trusted_ids(&self) -> HashSet<UserId> {
-        self.trusted_ids.iter().map(|id| UserId::new(*id as u64)).collect()
+        self.trusted_ids.iter().map(|id| UserId::new(as_u64(*id))).collect()
     }
 
     #[must_use]
-    #[expect(clippy::cast_sign_loss, reason = "stored IDs are always non-negative")]
     pub fn invites(&self) -> HashSet<UserId> {
-        self.invites.iter().map(|id| UserId::new(*id as u64)).collect()
+        self.invites.iter().map(|id| UserId::new(as_u64(*id))).collect()
     }
 
     pub fn is_owner(&self, user_id: impl Into<UserId>) -> bool {
         self.owner_id() == user_id.into()
     }
 
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn set_owner(&mut self, id: impl Into<UserId>) {
-        self.owner_id = id.into().get() as i64;
+        self.owner_id = as_i64(id.into().get());
     }
 
     pub fn is_trusted(&self, user_id: impl Into<UserId>) -> bool {
@@ -118,29 +112,25 @@ impl VoiceChannelRow {
         self.persistent = !self.persistent;
     }
 
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn trust(&mut self, id: impl Into<UserId>) {
-        self.trusted_ids.push(id.into().get() as i64);
+        self.trusted_ids.push(as_i64(id.into().get()));
     }
 
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn untrust(&mut self, id: impl Into<UserId>) {
-        let id = id.into();
+        let id = as_i64(id.into().get());
 
-        self.trusted_ids.retain(|trusted_id| *trusted_id != id.get() as i64);
+        self.trusted_ids.retain(|trusted_id| *trusted_id != id);
     }
 
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn create_invite(&mut self, id: impl Into<UserId>) {
-        self.invites.push(id.into().get() as i64);
+        self.invites.push(as_i64(id.into().get()));
     }
 
-    #[expect(clippy::cast_possible_wrap, reason = "Discord IDs fit in i64")]
     pub fn block(&mut self, id: impl Into<UserId>) {
-        let id = id.into();
+        let id = as_i64(id.into().get());
 
-        self.trusted_ids.retain(|trusted_id| *trusted_id != id.get() as i64);
-        self.invites.retain(|invite| *invite != id.get() as i64);
+        self.trusted_ids.retain(|trusted_id| *trusted_id != id);
+        self.invites.retain(|invite| *invite != id);
     }
 
     pub fn reset(&mut self) {

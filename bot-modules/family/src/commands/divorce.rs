@@ -8,6 +8,7 @@ use serenity::all::{
     UserId,
 };
 use sqlx::{Database, Pool};
+use zayden_core::as_i64;
 
 use crate::family_manager::FamilyManager;
 use crate::{FamilyError, Result};
@@ -34,7 +35,7 @@ impl Divorce {
             .await?
             .ok_or(FamilyError::SelfNoPartners)?;
 
-        if !row.partner_ids.contains(&target_user.id.get().cast_signed()) {
+        if !row.partner_ids.contains(&as_i64(target_user.id.get())) {
             return Err(FamilyError::NotPartners(target_user.id));
         }
 

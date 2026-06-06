@@ -17,7 +17,7 @@ use serenity::all::{
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCacheData, FormatNum};
+use zayden_core::{EmojiCacheData, FormatNum, as_i64, as_u64};
 
 use super::Commands;
 use crate::events::{Dispatch, Event};
@@ -88,7 +88,7 @@ impl DigRow {
     #[must_use]
     pub fn new(id: UserId) -> Self {
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coins: 0,
             gems: 0,
             stamina: 0,
@@ -195,10 +195,11 @@ impl Commands {
         let miners = (row.miners() * 10) * row.prestige_mult_10() / 10;
 
         for (&resource, chance) in CHANCES.iter() {
-            let ore = Binomial::new(miners.cast_unsigned(), (chance).min(1.0))
-                .expect("miners >= 0 and chance in [0, 1]")
-                .sample(&mut rng())
-                .cast_signed();
+            let ore = as_i64(
+                Binomial::new(as_u64(miners), (chance).min(1.0))
+                    .expect("miners >= 0 and chance in [0, 1]")
+                    .sample(&mut rng()),
+            );
 
             *resources.get_mut(resource).expect("resource key in map") +=
                 match resource {

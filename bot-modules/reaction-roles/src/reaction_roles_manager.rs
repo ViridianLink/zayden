@@ -1,6 +1,7 @@
 use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId};
 use serenity::async_trait;
 use sqlx::{Database, FromRow, Pool};
+use zayden_core::as_u64;
 
 #[async_trait]
 pub trait ReactionRolesManager<Db: Database> {
@@ -46,21 +47,21 @@ pub struct ReactionRole {
 impl ReactionRole {
     #[must_use]
     pub const fn guild_id(&self) -> GuildId {
-        GuildId::new(self.guild_id.cast_unsigned())
+        GuildId::new(as_u64(self.guild_id))
     }
 
     #[must_use]
     pub const fn channel_id(&self) -> GenericChannelId {
-        GenericChannelId::new(self.channel_id.cast_unsigned())
+        GenericChannelId::new(as_u64(self.channel_id))
     }
 
     #[must_use]
     pub const fn message_id(&self) -> MessageId {
-        MessageId::new(self.message_id.cast_unsigned())
+        MessageId::new(as_u64(self.message_id))
     }
 
     #[must_use]
     pub const fn role_id(&self) -> RoleId {
-        RoleId::new(self.role_id.cast_unsigned())
+        RoleId::new(as_u64(self.role_id))
     }
 }

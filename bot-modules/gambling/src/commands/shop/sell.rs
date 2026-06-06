@@ -9,7 +9,7 @@ use serenity::all::{
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
+use zayden_core::{EmojiCacheData, FormatNum, as_i64, parse_options_ref};
 
 use crate::shop::SALES_RETURN;
 use crate::{Coins, GamblingError, Result, SHOP_ITEMS, ShopManager};
@@ -27,7 +27,7 @@ impl SellRow {
         let id = id.into();
 
         Self {
-            user_id: id.get().cast_signed(),
+            user_id: as_i64(id.get()),
             coins: 0,
             item_row_id: None,
             item_quantity: None,

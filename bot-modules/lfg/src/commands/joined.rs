@@ -11,6 +11,7 @@ use serenity::all::{
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
+use zayden_core::as_u64;
 
 use super::Command;
 use crate::Result;
@@ -34,7 +35,7 @@ pub struct JoinedRow {
 impl JoinedRow {
     #[must_use]
     pub const fn channel_id(&self) -> ChannelId {
-        ChannelId::new(self.id.cast_unsigned())
+        ChannelId::new(as_u64(self.id))
     }
 
     #[must_use]
@@ -48,7 +49,7 @@ impl JoinedRow {
     }
 
     pub fn fireteam(&self) -> impl Iterator<Item = UserId> {
-        self.fireteam.iter().map(|&id| UserId::new(id.cast_unsigned()))
+        self.fireteam.iter().map(|&id| UserId::new(as_u64(id)))
     }
 }
 
