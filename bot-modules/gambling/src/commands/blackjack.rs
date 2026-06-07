@@ -92,20 +92,35 @@ impl Commands {
             data.emojis()
         };
 
-        let mut card_shoe = CARD_DECK.get_or_init(|| card_deck(&emojis)).clone();
+        let deck_ref = if let Some(d) = CARD_DECK.get() {
+            d
+        } else {
+            let new_deck = card_deck(&emojis)?;
+            let _ = CARD_DECK.set(new_deck);
+            CARD_DECK.get().ok_or_else(|| {
+                GamblingError::Internal("CARD_DECK init failed".to_string())
+            })?
+        };
+        let mut card_shoe = deck_ref.clone();
 
         card_shoe.shuffle(&mut rng());
 
-        let player_hand = vec![
-            card_shoe.pop().expect("card shoe not empty"),
-            card_shoe.pop().expect("card shoe not empty"),
-        ];
-        let player_value = sum_cards(&emojis, &player_hand);
-        let dealer_hand = [
-            card_shoe.pop().expect("card shoe not empty"),
-            card_shoe.pop().expect("card shoe not empty"),
-        ];
-        let dealer_value = sum_cards(&emojis, &dealer_hand);
+        let player_card1 = card_shoe.pop().ok_or_else(|| {
+            GamblingError::Internal("card shoe is empty".to_string())
+        })?;
+        let player_card2 = card_shoe.pop().ok_or_else(|| {
+            GamblingError::Internal("card shoe is empty".to_string())
+        })?;
+        let player_hand = vec![player_card1, player_card2];
+        let player_value = sum_cards(&emojis, &player_hand)?;
+        let dealer_card1 = card_shoe.pop().ok_or_else(|| {
+            GamblingError::Internal("card shoe is empty".to_string())
+        })?;
+        let dealer_card2 = card_shoe.pop().ok_or_else(|| {
+            GamblingError::Internal("card shoe is empty".to_string())
+        })?;
+        let dealer_hand = [dealer_card1, dealer_card2];
+        let dealer_value = sum_cards(&emojis, &dealer_hand)?;
 
         let game = GameDetails::new(bet, player_hand, dealer_hand[0]);
 
@@ -143,7 +158,7 @@ impl Commands {
             return Ok(());
         }
 
-        let text = in_play_text(&emojis, bet, game.player_hand(), dealer_hand[0]);
+        let text = in_play_text(&emojis, bet, game.player_hand(), dealer_hand[0])?;
 
         let action_row =
             CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![

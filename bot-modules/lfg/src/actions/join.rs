@@ -29,14 +29,20 @@ impl From<&ComponentInteraction> for JoinInteraction {
 
 impl From<&CommandInteraction> for JoinInteraction {
     fn from(value: &CommandInteraction) -> Self {
-        let (_, mut options) = parse_subcommand(value.data.options())
-            .expect("lfg join command always has a subcommand");
+        let Ok((_, mut options)) = parse_subcommand(value.data.options()) else {
+            return Self {
+                thread: value.channel_id.expect_thread(),
+                user: value.user.id,
+            };
+        };
+
         let thread = match options.remove("thread") {
             Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(
                 thread,
             ))) => thread.id,
             _ => value.channel_id.expect_thread(),
         };
+
         let user = match options.remove("guardian") {
             Some(ResolvedValue::User(user, _)) => user.id,
             _ => value.user.id,

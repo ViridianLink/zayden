@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fs;
 
 use bungie_api::DestinyInventoryItemDefinition;
 use destiny2_core::BungieClientData;
@@ -65,8 +66,7 @@ impl EndgameAnalysisSheet {
         manifest: &HashMap<String, DestinyInventoryItemDefinition>,
         api_key: &str,
     ) -> Result<()> {
-        let client =
-            SheetsClientBuilder::new(api_key).build().expect("data invariant");
+        let client = SheetsClientBuilder::new(api_key).build()?;
 
         let spreadsheet = client.spreadsheet(ENDGAME_ANALYSIS_ID, true).await?;
 
@@ -80,16 +80,17 @@ impl EndgameAnalysisSheet {
                     || heavy_colour(&s.properties.tab_color)
                     || s.properties.title == "Other"
             })
-            .map(|mut sheet| {
-                (sheet.properties.title, sheet.data.pop().expect("data invariant"))
+            .filter_map(|mut sheet| {
+                let data = sheet.data.pop()?;
+                Some((sheet.properties.title, data))
             })
             .flat_map(|(title, data)| {
                 Self::parse_weapon_data(manifest, &title, data)
             })
             .collect::<Vec<_>>();
 
-        let json = serde_json::to_string(&weapons).expect("data invariant");
-        std::fs::write("weapons.json", json).expect("data invariant");
+        let json = serde_json::to_string(&weapons)?;
+        fs::write("weapons.json", json)?;
 
         Ok(())
     }
@@ -100,21 +101,33 @@ impl EndgameAnalysisSheet {
         data: GridData,
     ) -> Vec<Weapon> {
         let mut iter = data.row_data.into_iter().skip(1);
-        let header = iter.next().expect("data invariant");
-        iter.filter_map(|r| WeaponBuilder::from_row(title, &header, r))
-            .map(|builder| {
-                let item = match manifest.values().find(|item| {
-                    item.display_properties.name.eq_ignore_ascii_case(&builder.name)
-                }) {
-                    Some(item) => item,
-                    None => {
-                        error!("Missing item: {}", builder.name);
-                        &DestinyInventoryItemDefinition::default()
-                    },
-                };
+        let Some(header) = iter.next() else {
+            error!("Sheet '{title}' has no header row");
+            return Vec::new();
+        };
 
-                builder.build(item)
-            })
-            .collect()
+        iter.filter_map(|r| {
+            WeaponBuilder::from_row(title, &header, r)
+                .map_err(|e| error!("Skipping weapon row in '{title}': {e}"))
+                .ok()
+                .flatten()
+        })
+        .filter_map(|builder| {
+            let item = match manifest.values().find(|item| {
+                item.display_properties.name.eq_ignore_ascii_case(&builder.name)
+            }) {
+                Some(item) => item,
+                None => {
+                    error!("Missing item: {}", builder.name);
+                    &DestinyInventoryItemDefinition::default()
+                },
+            };
+
+            builder
+                .build(item)
+                .map_err(|e| error!("Skipping weapon build in '{title}': {e}"))
+                .ok()
+        })
+        .collect()
     }
 }

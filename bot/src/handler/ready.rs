@@ -19,7 +19,7 @@ impl Handler {
         ctx.set_presence(None, OnlineStatus::Online);
 
         let pool = self.app.db.clone();
-        BotState::ready(ctx, ready, &pool).await;
+        BotState::ready(ctx, ready, &pool).await?;
 
         if self.cron_started.set(()).is_ok() {
             if ready.application.id.get() == ZAYDEN_ID.get() {

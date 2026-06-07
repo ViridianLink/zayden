@@ -214,10 +214,7 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let row = Manager::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
-            .unwrap_or_default();
+        let row = Manager::row(pool, interaction.user.id).await?.unwrap_or_default();
 
         let req_miners = row.req_miners();
 
@@ -287,12 +284,10 @@ impl Commands {
             return Ok(());
         }
 
-        let mut prestige_row = Manager::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
-            .expect(
-                "prestige confirm only reachable for users with an existing row",
-            );
+        let Some(mut prestige_row) = Manager::row(pool, interaction.user.id).await?
+        else {
+            return Ok(());
+        };
 
         if prestige_row.miners < prestige_row.req_miners() {
             return Ok(());

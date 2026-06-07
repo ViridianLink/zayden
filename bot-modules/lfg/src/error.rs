@@ -13,6 +13,7 @@ pub enum LfgError {
     FireteamFull,
     PermissionDenied(UserId),
     InvalidDateTime(String),
+    InvalidFireteamSize,
     TagRequired,
     InvalidChannel,
     ThreadNotFound,
@@ -39,6 +40,9 @@ impl std::fmt::Display for LfgError {
             ),
             Self::InvalidDateTime(format) => {
                 write!(f, "Bot currently only accepts {format} for dates and time.")
+            },
+            Self::InvalidFireteamSize => {
+                write!(f, "Fireteam size must be a valid number.")
             },
             Self::TagRequired => {
                 write!(
@@ -67,6 +71,7 @@ impl std::error::Error for LfgError {
             | Self::FireteamFull
             | Self::PermissionDenied(_)
             | Self::InvalidDateTime(_)
+            | Self::InvalidFireteamSize
             | Self::TagRequired
             | Self::InvalidChannel
             | Self::ThreadNotFound => None,
@@ -83,6 +88,7 @@ impl Respond for LfgError {
             | Self::FireteamFull
             | Self::PermissionDenied(_)
             | Self::InvalidDateTime(_)
+            | Self::InvalidFireteamSize
             | Self::TagRequired
             | Self::InvalidChannel
             | Self::ThreadNotFound => Some(Cow::Owned(self.to_string())),

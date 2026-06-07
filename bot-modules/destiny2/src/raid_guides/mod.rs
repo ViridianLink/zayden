@@ -226,7 +226,10 @@ impl<const E: usize> RaidGuide<'_, E> {
             .default_member_permissions(Permissions::ADMINISTRATOR)
     }
 
-    pub async fn run(http: &Http, interaction: &CommandInteraction) {
+    pub async fn run(
+        http: &Http,
+        interaction: &CommandInteraction,
+    ) -> serenity::Result<()> {
         let page_row = CreateComponent::ActionRow(CreateActionRow::SelectMenu(
             CreateSelectMenu::new("guide_page", CreateSelectMenuKind::String {
                 options: vec![
@@ -241,11 +244,9 @@ impl<const E: usize> RaidGuide<'_, E> {
             .placeholder("Select encounter"),
         ));
 
-        let encounter = DESERT_PERPETUAL
-            .encounters
-            .first()
-            .expect("raid always has at least one encounter")
-            .expect("encounter is always Some");
+        let Some(Some(encounter)) = DESERT_PERPETUAL.encounters.first() else {
+            return Ok(());
+        };
 
         interaction
             .create_response(
@@ -253,10 +254,11 @@ impl<const E: usize> RaidGuide<'_, E> {
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
                         .flags(MessageFlags::IS_COMPONENTS_V2)
-                        .components(vec![encounter.into(), page_row]),
+                        .components(vec![(*encounter).into(), page_row]),
                 ),
             )
-            .await
-            .expect("Discord API call");
+            .await?;
+
+        Ok(())
     }
 }

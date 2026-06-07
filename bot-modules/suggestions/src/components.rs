@@ -9,14 +9,14 @@ use serenity::all::{
     InputTextStyle,
 };
 
-use crate::Suggestions;
+use crate::{Result, Suggestions};
 
 impl Suggestions {
     pub async fn components(
         http: &Http,
         interaction: &ComponentInteraction,
         accepted: bool,
-    ) {
+    ) -> Result<()> {
         let response = CreateInputText::new(InputTextStyle::Paragraph, "response")
             .placeholder("Response to the suggestion");
 
@@ -30,7 +30,8 @@ impl Suggestions {
 
         interaction
             .create_response(http, CreateInteractionResponse::Modal(modal))
-            .await
-            .expect("Discord send modal");
+            .await?;
+
+        Ok(())
     }
 }

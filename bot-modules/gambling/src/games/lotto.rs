@@ -9,7 +9,7 @@ use tracing::error;
 use zayden_core::{CronJob, EmojiCacheData, FormatNum, as_i64, as_u64};
 
 use crate::shop::LOTTO_TICKET;
-use crate::{Coins, GamblingManager, bot_id};
+use crate::{Coins, GamblingError, GamblingManager, bot_id};
 
 const CHANNEL_ID: ChannelId = ChannelId::new(1_383_573_049_563_156_502);
 
@@ -66,11 +66,7 @@ impl Coins for LottoRow {
 #[inline]
 #[must_use]
 pub fn jackpot(tickets: i64) -> i64 {
-    tickets
-        .saturating_mul(
-            LOTTO_TICKET.coin_cost().expect("LOTTO_TICKET has a coin cost"),
-        )
-        .max(1_000_000)
+    tickets.saturating_mul(LOTTO_TICKET.coin_cost().unwrap_or(0)).max(1_000_000)
 }
 
 pub struct Lotto;
@@ -83,9 +79,11 @@ impl Lotto {
         LottoHandler: LottoManager<Db>,
     >() -> Result<CronJob<Db>, jiff_cron::error::Error> {
         Ok(CronJob::new("lotto", "0 0 17 * * Fri *")?.set_action(|ctx, pool| async move {
-            let bot_id = bot_id(&ctx.http).await;
-
             if let Err(e) = (async {
+                let bot_id = bot_id(&ctx.http)
+                    .await
+                    .map_err(|e| GamblingError::Internal(format!("bot_id fetch failed: {e}")))?;
+
                 let mut tx: sqlx::Transaction<'static, Db> = pool.begin().await?;
 
                 let mut rows = LottoHandler::rows(&mut *tx).await?;
@@ -101,27 +99,29 @@ impl Lotto {
                     return Ok(());
                 }
 
-                let mut dist = WeightedIndex::new(rows.iter().map(LottoRow::quantity))
-                    .expect("weighted index valid");
+                let mut dist =
+                    WeightedIndex::new(rows.iter().map(LottoRow::quantity)).map_err(|e| {
+                        GamblingError::Internal(format!("WeightedIndex creation failed: {e}"))
+                    })?;
 
                 let jackpot = jackpot(total_tickets);
 
-                let winners = prize_share
-                    .into_iter()
-                    .map(|share| {
-                        let index = dist.sample(&mut rng());
-                        let winner = rows.remove(index);
-                        dist = WeightedIndex::new(rows.iter().map(LottoRow::quantity))
-                            .expect("weighted index valid");
-                        #[expect(
-                            clippy::cast_possible_truncation,
-                            clippy::cast_precision_loss,
-                            reason = "lottery payout: precision/truncation acceptable"
-                        )]
-                        let payout = (jackpot as f64 * share) as i64;
-                        (winner.user_id(), payout)
-                    })
-                    .collect::<Vec<_>>();
+                let mut winners = Vec::with_capacity(expected_winners);
+                for share in prize_share {
+                    let index = dist.sample(&mut rng());
+                    let winner = rows.remove(index);
+                    dist =
+                        WeightedIndex::new(rows.iter().map(LottoRow::quantity)).map_err(|e| {
+                            GamblingError::Internal(format!("WeightedIndex update failed: {e}"))
+                        })?;
+                    #[expect(
+                        clippy::cast_possible_truncation,
+                        clippy::cast_precision_loss,
+                        reason = "lottery payout: precision/truncation acceptable"
+                    )]
+                    let payout = (jackpot as f64 * share) as i64;
+                    winners.push((winner.user_id(), payout));
+                }
 
                 LottoHandler::delete_tickets(&mut *tx).await?;
 
@@ -131,7 +131,9 @@ impl Lotto {
                     data.emojis()
                 };
 
-                let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+                let coin = emojis
+                    .emoji("heads")
+                    .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
                 let mut lines = Vec::with_capacity(expected_winners);
 
@@ -141,10 +143,15 @@ impl Lotto {
                         return Ok(());
                     }
 
+                    let display_name = winner
+                        .to_user(&ctx)
+                        .await
+                        .map(|u| u.display_name().to_string())
+                        .unwrap_or_default();
+
                     let line = format!(
-                        "{} ({}) has won {} <:coin:{coin}> from the lottery!",
+                        "{} ({display_name}) has won {} <:coin:{coin}> from the lottery!",
                         winner.mention(),
-                        winner.to_user(&ctx).await.expect("async call").display_name(),
                         payout.format()
                     );
 
@@ -153,13 +160,17 @@ impl Lotto {
 
                 tx.commit().await?;
 
+                let ticket_emoji = LOTTO_TICKET.emoji(&emojis).map_err(|e| {
+                    GamblingError::Internal(format!("lotto ticket emoji failed: {e}"))
+                })?;
+
                 let embed = CreateEmbed::new()
                     .title(format!(
                         "<:coin:{coin}> <:coin:{coin}> Lottery!! <:coin:{coin}> <:coin:{coin}>"
                     ))
                     .field(
                         "Tickets Bought",
-                        format!("{} {}", total_tickets.format(), LOTTO_TICKET.emoji(&emojis)),
+                        format!("{} {ticket_emoji}", total_tickets.format()),
                         false,
                     )
                     .field(

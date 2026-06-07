@@ -25,14 +25,13 @@ pub async fn list<
 ) -> Result<()> {
     let page = match options.first().map(|opt| &opt.value) {
         Some(ResolvedValue::String(page)) => {
-            page.parse::<ShopPage>().expect("valid shop page")
+            page.parse::<ShopPage>().unwrap_or(ShopPage::Item)
         },
         _ => ShopPage::Item,
     };
 
     let row = Manager::buy_row(pool, interaction.user.id)
-        .await
-        .expect("async call")
+        .await?
         .unwrap_or_else(|| ShopRow::new(interaction.user.id));
 
     let inventory = Manager::inventory_items(pool, interaction.user.id).await?;
@@ -46,7 +45,7 @@ pub async fn list<
     let title = format!("{page} Shop");
 
     let (embed, components) =
-        shop_response(&emojis, &row, &inventory, Some(&title), 0);
+        shop_response(&emojis, &row, &inventory, Some(&title), 0)?;
 
     interaction
         .edit_response(

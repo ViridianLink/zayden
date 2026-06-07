@@ -42,7 +42,7 @@ pub(super) async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
         .find(|perm| {
             perm.kind == PermissionOverwriteType::Role(guild_id.everyone_role())
         })
-        .expect("Expected everyone role in channel permissions");
+        .ok_or(Error::IneligibleChannel)?;
 
     channel_id
         .edit(

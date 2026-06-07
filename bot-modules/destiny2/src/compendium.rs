@@ -1,7 +1,10 @@
 use std::collections::HashMap;
+use std::fs;
 
 use google_sheets_api::SheetsClientBuilder;
 use serde::{Deserialize, Serialize};
+
+use crate::{DestinyError, Result};
 
 const COMPENDIUM_ID: &str = "1WaxvbLx7UoSZaBqdFr1u32F2uWVLo-CJunJB4nlGUE4";
 
@@ -11,20 +14,21 @@ pub struct PerkInfo {
     pub description: String,
 }
 
-pub async fn update(api_key: &str) {
-    let client =
-        SheetsClientBuilder::new(api_key).build().expect("sheets client build");
+pub async fn update(api_key: &str) -> Result<()> {
+    let client = SheetsClientBuilder::new(api_key).build()?;
 
-    let spreadsheet = client
-        .spreadsheet(COMPENDIUM_ID, true)
-        .await
-        .expect("Google Sheets API call");
+    let spreadsheet = client.spreadsheet(COMPENDIUM_ID, true).await?;
+
     let mut perks_sheet = spreadsheet
         .sheets
         .into_iter()
         .find(|sheet| sheet.properties.title.eq_ignore_ascii_case("gear perks"))
-        .expect("gear perks sheet must exist in spreadsheet");
-    let data = perks_sheet.data.pop().expect("gear perks sheet always has data");
+        .ok_or(DestinyError::MissingData("gear perks sheet"))?;
+
+    let data = perks_sheet
+        .data
+        .pop()
+        .ok_or(DestinyError::MissingData("gear perks sheet data"))?;
 
     let perks = data
         .row_data
@@ -37,11 +41,8 @@ pub async fn update(api_key: &str) {
                 values.swap_remove(2).formatted_value,
                 values.swap_remove(0).formatted_value,
             ) {
-                let name = name
-                    .split("\n\n")
-                    .next()
-                    .expect("name always has content")
-                    .replace('\n', " ");
+                let name =
+                    name.split("\n\n").next().unwrap_or(&name).replace('\n', " ");
 
                 Some((name.to_lowercase(), PerkInfo { name, description }))
             } else {
@@ -50,6 +51,8 @@ pub async fn update(api_key: &str) {
         })
         .collect::<HashMap<String, PerkInfo>>();
 
-    let json = serde_json::to_string(&perks).expect("serialize perks");
-    std::fs::write("perks.json", json).expect("write perks.json");
+    let json = serde_json::to_string(&perks)?;
+    fs::write("perks.json", json)?;
+
+    Ok(())
 }

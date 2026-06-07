@@ -21,7 +21,6 @@ use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::blackjack::{
-    CARD_VALUES,
     GameDetails,
     card_values,
     double_button,
@@ -36,6 +35,7 @@ use crate::{
     Coins,
     EffectsManager,
     GamblingData,
+    GamblingError,
     GamblingManager,
     GameManager,
     GameRow,
@@ -63,11 +63,11 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game = GameDetails::from_str(&emojis, text(interaction));
+        let mut game = GameDetails::from_str(&emojis, text(interaction))?;
 
-        game.add_card();
+        game.add_card()?;
 
-        if game.player_value(&emojis) > 21 {
+        if game.player_value(&emojis)? > 21 {
             game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
                 ctx,
                 interaction,
@@ -80,15 +80,10 @@ impl Blackjack {
             return Ok(());
         }
 
-        let text = in_play_text(
-            &emojis,
-            game.bet(),
-            game.player_hand(),
-            *game
-                .dealer_hand()
-                .first()
-                .expect("dealer hand always has at least one card"),
-        );
+        let dealer_card = game.dealer_card();
+
+        let text =
+            in_play_text(&emojis, game.bet(), game.player_hand(), dealer_card)?;
 
         let action_row =
             CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
@@ -139,7 +134,7 @@ impl Blackjack {
             interaction,
             pool,
             &emojis,
-            GameDetails::from_str(&emojis, text(interaction)),
+            GameDetails::from_str(&emojis, text(interaction))?,
         )
         .await?;
 
@@ -164,12 +159,12 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game = GameDetails::from_str(&emojis, text(interaction));
+        let mut game = GameDetails::from_str(&emojis, text(interaction))?;
 
         GamblingHandler::bet(pool, interaction.user.id, game.bet()).await?;
 
         game.double_bet();
-        game.add_card();
+        game.add_card()?;
 
         game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx,
@@ -225,13 +220,12 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game = GameDetails::from_str(&emojis, text(interaction));
+        let mut game = GameDetails::from_str(&emojis, text(interaction))?;
 
-        let player_value = game.player_value(&emojis);
+        let player_value = game.player_value(&emojis)?;
 
         let mut row = GameHandler::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis);
@@ -267,23 +261,27 @@ impl Blackjack {
 
         GameHandler::save(pool, row).await?;
 
-        let card_to_num = CARD_VALUES.get_or_init(|| card_values(&emojis));
-        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
-        let mut dealer_hand = game.dealer_hand();
-        dealer_hand.push(game.next_card());
-        let dealer_value = sum_cards(&emojis, &dealer_hand);
+        let mut dealer_hand = vec![game.dealer_card()];
+        dealer_hand.push(game.next_card()?);
+        let dealer_value = sum_cards(&emojis, &dealer_hand)?;
+
+        let player_hand_str = game.player_hand_str(&emojis)?;
+        let card_to_num = card_values(&emojis)?;
+        let mut dealer_hand_str = String::new();
+        for id in &dealer_hand {
+            let num = card_to_num.get(id).ok_or_else(|| {
+                GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+            })?;
+            let _ = write!(dealer_hand_str, "<:{num}:{id}> ");
+        }
 
         let desc = format!(
-            "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{} - {dealer_value}",
+            "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}",
             game.bet().format(),
-            game.player_hand_str(&emojis),
-            dealer_hand.iter().fold(String::new(), |mut acc, id| {
-                let num =
-                    card_to_num.get(id).expect("card ID always in card_to_num");
-                let _ = write!(acc, "<:{num}:{id}> ");
-                acc
-            })
         );
 
         interaction
@@ -336,7 +334,7 @@ async fn game_end<
     emojis: &EmojiCache,
     mut game: GameDetails,
 ) -> Result<()> {
-    let player_value = game.player_value(emojis);
+    let player_value = game.player_value(emojis)?;
 
     let mut row = GameHandler::row(pool, interaction.user.id)
         .await?
@@ -379,12 +377,12 @@ async fn game_end<
         return Ok(());
     }
 
-    let mut dealer_hand = game.dealer_hand();
-    let mut dealer_value = sum_cards(emojis, &dealer_hand);
+    let mut dealer_hand = vec![game.dealer_card()];
+    let mut dealer_value = sum_cards(emojis, &dealer_hand)?;
 
     while dealer_value < 17 {
-        dealer_hand.push(game.next_card());
-        dealer_value = sum_cards(emojis, &dealer_hand);
+        dealer_hand.push(game.next_card()?);
+        dealer_value = sum_cards(emojis, &dealer_hand)?;
     }
 
     let (win, mut payout) = if dealer_value > 21 || player_value > dealer_value {
@@ -419,18 +417,23 @@ async fn game_end<
 
     GameHandler::save(pool, row).await?;
 
-    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+    let card_to_num = card_values(emojis)?;
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
+
+    let player_hand_str = game.player_hand_str(emojis)?;
+    let mut dealer_hand_str = String::new();
+    for id in &dealer_hand {
+        let num = card_to_num.get(id).ok_or_else(|| {
+            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+        })?;
+        let _ = write!(dealer_hand_str, "<:{num}:{id}> ");
+    }
 
     let desc = format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{} - {dealer_value}",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}",
         game.bet().format(),
-        game.player_hand_str(emojis),
-        dealer_hand.iter().fold(String::new(), |mut acc, id| {
-            let num = card_to_num.get(id).expect("card ID always in card_to_num");
-            let _ = write!(acc, "<:{num}:{id}> ");
-            acc
-        })
     );
 
     let container = if win == Some(true) {
@@ -507,26 +510,29 @@ async fn bust<
 
     GameHandler::save(pool, row).await?;
 
-    let mut dealer_hand = game.dealer_hand();
-    dealer_hand.push(game.next_card());
+    let mut dealer_hand = vec![game.dealer_card()];
+    dealer_hand.push(game.next_card()?);
 
-    let dealer_value = sum_cards(emojis, &dealer_hand);
+    let dealer_value = sum_cards(emojis, &dealer_hand)?;
 
-    let dealer_hand_str = dealer_hand.iter().fold(String::new(), |mut acc, id| {
-        let num = *CARD_VALUES
-            .get_or_init(|| card_values(emojis))
-            .get(id)
-            .expect("invariant: card ID is always a valid deck entry");
-        let _ = write!(acc, "<:{num}:{id}> ");
-        acc
-    });
+    let card_to_num = card_values(emojis)?;
+    let mut dealer_hand_str = String::new();
+    for id in &dealer_hand {
+        let num = card_to_num.get(id).ok_or_else(|| {
+            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+        })?;
+        let _ = write!(dealer_hand_str, "<:{num}:{id}> ");
+    }
 
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
+
+    let player_hand_str = game.player_hand_str(emojis)?;
 
     Ok(format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
         game.bet().format(),
-        game.player_hand_str(emojis),
         (payout - game.bet()).format(),
         coins.format()
     ))

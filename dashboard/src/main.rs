@@ -21,6 +21,7 @@ use leptos::prelude::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list};
 use moka::future::Cache;
 use oauth2::basic::BasicClient;
+use oauth2::url::ParseError;
 use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
 use reqwest::header::AUTHORIZATION;
 use sqlx::PgPool;
@@ -66,10 +67,10 @@ impl WebState {
         app: Arc<ZaydenAppState>,
         config: &BotConfig,
         leptos_options: LeptosOptions,
-    ) -> Self {
-        Self {
+    ) -> std::result::Result<Self, ParseError> {
+        Ok(Self {
             app,
-            oauth_client: state::build_oauth_client(config),
+            oauth_client: state::build_oauth_client(config)?,
             http_oauth: oauth2::reqwest::Client::new(),
             discord_token: config.discord_token.clone(),
             oauth_states: Arc::new(DashMap::new()),
@@ -86,7 +87,7 @@ impl WebState {
                 .time_to_live(Duration::from_mins(1))
                 .build(),
             leptos_options,
-        }
+        })
     }
 }
 
@@ -96,8 +97,9 @@ impl FromRef<WebState> for LeptosOptions {
     }
 }
 
+// TODO: Remove Box<dyn Error>
 #[tokio::main]
-async fn main() {
+async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     logging();
 
     if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv()
@@ -106,22 +108,18 @@ async fn main() {
         warn!(".env file not found. Please make sure enviroment variables are set.");
     }
 
-    let database_url = std::env::var("DATABASE_URL").expect("Missing DATABASE_URL");
-    let pool =
-        PgPool::connect(&database_url).await.expect("failed to connect to database");
+    let database_url = std::env::var("DATABASE_URL")?;
+    let pool = PgPool::connect(&database_url).await?;
 
-    let config = BotConfig::load(&pool).await.expect("failed to load BotConfig");
+    let config = BotConfig::load(&pool).await?;
 
-    let leptos_options = get_configuration(Some("Cargo.toml"))
-        .expect("failed to load Leptos config from Cargo.toml")
-        .leptos_options;
+    let leptos_options = get_configuration(Some("Cargo.toml"))?.leptos_options;
 
     let app_state = Arc::new(ZaydenAppState::new(pool, &config));
     EventListener::spawn(app_state.db.clone(), app_state.events.clone());
-    let web_state = WebState::new(Arc::clone(&app_state), &config, leptos_options);
+    let web_state = WebState::new(Arc::clone(&app_state), &config, leptos_options)?;
 
-    let cors_origin = HeaderValue::from_str(&config.frontend_url)
-        .expect("BotConfig::frontend_url is a valid HTTP header value");
+    let cors_origin = HeaderValue::from_str(&config.frontend_url)?;
     let cors = CorsLayer::new()
         .allow_origin(cors_origin)
         .allow_methods([Method::GET, Method::POST, Method::PATCH])
@@ -154,14 +152,13 @@ async fn main() {
         .layer(CookieManagerLayer::new())
         .with_state(web_state);
 
-    let addr: SocketAddr = config
-        .bind_addr
-        .parse()
-        .expect("BotConfig::bind_addr is a valid SocketAddr");
+    let addr: SocketAddr = config.bind_addr.parse()?;
     info!("Dashboard listening on {addr}");
 
-    let listener = TcpListener::bind(addr).await.expect("failed to bind to address");
-    axum::serve(listener, app).await.expect("server error");
+    let listener = TcpListener::bind(addr).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
 
 fn logging() {

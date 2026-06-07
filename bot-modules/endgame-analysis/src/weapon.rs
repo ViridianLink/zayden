@@ -39,7 +39,7 @@ impl WeaponCommand {
         };
 
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(w) => serde_json::from_str(&w).expect("valid JSON"),
+            Ok(w) => serde_json::from_str(&w)?,
             Err(_) => {
                 let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
@@ -50,13 +50,11 @@ impl WeaponCommand {
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")
-                    .await
-                    .expect("data invariant");
+                    .await?;
 
                 EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let w = fs::read_to_string("weapons.json")
-                    .expect("weapons.json readable");
-                serde_json::from_str(&w).expect("valid JSON")
+                let w = fs::read_to_string("weapons.json")?;
+                serde_json::from_str(&w)?
             },
         };
 
@@ -95,8 +93,8 @@ impl WeaponCommand {
         option: AutocompleteOption<'_>,
         api_key: &str,
     ) -> Result<()> {
-        let weapons = match fs::read_to_string("weapons.json") {
-            Ok(weapons) => weapons,
+        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
+            Ok(weapons) => serde_json::from_str(&weapons)?,
             Err(_) => {
                 let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
@@ -107,15 +105,14 @@ impl WeaponCommand {
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")
-                    .await
-                    .expect("data invariant");
+                    .await?;
 
                 EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                fs::read_to_string("weapons.json").expect("weapons.json readable")
+                let weapons = fs::read_to_string("weapons.json")?;
+                serde_json::from_str(&weapons)?
             },
         };
-        let weapons: Vec<Weapon> =
-            serde_json::from_str(&weapons).expect("valid weapons JSON");
+
         let weapons = weapons
             .into_iter()
             .filter(|w| {

@@ -3,7 +3,7 @@ use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{GuildMembersCache, as_i64};
 
-use crate::{LeaderboardRow, LevelsManager, LevelsRow};
+use crate::{LeaderboardRow, LevelsError, LevelsManager, LevelsRow, Result};
 
 pub async fn create_embed<
     'a,
@@ -15,21 +15,22 @@ pub async fn create_embed<
     pool: &Pool<Db>,
     guild_id: GuildId,
     page_number: i64,
-) -> CreateEmbed<'a> {
+) -> Result<CreateEmbed<'a>> {
     let users = {
         let data = ctx.data::<RwLock<Data>>();
         let data = data.read().await;
 
         data.get()
             .get(&guild_id)
-            .expect("guild should be in member cache")
+            .ok_or_else(|| {
+                LevelsError::Internal("guild not in member cache".to_string())
+            })?
             .iter()
             .map(|id| as_i64(id.get()))
             .collect::<Vec<_>>()
     };
 
-    let rows =
-        Manager::leaderboard(pool, &users, page_number).await.expect("DB query");
+    let rows = Manager::leaderboard(pool, &users, page_number).await?;
 
     let desc = rows
         .into_iter()
@@ -37,18 +38,19 @@ pub async fn create_embed<
         .map(|(i, row)| {
             row_as_desc(
                 &row,
-                i + (usize::try_from(page_number).expect("page_number is positive")
-                    - 1)
+                i + (usize::try_from(page_number).unwrap_or(0).saturating_sub(1))
                     * 10,
             )
         })
         .collect::<Vec<_>>()
         .join("\n\n");
 
-    CreateEmbed::new()
+    let embed = CreateEmbed::new()
         .title("Leaderboard")
         .description(desc)
-        .footer(CreateEmbedFooter::new(format!("Page {page_number}")))
+        .footer(CreateEmbedFooter::new(format!("Page {page_number}")));
+
+    Ok(embed)
 }
 
 #[must_use]

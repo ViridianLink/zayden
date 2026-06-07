@@ -10,7 +10,7 @@ use sqlx::{Database, Pool};
 use zayden_core::cache::GuildMembersCache;
 
 use crate::common::levels::create_embed;
-use crate::{Levels, LevelsManager};
+use crate::{Levels, LevelsManager, Result};
 
 impl Levels {
     pub async fn run<
@@ -21,16 +21,15 @@ impl Levels {
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
-    ) -> serenity::Result<()> {
+    ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let embed = create_embed::<Data, Db, Manager>(
-            ctx,
-            pool,
-            interaction.guild_id.expect("levels command always used in guild"),
-            1,
-        )
-        .await;
+        let Some(guild_id) = interaction.guild_id else {
+            return Ok(());
+        };
+
+        let embed =
+            create_embed::<Data, Db, Manager>(ctx, pool, guild_id, 1).await?;
 
         interaction
             .edit_response(

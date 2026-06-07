@@ -12,7 +12,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
-use crate::{LevelsManager, LevelsRow};
+use crate::{LevelsManager, LevelsRow, Result};
 
 pub struct Xp;
 
@@ -22,7 +22,7 @@ impl Xp {
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
-    ) -> serenity::Result<()> {
+    ) -> Result<()> {
         let mut options = parse_options(options);
 
         match options.remove("ephemeral") {
@@ -32,10 +32,8 @@ impl Xp {
             _ => interaction.defer(http).await?,
         }
 
-        let row = Manager::xp_row(pool, interaction.user.id)
-            .await
-            .expect("DB query")
-            .unwrap_or_default();
+        let row =
+            Manager::xp_row(pool, interaction.user.id).await?.unwrap_or_default();
 
         let embed = CreateEmbed::default().title("XP").description(format!(
             "Current XP: {}\nLevel: {}\nTotal XP: {}",

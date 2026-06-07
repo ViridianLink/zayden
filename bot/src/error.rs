@@ -11,6 +11,7 @@ pub enum BotError {
     EndgameAnalysis(endgame_analysis::EndgameAnalysisError),
     Lfg(lfg::LfgError),
     ReactionRole(reaction_roles::Error),
+    Suggestions(suggestions::Error),
     Ticket(ticket::Error),
     TempVoice(temp_voice::Error),
 
@@ -39,6 +40,7 @@ impl std::fmt::Display for BotError {
             Self::EndgameAnalysis(e) => e.fmt(f),
             Self::Lfg(e) => e.fmt(f),
             Self::ReactionRole(e) => e.fmt(f),
+            Self::Suggestions(e) => e.fmt(f),
             Self::Ticket(e) => e.fmt(f),
             Self::TempVoice(e) => e.fmt(f),
             Self::Ai(e) => e.fmt(f),
@@ -56,6 +58,7 @@ impl std::error::Error for BotError {
             Self::EndgameAnalysis(e) => Some(e),
             Self::Lfg(e) => Some(e),
             Self::ReactionRole(e) => Some(e),
+            Self::Suggestions(e) => Some(e),
             Self::Ticket(e) => Some(e),
             Self::TempVoice(e) => Some(e),
             Self::Ai(e) => Some(e),
@@ -80,6 +83,7 @@ impl Respond for BotError {
             Self::EndgameAnalysis(e) => e.user_message(),
             Self::Lfg(e) => e.user_message(),
             Self::ReactionRole(e) => e.user_message(),
+            Self::Suggestions(e) => e.user_message(),
             Self::Ticket(e) => e.user_message(),
             Self::TempVoice(e) => e.user_message(),
 
@@ -109,6 +113,12 @@ impl From<lfg::LfgError> for BotError {
 impl From<reaction_roles::Error> for BotError {
     fn from(e: reaction_roles::Error) -> Self {
         Self::ReactionRole(e)
+    }
+}
+
+impl From<suggestions::Error> for BotError {
+    fn from(e: suggestions::Error) -> Self {
+        Self::Suggestions(e)
     }
 }
 
@@ -145,6 +155,18 @@ impl From<jiff::Error> for BotError {
 impl From<ai::Error> for BotError {
     fn from(e: ai::Error) -> Self {
         Self::Ai(e)
+    }
+}
+
+impl From<bungie_api::Error> for BotError {
+    fn from(e: bungie_api::Error) -> Self {
+        Self::Other(e.to_string())
+    }
+}
+
+impl From<std::io::Error> for BotError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Other(e.to_string())
     }
 }
 

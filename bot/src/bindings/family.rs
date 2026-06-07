@@ -770,8 +770,9 @@ fn format_tree(tree: &HashMap<i32, Vec<FamilyRow>>, root_id: UserId) -> String {
     let mut lines = Vec::new();
 
     for depth in keys {
-        let members =
-            tree.get(&depth).expect("key from tree.keys() is always present");
+        let Some(members) = tree.get(&depth) else {
+            continue;
+        };
         let prefix = match depth.cmp(&0) {
             std::cmp::Ordering::Less => "⬆",
             std::cmp::Ordering::Greater => "⬇",

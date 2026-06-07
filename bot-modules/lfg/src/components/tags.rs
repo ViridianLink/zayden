@@ -19,10 +19,14 @@ impl TagsComponent {
         let mut tag_ids = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => values
                 .iter()
-                .map(|x| {
-                    x.parse::<u64>().expect("forum tag ID is always a valid u64")
+                .filter_map(|x| {
+                    x.parse::<u64>()
+                        .map_err(|e| {
+                            error!("Failed to parse forum tag ID '{}': {e}", x);
+                        })
+                        .ok()
+                        .map(ForumTagId::new)
                 })
-                .map(ForumTagId::new)
                 .collect::<Vec<_>>(),
             ComponentInteractionDataKind::Button
             | ComponentInteractionDataKind::UserSelect { .. }
@@ -59,10 +63,14 @@ impl TagsComponent {
         let selected_ids = match &interaction.data.kind {
             ComponentInteractionDataKind::StringSelect { values } => values
                 .iter()
-                .map(|x| {
-                    x.parse::<u64>().expect("forum tag ID is always a valid u64")
+                .filter_map(|x| {
+                    x.parse::<u64>()
+                        .map_err(|e| {
+                            error!("Failed to parse forum tag ID '{}': {e}", x);
+                        })
+                        .ok()
+                        .map(ForumTagId::new)
                 })
-                .map(ForumTagId::new)
                 .collect::<HashSet<_>>(),
             ComponentInteractionDataKind::Button
             | ComponentInteractionDataKind::UserSelect { .. }

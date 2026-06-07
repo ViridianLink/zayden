@@ -36,7 +36,7 @@ fn error_redirect(frontend_url: &str) -> Response {
         .status(StatusCode::SEE_OTHER)
         .header(header::LOCATION, format!("{frontend_url}/?error=auth_failed"))
         .body(Body::empty())
-        .expect("static HTTP response headers are valid")
+        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
 }
 
 pub(super) async fn discord_auth_callback_handler(
@@ -93,7 +93,7 @@ pub(super) async fn discord_auth_callback_handler(
 
     let expires_at = Timestamp::now()
         .saturating_add(SignedDuration::from_hours(SESSION_TTL_HOURS))
-        .expect("7-day session TTL addition is within timestamp range");
+        .unwrap_or(Timestamp::MAX);
     let expires_at = jiff_sqlx::Timestamp::from(expires_at);
 
     #[expect(
@@ -127,5 +127,5 @@ pub(super) async fn discord_auth_callback_handler(
         .header(header::LOCATION, format!("{frontend_url}/dashboard"))
         .header(header::SET_COOKIE, cookie.to_string())
         .body(Body::empty())
-        .expect("static HTTP response headers are valid")
+        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
 }

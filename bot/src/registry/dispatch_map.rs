@@ -114,7 +114,7 @@ mod tests {
     fn exact_match() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
         let _ = map.insert(IdMatch::Exact(Cow::Borrowed("foo")), arc(1));
-        assert_eq!(map.lookup("foo").expect("handler must be registered").0, 1);
+        assert_eq!(map.lookup("foo").map(|s| s.0), Some(1));
         assert!(map.lookup("foo_extra").is_none());
     }
 
@@ -122,8 +122,8 @@ mod tests {
     fn prefix_match() {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
         let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
-        assert_eq!(map.lookup("foo_bar").expect("handler must be registered").0, 1);
-        assert_eq!(map.lookup("foo_").expect("handler must be registered").0, 1);
+        assert_eq!(map.lookup("foo_bar").map(|s| s.0), Some(1));
+        assert_eq!(map.lookup("foo_").map(|s| s.0), Some(1));
         assert!(map.lookup("fo").is_none());
         assert!(map.lookup("bar").is_none());
     }
@@ -133,14 +133,8 @@ mod tests {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
         let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
         let _ = map.insert(IdMatch::Exact(Cow::Borrowed("foo_exact")), arc(2));
-        assert_eq!(
-            map.lookup("foo_exact").expect("handler must be registered").0,
-            2
-        );
-        assert_eq!(
-            map.lookup("foo_other").expect("handler must be registered").0,
-            1
-        );
+        assert_eq!(map.lookup("foo_exact").map(|s| s.0), Some(2));
+        assert_eq!(map.lookup("foo_other").map(|s| s.0), Some(1));
     }
 
     #[test]
@@ -148,8 +142,8 @@ mod tests {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
         let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("alpha_")), arc(1));
         let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("beta_")), arc(2));
-        assert_eq!(map.lookup("alpha_1").expect("handler must be registered").0, 1);
-        assert_eq!(map.lookup("beta_2").expect("handler must be registered").0, 2);
+        assert_eq!(map.lookup("alpha_1").map(|s| s.0), Some(1));
+        assert_eq!(map.lookup("beta_2").map(|s| s.0), Some(2));
         assert!(map.lookup("gamma_3").is_none());
     }
 
@@ -158,7 +152,7 @@ mod tests {
         let mut map: DispatchMap<Stub> = DispatchMap::new();
         let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(1));
         let _ = map.insert(IdMatch::Prefix(Cow::Borrowed("foo_")), arc(2));
-        assert_eq!(map.lookup("foo_bar").expect("handler must be registered").0, 2);
+        assert_eq!(map.lookup("foo_bar").map(|s| s.0), Some(2));
     }
 
     #[test]

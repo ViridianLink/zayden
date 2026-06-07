@@ -16,6 +16,7 @@ use zayden_core::EmojiCacheData;
 use super::Commands;
 use crate::{
     Coins,
+    GamblingError,
     GamblingGoalsRow,
     Gems,
     GoalHandler,
@@ -95,34 +96,35 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let row = Manager::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
-            .unwrap_or_default();
+        let row = Manager::row(pool, interaction.user.id).await?.unwrap_or_default();
 
         let mut desc = GoalHandler::get_user_progress::<Db, Manager>(
             pool,
             interaction.user.id,
             &row,
         )
-        .await
-        .expect("async call")
+        .await?
         .into_iter()
         .fold(String::new(), |mut acc, goal| {
             let _ = write!(acc, "{}\n\n", goal.description());
             acc
         });
 
-        let coin = {
+        let (coin, reset_ts) = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
-            data.emojis().emoji("heads").expect("emoji 'heads' in cache")
+            let coin = data.emojis().emoji("heads").map_err(|n| {
+                GamblingError::Internal(format!("emoji '{n}' not in cache"))
+            })?;
+            drop(data);
+            let reset_ts = tomorrow(None)?;
+
+            (coin, reset_ts)
         };
 
         let _ = write!(
             desc,
-            "Reward for completing __**each goals**__: 5,000 <:coin:{coin}>\nReward for completing __**all goals**__: 1 💎\n\nGoals reset <t:{}:R>",
-            tomorrow(None)
+            "Reward for completing __**each goals**__: 5,000 <:coin:{coin}>\nReward for completing __**all goals**__: 1 💎\n\nGoals reset <t:{reset_ts}:R>",
         );
 
         let embed = CreateEmbed::new().title("Daily Goals 📋").description(desc);

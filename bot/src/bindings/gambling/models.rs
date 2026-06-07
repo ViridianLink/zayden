@@ -46,8 +46,8 @@ impl GamblingManager<Postgres> for GamblingTable {
             as_i64(id.get())
         )
         .fetch_one(conn)
-        .await
-        .map(|r| r.expect("invariant: max_bet is non-null when a levels row exists"))
+        .await?
+        .ok_or(sqlx::Error::RowNotFound)
     }
 
     // region: Update

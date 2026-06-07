@@ -3,6 +3,9 @@ use std::fmt::Display;
 use serenity::all::{Colour, CreateEmbed};
 use zayden_core::{EmojiCache, FormatNum};
 
+use crate::GamblingError;
+use crate::error::Result;
+
 #[derive(Clone, Copy)]
 pub enum Emoji {
     Str(&'static str),
@@ -33,16 +36,16 @@ impl GameResult {
         Self { name, emoji: Emoji::Id(emoji) }
     }
 
-    #[must_use]
-    pub fn emoji(&self, emojis: &EmojiCache) -> String {
+    pub fn emoji(&self, emojis: &EmojiCache) -> Result<String> {
         match self.emoji {
-            Emoji::Id(id) => format!(
-                "<:{}:{}>",
-                self.name,
-                emojis.emoji(id).expect("emoji ID in cache")
-            ),
-            Emoji::Str(emoji) => String::from(emoji),
-            Emoji::None => String::new(),
+            Emoji::Id(id) => emojis
+                .emoji(id)
+                .map(|emoji_id| format!("<:{}:{emoji_id}>", self.name))
+                .map_err(|n| {
+                    GamblingError::Internal(format!("emoji '{n}' not in cache"))
+                }),
+            Emoji::Str(emoji) => Ok(String::from(emoji)),
+            Emoji::None => Ok(String::new()),
         }
     }
 }
@@ -72,7 +75,7 @@ pub fn game_embed<'a>(
     bet: i64,
     payout: i64,
     coins: i64,
-) -> CreateEmbed<'a> {
+) -> Result<CreateEmbed<'a>> {
     let prediction: GameResult = prediction.into();
     let outcome: GameResult = outcome.into();
 
@@ -83,20 +86,23 @@ pub fn game_embed<'a>(
 
     let colour = if win { Colour::DARK_GREEN } else { Colour::RED };
 
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
+
     let desc = format!(
-        "Your bet: {} <:coin:{}>
-        
+        "Your bet: {} <:coin:{coin}>
+
         **You bet on:** {} ({prediction})
         **{outcome_text}:** {} ({outcome})
-        
+
         {result}
         Your coins: {}",
         bet.format(),
-        emojis.emoji("heads").expect("emoji 'heads' in cache"),
-        prediction.emoji(emojis),
-        outcome.emoji(emojis),
+        prediction.emoji(emojis)?,
+        outcome.emoji(emojis)?,
         coins.format()
     );
 
-    CreateEmbed::<'a>::new().title(title).description(desc).colour(colour)
+    Ok(CreateEmbed::<'a>::new().title(title).description(desc).colour(colour))
 }

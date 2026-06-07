@@ -63,7 +63,11 @@ impl KickComponent {
 
         let kicked_user = match &interaction.data.kind {
             ComponentInteractionDataKind::UserSelect { values } => {
-                *values.first().expect("UserSelect always has at least one value")
+                let Some(v) = values.first() else {
+                    error!("KickComponent: UserSelect had no values");
+                    return Ok(());
+                };
+                *v
             },
             ComponentInteractionDataKind::Button
             | ComponentInteractionDataKind::StringSelect { .. }

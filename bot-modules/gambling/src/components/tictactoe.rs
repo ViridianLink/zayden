@@ -26,7 +26,15 @@ use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, as_u64};
 
 use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
-use crate::{Coins, EffectsManager, GamblingManager, GameManager, GameRow, Result};
+use crate::{
+    Coins,
+    EffectsManager,
+    GamblingError,
+    GamblingManager,
+    GameManager,
+    GameRow,
+    Result,
+};
 
 type Board = Vec<Vec<Option<ReactionType>>>;
 
@@ -104,67 +112,56 @@ impl TicTacToe {
     async fn p1_row<Db: Database, Manager: GameManager<Db>>(
         &self,
         pool: &Pool<Db>,
-    ) -> GameRow {
+    ) -> sqlx::Result<GameRow> {
         let id = self.players[0];
 
-        Manager::row(pool, id)
-            .await
-            .expect("async call")
-            .unwrap_or_else(|| GameRow::new(id))
+        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
     }
 
     async fn p2_row<Db: Database, Manager: GameManager<Db>>(
         &self,
         pool: &Pool<Db>,
-    ) -> GameRow {
+    ) -> sqlx::Result<GameRow> {
         let id = self.players[1];
 
-        Manager::row(pool, id)
-            .await
-            .expect("async call")
-            .unwrap_or_else(|| GameRow::new(id))
+        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
     }
 }
 
-impl From<&ComponentInteraction> for TicTacToe {
-    fn from(value: &ComponentInteraction) -> Self {
+impl TryFrom<&ComponentInteraction> for TicTacToe {
+    type Error = GamblingError;
+
+    fn try_from(value: &ComponentInteraction) -> Result<Self> {
         let Some(MessageInteractionMetadata::Command(metadata)) =
             value.message.interaction_metadata.as_deref()
         else {
-            // Return a default/stub struct
-            return Self {
-                size: 0,
-                players: [value.user.id, value.user.id],
-                current_turn: value.user.id,
-                bet: 0,
-            };
+            return Err(GamblingError::Internal(
+                "tictactoe interaction missing command metadata".to_string(),
+            ));
         };
 
         let players = [metadata.user.id, value.user.id];
-        let current_turn =
-            *players.choose(&mut rng()).expect("players slice is non-empty");
+        let current_turn = *players.choose(&mut rng()).unwrap_or(&players[0]);
 
-        let embed =
-            value.message.embeds.first().expect("ttt message always has an embed");
-        let re = Regex::new(r"for \*\*(\d+)\*\*").expect("valid static regex");
+        let embed = value.message.embeds.first().ok_or_else(|| {
+            GamblingError::Internal("ttt message missing embed".to_string())
+        })?;
+        let re = Regex::new(r"for \*\*(\d+)\*\*").map_err(|e| {
+            GamblingError::Internal(format!("regex compile error: {e}"))
+        })?;
 
         let bet = re
-            .captures(
-                embed
-                    .description
-                    .as_ref()
-                    .expect("ttt challenge embed always has description"),
-            )
+            .captures(embed.description.as_deref().unwrap_or_default())
             .and_then(|caps| caps.get(1))
             .and_then(|matched| matched.as_str().parse::<i64>().ok())
-            .expect("bet always present in ttt embed description");
+            .unwrap_or(0);
 
-        Self {
+        Ok(Self {
             size: value.message.components.len() as usize,
             players,
             current_turn,
             bet,
-        }
+        })
     }
 }
 
@@ -194,12 +191,12 @@ async fn accept<
 ) -> Result<()> {
     interaction.defer(http).await?;
 
-    let mut state = TicTacToe::from(interaction);
+    let mut state = TicTacToe::try_from(interaction)?;
 
     state.players[1] = interaction.user.id;
 
-    let mut p1_row = state.p1_row::<Db, GameHandler>(pool).await;
-    let mut p2_row = state.p2_row::<Db, GameHandler>(pool).await;
+    let mut p1_row = state.p1_row::<Db, GameHandler>(pool).await?;
+    let mut p2_row = state.p2_row::<Db, GameHandler>(pool).await?;
 
     EffectsHandler::bet_limit::<GamblingHandler>(
         pool,
@@ -217,7 +214,7 @@ async fn accept<
     .await?;
 
     state.current_turn =
-        *state.players.choose(&mut rng()).expect("players slice is non-empty");
+        *state.players.choose(&mut rng()).unwrap_or(&state.players[0]);
 
     p1_row.add_coins(-state.bet);
     p2_row.add_coins(-state.bet);
@@ -225,7 +222,9 @@ async fn accept<
     GameHandler::save(pool, p1_row).await?;
     GameHandler::save(pool, p2_row).await?;
 
-    let blank = emojis.emoji("blank").expect("blank emoji always registered");
+    let blank = emojis
+        .emoji("blank")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
     let embed = CreateEmbed::new()
         .title("TicTacToe")
@@ -320,8 +319,7 @@ async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
     if won {
         let winner = current_turn;
         let mut row = GameHandler::row(pool, winner)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| GameRow::new(winner));
         row.add_coins(2 * bet);
         GameHandler::save(pool, row).await?;
@@ -343,8 +341,7 @@ async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
     } else if draw {
         for &player in &players {
             let mut row = GameHandler::row(pool, player)
-                .await
-                .expect("async call")
+                .await?
                 .unwrap_or_else(|| GameRow::new(player));
             row.add_coins(bet);
             GameHandler::save(pool, row).await?;

@@ -7,6 +7,7 @@ use serenity::all::{
     EditInteractionResponse,
     GuildId,
     Http,
+    Permissions,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
@@ -23,14 +24,13 @@ pub(super) async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
 ) -> Result<()> {
     interaction.defer_ephemeral(http).await?;
 
-    if !interaction
+    let is_admin = interaction
         .member
         .as_ref()
-        .expect("guild command always has a member")
-        .permissions
-        .expect("guild member always has permissions")
-        .administrator()
-    {
+        .and_then(|m| m.permissions)
+        .is_some_and(Permissions::administrator);
+
+    if !is_admin {
         return Err(Error::AdministratorRequired);
     }
 

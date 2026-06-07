@@ -1,6 +1,6 @@
 use serenity::all::GuildId;
 
-use crate::RegistryBuilder;
+use crate::{LLAMAD2_GUILD, RegistryBuilder};
 
 mod dungeon_report;
 mod goof;
@@ -18,7 +18,7 @@ use raidreport::RaidReport;
 use sensitivity::Sensitivity;
 use socials::Socials;
 
-static LLAMA_GUILDS: [GuildId; 1] = [crate::LLAMAD2_GUILD];
+static LLAMA_GUILDS: [GuildId; 1] = [LLAMAD2_GUILD];
 
 pub fn register(builder: &mut RegistryBuilder) {
     builder

@@ -160,8 +160,9 @@ mod tests {
                 "round-trip failed for {scope:?}: {:?}",
                 result.err()
             );
-            let decoded = result.expect("checked above");
-            assert_eq!(scope, &decoded, "payload was: {payload:?}");
+            if let Ok(decoded) = result {
+                assert_eq!(scope, &decoded, "payload was: {payload:?}");
+            }
         }
     }
 

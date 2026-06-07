@@ -4,7 +4,7 @@ use sqlx::{Database, FromRow, Pool};
 use zayden_core::{EmojiCache, FormatNum, as_u64};
 
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
-use crate::{Coins, Gems};
+use crate::{Coins, Gems, Result};
 
 #[async_trait]
 pub trait LeaderboardManager<Db: Database> {
@@ -171,8 +171,7 @@ impl LeaderboardRow {
         }
     }
 
-    #[must_use]
-    pub fn as_desc(&self, emojis: &EmojiCache, i: usize) -> String {
+    pub fn as_desc(&self, emojis: &EmojiCache, i: usize) -> Result<String> {
         let place = if i == 0 {
             "🥇".to_string()
         } else if i == 1 {
@@ -187,10 +186,10 @@ impl LeaderboardRow {
             Self::Coins(row) => row.coins_str(),
             Self::Gems(row) => row.gems_str(),
             Self::Eggplants(row) => {
-                format!("{} {}", row.quantity.format(), EGGPLANT.emoji(emojis))
+                format!("{} {}", row.quantity.format(), EGGPLANT.emoji(emojis)?)
             },
             Self::LottoTickets(row) => {
-                format!("{} {}", row.quantity.format(), LOTTO_TICKET.emoji(emojis))
+                format!("{} {}", row.quantity.format(), LOTTO_TICKET.emoji(emojis)?)
             },
             Self::HigherLower(row) => row.higher_or_lower_score.to_string(),
             Self::WeeklyHigherLower(row) => {
@@ -198,7 +197,7 @@ impl LeaderboardRow {
             },
         };
 
-        format!("{place} - {} - {data}", self.user_id().mention())
+        Ok(format!("{place} - {} - {data}", self.user_id().mention()))
     }
 }
 
@@ -207,32 +206,20 @@ pub async fn get_rows<Db: Database, Manager: LeaderboardManager<Db>>(
     pool: &Pool<Db>,
     users: Option<&[i64]>,
     page_num: i64,
-) -> Vec<LeaderboardRow> {
+) -> sqlx::Result<Vec<LeaderboardRow>> {
     let global = users.is_none();
     let users = users.unwrap_or_default();
 
     match leaderboard {
-        "coins" => {
-            Manager::coins(pool, global, users, page_num).await.expect("async call")
-        },
-        "gems" => {
-            Manager::gems(pool, global, users, page_num).await.expect("async call")
-        },
-        "eggplants" => Manager::eggplants(pool, global, users, page_num)
-            .await
-            .expect("async call"),
-        "lottotickets" => Manager::lottotickets(pool, global, users, page_num)
-            .await
-            .expect("async call"),
-        "higherlower" => Manager::higherlower(pool, global, users, page_num)
-            .await
-            .expect("async call"),
+        "coins" => Manager::coins(pool, global, users, page_num).await,
+        "gems" => Manager::gems(pool, global, users, page_num).await,
+        "eggplants" => Manager::eggplants(pool, global, users, page_num).await,
+        "lottotickets" => Manager::lottotickets(pool, global, users, page_num).await,
+        "higherlower" => Manager::higherlower(pool, global, users, page_num).await,
         "weekly_higherlower" => {
-            Manager::weekly_higherlower(pool, global, users, page_num)
-                .await
-                .expect("async call")
+            Manager::weekly_higherlower(pool, global, users, page_num).await
         },
-        _ => Vec::new(),
+        _ => Ok(Vec::new()),
     }
 }
 
@@ -241,33 +228,25 @@ pub async fn get_row_number<Db: Database, Manager: LeaderboardManager<Db>>(
     pool: &Pool<Db>,
     users: Option<&[i64]>,
     user: UserId,
-) -> Option<i64> {
+) -> sqlx::Result<Option<i64>> {
     let global = users.is_none();
     let users = users.unwrap_or_default();
 
     match leaderboard {
-        "coins" => Manager::coins_row_number(pool, global, users, user)
-            .await
-            .expect("async call"),
-        "gems" => Manager::gems_row_number(pool, global, users, user)
-            .await
-            .expect("async call"),
-        "eggplants" => Manager::eggplants_row_number(pool, global, users, user)
-            .await
-            .expect("async call"),
+        "coins" => Manager::coins_row_number(pool, global, users, user).await,
+        "gems" => Manager::gems_row_number(pool, global, users, user).await,
+        "eggplants" => {
+            Manager::eggplants_row_number(pool, global, users, user).await
+        },
         "lottotickets" => {
-            Manager::lottotickets_row_number(pool, global, users, user)
-                .await
-                .expect("async call")
+            Manager::lottotickets_row_number(pool, global, users, user).await
         },
-        "higherlower" => Manager::higherlower_row_number(pool, global, users, user)
-            .await
-            .expect("async call"),
+        "higherlower" => {
+            Manager::higherlower_row_number(pool, global, users, user).await
+        },
         "weekly_higherlower" => {
-            Manager::weekly_higherlower_row_number(pool, global, users, user)
-                .await
-                .expect("async call")
+            Manager::weekly_higherlower_row_number(pool, global, users, user).await
         },
-        _ => None,
+        _ => Ok(None),
     }
 }

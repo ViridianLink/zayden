@@ -47,7 +47,7 @@ pub(super) async fn create<
 
     let limit = match options.remove("limit") {
         Some(ResolvedValue::Integer(limit)) => {
-            u16::try_from(limit.clamp(0, 99)).expect("clamped 0-99 fits in u16")
+            u16::try_from(limit.clamp(0, 99)).unwrap_or(0)
         },
         _ => 0,
     };
@@ -88,9 +88,7 @@ pub(super) async fn create<
     let vc_builder = CreateChannel::new(name)
         .kind(ChannelType::Voice)
         .category(category)
-        .user_limit(
-            NonMaxU16::new(limit).expect("limit 0-99 is below NonMaxU16 max"),
-        )
+        .user_limit(NonMaxU16::new(limit).unwrap_or(NonMaxU16::ZERO))
         .permissions(perms);
 
     let vc: serenity::all::GuildChannel =

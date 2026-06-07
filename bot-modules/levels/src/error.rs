@@ -8,6 +8,8 @@ pub enum LevelsError {
     Discord(#[from] serenity::Error),
     #[error(transparent)]
     Database(#[from] sqlx::Error),
+    #[error("internal error: {0}")]
+    Internal(String),
 }
 
 impl Respond for LevelsError {}

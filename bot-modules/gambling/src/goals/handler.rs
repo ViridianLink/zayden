@@ -15,7 +15,7 @@ use zayden_core::EmojiCache;
 
 use super::GOAL_REGISTRY;
 use crate::events::{Event, EventRow};
-use crate::{GEM, GamblingGoalsRow, GoalsManager, Result, tomorrow};
+use crate::{GEM, GamblingError, GamblingGoalsRow, GoalsManager, Result, tomorrow};
 
 pub struct GoalHandler;
 
@@ -91,7 +91,9 @@ impl GoalHandler {
                 acc
             });
 
-        let coin = emojis.get("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.get("heads").ok_or_else(|| {
+            GamblingError::Internal("emoji 'heads' not in cache".to_string())
+        })?;
 
         for &goal in changed.iter().filter(|goal| goal.is_complete()) {
             row.add_coins(5_000);
@@ -132,7 +134,7 @@ impl GoalHandler {
                     .send_message(
                         http,
                         CreateMessage::new().embed(CreateEmbed::new().description(format!(
-                            "You have completed **all** daily goals! 🎉\n**Reward:** 1 {GEM}\n\nGoals reset <t:{}:R>", tomorrow(None)
+                            "You have completed **all** daily goals! 🎉\n**Reward:** 1 {GEM}\n\nGoals reset <t:{}:R>", tomorrow(None)?
                         )).colour(Colour::DARK_GREEN)),
                     )
                     .await?;

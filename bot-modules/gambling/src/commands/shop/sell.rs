@@ -66,15 +66,15 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
         return Err(GamblingError::NegativeAmount);
     }
 
-    let item =
-        SHOP_ITEMS.get(item).expect("Preset choices so item should always exist");
+    let Some(item) = SHOP_ITEMS.get(item) else {
+        return Err(GamblingError::InvalidAmount);
+    };
 
-    let total_coin_cost = item.coin_cost().expect("item has a coin cost") * amount;
+    let total_coin_cost = item.coin_cost().unwrap_or(0) * amount;
     let payment = total_coin_cost * SALES_RETURN / 100;
 
     let mut row = Manager::sell_row(pool, interaction.user.id, item.id)
-        .await
-        .expect("async call")
+        .await?
         .unwrap_or_else(|| SellRow::new(interaction.user.id));
 
     let quantity = match &mut row.item_quantity {
@@ -98,7 +98,9 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
         data.emojis()
     };
 
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
     interaction
         .edit_response(
@@ -106,7 +108,7 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
             EditInteractionResponse::new().content(format!(
                 "You sold {} {} for {} <:coin:{coin}>\nYou now have {}.",
                 amount.format(),
-                item.as_str(&emojis),
+                item.as_str(&emojis)?,
                 payment.format(),
                 quantity.format()
             )),

@@ -12,6 +12,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 pub enum Error {
     MissingGuildId,
+    MissingUserId,
     InvalidMessageId(String),
     ReactionConversionError(ReactionConversionError),
     Serenity(serenity::Error),
@@ -22,6 +23,7 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingGuildId => zayden_core::Error::MissingGuildId.fmt(f),
+            Self::MissingUserId => write!(f, "Reaction is missing user ID"),
             Self::InvalidMessageId(id) => write!(f, "Invalid message ID: {id}"),
             Self::ReactionConversionError(_) => {
                 write!(f, "Failed to convert emoji to reaction")
@@ -38,7 +40,9 @@ impl std::error::Error for Error {
             Self::ReactionConversionError(e) => Some(e),
             Self::Serenity(e) => Some(e),
             Self::Sqlx(e) => Some(e),
-            Self::MissingGuildId | Self::InvalidMessageId(_) => None,
+            Self::MissingGuildId
+            | Self::MissingUserId
+            | Self::InvalidMessageId(_) => None,
         }
     }
 }
@@ -49,9 +53,9 @@ impl Respond for Error {
             Self::ReactionConversionError(_) | Self::Serenity(_) | Self::Sqlx(_) => {
                 None
             },
-            Self::MissingGuildId | Self::InvalidMessageId(_) => {
-                Some(Cow::Owned(self.to_string()))
-            },
+            Self::MissingGuildId
+            | Self::MissingUserId
+            | Self::InvalidMessageId(_) => Some(Cow::Owned(self.to_string())),
         }
     }
 }

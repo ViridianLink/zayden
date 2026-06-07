@@ -21,8 +21,8 @@ use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::higherlower::create_embed;
 use crate::{
     CARD_DECK,
-    CARD_TO_NUM,
     Coins,
+    GamblingError,
     GamblingManager,
     GameManager,
     GameRow,
@@ -58,17 +58,19 @@ impl HigherLower {
             data.emojis()
         };
 
-        let mut details = Self::from(interaction);
-        let prev = details.prev();
-        let next = if let Some(next) = details.next(&emojis) {
+        let mut details = Self::try_from(interaction)?;
+        let prev = details.prev()?;
+        let next = if let Some(next) = details.next(&emojis)? {
             next
         } else {
             let mut tx = pool.begin().await?;
             GamblingHandler::add_gems(&mut *tx, interaction.user.id, 1).await?;
             tx.commit().await?;
 
-            details.new_deck(&emojis);
-            details.next(&emojis).expect("new deck is non-empty")
+            details.new_deck(&emojis)?;
+            details.next(&emojis)?.ok_or_else(|| {
+                GamblingError::Internal("new deck is empty after reset".to_string())
+            })?
         };
 
         match interaction.data.custom_id.as_str() {
@@ -217,27 +219,51 @@ impl HigherLower {
         Ok(())
     }
 
-    fn next(&mut self, emojis: &EmojiCache) -> Option<(EmojiId, u8)> {
-        let emoji = self.deck.pop()?;
-        let num = *CARD_TO_NUM.get_or_init(|| card_to_num(emojis)).get(&emoji)?;
+    fn next(&mut self, emojis: &EmojiCache) -> Result<Option<(EmojiId, u8)>> {
+        let Some(emoji) = self.deck.pop() else {
+            return Ok(None);
+        };
 
-        Some((emoji, num))
+        let card_map = card_to_num(emojis)?;
+        let num = card_map.get(&emoji).copied().ok_or_else(|| {
+            GamblingError::Internal("emoji not in card_to_num map".to_string())
+        })?;
+
+        Ok(Some((emoji, num)))
     }
 
-    fn prev(&self) -> u8 {
-        parse_emoji(self.seq.last().expect("seq always has at least one card"))
-            .expect("last seq element is a valid discord emoji")
-            .name
-            .parse()
-            .expect("emoji name is always the card value")
+    fn prev(&self) -> Result<u8> {
+        let last = self.seq.last().ok_or_else(|| {
+            GamblingError::Internal("higher-lower seq is empty".to_string())
+        })?;
+
+        let emoji = parse_emoji(last).ok_or_else(|| {
+            GamblingError::Internal(
+                "last seq element is not a valid discord emoji".to_string(),
+            )
+        })?;
+
+        emoji.name.parse().map_err(|_e| {
+            GamblingError::Internal(
+                "emoji name is not a valid card value".to_string(),
+            )
+        })
     }
 
-    fn new_deck(&mut self, emojis: &EmojiCache) {
-        let mut deck = CARD_DECK.get_or_init(|| card_deck(emojis)).clone();
-
+    fn new_deck(&mut self, emojis: &EmojiCache) -> Result<()> {
+        let deck_ref = if let Some(d) = CARD_DECK.get() {
+            d
+        } else {
+            let new_deck = card_deck(emojis)?;
+            let _ = CARD_DECK.set(new_deck);
+            CARD_DECK.get().ok_or_else(|| {
+                GamblingError::Internal("CARD_DECK init failed".to_string())
+            })?
+        };
+        let mut deck = deck_ref.clone();
         deck.shuffle(&mut rng());
-
         self.deck = deck;
+        Ok(())
     }
 
     async fn game_end<
@@ -264,8 +290,7 @@ impl HigherLower {
         tx.commit().await?;
 
         let mut row = GameHandler::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         row.add_coins(self.payout);
@@ -316,19 +341,31 @@ impl HigherLower {
     }
 }
 
-impl From<&ComponentInteraction> for HigherLower {
-    fn from(value: &ComponentInteraction) -> Self {
+impl TryFrom<&ComponentInteraction> for HigherLower {
+    type Error = GamblingError;
+
+    fn try_from(value: &ComponentInteraction) -> Result<Self> {
         let desc = value
             .message
             .as_ref()
             .embeds
             .first()
             .and_then(|embed| embed.description.as_deref())
-            .expect("higher-lower game message always has embed with description");
+            .ok_or_else(|| {
+                GamblingError::Internal(
+                    "higher-lower message missing embed description".to_string(),
+                )
+            })?;
 
         let mut lines = desc.lines();
-        let seq_line = lines.next().expect("game message has expected format");
-        let payout_line = lines.nth(1).expect("game message has expected format");
+        let seq_line = lines.next().ok_or_else(|| {
+            GamblingError::Internal("higher-lower message has no lines".to_string())
+        })?;
+        let payout_line = lines.nth(1).ok_or_else(|| {
+            GamblingError::Internal(
+                "higher-lower message missing payout line".to_string(),
+            )
+        })?;
 
         let seq = seq_line
             .get(2..)
@@ -339,10 +376,14 @@ impl From<&ComponentInteraction> for HigherLower {
 
         let payout = payout_line
             .strip_prefix("Current Payout: ")
-            .expect("payout line has expected prefix")
+            .ok_or_else(|| {
+                GamblingError::Internal("payout line missing prefix".to_string())
+            })?
             .replace(',', "")
             .parse()
-            .expect("payout is always a valid integer");
+            .map_err(|_e| {
+                GamblingError::Internal("payout parse failed".to_string())
+            })?;
 
         let used_cards = seq
             .iter()
@@ -352,13 +393,15 @@ impl From<&ComponentInteraction> for HigherLower {
 
         let mut deck = CARD_DECK
             .get()
-            .expect("Deck should be initalised at this point")
+            .ok_or_else(|| {
+                GamblingError::Internal("CARD_DECK not initialized".to_string())
+            })?
             .iter()
             .copied()
             .filter(|id| !used_cards.contains(id))
             .collect::<Vec<_>>();
         deck.shuffle(&mut rng());
 
-        Self { seq, deck, payout }
+        Ok(Self { seq, deck, payout })
     }
 }

@@ -13,7 +13,8 @@ pub async fn new_pool(url: &str) -> sqlx::Result<PgPool> {
 }
 
 pub async fn new_pool_with_retry() -> sqlx::Result<PgPool> {
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db_url = env::var("DATABASE_URL")
+        .map_err(|e| sqlx::Error::Configuration(Box::new(e)))?;
 
     let max_retries = 5;
     let retry_delay = Duration::from_secs(5);

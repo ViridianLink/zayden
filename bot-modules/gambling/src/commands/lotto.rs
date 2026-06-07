@@ -13,6 +13,7 @@ use zayden_core::{EmojiCacheData, FormatNum};
 use crate::shop::LOTTO_TICKET;
 use crate::{
     Commands,
+    GamblingError,
     GamblingManager,
     Lotto,
     LottoManager,
@@ -39,8 +40,7 @@ impl Commands {
         let total_tickets = LottoHandler::total_tickets(&mut tx).await?;
 
         let row = LottoHandler::row(&mut tx, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| LottoRow::new(interaction.user.id));
 
         let emojis = {
@@ -49,11 +49,15 @@ impl Commands {
             data.emojis()
         };
 
-        let lotto_emoji = LOTTO_TICKET.emoji(&emojis);
+        let lotto_emoji = LOTTO_TICKET.emoji(&emojis)?;
 
         let timestamp = {
             Lotto::cron_job::<Data, Db, GamblingHandler, LottoHandler>()
-                .expect("invariant: lotto cron schedule string is valid")
+                .map_err(|e| {
+                    GamblingError::Internal(format!(
+                        "lotto cron schedule invalid: {e}"
+                    ))
+                })?
                 .schedule
                 .upcoming(TimeZone::UTC)
                 .next()
@@ -61,7 +65,9 @@ impl Commands {
                 .timestamp()
         };
 
-        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
         let embed = CreateEmbed::new()
             .title(format!(

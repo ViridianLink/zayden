@@ -55,7 +55,7 @@ impl ProfileRow {
         self,
         inventory: &GamblingItems,
         emojis: &EmojiCache,
-    ) -> CreateEmbed<'a> {
+    ) -> Result<CreateEmbed<'a>> {
         let mut betting_max = self.max_bet_str();
         if self.prestige() != 0 {
             let _ = write!(
@@ -68,21 +68,24 @@ impl ProfileRow {
         let loot_str = if inventory.0.is_empty() {
             String::from("You've got no loot, not even a 🥄")
         } else {
-            inventory
-                .0
-                .iter()
-                .filter(|item| item.quantity > 0)
-                .map(|inv| (inv, ShopItem::from(inv)))
-                .map(|(inv, item)| {
-                    format!("{} {} {}s", item.emoji(emojis), inv.quantity, item.name)
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
+            let mut lines = Vec::new();
+            for inv in inventory.0.iter().filter(|item| item.quantity > 0) {
+                let item = ShopItem::try_from(inv)?;
+                lines.push(format!(
+                    "{} {} {}s",
+                    item.emoji(emojis)?,
+                    inv.quantity,
+                    item.name
+                ));
+            }
+            lines.join("\n")
         };
 
-        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
-        CreateEmbed::new()
+        let embed = CreateEmbed::new()
             .field(format!("Coins <:coin:{coin}>"), self.coins_str(), false)
             .field("Gems 💎", self.gems_str(), false)
             .field(
@@ -96,7 +99,9 @@ impl ProfileRow {
             )
             .field("Betting Maximum", betting_max, false)
             .field("Loot", loot_str, false)
-            .colour(Colour::TEAL)
+            .colour(Colour::TEAL);
+
+        Ok(embed)
     }
 }
 
@@ -191,7 +196,7 @@ impl Commands {
         };
 
         let mut embed =
-            row.into_embed(&inventory_row, &emojis).title(user.display_name());
+            row.into_embed(&inventory_row, &emojis)?.title(user.display_name());
 
         if let Some(avatar) = user.avatar_url() {
             embed = embed.thumbnail(avatar);

@@ -155,17 +155,22 @@ impl ModuleCommand for Random {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
 
-        let option = {
+        let pick = {
             let mut rng = rng();
-            options.choose(&mut rng).expect("at least two options are required")
+            options.choose(&mut rng).and_then(|option| {
+                if let ResolvedValue::String(v) = option.value {
+                    Some((option.name.to_string(), v.to_string()))
+                } else {
+                    None
+                }
+            })
         };
-
-        let ResolvedValue::String(value) = option.value else {
+        let Some((option_name, value)) = pick else {
             return Ok(());
         };
 
         let embed =
-            CreateEmbed::new().description(format!("{}: {}", option.name, value));
+            CreateEmbed::new().description(format!("{option_name}: {value}"));
 
         cx.interaction
             .create_response(

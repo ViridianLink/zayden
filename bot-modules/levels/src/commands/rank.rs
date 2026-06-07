@@ -12,7 +12,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
-use crate::{LevelsManager, LevelsRow, level_up_xp};
+use crate::{LevelsManager, LevelsRow, Result, level_up_xp};
 
 pub struct Rank;
 
@@ -22,7 +22,7 @@ impl Rank {
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
-    ) -> serenity::Result<()> {
+    ) -> Result<()> {
         let mut options = parse_options(options);
 
         match options.remove("ephemeral") {
@@ -37,17 +37,13 @@ impl Rank {
             _ => &interaction.user,
         };
 
-        let row = Manager::rank_row(pool, user.id)
-            .await
-            .expect("DB query")
-            .unwrap_or_default();
+        let row = Manager::rank_row(pool, user.id).await?.unwrap_or_default();
 
         let level = row.level();
         let xp_for_next_level = level_up_xp(level);
 
         let user_rank = Manager::user_rank(pool, user.id)
-            .await
-            .expect("DB query")
+            .await?
             .map_or_else(|| String::from("N/A"), |rank| format!("{rank}"));
 
         let xp = row.xp();

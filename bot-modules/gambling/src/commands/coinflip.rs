@@ -52,7 +52,9 @@ impl Commands {
         else {
             return Err(GamblingError::InvalidPrediction);
         };
-        let prediction = prediction.parse::<CoinSide>().expect("valid coin side");
+        let prediction = prediction
+            .parse::<CoinSide>()
+            .map_err(|()| GamblingError::InvalidPrediction)?;
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
             return Err(GamblingError::InvalidAmount);
@@ -135,7 +137,7 @@ impl Commands {
             bet,
             payout,
             coins,
-        );
+        )?;
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))

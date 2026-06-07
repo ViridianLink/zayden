@@ -50,7 +50,7 @@ impl GiveStar {
             .last_free_star
             .to_jiff()
             .checked_add(Span::new().hours(24))
-            .expect("Timestamp should be within legal range");
+            .unwrap_or(Timestamp::MAX);
 
         let free_star = next_free_star <= Timestamp::now();
 

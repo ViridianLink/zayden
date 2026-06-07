@@ -35,20 +35,16 @@ impl Support {
         let mut stream = faq_channel_id.widen().messages_iter(http).boxed();
 
         while let Some(msg) = stream.try_next().await? {
-            let support_id = msg
-                .content
-                .lines()
-                .next()
-                .expect("message content always has at least one line")
-                .trim();
+            let Some(first_line) = msg.content.lines().next() else {
+                continue;
+            };
+            let support_id = first_line.trim();
 
             let title = support_id
                 .get(2..support_id.len().saturating_sub(2))
                 .unwrap_or(support_id);
-            let description = msg
-                .content
-                .strip_prefix(support_id)
-                .expect("content starts with support_id");
+            let description =
+                msg.content.strip_prefix(first_line).unwrap_or_default();
 
             if support_id.contains(id) {
                 interaction

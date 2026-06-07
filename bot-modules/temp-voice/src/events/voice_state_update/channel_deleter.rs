@@ -67,7 +67,9 @@ pub async fn channel_deleter<
         },
         r => r?,
     };
-    let category = guild_data.category();
+    let Some(category) = guild_data.category() else {
+        return Ok(());
+    };
 
     let Some(parent) = channel.parent_id else {
         return Ok(());

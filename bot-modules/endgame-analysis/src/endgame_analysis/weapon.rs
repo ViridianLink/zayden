@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::Write;
+use std::fmt::Write as FmtWrite;
 use std::ops::Deref;
 
 use bungie_api::types::destiny::DestinyItemType;
@@ -15,6 +15,7 @@ use serenity::all::{
 use tracing::error;
 
 use super::{Affinity, Frame, Tier};
+use crate::EndgameAnalysisError;
 
 #[derive(Default)]
 pub struct WeaponBuilder {
@@ -144,8 +145,11 @@ impl WeaponBuilder {
         self
     }
 
-    #[must_use]
-    pub fn from_row(name: &str, header: &RowData, row: RowData) -> Option<Self> {
+    pub fn from_row(
+        name: &str,
+        header: &RowData,
+        row: RowData,
+    ) -> Result<Option<Self>, EndgameAnalysisError> {
         let mut data = header
             .values
             .iter()
@@ -157,149 +161,150 @@ impl WeaponBuilder {
 
         let weapon_name = data
             .remove("name")
-            .ok_or(())
-            .expect("data invariant")
+            .ok_or(EndgameAnalysisError::MissingData("name column"))?
             .formatted_value
-            .ok_or(())
-            .expect("data invariant");
+            .ok_or(EndgameAnalysisError::MissingData("name cell value"))?;
 
         if weapon_name == "Ideal" {
-            return None;
+            return Ok(None);
         }
 
         let reserves = data
             .remove("reserves")
-            .map(|r| r.formatted_value.expect("data invariant"))
+            .and_then(|r| r.formatted_value)
             .filter(|s| !matches!(s.as_str(), "?" | "N/A" | "TBA"))
-            .map(|s| {
+            .and_then(|s| {
                 s.parse().map_or_else(
                     |_| {
-                        error!("Failed to parse: {s:?}");
+                        error!("Failed to parse reserves: {s:?}");
                         None
                     },
                     Some,
                 )
-            })
-            .ok_or(())
-            .expect("Failed to read reserves");
+            });
 
         let shield = data
             .remove("shield")
-            .map(|r| r.formatted_value.expect("data invariant"))
+            .and_then(|r| r.formatted_value)
             .filter(|s| s != "?")
-            .map(|s| s.parse().expect("data invariant"));
+            .and_then(|s| s.parse().ok());
+
         let archetype = match name {
             "BGLs" | "HGLs" => String::from("Grenade Launcher"),
             "LMGs" => String::from("Machine Gun"),
             "LFRs" => String::from("Linear Fusion"),
             "HCs" => String::from("Hand Cannon"),
             "Other" => String::from("Other"),
-            s => String::from(
-                s.get(..s.len() - 1)
-                    .ok_or(())
-                    .expect("non-empty weapon type abbreviation"),
-            ),
+            s => s
+                .get(..s.len().saturating_sub(1))
+                .ok_or(EndgameAnalysisError::MissingData(
+                    "weapon type abbreviation",
+                ))?
+                .to_owned(),
         };
 
+        let affinity = data
+            .remove("affinity")
+            .or_else(|| data.remove("energy"))
+            .ok_or(EndgameAnalysisError::MissingData("affinity/energy column"))?
+            .formatted_value
+            .unwrap_or_default();
+
+        let frame = data.remove("frame").and_then(|f| f.formatted_value);
+
+        let enhance_cell = data
+            .remove("enhance")
+            .or_else(|| data.remove("⬆\u{fe0f}"))
+            .ok_or(EndgameAnalysisError::MissingData("enhance column"))?;
+        let enhanceable = enhance_cell.formatted_value.unwrap_or_default() == "Yes";
+
+        let barrel = data
+            .remove("barrel")
+            .ok_or(EndgameAnalysisError::MissingData("barrel column"))?
+            .formatted_value
+            .unwrap_or_default();
+
+        let magazine = data
+            .remove("mag")
+            .ok_or(EndgameAnalysisError::MissingData("mag column"))?
+            .formatted_value
+            .unwrap_or_default();
+
+        let perk_1 = data
+            .remove("column 1")
+            .or_else(|| data.remove("perk 1"))
+            .ok_or(EndgameAnalysisError::MissingData("perk 1 / column 1"))?
+            .formatted_value
+            .ok_or(EndgameAnalysisError::MissingData("perk 1 cell value"))?;
+
+        let perk_2 = data
+            .remove("column 2")
+            .or_else(|| data.remove("perk 2"))
+            .ok_or(EndgameAnalysisError::MissingData("perk 2 / column 2"))?
+            .formatted_value
+            .ok_or(EndgameAnalysisError::MissingData("perk 2 cell value"))?;
+
+        let origin_trait = data
+            .remove("origin trait")
+            .ok_or(EndgameAnalysisError::MissingData("origin trait column"))?
+            .formatted_value
+            .ok_or(EndgameAnalysisError::MissingData("origin trait cell value"))?;
+
+        let rank = data
+            .remove("rank")
+            .and_then(|c| c.formatted_value)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_default();
+
+        let tier: Tier = data
+            .remove("tier")
+            .ok_or(EndgameAnalysisError::MissingData("tier column"))?
+            .try_into()?;
+
         let mut weapon = Self::new(&weapon_name, archetype)
-            .affinity(
-                data.remove("affinity")
-                    .or_else(|| data.remove("energy"))
-                    .ok_or(())
-                    .expect("affinity or energy should exist on data")
-                    .formatted_value
-                    .unwrap_or_default(),
-            )
-            .frame(
-                data.remove("frame")
-                    .map(|f| f.formatted_value.expect("data invariant")),
-            )
-            .enhanceable(
-                data.remove("enhance")
-                    .or_else(|| data.remove("⬆\u{fe0f}"))
-                    .ok_or(())
-                    .expect("enhance should exist on data")
-                    .formatted_value
-                    .ok_or(())
-                    .expect("data invariant")
-                    == "Yes",
-            )
+            .affinity(affinity)
+            .frame(frame)
+            .enhanceable(enhanceable)
             .shield(shield)
             .reserves(reserves)
-            .barrel(
-                data.remove("barrel")
-                    .ok_or(())
-                    .expect("'barrel' should exist on data")
-                    .formatted_value
-                    .unwrap_or_default(),
-            )
-            .magazine(
-                data.remove("mag")
-                    .ok_or(())
-                    .expect("'mag' should exist on data")
-                    .formatted_value
-                    .unwrap_or_default(),
-            )
-            .perk_1(
-                data.remove("column 1")
-                    .ok_or(())
-                    .unwrap_or_else(|()| {
-                        data.remove("perk 1").expect(
-                            "Data should contain either 'perk' or 'column' headers",
-                        )
-                    })
-                    .formatted_value
-                    .ok_or(())
-                    .expect("data invariant"),
-            )
-            .perk_2(
-                data.remove("column 2")
-                    .unwrap_or_else(|| {
-                        data.remove("perk 2").expect(
-                            "Data should contain either 'perk' or 'column' headers",
-                        )
-                    })
-                    .formatted_value
-                    .ok_or(())
-                    .expect("data invariant"),
-            )
-            .origin_trait(
-                data.remove("origin trait")
-                    .ok_or(())
-                    .expect("data invariant")
-                    .formatted_value
-                    .ok_or(())
-                    .expect("data invariant"),
-            )
-            .rank(
-                data.remove("rank")
-                    .ok_or(())
-                    .expect("data invariant")
-                    .formatted_value
-                    .map(|s| s.parse().expect("data invariant"))
-                    .unwrap_or_default(),
-            )
-            .tier(data.remove("tier").ok_or(()).expect("data invariant"));
+            .barrel(barrel)
+            .magazine(magazine)
+            .perk_1(perk_1)
+            .perk_2(perk_2)
+            .origin_trait(origin_trait)
+            .rank(rank)
+            .tier(tier);
 
         if let Some(notes) = data.remove("notes").and_then(|d| d.formatted_value) {
             weapon = weapon.notes(notes);
         }
 
-        Some(weapon)
+        Ok(Some(weapon))
     }
 
-    #[must_use]
-    pub fn build(self, item: &DestinyInventoryItemDefinition) -> Weapon {
+    pub fn build(
+        self,
+        item: &DestinyInventoryItemDefinition,
+    ) -> Result<Weapon, EndgameAnalysisError> {
         let icon = item.display_properties.icon.clone();
+        let affinity = self
+            .affinity
+            .parse()
+            .map_err(|()| EndgameAnalysisError::MissingData("affinity parse"))?;
+        let frame = self
+            .frame
+            .map(|f| {
+                f.parse()
+                    .map_err(|()| EndgameAnalysisError::MissingData("frame parse"))
+            })
+            .transpose()?;
 
-        Weapon {
+        Ok(Weapon {
             icon,
             name: self.name,
             archetype: self.archetype,
-            affinity: self.affinity.parse().expect("data invariant"),
-            frame: self
-                .frame
-                .map(|f| f.parse().expect("Failed to parse weapon frame")),
+            affinity,
+            frame,
             enhanceable: self.enhanceable,
             reserves: self.reserves,
             barrel: self.barrel,
@@ -310,7 +315,7 @@ impl WeaponBuilder {
             rank: self.rank,
             tier: self.tier,
             notes: self.notes,
-        }
+        })
     }
 }
 
@@ -401,51 +406,61 @@ impl Weapon {
                             socket.reusable_plug_items.as_slice(),
                         ) {
                             (Some(hash), None, items) => {
-                                let plug_set = plug_manifest
+                                let reusable = plug_manifest
                                     .get(&hash.to_string())
-                                    .expect("data invariant");
-
-                                plug_set
-                                    .reusable_plug_items
-                                    .iter()
-                                    .map(|item| item.plug_item_hash)
+                                    .map(|s| {
+                                        s.reusable_plug_items
+                                            .iter()
+                                            .map(|i| i.plug_item_hash)
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .unwrap_or_default();
+                                reusable
+                                    .into_iter()
                                     .chain(
                                         items.iter().map(|item| item.plug_item_hash),
                                     )
                                     .collect::<Vec<_>>()
                             },
                             (None, Some(hash), items) => {
-                                let plug_set = plug_manifest
+                                let reusable = plug_manifest
                                     .get(&hash.to_string())
-                                    .expect("data invariant");
-
-                                plug_set
-                                    .reusable_plug_items
-                                    .iter()
-                                    .map(|item| item.plug_item_hash)
+                                    .map(|s| {
+                                        s.reusable_plug_items
+                                            .iter()
+                                            .map(|i| i.plug_item_hash)
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .unwrap_or_default();
+                                reusable
+                                    .into_iter()
                                     .chain(
                                         items.iter().map(|item| item.plug_item_hash),
                                     )
                                     .collect::<Vec<_>>()
                             },
                             (Some(random_hash), Some(reusable_hash), items) => {
-                                let random_plug_set = plug_manifest
+                                let random_hashes = plug_manifest
                                     .get(&random_hash.to_string())
-                                    .expect("data invariant");
-                                let reusable_hash = plug_manifest
-                                    .get(&reusable_hash.to_string())
-                                    .expect("data invariant");
-
-                                random_plug_set
-                                    .reusable_plug_items
-                                    .iter()
-                                    .map(|item| item.plug_item_hash)
-                                    .chain(
-                                        reusable_hash
-                                            .reusable_plug_items
+                                    .map(|s| {
+                                        s.reusable_plug_items
                                             .iter()
-                                            .map(|item| item.plug_item_hash),
-                                    )
+                                            .map(|i| i.plug_item_hash)
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .unwrap_or_default();
+                                let reusable_hashes = plug_manifest
+                                    .get(&reusable_hash.to_string())
+                                    .map(|s| {
+                                        s.reusable_plug_items
+                                            .iter()
+                                            .map(|i| i.plug_item_hash)
+                                            .collect::<Vec<_>>()
+                                    })
+                                    .unwrap_or_default();
+                                random_hashes
+                                    .into_iter()
+                                    .chain(reusable_hashes)
                                     .chain(
                                         items.iter().map(|item| item.plug_item_hash),
                                     )
@@ -471,9 +486,7 @@ impl Weapon {
                         traits
                             .iter()
                             .map(ToString::to_string)
-                            .map(|hash| {
-                                item_manifest.get(&hash).expect("data invariant")
-                            })
+                            .filter_map(|hash| item_manifest.get(&hash))
                             .filter(|item| !item.display_properties.name.is_empty())
                             .filter(|perk_item| {
                                 self.perks().0.iter().flatten().any(|perk| {
@@ -580,9 +593,10 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
 
         if let Some(notes) = value.notes.as_deref() {
             let mut chars = notes.chars();
-            let first_char = chars.next().expect("data invariant");
-            let notes = first_char.to_uppercase().to_string() + chars.as_str();
-            embed = embed.field("Notes", notes, false);
+            if let Some(first_char) = chars.next() {
+                let notes = first_char.to_uppercase().to_string() + chars.as_str();
+                embed = embed.field("Notes", notes, false);
+            }
         }
 
         embed
@@ -652,26 +666,27 @@ fn generate_combinations_iterative(
         if !output.is_empty() {
             output.push('\n');
         }
-        write!(output, "dimwishlist:item={item_hash}&perks=")
-            .expect("data invariant");
-        for (i, &num) in current_combination.iter().enumerate() {
-            if i > 0 {
-                output.push(',');
-            }
-            write!(output, "{num}").expect("data invariant");
-        }
+        let _ = write!(output, "dimwishlist:item={item_hash}&perks=");
+        let perks = current_combination
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(",");
+        output.push_str(&perks);
         return;
     }
 
-    for &num in data.get(depth).expect("depth is bounded by data.len()") {
-        current_combination.push(num);
-        generate_combinations_iterative(
-            data,
-            depth + 1,
-            current_combination,
-            output,
-            item_hash,
-        );
-        current_combination.pop();
+    if let Some(items) = data.get(depth) {
+        for &num in items {
+            current_combination.push(num);
+            generate_combinations_iterative(
+                data,
+                depth + 1,
+                current_combination,
+                output,
+                item_hash,
+            );
+            current_combination.pop();
+        }
     }
 }

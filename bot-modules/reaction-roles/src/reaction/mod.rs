@@ -48,13 +48,11 @@ impl ReactionRoleReaction {
                 .await?;
 
         if let Some(reaction_role) = reaction_role {
+            let user_id = reaction.user_id.ok_or(Error::MissingUserId)?;
             let member = reaction
                 .guild_id
                 .ok_or(Error::MissingGuildId)?
-                .member(
-                    http,
-                    reaction.user_id.expect("reaction always has a user_id"),
-                )
+                .member(http, user_id)
                 .await?;
 
             member

@@ -30,7 +30,14 @@ impl EndgameAnalysisSheetCron {
                             "endgame_analysis sheet update failed"
                         );
                     }
-                    destiny2::compendium::update(&google_api_key).await;
+                    if let Err(e) =
+                        destiny2::compendium::update(&google_api_key).await
+                    {
+                        tracing::error!(
+                            error = ?e,
+                            "destiny2 compendium update failed"
+                        );
+                    }
                 }
             })
         })

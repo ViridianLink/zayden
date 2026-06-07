@@ -43,7 +43,9 @@ impl Command {
         mut options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let command = options.pop().expect("lfg command always has a subcommand");
+        let Some(command) = options.pop() else {
+            return Ok(());
+        };
 
         let (ResolvedValue::SubCommand(options)
         | ResolvedValue::SubCommandGroup(options)) = command.value

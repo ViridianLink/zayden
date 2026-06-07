@@ -112,15 +112,14 @@ impl Commands {
         interaction.defer(&ctx.http).await?;
 
         let mut row = Manager::daily_row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| DailyRow::new(interaction.user.id));
 
         let now = jiff::Timestamp::now();
         let today = now.to_zoned(TimeZone::UTC).date();
 
         if row.daily.to_jiff() == today {
-            return Err(GamblingError::DailyClaimed(tomorrow(Some(now))));
+            return Err(GamblingError::DailyClaimed(tomorrow(Some(now))?));
         }
 
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);
@@ -158,7 +157,9 @@ impl Commands {
         let coin = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
-            data.emojis().emoji("heads").expect("emoji 'heads' in cache")
+            data.emojis().emoji("heads").map_err(|n| {
+                GamblingError::Internal(format!("emoji '{n}' not in cache"))
+            })?
         };
 
         let embed = CreateEmbed::new()

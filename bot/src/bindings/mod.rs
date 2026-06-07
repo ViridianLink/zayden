@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::CommandRegistry;
 use crate::registry::OverlapError;
+use crate::{CommandRegistry, RegistryBuilder};
 
 pub mod ai;
 
@@ -32,7 +32,7 @@ pub mod ticket;
 pub mod verify;
 
 pub fn build_registry() -> Result<Arc<CommandRegistry>, OverlapError> {
-    let mut builder = crate::RegistryBuilder::new();
+    let mut builder = RegistryBuilder::new();
     ai::register(&mut builder);
     destiny2::register(&mut builder);
     family::register(&mut builder)?;

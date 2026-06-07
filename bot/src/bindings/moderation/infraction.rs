@@ -51,7 +51,7 @@ impl SlashCommand<Error, Postgres> for Infraction {
 
         let six_months_age = Utc::now()
             .checked_sub_months(Months::new(6))
-            .expect("invariant: current date minus 6 months cannot overflow")
+            .ok_or_else(|| Error::Other("date subtraction overflow".to_string()))?
             .naive_utc();
 
         let infractions: Vec<_> = infractions
@@ -221,12 +221,10 @@ async fn mute<'a>(
     let mut member = guild_id.member(ctx, user.id).await?;
 
     let timestamp = (Utc::now() + duration).timestamp();
+    let discord_timestamp = Timestamp::from_unix_timestamp(timestamp)
+        .map_err(|e| Error::Other(e.to_string()))?;
     member
-        .disable_communication_until_datetime(
-            ctx,
-            Timestamp::from_unix_timestamp(timestamp)
-                .expect("invariant: timeout timestamp derived from Utc::now() plus a bounded duration is always valid"),
-        )
+        .disable_communication_until_datetime(ctx, discord_timestamp)
         .await?;
 
     InfractionRow::new(

@@ -16,7 +16,7 @@ impl ModuleComponent for SuggestionsAccept {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Suggestions::components(&cx.ctx.http, cx.interaction, true).await;
+        Suggestions::components(&cx.ctx.http, cx.interaction, true).await?;
         Ok(())
     }
 }
@@ -30,7 +30,7 @@ impl ModuleComponent for SuggestionsReject {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        Suggestions::components(&cx.ctx.http, cx.interaction, false).await;
+        Suggestions::components(&cx.ctx.http, cx.interaction, false).await?;
         Ok(())
     }
 }

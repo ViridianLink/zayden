@@ -84,8 +84,7 @@ impl Commands {
         };
 
         let mut row = Manager::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| CraftRow::new(interaction.user.id));
 
         let mut options = parse_options(options);
@@ -112,7 +111,8 @@ impl Commands {
             return Err(GamblingError::ZeroAmount);
         }
 
-        let item: ShopCurrency = kind.parse().expect("kind is a valid ShopCurrency");
+        let item: ShopCurrency =
+            kind.parse().map_err(|_e| GamblingError::InvalidAmount)?;
 
         let costs = item
             .craft_req(&emojis)
@@ -177,7 +177,7 @@ impl Commands {
         let embed = CreateEmbed::new()
             .description(format!(
                 "Crafted {0} `{1}` {item:?}s\nYou now  have {0} `{2}` {item:?}s",
-                item.emoji(&emojis),
+                item.emoji(&emojis)?,
                 amount.format(),
                 quantity.format()
             ))
@@ -217,72 +217,53 @@ async fn menu(
     emojis: &EmojiCache,
     row: CraftRow,
 ) -> Result<()> {
-    let mut desc =
-        [ShopCurrency::Tech, ShopCurrency::Utility, ShopCurrency::Production]
-            .into_iter()
-            .map(|item| match item {
-                ShopCurrency::Tech => (item, row.tech.format()),
-                ShopCurrency::Utility => (item, row.utility.format()),
-                ShopCurrency::Production => (item, row.production.format()),
+    let mut sections = Vec::new();
+
+    for item in [ShopCurrency::Tech, ShopCurrency::Utility, ShopCurrency::Production]
+    {
+        let owned = match item {
+            ShopCurrency::Tech => row.tech.format(),
+            ShopCurrency::Utility => row.utility.format(),
+            ShopCurrency::Production => row.production.format(),
+            ShopCurrency::Coins
+            | ShopCurrency::Gems
+            | ShopCurrency::Coal
+            | ShopCurrency::Iron
+            | ShopCurrency::Gold
+            | ShopCurrency::Redstone
+            | ShopCurrency::Lapis
+            | ShopCurrency::Diamonds
+            | ShopCurrency::Emeralds => String::new(),
+        };
+
+        let mut req_lines = Vec::new();
+        for (currency, cost) in item.craft_req(emojis).into_iter().flatten() {
+            let inv = match currency {
+                ShopCurrency::Coal => row.coal.format(),
+                ShopCurrency::Iron => row.iron.format(),
+                ShopCurrency::Gold => row.gold.format(),
+                ShopCurrency::Redstone => row.redstone.format(),
+                ShopCurrency::Lapis => row.lapis.format(),
+                ShopCurrency::Diamonds => row.diamonds.format(),
+                ShopCurrency::Emeralds => row.emeralds.format(),
                 ShopCurrency::Coins
                 | ShopCurrency::Gems
-                | ShopCurrency::Coal
-                | ShopCurrency::Iron
-                | ShopCurrency::Gold
-                | ShopCurrency::Redstone
-                | ShopCurrency::Lapis
-                | ShopCurrency::Diamonds
-                | ShopCurrency::Emeralds => (item, String::new()),
-            })
-            .map(|(item, owned)| {
-                format!(
-                    "{} **{item:?}**\nOwned: `{owned}`\n{}",
-                    item.emoji(emojis),
-                    item.craft_req(emojis)
-                        .into_iter()
-                        .flatten()
-                        .map(|(currency, cost)| {
-                            match currency {
-                                ShopCurrency::Coal => {
-                                    (currency, cost, row.coal.format())
-                                },
-                                ShopCurrency::Iron => {
-                                    (currency, cost, row.iron.format())
-                                },
-                                ShopCurrency::Gold => {
-                                    (currency, cost, row.gold.format())
-                                },
-                                ShopCurrency::Redstone => {
-                                    (currency, cost, row.redstone.format())
-                                },
-                                ShopCurrency::Lapis => {
-                                    (currency, cost, row.lapis.format())
-                                },
-                                ShopCurrency::Diamonds => {
-                                    (currency, cost, row.diamonds.format())
-                                },
-                                ShopCurrency::Emeralds => {
-                                    (currency, cost, row.emeralds.format())
-                                },
-                                ShopCurrency::Coins
-                                | ShopCurrency::Gems
-                                | ShopCurrency::Tech
-                                | ShopCurrency::Utility
-                                | ShopCurrency::Production => {
-                                    (currency, cost, String::new())
-                                },
-                            }
-                        })
-                        .map(|(currency, cost, owned)| format!(
-                            "(`{owned}`) `{cost}` {}",
-                            currency.emoji(emojis)
-                        ))
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n\n");
+                | ShopCurrency::Tech
+                | ShopCurrency::Utility
+                | ShopCurrency::Production => String::new(),
+            };
+            req_lines
+                .push(format!("(`{inv}`) `{cost}` {}", currency.emoji(emojis)?));
+        }
+
+        sections.push(format!(
+            "{} **{item:?}**\nOwned: `{owned}`\n{}",
+            item.emoji(emojis)?,
+            req_lines.join("\n")
+        ));
+    }
+
+    let mut desc = sections.join("\n\n");
 
     desc.push_str("\n------------------\n`/craft <id> <amount>`");
 

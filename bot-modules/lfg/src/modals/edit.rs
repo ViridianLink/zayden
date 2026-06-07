@@ -16,7 +16,15 @@ use super::start_time;
 use crate::cron::create_reminders;
 use crate::templates::DefaultTemplate;
 use crate::utils::update_embeds;
-use crate::{PostBuilder, PostManager, PostRow, Result, Savable, TimezoneManager};
+use crate::{
+    LfgError,
+    PostBuilder,
+    PostManager,
+    PostRow,
+    Result,
+    Savable,
+    TimezoneManager,
+};
 
 pub struct Edit;
 
@@ -38,27 +46,26 @@ impl Edit {
         let mut inputs =
             parse_modal_components(interaction.data.components.as_slice());
 
-        let activity = inputs
-            .remove("activity")
-            .expect("Activity should exist as it's required")
-            .pop()
-            .expect("At least one value is required");
-        let fireteam_size = inputs
+        let activity =
+            inputs.remove("activity").and_then(|mut v| v.pop()).unwrap_or_default();
+
+        let fireteam_size_str = inputs
             .remove("fireteam_size")
-            .expect("Fireteam size should exist as it's required")
-            .pop()
-            .expect("At least one value required")
+            .and_then(|mut v| v.pop())
+            .unwrap_or_default();
+        let fireteam_size = fireteam_size_str
             .parse::<i16>()
-            .expect("fireteam_size from modal should be a valid i16");
+            .map_err(|_e| LfgError::InvalidFireteamSize)?;
+
         let description = inputs.remove("description").map_or_else(
             || activity.to_string(),
-            |mut d| d.pop().expect("At least one value is required").to_string(),
+            |mut d| d.pop().unwrap_or_default().to_string(),
         );
+
         let start_time_str = inputs
             .remove("start_time")
-            .expect("Start time should exist as it's required")
-            .pop()
-            .expect("At least one value is required");
+            .and_then(|mut v| v.pop())
+            .unwrap_or_default();
 
         let timezone =
             TzManager::get(pool, interaction.user.id, &interaction.locale).await?;

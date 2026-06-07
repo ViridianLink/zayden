@@ -3,7 +3,8 @@ use std::str::FromStr;
 
 use zayden_core::EmojiCache;
 
-use crate::GEM;
+use crate::error::Result;
+use crate::{GEM, GamblingError};
 
 #[derive(Clone, Copy)]
 pub enum ShopCurrency {
@@ -52,63 +53,78 @@ impl ShopCurrency {
         }
     }
 
-    #[must_use]
-    pub fn emoji(&self, emojis: &EmojiCache) -> String {
-        match self {
+    pub fn emoji(&self, emojis: &EmojiCache) -> Result<String> {
+        let s = match self {
             Self::Coins => format!(
                 "<:coin:{}>",
-                emojis.get("heads").expect("emoji 'heads' in cache")
+                emojis.get("heads").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'heads' not in cache".to_string()
+                ))?
             ),
-            Self::Gems => GEM.to_string(),
+            Self::Gems => return Ok(GEM.to_string()),
             Self::Tech => format!(
                 "<:tech:{}>",
-                emojis.get("tech").expect("emoji 'tech' in cache")
+                emojis.get("tech").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'tech' not in cache".to_string()
+                ))?
             ),
             Self::Utility => format!(
                 "<:utility:{}>",
-                emojis.get("utility").expect("emoji 'utility' in cache")
+                emojis.get("utility").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'utility' not in cache".to_string()
+                ))?
             ),
             Self::Production => format!(
                 "<:production:{}>",
-                emojis.get("tech").expect("emoji 'tech' in cache")
+                emojis.get("tech").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'tech' not in cache".to_string()
+                ))?
             ),
             Self::Coal => format!(
                 "<:coal:{}>",
-                emojis.get("coal").expect("emoji 'coal' in cache")
+                emojis.get("coal").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'coal' not in cache".to_string()
+                ))?
             ),
             Self::Iron => format!(
                 "<:iron:{}>",
-                emojis.get("iron").expect("emoji 'iron' in cache")
+                emojis.get("iron").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'iron' not in cache".to_string()
+                ))?
             ),
             Self::Gold => format!(
                 "<:gold:{}>",
-                emojis.get("gold").expect("emoji 'gold' in cache")
+                emojis.get("gold").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'gold' not in cache".to_string()
+                ))?
             ),
-            Self::Redstone => {
-                format!(
-                    "<:redstone:{}>",
-                    emojis.get("redstone").expect("emoji 'redstone' in cache")
-                )
-            },
-            Self::Lapis => {
-                format!(
-                    "<:lapis:{}>",
-                    emojis.get("lapis").expect("emoji 'lapis' in cache")
-                )
-            },
-            Self::Diamonds => {
-                format!(
-                    "<:diamond:{}>",
-                    emojis.get("diamond").expect("emoji 'diamond' in cache")
-                )
-            },
-            Self::Emeralds => {
-                format!(
-                    "<:emerald:{}>",
-                    emojis.get("emerald").expect("emoji 'emerald' in cache")
-                )
-            },
-        }
+            Self::Redstone => format!(
+                "<:redstone:{}>",
+                emojis.get("redstone").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'redstone' not in cache".to_string()
+                ))?
+            ),
+            Self::Lapis => format!(
+                "<:lapis:{}>",
+                emojis.get("lapis").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'lapis' not in cache".to_string()
+                ))?
+            ),
+            Self::Diamonds => format!(
+                "<:diamond:{}>",
+                emojis.get("diamond").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'diamond' not in cache".to_string()
+                ))?
+            ),
+            Self::Emeralds => format!(
+                "<:emerald:{}>",
+                emojis.get("emerald").ok_or_else(|| GamblingError::Internal(
+                    "emoji 'emerald' not in cache".to_string()
+                ))?
+            ),
+        };
+
+        Ok(s)
     }
 }
 
@@ -134,7 +150,7 @@ impl Debug for ShopCurrency {
 impl FromStr for ShopCurrency {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         match s {
             "tech" => Ok(Self::Tech),
             "utility" => Ok(Self::Utility),
@@ -144,6 +160,7 @@ impl FromStr for ShopCurrency {
                     currency = s,
                     "ShopCurrency::from_str: unknown currency"
                 );
+
                 Err(())
             },
         }

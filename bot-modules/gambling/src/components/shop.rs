@@ -37,16 +37,15 @@ impl Shop {
         };
 
         let row = Manager::buy_row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| ShopRow::new(interaction.user.id));
 
         let inventory = Manager::inventory_items(pool, interaction.user.id).await?;
 
         let (embed, components) = if interaction.data.custom_id == "shop_next" {
-            shop_response(&emojis, &row, &inventory, title, 1)
+            shop_response(&emojis, &row, &inventory, title, 1)?
         } else {
-            shop_response(&emojis, &row, &inventory, title, -1)
+            shop_response(&emojis, &row, &inventory, title, -1)?
         };
 
         interaction

@@ -49,8 +49,7 @@ impl Commands {
         interaction.defer(&ctx.http).await?;
 
         let row = GameHandler::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -77,12 +76,9 @@ impl Commands {
 
         GameHandler::save(pool, row).await?;
 
-        let coin = data_lock
-            .read()
-            .await
-            .emojis()
-            .emoji("heads")
-            .expect("emoji 'heads' in cache");
+        let coin = data_lock.read().await.emojis().emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
         let embed = CreateEmbed::new().title("TicTacToe").description(format!(
             "{} wants to play tic-tac-toe ({size}x{size}) for **{bet}** <:coin:{coin}>",
@@ -177,22 +173,16 @@ where
     }
 
     #[expect(clippy::future_not_send, reason = "dead code within GameState stub")]
-    async fn p1_row(&self, pool: &Pool<Db>) -> GameRow {
+    async fn p1_row(&self, pool: &Pool<Db>) -> sqlx::Result<GameRow> {
         let id = self.players[0];
 
-        Manager::row(pool, id)
-            .await
-            .expect("async call")
-            .unwrap_or_else(|| GameRow::new(id))
+        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
     }
 
     #[expect(clippy::future_not_send, reason = "dead code within GameState stub")]
-    async fn p2_row(&self, pool: &Pool<Db>) -> GameRow {
+    async fn p2_row(&self, pool: &Pool<Db>) -> sqlx::Result<GameRow> {
         let id = self.players[1];
 
-        Manager::row(pool, id)
-            .await
-            .expect("async call")
-            .unwrap_or_else(|| GameRow::new(id))
+        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
     }
 }

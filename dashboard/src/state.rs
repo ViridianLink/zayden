@@ -1,4 +1,5 @@
 use oauth2::basic::BasicClient;
+use oauth2::url::ParseError;
 use oauth2::{
     AuthUrl,
     ClientId,
@@ -17,25 +18,19 @@ const DISCORD_OAUTH_TOKEN_URL: &str = "https://discord.com/api/oauth2/token";
 /// token endpoints using deployment-specific settings from `config`.
 pub(crate) fn build_oauth_client(
     config: &BotConfig,
-) -> BasicClient<
-    EndpointSet,
-    EndpointNotSet,
-    EndpointNotSet,
-    EndpointNotSet,
-    EndpointSet,
+) -> Result<
+    BasicClient<
+        EndpointSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointSet,
+    >,
+    ParseError,
 > {
-    BasicClient::new(ClientId::new(config.zayden_id.to_string()))
+    Ok(BasicClient::new(ClientId::new(config.zayden_id.to_string()))
         .set_client_secret(ClientSecret::new(config.discord_client_secret.clone()))
-        .set_auth_uri(
-            AuthUrl::new(DISCORD_OAUTH_AUTH_URL.to_string())
-                .expect("static OAuth2 auth URL is valid"),
-        )
-        .set_token_uri(
-            TokenUrl::new(DISCORD_OAUTH_TOKEN_URL.to_string())
-                .expect("static OAuth2 token URL is valid"),
-        )
-        .set_redirect_uri(
-            RedirectUrl::new(config.redirect_uri.clone())
-                .expect("BotConfig::redirect_uri is a valid URL"),
-        )
+        .set_auth_uri(AuthUrl::new(DISCORD_OAUTH_AUTH_URL.to_string())?)
+        .set_token_uri(TokenUrl::new(DISCORD_OAUTH_TOKEN_URL.to_string())?)
+        .set_redirect_uri(RedirectUrl::new(config.redirect_uri.clone())?))
 }

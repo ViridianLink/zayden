@@ -20,7 +20,7 @@ use crate::bindings::gambling::{
     LottoTable,
     StaminaTable,
 };
-use crate::{ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
+use crate::{Result, ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
 /// Bot-specific application state stored in Serenity's context data.
 ///
@@ -38,13 +38,14 @@ pub struct BotState {
 }
 
 impl BotState {
-    #[must_use]
-    pub fn new(app: Arc<AppState>, config: &BotConfig) -> Self {
-        let bungie_client = BungieClientBuilder::new(config.bungie_api_key.clone())
-            .build()
-            .expect("BungieClient construction failed — check BUNGIE_API_KEY");
+    pub fn new(
+        app: Arc<AppState>,
+        config: &BotConfig,
+    ) -> std::result::Result<Self, bungie_api::Error> {
+        let bungie_client =
+            BungieClientBuilder::new(config.bungie_api_key.clone()).build()?;
 
-        Self {
+        Ok(Self {
             app,
             bungie_client: Arc::new(bungie_client),
             emoji_cache: Arc::default(),
@@ -53,7 +54,7 @@ impl BotState {
             guild_members: HashMap::new(),
             gambling_cache: GameCache::default(),
             good_morning_cache: HashMap::new(),
-        }
+        })
     }
 
     pub fn setup_static_cron(&mut self) {
@@ -76,21 +77,19 @@ impl BotState {
         }
     }
 
-    pub async fn ready(ctx: &Context, ready: &Ready, pool: &PgPool) {
+    pub async fn ready(ctx: &Context, ready: &Ready, pool: &PgPool) -> Result<()> {
         let cache = if ready.application.id.get() == ZAYDEN_ID.get() {
-            EmojiCache::new(ctx)
-                .await
-                .expect("EmojiCache initialization failed in Ready handler")
+            EmojiCache::new(ctx).await?
         } else {
-            let token = ZAYDEN_TOKEN.get_or_init(|| zayden_token(pool)).await;
-            EmojiCache::new_from_parent(ctx, token)
-                .await
-                .expect("EmojiCache initialization failed in Ready handler")
+            let token = ZAYDEN_TOKEN.get_or_try_init(|| zayden_token(pool)).await?;
+            EmojiCache::new_from_parent(ctx, token).await?
         };
 
         let data = ctx.data::<RwLock<Self>>();
         let mut data = data.write().await;
         data.emoji_cache = Arc::new(cache);
+        drop(data);
+        Ok(())
     }
 
     pub async fn guild_create(data: Arc<RwLock<Self>>, guild: &Guild) {

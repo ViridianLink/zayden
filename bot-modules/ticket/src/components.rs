@@ -15,7 +15,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use zayden_core::Error as ZaydenError;
 
-use crate::{Result, TicketGuildManager};
+use crate::{Error, Result, TicketGuildManager};
 
 pub struct TicketComponent;
 
@@ -39,15 +39,13 @@ impl TicketComponent {
         http: &Http,
         interaction: &ComponentInteraction,
     ) -> Result<()> {
-        let channel = interaction
-            .channel
-            .as_ref()
-            .expect("component interaction always has a channel");
+        let Some(channel) = interaction.channel.as_ref() else {
+            return Ok(());
+        };
 
         let new_channel_name: String = format!(
-            "{} - {}",
-            "[Closed]",
-            channel.base().name.as_ref().expect("channel always has a name")
+            "[Closed] - {}",
+            channel.base().name.as_deref().unwrap_or_default()
         )
         .chars()
         .take(100)
@@ -73,25 +71,17 @@ impl TicketComponent {
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
-        #[expect(
-            clippy::unreachable,
-            reason = "FAQ component is only registered for StringSelect"
-        )]
-        let index = match &interaction.data.kind {
-            ComponentInteractionDataKind::StringSelect { values } => values
-                .first()
-                .expect("StringSelect always has at least one value")
-                .parse::<usize>()
-                .expect("FAQ index is always a valid usize"),
-            ComponentInteractionDataKind::Button
-            | ComponentInteractionDataKind::UserSelect { .. }
-            | ComponentInteractionDataKind::RoleSelect { .. }
-            | ComponentInteractionDataKind::MentionableSelect { .. }
-            | ComponentInteractionDataKind::ChannelSelect { .. }
-            | ComponentInteractionDataKind::Unknown(_) => {
-                unreachable!("Invalid interaction data kind")
-            },
+        let ComponentInteractionDataKind::StringSelect { values } =
+            &interaction.data.kind
+        else {
+            return Ok(());
         };
+
+        let Some(raw) = values.first() else {
+            return Ok(());
+        };
+
+        let index = raw.parse::<usize>().map_err(|_e| Error::SupportNotFound)?;
 
         let faq_channel_id = GuildManager::get(pool, guild_id)
             .await?
@@ -106,13 +96,10 @@ impl TicketComponent {
             .boxed()
             .try_next()
             .await?
-            .ok_or(crate::Error::SupportNotFound)?;
+            .ok_or(Error::SupportNotFound)?;
 
         let mut parts: Vec<&str> = message.content.split("**").collect();
-        let description = parts
-            .pop()
-            .expect("message content always has description after '**' split")
-            .trim();
+        let description = parts.pop().unwrap_or_default().trim();
         let title = parts.join("");
 
         interaction

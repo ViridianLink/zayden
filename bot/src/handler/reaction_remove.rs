@@ -18,8 +18,9 @@ impl Handler {
             &ctx.http, reaction, pool,
         )
         .await?;
+
         Suggestions::reaction::<Postgres, GuildTable>(&ctx.http, reaction, pool)
-            .await;
+            .await?;
 
         Ok(())
     }

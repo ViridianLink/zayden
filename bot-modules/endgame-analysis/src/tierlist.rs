@@ -21,7 +21,7 @@ use serenity::all::{
 use tokio::sync::RwLock;
 use zayden_core::parse_options;
 
-use super::endgame_analysis::tier::TIERS;
+use super::endgame_analysis::tier::{TIERS, TierLabel};
 use crate::Result;
 use crate::endgame_analysis::EndgameAnalysisSheet;
 use crate::endgame_analysis::weapon::Weapon;
@@ -46,28 +46,25 @@ impl TierListCommand {
 
         let count = match options.get("count") {
             Some(ResolvedValue::Integer(count)) => {
-                usize::try_from(*count).expect("count from Discord is non-negative")
+                usize::try_from(*count).unwrap_or(usize::MAX)
             },
             _ => usize::MAX,
         };
 
-        let tiers = match options.get("tier") {
+        let tiers: &[TierLabel] = match options.get("tier") {
             Some(ResolvedValue::String(tier)) => {
-                let tier = tier.parse().expect("valid tier string");
-                let index = TIERS
-                    .iter()
-                    .copied()
-                    .position(|t| t == tier)
-                    .expect("tier always in TIERS list");
-                TIERS
-                    .get(..=index)
-                    .expect("index from position() is always in bounds")
+                let Ok(tier) = tier.parse::<TierLabel>() else {
+                    return Ok(());
+                };
+                let index =
+                    TIERS.iter().position(|t| t == &tier).unwrap_or(TIERS.len() - 1);
+                TIERS.get(..=index).unwrap_or(&TIERS)
             },
             _ => &TIERS,
         };
 
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(w) => serde_json::from_str(&w).expect("valid JSON"),
+            Ok(w) => serde_json::from_str(&w)?,
             Err(_) => {
                 let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
@@ -78,13 +75,11 @@ impl TierListCommand {
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")
-                    .await
-                    .expect("data invariant");
+                    .await?;
 
                 EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let w = fs::read_to_string("weapons.json")
-                    .expect("weapons.json readable");
-                serde_json::from_str(&w).expect("valid JSON")
+                let w = fs::read_to_string("weapons.json")?;
+                serde_json::from_str(&w)?
             },
         };
 
@@ -100,9 +95,9 @@ impl TierListCommand {
             .filter(|w| tiers.contains(&w.tier.tier))
             .take(count)
             .fold(init_map, |mut map, w| {
-                map.get_mut(&w.tier.tier)
-                    .expect("tier key always in map")
-                    .push(w.name);
+                if let Some(v) = map.get_mut(&w.tier.tier) {
+                    v.push(w.name);
+                }
                 map
             });
 
@@ -170,9 +165,7 @@ impl TierListCommand {
         api_key: &str,
     ) -> Result<()> {
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(weapons) => {
-                serde_json::from_str(&weapons).expect("valid weapons JSON")
-            },
+            Ok(weapons) => serde_json::from_str(&weapons)?,
             Err(_) => {
                 let client = {
                     let data_lock = ctx.data::<RwLock<Data>>();
@@ -183,13 +176,11 @@ impl TierListCommand {
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")
-                    .await
-                    .expect("data invariant");
+                    .await?;
 
                 EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let weapons = fs::read_to_string("weapons.json")
-                    .expect("weapons.json readable");
-                serde_json::from_str(&weapons).expect("valid weapons JSON")
+                let weapons = fs::read_to_string("weapons.json")?;
+                serde_json::from_str(&weapons)?
             },
         };
 

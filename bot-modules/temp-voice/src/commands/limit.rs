@@ -28,7 +28,7 @@ pub(super) async fn limit(
 
     let limit = match options.remove("user_limit") {
         Some(ResolvedValue::Integer(limit)) => {
-            u16::try_from(limit.clamp(0, 99)).expect("clamped 0-99 fits in u16")
+            u16::try_from(limit.clamp(0, 99)).unwrap_or(0)
         },
         _ => 0,
     };
@@ -36,9 +36,8 @@ pub(super) async fn limit(
     channel_id
         .edit(
             http,
-            EditChannel::new().user_limit(
-                NonMaxU16::new(limit).expect("limit 0-99 is below NonMaxU16 max"),
-            ),
+            EditChannel::new()
+                .user_limit(NonMaxU16::new(limit).unwrap_or(NonMaxU16::ZERO)),
         )
         .await?;
 

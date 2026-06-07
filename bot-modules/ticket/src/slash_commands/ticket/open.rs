@@ -23,8 +23,9 @@ impl Ticket {
             .channel_id()
             .ok_or(Error::NotInSupportChannel)?;
 
-        let channel =
-            interaction.channel.as_ref().expect("interaction always has a channel");
+        let Some(channel) = interaction.channel.as_ref() else {
+            return Ok(());
+        };
 
         if let GenericInteractionChannel::Thread(c) = channel
             && c.parent_id != support_channel_id
@@ -35,8 +36,8 @@ impl Ticket {
         let new_channel_name = channel
             .base()
             .name
-            .as_ref()
-            .expect("channel always has a name")
+            .as_deref()
+            .unwrap_or_default()
             .replace("[Fixed] - ", "")
             .replace("[Closed] - ", "");
 

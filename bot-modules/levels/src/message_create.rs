@@ -8,26 +8,25 @@ use crate::{FullLevelRow, LevelsManager};
 pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
     message: &Message,
     pool: &Pool<Db>,
-) -> Option<i32> {
-    message.guild_id?;
+) -> Result<Option<i32>, sqlx::Error> {
+    let Some(_guild_id) = message.guild_id else {
+        return Ok(None);
+    };
 
     let mut row = Manager::full_row(pool, message.author.id)
-        .await
-        .expect("DB query")
+        .await?
         .unwrap_or_else(|| FullLevelRow::new(message.author.id));
 
-    let xp_cooldown = row
-        .last_xp()
-        .checked_add(Span::new().minutes(1))
-        .expect("Timestamp should be within legal range");
+    let xp_cooldown =
+        row.last_xp().checked_add(Span::new().minutes(1)).unwrap_or(Timestamp::MAX);
 
     if xp_cooldown > Timestamp::now() {
-        return None;
+        return Ok(None);
     }
 
     let new_level = row.new_message();
 
-    Manager::save(pool, row).await.expect("failed to save xp row");
+    Manager::save(pool, row).await?;
 
-    new_level
+    Ok(new_level)
 }

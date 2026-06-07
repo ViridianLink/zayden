@@ -29,14 +29,21 @@ pub struct LeaveInteraction {
 
 impl From<&CommandInteraction> for LeaveInteraction {
     fn from(value: &CommandInteraction) -> Self {
-        let (_, mut options) = parse_subcommand(value.data.options())
-            .expect("lfg leave command always has a subcommand");
+        let Ok((_, mut options)) = parse_subcommand(value.data.options()) else {
+            return Self {
+                thread: value.channel_id.expect_thread(),
+                author: value.user.id,
+                user: value.user.id,
+            };
+        };
+
         let thread = match options.remove("thread") {
             Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(
                 thread,
             ))) => thread.id,
             _ => value.channel_id.expect_thread(),
         };
+
         let user = match options.remove("guardian") {
             Some(ResolvedValue::User(user, _)) => user.id,
             _ => value.user.id,
@@ -50,7 +57,14 @@ impl From<&ComponentInteraction> for LeaveInteraction {
     fn from(value: &ComponentInteraction) -> Self {
         let user = match &value.data.kind {
             ComponentInteractionDataKind::UserSelect { values } => {
-                *values.first().expect("UserSelect always has at least one value")
+                let Some(v) = values.first() else {
+                    return Self {
+                        thread: value.channel_id.expect_thread(),
+                        author: value.user.id,
+                        user: value.user.id,
+                    };
+                };
+                *v
             },
             ComponentInteractionDataKind::Button
             | ComponentInteractionDataKind::StringSelect { .. }

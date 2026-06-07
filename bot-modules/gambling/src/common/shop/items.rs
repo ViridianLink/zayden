@@ -4,8 +4,9 @@ use std::time::Duration;
 use zayden_core::EmojiCache;
 
 use super::{ShopCurrency, ShopPage};
-use crate::GamblingItem;
+use crate::error::Result;
 use crate::utils::Emoji;
+use crate::{GamblingError, GamblingItem};
 
 #[derive(Clone, Copy)]
 pub struct ShopItem<'a> {
@@ -83,25 +84,23 @@ impl<'a> ShopItem<'a> {
         self
     }
 
-    #[must_use]
-    pub fn emoji(&self, emojis: &EmojiCache) -> String {
+    pub fn emoji(&self, emojis: &EmojiCache) -> Result<String> {
         match self.emoji {
-            Emoji::Id(name) => {
-                emojis.emoji_str(name).expect("emoji name always registered")
-            },
-            Emoji::Str(emoji) => String::from(emoji),
-            Emoji::None => String::new(),
+            Emoji::Id(name) => emojis.emoji_str(name).map_err(|n| {
+                GamblingError::Internal(format!("emoji '{n}' not in cache"))
+            }),
+            Emoji::Str(emoji) => Ok(String::from(emoji)),
+            Emoji::None => Ok(String::new()),
         }
     }
 
-    #[must_use]
-    pub fn cost_desc(&self, emojis: &EmojiCache) -> String {
-        self.costs
-            .iter()
-            .filter_map(|cost| cost.as_ref())
-            .map(|(cost, currency)| format!("`{cost}` {}", currency.emoji(emojis)))
-            .collect::<Vec<_>>()
-            .join("\n")
+    pub fn cost_desc(&self, emojis: &EmojiCache) -> Result<String> {
+        let mut parts = Vec::new();
+        for cost in self.costs.iter().filter_map(|c| c.as_ref()) {
+            let (amount, currency) = cost;
+            parts.push(format!("`{amount}` {}", currency.emoji(emojis)?));
+        }
+        Ok(parts.join("\n"))
     }
 
     #[must_use]
@@ -121,18 +120,23 @@ impl<'a> ShopItem<'a> {
         iter.map(|(cost, currency)| (cost * amount, currency)).collect()
     }
 
-    #[must_use]
-    pub fn as_str(&self, emojis: &EmojiCache) -> String {
-        format!("{} {}", self.emoji(emojis), self.name)
+    pub fn as_str(&self, emojis: &EmojiCache) -> Result<String> {
+        Ok(format!("{} {}", self.emoji(emojis)?, self.name))
     }
 }
 
-impl From<&GamblingItem> for ShopItem<'_> {
-    fn from(value: &GamblingItem) -> Self {
-        *SHOP_ITEMS
-            .iter()
-            .find(|item| item.id == value.item_id)
-            .expect("GamblingItem::item_id always matches a SHOP_ITEMS entry")
+impl TryFrom<&GamblingItem> for ShopItem<'_> {
+    type Error = GamblingError;
+
+    fn try_from(value: &GamblingItem) -> Result<Self> {
+        SHOP_ITEMS.iter().find(|item| item.id == value.item_id).copied().ok_or_else(
+            || {
+                GamblingError::Internal(format!(
+                    "GamblingItem item_id '{}' not in SHOP_ITEMS",
+                    value.item_id
+                ))
+            },
+        )
     }
 }
 

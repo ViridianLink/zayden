@@ -19,10 +19,10 @@ use zayden_core::cache::GuildMembersCache;
 use zayden_core::{EmojiCacheData, as_i64, parse_options};
 
 use super::Commands;
-use crate::Result;
 use crate::common::LeaderboardManager;
 use crate::common::leaderboard::{get_row_number, get_rows};
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
+use crate::{GamblingError, Result};
 
 impl Commands {
     pub async fn leaderboard<
@@ -41,7 +41,7 @@ impl Commands {
 
         let Some(ResolvedValue::String(leaderboard)) = options.remove("leaderboard")
         else {
-            return Err(crate::GamblingError::InvalidAmount);
+            return Err(GamblingError::InvalidAmount);
         };
 
         let global = match options.remove("global") {
@@ -55,13 +55,18 @@ impl Commands {
             let users = {
                 let data = ctx.data::<RwLock<Data>>();
                 let data = data.read().await;
-                data.get()
-                    .get(
-                        &interaction
-                            .guild_id
-                            .expect("gambling command always used in guild"),
+                let guild_id = interaction.guild_id.ok_or_else(|| {
+                    GamblingError::Internal(
+                        "guild_id missing in leaderboard command".to_string(),
                     )
-                    .expect("guild members cached when leaderboard command ran")
+                })?;
+                data.get()
+                    .get(&guild_id)
+                    .ok_or_else(|| {
+                        GamblingError::Internal(
+                            "guild not in members cache".to_string(),
+                        )
+                    })?
                     .iter()
                     .map(|id| as_i64(id.get()))
                     .collect::<Vec<_>>()
@@ -70,7 +75,7 @@ impl Commands {
         };
 
         let rows =
-            get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), 1).await;
+            get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), 1).await?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -82,7 +87,7 @@ impl Commands {
             .into_iter()
             .enumerate()
             .map(|(i, row)| row.as_desc(&emojis, i))
-            .collect::<Vec<_>>()
+            .collect::<Result<Vec<_>>>()?
             .join("\n\n");
 
         let embed = CreateEmbed::new()
@@ -106,7 +111,7 @@ impl Commands {
             users.as_deref(),
             interaction.user.id,
         )
-        .await
+        .await?
         .is_some()
         {
             response = response.button(

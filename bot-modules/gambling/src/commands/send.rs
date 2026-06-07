@@ -144,8 +144,7 @@ impl Commands {
         }
 
         let mut row = SendHandler::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| SendRow::new(interaction.user.id));
 
         row.verify_work::<Db, StaminaHandler>()?;
@@ -190,7 +189,9 @@ impl Commands {
 
         SendHandler::save(pool, row).await?;
 
-        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
         let embed = CreateEmbed::new().description(format!(
             "You sent {} <:coin:{coin}> to {}\nStamina: {stamina}",

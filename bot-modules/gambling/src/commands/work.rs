@@ -19,6 +19,7 @@ use crate::events::{Dispatch, Event};
 use crate::models::MineAmount;
 use crate::{
     Coins,
+    GamblingError,
     Gems,
     GoalsManager,
     MaxBet,
@@ -137,14 +138,13 @@ impl Commands {
         interaction.defer(&ctx.http).await?;
 
         let mut row = WorkHandler::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| WorkRow::new(interaction.user.id));
 
         row.verify_work::<Db, StaminaHandler>()?;
 
         let base_amount = rand::random_range(100..=500);
-        let mine_amount = row.mine_amount();
+        let mine_amount = row.mine_amount()?;
         let total_amount = base_amount + mine_amount;
 
         *row.coins_mut() += total_amount;
@@ -175,7 +175,9 @@ impl Commands {
 
         WorkHandler::save(pool, row).await?;
 
-        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
         let embed = CreateEmbed::new()
             .description(format!(

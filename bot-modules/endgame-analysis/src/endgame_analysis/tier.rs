@@ -5,6 +5,8 @@ use google_sheets_api::types::sheet::CellData;
 use serde::{Deserialize, Serialize};
 use serenity::all::Colour;
 
+use crate::EndgameAnalysisError;
+
 pub const TIERS: [TierLabel; 7] = [
     TierLabel::S,
     TierLabel::A,
@@ -28,21 +30,25 @@ impl Tier {
     }
 }
 
-impl From<CellData> for Tier {
-    fn from(value: CellData) -> Self {
+impl TryFrom<CellData> for Tier {
+    type Error = EndgameAnalysisError;
+
+    fn try_from(value: CellData) -> Result<Self, Self::Error> {
         let tier = value
             .formatted_value
-            .map(|s| s.parse().expect("data invariant"))
+            .map(|s| s.parse().unwrap_or_default())
             .unwrap_or_default();
-        let colour = value
+        let effective_format = value
             .effective_format
-            .expect("data invariant")
+            .ok_or(EndgameAnalysisError::MissingData("effective_format"))?;
+        let background_color_style = effective_format
             .background_color_style
-            .expect("data invariant")
+            .ok_or(EndgameAnalysisError::MissingData("background_color_style"))?;
+        let colour = background_color_style
             .rgb_color
-            .expect("data invariant");
+            .ok_or(EndgameAnalysisError::MissingData("rgb_color"))?;
 
-        Self { tier, colour: google_colour_to_serde_colour(&colour) }
+        Ok(Self { tier, colour: google_colour_to_serde_colour(&colour) })
     }
 }
 

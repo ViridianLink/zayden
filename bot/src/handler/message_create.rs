@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use futures::FutureExt;
+use futures::{FutureExt, TryFutureExt};
 use gambling::GamblingManager;
 use serenity::all::{Context, Message};
 use sqlx::{PgPool, Postgres};
@@ -11,7 +11,7 @@ use crate::bindings::gambling::GamblingTable;
 use crate::bindings::levels::LevelsTable;
 use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
-use crate::{BotState, Result};
+use crate::{BotError, BotState, Result};
 
 impl Handler {
     pub async fn message_create(
@@ -26,7 +26,7 @@ impl Handler {
 
         let (new_level, ..) = tokio::try_join!(
             levels::message_create::<Postgres, LevelsTable>(msg, pool)
-                .map(Result::Ok),
+                .map_err(BotError::from),
             llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
             llamad2::CountingFail::run(ctx, msg).map(Result::Ok),

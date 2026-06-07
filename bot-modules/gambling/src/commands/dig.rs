@@ -25,6 +25,7 @@ use crate::models::{MineAmount, Prestige};
 use crate::shop::ShopCurrency;
 use crate::{
     Coins,
+    GamblingError,
     Gems,
     GoalsManager,
     MaxBet,
@@ -176,8 +177,7 @@ impl Commands {
         interaction.defer(&ctx.http).await?;
 
         let mut row = DigHandler::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| DigRow::new(interaction.user.id));
 
         row.verify_work::<Db, StaminaHandler>()?;
@@ -197,16 +197,24 @@ impl Commands {
         for (&resource, chance) in CHANCES.iter() {
             let ore = as_i64(
                 Binomial::new(as_u64(miners), (chance).min(1.0))
-                    .expect("miners >= 0 and chance in [0, 1]")
+                    .map_err(|e| {
+                        GamblingError::Internal(format!(
+                            "Binomial params invalid: {e}"
+                        ))
+                    })?
                     .sample(&mut rng()),
             );
 
-            *resources.get_mut(resource).expect("resource key in map") +=
-                match resource {
-                    "lapis" => ore * 6,    // Drops per ore
-                    "redstone" => ore * 4, // Drops per ore
-                    _ => ore,
-                };
+            let entry = resources.get_mut(resource).ok_or_else(|| {
+                GamblingError::Internal(format!(
+                    "resource key '{resource}' not in map"
+                ))
+            })?;
+            *entry += match resource {
+                "lapis" => ore * 6,    // Drops per ore
+                "redstone" => ore * 4, // Drops per ore
+                _ => ore,
+            };
         }
 
         for (&k, &v) in &resources {
@@ -232,7 +240,7 @@ impl Commands {
             .fire(interaction.channel_id, &mut row, Event::Work(interaction.user.id))
             .await?;
 
-        let mine_amount = row.mine_amount();
+        let mine_amount = row.mine_amount()?;
         *row.coins_mut() += mine_amount;
 
         row.done_work();
@@ -256,11 +264,17 @@ impl Commands {
                 _ => None,
             })
             .map(|(currency, amount, name)| {
-                format!("{} `{}` {name}", currency.emoji(&emojis), amount.format())
+                Ok(format!(
+                    "{} `{}` {name}",
+                    currency.emoji(&emojis)?,
+                    amount.format()
+                ))
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>>>()?;
 
-        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
         let embed = CreateEmbed::new()
             .description(format!(

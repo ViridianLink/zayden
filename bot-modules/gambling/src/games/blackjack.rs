@@ -28,6 +28,7 @@ use crate::{
     CARD_DECK,
     Coins,
     EffectsManager,
+    GamblingError,
     GameManager,
     GameRow,
     GoalsManager,
@@ -37,9 +38,22 @@ use crate::{
 
 pub static CARD_VALUES: OnceLock<HashMap<EmojiId, u8>> = OnceLock::new();
 
-pub fn card_values(emojis: &EmojiCache) -> HashMap<EmojiId, u8> {
-    CARD_DECK
-        .get_or_init(|| card_deck(emojis))
+fn get_card_values(emojis: &EmojiCache) -> Result<&'static HashMap<EmojiId, u8>> {
+    if let Some(map) = CARD_VALUES.get() {
+        return Ok(map);
+    }
+
+    let deck = if let Some(d) = CARD_DECK.get() {
+        d
+    } else {
+        let new_deck = card_deck(emojis)?;
+        let _ = CARD_DECK.set(new_deck);
+        CARD_DECK.get().ok_or_else(|| {
+            GamblingError::Internal("CARD_DECK init failed".to_string())
+        })?
+    };
+
+    let map: HashMap<EmojiId, u8> = deck
         .iter()
         .copied()
         .zip(
@@ -51,7 +65,16 @@ pub fn card_values(emojis: &EmojiCache) -> HashMap<EmojiId, u8> {
                 .cycle()
                 .take(52),
         )
-        .collect()
+        .collect();
+
+    let _ = CARD_VALUES.set(map);
+    CARD_VALUES.get().ok_or_else(|| {
+        GamblingError::Internal("CARD_VALUES init failed".to_string())
+    })
+}
+
+pub fn card_values(emojis: &EmojiCache) -> Result<HashMap<EmojiId, u8>> {
+    get_card_values(emojis).cloned()
 }
 
 pub struct GameDetails {
@@ -86,39 +109,44 @@ impl GameDetails {
     }
 
     #[must_use]
-    pub fn player_value(&self, emojis: &EmojiCache) -> u8 {
+    pub const fn dealer_card(&self) -> EmojiId {
+        self.dealer_card
+    }
+
+    pub fn player_value(&self, emojis: &EmojiCache) -> Result<u8> {
         sum_cards(emojis, &self.player_hand)
     }
 
-    pub fn player_hand_str(&self, emojis: &EmojiCache) -> String {
+    pub fn player_hand_str(&self, emojis: &EmojiCache) -> Result<String> {
+        let card_to_num = get_card_values(emojis)?;
         let mut s = String::new();
-
         for id in &self.player_hand {
-            let num = *CARD_VALUES
-                .get_or_init(|| card_values(emojis))
-                .get(id)
-                .expect("player hand card always in CARD_VALUES");
-
+            let num = card_to_num.get(id).ok_or_else(|| {
+                GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+            })?;
             let _ = write!(s, "<:{num}:{id}> ");
         }
 
-        s
+        Ok(s)
     }
 
-    pub fn add_card(&mut self) {
-        self.player_hand.push(self.card_shoe.pop().expect("card shoe not empty"));
+    pub fn add_card(&mut self) -> Result<()> {
+        let card = self.card_shoe.pop().ok_or_else(|| {
+            GamblingError::Internal("blackjack card shoe is empty".to_string())
+        })?;
+
+        self.player_hand.push(card);
+
+        Ok(())
     }
 
-    #[must_use]
-    pub fn dealer_hand(&self) -> Vec<EmojiId> {
-        vec![self.dealer_card]
+    pub fn next_card(&mut self) -> Result<EmojiId> {
+        self.card_shoe.pop().ok_or_else(|| {
+            GamblingError::Internal("blackjack card shoe is empty".to_string())
+        })
     }
 
-    pub fn next_card(&mut self) -> EmojiId {
-        self.card_shoe.pop().expect("card shoe not empty")
-    }
-
-    fn card_shoe(&self, emojis: &EmojiCache) -> Vec<EmojiId> {
+    fn card_shoe_init(&self, emojis: &EmojiCache) -> Result<Vec<EmojiId>> {
         let mut cards = self
             .player_hand
             .iter()
@@ -127,8 +155,17 @@ impl GameDetails {
             .collect::<HashSet<_>>();
         cards.insert(self.dealer_card);
 
-        let mut shoe = CARD_DECK
-            .get_or_init(|| card_deck(emojis))
+        let deck = if let Some(d) = CARD_DECK.get() {
+            d
+        } else {
+            let new_deck = card_deck(emojis)?;
+            let _ = CARD_DECK.set(new_deck);
+            CARD_DECK.get().ok_or_else(|| {
+                GamblingError::Internal("CARD_DECK init failed".to_string())
+            })?
+        };
+
+        let mut shoe = deck
             .iter()
             .copied()
             .filter(|card| !cards.remove(card))
@@ -136,76 +173,107 @@ impl GameDetails {
 
         shoe.shuffle(&mut rng());
 
-        shoe
+        Ok(shoe)
     }
 
-    pub fn from_str(emojis: &EmojiCache, s: &str) -> Self {
+    pub fn from_str(emojis: &EmojiCache, s: &str) -> Result<Self> {
         let mut lines = s.lines().skip(1);
 
-        let bet_line = lines.next().expect("game message has expected format");
+        let bet_line = lines.next().ok_or_else(|| {
+            GamblingError::Internal("game message missing bet line".to_string())
+        })?;
         let bet = bet_line
             .strip_prefix("Your bet: ")
-            .expect("bet line has expected prefix")
+            .ok_or_else(|| {
+                GamblingError::Internal("bet line missing prefix".to_string())
+            })?
             .split_whitespace()
             .next()
-            .expect("bet line has non-empty content")
+            .ok_or_else(|| GamblingError::Internal("bet line is empty".to_string()))?
             .replace(',', "")
             .parse::<i64>()
-            .expect("bet is always a valid integer");
+            .map_err(|_e| {
+                GamblingError::Internal("bet is not a valid integer".to_string())
+            })?;
 
         lines.next();
         lines.next();
 
-        let player_hand_line =
-            lines.next().expect("game message has expected format");
+        let player_hand_line = lines.next().ok_or_else(|| {
+            GamblingError::Internal(
+                "game message missing player hand line".to_string(),
+            )
+        })?;
         let player_hand = player_hand_line
             .split(" - ")
             .next()
-            .expect("player hand line has expected format")
+            .ok_or_else(|| {
+                GamblingError::Internal(
+                    "player hand line missing separator".to_string(),
+                )
+            })?
             .split_whitespace()
             .map(parse_emoji)
-            .map(|emoji| emoji.map(|emoji| emoji.id))
+            .map(|emoji| emoji.map(|e| e.id))
             .collect::<Option<Vec<EmojiId>>>()
-            .expect("player hand emojis are all valid");
+            .ok_or_else(|| {
+                GamblingError::Internal(
+                    "player hand contains invalid emoji".to_string(),
+                )
+            })?;
 
         lines.next();
         lines.next();
 
-        let dealer_hand_line =
-            lines.next().expect("game message has expected format");
-        let dealer_card_str = dealer_hand_line
-            .split_whitespace()
-            .next()
-            .expect("dealer hand line has content");
-        let dealer_card =
-            parse_emoji(dealer_card_str).expect("dealer card is valid emoji").id;
+        let dealer_hand_line = lines.next().ok_or_else(|| {
+            GamblingError::Internal(
+                "game message missing dealer hand line".to_string(),
+            )
+        })?;
+        let dealer_card_str =
+            dealer_hand_line.split_whitespace().next().ok_or_else(|| {
+                GamblingError::Internal("dealer hand line is empty".to_string())
+            })?;
+        let dealer_card = parse_emoji(dealer_card_str)
+            .ok_or_else(|| {
+                GamblingError::Internal(
+                    "dealer card is not a valid emoji".to_string(),
+                )
+            })?
+            .id;
 
         let mut game = Self::new(bet, player_hand, dealer_card);
-        game.card_shoe = game.card_shoe(emojis);
+        game.card_shoe = game.card_shoe_init(emojis)?;
 
-        game
+        Ok(game)
     }
 }
 
-pub fn sum_cards(emojis: &EmojiCache, hand: &[EmojiId]) -> u8 {
-    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
+pub fn sum_cards(emojis: &EmojiCache, hand: &[EmojiId]) -> Result<u8> {
+    let card_to_num = get_card_values(emojis)?;
 
-    let (aces, rest) = hand
-        .iter()
-        .map(|id| *card_to_num.get(id).expect("card ID always in card_to_num"))
-        .partition::<Vec<_>, _>(|num| *num == 1);
+    let mut aces = 0u8;
+    let mut sum: u8 = 0;
+    for id in hand {
+        let val = *card_to_num.get(id).ok_or_else(|| {
+            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+        })?;
+        if val == 1 {
+            aces += 1;
+        } else {
+            sum = sum.saturating_add(val);
+        }
+    }
 
-    let mut sum = rest.iter().sum();
-    let mut num_aces = aces.len();
+    sum = sum.saturating_add(aces.saturating_mul(11));
 
-    sum += u8::try_from(num_aces).unwrap_or(u8::MAX).saturating_mul(11);
-
+    let mut num_aces = aces as usize;
     while sum > 21 && num_aces > 0 {
         sum -= 10;
         num_aces -= 1;
     }
 
-    sum
+    Ok(sum)
 }
 
 pub fn in_play_text<'a>(
@@ -213,28 +281,39 @@ pub fn in_play_text<'a>(
     bet: i64,
     player_hand: &[EmojiId],
     dealer_card: EmojiId,
-) -> CreateContainerComponent<'a> {
-    let player_value = sum_cards(emojis, player_hand);
-    let dealer_value = sum_cards(emojis, &[dealer_card]);
+) -> Result<CreateContainerComponent<'a>> {
+    let player_value = sum_cards(emojis, player_hand)?;
+    let dealer_value = sum_cards(emojis, &[dealer_card])?;
 
-    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
-    let card_back = emojis.emoji("card_back").expect("emoji 'card_back' in cache");
+    let card_to_num = get_card_values(emojis)?;
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
+
+    let card_back = emojis
+        .emoji("card_back")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
+
+    let mut player_hand_str = String::new();
+    for id in player_hand {
+        let num = card_to_num.get(id).ok_or_else(|| {
+            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+        })?;
+        let _ = write!(player_hand_str, "<:{num}:{id}> ");
+    }
+
+    let dealer_num = card_to_num.get(&dealer_card).ok_or_else(|| {
+        GamblingError::Internal("dealer card not in CARD_VALUES".to_string())
+    })?;
 
     let desc = format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n<:{}:{dealer_card}> <:blank:{card_back}> - {dealer_value}",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n<:{dealer_num}:{dealer_card}> <:blank:{card_back}> - {dealer_value}",
         bet.format(),
-        player_hand.iter().fold(String::new(), |mut acc, id| {
-            let num = *card_to_num.get(id).expect("card ID always in card_to_num");
-            let _ = write!(acc, "<:{num}:{id}> ");
-            acc
-        }),
-        card_to_num.get(&dealer_card).expect("dealer card ID always in card_to_num"),
     );
 
-    CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
+    Ok(CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
         "### Blackjack\n{desc}"
-    )))
+    ))))
 }
 
 pub fn hit_button<'a>() -> CreateButton<'a> {
@@ -311,6 +390,21 @@ async fn game_end_common<
     Ok((payout, coins))
 }
 
+fn build_hand_str(
+    card_to_num: &HashMap<EmojiId, u8>,
+    hand: &[EmojiId],
+) -> Result<String> {
+    let mut s = String::new();
+    for id in hand {
+        let num = card_to_num.get(id).ok_or_else(|| {
+            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+        })?;
+        let _ = write!(s, "<:{num}:{id}> ");
+    }
+
+    Ok(s)
+}
+
 pub async fn game_end_draw<
     'a,
     Db: Database,
@@ -327,7 +421,7 @@ pub async fn game_end_draw<
     dealer_hand: &[EmojiId],
 ) -> Result<EditInteractionResponse<'a>> {
     let bet = game.bet();
-    let dealer_value = sum_cards(emojis, dealer_hand);
+    let dealer_value = sum_cards(emojis, dealer_hand)?;
 
     let (_, coins) =
         game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
@@ -335,20 +429,18 @@ pub async fn game_end_draw<
         )
         .await?;
 
-    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
+    let card_to_num = get_card_values(emojis)?;
+    let coin = emojis.get("heads").ok_or_else(|| {
+        GamblingError::Internal("emoji 'heads' not in cache".to_string())
+    })?;
 
-    let coin = emojis.get("heads").expect("emoji 'heads' in cache");
+    let dealer_hand_str = build_hand_str(card_to_num, dealer_hand)?;
 
     let desc = format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{} - {dealer_value}",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}",
         bet.format(),
-        game.player_hand_str(emojis),
-        game.player_value(emojis),
-        dealer_hand.iter().fold(String::new(), |mut acc, id| {
-            let num = *card_to_num.get(id).expect("card ID always in card_to_num");
-            let _ = write!(acc, "<:{num}:{id}> ");
-            acc
-        }),
+        game.player_hand_str(emojis)?,
+        game.player_value(emojis)?,
     );
 
     let embed = CreateEmbed::new()
@@ -379,7 +471,7 @@ pub async fn game_end_blackjack<
 ) -> Result<EditInteractionResponse<'a>> {
     let bet = game.bet();
     let payout = bet + (3 * bet) / 2;
-    let dealer_value = sum_cards(emojis, dealer_hand);
+    let dealer_value = sum_cards(emojis, dealer_hand)?;
 
     let (payout, coins) =
         game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
@@ -387,19 +479,18 @@ pub async fn game_end_blackjack<
         )
         .await?;
 
-    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+    let card_to_num = get_card_values(emojis)?;
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
+
+    let dealer_hand_str = build_hand_str(card_to_num, dealer_hand)?;
 
     let desc = format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{} - {dealer_value}",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}",
         bet.format(),
-        game.player_hand_str(emojis),
-        game.player_value(emojis),
-        dealer_hand.iter().fold(String::new(), |mut acc, id| {
-            let num = *card_to_num.get(id).expect("card ID always in card_to_num");
-            let _ = write!(acc, "<:{num}:{id}> ");
-            acc
-        }),
+        game.player_hand_str(emojis)?,
+        game.player_value(emojis)?,
     );
 
     let embed = CreateEmbed::new()
@@ -421,27 +512,22 @@ pub fn game_end_desc(
     dealer_hand: &[EmojiId],
     payout: i64,
     coins: i64,
-) -> String {
-    let player_value = sum_cards(emojis, player_hand);
-    let dealer_value = sum_cards(emojis, dealer_hand);
+) -> Result<String> {
+    let player_value = sum_cards(emojis, player_hand)?;
+    let dealer_value = sum_cards(emojis, dealer_hand)?;
 
-    let card_to_num = CARD_VALUES.get_or_init(|| card_values(emojis));
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+    let card_to_num = get_card_values(emojis)?;
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
-    format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{}- {player_value}\n\n**Dealer Hand**\n{} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
+    let player_hand_str = build_hand_str(card_to_num, player_hand)?;
+    let dealer_hand_str = build_hand_str(card_to_num, dealer_hand)?;
+
+    Ok(format!(
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
         bet.format(),
-        player_hand.iter().fold(String::new(), |mut acc, id| {
-            let num = *card_to_num.get(id).expect("card ID always in card_to_num");
-            let _ = write!(acc, "<:{num}:{id}> ");
-            acc
-        }),
-        dealer_hand.iter().fold(String::new(), |mut acc, id| {
-            let num = *card_to_num.get(id).expect("card ID always in card_to_num");
-            let _ = write!(acc, "<:{num}:{id}> ");
-            acc
-        }),
         (payout - bet).format(),
         coins.format()
-    )
+    ))
 }

@@ -12,6 +12,7 @@ pub type Result<T> = std::result::Result<T, GamblingError>;
 pub enum GamblingError {
     Overflow(i64),
     MessageConflict,
+    Internal(String),
 
     PremiumRequired,
     InsufficientFunds { required: i64, currency: ShopCurrency },
@@ -43,6 +44,7 @@ impl std::fmt::Display for GamblingError {
                 write!(f, "Overflow Error: Please enter a maximum of `{max}`")
             },
             Self::MessageConflict => ZaydenError::MessageConflict.fmt(f),
+            Self::Internal(msg) => write!(f, "Internal error: {msg}"),
             Self::PremiumRequired => {
                 write!(f, "Sorry, only supporters can use this option")
             },
@@ -106,6 +108,7 @@ impl std::error::Error for GamblingError {
             Self::Serenity(e) => Some(e),
             Self::Sqlx(e) => Some(e),
             Self::Overflow(_)
+            | Self::Internal(_)
             | Self::MessageConflict
             | Self::PremiumRequired
             | Self::InsufficientFunds { .. }
@@ -132,7 +135,7 @@ impl std::error::Error for GamblingError {
 impl Respond for GamblingError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::Serenity(_) | Self::Sqlx(_) => None,
+            Self::Serenity(_) | Self::Sqlx(_) | Self::Internal(_) => None,
             Self::Overflow(_)
             | Self::MessageConflict
             | Self::PremiumRequired

@@ -158,28 +158,27 @@ impl Loadout<'_> {
         mut options: Vec<ResolvedOption<'_>>,
         parent_token: &str,
     ) -> serenity::Result<()> {
-        let ResolvedValue::SubCommand(options) =
-            options.pop().expect("loadout command always has a subcommand").value
-        else {
+        let Some(top) = options.pop() else {
+            return Ok(());
+        };
+        let ResolvedValue::SubCommand(options) = top.value else {
             return Ok(());
         };
 
-        let ResolvedValue::String(value) =
-            options.first().expect("subcommand always has an option").value
-        else {
+        let Some(first) = options.first() else {
+            return Ok(());
+        };
+        let ResolvedValue::String(value) = first.value else {
             return Ok(());
         };
 
-        let build = BUILDS
-            .iter()
-            .copied()
-            .find(|build| {
-                let subclass = build.subclass.kind.to_string().to_lowercase();
-                let name = build.name.to_lowercase().replace([' ', '|'], "_");
-
-                format!("{subclass}___{name}").as_str() == value
-            })
-            .expect("build always found for valid option value");
+        let Some(build) = BUILDS.iter().copied().find(|build| {
+            let subclass = build.subclass.kind.to_string().to_lowercase();
+            let name = build.name.to_lowercase().replace([' ', '|'], "_");
+            format!("{subclass}___{name}").as_str() == value
+        }) else {
+            return Ok(());
+        };
 
         interaction
             .create_response(
@@ -247,19 +246,18 @@ impl<'a> Loadout<'a> {
 
         let mut components = Vec::with_capacity(21);
 
-        let mut subclass_btn = self.subclass.kind.into_button(emoji_cache);
-        while let Err(name) = subclass_btn {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            subclass_btn = self.subclass.kind.into_button(emoji_cache);
-        }
+        let subclass_btn = loop {
+            match self.subclass.kind.into_button(emoji_cache) {
+                Ok(btn) => break btn,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
+        };
 
         let tags = CreateContainerComponent::ActionRow(CreateActionRow::buttons(
-            iter::once(
-                subclass_btn.expect("subclass button created after upload loop"),
-            )
-            .chain([CreateButton::from(self.mode)])
-            .chain(self.tags.into_iter().flatten().map(CreateButton::from))
-            .collect::<Vec<_>>(),
+            iter::once(subclass_btn)
+                .chain([CreateButton::from(self.mode)])
+                .chain(self.tags.into_iter().flatten().map(CreateButton::from))
+                .collect::<Vec<_>>(),
         ));
 
         let heading1 =
@@ -296,110 +294,99 @@ impl<'a> Loadout<'a> {
             ),
         );
 
-        let mut aspects = self.aspects_str(emoji_cache);
-        while let Err(name) = aspects {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            aspects = self.aspects_str(emoji_cache);
-        }
-
-        let super_emoji = match self.super_emoji(emoji_cache) {
-            Ok(emoji) => emoji,
-            Err(name) => {
-                emoji_cache.upload(ctx, parent_token, &name).await;
-                self.super_emoji(emoji_cache).expect("emoji available after upload")
-            },
+        let aspects = loop {
+            match self.aspects_str(emoji_cache) {
+                Ok(s) => break s,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
         };
 
-        let class_emoji = match self.class_emoji(emoji_cache) {
-            Ok(emoji) => emoji,
-            Err(name) => {
-                emoji_cache.upload(ctx, parent_token, &name).await;
-                self.class_emoji(emoji_cache).expect("emoji available after upload")
-            },
+        let super_emoji = loop {
+            match self.super_emoji(emoji_cache) {
+                Ok(emoji) => break emoji,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
         };
 
-        let jump_emoji = match self.jump_emoji(emoji_cache) {
-            Ok(emoji) => emoji,
-            Err(name) => {
-                emoji_cache.upload(ctx, parent_token, &name).await;
-                self.jump_emoji(emoji_cache).expect("emoji available after upload")
-            },
+        let class_emoji = loop {
+            match self.class_emoji(emoji_cache) {
+                Ok(emoji) => break emoji,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
         };
 
-        let melee_emoji = match self.melee_emoji(emoji_cache) {
-            Ok(emoji) => emoji,
-            Err(name) => {
-                emoji_cache.upload(ctx, parent_token, &name).await;
-                self.melee_emoji(emoji_cache).expect("emoji available after upload")
-            },
+        let jump_emoji = loop {
+            match self.jump_emoji(emoji_cache) {
+                Ok(emoji) => break emoji,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
         };
 
-        let grenade_emoji = match self.grenade_emoji(emoji_cache) {
-            Ok(emoji) => emoji,
-            Err(name) => {
-                emoji_cache.upload(ctx, parent_token, &name).await;
-                self.grenade_emoji(emoji_cache)
-                    .expect("emoji available after upload")
-            },
+        let melee_emoji = loop {
+            match self.melee_emoji(emoji_cache) {
+                Ok(emoji) => break emoji,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
+        };
+
+        let grenade_emoji = loop {
+            match self.grenade_emoji(emoji_cache) {
+                Ok(emoji) => break emoji,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
         };
 
         let subclass = CreateContainerComponent::TextDisplay(
             CreateTextDisplay::new(format!(
-                "# {super_emoji}    {class_emoji} {jump_emoji} {melee_emoji} {grenade_emoji}    {}\n\nFragments",
-                aspects.expect("aspects string after upload loop")
+                "# {super_emoji}    {class_emoji} {jump_emoji} {melee_emoji} {grenade_emoji}    {aspects}\n\nFragments",
             )),
         );
 
-        let mut fragments = self.fragments_str(emoji_cache);
-        while let Err(name) = fragments {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            fragments = self.fragments_str(emoji_cache);
-        }
+        let fragments_str = loop {
+            match self.fragments_str(emoji_cache) {
+                Ok(s) => break s,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
+        };
 
-        let fragments =
-            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
-                "#{}",
-                fragments.expect("fragments string after upload loop")
-            )));
+        let fragments = CreateContainerComponent::TextDisplay(
+            CreateTextDisplay::new(format!("#{fragments_str}")),
+        );
 
         let gear_and_mods_heading = CreateContainerComponent::TextDisplay(
             CreateTextDisplay::new("### GEAR AND MODS"),
         );
 
-        let mut weapons = self.weapon_components(emoji_cache);
-        while let Err(name) = weapons {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            weapons = self.weapon_components(emoji_cache);
-        }
+        let weapons = loop {
+            match self.weapon_components(emoji_cache) {
+                Ok(v) => break v,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
+        };
 
-        let mut weapons = self.weapon_components(emoji_cache);
-        while let Err(name) = weapons {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            weapons = self.weapon_components(emoji_cache);
-        }
+        let armour = loop {
+            match self.armour_components(emoji_cache) {
+                Ok(v) => break v,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
+        };
 
-        let mut armour = self.armour_components(emoji_cache);
-        while let Err(name) = armour {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            armour = self.armour_components(emoji_cache);
-        }
+        let stat_prio = loop {
+            match self.stat_prio_str(emoji_cache) {
+                Ok(s) => break s,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
+        };
 
-        let mut stat_prio = self.stat_prio_str(emoji_cache);
-        while let Err(name) = stat_prio {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            stat_prio = self.stat_prio_str(emoji_cache);
-        }
-
-        let mut artifact = self.artifact_str(emoji_cache);
-        while let Err(name) = artifact {
-            emoji_cache.upload(ctx, parent_token, &name).await;
-            artifact = self.artifact_str(emoji_cache);
-        }
+        let artifact = loop {
+            match self.artifact_str(emoji_cache) {
+                Ok(s) => break s,
+                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
+            }
+        };
 
         let mut misc_content = format!(
-            "### Stats Priority\n#{}\n### ARTIFACT PERKS\n#{}",
-            stat_prio.expect("stat prio string after upload loop"),
-            artifact.expect("artifact string after upload loop")
+            "### Stats Priority\n#{stat_prio}\n### ARTIFACT PERKS\n#{artifact}",
         );
 
         if let Some(how_it_works) = self.details.how_it_works {
@@ -424,11 +411,11 @@ impl<'a> Loadout<'a> {
             line_sep,
             gear_and_mods_heading,
         ]);
-        components.extend(weapons.expect("weapon components after upload loop"));
+        components.extend(weapons);
         components.push(CreateContainerComponent::Separator(
             CreateSeparator::new().spacing(SeparatorSpacingSize::Large),
         ));
-        components.extend(armour.expect("armour components after upload loop"));
+        components.extend(armour);
         components.push(misc);
 
         CreateComponent::Container(CreateContainer::new(components))

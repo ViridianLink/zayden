@@ -53,10 +53,13 @@ impl EffectsManager<Postgres> for EffectsTable {
     ) -> sqlx::Result<PgQueryResult> {
         let user_id = user_id.into();
 
-        let duration = item.effect_duration.map(|d| {
-            PgInterval::try_from(d)
-                .expect("invariant: effect_duration fits in PgInterval")
-        });
+        let duration = item
+            .effect_duration
+            .map(|d| {
+                PgInterval::try_from(d)
+                    .map_err(|e| sqlx::Error::Protocol(e.to_string()))
+            })
+            .transpose()?;
 
         sqlx::query!(
             "INSERT INTO gambling_effects (user_id, item_id, expiry)

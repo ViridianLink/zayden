@@ -44,7 +44,9 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let command = options.pop().expect("command always has a subcommand");
+        let Some(command) = options.pop() else {
+            return Ok(());
+        };
 
         let ResolvedValue::SubCommand(options) = &command.value else {
             return Err(GamblingError::InvalidAmount);

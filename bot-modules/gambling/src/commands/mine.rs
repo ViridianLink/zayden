@@ -11,7 +11,7 @@ use sqlx::{Database, FromRow, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
 
-use crate::{MaxValues, MineHourly, Mining, Prestige, Result};
+use crate::{GamblingError, MaxValues, MineHourly, Mining, Prestige, Result};
 
 #[async_trait]
 pub trait MineManager<Db: Database> {
@@ -139,15 +139,14 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let row = Manager::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
-            .unwrap_or_default();
+        let row = Manager::row(pool, interaction.user.id).await?.unwrap_or_default();
 
         let coin = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
-            data.emojis().emoji("heads").expect("emoji 'heads' in cache")
+            data.emojis().emoji("heads").map_err(|n| {
+                GamblingError::Internal(format!("emoji '{n}' not in cache"))
+            })?
         };
 
         let embed = CreateEmbed::new()

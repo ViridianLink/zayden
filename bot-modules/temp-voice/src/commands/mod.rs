@@ -68,11 +68,9 @@ impl VoiceCommand {
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
 
-        let command = interaction
-            .data
-            .options()
-            .pop()
-            .expect("voice command always has a subcommand");
+        let Some(command) = interaction.data.options().pop() else {
+            return Ok(());
+        };
 
         let ResolvedValue::SubCommand(subcommand_options) = command.value else {
             return Err(Error::IneligibleChannel);
@@ -122,10 +120,8 @@ impl VoiceCommand {
                 let has_manage_channels = interaction
                     .member
                     .as_ref()
-                    .expect("guild command always has a member")
-                    .permissions
-                    .expect("guild member always has permissions")
-                    .manage_channels();
+                    .and_then(|m| m.permissions)
+                    .is_some_and(serenity::all::Permissions::manage_channels);
 
                 if !has_manage_channels {
                     return Err(Error::IneligibleChannel);

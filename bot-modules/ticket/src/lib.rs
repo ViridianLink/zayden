@@ -46,16 +46,10 @@ pub async fn send_support_message(
     let thread_id = thread_id.widen();
 
     if messages.len() == 1 {
-        thread_id
-            .send_message(
-                http,
-                messages
-                    .pop()
-                    .expect("messages has exactly one element")
-                    .content(mentions)
-                    .button(button),
-            )
-            .await?;
+        let Some(msg) = messages.pop() else {
+            return Ok(());
+        };
+        thread_id.send_message(http, msg.content(mentions).button(button)).await?;
 
         return Ok(());
     }

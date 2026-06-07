@@ -44,8 +44,9 @@ pub async fn buy<
         return Err(GamblingError::InvalidAmount);
     };
 
-    let item =
-        SHOP_ITEMS.get(item).expect("Preset choices so item should always exist");
+    let Some(item) = SHOP_ITEMS.get(item) else {
+        return Err(GamblingError::InvalidAmount);
+    };
 
     let Some(ResolvedValue::String(amount)) = options.remove("amount") else {
         return Err(GamblingError::InvalidAmount);
@@ -158,9 +159,9 @@ pub async fn buy<
     let cost = costs
         .into_iter()
         .map(|(cost, currency)| {
-            format!("`{}` {}", cost.format(), currency.emoji(&emojis))
+            Ok(format!("`{}` {}", cost.format(), currency.emoji(&emojis)?))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()?;
 
     interaction
         .edit_response(
@@ -168,7 +169,7 @@ pub async fn buy<
             EditInteractionResponse::new().content(format!(
                 "You bought {} {} for {}\nYou now have {}.",
                 amount.format(),
-                item.as_str(&emojis),
+                item.as_str(&emojis)?,
                 cost.join("\n"),
                 quantity.format()
             )),
@@ -210,7 +211,9 @@ fn edit_mine(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> Result<i64>
     *value += amount;
 
     let quantity = *value;
-    let max_value = *row.max_values().get(item.id).expect("item ID in max_values");
+    let max_value = *row.max_values().get(item.id).ok_or_else(|| {
+        GamblingError::Internal(format!("item_id '{}' not in max_values", item.id))
+    })?;
 
     if quantity > max_value {
         return Err(GamblingError::InsufficientCapacity(max_value - current));

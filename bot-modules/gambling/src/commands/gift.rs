@@ -164,14 +164,13 @@ impl Commands {
         }
 
         let mut user_row = GiftHandler::sender(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| SenderRow::new(interaction.user.id));
 
         let now = jiff::Timestamp::now().to_zoned(TimeZone::UTC);
 
         if user_row.gift.to_jiff().to_zoned(TimeZone::UTC).date() == now.date() {
-            return Err(GamblingError::GiftUsed(tomorrow(Some(now.timestamp()))));
+            return Err(GamblingError::GiftUsed(tomorrow(Some(now.timestamp()))?));
         }
 
         let amount = GIFT_AMOUNT * (user_row.prestige() + 1);

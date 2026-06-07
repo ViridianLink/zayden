@@ -18,40 +18,38 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::{Suggestions, SuggestionsGuildManager};
+use crate::{Result, Suggestions, SuggestionsGuildManager};
 
 impl Suggestions {
     pub async fn reaction<Db: Database, Manager: SuggestionsGuildManager<Db>>(
         http: &Http,
         reaction: &Reaction,
         pool: &Pool<Db>,
-    ) {
+    ) -> Result<()> {
         let Some(guild_id) = reaction.guild_id else {
-            return;
+            return Ok(());
         };
 
-        let Some(channel) =
-            reaction.channel(&http).await.expect("fetch reaction channel").guild()
-        else {
-            return;
+        let Some(channel) = reaction.channel(http).await?.guild() else {
+            return Ok(());
         };
 
-        let Some(row) = Manager::get(pool, guild_id).await.expect("DB query") else {
-            return;
+        let Some(row) = Manager::get(pool, guild_id).await? else {
+            return Ok(());
         };
 
         if channel.parent_id.is_none()
             || row.channel_id().is_none()
             || channel.parent_id != row.channel_id()
         {
-            return;
+            return Ok(());
         }
 
         let Some(review_channel_id) = row.review_channel_id() else {
-            return;
+            return Ok(());
         };
 
-        let message = reaction.message(http).await.expect("Discord API call");
+        let message = reaction.message(http).await?;
 
         let positive_reaction = ReactionType::from('👍');
         let negative_reaction = ReactionType::from('👎');
@@ -68,12 +66,10 @@ impl Suggestions {
                 }
             });
 
-        let mut messages = review_channel_id.widen().messages_iter(&http).boxed();
+        let mut messages = review_channel_id.widen().messages_iter(http).boxed();
 
         if (pos_count - neg_count) >= 20 {
-            while let Some(mut msg) =
-                messages.try_next().await.expect("stream message")
-            {
+            while let Some(mut msg) = messages.try_next().await? {
                 if let Some(embed) = msg.embeds.first()
                     && embed.url.as_deref()
                         == Some(message.link().to_string().as_str())
@@ -92,10 +88,9 @@ impl Suggestions {
                             .embed(embed)
                             .components(vec![create_components()]),
                     )
-                    .await
-                    .expect("Discord API call");
+                    .await?;
 
-                    return;
+                    return Ok(());
                 }
             }
 
@@ -113,22 +108,20 @@ impl Suggestions {
                         ))
                         .components(vec![create_components()]),
                 )
-                .await
-                .expect("Discord API call");
+                .await?;
         } else if (neg_count - pos_count) <= 15 {
-            while let Some(msg) = messages.try_next().await.expect("stream message")
-            {
+            while let Some(msg) = messages.try_next().await? {
                 if msg.embeds.first().and_then(|e| e.url.as_deref())
                     == Some(message.link().to_string().as_str())
                 {
-                    msg.delete(http, Some("Positive delta fell below 15"))
-                        .await
-                        .expect("Discord API call");
+                    msg.delete(http, Some("Positive delta fell below 15")).await?;
 
-                    return;
+                    return Ok(());
                 }
             }
         }
+
+        Ok(())
     }
 }
 

@@ -1,3 +1,5 @@
+use std::fs;
+
 use destiny2_core::BungieClientData;
 use futures::future;
 use serenity::all::{
@@ -58,20 +60,17 @@ impl DimWishlistCommand {
                 client.destiny_inventory_item_definition(&manifest, "en"),
                 client.destiny_plug_set_definition(&manifest, "en"),
             )
-            .await
-        }
-        .expect("data invariant");
+            .await?
+        };
 
-        let weapons = match std::fs::read_to_string("weapons.json") {
-            Ok(weapons) => weapons,
+        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
+            Ok(weapons) => serde_json::from_str(&weapons)?,
             Err(_) => {
                 EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                std::fs::read_to_string("weapons.json")
-                    .expect("weapons.json readable")
+                let weapons = fs::read_to_string("weapons.json")?;
+                serde_json::from_str(&weapons)?
             },
         };
-        let weapons: Vec<Weapon> =
-            serde_json::from_str(&weapons).expect("valid weapons JSON");
 
         let wishlist = weapons
             .into_iter()

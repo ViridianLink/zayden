@@ -12,12 +12,9 @@ pub(super) async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
 ) -> Result<()> {
     interaction.defer_ephemeral(http).await?;
 
-    let member =
-        interaction.member.as_ref().expect("guild command always has a member");
-    let is_moderator = member
-        .permissions
-        .expect("guild member always has permissions")
-        .manage_channels();
+    let member = interaction.member.as_ref().ok_or(Error::MissingGuildId)?;
+    let is_moderator =
+        member.permissions.ok_or(Error::MissingGuildId)?.manage_channels();
 
     if row.is_owner(interaction.user.id) && !is_moderator {
         return Err(Error::MissingPermissions(PermissionError::NotOwner));

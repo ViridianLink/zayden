@@ -12,7 +12,7 @@ use zayden_core::{EmojiCacheData, GuildMembersCache, as_i64};
 
 use crate::common::LeaderboardManager;
 use crate::common::leaderboard::{get_row_number, get_rows};
-use crate::{Leaderboard, Result};
+use crate::{GamblingError, Leaderboard, Result};
 
 impl Leaderboard {
     pub async fn run_component<
@@ -28,51 +28,79 @@ impl Leaderboard {
             .data
             .custom_id
             .strip_prefix("leaderboard_")
-            .expect("registered with Prefix(\"leaderboard_\")");
+            .ok_or_else(|| {
+                GamblingError::Internal("expected leaderboard_ prefix".to_string())
+            })?;
 
-        let embed = interaction
-            .message
-            .embeds
-            .first()
-            .expect("leaderboard message always has embed");
+        let embed = interaction.message.embeds.first().ok_or_else(|| {
+            GamblingError::Internal("leaderboard message missing embed".to_string())
+        })?;
 
-        let title =
-            embed.title.as_ref().expect("leaderboard embed always has title");
+        let title = embed.title.as_ref().ok_or_else(|| {
+            GamblingError::Internal("leaderboard embed missing title".to_string())
+        })?;
 
         let global = title.strip_prefix("🏁 Global Leaderboard (");
 
         let leaderboard = global.map_or_else(
-            || {
+            || -> Result<&str> {
                 title
                     .strip_prefix("🏁 Leaderboard (")
-                    .expect("bot-set leaderboard title prefix")
+                    .ok_or_else(|| {
+                        GamblingError::Internal(
+                            "leaderboard title missing prefix".to_string(),
+                        )
+                    })?
                     .strip_suffix(")")
-                    .expect("bot-set title ends with )")
+                    .ok_or_else(|| {
+                        GamblingError::Internal(
+                            "leaderboard title missing suffix".to_string(),
+                        )
+                    })
             },
-            |s| s.strip_suffix(")").expect("bot-set title ends with )"),
-        );
+            |s| {
+                s.strip_suffix(")").ok_or_else(|| {
+                    GamblingError::Internal(
+                        "global leaderboard title missing suffix".to_string(),
+                    )
+                })
+            },
+        )?;
 
         let mut page_number: i64 = embed
             .footer
             .as_ref()
-            .expect("leaderboard embed always has footer")
+            .ok_or_else(|| {
+                GamblingError::Internal(
+                    "leaderboard embed missing footer".to_string(),
+                )
+            })?
             .text
             .strip_prefix("Page ")
-            .expect("bot-set footer starts with Page")
+            .ok_or_else(|| {
+                GamblingError::Internal("footer missing 'Page ' prefix".to_string())
+            })?
             .parse()
-            .expect("page number is always a valid integer");
+            .map_err(|_e| {
+                GamblingError::Internal("page number parse failed".to_string())
+            })?;
 
         let users = if global.is_none() {
             let users = {
                 let data = ctx.data::<RwLock<Data>>();
                 let data = data.read().await;
-                data.get()
-                    .get(
-                        &interaction
-                            .guild_id
-                            .expect("gambling command always used in guild"),
+                let guild_id = interaction.guild_id.ok_or_else(|| {
+                    GamblingError::Internal(
+                        "guild_id missing in leaderboard component".to_string(),
                     )
-                    .expect("guild members cached when leaderboard command ran")
+                })?;
+                data.get()
+                    .get(&guild_id)
+                    .ok_or_else(|| {
+                        GamblingError::Internal(
+                            "guild not in members cache".to_string(),
+                        )
+                    })?
                     .iter()
                     .map(|id| as_i64(id.get()))
                     .collect::<Vec<_>>()
@@ -93,7 +121,7 @@ impl Leaderboard {
                     users.as_deref(),
                     interaction.user.id,
                 )
-                .await
+                .await?
                 .unwrap_or(0);
                 page_number = row_num / 10 + 1;
             },
@@ -109,7 +137,7 @@ impl Leaderboard {
             users.as_deref(),
             page_number,
         )
-        .await;
+        .await?;
 
         if rows.is_empty() {
             return Ok(());
@@ -130,7 +158,7 @@ impl Leaderboard {
                     i + (usize::try_from(page_number - 1).unwrap_or(0)) * 10,
                 )
             })
-            .collect::<Vec<_>>()
+            .collect::<Result<Vec<_>>>()?
             .join("\n\n");
 
         let embed = CreateEmbed::from(embed.clone())

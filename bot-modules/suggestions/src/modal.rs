@@ -35,21 +35,22 @@ impl Suggestions {
         let old_embed = modal
             .message
             .as_ref()
-            .expect("modal always has a message")
+            .ok_or(Error::InvalidModalStructure)?
             .embeds
             .first()
-            .expect("suggestions modal always has an embed");
+            .ok_or(Error::InvalidModalStructure)?;
+
         let old_url =
-            old_embed.url.as_deref().expect("suggestion embed always has a URL");
+            old_embed.url.as_deref().ok_or(Error::InvalidModalStructure)?;
         let old_title =
-            old_embed.title.as_deref().expect("suggestion embed always has a title");
+            old_embed.title.as_deref().ok_or(Error::InvalidModalStructure)?;
 
         let channel_id = old_url
             .split('/')
             .nth(5)
-            .expect("suggestion URL always has 5+ parts")
+            .ok_or(Error::InvalidModalStructure)?
             .parse::<ThreadId>()
-            .expect("thread ID is a valid integer");
+            .map_err(|_e| Error::InvalidModalStructure)?;
 
         let prefix = if accepted { "[Accepted] - " } else { "[Rejected] - " };
 
@@ -63,6 +64,13 @@ impl Suggestions {
 
         channel_id.edit(http, EditThread::new().name(&name).archived(false)).await?;
 
+        let old_description =
+            old_embed.description.as_deref().ok_or(Error::InvalidModalStructure)?;
+        let old_author =
+            old_embed.author.as_ref().ok_or(Error::InvalidModalStructure)?.clone();
+        let old_footer =
+            old_embed.footer.as_ref().ok_or(Error::InvalidModalStructure)?.clone();
+
         modal
             .create_response(
                 http,
@@ -71,28 +79,10 @@ impl Suggestions {
                         CreateEmbed::new()
                             .title(name)
                             .url(old_url)
-                            .description(
-                                old_embed.description.as_deref().expect(
-                                    "suggestion embed always has a description",
-                                ),
-                            )
+                            .description(old_description)
                             .field("Team Response", response, false)
-                            .author(
-                                old_embed
-                                    .author
-                                    .as_ref()
-                                    .expect("suggestion embed always has an author")
-                                    .clone()
-                                    .into(),
-                            )
-                            .footer(
-                                old_embed
-                                    .footer
-                                    .as_ref()
-                                    .expect("suggestion embed always has a footer")
-                                    .clone()
-                                    .into(),
-                            ),
+                            .author(old_author.into())
+                            .footer(old_footer.into()),
                     ),
                 ),
             )

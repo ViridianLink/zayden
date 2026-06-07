@@ -36,11 +36,10 @@ pub const ZAYDEN_ID: UserId = UserId::new(787_490_197_943_091_211);
 
 pub static ZAYDEN_TOKEN: OnceCell<String> = OnceCell::const_new();
 
-async fn zayden_token(pool: &PgPool) -> String {
+async fn zayden_token(pool: &PgPool) -> sqlx::Result<String> {
     sqlx::query_scalar!("SELECT token FROM bot_tokens WHERE name = 'zayden'")
         .fetch_one(pool)
         .await
-        .expect("failed to fetch zayden bot token from DB")
 }
 
 #[tokio::main]
@@ -51,7 +50,7 @@ async fn main() -> Result<()> {
         warn!(".env file not found. Please make sure enviroment variables are set.");
     }
 
-    let pool = new_pool_with_retry().await.expect("Failed to connect to database.");
+    let pool = new_pool_with_retry().await?;
 
     let bot_config = zayden_app::config::BotConfig::load(&pool).await?;
     info!("BotConfig loaded successfully");
@@ -63,17 +62,13 @@ async fn main() -> Result<()> {
     EventListener::spawn(pool.clone(), app_state.events.clone());
 
     let bot_state =
-        Arc::new(RwLock::new(BotState::new(Arc::clone(&app_state), &bot_config)));
+        Arc::new(RwLock::new(BotState::new(Arc::clone(&app_state), &bot_config)?));
 
-    let registry = bindings::build_registry().expect(
-        "overlapping prefix registered at startup — this is a programmer error",
-    );
+    let registry =
+        bindings::build_registry().map_err(|e| BotError::Other(e.to_string()))?;
 
     let mut client = ClientBuilder::new(
-        bot_config
-            .discord_token
-            .parse::<Token>()
-            .expect("DISCORD_TOKEN in BotConfig is not a valid Discord token"),
+        bot_config.discord_token.parse::<Token>().map_err(serenity::Error::Token)?,
         GatewayIntents::GUILDS
             | GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::GUILD_MESSAGE_REACTIONS
@@ -107,9 +102,19 @@ async fn logging(
     error_log_url: Option<&str>,
     normal_log_url: Option<&str>,
 ) {
-    let log_file = File::create("log.txt").expect("Failed to create log.txt");
-    let debug_log =
-        fmt::layer().with_writer(log_file).with_filter(filter::LevelFilter::INFO);
+    let debug_log = match File::create("log.txt") {
+        Ok(log_file) => Some(
+            fmt::layer()
+                .with_writer(log_file)
+                .with_filter(filter::LevelFilter::INFO),
+        ),
+        Err(e) => {
+            eprintln!(
+                "warning: failed to create log.txt, file logging disabled: {e}"
+            );
+            None
+        },
+    };
 
     let stdout_log = fmt::layer()
         .with_writer(std::io::stdout)

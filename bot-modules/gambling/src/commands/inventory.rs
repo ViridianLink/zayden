@@ -44,14 +44,17 @@ struct InventoryItem<'a> {
 }
 
 impl<'a> InventoryItem<'a> {
-    pub(crate) fn from_shop_item(item: &ShopItem<'a>, emojis: &EmojiCache) -> Self {
-        Self {
+    pub(crate) fn from_shop_item(
+        item: &ShopItem<'a>,
+        emojis: &EmojiCache,
+    ) -> Result<Self> {
+        Ok(Self {
             id: item.id,
             name: item.name,
-            emoji: item.emoji(emojis),
+            emoji: item.emoji(emojis)?,
             cost: item.costs,
             quantity: 0,
-        }
+        })
     }
 }
 
@@ -209,7 +212,9 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let subcommand = options.pop().expect("command always has a subcommand");
+        let Some(subcommand) = options.pop() else {
+            return Ok(());
+        };
 
         match subcommand.name {
             "show" => {
@@ -272,10 +277,8 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
 ) -> Result<()> {
-    let gambling_row = Manager::gambling_row(pool, interaction.user.id)
-        .await
-        .expect("async call")
-        .unwrap_or_default();
+    let gambling_row =
+        Manager::gambling_row(pool, interaction.user.id).await?.unwrap_or_default();
 
     let inventory_items =
         Manager::inventory_items(pool, interaction.user.id).await?;
@@ -286,7 +289,7 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
         data.emojis()
     };
 
-    let (items, boosts) = SHOP_ITEMS
+    let mut inv_items = SHOP_ITEMS
         .iter()
         .filter(|item| {
             matches!(
@@ -295,22 +298,25 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
             )
         })
         .map(|item| InventoryItem::from_shop_item(item, &emojis))
-        .map(|mut item| {
-            if let Some(inv_item) = inventory_items
-                .inventory()
-                .iter()
-                .find(|inv_item| inv_item.item_id == item.id)
-            {
-                item.quantity = inv_item.quantity;
-            }
+        .collect::<Result<Vec<_>>>()?;
 
-            item
-        })
-        .partition::<Vec<_>, _>(|item| {
-            matches!(item.cost[0], Some((_, ShopCurrency::Coins)))
-        });
+    for item in &mut inv_items {
+        if let Some(inv_item) = inventory_items
+            .inventory()
+            .iter()
+            .find(|inv_item| inv_item.item_id == item.id)
+        {
+            item.quantity = inv_item.quantity;
+        }
+    }
 
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+    let (items, boosts) = inv_items.into_iter().partition::<Vec<_>, _>(|item| {
+        matches!(item.cost[0], Some((_, ShopCurrency::Coins)))
+    });
+
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
     let mut embed = CreateEmbed::new()
         .field(
@@ -344,8 +350,8 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
                 .join("\n"),
             true,
         )
-        .field("Resources", gambling_row.resources(&emojis), true)
-        .field("Crafted", gambling_row.crafted(&emojis), false)
+        .field("Resources", gambling_row.resources(&emojis)?, true)
+        .field("Crafted", gambling_row.crafted(&emojis)?, false)
         .field(
             "Weapons",
             format!(
@@ -383,7 +389,9 @@ async fn use_item<
         return Err(GamblingError::InvalidAmount);
     };
 
-    let item = SHOP_ITEMS.get(item_id).expect("item_id always valid shop item");
+    let Some(item) = SHOP_ITEMS.get(item_id) else {
+        return Err(GamblingError::InvalidAmount);
+    };
 
     let amount = match options.remove("amount") {
         Some(ResolvedValue::String(amount)) => {
@@ -431,7 +439,7 @@ async fn use_item<
     };
 
     let mut description =
-        format!("Successfully activated item:\n**{}**", item.as_str(&emojis));
+        format!("Successfully activated item:\n**{}**", item.as_str(&emojis)?);
     if let Some(duration) = item.effect_duration {
         let _ = write!(description, "(<t:{}:R>)", duration.as_secs());
     }

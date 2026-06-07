@@ -81,7 +81,11 @@ pub trait Stamina {
     fn verify_work<Db: Database, Manager: StaminaManager<Db>>(&self) -> Result<()> {
         if self.stamina() <= 0 {
             let next_timestamp = StaminaCron::cron_job::<Db, Manager>()
-                .expect("invariant: stamina cron schedule string is valid")
+                .map_err(|e| {
+                    GamblingError::Internal(format!(
+                        "stamina cron schedule parse failed: {e}"
+                    ))
+                })?
                 .schedule
                 .upcoming(TimeZone::UTC)
                 .next()
@@ -171,44 +175,44 @@ pub trait Mining {
         }
     }
 
-    fn resources(&self, emojis: &EmojiCache) -> String {
-        format!(
-            "{} `{}` coal
-        {} `{}` iron
-        {} `{}` gold
-        {} `{}` redstone
-        {} `{}` lapis
-        {} `{}` diamonds
-        {} `{}` emeralds",
-            ShopCurrency::Coal.emoji(emojis),
+    fn resources(&self, emojis: &EmojiCache) -> Result<String> {
+        Ok(format!(
+            "{} `{}` coal\n\
+             {} `{}` iron\n\
+             {} `{}` gold\n\
+             {} `{}` redstone\n\
+             {} `{}` lapis\n\
+             {} `{}` diamonds\n\
+             {} `{}` emeralds",
+            ShopCurrency::Coal.emoji(emojis)?,
             self.coal().format(),
-            ShopCurrency::Iron.emoji(emojis),
+            ShopCurrency::Iron.emoji(emojis)?,
             self.iron().format(),
-            ShopCurrency::Gold.emoji(emojis),
+            ShopCurrency::Gold.emoji(emojis)?,
             self.gold().format(),
-            ShopCurrency::Redstone.emoji(emojis),
+            ShopCurrency::Redstone.emoji(emojis)?,
             self.redstone().format(),
-            ShopCurrency::Lapis.emoji(emojis),
+            ShopCurrency::Lapis.emoji(emojis)?,
             self.lapis().format(),
-            ShopCurrency::Diamonds.emoji(emojis),
+            ShopCurrency::Diamonds.emoji(emojis)?,
             self.diamonds().format(),
-            ShopCurrency::Emeralds.emoji(emojis),
+            ShopCurrency::Emeralds.emoji(emojis)?,
             self.emeralds().format(),
-        )
+        ))
     }
 
-    fn crafted(&self, emojis: &EmojiCache) -> String {
-        format!(
-            "{} `{}` tech packs
-            {} `{}` utility packs
-            {} `{}` production packs",
-            ShopCurrency::Tech.emoji(emojis),
+    fn crafted(&self, emojis: &EmojiCache) -> Result<String> {
+        Ok(format!(
+            "{} `{}` tech packs\n\
+             {} `{}` utility packs\n\
+             {} `{}` production packs",
+            ShopCurrency::Tech.emoji(emojis)?,
             self.tech().format(),
-            ShopCurrency::Utility.emoji(emojis),
+            ShopCurrency::Utility.emoji(emojis)?,
             self.utility().format(),
-            ShopCurrency::Production.emoji(emojis),
+            ShopCurrency::Production.emoji(emojis)?,
             self.production().format()
-        )
+        ))
     }
 }
 
@@ -305,7 +309,7 @@ pub trait MaxValues: Mining + Prestige {
             ("universe", self.universes()),
         ]
         .map(|(unit, amount)| {
-            let max = *max_values.get(unit).expect("unit key in max_values");
+            let max = *max_values.get(unit).unwrap_or(&i64::MAX);
             let display = match unit {
                 "land" => String::from("plots of land"),
                 "country" => String::from("countries"),
@@ -358,22 +362,25 @@ pub trait MaxBet: Prestige {
 pub trait MineAmount: MineHourly {
     fn mine_activity(&self) -> Timestamp;
 
-    fn mine_amount(&self) -> i64 {
+    fn mine_amount(&self) -> Result<i64> {
         let mine_activity = self.mine_activity().to_zoned(TimeZone::UTC);
 
         let mine_hour = mine_activity
             .date()
             .at(mine_activity.hour(), 0, 0, 0)
             .to_zoned(TimeZone::UTC)
-            .expect("UTC timezone lookup should be infallible")
+            .map_err(|e| {
+                GamblingError::Internal(format!("UTC timezone mapping failed: {e}"))
+            })?
             .timestamp();
 
-        let duration = Timestamp::now()
-            .since((Unit::Hour, mine_hour))
-            .expect("Span should be within bounds");
+        let duration =
+            Timestamp::now().since((Unit::Hour, mine_hour)).map_err(|e| {
+                GamblingError::Internal(format!("jiff Span out of bounds: {e}"))
+            })?;
 
         let hours_passed = i64::from(duration.get_hours().clamp(0, 24));
 
-        hours_passed * self.hourly()
+        Ok(hours_passed * self.hourly())
     }
 }

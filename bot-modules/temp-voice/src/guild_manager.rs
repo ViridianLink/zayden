@@ -36,11 +36,8 @@ impl TempVoiceRow {
     }
 
     #[must_use]
-    pub fn category(&self) -> ChannelId {
-        ChannelId::from(as_u64(
-            self.temp_voice_category
-                .expect("temp voice category must be configured"),
-        ))
+    pub fn category(&self) -> Option<ChannelId> {
+        self.temp_voice_category.map(|id| ChannelId::from(as_u64(id)))
     }
 
     #[must_use]

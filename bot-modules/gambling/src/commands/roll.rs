@@ -49,7 +49,8 @@ impl Commands {
             return Err(GamblingError::InvalidAmount);
         };
 
-        let n_sides = dice.parse::<i64>().expect("dice notation is a valid integer");
+        let n_sides =
+            dice.parse::<i64>().map_err(|_e| GamblingError::InvalidAmount)?;
 
         let Some(ResolvedValue::Integer(prediction)) = options.remove("prediction")
         else {
@@ -59,8 +60,7 @@ impl Commands {
         verify_prediction(prediction, 1, n_sides)?;
 
         let mut row = GameHandler::row(pool, interaction.user.id)
-            .await
-            .expect("async call")
+            .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         let data = ctx.data::<RwLock<Data>>();
@@ -132,7 +132,7 @@ impl Commands {
             bet,
             payout,
             coins,
-        );
+        )?;
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))

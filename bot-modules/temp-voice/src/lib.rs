@@ -47,15 +47,15 @@ impl CachedState {
     }
 }
 
-impl From<&VoiceState> for CachedState {
-    fn from(state: &VoiceState) -> Self {
-        Self {
+impl TryFrom<&VoiceState> for CachedState {
+    type Error = Error;
+
+    fn try_from(state: &VoiceState) -> Result<Self> {
+        Ok(Self {
             channel_id: state.channel_id,
-            guild_id: state
-                .guild_id
-                .expect("voice state update always has guild_id"),
+            guild_id: state.guild_id.ok_or(Error::MissingGuildId)?,
             user_id: state.user_id,
-        }
+        })
     }
 }
 
@@ -85,7 +85,7 @@ pub trait VoiceStateCache: Send + Sync + 'static {
         let old = if new.channel_id.is_none() {
             cache.remove(&new.user_id)
         } else {
-            cache.insert(new.user_id, new.into())
+            cache.insert(new.user_id, CachedState::try_from(new)?)
         };
 
         Ok(old)

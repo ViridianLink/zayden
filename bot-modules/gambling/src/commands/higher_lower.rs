@@ -13,7 +13,14 @@ use zayden_core::EmojiCacheData;
 
 use super::Commands;
 use crate::games::higherlower::create_embed;
-use crate::{CARD_DECK, CARD_TO_NUM, GamblingData, Result, card_deck, card_to_num};
+use crate::{
+    CARD_DECK,
+    GamblingData,
+    GamblingError,
+    Result,
+    card_deck,
+    card_to_num,
+};
 
 impl Commands {
     pub async fn higher_lower<Data: GamblingData + EmojiCacheData>(
@@ -28,14 +35,25 @@ impl Commands {
 
         data_lock.read().await.game_cache().check_and_set(interaction.user.id)?;
 
-        let mut deck = CARD_DECK.get_or_init(|| card_deck(&emojis)).clone();
+        let deck_ref = if let Some(d) = CARD_DECK.get() {
+            d
+        } else {
+            let new_deck = card_deck(&emojis)?;
+            let _ = CARD_DECK.set(new_deck);
+            CARD_DECK.get().ok_or_else(|| {
+                GamblingError::Internal("CARD_DECK init failed".to_string())
+            })?
+        };
+        let mut deck = deck_ref.clone();
         deck.shuffle(&mut rng());
 
-        let emoji = deck.pop().expect("deck not empty");
-        let num = CARD_TO_NUM
-            .get_or_init(|| card_to_num(&emojis))
-            .get(&emoji)
-            .expect("deck emoji always in card_to_num");
+        let emoji = deck.pop().ok_or_else(|| {
+            GamblingError::Internal("higher_lower deck is empty".to_string())
+        })?;
+        let card_map = card_to_num(&emojis)?;
+        let num = card_map.get(&emoji).ok_or_else(|| {
+            GamblingError::Internal("emoji not in card_to_num map".to_string())
+        })?;
 
         let embed = create_embed(&format!("<:{num}:{emoji}>"), 0, true);
 

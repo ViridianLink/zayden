@@ -90,8 +90,9 @@ impl Tree {
 
         let mut nodes = Vec::new();
         for depth in keys {
-            let values =
-                tree.get(&depth).expect("key from tree.keys() always present");
+            let Some(values) = tree.get(&depth) else {
+                continue;
+            };
             let width = values.len();
             let width_diff = max_width - width;
             let spacing = width_diff as f64 / 2.0;

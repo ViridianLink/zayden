@@ -62,14 +62,9 @@ impl SupportMessageCommand {
         let issue = CreateEmbed::new().title("Issue").description(&message.content);
 
         let attachments = stream::iter(message.attachments.iter())
-            .then(|attachment| async move {
-                CreateAttachment::bytes(
-                    attachment
-                        .download()
-                        .await
-                        .expect("attachment download succeeded"),
-                    attachment.filename.clone(),
-                )
+            .filter_map(|attachment| async move {
+                let bytes = attachment.download().await.ok()?;
+                Some(CreateAttachment::bytes(bytes, attachment.filename.clone()))
             })
             .collect::<Vec<_>>()
             .await;

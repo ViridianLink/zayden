@@ -83,11 +83,9 @@ impl WebhookLogger {
             format!("{}-Webhook [{}] [{target}]", inner.bot_name, level.as_str());
         let avatar = get_avatar(level);
 
-        for chunk in message
-            .as_bytes()
-            .chunks(2000)
-            .map(|b| std::str::from_utf8(b).expect("Message should always be ASCII"))
-        {
+        for chunk_bytes in message.as_bytes().chunks(2000) {
+            let chunk_cow = String::from_utf8_lossy(chunk_bytes);
+            let chunk = chunk_cow.as_ref();
             let builder = ExecuteWebhook::default()
                 .content(chunk)
                 .username(&webhook_name)
@@ -130,7 +128,7 @@ impl tracing::field::Visit for StringVisitor {
         _field: &tracing::field::Field,
         value: &dyn std::fmt::Debug,
     ) {
-        write!(self.0, "{value:?}").expect("fmt::Write for String is infallible");
+        let _ = write!(self.0, "{value:?}");
     }
 
     fn record_str(&mut self, _field: &tracing::field::Field, value: &str) {

@@ -49,9 +49,7 @@ pub trait EffectsManager<Db: Database>: Send {
 
         let mut tx = pool.begin().await?;
 
-        if let Some(effect) = Self::get_effect(&mut *tx, user_id, ALL_INS.id)
-            .await
-            .expect("async call")
+        if let Some(effect) = Self::get_effect(&mut *tx, user_id, ALL_INS.id).await?
         {
             Self::remove_effect(&mut *tx, effect.id).await?;
         } else {
@@ -103,9 +101,10 @@ pub trait EffectsManager<Db: Database>: Send {
             for (item_id, id) in effects.drain() {
                 Self::remove_effect(&mut *tx, id).await?;
 
-                let item = SHOP_ITEMS
-                    .get(&item_id)
-                    .expect("effect item_id is always a valid SHOP_ITEMS key");
+                let Some(item) = SHOP_ITEMS.get(&item_id) else {
+                    tracing::warn!("effect item_id '{item_id}' not found in SHOP_ITEMS, skipping");
+                    continue;
+                };
 
                 if win == Some(true) && item_id.starts_with("payout") {
                     payout += (item.effect_fn)(bet, base_payout);

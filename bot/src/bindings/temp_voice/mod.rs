@@ -125,15 +125,14 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
         pool: &PgPool,
         user_id: UserId,
     ) -> sqlx::Result<i64> {
-        let count = sqlx::query!(
+        let count = sqlx::query_scalar!(
             r#"SELECT COUNT(*) FROM voice_channels WHERE owner_id = $1 AND persistent = true"#,
             as_i64(user_id.get())
         )
         .fetch_one(pool)
-        .await?
-        .count;
+        .await?;
 
-        Ok(count.expect("invariant: COUNT(*) never returns NULL"))
+        Ok(count.ok_or(sqlx::Error::RowNotFound)?)
     }
 
     #[expect(

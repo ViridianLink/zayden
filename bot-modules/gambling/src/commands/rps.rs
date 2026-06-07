@@ -54,7 +54,10 @@ impl Commands {
         else {
             return Err(GamblingError::InvalidAmount);
         };
-        let user_choice = selection.parse::<RPSChoice>().expect("valid RPS choice");
+
+        let user_choice = selection
+            .parse::<RPSChoice>()
+            .map_err(|()| GamblingError::InvalidPrediction)?;
 
         let Some(ResolvedValue::Integer(bet)) = options.remove("bet") else {
             return Err(GamblingError::InvalidAmount);
@@ -77,7 +80,7 @@ impl Commands {
         row.bet(bet);
 
         let computer_choice =
-            *CHOICES.choose(&mut rand::rng()).expect("CHOICES is non-empty");
+            *CHOICES.choose(&mut rand::rng()).unwrap_or(&RPSChoice::Rock);
         let winner = user_choice.winner(computer_choice);
 
         let mut payout = if winner == Some(true) {
@@ -126,7 +129,9 @@ impl Commands {
             "Rock 🪨 Paper 🗞️ Scissors ✂ - You Tied!"
         };
 
-        let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
 
         let desc = format!(
             "Your bet: {} <:coin:{coin}>

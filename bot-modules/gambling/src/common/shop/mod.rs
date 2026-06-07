@@ -13,7 +13,16 @@ use sqlx::{Database, FromRow, Pool};
 use zayden_core::{EmojiCache, FormatNum, as_i64};
 
 use crate::commands::shop::SellRow;
-use crate::{Coins, GamblingItems, Gems, MaxBet, Mining, Prestige};
+use crate::{
+    Coins,
+    GamblingError,
+    GamblingItems,
+    Gems,
+    MaxBet,
+    Mining,
+    Prestige,
+    Result,
+};
 
 pub mod currency;
 pub mod items;
@@ -218,35 +227,41 @@ pub fn shop_response<'a>(
     inventory: &GamblingItems,
     title: Option<&str>,
     page_change: i8,
-) -> (CreateEmbed<'a>, CreateComponent<'a>) {
+) -> Result<(CreateEmbed<'a>, CreateComponent<'a>)> {
     let page_change = usize::try_from(page_change).unwrap_or_default();
 
-    let current_cat = title.map_or(ShopPage::Item, |title| {
-        title
+    let current_cat = match title {
+        None => ShopPage::Item,
+        Some(title) => title
             .strip_suffix(" Shop")
-            .expect("shop embed title ends with \" Shop\"")
+            .ok_or_else(|| {
+                GamblingError::Internal(
+                    "shop embed title missing \" Shop\" suffix".to_string(),
+                )
+            })?
             .parse()
-            .expect("shop title prefix is a valid ShopPage")
-    });
+            .unwrap_or(ShopPage::Item),
+    };
 
-    let category_idx = ShopPage::pages()
-        .iter()
-        .position(|cat| *cat == current_cat)
-        .expect("current_cat is always a valid ShopPage");
+    let category_idx =
+        ShopPage::pages().iter().position(|cat| *cat == current_cat).unwrap_or(0);
 
     let category = ShopPage::pages()
         .get(category_idx + page_change)
         .copied()
         .unwrap_or(ShopPage::Item);
 
-    let embed = create_embed(emojis, category, row, inventory);
+    let embed = create_embed(emojis, category, row, inventory)?;
 
     let prev =
         CreateButton::new("shop_prev").label("<").style(ButtonStyle::Secondary);
     let next =
         CreateButton::new("shop_next").label(">").style(ButtonStyle::Secondary);
 
-    (embed, CreateComponent::ActionRow(CreateActionRow::buttons(vec![prev, next])))
+    Ok((
+        embed,
+        CreateComponent::ActionRow(CreateActionRow::buttons(vec![prev, next])),
+    ))
 }
 
 fn create_embed<'a>(
@@ -254,51 +269,48 @@ fn create_embed<'a>(
     category: ShopPage,
     row: &ShopRow,
     inventory: &GamblingItems,
-) -> CreateEmbed<'a> {
-    let items = SHOP_ITEMS
-        .iter()
-        .filter(|item| item.category == category)
-        .map(|item| {
-            let costs = item
-                .costs(1)
-                .into_iter()
-                .map(|(cost, currency)| {
-                    format!("`{}` {}", cost.format(), currency.emoji(emojis))
-                })
-                .collect::<Vec<_>>();
+) -> Result<CreateEmbed<'a>> {
+    let mut item_entries = Vec::new();
+    for item in SHOP_ITEMS.iter().filter(|item| item.category == category) {
+        let mut costs = Vec::new();
+        for (cost, currency) in item.costs(1) {
+            costs.push(format!("`{}` {}", cost.format(), currency.emoji(emojis)?));
+        }
 
-            let mut s = format!("**{}**", item.as_str(emojis));
+        let mut s = format!("**{}**", item.as_str(emojis)?);
 
-            if !item.description.is_empty() {
-                s.push('\n');
-                s.push_str(item.description);
-            }
+        if !item.description.is_empty() {
+            s.push('\n');
+            s.push_str(item.description);
+        }
 
-            let _ = write!(
-                s,
-                "\nOwned: `{}`\nCost:",
-                inventory
-                    .0
-                    .iter()
-                    .find(|inv_item| inv_item.item_id == item.id)
-                    .map(|item| item.quantity)
-                    .unwrap_or_default()
-            );
+        let _ = write!(
+            s,
+            "\nOwned: `{}`\nCost:",
+            inventory
+                .0
+                .iter()
+                .find(|inv_item| inv_item.item_id == item.id)
+                .map(|item| item.quantity)
+                .unwrap_or_default()
+        );
 
-            if costs.len() == 1 {
-                s.push(' ');
-                s.push_str(&costs.join(""));
-            } else {
-                s.push('\n');
-                s.push_str(&costs.join("\n"));
-            }
+        if costs.len() == 1 {
+            s.push(' ');
+            s.push_str(&costs.join(""));
+        } else {
+            s.push('\n');
+            s.push_str(&costs.join("\n"));
+        }
 
-            s
-        })
-        .collect::<Vec<_>>()
-        .join("\n\n");
+        item_entries.push(s);
+    }
 
-    let coin = emojis.emoji("heads").expect("emoji 'heads' in cache");
+    let items = item_entries.join("\n\n");
+
+    let coin = emojis
+        .emoji("heads")
+        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
     let desc = format!(
         "Sales tax: {}%\nYour coins: {}  <:coin:{coin}>\n--------------------\n{items}\n--------------------\nBuy with `/shop buy <item> <amount>`\nSell with `/shop sell <item> <amount>`",
@@ -306,5 +318,5 @@ fn create_embed<'a>(
         row.coins_str()
     );
 
-    CreateEmbed::new().title(format!("{category} Shop")).description(desc)
+    Ok(CreateEmbed::new().title(format!("{category} Shop")).description(desc))
 }
