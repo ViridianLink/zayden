@@ -6,10 +6,17 @@ use sqlx::postgres::PgPoolOptions;
 use tokio::time::sleep;
 use tracing::{error, info};
 
+const MAX_LIFETIME: Duration = Duration::from_mins(30);
+
 pub struct GuildTable;
 
 pub async fn new_pool(url: &str) -> sqlx::Result<PgPool> {
-    PgPoolOptions::new().max_connections(10).min_connections(1).connect(url).await
+    PgPoolOptions::new()
+        .max_connections(10)
+        .min_connections(1)
+        .max_lifetime(MAX_LIFETIME)
+        .connect(url)
+        .await
 }
 
 pub async fn new_pool_with_retry() -> sqlx::Result<PgPool> {
