@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use jiff::Timestamp;
 use zayden_core::error::{HandlerError, Respond};
-use zayden_core::{Error as ZaydenError, FormatNum};
+use zayden_core::{CoreError as ZaydenError, FormatNum};
 
 use crate::ShopCurrency;
 
@@ -32,9 +32,16 @@ pub enum GamblingError {
     InsufficientCapacity(i64),
     ItemNotInInventory,
     InsufficientItemQuantity(i64),
+    NotEnoughMiners { required: i64, current: i64 },
 
     Serenity(serenity::Error),
     Sqlx(sqlx::Error),
+}
+
+impl GamblingError {
+    pub fn internal(s: impl Into<String>) -> Self {
+        Self::Internal(s.into())
+    }
 }
 
 impl std::fmt::Display for GamblingError {
@@ -95,6 +102,12 @@ impl std::fmt::Display for GamblingError {
                 "Cannot sell that many. You only have {} of this item.",
                 quantity.format()
             ),
+            Self::NotEnoughMiners { required, current } => write!(
+                f,
+                "You need at least `{}` miners before you can prestige.\nYou only have `{}`",
+                required.format(),
+                current.format()
+            ),
 
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
@@ -127,7 +140,8 @@ impl std::error::Error for GamblingError {
             | Self::InvalidAmount
             | Self::InsufficientCapacity(_)
             | Self::ItemNotInInventory
-            | Self::InsufficientItemQuantity(_) => None,
+            | Self::InsufficientItemQuantity(_)
+            | Self::NotEnoughMiners { .. } => None,
         }
     }
 }
@@ -155,9 +169,8 @@ impl Respond for GamblingError {
             | Self::InvalidAmount
             | Self::InsufficientCapacity(_)
             | Self::ItemNotInInventory
-            | Self::InsufficientItemQuantity(_) => {
-                Some(Cow::Owned(self.to_string()))
-            },
+            | Self::InsufficientItemQuantity(_)
+            | Self::NotEnoughMiners { .. } => Some(Cow::Owned(self.to_string())),
         }
     }
 }
@@ -171,6 +184,18 @@ impl From<serenity::Error> for GamblingError {
 impl From<sqlx::Error> for GamblingError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
+    }
+}
+
+impl From<HandlerError> for GamblingError {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Discord(e) => Self::Serenity(e),
+            HandlerError::Database(e) => Self::Sqlx(e),
+            HandlerError::Module { source, .. } => {
+                Self::Internal(source.to_string())
+            },
+        }
     }
 }
 

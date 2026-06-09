@@ -10,13 +10,19 @@ use serenity::all::{
     EditInteractionResponse,
     Http,
     ResolvedOption,
-    ResolvedValue,
     UserId,
 };
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData, FormatNum, as_i64, parse_options};
+use zayden_core::{
+    EmojiCache,
+    EmojiCacheData,
+    FormatNum,
+    as_i64,
+    optional_option,
+    parse_options,
+};
 
 use super::Commands;
 use crate::shop::ShopCurrency;
@@ -89,19 +95,16 @@ impl Commands {
 
         let mut options = parse_options(options);
 
-        if !options.contains_key("type") {
-            menu(&ctx.http, interaction, &emojis, row).await?;
-            return Ok(());
-        }
+        let kind: &str = match optional_option(&mut options, "type") {
+            Some(k) => k,
+            None => {
+                menu(&ctx.http, interaction, &emojis, row).await?;
 
-        let Some(ResolvedValue::String(kind)) = options.remove("type") else {
-            return Err(GamblingError::InvalidAmount);
+                return Ok(());
+            },
         };
 
-        let amount = match options.remove("amount") {
-            Some(ResolvedValue::Integer(amount)) => amount,
-            _ => 1,
-        };
+        let amount: i64 = optional_option(&mut options, "amount").unwrap_or(1);
 
         if amount.is_negative() {
             return Err(GamblingError::NegativeAmount);

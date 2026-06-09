@@ -11,14 +11,29 @@ pub enum DestinyError {
     #[error(transparent)]
     GoogleSheets(#[from] google_sheets_api::Error),
     #[error(transparent)]
+    HandlerError(HandlerError),
+    #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error("missing data: {0}")]
-    MissingData(&'static str),
+    #[error(transparent)]
+    ZaydenCore(#[from] zayden_core::CoreError),
+    #[error("No perk found for: {0}")]
+    PerkNotFound(String),
 }
 
 impl Respond for DestinyError {}
+
+impl From<HandlerError> for DestinyError {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Discord(e) => Self::Discord(e),
+            e @ (HandlerError::Database(_) | HandlerError::Module { .. }) => {
+                Self::HandlerError(e)
+            },
+        }
+    }
+}
 
 impl From<DestinyError> for HandlerError {
     fn from(e: DestinyError) -> Self {

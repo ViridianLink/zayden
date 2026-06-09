@@ -12,10 +12,9 @@ use serenity::all::{
     CreateCommandOption,
     CreateInteractionResponse,
     EditInteractionResponse,
-    ResolvedValue,
 };
 use tokio::sync::RwLock;
-use zayden_core::parse_options;
+use zayden_core::sole_option;
 
 use super::endgame_analysis::EndgameAnalysisSheet;
 use super::endgame_analysis::weapon::Weapon;
@@ -31,11 +30,9 @@ impl WeaponCommand {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let options = interaction.data.options();
-        let mut options = parse_options(options);
-
-        let Some(ResolvedValue::String(name)) = options.remove("name") else {
-            return Ok(());
+        let name: &str = {
+            let mut options = interaction.data.options();
+            sole_option(&mut options)?
         };
 
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {

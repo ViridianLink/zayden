@@ -11,9 +11,8 @@ use serenity::all::{
     CreateInteractionResponseMessage,
     Mentionable,
 };
-use tracing::error;
 
-use crate::{LLAMA_GUILD, LLAMA_USER};
+use crate::LLAMA_USER;
 
 const FILE_NAME: &str = "dumbCount.json";
 
@@ -24,49 +23,24 @@ impl Goof {
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<(), Error> {
-        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
-            || interaction.user.bot()
-        {
-            return Ok(());
-        }
-
-        let Ok(mut file) = OpenOptions::new()
+        let mut file = OpenOptions::new()
             .create(true)
             .read(true)
             .truncate(false)
             .write(true)
-            .open(FILE_NAME)
-        else {
-            error!("Failed to open {FILE_NAME}");
-            return Ok(());
-        };
+            .open(FILE_NAME)?;
 
         let mut buffer = String::new();
-        if file.read_to_string(&mut buffer).is_err() {
-            error!("Failed to read {FILE_NAME}");
-            return Ok(());
-        }
+        file.read_to_string(&mut buffer)?;
 
-        let mut data = match serde_json::from_str::<GoofData>(&buffer) {
-            Ok(data) => data,
-            Err(e) => {
-                error!("Serde error: {e}");
-                GoofData::default()
-            },
-        };
+        let mut data = serde_json::from_str::<GoofData>(&buffer)?;
 
         data.dumb_count += 1;
 
-        let Ok(serialized) = serde_json::to_string(&data) else {
-            error!("Failed to serialize GoofData");
-            return Ok(());
-        };
+        let serialized = serde_json::to_string(&data)?;
 
-        if file.set_len(0).is_err() || file.write_all(serialized.as_bytes()).is_err()
-        {
-            error!("Failed to write {FILE_NAME}");
-            return Ok(());
-        }
+        file.set_len(0)?;
+        file.write_all(serialized.as_bytes())?;
 
         interaction
             .create_response(

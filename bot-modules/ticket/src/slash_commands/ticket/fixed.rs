@@ -11,7 +11,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::{Error, Result, Ticket, TicketGuildManager};
+use crate::{Result, Ticket, TicketError, TicketGuildManager};
 
 impl Ticket {
     pub(super) async fn fixed<Db: Database, GuildManager: TicketGuildManager<Db>>(
@@ -34,18 +34,20 @@ impl Ticket {
 
         let support_channel_id = GuildManager::get(pool, guild_id)
             .await?
-            .ok_or(Error::NotInSupportChannel)?
+            .ok_or(TicketError::NotInSupportChannel)?
             .channel_id()
-            .ok_or(Error::NotInSupportChannel)?;
+            .ok_or(TicketError::NotInSupportChannel)?;
 
         let Some(channel) = interaction.channel.as_ref() else {
-            return Ok(());
+            return Err(TicketError::Internal(
+                "Ticket::fixed: interaction has no associated channel".into(),
+            ));
         };
 
         if let GenericInteractionChannel::Thread(c) = channel
             && c.parent_id != support_channel_id
         {
-            return Err(Error::NotInSupportChannel);
+            return Err(TicketError::NotInSupportChannel);
         }
 
         let new_channel_name = format!(

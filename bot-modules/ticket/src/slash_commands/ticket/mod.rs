@@ -15,7 +15,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::{Error as ZaydenError, parse_options};
+use zayden_core::{CoreError as ZaydenError, parse_options};
 
 use crate::{Result, Ticket, TicketGuildManager, TicketManager};
 

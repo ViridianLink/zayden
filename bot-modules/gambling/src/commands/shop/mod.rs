@@ -5,7 +5,6 @@ use serenity::all::{
     CreateCommand,
     CreateCommandOption,
     ResolvedOption,
-    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
@@ -16,7 +15,7 @@ pub mod sell;
 pub use buy::buy;
 pub use list::list;
 pub use sell::{SellRow, sell};
-use zayden_core::EmojiCacheData;
+use zayden_core::{EmojiCacheData, parse_subcommand};
 
 use super::Commands;
 use crate::commands::inventory::InventoryManager;
@@ -39,22 +38,16 @@ impl Commands {
     >(
         ctx: &Context,
         interaction: &CommandInteraction,
-        mut options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let Some(command) = options.pop() else {
-            return Ok(());
-        };
+        let (name, options) = parse_subcommand(options)?;
 
-        let ResolvedValue::SubCommand(options) = &command.value else {
-            return Err(GamblingError::InvalidAmount);
-        };
-
-        match command.name {
+        match name {
             "list" => {
-                list::<Data, Db, ShopHandler>(ctx, interaction, pool, options)
+                list::<Data, Db, ShopHandler>(ctx, interaction, pool, &options)
                     .await?;
             },
             "buy" => {
@@ -62,12 +55,12 @@ impl Commands {
                     ctx,
                     interaction,
                     pool,
-                    options,
+                    &options,
                 )
                 .await?;
             },
             "sell" => {
-                sell::<Data, Db, ShopHandler>(ctx, interaction, pool, options)
+                sell::<Data, Db, ShopHandler>(ctx, interaction, pool, &options)
                     .await?;
             },
             _ => return Err(GamblingError::InvalidAmount),

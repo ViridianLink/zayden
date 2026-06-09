@@ -1,21 +1,19 @@
 use std::borrow::Cow;
 
+use zayden_core::CoreError;
 use zayden_core::error::{HandlerError, Respond};
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, SuggestionsError>;
 
-#[expect(
-    clippy::error_impl_error,
-    reason = "conventional error type name in domain crate"
-)]
 #[derive(Debug)]
-pub enum Error {
+pub enum SuggestionsError {
     MissingSuggesionChannel,
     InvalidModalStructure,
-    Zayden(zayden_core::Error),
+    Internal(String),
+    Zayden(CoreError),
 }
 
-impl std::fmt::Display for Error {
+impl std::fmt::Display for SuggestionsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::MissingSuggesionChannel => {
@@ -24,50 +22,53 @@ impl std::fmt::Display for Error {
             Self::InvalidModalStructure => {
                 write!(f, "invalid suggestions modal structure")
             },
+            Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::Zayden(e) => e.fmt(f),
         }
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for SuggestionsError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Zayden(e) => Some(e),
-            Self::MissingSuggesionChannel | Self::InvalidModalStructure => None,
+            Self::MissingSuggesionChannel
+            | Self::InvalidModalStructure
+            | Self::Internal(_) => None,
         }
     }
 }
 
-impl Respond for Error {
+impl Respond for SuggestionsError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::MissingSuggesionChannel => Some(Cow::Owned(self.to_string())),
-            Self::InvalidModalStructure => None,
+            Self::InvalidModalStructure | Self::Internal(_) => None,
             Self::Zayden(e) => e.user_message(),
         }
     }
 }
 
-impl From<zayden_core::Error> for Error {
-    fn from(value: zayden_core::Error) -> Self {
+impl From<CoreError> for SuggestionsError {
+    fn from(value: CoreError) -> Self {
         Self::Zayden(value)
     }
 }
 
-impl From<serenity::Error> for Error {
+impl From<serenity::Error> for SuggestionsError {
     fn from(value: serenity::Error) -> Self {
-        Self::Zayden(zayden_core::Error::Serenity(value))
+        Self::Zayden(CoreError::Serenity(value))
     }
 }
 
-impl From<sqlx::Error> for Error {
+impl From<sqlx::Error> for SuggestionsError {
     fn from(value: sqlx::Error) -> Self {
-        Self::Zayden(zayden_core::Error::Sqlx(value))
+        Self::Zayden(CoreError::Sqlx(value))
     }
 }
 
-impl From<Error> for HandlerError {
-    fn from(e: Error) -> Self {
+impl From<SuggestionsError> for HandlerError {
+    fn from(e: SuggestionsError) -> Self {
         Self::from_respond(e)
     }
 }

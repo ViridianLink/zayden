@@ -14,7 +14,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelManager, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelManager, VoiceChannelRow};
 
 pub(super) async fn block<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -24,15 +24,15 @@ pub(super) async fn block<Db: Database, Manager: VoiceChannelManager<Db>>(
     guild_id: GuildId,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     if !row.is_trusted(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotTrusted));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
     }
 
     let Some(ResolvedValue::User(user, _)) = options.remove("user") else {
-        return Err(Error::IneligibleChannel);
+        return Err(TempVoiceError::IneligibleChannel);
     };
 
     row.block(user.id);

@@ -5,7 +5,7 @@ use rand_distr::Distribution;
 use serenity::all::{ChannelId, CreateEmbed, CreateMessage, Mentionable, UserId};
 use sqlx::{Database, FromRow};
 use tokio::sync::RwLock;
-use tracing::error;
+use tracing::{debug, error};
 use zayden_core::{CronJob, EmojiCacheData, FormatNum, as_i64, as_u64};
 
 use crate::shop::LOTTO_TICKET;
@@ -96,6 +96,7 @@ impl Lotto {
                 let expected_winners = prize_share.len();
 
                 if rows.len() < expected_winners {
+                    debug!("fewer eligible participants than prize tiers - skipping");
                     return Ok(());
                 }
 
@@ -138,10 +139,7 @@ impl Lotto {
                 let mut lines = Vec::with_capacity(expected_winners);
 
                 for (winner, payout) in winners {
-                    if let Err(e) = GamblingHandler::add_coins(&mut *tx, winner, payout).await {
-                        error!("Lotto job crashed: {e}");
-                        return Ok(());
-                    }
+                    GamblingHandler::add_coins(&mut *tx, winner, payout).await?;
 
                     let display_name = winner
                         .to_user(&ctx)

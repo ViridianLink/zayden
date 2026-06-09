@@ -7,8 +7,6 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 
-use crate::LLAMA_GUILD;
-
 const CONTENT: &str = "Here is Llama's stream playlist - <https://open.spotify.com/playlist/2WLXsl0kbwKuHlTcrqe2L2?si=674467318f3044c0>";
 
 pub struct Playlist;
@@ -18,12 +16,6 @@ impl Playlist {
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<(), Error> {
-        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
-            || interaction.user.bot()
-        {
-            return Ok(());
-        }
-
         interaction
             .create_response(
                 &ctx.http,

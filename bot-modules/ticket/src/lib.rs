@@ -16,8 +16,8 @@ pub mod support_guild_manager;
 pub mod ticket_manager;
 
 pub use components::TicketComponent;
-pub use error::Error;
 use error::Result;
+pub use error::TicketError;
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
 pub use support_guild_manager::TicketGuildManager;
@@ -35,7 +35,7 @@ pub async fn send_support_message(
     http: &Http,
     thread_id: ThreadId,
     mentions: &[Mention],
-    mut messages: Vec<CreateMessage<'_>>,
+    messages: Vec<CreateMessage<'_>>,
 ) -> Result<()> {
     let mentions = mentions.iter().map(ToString::to_string).collect::<String>();
 
@@ -45,28 +45,21 @@ pub async fn send_support_message(
 
     let thread_id = thread_id.widen();
 
-    if messages.len() == 1 {
-        let Some(msg) = messages.pop() else {
-            return Ok(());
-        };
-        thread_id.send_message(http, msg.content(mentions).button(button)).await?;
+    let len = messages.len();
+    let mut mentions = Some(mentions);
+    let mut button = Some(button);
 
-        return Ok(());
-    }
-
-    let last_idx = messages.len() - 1;
-
-    for (i, message) in messages.into_iter().enumerate() {
-        if i == 0 {
-            thread_id.send_message(http, message.content(mentions.clone())).await?;
-
-            continue;
+    for (i, mut message) in messages.into_iter().enumerate() {
+        if let Some(m) = mentions.take()
+            && i == 0
+        {
+            message = message.content(m);
         }
 
-        if i == last_idx {
-            thread_id.send_message(http, message.button(button.clone())).await?;
-
-            continue;
+        if let Some(b) = button.take()
+            && i == len - 1
+        {
+            message = message.button(b);
         }
 
         thread_id.send_message(http, message).await?;

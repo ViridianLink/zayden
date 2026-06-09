@@ -18,7 +18,7 @@ use serenity::small_fixed_array::FixedArray;
 use tokio::sync::RwLock;
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelRow, VoiceStateCache};
+use crate::{TempVoiceError, VoiceChannelRow, VoiceStateCache};
 
 pub(super) async fn privacy<Data: VoiceStateCache>(
     ctx: &Context,
@@ -27,11 +27,11 @@ pub(super) async fn privacy<Data: VoiceStateCache>(
     guild_id: GuildId,
     channel_id: ChannelId,
     row: VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(&ctx.http).await?;
 
     if !row.is_trusted(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotTrusted));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
     }
 
     let privacy = match options.remove("privacy") {
@@ -62,7 +62,7 @@ pub(super) async fn privacy<Data: VoiceStateCache>(
         "spectator" => spectate_builder(perms, everyone_role, users),
         "lock" => lock_builder(perms, everyone_role),
         "invisible" => invisible_builder(perms, everyone_role),
-        _ => return Err(Error::IneligibleChannel),
+        _ => return Err(TempVoiceError::IneligibleChannel),
     };
 
     channel_id.edit(&ctx.http, builder).await?;

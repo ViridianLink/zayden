@@ -17,9 +17,9 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::{Error as ZaydenError, parse_options};
+use zayden_core::{CoreError as ZaydenError, parse_options};
 
-use crate::{Error, Result, SuggestionsGuildManager};
+use crate::{Result, SuggestionsError, SuggestionsGuildManager};
 
 pub struct FetchSuggestions;
 
@@ -40,9 +40,9 @@ impl FetchSuggestions {
             Some(ResolvedValue::Channel(channel)) => channel.id().expect_channel(),
             _ => Manager::get(pool, guild_id)
                 .await?
-                .ok_or(Error::MissingSuggesionChannel)?
+                .ok_or(SuggestionsError::MissingSuggesionChannel)?
                 .channel_id()
-                .ok_or(Error::MissingSuggesionChannel)?,
+                .ok_or(SuggestionsError::MissingSuggesionChannel)?,
         };
 
         let active_guild_threads = guild_id.get_active_threads(http).await?;

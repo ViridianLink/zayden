@@ -4,6 +4,7 @@ use std::str::FromStr;
 use google_sheets_api::types::sheet::CellData;
 use serde::{Deserialize, Serialize};
 use serenity::all::Colour;
+use zayden_core::CoreError as ZaydenError;
 
 use crate::EndgameAnalysisError;
 
@@ -40,13 +41,13 @@ impl TryFrom<CellData> for Tier {
             .unwrap_or_default();
         let effective_format = value
             .effective_format
-            .ok_or(EndgameAnalysisError::MissingData("effective_format"))?;
+            .ok_or(ZaydenError::MissingData("effective_format"))?;
         let background_color_style = effective_format
             .background_color_style
-            .ok_or(EndgameAnalysisError::MissingData("background_color_style"))?;
+            .ok_or(ZaydenError::MissingData("background_color_style"))?;
         let colour = background_color_style
             .rgb_color
-            .ok_or(EndgameAnalysisError::MissingData("rgb_color"))?;
+            .ok_or(ZaydenError::MissingData("rgb_color"))?;
 
         Ok(Self { tier, colour: google_colour_to_serde_colour(&colour) })
     }

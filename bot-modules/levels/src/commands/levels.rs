@@ -10,7 +10,7 @@ use sqlx::{Database, Pool};
 use zayden_core::cache::GuildMembersCache;
 
 use crate::common::levels::create_embed;
-use crate::{Levels, LevelsManager, Result};
+use crate::{Levels, LevelsError, LevelsManager, Result};
 
 impl Levels {
     pub async fn run<
@@ -25,7 +25,9 @@ impl Levels {
         interaction.defer(&ctx.http).await?;
 
         let Some(guild_id) = interaction.guild_id else {
-            return Ok(());
+            return Err(LevelsError::Internal(
+                "command used outside a guild".to_string(),
+            ));
         };
 
         let embed =

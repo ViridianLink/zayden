@@ -13,7 +13,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::guild_manager::TempVoiceGuildManager;
-use crate::{Error, Result};
+use crate::{Result, TempVoiceError};
 
 pub(super) async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
     http: &Http,
@@ -31,11 +31,11 @@ pub(super) async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
         .is_some_and(Permissions::administrator);
 
     if !is_admin {
-        return Err(Error::AdministratorRequired);
+        return Err(TempVoiceError::AdministratorRequired);
     }
 
     let Some(ResolvedValue::Channel(category)) = options.remove("category") else {
-        return Err(Error::IneligibleChannel);
+        return Err(TempVoiceError::IneligibleChannel);
     };
     let category = category.id().expect_channel();
 

@@ -19,7 +19,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use tokio::sync::RwLock;
-use zayden_core::parse_options;
+use zayden_core::{CoreError, parse_options, required_option};
 
 use super::endgame_analysis::tier::{TIERS, TierLabel};
 use crate::Result;
@@ -39,10 +39,7 @@ impl TierListCommand {
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::String(archetype)) = options.remove("archetype")
-        else {
-            return Ok(());
-        };
+        let archetype: &str = required_option(&mut options, "archetype")?;
 
         let count = match options.get("count") {
             Some(ResolvedValue::Integer(count)) => {
@@ -54,7 +51,7 @@ impl TierListCommand {
         let tiers: &[TierLabel] = match options.get("tier") {
             Some(ResolvedValue::String(tier)) => {
                 let Ok(tier) = tier.parse::<TierLabel>() else {
-                    return Ok(());
+                    return Err(CoreError::MissingData("tier value").into());
                 };
                 let index =
                     TIERS.iter().position(|t| t == &tier).unwrap_or(TIERS.len() - 1);

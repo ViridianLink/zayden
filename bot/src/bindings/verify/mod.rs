@@ -6,16 +6,19 @@ use serenity::all::{
     CreateCommand,
     CreateCommandOption,
     Permissions,
-    ResolvedValue,
     RoleId,
+    User,
 };
 use zayden_core::{
     ComponentCtx,
+    CoreError,
     HandlerError,
     IdMatch,
     InvocationCtx,
     ModuleCommand,
     ModuleComponent,
+    SubCommandOptions,
+    sole_option,
 };
 
 use crate::RegistryBuilder;
@@ -76,14 +79,13 @@ impl ModuleCommand for ManVerify {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         const VERIFIED_ROLE: RoleId = RoleId::new(1_404_640_603_848_839_299);
 
-        let mut options = cx.interaction.data.options();
-        let Some(ResolvedValue::User(user, _)) = options.pop().map(|opt| opt.value)
-        else {
-            return Ok(());
+        let user: &User = {
+            let mut options = cx.interaction.data.options();
+            let options: SubCommandOptions<'_> = sole_option(&mut options)?;
+            sole_option(&mut options.into_vec())?
         };
 
-        let guild_id =
-            cx.interaction.guild_id.ok_or(zayden_core::Error::MissingGuildId)?;
+        let guild_id = cx.interaction.guild_id.ok_or(CoreError::MissingGuildId)?;
 
         cx.ctx
             .http

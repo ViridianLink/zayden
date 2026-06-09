@@ -14,11 +14,10 @@ use serenity::all::{
     EditInteractionResponse,
     MessageFlags,
     ResolvedOption,
-    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::EmojiCacheData;
+use zayden_core::{EmojiCacheData, sole_option};
 
 use super::Commands;
 use crate::games::blackjack::{
@@ -61,10 +60,7 @@ impl Commands {
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let Some(ResolvedValue::Integer(bet)) = options.pop().map(|opt| opt.value)
-        else {
-            return Err(GamblingError::InvalidAmount);
-        };
+        let bet: i64 = sole_option(&mut options)?;
 
         let mut tx = pool.begin().await?;
 

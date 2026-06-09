@@ -19,13 +19,20 @@ use serenity::all::{
     CreateInteractionResponse,
     Http,
     ResolvedOption,
-    ResolvedValue,
 };
 pub use setup::SetupManager;
 use sqlx::{Database, Pool};
-use zayden_core::parse_options;
+use zayden_core::{parse_options, parse_subcommand};
 
-use crate::{ACTIVITIES, PostManager, PostRow, Result, Savable, TimezoneManager};
+use crate::{
+    ACTIVITIES,
+    LfgError,
+    PostManager,
+    PostRow,
+    Result,
+    Savable,
+    TimezoneManager,
+};
 
 pub struct Command;
 
@@ -40,21 +47,13 @@ impl Command {
     >(
         http: &Http,
         interaction: &CommandInteraction,
-        mut options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let Some(command) = options.pop() else {
-            return Ok(());
-        };
-
-        let (ResolvedValue::SubCommand(options)
-        | ResolvedValue::SubCommandGroup(options)) = command.value
-        else {
-            return Ok(());
-        };
+        let (name, options) = parse_subcommand(options)?;
         let options = parse_options(options);
 
-        match command.name {
+        match name {
             "setup" => {
                 Self::setup::<Db, PostHandler>(http, interaction, pool, options)
                     .await?;
@@ -85,7 +84,11 @@ impl Command {
                 Self::timezone::<Db, TzManager>(http, interaction, pool, options)
                     .await?;
             },
-            _ => return Ok(()),
+            _ => {
+                return Err(LfgError::Internal(format!(
+                    "unexpected subcommand: {name}"
+                )));
+            },
         }
 
         Ok(())
@@ -240,7 +243,6 @@ impl Command {
         option: AutocompleteOption<'_>,
     ) -> Result<()> {
         let command = &interaction.data.options().remove(0);
-
         let opt_value = option.value.to_lowercase();
 
         let filtered = match command.name {
@@ -264,7 +266,12 @@ impl Command {
                     )
                 })
                 .collect::<Vec<_>>(),
-            _ => return Ok(()),
+            _ => {
+                return Err(LfgError::Internal(format!(
+                    "unexpected autocomplete subcommand: {}",
+                    command.name
+                )));
+            },
         };
 
         interaction

@@ -4,14 +4,14 @@ use async_trait::async_trait;
 use futures::TryStreamExt;
 use gambling::Commands;
 use gambling::games::higherlower::HigherLowerManager;
-use serenity::all::{CreateCommand, MessageInteractionMetadata, UserId};
+use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, Postgres};
-use zayden_core::as_u64;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
+use zayden_core::{as_u64, message_metadata};
 
 use super::{GameTable, GoalsTable, StatsTable};
 use crate::BotState;
@@ -61,11 +61,7 @@ impl ModuleComponent for HigherLower {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        let Some(MessageInteractionMetadata::Command(metadata)) =
-            cx.interaction.message.interaction_metadata.as_deref()
-        else {
-            return Ok(());
-        };
+        let metadata = message_metadata(&cx.interaction.message)?;
 
         if cx.interaction.user != metadata.user {
             return Ok(());

@@ -17,13 +17,12 @@ use serenity::all::{
     EditInteractionResponse,
     Http,
     Mentionable,
-    MessageInteractionMetadata,
     ReactionType,
     UserId,
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData, as_u64};
+use zayden_core::{EmojiCache, EmojiCacheData, as_u64, message_metadata};
 
 use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
 use crate::{
@@ -57,11 +56,7 @@ impl TicTacToe {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let Some(MessageInteractionMetadata::Command(metadata)) =
-            interaction.message.interaction_metadata.as_deref()
-        else {
-            return Ok(());
-        };
+        let metadata = message_metadata(&interaction.message)?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -84,15 +79,17 @@ impl TicTacToe {
             },
             custom_id => {
                 let Some(pos_str) = custom_id.strip_prefix("ttt_") else {
-                    return Ok(());
+                    return Err(GamblingError::internal(
+                        "custom ID doesn't have the 'ttt_' prefix",
+                    ));
                 };
 
                 let mut chars = pos_str.chars();
                 let Some(i) = chars.next().and_then(|c| c.to_digit(10)) else {
-                    return Ok(());
+                    return Err(GamblingError::internal("row index not parseable"));
                 };
                 let Some(j) = chars.next().and_then(|c| c.to_digit(10)) else {
-                    return Ok(());
+                    return Err(GamblingError::internal("col index not parseable"));
                 };
 
                 make_move::<Db, GameHandler>(
@@ -132,13 +129,7 @@ impl TryFrom<&ComponentInteraction> for TicTacToe {
     type Error = GamblingError;
 
     fn try_from(value: &ComponentInteraction) -> Result<Self> {
-        let Some(MessageInteractionMetadata::Command(metadata)) =
-            value.message.interaction_metadata.as_deref()
-        else {
-            return Err(GamblingError::Internal(
-                "tictactoe interaction missing command metadata".to_string(),
-            ));
-        };
+        let metadata = message_metadata(&value.message)?;
 
         let players = [metadata.user.id, value.user.id];
         let current_turn = *players.choose(&mut rng()).unwrap_or(&players[0]);
@@ -266,18 +257,17 @@ async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
     j: usize,
 ) -> Result<()> {
     let Some((p1, p2, bet)) = parse_footer(interaction) else {
-        return Ok(());
+        return Err(GamblingError::internal("game state unreadable"));
     };
     let Some(current_turn) = parse_current_turn(interaction) else {
-        return Ok(());
+        return Err(GamblingError::internal("current-turn user unparseable"));
     };
 
     let players = [p1, p2];
     let size = interaction.message.components.len() as usize;
 
     if interaction.user.id != current_turn {
-        interaction.defer(http).await?;
-        return Ok(());
+        return Err(GamblingError::internal("Not this players turn"));
     }
 
     let x_emoji = ReactionType::from(EMOJI_P1);
@@ -304,8 +294,7 @@ async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
         .is_some_and(|e| e == &x_emoji || e == &o_emoji);
 
     if cell_occupied {
-        interaction.defer(http).await?;
-        return Ok(());
+        return Err(GamblingError::internal("cell already occupied"));
     }
 
     let player_emoji = if current_turn == players[0] { x_emoji } else { o_emoji };

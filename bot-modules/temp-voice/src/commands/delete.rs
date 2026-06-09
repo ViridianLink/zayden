@@ -2,7 +2,7 @@ use serenity::all::{ChannelId, CommandInteraction, EditInteractionResponse, Http
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelManager, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelManager, VoiceChannelRow};
 
 pub(super) async fn delete<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -10,11 +10,11 @@ pub(super) async fn delete<Db: Database, Manager: VoiceChannelManager<Db>>(
     pool: &Pool<Db>,
     channel_id: ChannelId,
     row: VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     if row.is_owner(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotOwner));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotOwner));
     }
 
     row.delete::<Db, Manager>(pool).await?;

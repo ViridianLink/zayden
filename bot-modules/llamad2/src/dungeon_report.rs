@@ -7,8 +7,6 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 
-use crate::LLAMA_GUILD;
-
 const CONTENT: &str = "This is Llama's Dungeon Report: <https://dungeon.report/ps/4611686018441992331>";
 
 pub struct DungeonReport;
@@ -18,12 +16,6 @@ impl DungeonReport {
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<(), Error> {
-        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
-            || interaction.user.bot()
-        {
-            return Ok(());
-        }
-
         interaction
             .create_response(
                 &ctx.http,

@@ -199,6 +199,7 @@ impl HigherLower {
                     emojis,
                 )
                 .await?;
+
             return Ok(());
         }
 

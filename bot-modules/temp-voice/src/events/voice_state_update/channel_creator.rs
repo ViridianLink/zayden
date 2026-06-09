@@ -10,9 +10,11 @@ use serenity::all::{
     VoiceState,
 };
 use sqlx::{Database, Pool};
+use tracing::debug;
 
 use crate::{
     Result,
+    TempVoiceError,
     TempVoiceGuildManager,
     VoiceChannelManager,
     VoiceChannelRow,
@@ -30,18 +32,26 @@ pub async fn channel_creator<
     new: &VoiceState,
 ) -> Result<()> {
     let Some(guild_id) = new.guild_id else {
-        return Ok(());
+        return Err(TempVoiceError::Internal(format!(
+            "voice state for user {} has no guild_id",
+            new.user_id
+        )));
     };
 
-    let Ok(Some(creator_channel)) =
-        GuildManager::get_creator_channel(pool, guild_id).await
+    let Some(creator_channel) =
+        GuildManager::get_creator_channel(pool, guild_id).await?
     else {
-        return Ok(());
+        return Err(TempVoiceError::Internal(format!(
+            "guild {guild_id} has no creator channel configured"
+        )));
     };
 
     let creator_channel_id = match new.channel_id {
         Some(channel) if channel == creator_channel => channel,
-        _ => return Ok(()),
+        _ => {
+            debug!(user_id = %new.user_id, channel_id = ?new.channel_id, "user joined a channel other than the creator channel");
+            return Ok(());
+        },
     };
 
     let creator_category = match creator_channel_id
@@ -50,7 +60,11 @@ pub async fn channel_creator<
         .map(|c| c.parent_id)
     {
         Ok(Some(parent_id)) => parent_id,
-        Ok(None) => return Ok(()),
+        Ok(None) => {
+            return Err(TempVoiceError::Internal(format!(
+                "creator channel {creator_channel_id} has no parent category"
+            )));
+        },
         Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
             ErrorResponse {
                 error: DiscordJsonError { code: JsonErrorCode::MissingAccess, .. },
@@ -63,7 +77,10 @@ pub async fn channel_creator<
     };
 
     let Some(member) = new.member.as_ref() else {
-        return Ok(());
+        return Err(TempVoiceError::Internal(format!(
+            "voice state for user {} in guild {guild_id} has no member field",
+            new.user_id
+        )));
     };
 
     let perms = vec![owner_perms(member.user.id)];
@@ -77,6 +94,7 @@ pub async fn channel_creator<
     let vc = guild_id.create_channel(http, vc_builder).await?;
 
     match guild_id.move_member(http, member.user.id, vc.id).await {
+        Ok(_) => {},
         Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
             ErrorResponse {
                 error:
@@ -104,7 +122,6 @@ pub async fn channel_creator<
                 return Ok(());
             }
         },
-        Ok(_) => {},
         Err(e) => return Err(e.into()),
     }
 

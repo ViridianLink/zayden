@@ -18,6 +18,7 @@ pub enum FamilyError {
     UnauthorisedUser,
     NoMentionedUser,
     NoInteraction,
+    Internal(String),
     SameUser(UserId),
     NoData(UserId),
     // endregion
@@ -134,6 +135,7 @@ impl Display for FamilyError {
             Self::NoSiblings(user_id) => {
                 write!(f, "{} has no siblings.", user_id.mention())
             },
+            Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::NoInteraction
             | Self::SerenityTimestamp(_)
             | Self::Sqlx(_)
@@ -172,7 +174,8 @@ impl Respond for FamilyError {
             | Self::SelfNoSiblings
             | Self::NoSiblings(_) => Some(Cow::Owned(self.to_string())),
             // Internal errors — no actionable message to show the user.
-            Self::NoInteraction
+            Self::Internal(_)
+            | Self::NoInteraction
             | Self::SerenityTimestamp(_)
             | Self::Sqlx(_)
             | Self::ParseIntError(_)
@@ -199,6 +202,7 @@ impl std::error::Error for FamilyError {
             | Self::AlreadyRelated { .. }
             | Self::UnauthorisedUser
             | Self::NoMentionedUser
+            | Self::Internal(_)
             | Self::NoInteraction
             | Self::SameUser(_)
             | Self::NoData(_)
@@ -231,18 +235,6 @@ impl From<sqlx::Error> for FamilyError {
     }
 }
 
-// impl From<reqwest::Error> for Error {
-//     fn from(e: reqwest::Error) -> Self {
-//         Error::Reqwest(e)
-//     }
-// }
-
-// impl From<cron::error::Error> for Error {
-//     fn from(e: cron::error::Error) -> Self {
-//         Error::Cron(e)
-//     }
-// }
-
 impl From<serenity::model::timestamp::InvalidTimestamp> for FamilyError {
     fn from(e: serenity::model::timestamp::InvalidTimestamp) -> Self {
         Self::SerenityTimestamp(e)
@@ -261,20 +253,20 @@ impl From<serenity::all::ReactionConversionError> for FamilyError {
     }
 }
 
+impl From<HandlerError> for FamilyError {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Database(e) => Self::Sqlx(e),
+            HandlerError::Discord(e) => Self::Serenity(e),
+            HandlerError::Module { source, .. } => {
+                Self::Internal(source.to_string())
+            },
+        }
+    }
+}
+
 impl From<FamilyError> for HandlerError {
     fn from(e: FamilyError) -> Self {
         Self::from_respond(e)
     }
 }
-
-// impl From<tokio::task::JoinError> for Error {
-//     fn from(e: tokio::task::JoinError) -> Self {
-//         Error::JoinError(e)
-//     }
-// }
-
-// impl From<charming::EchartsError> for Error {
-//     fn from(e: charming::EchartsError) -> Self {
-//         Error::CharmingError(e)
-//     }
-// }

@@ -12,7 +12,7 @@ use serenity::all::{
     ResolvedValue,
 };
 
-use crate::{Error, Result, VoiceChannelRow};
+use crate::{Result, TempVoiceError, VoiceChannelRow};
 
 pub(super) async fn join(
     http: &Http,
@@ -25,11 +25,11 @@ pub(super) async fn join(
     interaction.defer_ephemeral(http).await?;
 
     let Some(ResolvedValue::String(pass)) = options.remove("pass") else {
-        return Err(Error::IneligibleChannel);
+        return Err(TempVoiceError::IneligibleChannel);
     };
 
     if !row.verify_password(pass) {
-        return Err(Error::InvalidPassword);
+        return Err(TempVoiceError::InvalidPassword);
     }
 
     channel_id

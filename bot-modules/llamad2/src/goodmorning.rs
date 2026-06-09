@@ -2,8 +2,6 @@ use serenity::Error;
 use serenity::all::{Context, CreateMessage, GenericChannelId, Message, UserId};
 use tokio::sync::RwLock;
 
-use crate::LLAMA_GUILD;
-
 const GOOD_MORNINGS: [&str; 8] = [
     "good morning",
     "gm",
@@ -31,12 +29,6 @@ impl GoodMorning {
         ctx: &Context,
         message: &Message,
     ) -> Result<(), Error> {
-        if message.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
-            || message.author.bot()
-        {
-            return Ok(());
-        }
-
         let content = message.content.to_lowercase();
 
         let is_good_morning = is_good_morning(&content);

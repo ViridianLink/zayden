@@ -11,15 +11,22 @@ use serenity::all::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     EditInteractionResponse,
-    MessageInteractionMetadata,
     UserId,
 };
 use sqlx::{Database, FromRow, Pool};
-use zayden_core::FormatNum;
+use zayden_core::message_metadata;
 
 use crate::commands::inventory::InventoryManager;
 use crate::common::shop::LOTTO_TICKET;
-use crate::{Commands, MaxValues, Mining, Prestige, Result, START_AMOUNT};
+use crate::{
+    Commands,
+    GamblingError,
+    MaxValues,
+    Mining,
+    Prestige,
+    Result,
+    START_AMOUNT,
+};
 
 #[async_trait]
 pub trait PrestigeManager<Db: Database> {
@@ -219,22 +226,10 @@ impl Commands {
         let req_miners = row.req_miners();
 
         if row.miners() < req_miners {
-            let embed = CreateEmbed::new()
-                .description(format!(
-                    "❌ You need at least `{}` miners before you can prestige.\nYou only have `{}`",
-                    req_miners.format(),
-                    row.miners().format()
-                ))
-                .colour(Colour::RED);
-
-            interaction
-                .edit_response(
-                    &ctx.http,
-                    EditInteractionResponse::new().embed(embed),
-                )
-                .await?;
-
-            return Ok(());
+            return Err(GamblingError::NotEnoughMiners {
+                required: req_miners,
+                current: row.miners(),
+            });
         }
 
         let embed = CreateEmbed::new().description("Are you sure you want to prestige your mine?\n\nPrestiging will **reset your mine, coins, items and resources**, but you'll unlock powerful upgrades!").colour(Colour::TEAL);
@@ -274,11 +269,7 @@ impl Commands {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let Some(MessageInteractionMetadata::Command(metadata)) =
-            interaction.message.interaction_metadata.as_deref()
-        else {
-            return Ok(());
-        };
+        let metadata = message_metadata(&interaction.message)?;
 
         if interaction.user != metadata.user {
             return Ok(());
@@ -286,11 +277,13 @@ impl Commands {
 
         let Some(mut prestige_row) = Manager::row(pool, interaction.user.id).await?
         else {
-            return Ok(());
+            return Err(GamblingError::internal("user has no prestige row"));
         };
 
         if prestige_row.miners < prestige_row.req_miners() {
-            return Ok(());
+            return Err(GamblingError::internal(
+                "not enough miners — component state is stale",
+            ));
         }
 
         let mut inventory_row =

@@ -10,7 +10,7 @@ use serenity::all::{
 };
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow};
 
 pub(super) async fn bitrate(
     http: &Http,
@@ -18,17 +18,18 @@ pub(super) async fn bitrate(
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     row: &VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     if !row.is_trusted(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotTrusted));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
     }
 
     let Some(ResolvedValue::Integer(kbps)) = options.remove("kbps") else {
-        return Err(Error::IneligibleChannel);
+        return Err(TempVoiceError::IneligibleChannel);
     };
-    let kbps = u32::try_from(kbps).map_err(|_kbps_err| Error::IneligibleChannel)?;
+    let kbps = u32::try_from(kbps)
+        .map_err(|_kbps_err| TempVoiceError::IneligibleChannel)?;
 
     channel_id.edit(http, EditChannel::new().bitrate(kbps * 1000)).await?;
 

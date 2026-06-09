@@ -16,11 +16,11 @@ use serenity::all::{
     EditInteractionResponse,
     Http,
     ResolvedOption,
-    ResolvedValue,
 };
+use zayden_core::sole_option;
 
 use crate::compendium::PerkInfo;
-use crate::{Result, compendium};
+use crate::{DestinyError, Result, compendium};
 
 pub struct Perk;
 
@@ -28,17 +28,12 @@ impl Perk {
     pub async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
-        options: Vec<ResolvedOption<'_>>,
+        mut options: Vec<ResolvedOption<'_>>,
         api_key: &str,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let Some(first) = options.first() else {
-            return Ok(());
-        };
-        let ResolvedValue::String(perk) = first.value else {
-            return Ok(());
-        };
+        let perk: &str = sole_option(&mut options)?;
 
         let perks_json = match fs::read_to_string("perks.json") {
             Ok(s) => s,
@@ -50,15 +45,7 @@ impl Perk {
         let mut perks: HashMap<String, PerkInfo> =
             serde_json::from_str(&perks_json)?;
         let Some(perk) = perks.remove(&perk.to_lowercase()) else {
-            interaction
-                .edit_response(
-                    &ctx.http,
-                    EditInteractionResponse::new()
-                        .content(format!("No perk found for: {perk}")),
-                )
-                .await?;
-
-            return Ok(());
+            return Err(DestinyError::PerkNotFound(perk.to_string()));
         };
 
         let embed = CreateEmbed::new()

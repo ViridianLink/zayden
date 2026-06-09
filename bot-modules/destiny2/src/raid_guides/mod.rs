@@ -245,6 +245,8 @@ impl<const E: usize> RaidGuide<'_, E> {
         ));
 
         let Some(Some(encounter)) = DESERT_PERPETUAL.encounters.first() else {
+            // intentional: first encounter not populated — raid data not fully
+            // loaded; skip
             return Ok(());
         };
 

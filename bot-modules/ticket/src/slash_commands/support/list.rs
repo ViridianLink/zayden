@@ -10,7 +10,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::{Error, Result, Support, TicketGuildManager};
+use crate::{Result, Support, TicketError, TicketGuildManager};
 
 impl Support {
     pub(super) async fn list<Db: Database, GuildManager: TicketGuildManager<Db>>(
@@ -21,9 +21,9 @@ impl Support {
     ) -> Result<()> {
         let faq_channel_id = GuildManager::get(pool, guild_id)
             .await?
-            .ok_or(Error::SupportNotFound)?
+            .ok_or(TicketError::SupportNotFound)?
             .faq_channel_id()
-            .ok_or(Error::SupportNotFound)?;
+            .ok_or(TicketError::SupportNotFound)?;
 
         let menu_options = faq_channel_id
             .widen()

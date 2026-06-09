@@ -1,4 +1,4 @@
-use zayden_core::Error as ZaydenError;
+use zayden_core::CoreError;
 use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, BotError>;
@@ -10,14 +10,14 @@ pub enum BotError {
 
     EndgameAnalysis(endgame_analysis::EndgameAnalysisError),
     Lfg(lfg::LfgError),
-    ReactionRole(reaction_roles::Error),
-    Suggestions(suggestions::Error),
-    Ticket(ticket::Error),
-    TempVoice(temp_voice::Error),
+    ReactionRole(reaction_roles::ReactionRoleError),
+    Suggestions(suggestions::SuggestionsError),
+    Ticket(ticket::TicketError),
+    TempVoice(temp_voice::TempVoiceError),
 
     Ai(ai::Error),
 
-    ZaydenCore(ZaydenError),
+    ZaydenCore(CoreError),
 
     Config(zayden_app::AppError),
     Jiff(jiff::Error),
@@ -110,39 +110,39 @@ impl From<lfg::LfgError> for BotError {
     }
 }
 
-impl From<reaction_roles::Error> for BotError {
-    fn from(e: reaction_roles::Error) -> Self {
+impl From<reaction_roles::ReactionRoleError> for BotError {
+    fn from(e: reaction_roles::ReactionRoleError) -> Self {
         Self::ReactionRole(e)
     }
 }
 
-impl From<suggestions::Error> for BotError {
-    fn from(e: suggestions::Error) -> Self {
+impl From<suggestions::SuggestionsError> for BotError {
+    fn from(e: suggestions::SuggestionsError) -> Self {
         Self::Suggestions(e)
     }
 }
 
-impl From<temp_voice::Error> for BotError {
-    fn from(e: temp_voice::Error) -> Self {
+impl From<temp_voice::TempVoiceError> for BotError {
+    fn from(e: temp_voice::TempVoiceError) -> Self {
         Self::TempVoice(e)
     }
 }
 
-impl From<ticket::Error> for BotError {
-    fn from(e: ticket::Error) -> Self {
+impl From<ticket::TicketError> for BotError {
+    fn from(e: ticket::TicketError) -> Self {
         Self::Ticket(e)
     }
 }
 
 impl From<serenity::Error> for BotError {
     fn from(value: serenity::Error) -> Self {
-        Self::ZaydenCore(ZaydenError::Serenity(value))
+        Self::ZaydenCore(CoreError::Serenity(value))
     }
 }
 
 impl From<sqlx::Error> for BotError {
     fn from(value: sqlx::Error) -> Self {
-        Self::ZaydenCore(ZaydenError::Sqlx(value))
+        Self::ZaydenCore(CoreError::Sqlx(value))
     }
 }
 
@@ -185,10 +185,10 @@ impl From<zayden_app::AppError> for BotError {
 impl From<HandlerError> for BotError {
     fn from(e: HandlerError) -> Self {
         match e {
-            HandlerError::Database(e) => Self::ZaydenCore(ZaydenError::Sqlx(e)),
-            HandlerError::Discord(e) => Self::ZaydenCore(ZaydenError::Serenity(e)),
+            HandlerError::Database(e) => Self::ZaydenCore(CoreError::Sqlx(e)),
+            HandlerError::Discord(e) => Self::ZaydenCore(CoreError::Serenity(e)),
             HandlerError::Module { source, .. } => {
-                Self::ZaydenCore(ZaydenError::InvalidOption(source.to_string()))
+                Self::ZaydenCore(CoreError::Other(source.to_string()))
             },
         }
     }

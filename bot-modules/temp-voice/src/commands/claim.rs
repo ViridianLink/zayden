@@ -8,7 +8,7 @@ use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 
 use crate::{
-    Error,
+    TempVoiceError,
     VoiceChannelManager,
     VoiceChannelRow,
     VoiceStateCache,
@@ -25,15 +25,15 @@ pub(super) async fn claim<
     pool: &Pool<Db>,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(&ctx.http).await?;
 
     if row.is_owner(interaction.user.id) {
-        return Err(Error::UserIsOwner);
+        return Err(TempVoiceError::UserIsOwner);
     }
 
     if !row.is_persistent() && is_claimable::<Data>(ctx, &row).await {
-        return Err(Error::OwnerInChannel);
+        return Err(TempVoiceError::OwnerInChannel);
     }
 
     row.set_owner(interaction.user.id);

@@ -3,8 +3,9 @@ use std::fs;
 
 use google_sheets_api::SheetsClientBuilder;
 use serde::{Deserialize, Serialize};
+use zayden_core::CoreError;
 
-use crate::{DestinyError, Result};
+use crate::Result;
 
 const COMPENDIUM_ID: &str = "1WaxvbLx7UoSZaBqdFr1u32F2uWVLo-CJunJB4nlGUE4";
 
@@ -23,12 +24,12 @@ pub async fn update(api_key: &str) -> Result<()> {
         .sheets
         .into_iter()
         .find(|sheet| sheet.properties.title.eq_ignore_ascii_case("gear perks"))
-        .ok_or(DestinyError::MissingData("gear perks sheet"))?;
+        .ok_or(CoreError::MissingData("gear perks sheet"))?;
 
     let data = perks_sheet
         .data
         .pop()
-        .ok_or(DestinyError::MissingData("gear perks sheet data"))?;
+        .ok_or(CoreError::MissingData("gear perks sheet data"))?;
 
     let perks = data
         .row_data

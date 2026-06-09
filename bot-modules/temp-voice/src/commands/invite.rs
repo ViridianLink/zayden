@@ -13,7 +13,7 @@ use serenity::all::{
     ResolvedValue,
 };
 
-use crate::{Error, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow};
 
 pub(super) async fn invite(
     http: &Http,
@@ -21,11 +21,11 @@ pub(super) async fn invite(
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     let Some(ResolvedValue::User(user, _member)) = options.remove("user") else {
-        return Err(Error::IneligibleChannel);
+        return Err(TempVoiceError::IneligibleChannel);
     };
 
     row.create_invite(user.id);

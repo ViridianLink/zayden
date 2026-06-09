@@ -4,18 +4,23 @@ use serenity::all::{
     CreateCommand,
     CreateCommandOption,
     EditInteractionResponse,
+    GenericInteractionChannel,
     Http,
     Permissions,
     ReactionType,
-    ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::{parse_subcommand, required_option};
+use zayden_core::{
+    optional_option,
+    parse_options,
+    parse_subcommand,
+    required_option,
+};
 
 mod add;
 mod remove;
 
-use crate::error::{Error, Result};
+use crate::error::{ReactionRoleError, Result};
 use crate::reaction_roles_manager::ReactionRolesManager;
 
 pub struct ReactionRoleCommand;
@@ -28,14 +33,16 @@ impl ReactionRoleCommand {
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
+        let guild_id =
+            interaction.guild_id.ok_or(ReactionRoleError::MissingGuildId)?;
 
-        let (name, mut options) = parse_subcommand(interaction.data.options())?;
+        let (name, options) = parse_subcommand(interaction.data.options())?;
+        let mut options = parse_options(options);
 
-        let channel_id = match options.remove("channel") {
-            Some(ResolvedValue::Channel(channel)) => channel.id(),
-            _ => interaction.channel_id,
-        };
+        let channel_id = optional_option(&mut options, "channel").map_or(
+            interaction.channel_id,
+            |channel: &GenericInteractionChannel| channel.id(),
+        );
 
         let emoji: &str = required_option(&mut options, "emoji")?;
 
@@ -54,7 +61,11 @@ impl ReactionRoleCommand {
                 )
                 .await?;
             },
-            _ => return Ok(()),
+            _ => {
+                return Err(ReactionRoleError::Internal(format!(
+                    "unexpected subcommand: {name}"
+                )));
+            },
         }
 
         interaction

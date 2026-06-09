@@ -7,10 +7,12 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
+use tracing::debug;
 
 use crate::{
     CachedState,
     Result,
+    TempVoiceError,
     TempVoiceGuildManager,
     VoiceChannelManager,
     VoiceStateCache,
@@ -27,12 +29,11 @@ pub async fn channel_deleter<
     old: Option<&CachedState>,
 ) -> Result<()> {
     let Some(old) = old else {
+        debug!("no previous voice state; user joined a channel without leaving one");
         return Ok(());
     };
 
-    let Ok(guild_data) = GuildManager::get(pool, old.guild_id).await else {
-        return Ok(());
-    };
+    let guild_data = GuildManager::get(pool, old.guild_id).await?;
 
     let channel_id = match (old.channel_id, guild_data.creator_channel()) {
         (Some(channel_id), Some(creator_channel))
@@ -40,26 +41,30 @@ pub async fn channel_deleter<
         {
             channel_id
         },
-        _ => return Ok(()),
+        _ => {
+            return Err(TempVoiceError::Internal(format!(
+                "guild {} has no eligible temp-voice channel to clean up (old_channel={:?}, creator_channel={:?})",
+                old.guild_id,
+                old.channel_id,
+                guild_data.creator_channel()
+            )));
+        },
     };
 
     let Some(row) = ChannelManager::get(pool, channel_id).await? else {
+        debug!(%channel_id, "channel not tracked as a temp-voice channel");
         return Ok(());
     };
 
     if row.is_persistent() {
+        debug!(%channel_id, "persistent channel; user opted out of auto-deletion");
         return Ok(());
     }
 
     let channel = match channel_id.to_guild_channel(ctx, Some(old.guild_id)).await {
         Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
             ErrorResponse {
-                error:
-                    DiscordJsonError {
-                        code:
-                            JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
-                        ..
-                    },
+                error: DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
                 ..
             },
         ))) => {
@@ -67,15 +72,25 @@ pub async fn channel_deleter<
         },
         r => r?,
     };
+
     let Some(category) = guild_data.category() else {
-        return Ok(());
+        return Err(TempVoiceError::Internal(format!(
+            "guild {} has no temp-voice category configured",
+            old.guild_id
+        )));
     };
 
     let Some(parent) = channel.parent_id else {
-        return Ok(());
+        return Err(TempVoiceError::Internal(format!(
+            "channel {} has no parent category",
+            channel.id
+        )));
     };
     if parent != category {
-        return Ok(());
+        return Err(TempVoiceError::Internal(format!(
+            "channel {} is not in the configured temp-voice category {category} (actual parent: {parent})",
+            channel.id
+        )));
     }
 
     let users = {

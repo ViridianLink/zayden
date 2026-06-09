@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use serenity::all::{Mentionable, UserId};
-use zayden_core::Error as ZaydenError;
+use zayden_core::CoreError as ZaydenError;
 use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, LfgError>;
@@ -17,6 +17,8 @@ pub enum LfgError {
     TagRequired,
     InvalidChannel,
     ThreadNotFound,
+
+    Internal(String),
 
     Serenity(serenity::Error),
     Sqlx(sqlx::Error),
@@ -55,6 +57,7 @@ impl std::fmt::Display for LfgError {
                 f,
                 "Unable to find the requested thread. Make sure you're running this command in an LFG thread or supplying one with the `thread:` option."
             ),
+            Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
         }
@@ -74,7 +77,8 @@ impl std::error::Error for LfgError {
             | Self::InvalidFireteamSize
             | Self::TagRequired
             | Self::InvalidChannel
-            | Self::ThreadNotFound => None,
+            | Self::ThreadNotFound
+            | Self::Internal(_) => None,
         }
     }
 }
@@ -82,7 +86,7 @@ impl std::error::Error for LfgError {
 impl Respond for LfgError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::Serenity(_) | Self::Sqlx(_) => None,
+            Self::Internal(_) | Self::Serenity(_) | Self::Sqlx(_) => None,
             Self::MissingGuildId
             | Self::MissingSetup
             | Self::FireteamFull
@@ -105,6 +109,18 @@ impl From<serenity::Error> for LfgError {
 impl From<sqlx::Error> for LfgError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
+    }
+}
+
+impl From<HandlerError> for LfgError {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Discord(e) => Self::Serenity(e),
+            HandlerError::Database(e) => Self::Sqlx(e),
+            HandlerError::Module { source, .. } => {
+                Self::Internal(source.to_string())
+            },
+        }
     }
 }
 

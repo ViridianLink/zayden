@@ -7,8 +7,6 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 
-use crate::LLAMA_GUILD;
-
 const CONTENT: &str =
     "This is Llama's Raid Report: <https://raid.report/ps/4611686018441992331>";
 
@@ -19,12 +17,6 @@ impl RaidReport {
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<(), Error> {
-        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
-            || interaction.user.bot()
-        {
-            return Ok(());
-        }
-
         interaction
             .create_response(
                 &ctx.http,

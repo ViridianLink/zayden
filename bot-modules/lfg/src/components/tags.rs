@@ -10,7 +10,7 @@ use serenity::all::{
 };
 use tracing::error;
 
-use crate::Result;
+use crate::{LfgError, Result};
 
 pub struct TagsComponent;
 
@@ -34,8 +34,9 @@ impl TagsComponent {
             | ComponentInteractionDataKind::MentionableSelect { .. }
             | ComponentInteractionDataKind::ChannelSelect { .. }
             | ComponentInteractionDataKind::Unknown(_) => {
-                error!("Expected string select");
-                return Ok(());
+                return Err(LfgError::Internal(
+                    "TagsComponent::add: expected StringSelect interaction".into(),
+                ));
             },
         };
 
@@ -78,8 +79,10 @@ impl TagsComponent {
             | ComponentInteractionDataKind::MentionableSelect { .. }
             | ComponentInteractionDataKind::ChannelSelect { .. }
             | ComponentInteractionDataKind::Unknown(_) => {
-                error!("Expected string select");
-                return Ok(());
+                return Err(LfgError::Internal(
+                    "TagsComponent::remove: expected StringSelect interaction"
+                        .into(),
+                ));
             },
         };
 

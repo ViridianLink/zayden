@@ -5,10 +5,11 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 use sqlx::{Database, Pool};
+use tracing::warn;
 use zayden_core::GuildMembersCache;
 
 use crate::common::levels::create_embed;
-use crate::{Levels, LevelsManager, Result};
+use crate::{Levels, LevelsError, LevelsManager, Result};
 
 impl Levels {
     pub async fn run_components<
@@ -20,22 +21,36 @@ impl Levels {
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
+        let Some(guild_id) = interaction.guild_id else {
+            return Err(LevelsError::Internal(
+                "component used outside a guild".to_string(),
+            ));
+        };
+
         let Some(embed) = interaction.message.embeds.first() else {
-            return Ok(());
+            return Err(LevelsError::Internal(
+                "levels message has no embed".to_string(),
+            ));
         };
 
         let page_number = match interaction.data.custom_id.as_str() {
             "levels_previous" => {
                 let Some(footer) = embed.footer.as_ref() else {
-                    return Ok(());
+                    return Err(LevelsError::Internal(
+                        "levels embed has no footer".to_string(),
+                    ));
                 };
 
                 let Some(text) = footer.text.strip_prefix("Page ") else {
-                    return Ok(());
+                    return Err(LevelsError::Internal(
+                        "levels embed footer has unexpected format".to_string(),
+                    ));
                 };
 
                 let Ok(page) = text.parse::<i64>() else {
-                    return Ok(());
+                    return Err(LevelsError::Internal(
+                        "levels embed footer page number not parseable".to_string(),
+                    ));
                 };
 
                 page - 1
@@ -44,6 +59,7 @@ impl Levels {
                 let Some(row_number) =
                     Manager::user_rank(pool, interaction.user.id).await?
                 else {
+                    warn!("user has no rank entry");
                     return Ok(());
                 };
 
@@ -51,23 +67,32 @@ impl Levels {
             },
             "levels_next" => {
                 let Some(footer) = embed.footer.as_ref() else {
-                    return Ok(());
+                    return Err(LevelsError::Internal(
+                        "levels embed has no footer".to_string(),
+                    ));
                 };
+
                 let Some(text) = footer.text.strip_prefix("Page ") else {
-                    return Ok(());
+                    return Err(LevelsError::Internal(
+                        "levels embed footer has unexpected format".to_string(),
+                    ));
                 };
+
                 let Ok(page) = text.parse::<i64>() else {
-                    return Ok(());
+                    return Err(LevelsError::Internal(
+                        "levels embed footer page number not parseable".to_string(),
+                    ));
                 };
+
                 page + 1
             },
-            _ => return Ok(()),
+            id => {
+                return Err(LevelsError::Internal(format!(
+                    "unrecognized levels component id: {id}"
+                )));
+            },
         }
         .max(1);
-
-        let Some(guild_id) = interaction.guild_id else {
-            return Ok(());
-        };
 
         let embed =
             create_embed::<Data, Db, Manager>(ctx, pool, guild_id, page_number)

@@ -17,9 +17,10 @@ use serenity::all::{
 };
 use serenity::nonmax::NonMaxU16;
 use sqlx::{Database, Pool};
+use tracing::debug;
 
 use crate::{
-    Error,
+    TempVoiceError,
     TempVoiceGuildManager,
     VoiceChannelManager,
     VoiceChannelRow,
@@ -37,7 +38,7 @@ pub(super) async fn create<
     pool: &Pool<Db>,
     guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     let name = match options.remove("name") {
@@ -80,7 +81,7 @@ pub(super) async fn create<
             deny: Permissions::empty(),
             kind: PermissionOverwriteType::Role(guild_id.everyone_role()),
         }),
-        _ => return Err(Error::IneligibleChannel),
+        _ => return Err(TempVoiceError::IneligibleChannel),
     }
 
     let category = GuildManager::get_category(pool, guild_id).await?;
@@ -122,6 +123,7 @@ pub(super) async fn create<
         && delete_voice_channel_if_inactive(http, guild_id, interaction.user.id, &vc)
             .await
     {
+        debug!(user_id = %interaction.user.id, channel_id = %vc.id, "created channel deleted: user did not join within timeout");
         return Ok(());
     }
 

@@ -18,7 +18,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::{Result, Suggestions, SuggestionsGuildManager};
+use crate::{Result, Suggestions, SuggestionsError, SuggestionsGuildManager};
 
 impl Suggestions {
     pub async fn reaction<Db: Database, Manager: SuggestionsGuildManager<Db>>(
@@ -26,27 +26,37 @@ impl Suggestions {
         reaction: &Reaction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let Some(guild_id) = reaction.guild_id else {
-            return Ok(());
+        let Some(channel) = reaction.channel(http).await?.guild() else {
+            return Err(SuggestionsError::Internal(format!(
+                "reaction in channel {} is not a guild channel",
+                reaction.channel_id
+            )));
         };
 
-        let Some(channel) = reaction.channel(http).await?.guild() else {
-            return Ok(());
-        };
+        let guild_id = channel.base.guild_id;
 
         let Some(row) = Manager::get(pool, guild_id).await? else {
-            return Ok(());
+            return Err(SuggestionsError::Internal(format!(
+                "guild {guild_id} not configured for suggestions"
+            )));
         };
 
         if channel.parent_id.is_none()
             || row.channel_id().is_none()
             || channel.parent_id != row.channel_id()
         {
-            return Ok(());
+            return Err(SuggestionsError::Internal(format!(
+                "reaction in channel {} is not in the suggestions forum (parent={:?}, configured={:?})",
+                channel.id,
+                channel.parent_id,
+                row.channel_id()
+            )));
         }
 
         let Some(review_channel_id) = row.review_channel_id() else {
-            return Ok(());
+            return Err(SuggestionsError::Internal(format!(
+                "guild {guild_id} has no review channel configured"
+            )));
         };
 
         let message = reaction.message(http).await?;

@@ -1,5 +1,5 @@
 pub mod commands;
-mod error;
+pub mod error;
 pub mod events;
 pub mod guild_manager;
 pub mod voice_channel_manager;
@@ -8,8 +8,7 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 pub use commands::VoiceCommand;
-pub use error::Error;
-use error::Result;
+pub use error::{Result, TempVoiceError};
 pub use guild_manager::{TempVoiceGuildManager, TempVoiceRow};
 use serenity::all::{
     ChannelId,
@@ -48,12 +47,12 @@ impl CachedState {
 }
 
 impl TryFrom<&VoiceState> for CachedState {
-    type Error = Error;
+    type Error = TempVoiceError;
 
     fn try_from(state: &VoiceState) -> Result<Self> {
         Ok(Self {
             channel_id: state.channel_id,
-            guild_id: state.guild_id.ok_or(Error::MissingGuildId)?,
+            guild_id: state.guild_id.ok_or(TempVoiceError::MissingGuildId)?,
             user_id: state.user_id,
         })
     }

@@ -13,9 +13,9 @@ use serenity::all::{
     Http,
 };
 use sqlx::{Database, Pool};
-use zayden_core::Error as ZaydenError;
+use zayden_core::CoreError as ZaydenError;
 
-use crate::{Error, Result, TicketGuildManager};
+use crate::{Result, TicketError, TicketGuildManager};
 
 pub struct TicketComponent;
 
@@ -40,7 +40,10 @@ impl TicketComponent {
         interaction: &ComponentInteraction,
     ) -> Result<()> {
         let Some(channel) = interaction.channel.as_ref() else {
-            return Ok(());
+            return Err(TicketError::Internal(
+                "TicketComponent::support_close: interaction has no associated channel"
+                    .into(),
+            ));
         };
 
         let new_channel_name: String = format!(
@@ -74,14 +77,20 @@ impl TicketComponent {
         let ComponentInteractionDataKind::StringSelect { values } =
             &interaction.data.kind
         else {
-            return Ok(());
+            return Err(TicketError::Internal(
+                "TicketComponent::support_faq: expected StringSelect interaction"
+                    .into(),
+            ));
         };
 
         let Some(raw) = values.first() else {
-            return Ok(());
+            return Err(TicketError::Internal(
+                "TicketComponent::support_faq: StringSelect had no values".into(),
+            ));
         };
 
-        let index = raw.parse::<usize>().map_err(|_e| Error::SupportNotFound)?;
+        let index =
+            raw.parse::<usize>().map_err(|_e| TicketError::SupportNotFound)?;
 
         let faq_channel_id = GuildManager::get(pool, guild_id)
             .await?
@@ -96,7 +105,7 @@ impl TicketComponent {
             .boxed()
             .try_next()
             .await?
-            .ok_or(Error::SupportNotFound)?;
+            .ok_or(TicketError::SupportNotFound)?;
 
         let mut parts: Vec<&str> = message.content.split("**").collect();
         let description = parts.pop().unwrap_or_default().trim();

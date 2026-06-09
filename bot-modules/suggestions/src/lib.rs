@@ -5,8 +5,8 @@ mod modal;
 mod reaction;
 pub mod slash_command;
 
-pub use error::Error;
 use error::Result;
+pub use error::SuggestionsError;
 pub use guild_manager::{SuggestionsGuildManager, SuggestionsGuildRow};
 pub use slash_command::FetchSuggestions;
 

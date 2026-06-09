@@ -1,7 +1,7 @@
 use serenity::all::{Http, Reaction};
 use sqlx::Pool;
 
-use crate::{Error, ReactionRolesManager, Result};
+use crate::{ReactionRoleError, ReactionRolesManager, Result};
 
 pub struct ReactionRoleReaction;
 
@@ -20,7 +20,8 @@ impl ReactionRoleReaction {
             Manager::row(pool, reaction.message_id, &emoji_string).await?;
 
         if let Some(reaction_role) = reaction_role {
-            let member = reaction.member.as_ref().ok_or(Error::MissingGuildId)?;
+            let member =
+                reaction.member.as_ref().ok_or(ReactionRoleError::MissingGuildId)?;
 
             member
                 .add_role(
@@ -48,10 +49,11 @@ impl ReactionRoleReaction {
                 .await?;
 
         if let Some(reaction_role) = reaction_role {
-            let user_id = reaction.user_id.ok_or(Error::MissingUserId)?;
+            let user_id =
+                reaction.user_id.ok_or(ReactionRoleError::MissingUserId)?;
             let member = reaction
                 .guild_id
-                .ok_or(Error::MissingGuildId)?
+                .ok_or(ReactionRoleError::MissingGuildId)?
                 .member(http, user_id)
                 .await?;
 

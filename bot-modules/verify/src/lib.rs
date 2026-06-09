@@ -62,7 +62,7 @@ impl Panel {
         interaction: &ComponentInteraction,
     ) -> Result<()> {
         let Some(member) = interaction.member.as_ref() else {
-            return Ok(());
+            return Err(VerifyError::NotGuildMember);
         };
 
         member.add_role(http, VERIFIED_ROLE, Some("Verified user")).await?;

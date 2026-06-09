@@ -5,12 +5,11 @@ use serenity::all::{
     CreateEmbed,
     GenericInteractionChannel,
     Http,
-    ResolvedValue,
     ThreadId,
     UserId,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_subcommand;
+use zayden_core::{optional_option, parse_options, parse_subcommand};
 
 use crate::models::Savable;
 use crate::templates::DefaultTemplate;
@@ -29,7 +28,7 @@ pub struct LeaveInteraction {
 
 impl From<&CommandInteraction> for LeaveInteraction {
     fn from(value: &CommandInteraction) -> Self {
-        let Ok((_, mut options)) = parse_subcommand(value.data.options()) else {
+        let Ok((_, sub_options)) = parse_subcommand(value.data.options()) else {
             return Self {
                 thread: value.channel_id.expect_thread(),
                 author: value.user.id,
@@ -37,17 +36,18 @@ impl From<&CommandInteraction> for LeaveInteraction {
             };
         };
 
-        let thread = match options.remove("thread") {
-            Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(
-                thread,
-            ))) => thread.id,
+        let mut options = parse_options(sub_options);
+
+        let thread = match optional_option::<&GenericInteractionChannel, _>(
+            &mut options,
+            "thread",
+        ) {
+            Some(GenericInteractionChannel::Thread(thread)) => thread.id,
             _ => value.channel_id.expect_thread(),
         };
 
-        let user = match options.remove("guardian") {
-            Some(ResolvedValue::User(user, _)) => user.id,
-            _ => value.user.id,
-        };
+        let user =
+            optional_option(&mut options, "guardian").unwrap_or(&value.user).id;
 
         Self { thread, author: value.user.id, user }
     }

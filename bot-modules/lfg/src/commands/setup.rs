@@ -5,12 +5,15 @@ use serenity::all::{
     CommandInteraction,
     EditInteractionResponse,
     GenericChannelId,
+    GenericInteractionChannel,
     GuildId,
     Http,
     ResolvedValue,
+    Role,
     RoleId,
 };
 use sqlx::{Database, Pool};
+use zayden_core::{optional_option, required_option};
 
 use super::Command;
 use crate::{LfgError, Result};
@@ -36,14 +39,10 @@ impl Command {
 
         let guild_id = interaction.guild_id.ok_or(LfgError::MissingGuildId)?;
 
-        let Some(ResolvedValue::Channel(channel)) = options.remove("channel") else {
-            return Ok(());
-        };
+        let channel: &GenericInteractionChannel =
+            required_option(&mut options, "channel")?;
 
-        let role = match options.remove("role") {
-            Some(ResolvedValue::Role(role)) => Some(role.id),
-            _ => None,
-        };
+        let role = optional_option(&mut options, "role").map(|role: &Role| role.id);
 
         Manager::insert(pool, guild_id, channel.id(), role).await?;
 

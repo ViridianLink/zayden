@@ -12,12 +12,12 @@ use serenity::all::{
     ModalInteraction,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_modal_components;
+use zayden_core::{CoreError, parse_modal_components};
 
 use crate::ticket_manager::TicketManager;
 use crate::{
-    Error,
     Result,
+    TicketError,
     TicketGuildManager,
     send_support_message,
     thread_name,
@@ -36,16 +36,16 @@ impl TicketModal {
         interaction: &ModalInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        use zayden_core::Error as ZaydenError;
-
-        let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
+        let guild_id = interaction.guild_id.ok_or(CoreError::MissingGuildId)?;
 
         let guild_row = GuildManager::get(pool, guild_id)
             .await?
-            .ok_or(Error::SupportNotFound)?;
+            .ok_or(TicketError::SupportNotFound)?;
 
         let Some(message) = interaction.message.as_ref() else {
-            return Ok(());
+            return Err(TicketError::Internal(
+                "TicketModal::run: interaction has no associated message".into(),
+            ));
         };
         let ticket_row = Manager::get(pool, message.id).await?;
         let role_ids = ticket_row.role_ids();
@@ -53,13 +53,15 @@ impl TicketModal {
         let mut data =
             parse_modal_components(interaction.data.components.as_slice());
         let content = data.remove("ticket_body").and_then(|mut v| v.pop()).ok_or(
-            Error::ZaydenCore(ZaydenError::InvalidOption("ticket_body".to_string())),
+            TicketError::ZaydenCore(CoreError::InvalidOption(
+                "ticket_body".to_string(),
+            )),
         )?;
 
         let member = interaction
             .member
             .as_ref()
-            .ok_or(Error::ZaydenCore(ZaydenError::MissingGuildId))?;
+            .ok_or(TicketError::ZaydenCore(CoreError::MissingGuildId))?;
 
         let thread_name =
             thread_name(guild_row.thread_id, member.display_name(), &content);

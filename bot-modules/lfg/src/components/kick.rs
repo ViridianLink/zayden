@@ -9,7 +9,6 @@ use serenity::all::{
     Http,
 };
 use sqlx::{Database, Pool};
-use tracing::error;
 
 use super::Components;
 use crate::models::post::PostManager;
@@ -64,9 +63,11 @@ impl KickComponent {
         let kicked_user = match &interaction.data.kind {
             ComponentInteractionDataKind::UserSelect { values } => {
                 let Some(v) = values.first() else {
-                    error!("KickComponent: UserSelect had no values");
-                    return Ok(());
+                    return Err(LfgError::Internal(
+                        "KickComponent: UserSelect had no values".into(),
+                    ));
                 };
+
                 *v
             },
             ComponentInteractionDataKind::Button
@@ -75,8 +76,9 @@ impl KickComponent {
             | ComponentInteractionDataKind::MentionableSelect { .. }
             | ComponentInteractionDataKind::ChannelSelect { .. }
             | ComponentInteractionDataKind::Unknown(_) => {
-                error!("KickComponent expects a UserSelect interaction");
-                return Ok(());
+                return Err(LfgError::Internal(
+                    "KickComponent: expected UserSelect interaction".into(),
+                ));
             },
         };
 

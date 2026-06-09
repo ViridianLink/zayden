@@ -12,9 +12,9 @@ target/
 # User Files
 .env
 .env.dev
-weapons.json
-perks.json
+*.json
 *.ps1
+*.md
 
 # Frontend
 # Logs
@@ -29,7 +29,6 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*

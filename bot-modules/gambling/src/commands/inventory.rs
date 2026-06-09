@@ -19,7 +19,7 @@ use serenity::small_fixed_array::FixedArray;
 use sqlx::prelude::FromRow;
 use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData, parse_options};
+use zayden_core::{EmojiCache, EmojiCacheData, parse_options, parse_subcommand};
 
 use super::Commands;
 use crate::models::gambling_inventory::GamblingItems;
@@ -207,24 +207,18 @@ impl Commands {
     >(
         ctx: &Context,
         interaction: &CommandInteraction,
-        mut options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
         pool: &Pool<Db>,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let Some(subcommand) = options.pop() else {
-            return Ok(());
-        };
+        let (name, options) = parse_subcommand(options)?;
 
-        match subcommand.name {
+        match name {
             "show" => {
                 show::<Data, Db, InventoryHandler>(ctx, interaction, pool).await
             },
             "use" => {
-                let ResolvedValue::SubCommand(options) = subcommand.value else {
-                    return Err(GamblingError::InvalidAmount);
-                };
-
                 use_item::<Data, Db, EffectsHandler, InventoryHandler>(
                     ctx,
                     interaction,

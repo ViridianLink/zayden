@@ -9,7 +9,7 @@ use serenity::all::{
     UserId,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_subcommand;
+use zayden_core::{parse_options, parse_subcommand};
 
 use crate::models::Savable;
 use crate::templates::DefaultTemplate;
@@ -29,12 +29,13 @@ impl From<&ComponentInteraction> for JoinInteraction {
 
 impl From<&CommandInteraction> for JoinInteraction {
     fn from(value: &CommandInteraction) -> Self {
-        let Ok((_, mut options)) = parse_subcommand(value.data.options()) else {
+        let Ok((_, sub_options)) = parse_subcommand(value.data.options()) else {
             return Self {
                 thread: value.channel_id.expect_thread(),
                 user: value.user.id,
             };
         };
+        let mut options = parse_options(sub_options);
 
         let thread = match options.remove("thread") {
             Some(ResolvedValue::Channel(GenericInteractionChannel::Thread(

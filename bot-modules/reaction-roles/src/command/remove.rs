@@ -13,7 +13,7 @@ use zayden_core::required_option;
 
 use super::ReactionRoleCommand;
 use crate::reaction_roles_manager::ReactionRolesManager;
-use crate::{Error, Result};
+use crate::{ReactionRoleError, Result};
 
 impl ReactionRoleCommand {
     pub(super) async fn remove<Db: Database, Manager: ReactionRolesManager<Db>>(
@@ -25,9 +25,10 @@ impl ReactionRoleCommand {
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         let id: &str = required_option(&mut options, "message_id")?;
-        let message_id = MessageId::new(
-            id.parse().map_err(|_e| Error::InvalidMessageId(id.to_string()))?,
-        );
+        let message_id =
+            MessageId::new(id.parse().map_err(|_e| {
+                ReactionRoleError::InvalidMessageId(id.to_string())
+            })?);
 
         Manager::delete(
             pool,

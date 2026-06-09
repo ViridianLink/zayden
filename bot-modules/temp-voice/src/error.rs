@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
 use serenity::all::{ChannelId, Mentionable};
+use zayden_core::CoreError;
 use zayden_core::error::{HandlerError, Respond};
 
-#[expect(unreachable_pub, reason = "used through re-export in parent module")]
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = std::result::Result<T, TempVoiceError>;
 
 #[derive(Debug)]
 pub enum PermissionError {
@@ -12,9 +12,8 @@ pub enum PermissionError {
     NotTrusted,
 }
 
-#[expect(clippy::error_impl_error, reason = "conventional error type naming")]
 #[derive(Debug)]
-pub enum Error {
+pub enum TempVoiceError {
     MissingGuildId,
     MemberNotInVoiceChannel,
     OwnerInChannel,
@@ -26,14 +25,16 @@ pub enum Error {
     AdministratorRequired,
     IneligibleChannel,
 
+    Internal(String),
+
     Serenity(serenity::Error),
     Sqlx(sqlx::Error),
 }
 
-impl std::fmt::Display for Error {
+impl std::fmt::Display for TempVoiceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::MissingGuildId => zayden_core::Error::MissingGuildId.fmt(f),
+            Self::MissingGuildId => CoreError::MissingGuildId.fmt(f),
             Self::MemberNotInVoiceChannel => {
                 write!(
                     f,
@@ -71,13 +72,14 @@ impl std::fmt::Display for Error {
             Self::IneligibleChannel => {
                 write!(f, "This channel isn't eligible for voice commands.")
             },
+            Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
         }
     }
 }
 
-impl std::error::Error for Error {
+impl std::error::Error for TempVoiceError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Serenity(e) => Some(e),
@@ -91,15 +93,16 @@ impl std::error::Error for Error {
             | Self::MissingPermissions(_)
             | Self::ChannelNotFound(_)
             | Self::AdministratorRequired
-            | Self::IneligibleChannel => None,
+            | Self::IneligibleChannel
+            | Self::Internal(_) => None,
         }
     }
 }
 
-impl Respond for Error {
+impl Respond for TempVoiceError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::Serenity(_) | Self::Sqlx(_) => None,
+            Self::Serenity(_) | Self::Sqlx(_) | Self::Internal(_) => None,
             Self::MissingGuildId
             | Self::MemberNotInVoiceChannel
             | Self::OwnerInChannel
@@ -114,20 +117,30 @@ impl Respond for Error {
     }
 }
 
-impl From<serenity::Error> for Error {
+impl From<serenity::Error> for TempVoiceError {
     fn from(value: serenity::Error) -> Self {
         Self::Serenity(value)
     }
 }
 
-impl From<sqlx::Error> for Error {
+impl From<sqlx::Error> for TempVoiceError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
     }
 }
 
-impl From<Error> for HandlerError {
-    fn from(e: Error) -> Self {
+impl From<TempVoiceError> for HandlerError {
+    fn from(e: TempVoiceError) -> Self {
         Self::from_respond(e)
+    }
+}
+
+impl From<HandlerError> for TempVoiceError {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Database(e) => Self::Sqlx(e),
+            HandlerError::Discord(e) => Self::Serenity(e),
+            HandlerError::Module { .. } => Self::MissingGuildId,
+        }
     }
 }

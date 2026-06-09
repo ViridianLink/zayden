@@ -11,7 +11,7 @@ use serenity::all::{
     ThreadId,
 };
 
-use crate::{Error, Result, Suggestions};
+use crate::{Result, Suggestions, SuggestionsError};
 
 impl Suggestions {
     pub async fn modal(
@@ -27,30 +27,34 @@ impl Suggestions {
                 | LabelComponent::RadioGroup(_)
                 | LabelComponent::CheckboxGroup(_)
                 | LabelComponent::Checkbox(_)
-                | _ => return Err(Error::InvalidModalStructure),
+                | _ => return Err(SuggestionsError::InvalidModalStructure),
             },
-            _ => return Err(Error::InvalidModalStructure),
+            _ => return Err(SuggestionsError::InvalidModalStructure),
         };
 
         let old_embed = modal
             .message
             .as_ref()
-            .ok_or(Error::InvalidModalStructure)?
+            .ok_or(SuggestionsError::InvalidModalStructure)?
             .embeds
             .first()
-            .ok_or(Error::InvalidModalStructure)?;
+            .ok_or(SuggestionsError::InvalidModalStructure)?;
 
-        let old_url =
-            old_embed.url.as_deref().ok_or(Error::InvalidModalStructure)?;
-        let old_title =
-            old_embed.title.as_deref().ok_or(Error::InvalidModalStructure)?;
+        let old_url = old_embed
+            .url
+            .as_deref()
+            .ok_or(SuggestionsError::InvalidModalStructure)?;
+        let old_title = old_embed
+            .title
+            .as_deref()
+            .ok_or(SuggestionsError::InvalidModalStructure)?;
 
         let channel_id = old_url
             .split('/')
             .nth(5)
-            .ok_or(Error::InvalidModalStructure)?
+            .ok_or(SuggestionsError::InvalidModalStructure)?
             .parse::<ThreadId>()
-            .map_err(|_e| Error::InvalidModalStructure)?;
+            .map_err(|_e| SuggestionsError::InvalidModalStructure)?;
 
         let prefix = if accepted { "[Accepted] - " } else { "[Rejected] - " };
 
@@ -64,12 +68,20 @@ impl Suggestions {
 
         channel_id.edit(http, EditThread::new().name(&name).archived(false)).await?;
 
-        let old_description =
-            old_embed.description.as_deref().ok_or(Error::InvalidModalStructure)?;
-        let old_author =
-            old_embed.author.as_ref().ok_or(Error::InvalidModalStructure)?.clone();
-        let old_footer =
-            old_embed.footer.as_ref().ok_or(Error::InvalidModalStructure)?.clone();
+        let old_description = old_embed
+            .description
+            .as_deref()
+            .ok_or(SuggestionsError::InvalidModalStructure)?;
+        let old_author = old_embed
+            .author
+            .as_ref()
+            .ok_or(SuggestionsError::InvalidModalStructure)?
+            .clone();
+        let old_footer = old_embed
+            .footer
+            .as_ref()
+            .ok_or(SuggestionsError::InvalidModalStructure)?
+            .clone();
 
         modal
             .create_response(

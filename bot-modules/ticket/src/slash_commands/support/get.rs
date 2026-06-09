@@ -12,7 +12,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use zayden_core::required_option;
 
-use crate::{Error, Result, Support, TicketGuildManager};
+use crate::{Result, Support, TicketError, TicketGuildManager};
 
 impl Support {
     pub(super) async fn get<Db: Database, GuildManager: TicketGuildManager<Db>>(
@@ -28,9 +28,9 @@ impl Support {
 
         let faq_channel_id = GuildManager::get(pool, guild_id)
             .await?
-            .ok_or(Error::SupportNotFound)?
+            .ok_or(TicketError::SupportNotFound)?
             .faq_channel_id()
-            .ok_or(Error::SupportNotFound)?;
+            .ok_or(TicketError::SupportNotFound)?;
 
         let mut stream = faq_channel_id.widen().messages_iter(http).boxed();
 
@@ -60,6 +60,6 @@ impl Support {
             }
         }
 
-        Err(Error::SupportNotFound)
+        Err(TicketError::SupportNotFound)
     }
 }

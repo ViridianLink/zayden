@@ -11,7 +11,7 @@ use serenity::all::{
 use serenity::nonmax::NonMaxU16;
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow};
 
 pub(super) async fn limit(
     http: &Http,
@@ -19,11 +19,11 @@ pub(super) async fn limit(
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     row: &VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     if !row.is_trusted(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotTrusted));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
     }
 
     let limit = match options.remove("user_limit") {

@@ -40,7 +40,8 @@ use serenity::all::{
     Context,
     CreateCommand,
     CreateCommandOption,
-    ResolvedValue,
+    GenericInteractionChannel,
+    Permissions,
 };
 use setup::setup;
 use sqlx::{Database, Pool};
@@ -48,10 +49,16 @@ use transfer::transfer;
 use trust::trust;
 use unblock::unblock;
 use untrust::untrust;
-use zayden_core::parse_options;
+use zayden_core::{optional_option, parse_options, parse_subcommand};
 
 use crate::guild_manager::TempVoiceGuildManager;
-use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow, VoiceStateCache};
+use crate::{
+    Result,
+    TempVoiceError,
+    VoiceChannelManager,
+    VoiceChannelRow,
+    VoiceStateCache,
+};
 
 pub struct VoiceCommand;
 
@@ -66,18 +73,13 @@ impl VoiceCommand {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<()> {
-        let guild_id = interaction.guild_id.ok_or(Error::MissingGuildId)?;
+        let guild_id = interaction.guild_id.ok_or(TempVoiceError::MissingGuildId)?;
 
-        let Some(command) = interaction.data.options().pop() else {
-            return Ok(());
-        };
+        let (sub_name, sub_options) = parse_subcommand(interaction.data.options())?;
 
-        let ResolvedValue::SubCommand(subcommand_options) = command.value else {
-            return Err(Error::IneligibleChannel);
-        };
-        let mut options = parse_options(subcommand_options);
+        let mut options = parse_options(sub_options);
 
-        match command.name {
+        match sub_name {
             "setup" => {
                 setup::<Db, GuildManager>(
                     &ctx.http,
@@ -105,13 +107,16 @@ impl VoiceCommand {
             _ => {},
         }
 
-        let channel_id = match options.remove("channel") {
-            Some(ResolvedValue::Channel(channel)) => channel.id().expect_channel(),
-            _ => guild_id
+        let channel_id = match optional_option::<&GenericInteractionChannel, _>(
+            &mut options,
+            "channel",
+        ) {
+            Some(channel) => channel.id().expect_channel(),
+            None => guild_id
                 .get_user_voice_state(&ctx.http, interaction.user.id)
                 .await?
                 .channel_id
-                .ok_or(Error::MemberNotInVoiceChannel)?,
+                .ok_or(TempVoiceError::MemberNotInVoiceChannel)?,
         };
 
         let row = match ChannelManager::get(pool, channel_id).await {
@@ -121,10 +126,10 @@ impl VoiceCommand {
                     .member
                     .as_ref()
                     .and_then(|m| m.permissions)
-                    .is_some_and(serenity::all::Permissions::manage_channels);
+                    .is_some_and(Permissions::manage_channels);
 
                 if !has_manage_channels {
-                    return Err(Error::IneligibleChannel);
+                    return Err(TempVoiceError::IneligibleChannel);
                 }
 
                 let row =
@@ -134,10 +139,10 @@ impl VoiceCommand {
 
                 row
             },
-            Err(e) => return Err(Error::Sqlx(e)),
+            Err(e) => return Err(TempVoiceError::Sqlx(e)),
         };
 
-        match command.name {
+        match sub_name {
             "claim" => {
                 claim::<Data, Db, ChannelManager>(
                     ctx,
@@ -174,7 +179,7 @@ impl VoiceCommand {
                 .await?;
             },
             "waiting" | "info" => {
-                // Not yet implemented
+                // TODO: Not yet implemented
             },
             "trust" => {
                 trust::<Db, ChannelManager>(
@@ -269,7 +274,11 @@ impl VoiceCommand {
                 )
                 .await?;
             },
-            _ => return Err(Error::IneligibleChannel),
+            _ => {
+                return Err(TempVoiceError::Internal(format!(
+                    "unexpected subcommand: {sub_name}"
+                )));
+            },
         }
 
         Ok(())

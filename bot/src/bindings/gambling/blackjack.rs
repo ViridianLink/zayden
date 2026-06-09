@@ -2,10 +2,11 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use gambling::Commands;
-use serenity::all::{CreateCommand, MessageInteractionMetadata};
+use serenity::all::CreateCommand;
 use sqlx::Postgres;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
+use zayden_core::message_metadata;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
@@ -46,11 +47,7 @@ impl ModuleComponent for Blackjack {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        let Some(MessageInteractionMetadata::Command(metadata)) =
-            cx.interaction.message.interaction_metadata.as_deref()
-        else {
-            return Ok(());
-        };
+        let metadata = message_metadata(&cx.interaction.message)?;
 
         if cx.interaction.user != metadata.user {
             return Ok(());

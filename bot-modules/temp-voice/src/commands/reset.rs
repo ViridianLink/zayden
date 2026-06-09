@@ -11,7 +11,7 @@ use serenity::nonmax::NonMaxU16;
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow};
+use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow};
 
 pub(super) async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -24,7 +24,7 @@ pub(super) async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
     interaction.defer_ephemeral(http).await?;
 
     if !row.is_owner(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotOwner));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotOwner));
     }
 
     row.reset();
@@ -34,7 +34,7 @@ pub(super) async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
         .channels(http)
         .await?
         .remove(&channel_id)
-        .ok_or(Error::ChannelNotFound(channel_id))?;
+        .ok_or(TempVoiceError::ChannelNotFound(channel_id))?;
 
     let everyone_permissions = channel
         .permission_overwrites
@@ -42,7 +42,7 @@ pub(super) async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
         .find(|perm| {
             perm.kind == PermissionOverwriteType::Role(guild_id.everyone_role())
         })
-        .ok_or(Error::IneligibleChannel)?;
+        .ok_or(TempVoiceError::IneligibleChannel)?;
 
     channel_id
         .edit(

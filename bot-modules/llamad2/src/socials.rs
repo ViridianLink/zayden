@@ -9,8 +9,6 @@ use serenity::all::{
     ReactionType,
 };
 
-use crate::LLAMA_GUILD;
-
 const YOUTUBE_ICON: EmojiId = EmojiId::new(1_391_908_911_136_641_175);
 const TWITCH_ICON: EmojiId = EmojiId::new(1_391_913_042_916_413_633);
 const TWITTER_ICON: EmojiId = EmojiId::new(1_391_915_596_584_587_335);
@@ -23,12 +21,6 @@ impl Socials {
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<(), Error> {
-        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
-            || interaction.user.bot()
-        {
-            return Ok(());
-        }
-
         let content = format!(
             "Here are all of my socials!
 

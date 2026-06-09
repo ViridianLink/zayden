@@ -15,7 +15,13 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow, owner_perms};
+use crate::{
+    Result,
+    TempVoiceError,
+    VoiceChannelManager,
+    VoiceChannelRow,
+    owner_perms,
+};
 
 pub(super) async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -29,11 +35,11 @@ pub(super) async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
     interaction.defer_ephemeral(http).await?;
 
     if !row.is_owner(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotOwner));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotOwner));
     }
 
     let Some(ResolvedValue::String(pass)) = options.remove("pass") else {
-        return Err(Error::IneligibleChannel);
+        return Err(TempVoiceError::IneligibleChannel);
     };
 
     row.password = Some(pass.to_string());

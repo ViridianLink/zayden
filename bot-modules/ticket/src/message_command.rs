@@ -11,8 +11,15 @@ use serenity::all::{
     Message,
 };
 use sqlx::{Database, Pool};
+use zayden_core::CoreError;
 
-use crate::{Result, TicketGuildManager, send_support_message, thread_name};
+use crate::{
+    Result,
+    TicketError,
+    TicketGuildManager,
+    send_support_message,
+    thread_name,
+};
 
 pub struct SupportMessageCommand;
 
@@ -23,21 +30,25 @@ impl SupportMessageCommand {
         pool: &Pool<Db>,
     ) -> Result<()> {
         let Some(guild_id) = message.guild_id else {
-            return Ok(());
+            return Err(TicketError::ZaydenCore(CoreError::MissingGuildId));
         };
 
         let Some(row) = GuildManager::get(pool, guild_id).await? else {
-            return Ok(());
+            return Err(TicketError::Internal(format!(
+                "guild {guild_id} has no ticket configuration"
+            )));
         };
 
         let Some(support_channel) = row.channel_id() else {
-            return Ok(());
+            return Err(TicketError::Internal(format!(
+                "guild {guild_id} has no support channel configured"
+            )));
         };
 
         let channel_id = message.channel_id.expect_channel();
 
         if support_channel != channel_id {
-            return Ok(());
+            return Err(TicketError::NotInSupportChannel);
         }
 
         let role_ids = row.role_ids();

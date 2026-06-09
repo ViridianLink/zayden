@@ -63,7 +63,8 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game = GameDetails::from_str(&emojis, text(interaction))?;
+        let mut game =
+            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
 
         game.add_card()?;
 
@@ -134,7 +135,7 @@ impl Blackjack {
             interaction,
             pool,
             &emojis,
-            GameDetails::from_str(&emojis, text(interaction))?,
+            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?,
         )
         .await?;
 
@@ -159,7 +160,8 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game = GameDetails::from_str(&emojis, text(interaction))?;
+        let mut game =
+            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
 
         GamblingHandler::bet(pool, interaction.user.id, game.bet()).await?;
 
@@ -220,7 +222,8 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game = GameDetails::from_str(&emojis, text(interaction))?;
+        let mut game =
+            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
 
         let player_value = game.player_value(&emojis)?;
 
@@ -307,19 +310,19 @@ impl Blackjack {
     }
 }
 
-fn text(interaction: &ComponentInteraction) -> &str {
+fn text(interaction: &ComponentInteraction) -> Option<&str> {
     let Some(Component::Container(container)) =
         interaction.message.as_ref().components.first()
     else {
-        return "";
+        return None;
     };
 
     let Some(ContainerComponent::TextDisplay(text)) = container.components.first()
     else {
-        return "";
+        return None;
     };
 
-    text.content.as_str()
+    Some(text.content.as_str())
 }
 
 async fn game_end<
@@ -374,6 +377,8 @@ async fn game_end<
             )
             .await?;
 
+        // intentional: player busted — bust response sent above; skip the
+        // dealer-play path
         return Ok(());
     }
 

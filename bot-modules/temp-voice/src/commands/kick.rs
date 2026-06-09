@@ -9,7 +9,7 @@ use serenity::all::{
 };
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow};
 
 pub(super) async fn kick(
     http: &Http,
@@ -17,15 +17,15 @@ pub(super) async fn kick(
     mut options: HashMap<&str, ResolvedValue<'_>>,
     guild_id: GuildId,
     row: &VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     if !row.is_trusted(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotTrusted));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
     }
 
     let Some(ResolvedValue::User(user, _)) = options.remove("member") else {
-        return Err(Error::IneligibleChannel);
+        return Err(TempVoiceError::IneligibleChannel);
     };
 
     guild_id.disconnect_member(http, user.id).await?;

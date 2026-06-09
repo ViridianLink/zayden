@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use zayden_core::Error as ZaydenError;
+use zayden_core::CoreError as ZaydenError;
 use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, EndgameAnalysisError>;
@@ -8,7 +8,6 @@ pub type Result<T> = std::result::Result<T, EndgameAnalysisError>;
 #[derive(Debug)]
 pub enum EndgameAnalysisError {
     WeaponNotFound(String),
-    MissingData(&'static str),
 
     Io(std::io::Error),
     Json(serde_json::Error),
@@ -21,7 +20,6 @@ impl std::fmt::Display for EndgameAnalysisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::WeaponNotFound(weapon) => write!(f, "Weapon {weapon} not found"),
-            Self::MissingData(ctx) => write!(f, "Missing spreadsheet data: {ctx}"),
             Self::Io(e) => e.fmt(f),
             Self::Json(e) => e.fmt(f),
             Self::BungieApi(e) => e.fmt(f),
@@ -39,7 +37,7 @@ impl std::error::Error for EndgameAnalysisError {
             Self::BungieApi(e) => Some(e),
             Self::GoogleSheets(e) => Some(e),
             Self::ZaydenCore(e) => Some(e),
-            Self::WeaponNotFound(_) | Self::MissingData(_) => None,
+            Self::WeaponNotFound(_) => None,
         }
     }
 }
@@ -52,8 +50,7 @@ impl Respond for EndgameAnalysisError {
             Self::Io(_)
             | Self::Json(_)
             | Self::BungieApi(_)
-            | Self::GoogleSheets(_)
-            | Self::MissingData(_) => None,
+            | Self::GoogleSheets(_) => None,
         }
     }
 }
@@ -85,6 +82,24 @@ impl From<bungie_api::Error> for EndgameAnalysisError {
 impl From<google_sheets_api::Error> for EndgameAnalysisError {
     fn from(e: google_sheets_api::Error) -> Self {
         Self::GoogleSheets(e)
+    }
+}
+
+impl From<ZaydenError> for EndgameAnalysisError {
+    fn from(e: ZaydenError) -> Self {
+        Self::ZaydenCore(e)
+    }
+}
+
+impl From<HandlerError> for EndgameAnalysisError {
+    fn from(e: HandlerError) -> Self {
+        match e {
+            HandlerError::Discord(e) => Self::ZaydenCore(ZaydenError::Serenity(e)),
+            HandlerError::Database(e) => Self::ZaydenCore(ZaydenError::Sqlx(e)),
+            HandlerError::Module { source, .. } => {
+                Self::ZaydenCore(ZaydenError::Other(source.to_string()))
+            },
+        }
     }
 }
 

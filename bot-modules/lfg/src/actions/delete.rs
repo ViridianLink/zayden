@@ -9,7 +9,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 
 use crate::templates::TemplateInfo;
-use crate::{PostManager, Result};
+use crate::{LfgError, PostManager, Result};
 
 pub async fn delete<Db: Database, Manager: PostManager<Db>>(
     http: &Http,
@@ -19,7 +19,7 @@ pub async fn delete<Db: Database, Manager: PostManager<Db>>(
     let channel = channel.into();
 
     let Ok(post) = Manager::post_row(pool, channel).await else {
-        return Ok(());
+        return Err(LfgError::ThreadNotFound);
     };
 
     match post.thread().widen().delete(http, Some("Lfg post deleted")).await {

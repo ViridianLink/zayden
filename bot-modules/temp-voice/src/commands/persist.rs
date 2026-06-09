@@ -2,7 +2,7 @@ use serenity::all::{CommandInteraction, EditInteractionResponse, Http};
 use sqlx::{Database, Pool};
 
 use crate::error::PermissionError;
-use crate::{Error, Result, VoiceChannelManager, VoiceChannelRow};
+use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow};
 
 pub(super) async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -12,19 +12,20 @@ pub(super) async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
 ) -> Result<()> {
     interaction.defer_ephemeral(http).await?;
 
-    let member = interaction.member.as_ref().ok_or(Error::MissingGuildId)?;
+    let member =
+        interaction.member.as_ref().ok_or(TempVoiceError::MissingGuildId)?;
     let is_moderator =
-        member.permissions.ok_or(Error::MissingGuildId)?.manage_channels();
+        member.permissions.ok_or(TempVoiceError::MissingGuildId)?.manage_channels();
 
     if row.is_owner(interaction.user.id) && !is_moderator {
-        return Err(Error::MissingPermissions(PermissionError::NotOwner));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotOwner));
     }
 
     let persistent_count =
         Manager::count_persistent_channels(pool, interaction.user.id).await?;
 
     if persistent_count == 1 && !is_moderator {
-        return Err(Error::MaxChannels);
+        return Err(TempVoiceError::MaxChannels);
     }
 
     row.toggle_persist();

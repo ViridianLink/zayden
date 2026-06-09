@@ -12,9 +12,10 @@ use serenity::all::{
     Mentionable,
     ResolvedOption,
     ResolvedValue,
+    User,
 };
 use sqlx::{Database, Pool};
-use zayden_core::parse_options;
+use zayden_core::{parse_options, required_option};
 
 use crate::manager::GoldStarRow;
 use crate::{GiveStar, GoldStarError, GoldStarManager, Result};
@@ -30,10 +31,7 @@ impl GiveStar {
 
         let mut options = parse_options(options);
 
-        let Some(ResolvedValue::User(target_user, _)) = options.remove("member")
-        else {
-            return Err(GoldStarError::InvalidOptions);
-        };
+        let (target_user, _): (&User, _) = required_option(&mut options, "member")?;
 
         if interaction.user.id == target_user.id {
             return Err(GoldStarError::SelfStar);

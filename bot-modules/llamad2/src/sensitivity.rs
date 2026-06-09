@@ -7,8 +7,6 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 
-use crate::LLAMA_GUILD;
-
 const CONTENT: &str = "Llama is on 7 move and 0.7 ads, with 800 dpi.";
 
 pub struct Sensitivity;
@@ -18,12 +16,6 @@ impl Sensitivity {
         ctx: &Context,
         interaction: &CommandInteraction,
     ) -> Result<(), Error> {
-        if interaction.guild_id.is_none_or(|guild| guild != LLAMA_GUILD)
-            || interaction.user.bot()
-        {
-            return Ok(());
-        }
-
         interaction
             .create_response(
                 &ctx.http,

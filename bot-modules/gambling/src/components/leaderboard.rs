@@ -140,7 +140,7 @@ impl Leaderboard {
         .await?;
 
         if rows.is_empty() {
-            return Ok(());
+            return Err(GamblingError::internal("No entries for this page"));
         }
 
         let emojis = {

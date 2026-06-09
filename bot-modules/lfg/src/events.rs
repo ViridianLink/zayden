@@ -12,6 +12,7 @@ use serenity::all::{
     PartialGuildThread,
 };
 use sqlx::{Database, Pool};
+use tracing::debug;
 use zayden_core::CronJobData;
 
 use crate::cron::create_reminders;
@@ -26,6 +27,7 @@ pub async fn thread_delete<Db: Database, Manager: PostManager<Db>>(
     if Manager::exists(pool, thread.id).await? {
         actions::delete::<Db, Manager>(http, thread.id, pool).await?;
     }
+
     Ok(())
 }
 
@@ -40,10 +42,12 @@ pub async fn guild_create<
     pool: &Pool<Db>,
 ) -> Result<()> {
     let Ok(Some(guild_row)) = GuildHandler::row(pool, guild.id).await else {
+        debug!("guild not configured for LFG");
         return Ok(());
     };
 
     let Some(lfg_channel) = guild_row.channel_id() else {
+        debug!("no LFG channel configured");
         return Ok(());
     };
 
@@ -62,7 +66,10 @@ pub async fn guild_create<
                     },
                 ..
             },
-        ))) => return Ok(()),
+        ))) => {
+            debug!("bot lacks channel access to LFG channel");
+            return Ok(());
+        },
         Err(e) => return Err(LfgError::Serenity(e)),
     };
 

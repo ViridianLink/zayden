@@ -9,32 +9,25 @@ use serenity::all::{
     Http,
     Permissions,
     ResolvedOption,
-    ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::{Error as ZaydenError, parse_options};
+use zayden_core::{CoreError as ZaydenError, parse_options, parse_subcommand};
 
-use crate::{Result, Support, TicketGuildManager};
+use crate::{Result, Support, TicketError, TicketGuildManager};
 
 impl Support {
     pub async fn run<Db: Database, GuildManager: TicketGuildManager<Db>>(
         http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
-        mut options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
-        let command = options.remove(0);
-
-        let (ResolvedValue::SubCommand(options)
-        | ResolvedValue::SubCommandGroup(options)) = command.value
-        else {
-            return Ok(());
-        };
+        let (name, options) = parse_subcommand(options)?;
         let options = parse_options(options);
 
-        match command.name {
+        match name {
             "get" => {
                 Self::get::<Db, GuildManager>(
                     http,
@@ -49,7 +42,11 @@ impl Support {
                 Self::list::<Db, GuildManager>(http, interaction, pool, guild_id)
                     .await?;
             },
-            _ => return Ok(()),
+            _ => {
+                return Err(TicketError::Internal(format!(
+                    "unexpected subcommand: {name}"
+                )));
+            },
         }
 
         Ok(())

@@ -1,5 +1,6 @@
-use serenity::all::{ComponentInteraction, MessageInteractionMetadata, UserId};
+use serenity::all::{ComponentInteraction, UserId};
 use sqlx::{Database, Pool};
+use zayden_core::message_metadata;
 
 use crate::family_manager::FamilyManager;
 use crate::{FamilyError, Result};
@@ -8,11 +9,7 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     interaction: &ComponentInteraction,
     pool: &Pool<Db>,
 ) -> Result<UserId> {
-    let parent_user = match interaction.message.interaction_metadata.as_deref() {
-        Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
-        None => return Err(FamilyError::NoInteraction),
-        Some(_) => return Err(FamilyError::InvalidUserId),
-    };
+    let parent_user = &message_metadata(&interaction.message)?.user;
 
     let child_user = &interaction.user;
 
@@ -44,11 +41,7 @@ pub fn decline(interaction: &ComponentInteraction) -> Result<()> {
         return Err(FamilyError::UnauthorisedUser);
     }
 
-    let command_author = match interaction.message.interaction_metadata.as_deref() {
-        Some(MessageInteractionMetadata::Command(metadata)) => &metadata.user,
-        None => return Err(FamilyError::NoInteraction),
-        Some(_) => return Err(FamilyError::InvalidUserId),
-    };
+    let command_author = &message_metadata(&interaction.message)?.user;
 
     if command_author == &interaction.user {
         return Err(FamilyError::AdoptCancelled);

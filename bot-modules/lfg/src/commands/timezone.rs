@@ -9,6 +9,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use zayden_core::required_option;
 
 use super::Command;
 use crate::{Result, TimezoneManager};
@@ -22,9 +23,7 @@ impl Command {
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let Some(ResolvedValue::String(region)) = options.remove("region") else {
-            return Ok(());
-        };
+        let region: &str = required_option(&mut options, "region")?;
 
         let tz = tz::db().get(region).unwrap_or(TimeZone::UTC);
         let tz_name = tz.iana_name().unwrap_or(region);

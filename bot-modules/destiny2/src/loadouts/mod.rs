@@ -25,9 +25,10 @@ use serenity::all::{
     EmojiId,
     MessageFlags,
     ResolvedOption,
-    ResolvedValue,
     SeparatorSpacingSize,
 };
+
+use crate::Result;
 
 mod arc_hunter;
 mod arc_warlock;
@@ -55,7 +56,14 @@ use void_warlock::VOID_WARLOCK;
 pub mod weapons;
 use tokio::sync::RwLock;
 pub use weapons::{Perk, Weapon};
-use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
+use zayden_core::{
+    CoreError,
+    EmojiCache,
+    EmojiCacheData,
+    EmojiResult,
+    SubCommandOptions,
+    sole_option,
+};
 
 const BUILDS: [Loadout<'_>; 11] = [
     ARC_HUNTER,
@@ -157,19 +165,10 @@ impl Loadout<'_> {
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
         parent_token: &str,
-    ) -> serenity::Result<()> {
-        let Some(top) = options.pop() else {
-            return Ok(());
-        };
-        let ResolvedValue::SubCommand(options) = top.value else {
-            return Ok(());
-        };
-
-        let Some(first) = options.first() else {
-            return Ok(());
-        };
-        let ResolvedValue::String(value) = first.value else {
-            return Ok(());
+    ) -> Result<()> {
+        let value: &str = {
+            let options: SubCommandOptions<'_> = sole_option(&mut options)?;
+            sole_option(&mut options.into_vec())?
         };
 
         let Some(build) = BUILDS.iter().copied().find(|build| {
@@ -177,7 +176,7 @@ impl Loadout<'_> {
             let name = build.name.to_lowercase().replace([' ', '|'], "_");
             format!("{subclass}___{name}").as_str() == value
         }) else {
-            return Ok(());
+            return Err(CoreError::MissingData("matching build").into());
         };
 
         interaction
@@ -454,40 +453,40 @@ impl<'a> Loadout<'a> {
             .collect()
     }
 
-    fn aspects_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn aspects_str(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         let s = self
             .subclass
             .aspects
             .into_iter()
             .map(|a| a.to_string())
             .map(|s| emoji_cache.emoji_str(&s))
-            .collect::<Result<Vec<String>, String>>()?
+            .collect::<EmojiResult<Vec<String>>>()?
             .join(" ");
 
         Ok(s)
     }
 
-    fn super_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn super_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         emoji_cache.emoji_str(&format!("{:?}", self.subclass.abilities.super_))
     }
 
-    fn class_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn class_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         emoji_cache.emoji_str(&self.subclass.abilities.class.to_string())
     }
 
-    fn jump_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn jump_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         emoji_cache.emoji_str(&self.subclass.abilities.jump.to_string())
     }
 
-    fn melee_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn melee_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         emoji_cache.emoji_str(&self.subclass.abilities.melee.to_string())
     }
 
-    fn grenade_emoji(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn grenade_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         emoji_cache.emoji_str(&self.subclass.abilities.grenade.to_string())
     }
 
-    fn fragments_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn fragments_str(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         let s = self
             .subclass
             .fragments
@@ -498,12 +497,12 @@ impl<'a> Loadout<'a> {
                 let emoji = emoji_cache.emoji_str(&s)?;
                 Ok(format!(" {emoji}"))
             })
-            .collect::<Result<String, String>>()?;
+            .collect::<EmojiResult<String>>()?;
 
         Ok(s)
     }
 
-    fn stat_prio_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn stat_prio_str(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         let s = self
             .gear
             .stats_priority
@@ -520,12 +519,12 @@ impl<'a> Loadout<'a> {
 
                 Ok(s)
             })
-            .collect::<Result<String, String>>()?;
+            .collect::<EmojiResult<String>>()?;
 
         Ok(s)
     }
 
-    fn artifact_str(self, emoji_cache: &EmojiCache) -> Result<String, String> {
+    fn artifact_str(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
         let s = self
             .artifact
             .into_iter()
@@ -535,7 +534,7 @@ impl<'a> Loadout<'a> {
                 let emoji = emoji_cache.emoji_str(&s)?;
                 Ok(format!(" {emoji}"))
             })
-            .collect::<Result<String, String>>()?;
+            .collect::<EmojiResult<String>>()?;
 
         Ok(s)
     }

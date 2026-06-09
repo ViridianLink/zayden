@@ -7,8 +7,10 @@ use serenity::all::{
     Http,
     Mentionable,
     ResolvedValue,
+    User,
 };
 use sqlx::{Database, Pool};
+use zayden_core::required_option;
 
 use super::Command;
 use crate::models::post::PostManager;
@@ -40,9 +42,7 @@ impl Command {
             return Err(LfgError::PermissionDenied(owner));
         }
 
-        let Some(ResolvedValue::User(user, _)) = options.remove("user") else {
-            return Ok(());
-        };
+        let (user, _): (&User, _) = required_option(&mut options, "user")?;
 
         let (thread, embed) =
             actions::leave::<Db, Manager>(http, interaction, pool, user).await?;

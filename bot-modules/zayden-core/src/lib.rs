@@ -2,7 +2,18 @@ use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::hash::BuildHasher;
 
-use serenity::all::{PartialMember, ResolvedOption, ResolvedValue, Role, User};
+use serenity::all::{
+    GenericInteractionChannel,
+    Message,
+    MessageCommandInteractionMetadata,
+    MessageInteractionMetadata,
+    PartialMember,
+    ResolvedOption,
+    ResolvedValue,
+    Role,
+    User,
+};
+use serenity::small_fixed_array::FixedArray;
 
 pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
@@ -16,7 +27,7 @@ pub use modals::{parse_modal_components, parse_text_components};
 pub mod templates;
 
 pub mod error;
-pub use error::{CoreError as Error, HandlerError, Respond};
+pub use error::{CoreError, HandlerError, Respond};
 
 pub mod events;
 pub mod format_num;
@@ -81,12 +92,42 @@ impl<'a> FromOption<'a> for (&'a User, Option<&'a PartialMember>) {
     }
 }
 
+impl<'a> FromOption<'a> for &'a GenericInteractionChannel {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::Channel(c) = value { Some(c) } else { None }
+    }
+}
+
+pub type SubCommandOptions<'a> = FixedArray<ResolvedOption<'a>>;
+impl<'a> FromOption<'a> for SubCommandOptions<'a> {
+    fn from_option(value: ResolvedValue<'a>) -> Option<Self> {
+        if let ResolvedValue::SubCommand(o) = value { Some(o) } else { None }
+    }
+}
+
+pub fn optional_option<'a, T: FromOption<'a>, S: BuildHasher>(
+    options: &mut HashMap<&str, ResolvedValue<'a>, S>,
+    name: &str,
+) -> Option<T> {
+    options.remove(name).and_then(T::from_option)
+}
+
 pub fn required_option<'a, T: FromOption<'a>, S: BuildHasher>(
     options: &mut HashMap<&str, ResolvedValue<'a>, S>,
     name: &str,
 ) -> Result<T, HandlerError> {
-    options.remove(name).and_then(T::from_option).ok_or_else(|| {
-        HandlerError::from_respond(Error::InvalidOption(name.to_string()))
+    optional_option(options, name).ok_or_else(|| {
+        HandlerError::from_respond(CoreError::InvalidOption(name.to_string()))
+    })
+}
+
+pub fn sole_option<'a, T: FromOption<'a>>(
+    options: &mut Vec<ResolvedOption<'a>>,
+) -> Result<T, HandlerError> {
+    options.pop().and_then(|opt| T::from_option(opt.value)).ok_or_else(|| {
+        HandlerError::from_respond(CoreError::InvalidOption(format!(
+            "empty options: {options:?}"
+        )))
     })
 }
 
@@ -96,23 +137,40 @@ pub fn parse_options<'a>(
     options.into_iter().map(|option| (option.name, option.value)).collect()
 }
 
+type SubCommand<'a> = (&'a str, SubCommandOptions<'a>);
 pub fn parse_subcommand<'a>(
     options: impl IntoIterator<Item = ResolvedOption<'a>>,
-) -> Result<(&'a str, HashMap<&'a str, ResolvedValue<'a>>), HandlerError> {
+) -> Result<SubCommand<'a>, HandlerError> {
     for option in options {
         if let ResolvedValue::SubCommand(sub_opts)
         | ResolvedValue::SubCommandGroup(sub_opts) = option.value
         {
-            return Ok((option.name, parse_options(sub_opts)));
+            return Ok((option.name, sub_opts));
         }
     }
-    Err(HandlerError::from_respond(Error::InvalidOption("subcommand".to_string())))
+    Err(HandlerError::from_respond(CoreError::InvalidOption(
+        "subcommand".to_string(),
+    )))
 }
 
 pub fn parse_options_ref<'a>(
     options: impl IntoIterator<Item = &'a ResolvedOption<'a>>,
 ) -> HashMap<&'a str, &'a ResolvedValue<'a>> {
     options.into_iter().map(|option| (option.name, &option.value)).collect()
+}
+
+pub fn message_metadata(
+    msg: &Message,
+) -> Result<&MessageCommandInteractionMetadata, HandlerError> {
+    if let Some(MessageInteractionMetadata::Command(metadata)) =
+        msg.interaction_metadata.as_deref()
+    {
+        Ok(metadata)
+    } else {
+        Err(HandlerError::from_respond(CoreError::invalid_option(
+            "component not from a slash command",
+        )))
+    }
 }
 
 #[must_use]

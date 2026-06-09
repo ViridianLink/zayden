@@ -9,6 +9,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
+use zayden_core::required_option;
 
 use super::Command;
 use crate::modals::modal_components;
@@ -21,10 +22,7 @@ impl Command {
         pool: &Pool<Db>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
-        let Some(ResolvedValue::String(activity)) = options.remove("activity")
-        else {
-            return Ok(());
-        };
+        let activity: &str = required_option(&mut options, "activity")?;
 
         let template = match options.remove("template") {
             Some(ResolvedValue::String(s)) => s.parse().unwrap_or(0),

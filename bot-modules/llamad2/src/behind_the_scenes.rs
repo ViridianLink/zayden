@@ -1,18 +1,6 @@
-// if any(code in message.content.lower() for code in codewords):
-//
-// else:
-// await
-// else:
-// return
-// else:
-// return
-//
-//
-
-use serenity::Error;
 use serenity::all::{ChannelId, Context, Mentionable, Message, RoleId};
 
-use crate::LLAMA_GUILD;
+use crate::{LlamaD2Error, Result};
 
 const CODEWORDS: [&str; 7] =
     ["password", "bonk", "fusion", "green man", "nova", "threadling", "buddy"];
@@ -24,25 +12,23 @@ const BEHIND_THE_SCENES_CHANNEL: ChannelId =
 pub struct BehindTheScenes;
 
 impl BehindTheScenes {
-    pub async fn run(ctx: &Context, message: &Message) -> Result<(), Error> {
+    pub async fn run(ctx: &Context, message: &Message) -> Result<()> {
         let Some(guild_id) = message.guild_id else {
-            return Ok(());
+            return Err(LlamaD2Error::Internal(format!(
+                "BehindTheScenes::run: message {} from user {} has no guild_id",
+                message.id, message.author.id
+            )));
         };
 
-        if guild_id != LLAMA_GUILD || message.author.bot() {
-            return Ok(());
-        }
-
         if message.channel_id.expect_channel() != CODEWORDS_CHANNEL {
-            return Ok(());
+            return Err(LlamaD2Error::Internal(format!(
+                "BehindTheScenes::run: message {} is not in the codewords channel",
+                message.id
+            )));
         }
 
         if !CODEWORDS.iter().any(|code| message.content.eq_ignore_ascii_case(code)) {
-            message
-                .reply(&ctx.http, "Incorrect codeword, please try again!")
-                .await?;
-
-            return Ok(());
+            return Err(LlamaD2Error::IncorrectCodeword);
         }
 
         ctx.http

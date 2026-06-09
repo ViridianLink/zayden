@@ -13,6 +13,7 @@ use serenity::all::{
     CreateEmbedFooter,
 };
 use tracing::error;
+use zayden_core::CoreError as ZaydenError;
 
 use super::{Affinity, Frame, Tier};
 use crate::EndgameAnalysisError;
@@ -161,9 +162,9 @@ impl WeaponBuilder {
 
         let weapon_name = data
             .remove("name")
-            .ok_or(EndgameAnalysisError::MissingData("name column"))?
+            .ok_or(ZaydenError::MissingData("name column"))?
             .formatted_value
-            .ok_or(EndgameAnalysisError::MissingData("name cell value"))?;
+            .ok_or(ZaydenError::MissingData("name cell value"))?;
 
         if weapon_name == "Ideal" {
             return Ok(None);
@@ -197,16 +198,14 @@ impl WeaponBuilder {
             "Other" => String::from("Other"),
             s => s
                 .get(..s.len().saturating_sub(1))
-                .ok_or(EndgameAnalysisError::MissingData(
-                    "weapon type abbreviation",
-                ))?
+                .ok_or(ZaydenError::MissingData("weapon type abbreviation"))?
                 .to_owned(),
         };
 
         let affinity = data
             .remove("affinity")
             .or_else(|| data.remove("energy"))
-            .ok_or(EndgameAnalysisError::MissingData("affinity/energy column"))?
+            .ok_or(ZaydenError::MissingData("affinity/energy column"))?
             .formatted_value
             .unwrap_or_default();
 
@@ -215,40 +214,40 @@ impl WeaponBuilder {
         let enhance_cell = data
             .remove("enhance")
             .or_else(|| data.remove("⬆\u{fe0f}"))
-            .ok_or(EndgameAnalysisError::MissingData("enhance column"))?;
+            .ok_or(ZaydenError::MissingData("enhance column"))?;
         let enhanceable = enhance_cell.formatted_value.unwrap_or_default() == "Yes";
 
         let barrel = data
             .remove("barrel")
-            .ok_or(EndgameAnalysisError::MissingData("barrel column"))?
+            .ok_or(ZaydenError::MissingData("barrel column"))?
             .formatted_value
             .unwrap_or_default();
 
         let magazine = data
             .remove("mag")
-            .ok_or(EndgameAnalysisError::MissingData("mag column"))?
+            .ok_or(ZaydenError::MissingData("mag column"))?
             .formatted_value
             .unwrap_or_default();
 
         let perk_1 = data
             .remove("column 1")
             .or_else(|| data.remove("perk 1"))
-            .ok_or(EndgameAnalysisError::MissingData("perk 1 / column 1"))?
+            .ok_or(ZaydenError::MissingData("perk 1 / column 1"))?
             .formatted_value
-            .ok_or(EndgameAnalysisError::MissingData("perk 1 cell value"))?;
+            .ok_or(ZaydenError::MissingData("perk 1 cell value"))?;
 
         let perk_2 = data
             .remove("column 2")
             .or_else(|| data.remove("perk 2"))
-            .ok_or(EndgameAnalysisError::MissingData("perk 2 / column 2"))?
+            .ok_or(ZaydenError::MissingData("perk 2 / column 2"))?
             .formatted_value
-            .ok_or(EndgameAnalysisError::MissingData("perk 2 cell value"))?;
+            .ok_or(ZaydenError::MissingData("perk 2 cell value"))?;
 
         let origin_trait = data
             .remove("origin trait")
-            .ok_or(EndgameAnalysisError::MissingData("origin trait column"))?
+            .ok_or(ZaydenError::MissingData("origin trait column"))?
             .formatted_value
-            .ok_or(EndgameAnalysisError::MissingData("origin trait cell value"))?;
+            .ok_or(ZaydenError::MissingData("origin trait cell value"))?;
 
         let rank = data
             .remove("rank")
@@ -258,7 +257,7 @@ impl WeaponBuilder {
 
         let tier: Tier = data
             .remove("tier")
-            .ok_or(EndgameAnalysisError::MissingData("tier column"))?
+            .ok_or(ZaydenError::MissingData("tier column"))?
             .try_into()?;
 
         let mut weapon = Self::new(&weapon_name, archetype)
@@ -290,13 +289,10 @@ impl WeaponBuilder {
         let affinity = self
             .affinity
             .parse()
-            .map_err(|()| EndgameAnalysisError::MissingData("affinity parse"))?;
+            .map_err(|()| ZaydenError::MissingData("affinity parse"))?;
         let frame = self
             .frame
-            .map(|f| {
-                f.parse()
-                    .map_err(|()| EndgameAnalysisError::MissingData("frame parse"))
-            })
+            .map(|f| f.parse().map_err(|()| ZaydenError::MissingData("frame parse")))
             .transpose()?;
 
         Ok(Weapon {

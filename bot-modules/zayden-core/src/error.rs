@@ -106,13 +106,21 @@ pub enum CoreError {
     NotInteractionAuthor,
 
     MessageConflict,
+    MissingData(&'static str),
 
     InvalidOption(String),
 
     Serenity(serenity::Error),
     // region: Sqlx
     Sqlx(sqlx::Error),
+    Other(String),
     // endregion
+}
+
+impl CoreError {
+    pub fn invalid_option(s: impl Into<String>) -> Self {
+        Self::InvalidOption(s.into())
+    }
 }
 
 impl std::fmt::Display for CoreError {
@@ -134,6 +142,7 @@ impl std::fmt::Display for CoreError {
                 f,
                 "Command is already awaiting interaction. Please respond to previous command first."
             ),
+            Self::MissingData(ctx) => write!(f, "missing data: {ctx}"),
 
             Self::Serenity(serenity::Error::Http(
                 HttpError::UnsuccessfulRequest(ErrorResponse {
@@ -192,6 +201,7 @@ impl std::fmt::Display for CoreError {
                 )
             },
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
+            Self::Other(msg) => write!(f, "{msg}"),
         }
     }
 }
@@ -204,7 +214,9 @@ impl std::error::Error for CoreError {
             Self::MissingGuildId
             | Self::NotInteractionAuthor
             | Self::MessageConflict
-            | Self::InvalidOption(_) => None,
+            | Self::MissingData(_)
+            | Self::InvalidOption(_)
+            | Self::Other(_) => None,
         }
     }
 }
@@ -251,7 +263,11 @@ impl Respond for CoreError {
                 Some(Cow::Owned(self.to_string()))
             },
 
-            Self::InvalidOption(_) | Self::Serenity(_) | Self::Sqlx(_) => None,
+            Self::MissingData(_)
+            | Self::InvalidOption(_)
+            | Self::Other(_)
+            | Self::Serenity(_)
+            | Self::Sqlx(_) => None,
         }
     }
 }

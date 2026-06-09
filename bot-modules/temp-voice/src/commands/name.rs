@@ -10,7 +10,7 @@ use serenity::all::{
 };
 
 use crate::error::PermissionError;
-use crate::{Error, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow};
 
 pub(super) async fn name(
     http: &Http,
@@ -18,11 +18,11 @@ pub(super) async fn name(
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     row: &VoiceChannelRow,
-) -> Result<(), Error> {
+) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
     if !row.is_trusted(interaction.user.id) {
-        return Err(Error::MissingPermissions(PermissionError::NotTrusted));
+        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
     }
 
     let name = match options.remove("name") {
