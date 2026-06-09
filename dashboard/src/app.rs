@@ -1,8 +1,3 @@
-#![expect(
-    clippy::unused_async_trait_impl,
-    reason = "#[server] macro generates async trait impls that wrap the inner fn without a direct .await"
-)]
-
 use leptos::form::ActionForm;
 use leptos::prelude::*;
 use leptos_meta::{Stylesheet, Title, provide_meta_context};

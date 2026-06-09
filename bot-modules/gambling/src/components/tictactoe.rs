@@ -505,3 +505,88 @@ fn check_draw(board: &Board) -> bool {
         .flatten()
         .all(|cell| cell.as_ref().is_some_and(|e| e == &x_emoji || e == &o_emoji))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn board_from(cells: [[Option<char>; 3]; 3]) -> Board {
+        cells
+            .into_iter()
+            .map(|row| row.into_iter().map(|c| c.map(ReactionType::from)).collect())
+            .collect()
+    }
+
+    #[test]
+    fn check_win_detects_row() {
+        let board = board_from([
+            [Some(EMOJI_P1), Some(EMOJI_P1), Some(EMOJI_P1)],
+            [Some(EMOJI_P2), Some(EMOJI_P2), None],
+            [None, None, None],
+        ]);
+        assert!(check_win(&board, &ReactionType::from(EMOJI_P1)));
+    }
+
+    #[test]
+    fn check_win_detects_column() {
+        let board = board_from([
+            [Some(EMOJI_P2), Some(EMOJI_P1), None],
+            [Some(EMOJI_P2), Some(EMOJI_P1), None],
+            [Some(EMOJI_P2), None, None],
+        ]);
+        assert!(check_win(&board, &ReactionType::from(EMOJI_P2)));
+    }
+
+    #[test]
+    fn check_win_detects_main_diagonal() {
+        let board = board_from([
+            [Some(EMOJI_P1), Some(EMOJI_P2), None],
+            [Some(EMOJI_P2), Some(EMOJI_P1), None],
+            [None, None, Some(EMOJI_P1)],
+        ]);
+        assert!(check_win(&board, &ReactionType::from(EMOJI_P1)));
+    }
+
+    #[test]
+    fn check_win_detects_anti_diagonal() {
+        let board = board_from([
+            [Some(EMOJI_P1), Some(EMOJI_P1), Some(EMOJI_P2)],
+            [Some(EMOJI_P1), Some(EMOJI_P2), None],
+            [Some(EMOJI_P2), None, None],
+        ]);
+        assert!(check_win(&board, &ReactionType::from(EMOJI_P2)));
+    }
+
+    #[test]
+    fn check_win_false_for_in_progress_board() {
+        let board = board_from([
+            [Some(EMOJI_P1), Some(EMOJI_P2), None],
+            [None, Some(EMOJI_P1), None],
+            [None, None, None],
+        ]);
+        assert!(!check_win(&board, &ReactionType::from(EMOJI_P1)));
+        assert!(!check_win(&board, &ReactionType::from(EMOJI_P2)));
+    }
+
+    #[test]
+    fn check_draw_true_for_full_board_without_win() {
+        let board = board_from([
+            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P1)],
+            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P2)],
+            [Some(EMOJI_P2), Some(EMOJI_P1), Some(EMOJI_P1)],
+        ]);
+        assert!(check_draw(&board));
+        assert!(!check_win(&board, &ReactionType::from(EMOJI_P1)));
+        assert!(!check_win(&board, &ReactionType::from(EMOJI_P2)));
+    }
+
+    #[test]
+    fn check_draw_false_with_empty_cell() {
+        let board = board_from([
+            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P1)],
+            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P2)],
+            [Some(EMOJI_P2), Some(EMOJI_P1), None],
+        ]);
+        assert!(!check_draw(&board));
+    }
+}
