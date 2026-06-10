@@ -40,6 +40,7 @@ mod solar_titan;
 mod solar_warlock;
 mod strand_titan;
 mod strand_warlock;
+mod void_titan;
 mod void_warlock;
 use arc_hunter::ARC_HUNTER;
 use arc_warlock::ARC_WARLOCK;
@@ -88,7 +89,7 @@ pub struct Loadout<'a> {
     tags: [Option<Tag>; 3],
     subclass: Subclass,
     gear: Gear<'a>,
-    artifact: [Option<ArtifactPerk>; 8],
+    artifact: Artifact,
     details: Details<'a>,
 }
 
@@ -213,7 +214,7 @@ impl<'a> Loadout<'a> {
             tags: [None; 3],
             subclass,
             gear,
-            artifact: [None; 8],
+            artifact: Artifact::Unknown([None; 8]),
             details,
         }
     }
@@ -225,7 +226,7 @@ impl<'a> Loadout<'a> {
     }
 
     #[must_use]
-    pub const fn artifact(mut self, artifact: [Option<ArtifactPerk>; 8]) -> Self {
+    pub const fn artifact(mut self, artifact: Artifact) -> Self {
         self.artifact = artifact;
         self
     }
@@ -525,16 +526,18 @@ impl<'a> Loadout<'a> {
     }
 
     fn artifact_str(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
-        let s = self
-            .artifact
-            .into_iter()
-            .flatten()
-            .map(|ap| ap.to_string())
-            .map(|s| {
-                let emoji = emoji_cache.emoji_str(&s)?;
-                Ok(format!(" {emoji}"))
-            })
-            .collect::<EmojiResult<String>>()?;
+        let s = match self.artifact {
+            Artifact::Echos(inner) => inner
+                .into_iter()
+                .flatten()
+                .map(|ap| ap.to_string())
+                .map(|s| {
+                    let emoji = emoji_cache.emoji_str(&s)?;
+                    Ok(format!(" {emoji}"))
+                })
+                .collect::<EmojiResult<String>>()?,
+            _ => String::new(),
+        };
 
         Ok(s)
     }
@@ -1512,6 +1515,12 @@ impl Display for Stat {
 
         write!(f, "{name}")
     }
+}
+
+#[derive(Clone, Copy)]
+pub enum Artifact {
+    Echos([Option<ArtifactPerk>; 8]),
+    Unknown([Option<ArtifactPerk>; 8]),
 }
 
 #[derive(Clone, Copy)]
