@@ -35,7 +35,7 @@ future_incompatible = { level = "deny", priority = -1 }
 # Correctness / panic prevention
 
 unwrap_used = "deny"
-expect_used = "warn"
+expect_used = "deny"
 
 panic = "deny"
 panic_in_result_fn = "deny"
