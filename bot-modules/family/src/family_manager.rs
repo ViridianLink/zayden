@@ -121,3 +121,56 @@ impl From<&User> for FamilyRow {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn relationship_detects_partner() {
+        let mut row = FamilyRow::new(1, "Alice".to_string());
+        let partner = FamilyRow::new(2, "Bob".to_string());
+        row.add_partner(&partner);
+
+        assert_eq!(row.relationship(UserId::new(2)), Relationships::Partner);
+    }
+
+    #[test]
+    fn relationship_detects_parent() {
+        let mut row = FamilyRow::new(1, "Alice".to_string());
+        let parent = FamilyRow::new(2, "Bob".to_string());
+        row.add_parent(&parent);
+
+        assert_eq!(row.relationship(UserId::new(2)), Relationships::Parent);
+    }
+
+    #[test]
+    fn relationship_detects_child() {
+        let mut row = FamilyRow::new(1, "Alice".to_string());
+        let child = FamilyRow::new(2, "Bob".to_string());
+        row.add_child(&child);
+
+        assert_eq!(row.relationship(UserId::new(2)), Relationships::Child);
+    }
+
+    #[test]
+    fn relationship_none_for_unrelated_user() {
+        let row = FamilyRow::new(1, "Alice".to_string());
+
+        assert_eq!(row.relationship(UserId::new(2)), Relationships::None);
+    }
+
+    #[test]
+    fn divorce_removes_partner_relationship() {
+        let mut row = FamilyRow::new(1, "Alice".to_string());
+        let partner = FamilyRow::new(2, "Bob".to_string());
+        row.add_partner(&partner);
+        assert_eq!(row.relationship(UserId::new(2)), Relationships::Partner);
+
+        // Mirrors `FamilyTable::remove_partner`, which deletes the `family_partners`
+        // row.
+        row.partner_ids.retain(|id| *id != partner.id);
+
+        assert_eq!(row.relationship(UserId::new(2)), Relationships::None);
+    }
+}
