@@ -4266,7 +4266,6 @@ name = "temp-voice"
 version = "1.0.0"
 dependencies = [
  "async-trait",
- "futures",
  "serenity",
  "sqlx",
  "tokio",
