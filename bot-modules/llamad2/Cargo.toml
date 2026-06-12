@@ -1,7 +1,8 @@
 [package]
 name = "llamad2"
-version = "1.0.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [lints]
 workspace = true

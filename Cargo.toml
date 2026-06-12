@@ -2,6 +2,11 @@
 resolver = "3"
 members = ["bot", "bot-modules/*", "dashboard", "zayden-app"]
 
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+rust-version = "1.96"
+
 [workspace.lints.rust]
 unsafe_code = "deny"
 
