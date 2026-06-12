@@ -5,7 +5,7 @@ use serenity::async_trait;
 use serenity::model::prelude::Interaction;
 use serenity::prelude::Context;
 use tokio::sync::RwLock;
-use tracing::{error, trace, warn};
+use tracing::{debug, error, trace, warn};
 use zayden_app::state::AppState;
 
 mod entitlement;
@@ -193,19 +193,49 @@ impl EventHandler for Handler {
     }
 
     async fn ratelimit(&self, data: RatelimitInfo) {
-        Self::log_ratelimit(&data);
+        Self::log_ratelimit(
+            &data,
+            &self.app.error_log_webhook,
+            &self.app.normal_log_webhook,
+        );
     }
 }
 
 impl Handler {
-    fn log_ratelimit(data: &RatelimitInfo) {
+    fn log_ratelimit(
+        data: &RatelimitInfo,
+        error_webhook: &str,
+        normal_webhook: &str,
+    ) {
+        fn extract_suffix(url: &str) -> Option<&str> {
+            url.split_once("/webhooks/").map(|(_, suffix)| suffix)
+        }
+
+        let path = &data.path;
+        let timeout_ms = u64::try_from(data.timeout.as_millis()).unwrap_or(u64::MAX);
+
+        let path_suffix = extract_suffix(path);
+        let is_webhook_match = |webhook_url: &str| -> bool {
+            if webhook_url.is_empty() {
+                return false;
+            }
+            path_suffix.is_some() && path_suffix == extract_suffix(webhook_url)
+        };
+
         if data.path.ends_with("commands") {
             trace!(?data, "rate limited (commands)");
+        } else if is_webhook_match(error_webhook) || is_webhook_match(normal_webhook)
+        {
+            debug!(
+                path = %path,
+                method = ?data.method,
+                limit = data.limit,
+                timeout_ms,
+                "webhook rate limited",
+            );
         } else {
-            let timeout_ms =
-                u64::try_from(data.timeout.as_millis()).unwrap_or(u64::MAX);
             warn!(
-                path = %data.path,
+                path = %path,
                 method = ?data.method,
                 limit = data.limit,
                 timeout_ms,

@@ -27,6 +27,8 @@ pub struct AppState {
     pub ai_model: String,
     /// Google Sheets API key for endgame-analysis and destiny2 compendium.
     pub google_api_key: String,
+    pub error_log_webhook: String,
+    pub normal_log_webhook: String,
 }
 
 impl AppState {
@@ -60,6 +62,11 @@ impl AppState {
             ai_api_endpoint: config.ai_api_endpoint.clone(),
             ai_model: config.ai_model.clone(),
             google_api_key: config.google_api_key.clone(),
+            error_log_webhook: config.error_log_webhook.clone().unwrap_or_default(),
+            normal_log_webhook: config
+                .normal_log_webhook
+                .clone()
+                .unwrap_or_default(),
         }
     }
 
