@@ -38,13 +38,12 @@ pub async fn channel_creator<
         )));
     };
 
-    let Some(creator_channel) =
-        GuildManager::get_creator_channel(pool, guild_id).await?
-    else {
-        return Err(TempVoiceError::Internal(format!(
-            "guild {guild_id} has no creator channel configured"
-        )));
-    };
+    let creator_channel =
+        match GuildManager::get_creator_channel(pool, guild_id).await {
+            Ok(Some(channel)) => channel,
+            Ok(None) | Err(sqlx::Error::RowNotFound) => return Ok(()),
+            Err(e) => return Err(e.into()),
+        };
 
     let creator_channel_id = match new.channel_id {
         Some(channel) if channel == creator_channel => channel,

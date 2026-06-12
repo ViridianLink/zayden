@@ -33,10 +33,10 @@ impl SupportMessageCommand {
             return Err(TicketError::ZaydenCore(CoreError::MissingGuildId));
         };
 
-        let Some(row) = GuildManager::get(pool, guild_id).await? else {
-            return Err(TicketError::Internal(format!(
-                "guild {guild_id} has no ticket configuration"
-            )));
+        let row = match GuildManager::get(pool, guild_id).await {
+            Ok(Some(row)) => row,
+            Ok(None) | Err(sqlx::Error::RowNotFound) => return Ok(()),
+            Err(e) => return Err(e.into()),
         };
 
         let Some(support_channel) = row.channel_id() else {

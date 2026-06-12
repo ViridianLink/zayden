@@ -33,7 +33,11 @@ pub async fn channel_deleter<
         return Ok(());
     };
 
-    let guild_data = GuildManager::get(pool, old.guild_id).await?;
+    let guild_data = match GuildManager::get(pool, old.guild_id).await {
+        Ok(row) => row,
+        Err(sqlx::Error::RowNotFound) => return Ok(()),
+        Err(e) => return Err(e.into()),
+    };
 
     let channel_id = match (old.channel_id, guild_data.creator_channel()) {
         (Some(channel_id), Some(creator_channel))

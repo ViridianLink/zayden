@@ -35,10 +35,10 @@ impl Suggestions {
 
         let guild_id = channel.base.guild_id;
 
-        let Some(row) = Manager::get(pool, guild_id).await? else {
-            return Err(SuggestionsError::Internal(format!(
-                "guild {guild_id} not configured for suggestions"
-            )));
+        let row = match Manager::get(pool, guild_id).await {
+            Ok(Some(row)) => row,
+            Ok(None) | Err(sqlx::Error::RowNotFound) => return Ok(()),
+            Err(e) => return Err(e.into()),
         };
 
         if channel.parent_id.is_none()
