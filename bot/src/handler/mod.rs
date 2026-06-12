@@ -108,9 +108,11 @@ impl EventHandler for Handler {
             | Event::GuildScheduledEventUserRemove(_)
             | Event::MessagePollVoteAdd(_)
             | Event::MessagePollVoteRemove(_)
-            | Event::ShardStageUpdate(_) => None,
-            _ => {
-                error!("unhandled event type");
+            | Event::ShardStageUpdate(_)
+            | Event::ChannelInfo(_)
+            | Event::VoiceChannelStartTimeUpdate(_) => None,
+            event => {
+                error!(?event, "unhandled event type");
                 None
             },
         }
