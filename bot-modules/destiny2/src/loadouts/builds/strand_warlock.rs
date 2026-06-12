@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     ArtifactPerk,
     Aspect,
     ClassAbility,
@@ -18,32 +19,33 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
 };
 
-pub(super) const STRAND_WARLOCK: Loadout<'_> = Loadout::new(
-    "Weavewalk",
-    DestinyClass::Warlock,
-    Mode::PvE,
-    SUBCLASS,
-    GEAR,
-    Details::new("LlamaD2", "https://dim.gg/fiauzci/Void")
+pub(super) const STRAND_WARLOCK: Loadout<'_> = Loadout {
+    name: "Weavewalk",
+    class: DestinyClass::Warlock,
+    mode: Mode::PvE,
+    tags: [None; 3],
+    subclass: SUBCLASS,
+    gear: GEAR,
+    artifact: Artifact::Unknown([
+        Some(ArtifactPerk::TightlyWoven),
+        Some(ArtifactPerk::ThreadlingProliferation),
+        Some(ArtifactPerk::ElementalBenevolence),
+        Some(ArtifactPerk::RefreshThreads),
+        Some(ArtifactPerk::PackTactics),
+        Some(ArtifactPerk::ThreadedBlast),
+        Some(ArtifactPerk::Shieldcrush),
+        Some(ArtifactPerk::TangledWeb),
+    ]),
+    details: Details::new("LlamaD2", "https://dim.gg/fiauzci/Void")
         .video("https://youtu.be/TBbOiMWPIkE"),
-)
-.artifact([
-    Some(ArtifactPerk::TightlyWoven),
-    Some(ArtifactPerk::ThreadlingProliferation),
-    Some(ArtifactPerk::ElementalBenevolence),
-    Some(ArtifactPerk::RefreshThreads),
-    Some(ArtifactPerk::PackTactics),
-    Some(ArtifactPerk::ThreadedBlast),
-    Some(ArtifactPerk::Shieldcrush),
-    Some(ArtifactPerk::TangledWeb),
-]);
+};
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Strand,
+    kind: Subclass::Strand,
     abilities: ABILITIES,
     aspects: [Aspect::Weavewalk, Aspect::WeaversCall],
     fragments: [

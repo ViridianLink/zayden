@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     ArtifactPerk,
     Aspect,
     ClassAbility,
@@ -18,34 +19,34 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
     Tag,
 };
 
-pub(super) const PRISMATIC_TITAN: Loadout<'_> = Loadout::new(
-    "Insurmountable Skullfort",
-    DestinyClass::Titan,
-    Mode::PvE,
-    SUBCLASS,
-    GEAR,
-    Details::new("LlamaD2", "https://dim.gg/iirdyoy/Prismatic")
+pub(super) const PRISMATIC_TITAN: Loadout<'_> = Loadout {
+    name: "Insurmountable Skullfort",
+    class: DestinyClass::Titan,
+    mode: Mode::PvE,
+    tags: [Some(Tag::AbilityFocused), None, None],
+    subclass: SUBCLASS,
+    gear: GEAR,
+    artifact: Artifact::Unknown([
+        Some(ArtifactPerk::RefreshThreads),
+        Some(ArtifactPerk::ElementalCoalescence),
+        Some(ArtifactPerk::Shieldcrush),
+        Some(ArtifactPerk::RadiantShrapnel),
+        None,
+        None,
+        None,
+        None,
+    ]),
+    details: Details::new("LlamaD2", "https://dim.gg/iirdyoy/Prismatic")
         .video("https://youtu.be/STuEYFaGs84"),
-)
-.tags([Some(Tag::AbilityFocused), None, None])
-.artifact([
-    Some(ArtifactPerk::RefreshThreads),
-    Some(ArtifactPerk::ElementalCoalescence),
-    Some(ArtifactPerk::Shieldcrush),
-    Some(ArtifactPerk::RadiantShrapnel),
-    None,
-    None,
-    None,
-    None,
-]);
+};
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Prismatic,
+    kind: Subclass::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::Knockout, Aspect::DiamondLance],
     fragments: [

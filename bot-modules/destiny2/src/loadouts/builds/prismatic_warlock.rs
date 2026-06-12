@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     Aspect,
     ClassAbility,
     DestinyClass,
@@ -17,21 +18,23 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
 };
 
-pub(super) const PRISMATIC_WARLOCK: Loadout<'_> = Loadout::new(
-    "Lightning Surge",
-    DestinyClass::Warlock,
-    Mode::PvE,
-    SUBCLASS,
-    GEAR,
-    Details::new("OscarSix", "https://dim.gg/vizvlti/Lightning-Surge"),
-);
+pub(super) const PRISMATIC_WARLOCK: Loadout<'_> = Loadout {
+    name: "Lightning Surge",
+    class: DestinyClass::Warlock,
+    mode: Mode::PvE,
+    tags: [None; 3],
+    subclass: SUBCLASS,
+    gear: GEAR,
+    artifact: Artifact::Unknown([None; 8]),
+    details: Details::new("OscarSix", "https://dim.gg/vizvlti/Lightning-Surge"),
+};
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Prismatic,
+    kind: Subclass::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::LightningSurge, Aspect::FeedTheVoid],
     fragments: [

@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     ArtifactPerk,
     Aspect,
     ClassAbility,
@@ -18,7 +19,7 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
 };
 
@@ -29,7 +30,7 @@ pub(super) const VOID_WARLOCK: Loadout<'_> = Loadout {
     tags: [None; 3],
     subclass: SUBCLASS,
     gear: GEAR,
-    artifact: [
+    artifact: Artifact::Unknown([
         Some(ArtifactPerk::RefreshThreads),
         Some(ArtifactPerk::ElementalCoalescence),
         Some(ArtifactPerk::Shieldcrush),
@@ -38,13 +39,13 @@ pub(super) const VOID_WARLOCK: Loadout<'_> = Loadout {
         None,
         None,
         None,
-    ],
+    ]),
     details: Details::new("LlamaD2", "https://dim.gg/fiauzci/Void")
         .video("https://youtu.be/TBbOiMWPIkE"),
 };
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Void,
+    kind: Subclass::Void,
     abilities: ABILITIES,
     aspects: [Aspect::ChaosAccelerant, Aspect::FeedTheVoid],
     fragments: [

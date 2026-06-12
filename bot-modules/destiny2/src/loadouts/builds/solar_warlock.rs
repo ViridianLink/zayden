@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     ArtifactPerk,
     Aspect,
     ClassAbility,
@@ -18,7 +19,7 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
 };
 
@@ -29,7 +30,7 @@ pub(super) const SOLAR_WARLOCK: Loadout<'_> = Loadout {
     tags: [None; 3],
     subclass: SUBCLASS,
     gear: GEAR,
-    artifact: [
+    artifact: Artifact::Unknown([
         Some(ArtifactPerk::FeverAndChill),
         Some(ArtifactPerk::RefreshThreads),
         Some(ArtifactPerk::CauterizedDarkness),
@@ -38,13 +39,13 @@ pub(super) const SOLAR_WARLOCK: Loadout<'_> = Loadout {
         None,
         None,
         None,
-    ],
+    ]),
     details: Details::new("LlamaD2", "https://dim.gg/aelfwzq/Solar")
         .video("https://www.youtube.com/watch?v=AkDl3T_iIuc"),
 };
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Solar,
+    kind: Subclass::Solar,
     abilities: ABILITIES,
     aspects: [Aspect::TouchOfFlame, Aspect::Hellion],
     fragments: [

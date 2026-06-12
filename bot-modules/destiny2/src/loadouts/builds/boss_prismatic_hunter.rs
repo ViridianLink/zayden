@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     ArtifactPerk,
     Aspect,
     ClassAbility,
@@ -18,34 +19,33 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
     Tag,
 };
 
-pub(super) const BOSS_PRISMATIC_HUNTER: Loadout<'_> = Loadout::new(
-    "Grapple Melee",
-    DestinyClass::Hunter,
-    Mode::PvE,
-    SUBCLASS,
-    GEAR,
-    Details::new("LlamaD2", "https://dim.gg/epy5f2q/Prismatic")
+pub(super) const BOSS_PRISMATIC_HUNTER: Loadout<'_> = Loadout {
+    name: "Grapple Melee",
+    class: DestinyClass::Hunter,
+    mode: Mode::PvE,
+    tags: [Some(Tag::BossDamage), None, None],
+    subclass: SUBCLASS,
+    gear: GEAR,
+    artifact: Artifact::Unknown([
+        Some(ArtifactPerk::TightlyWoven),
+        Some(ArtifactPerk::Shieldcrush),
+        None,
+        None,
+        None,
+        None,
+        None,None
+    ]),
+    details: Details::new("LlamaD2", "https://dim.gg/epy5f2q/Prismatic")
         .video("https://youtu.be/syoTkuT-s3w"),
-)
-.tags([Some(Tag::BossDamage), None, None])
-.artifact([
-    Some(ArtifactPerk::TightlyWoven),
-    Some(ArtifactPerk::Shieldcrush),
-    None,
-    None,
-    None,
-    None,
-    None,
-    None,
-]);
+};
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Prismatic,
+    kind: Subclass::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::StylishExecutioner, Aspect::WintersShroud],
     fragments: [

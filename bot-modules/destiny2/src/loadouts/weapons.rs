@@ -1,4 +1,5 @@
-use std::fmt::Display;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 
 use serenity::all::{
     CreateSectionComponent,
@@ -6,122 +7,50 @@ use serenity::all::{
     CreateThumbnail,
     CreateUnfurledMediaItem,
 };
-use tracing::warn;
 use zayden_core::EmojiCache;
 
-pub const CHOIR_OF_ONE: Weapon<'_> = Weapon {
-    name: "Choir of One",
-    affinity: Affinity::Void,
-    archtype: "Exotic Auto Rifle",
-    perks: [Perk::CommandFrame, Perk::FanaticalLance],
-};
-
-pub const DEAD_MESSENGER: Weapon<'_> = Weapon {
-    name: "Dead Messenger",
-    affinity: Affinity::Void,
-    archtype: "Exotic Grenade Launcher",
-    perks: [Perk::TheFundamentals, Perk::HandLaidStock],
-};
-
-pub const DELICATE_TOMB: Weapon<'_> = Weapon {
-    name: "Delicate Tomb",
-    affinity: Affinity::Arc,
-    archtype: "Exotic Fusion Rifle",
-    perks: [Perk::TempestCascade, Perk::TraitorsVessel],
-};
-
-pub const DEVILS_RUIN: Weapon<'_> = Weapon {
-    name: "Devil's Ruin",
-    affinity: Affinity::Solar,
-    archtype: "Exotic Sidearm",
-    perks: [Perk::Pyrogenesis, Perk::CloseTheGap],
-};
-
-pub const MINT_RETROGRADE: Weapon<'_> = Weapon {
-    name: "Mint Retrograde",
-    affinity: Affinity::Strand,
-    archtype: "Legendary Pulse Rifle",
-    perks: [Perk::RewindRounds, Perk::Slice],
-};
-
-pub const NEW_MALPAIS: Weapon<'_> = Weapon {
-    name: "New Malpais",
-    affinity: Affinity::Strand,
-    archtype: "Exotic Pulse Rifle",
-    perks: [Perk::SuspendingBlast, Perk::AtomizingRounds],
-};
-
-pub const PERFECT_PARADOX: Weapon<'_> = Weapon {
-    name: "Perfect Paradox",
-    affinity: Affinity::Kinetic,
-    archtype: "Legendary Shotgun",
-    perks: [Perk::FieldPrep, Perk::OneTwoPunch],
-};
-
-pub const THIRD_ITERATION: Weapon<'_> = Weapon {
-    name: "Third Iteration",
-    affinity: Affinity::Void,
-    archtype: "Exotic Scout Rifle",
-    perks: [Perk::AmalgamationRounds, Perk::TriPlanarMassDriver],
-};
-
-pub const SUNSHOT: Weapon<'_> = Weapon {
-    name: "Sunshot",
-    affinity: Affinity::Solar,
-    archtype: "Exotic Hand Cannon",
-    perks: [Perk::SunBlast, Perk::Sunburn],
-};
-
-pub const PHONEUTRIA_FERA: Weapon<'_> = Weapon {
-    name: "Phoneutria Fera",
-    affinity: Affinity::Solar,
-    archtype: "Exotic Hand Cannon",
-    perks: [Perk::ThreatDetector, Perk::OneTwoPunch],
-};
-
-pub const GRAVITON_SPIKE: Weapon<'_> = Weapon {
-    name: "Graviton Spike",
-    affinity: Affinity::Arc,
-    archtype: "Exotic Hand Cannon",
-    perks: [Perk::TemporalAnomaly, Perk::TemporalManipulation],
-};
-
-pub const NAVIGATOR: Weapon<'_> = Weapon {
-    name: "Navigator",
-    affinity: Affinity::Strand,
-    archtype: "Exotic Trace Rifle",
-    perks: [Perk::WeftCutter, Perk::ProtectiveWeave],
-};
-
-pub const IKELOS_SG_V103: Weapon<'_> = Weapon {
-    name: "IKELOS_SG_v1.0.3",
-    affinity: Affinity::Solar,
-    archtype: "Legendary Shotgun",
-    perks: [Perk::GraveRobber, Perk::OneTwoPunch],
-};
-
-pub const MONTE_CARLO: Weapon<'_> = Weapon {
-    name: "Monte Carlo",
-    affinity: Affinity::Kinetic,
-    archtype: "Exotic Auto Rifle",
-    perks: [Perk::MarkovChain, Perk::MonteCarloMethod],
-};
-
 #[derive(Clone, Copy)]
-pub struct Weapon<'a> {
-    pub name: &'a str,
-    pub affinity: Affinity,
-    pub archtype: &'a str,
-    pub perks: [Perk; 2],
+pub enum Weapon {
+    RecklessOracle([Perk; 2]),
+    LotusEater([Perk; 2]),
+    PraxicBlade([Perk; 2]),
+    YeartideApex([Perk; 2]),
 }
 
-impl Weapon<'_> {
+impl Weapon {
+    pub fn affinity(self) -> Affinity {
+        match self {
+            Self::RecklessOracle(_) => Affinity::Void,
+            Self::LotusEater(_) => Affinity::Void,
+            Self::PraxicBlade(_) => Affinity::Kinetic,
+            Self::YeartideApex(_) => Affinity::Solar,
+        }
+    }
+
+    pub fn archtype(self) -> Archtype {
+        match self {
+            Self::RecklessOracle(_) => Archtype::AutoRifle,
+            Self::LotusEater(_) => Archtype::RocketSidearm,
+            Self::PraxicBlade(_) => Archtype::Sword,
+            Self::YeartideApex(_) => Archtype::SMG,
+        }
+    }
+
+    pub fn perks(self) -> [Perk; 2] {
+        match self {
+            Self::RecklessOracle(perks)
+            | Self::LotusEater(perks)
+            | Self::PraxicBlade(perks)
+            | Self::YeartideApex(perks) => perks,
+        }
+    }
+
     pub fn into_text_display<'a>(
         self,
         emoji_cache: &EmojiCache,
     ) -> Result<CreateTextDisplay<'a>, String> {
         let perks = self
-            .perks
+            .perks()
             .into_iter()
             .map(|p| p.to_string())
             .map(|s| {
@@ -131,10 +60,9 @@ impl Weapon<'_> {
             .collect::<Result<String, String>>()?;
 
         let text_display = CreateTextDisplay::new(format!(
-            "**{}**\n{} {}\n#{perks}",
-            self.name,
-            emoji_cache.emoji_str(&self.affinity.to_string())?,
-            self.archtype,
+            "**{self}**\n{} {}\n#{perks}",
+            emoji_cache.emoji_str(&self.affinity().to_string())?,
+            self.archtype(),
         ));
 
         Ok(text_display)
@@ -148,60 +76,78 @@ impl Weapon<'_> {
     }
 }
 
-impl<'a> From<Weapon<'a>> for CreateThumbnail<'a> {
-    fn from(value: Weapon<'a>) -> Self {
+impl Display for Weapon {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::RecklessOracle(_) => "Reckless Oracle",
+            Self::LotusEater(_) => "Lotus Eater",
+            Self::PraxicBlade(_) => "Praxic Blade",
+            Self::YeartideApex(_) => "Yeartide Apex",
+        };
+
+        write!(f, "{s}")
+    }
+}
+
+impl From<Weapon> for CreateThumbnail<'_> {
+    fn from(value: Weapon) -> Self {
         CreateThumbnail::new(value.into())
     }
 }
 
-impl<'a> From<Weapon<'a>> for CreateUnfurledMediaItem<'a> {
-    fn from(value: Weapon<'_>) -> Self {
-        let url = match value.name {
-            "Perfect Paradox" => {
-                "https://www.bungie.net/common/destiny2_content/icons/a1eda8ee294310235e24700ae40e7ec2.jpg"
+impl From<Weapon> for CreateUnfurledMediaItem<'_> {
+    fn from(value: Weapon) -> Self {
+        let url = match value {
+            // "Perfect Paradox" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/a1eda8ee294310235e24700ae40e7ec2.jpg"
+            // },
+            // "Devil's Ruin" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/32e03608e5f0c25002a2e7abcbcf7ac7.jpg"
+            // },
+            // "Third Iteration" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/58975dd6281e30bac63e9e6b3c868865.jpg"
+            // },
+            // "Mint Retrograde" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/fbf7032cc563c82757be6a7fe5e88713.jpg"
+            // },
+            // "Sunshot" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/b84b4aecd0b0b36b9b9bf247b290ba08.jpg"
+            // },
+            // "Phoneutria Fera" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/f028107777dd4286a213ec2cbd9544f5.jpg"
+            // },
+            // "Graviton Spike" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/ac56ad66eb1ebb8a371f9d3d3c768c5a.jpg"
+            // },
+            // "Navigator" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/8e2b12633d1778a2e502148b0dcafacc.jpg"
+            // },
+            // "IKELOS_SG_v1.0.3" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/e74e5e3e2ee712563245c8ed25b5794c.jpg"
+            // },
+            // "Monte Carlo" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/ad75fa3374e2ce5a549db8d7f672098c.jpg"
+            // },
+            // "New Malpais" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/d90d7a4fca9a90e3202ed402b87848dd.jpg"
+            // },
+            // "Dead Messenger" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/c2e44f40d97a0a9eb1af8d25fb8c0f03.jpg"
+            // },
+            // "Choir of One" => {
+            //     "https://www.bungie.net/common/destiny2_content/icons/e285e30c15aa9482df3f1f9c5810fe66.jpg"
+            // },
+            Weapon::RecklessOracle(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/af58615844b44293f5911ccaae913804.jpg"
             },
-            "Devil's Ruin" => {
-                "https://www.bungie.net/common/destiny2_content/icons/32e03608e5f0c25002a2e7abcbcf7ac7.jpg"
+            Weapon::LotusEater(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/548f5f1ca7d0bece0ba46d99846e56f7.jpg"
             },
-            "Third Iteration" => {
-                "https://www.bungie.net/common/destiny2_content/icons/58975dd6281e30bac63e9e6b3c868865.jpg"
+            Weapon::PraxicBlade(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/d63292c9248c5e3ae823605307140199.jpg"
             },
-            "Mint Retrograde" => {
-                "https://www.bungie.net/common/destiny2_content/icons/fbf7032cc563c82757be6a7fe5e88713.jpg"
-            },
-            "Sunshot" => {
-                "https://www.bungie.net/common/destiny2_content/icons/b84b4aecd0b0b36b9b9bf247b290ba08.jpg"
-            },
-            "Phoneutria Fera" => {
-                "https://www.bungie.net/common/destiny2_content/icons/f028107777dd4286a213ec2cbd9544f5.jpg"
-            },
-            "Graviton Spike" => {
-                "https://www.bungie.net/common/destiny2_content/icons/ac56ad66eb1ebb8a371f9d3d3c768c5a.jpg"
-            },
-            "Navigator" => {
-                "https://www.bungie.net/common/destiny2_content/icons/8e2b12633d1778a2e502148b0dcafacc.jpg"
-            },
-            "IKELOS_SG_v1.0.3" => {
-                "https://www.bungie.net/common/destiny2_content/icons/e74e5e3e2ee712563245c8ed25b5794c.jpg"
-            },
-            "Monte Carlo" => {
-                "https://www.bungie.net/common/destiny2_content/icons/ad75fa3374e2ce5a549db8d7f672098c.jpg"
-            },
-            "New Malpais" => {
-                "https://www.bungie.net/common/destiny2_content/icons/d90d7a4fca9a90e3202ed402b87848dd.jpg"
-            },
-            "Dead Messenger" => {
-                "https://www.bungie.net/common/destiny2_content/icons/c2e44f40d97a0a9eb1af8d25fb8c0f03.jpg"
-            },
-            "Choir of One" => {
-                "https://www.bungie.net/common/destiny2_content/icons/e285e30c15aa9482df3f1f9c5810fe66.jpg"
-            },
-            name => {
-                warn!(
-                    weapon = name,
-                    "loadouts: image URL not implemented for weapon"
-                );
-                ""
+            Weapon::YeartideApex(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/11238fa67ca0881554335d4612eda813.jpg"
             },
         };
 
@@ -220,7 +166,7 @@ pub enum Affinity {
 }
 
 impl Display for Affinity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
             Self::Kinetic => "kinetic",
             Self::Arc => "arc",
@@ -234,8 +180,62 @@ impl Display for Affinity {
     }
 }
 
+pub enum Archtype {
+    AutoRifle,
+    Bow,
+    FusionRifle,
+    Glaive,
+    BreechGrenadeLauncher,
+    GrenadeLauncher,
+    HandCannon,
+    LinearFusionRifle,
+    MachineGun,
+    RocketPulseRifle,
+    PulseRifle,
+    RocketLauncher,
+    ScoutRifle,
+    Shotgun,
+    RocketSidearm,
+    Sidearm,
+    SMG,
+    SniperRifle,
+    Sword,
+    TraceRifle,
+}
+
+impl Display for Archtype {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::AutoRifle => "Auto Rifle",
+            Self::Bow => "Bow",
+            Self::FusionRifle => "Fusion Rifle",
+            Self::Glaive => "Glaive",
+            Self::BreechGrenadeLauncher => "Breech Grenade Launcher",
+            Self::GrenadeLauncher => "Grenade Launcher",
+            Self::HandCannon => "Hand Cannon",
+            Self::LinearFusionRifle => "Linear Fusion Rifle",
+            Self::MachineGun => "Machine Gun",
+            Self::RocketPulseRifle => "Rocket Pulse Rifle",
+            Self::PulseRifle => "Pulse Rifle",
+            Self::RocketLauncher => "Rocket Launcher",
+            Self::ScoutRifle => "Scout Rifle",
+            Self::Shotgun => "Shotgun",
+            Self::RocketSidearm => "Rocket Sidearm",
+            Self::Sidearm => "Sidearm",
+            Self::SMG => "SMG",
+            Self::SniperRifle => "Sniper Rifle",
+            Self::Sword => "Sword",
+            Self::TraceRifle => "Trace Rifle",
+        };
+
+        write!(f, "{s}")
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum Perk {
+    DestabilizingRounds,
+    OneForAll,
     Pyrogenesis,
     CloseTheGap,
     ThreatDetector,
@@ -262,10 +262,15 @@ pub enum Perk {
     FanaticalLance,
     TempestCascade,
     TraitorsVessel,
+    RepulsorBrace,
+    RangedWeapon,
+    CormorantCombo,
+    HealClip,
+    ChaosReshaped,
 }
 
 impl Display for Perk {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
             Self::Pyrogenesis => "pyrogenesis",
             Self::CloseTheGap => "close_the_gap",
@@ -293,6 +298,13 @@ impl Display for Perk {
             Self::FanaticalLance => "fanatical_lance",
             Self::TempestCascade => "tempest_cascade",
             Self::TraitorsVessel => "traitors_vessel",
+            Self::DestabilizingRounds => "destabilizing_rounds",
+            Self::OneForAll => "one_for_all",
+            Self::RepulsorBrace => "repulsor_brace",
+            Self::RangedWeapon => "ranged_weapon",
+            Self::CormorantCombo => "cormorant_combo",
+            Self::HealClip => "heal_clip",
+            Self::ChaosReshaped => "chaos_reshaped",
         };
 
         write!(f, "{name}")

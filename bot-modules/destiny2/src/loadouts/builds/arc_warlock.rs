@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     ArtifactPerk,
     Aspect,
     ClassAbility,
@@ -18,32 +19,32 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
 };
 
-pub(super) const ARC_WARLOCK: Loadout<'_> = Loadout::new(
-    "Buddy Build",
-    DestinyClass::Warlock,
-    Mode::PvE,
-    SUBCLASS,
-    GEAR,
-    Details::new("LlamaD2", "https://dim.gg/i2kny6a/Arc")
+pub(super) const ARC_WARLOCK: Loadout<'_> = Loadout {
+    name: "Buddy Build",
+    class: DestinyClass::Warlock,
+    mode: Mode::PvE,
+    tags: [None; 3],
+    subclass: SUBCLASS,
+    gear: GEAR,
+    artifact: Artifact::Unknown([
+        Some(ArtifactPerk::RefreshThreads),
+        Some(ArtifactPerk::ElementalCoalescence),
+        Some(ArtifactPerk::Shieldcrush),
+        Some(ArtifactPerk::ElementalOverdrive),
+        None,
+        None,
+        None, None
+    ]),
+    details: Details::new("LlamaD2", "https://dim.gg/i2kny6a/Arc")
         .video("https://youtu.be/sFzAdAl3ULw"),
-)
-.artifact([
-    Some(ArtifactPerk::RefreshThreads),
-    Some(ArtifactPerk::ElementalCoalescence),
-    Some(ArtifactPerk::Shieldcrush),
-    Some(ArtifactPerk::ElementalOverdrive),
-    None,
-    None,
-    None,
-    None,
-]);
+};
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Arc,
+    kind: Subclass::Arc,
     abilities: ABILITIES,
     aspects: [Aspect::ArcSoul, Aspect::IonicSentry],
     fragments: [

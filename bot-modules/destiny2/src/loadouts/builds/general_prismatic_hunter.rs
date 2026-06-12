@@ -3,6 +3,7 @@ use super::{
     Abilities,
     Armour,
     ArmourName,
+    Artifact,
     ArtifactPerk,
     Aspect,
     ClassAbility,
@@ -18,34 +19,33 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
     Super,
     Tag,
 };
 
-pub(super) const GENERAL_PRISMATIC_HUNTER: Loadout<'_> = Loadout::new(
-    "Ascension",
-    DestinyClass::Hunter,
-    Mode::PvE,
-    SUBCLASS,
-    GEAR,
-    Details::new("LlamaD2", "https://dim.gg/x6wkejy/Prismatic")
+pub(super) const GENERAL_PRISMATIC_HUNTER: Loadout<'_> = Loadout {
+    name: "Ascension",
+    class: DestinyClass::Hunter,
+    mode: Mode::PvE,
+    tags: [Some(Tag::AbilityFocused), None, None],
+    subclass: SUBCLASS,
+    gear: GEAR,
+    artifact: Artifact::Unknown([
+        Some(ArtifactPerk::AntiBarrierScoutAndPulse),
+        Some(ArtifactPerk::TightlyWoven),
+        Some(ArtifactPerk::RapidPrecisionRifling),
+        Some(ArtifactPerk::ElementalBenevolence),
+        Some(ArtifactPerk::ElementalCoalescence),
+        Some(ArtifactPerk::Shieldcrush),
+        Some(ArtifactPerk::TangledWeb),
+        None,
+    ]),
+    details: Details::new("LlamaD2", "https://dim.gg/x6wkejy/Prismatic")
         .video("https://youtu.be/Cqe3VZew2Vc"),
-)
-.tags([Some(Tag::AbilityFocused), None, None])
-.artifact([
-    Some(ArtifactPerk::AntiBarrierScoutAndPulse),
-    Some(ArtifactPerk::TightlyWoven),
-    Some(ArtifactPerk::RapidPrecisionRifling),
-    Some(ArtifactPerk::ElementalBenevolence),
-    Some(ArtifactPerk::ElementalCoalescence),
-    Some(ArtifactPerk::Shieldcrush),
-    Some(ArtifactPerk::TangledWeb),
-    None,
-]);
+};
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Prismatic,
+    kind: Subclass::Prismatic,
     abilities: ABILITIES,
     aspects: [Aspect::Ascension, Aspect::GunpowderGamble],
     fragments: [

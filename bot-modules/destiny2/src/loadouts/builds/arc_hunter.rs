@@ -17,34 +17,34 @@ use super::{
     Mode,
     Stat,
     Subclass,
-    SubclassType,
+    Subclass,
     Super,
     Tag,
 };
 
-pub(super) const ARC_HUNTER: Loadout<'_> = Loadout::new(
-    "Gifted Conviction",
-    DestinyClass::Hunter,
-    Mode::PvE,
-    SUBCLASS,
-    GEAR,
-    Details::new("LlamaD2", "https://dim.gg/5e6byba/Arc")
+pub(super) const ARC_HUNTER: Loadout<'_> = Loadout {
+    name: "Gifted Conviction",
+    class: DestinyClass::Hunter,
+    mode: Mode::PvE,
+    tags: [Some(Tag::EndGame), None, None],
+    subclass: SUBCLASS,
+    gear: GEAR,
+    artifact: super::Artifact::Unknown([
+        Some(ArtifactPerk::ElementalBenevolence),
+        Some(ArtifactPerk::RefreshThreads),
+        Some(ArtifactPerk::ElementalCoalescence),
+        Some(ArtifactPerk::Shieldcrush),
+        None,
+        None,
+        None,
+        None
+    ]),
+    details: Details::new("LlamaD2", "https://dim.gg/5e6byba/Arc")
         .video("https://youtu.be/UDIJdVTl5SE"),
-)
-.tags([Some(Tag::EndGame), None, None])
-.artifact([
-    Some(ArtifactPerk::ElementalBenevolence),
-    Some(ArtifactPerk::RefreshThreads),
-    Some(ArtifactPerk::ElementalCoalescence),
-    Some(ArtifactPerk::Shieldcrush),
-    None,
-    None,
-    None,
-    None,
-]);
+};
 
 const SUBCLASS: Subclass = Subclass {
-    kind: SubclassType::Arc,
+    kind: Subclass::Arc,
     abilities: ABILITIES,
     aspects: [Aspect::TempestStrike, Aspect::Ascension],
     fragments: [
