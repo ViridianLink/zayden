@@ -584,7 +584,7 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
             .field("Origin Trait", value.origin_trait(), false);
 
         if let Some(icon) = value.icon() {
-            embed = embed.thumbnail(icon);
+            embed = embed.thumbnail(icon, None);
         }
 
         if let Some(notes) = value.notes.as_deref() {

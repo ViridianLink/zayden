@@ -158,8 +158,8 @@ impl From<ai::Error> for BotError {
     }
 }
 
-impl From<bungie_api::Error> for BotError {
-    fn from(e: bungie_api::Error) -> Self {
+impl From<bungie_api::BungieApiError> for BotError {
+    fn from(e: bungie_api::BungieApiError) -> Self {
         Self::Other(e.to_string())
     }
 }

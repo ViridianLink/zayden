@@ -23,9 +23,6 @@ use crate::bindings::gambling::{
 use crate::{Result, ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
 
 /// Bot-specific application state stored in Serenity's context data.
-///
-/// Wraps the shared [`AppState`] and adds Discord-gateway-only caches.
-/// Stored as `Arc<RwLock<BotState>>` in `ctx.data`.
 pub struct BotState {
     pub app: Arc<AppState>,
     bungie_client: Arc<BungieClient>,
@@ -41,7 +38,7 @@ impl BotState {
     pub fn new(
         app: Arc<AppState>,
         config: &BotConfig,
-    ) -> std::result::Result<Self, bungie_api::Error> {
+    ) -> std::result::Result<Self, bungie_api::BungieApiError> {
         let bungie_client =
             BungieClientBuilder::new(config.bungie_api_key.clone()).build()?;
 

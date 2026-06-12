@@ -5,15 +5,15 @@ use zayden_core::error::{HandlerError, Respond};
 
 pub type Result<T> = std::result::Result<T, EndgameAnalysisError>;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum EndgameAnalysisError {
     WeaponNotFound(String),
 
-    Io(std::io::Error),
-    Json(serde_json::Error),
-    BungieApi(bungie_api::Error),
-    GoogleSheets(google_sheets_api::Error),
-    ZaydenCore(ZaydenError),
+    Io(#[from] std::io::Error),
+    Json(#[from] serde_json::Error),
+    BungieApi(#[from] bungie_api::BungieApiError),
+    GoogleSheets(#[from] google_sheets_api::Error),
+    ZaydenCore(#[from] ZaydenError),
 }
 
 impl std::fmt::Display for EndgameAnalysisError {
@@ -29,19 +29,6 @@ impl std::fmt::Display for EndgameAnalysisError {
     }
 }
 
-impl std::error::Error for EndgameAnalysisError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Io(e) => Some(e),
-            Self::Json(e) => Some(e),
-            Self::BungieApi(e) => Some(e),
-            Self::GoogleSheets(e) => Some(e),
-            Self::ZaydenCore(e) => Some(e),
-            Self::WeaponNotFound(_) => None,
-        }
-    }
-}
-
 impl Respond for EndgameAnalysisError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
@@ -52,42 +39,6 @@ impl Respond for EndgameAnalysisError {
             | Self::BungieApi(_)
             | Self::GoogleSheets(_) => None,
         }
-    }
-}
-
-impl From<serenity::Error> for EndgameAnalysisError {
-    fn from(value: serenity::Error) -> Self {
-        Self::ZaydenCore(ZaydenError::Serenity(value))
-    }
-}
-
-impl From<std::io::Error> for EndgameAnalysisError {
-    fn from(e: std::io::Error) -> Self {
-        Self::Io(e)
-    }
-}
-
-impl From<serde_json::Error> for EndgameAnalysisError {
-    fn from(e: serde_json::Error) -> Self {
-        Self::Json(e)
-    }
-}
-
-impl From<bungie_api::Error> for EndgameAnalysisError {
-    fn from(e: bungie_api::Error) -> Self {
-        Self::BungieApi(e)
-    }
-}
-
-impl From<google_sheets_api::Error> for EndgameAnalysisError {
-    fn from(e: google_sheets_api::Error) -> Self {
-        Self::GoogleSheets(e)
-    }
-}
-
-impl From<ZaydenError> for EndgameAnalysisError {
-    fn from(e: ZaydenError) -> Self {
-        Self::ZaydenCore(e)
     }
 }
 
@@ -106,5 +57,11 @@ impl From<HandlerError> for EndgameAnalysisError {
 impl From<EndgameAnalysisError> for HandlerError {
     fn from(e: EndgameAnalysisError) -> Self {
         Self::from_respond(e)
+    }
+}
+
+impl From<serenity::Error> for EndgameAnalysisError {
+    fn from(value: serenity::Error) -> Self {
+        Self::ZaydenCore(zayden_core::CoreError::Serenity(value))
     }
 }

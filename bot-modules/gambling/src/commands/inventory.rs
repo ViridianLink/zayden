@@ -356,7 +356,7 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
         );
 
     if let Some(avatar) = interaction.user.avatar_url() {
-        embed = embed.thumbnail(avatar);
+        embed = embed.thumbnail(avatar, None);
     }
 
     interaction

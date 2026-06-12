@@ -7,7 +7,7 @@ pub enum DestinyError {
     #[error(transparent)]
     Discord(#[from] serenity::Error),
     #[error(transparent)]
-    BungieApi(#[from] bungie_api::Error),
+    BungieApi(#[from] bungie_api::BungieApiError),
     #[error(transparent)]
     GoogleSheets(#[from] google_sheets_api::Error),
     #[error(transparent)]

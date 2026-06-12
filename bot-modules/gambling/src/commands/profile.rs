@@ -199,7 +199,7 @@ impl Commands {
             row.into_embed(&inventory_row, &emojis)?.title(user.display_name());
 
         if let Some(avatar) = user.avatar_url() {
-            embed = embed.thumbnail(avatar);
+            embed = embed.thumbnail(avatar, None);
         }
 
         interaction
