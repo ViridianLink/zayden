@@ -1,12 +1,12 @@
 use super::super::titan::arc::{Abilities, Aspect, Melee, Super};
 use super::super::titan::{
+    Arms,
+    Chest,
     ClassAbility,
-    Gauntlets,
-    Greaves,
     Helmet,
     Jump,
+    Legs,
     Mark,
-    Plate,
     Subclass,
 };
 use super::super::{
@@ -62,17 +62,17 @@ pub(crate) const ARC_TITAN: Loadout<'_> = Loadout {
                 HelmetMod::SpecialAmmoScout,
                 HelmetMod::VoidSiphon,
             ]),
-            gauntlets: Gauntlets::Any([
+            arms: Arms::Any([
                 ArmsMod::VoidLoader,
                 ArmsMod::BolsteringDetonation,
                 ArmsMod::Firepower,
             ]),
-            plate: Plate::HeartOfInmostLight([
+            chest: Chest::HeartOfInmostLight([
                 ChestMod::ConcussiveDampener,
                 ChestMod::Empty,
                 ChestMod::Empty,
             ]),
-            greaves: Greaves::Any([
+            legs: Legs::Any([
                 LegsMod::StacksOnStacks,
                 LegsMod::Recuperation,
                 LegsMod::Insulation,

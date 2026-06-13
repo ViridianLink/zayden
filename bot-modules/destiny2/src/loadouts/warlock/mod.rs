@@ -9,6 +9,8 @@ pub(super) mod void;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
+pub(super) use armour::{Bond, Boots, Gloves, Hood, Robes};
+
 use super::{Abilities, Aspect, Subclass as SubclassTrait, box_aspect};
 
 #[expect(dead_code, reason = "reserved for future loadout builds")]

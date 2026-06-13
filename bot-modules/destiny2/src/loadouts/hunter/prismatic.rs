@@ -90,7 +90,7 @@ impl Display for Melee {
 
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub(super) enum Grenade {
+pub(crate) enum Grenade {
     Grapple,
     MagneticGrenade,
     SwarmGrenade,

@@ -8,12 +8,22 @@ mod mods;
 mod tag;
 mod titan;
 mod warlock;
-pub mod weapons;
+mod weapons;
 
 use std::fmt::{Display, Formatter, Write};
 use std::{fmt, iter};
 
-use builds::{ARC_TITAN, SOLAR_TITAN, VOID_TITAN};
+use builds::{
+    ARC_TITAN,
+    PRISMATIC_HUNTER,
+    SOLAR_TITAN,
+    SOLAR_WARLOCK,
+    STASIS_HUNTER,
+    STRAND_WARLOCK,
+    VOID_HUNTER,
+    VOID_TITAN,
+    VOID_WARLOCK,
+};
 use class::DestinyClass;
 use fragments::{
     ArcFragment,
@@ -72,7 +82,17 @@ use zayden_core::{
 
 use crate::Result;
 
-const BUILDS: [Loadout<'_>; 3] = [ARC_TITAN, VOID_TITAN, SOLAR_TITAN];
+const BUILDS: [Loadout<'_>; 9] = [
+    ARC_TITAN,
+    PRISMATIC_HUNTER,
+    SOLAR_TITAN,
+    SOLAR_WARLOCK,
+    STASIS_HUNTER,
+    STRAND_WARLOCK,
+    VOID_HUNTER,
+    VOID_TITAN,
+    VOID_WARLOCK,
+];
 const DUPLICATE: EmojiId = EmojiId::new(1_395_743_560_388_706_374);
 
 #[derive(Clone, Copy)]
@@ -800,10 +820,24 @@ pub struct Gear {
 pub enum Armour {
     Titan {
         helmet: titan::Helmet,
-        gauntlets: titan::Gauntlets,
-        plate: titan::Plate,
-        greaves: titan::Greaves,
+        arms: titan::Arms,
+        chest: titan::Chest,
+        legs: titan::Legs,
         mark: titan::Mark,
+    },
+    Warlock {
+        helmet: warlock::Hood,
+        gloves: warlock::Gloves,
+        robes: warlock::Robes,
+        boots: warlock::Boots,
+        bond: warlock::Bond,
+    },
+    Hunter {
+        helmet: hunter::Helmet,
+        gauntlets: hunter::Gauntlets,
+        vest: hunter::Vest,
+        legs: hunter::Greaves,
+        cloak: hunter::Cloak,
     },
 }
 
@@ -811,18 +845,26 @@ impl Armour {
     #[must_use]
     pub fn items(self) -> [Box<dyn ArmourItem>; 5] {
         match self {
-            Self::Titan {
-                helmet,
-                gauntlets,
-                plate: chest,
-                greaves: legs,
-                mark: class,
-            } => [
+            Self::Titan { helmet, arms, chest, legs, mark } => [
                 Box::new(helmet),
-                Box::new(gauntlets),
+                Box::new(arms),
                 Box::new(chest),
                 Box::new(legs),
-                Box::new(class),
+                Box::new(mark),
+            ],
+            Self::Warlock { helmet, gloves: gauntlets, robes, boots, bond } => [
+                Box::new(helmet),
+                Box::new(gauntlets),
+                Box::new(robes),
+                Box::new(boots),
+                Box::new(bond),
+            ],
+            Self::Hunter { helmet, gauntlets, vest, legs, cloak } => [
+                Box::new(helmet),
+                Box::new(gauntlets),
+                Box::new(vest),
+                Box::new(legs),
+                Box::new(cloak),
             ],
         }
     }
@@ -867,329 +909,6 @@ pub trait ArmourItem: Display {
 
     fn as_unfurled_media_item<'a>(&self) -> CreateUnfurledMediaItem<'a>;
 }
-
-// #[derive(Clone, Copy)]
-// pub struct Armour {
-//     name: ArmourName,
-//     mods: [Mod; 3],
-// }
-
-// impl Armour {
-//     #[must_use]
-//     pub const fn new(name: ArmourName, mods: [Mod; 3]) -> Self {
-//         Self { name, mods }
-//     }
-
-// #[derive(Clone, Copy)]
-// pub enum ArmourName {
-//     MelasPanoplia,
-//     WormgodCaress,
-//     BushidoHelm,
-//     BushidoPlate,
-//     BushidoGreaves,
-//     BushidoMark,
-//     BushidoCowl,
-//     BushidoGrips,
-//     LastDisciplineVest,
-//     LastDisciplineStrides,
-//     CollectivePsycheCover,
-//     CollectivePsycheGloves,
-//     StarfireProtocol,
-//     CollectivePsycheBoots,
-//     CollectivePsycheBond,
-//     LustrousHelm,
-//     LustrousPlate,
-//     LustrousGreaves,
-//     LustrousMark,
-//     AnInsurmountableSkullfort,
-//     CollectivePsycheGauntlets,
-//     CollectivePsychePlate,
-//     CollectivePsycheGreaves,
-//     CollectivePsycheMark,
-//     MaskOfBakris,
-//     Relativism((&'static str, &'static str)),
-//     BushidoVest,
-//     LastDisciplineCloak,
-//     CollectivePsycheCasque,
-//     CollectivePsycheCuirass,
-//     CollectivePsycheSleeves,
-//     CollectivePsycheStrides,
-//     CollectivePsycheHelm,
-//     WishfulIgnorance,
-//     GiftedConviction,
-//     HunterHelmet,
-//     HunterArms,
-//     HunterLegs,
-//     Cloak,
-//     AionAdapterGloves,
-//     AionAdapterRobes,
-//     AionAdapterBoots,
-//     AionAdapterBond,
-//     VeritysBrow,
-//     AionAdapterHood,
-//     AIONRenewalRobes,
-//     Swarmers,
-//     AIONRenewalBond,
-//     WarlockHood,
-//     WarlockGloves,
-//     WarlockRobes,
-//     WarlockBoots,
-//     Solipsism((&'static str, &'static str)),
-//     TechsecGloves,
-//     TechsecVestment,
-//     TwofoldCrownBoots,
-//     TwofoldCrownBond,
-// }
-
-// impl Display for ArmourName {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         let url = match self {
-//             Self::MelasPanoplia => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/8546b88189f69d88f8efa3d258f67026.jpg"
-//             },
-//             Self::WormgodCaress => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/f93fb202061de21b42138c9348359d27.jpg"
-//             },
-//             Self::BushidoHelm => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/9879c7eda4c3bcb56712a964f57717e9.jpg"
-//             },
-//             Self::BushidoPlate => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/35c2f575bf2584e4e9729bcbb5c62a85.jpg"
-//             },
-//             Self::BushidoGreaves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/aaab3065cf9f92898ef641da58b2585b.jpg"
-//             },
-//             Self::BushidoMark => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/9376932f07459b7a5858dfa73730c84c.jpg"
-//             },
-//             Self::BushidoCowl => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/9c38bcbbb84005d4c1bd6b9184a58571.jpg"
-//             },
-//             Self::BushidoGrips => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/8e948205999822eb4ba7933ef05ba56c.jpg"
-//             },
-//             Self::LastDisciplineVest => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/1f3f5870b6e1163d589da044c48a20ca.jpg"
-//             },
-//             Self::LastDisciplineStrides => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/db74932fddacc7a8a98844f2480e4a7f.jpg"
-//             },
-//             Self::CollectivePsycheCover => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/41157409d6cfd4da8f44f36f1f7d7e40.jpg"
-//             },
-//             Self::CollectivePsycheGloves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/fec9d8ed57853226cc031d6ffed9a70c.jpg"
-//             },
-//             Self::StarfireProtocol => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/707703c3e72776cbf463a2d6427f5b43.jpg"
-//             },
-//             Self::CollectivePsycheBoots => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/8d9a8b0ba16b2d0bc9fa5ab1266ecb9b.jpg"
-//             },
-//             Self::CollectivePsycheBond => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/19e70cd67f1f361003bcdaa59952fbab.jpg"
-//             },
-//             Self::LustrousHelm => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/67d2e115db35baf3509a7a54d2d620be.jpg"
-//             },
-//             Self::LustrousPlate => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/b82af1a81e8fdf6f3101c3ec85116387.jpg"
-//             },
-//             Self::LustrousGreaves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/775e22c8c987b15e3834efcb35c84996.jpg"
-//             },
-//             Self::LustrousMark => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/7e2d5b6b4bfbc99b00f1447836ba6795.jpg"
-//             },
-//             Self::AnInsurmountableSkullfort => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/b734daf76fba2c835ba58ebca84c1d61.jpg"
-//             },
-//             Self::CollectivePsycheGauntlets => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/98aeaf66c0dd814cb1d72ef4b1c725bc.jpg"
-//             },
-//             Self::CollectivePsychePlate => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/edbc60a615bd223bfe4cd30c46a58d49.jpg"
-//             },
-//             Self::CollectivePsycheGreaves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/d8a5bd616380eff7886b55cf5a496111.jpg"
-//             },
-//             Self::CollectivePsycheMark => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/845d32ecf59ca0eea8c54cf9e108eb3d.jpg"
-//             },
-//             Self::MaskOfBakris => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/c753c91b8ff629cc60e835aebc8da958.jpg"
-//             },
-//             Self::Relativism(_) => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/e4acc5bd83081bcf82f8e7c8905b58c4.jpg"
-//             },
-//             Self::BushidoVest => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/982d331f44b50ab074c856effdf4ac23.jpg"
-//             },
-//             Self::LastDisciplineCloak => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/da32491871e833d20955b2f055d59ab6.jpg"
-//             },
-//             Self::CollectivePsycheCasque => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/2ad2c64c11a5b3f86382cfb94517a561.jpg"
-//             },
-//             Self::CollectivePsycheCuirass => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/0aa178e78bb12e1962e183b2696f9f92.jpg"
-//             },
-//             Self::CollectivePsycheSleeves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/f64ecc6277d8a4df49813adb071e4dbb.jpg"
-//             },
-//             Self::CollectivePsycheStrides => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/7b661a41864b375de2a3d4b299cd8a99.jpg"
-//             },
-//             Self::CollectivePsycheHelm => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/eded09222a4d5bab546ad3cf04d24bf3.jpg"
-//             },
-//             Self::WishfulIgnorance => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/4a0247f3edb22758ba945e6ba341721b.jpg"
-//             },
-//             Self::GiftedConviction => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/a8f8856e51daa04775b2d510b2ca12f1.jpg"
-//             },
-//             Self::HunterHelmet => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/d2abc2257f85934b8ff763e563f02cd9.jpg"
-//             },
-//             Self::HunterArms => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/1cfe58452f5dae674b7f6d0f816e9592.jpg"
-//             },
-//             Self::HunterLegs => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/9cc3f7461305a1ece9f91f5a25d9e7a9.jpg"
-//             },
-//             Self::Cloak => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/363fd4e1311408d0f5400f6d9579cf2f.jpg"
-//             },
-//             Self::VeritysBrow => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/1eaa3f087b696caa6e8308e65883fb22.jpg"
-//             },
-//             Self::AionAdapterGloves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/3300af1f577f999d59651d10ee16df52.jpg"
-//             },
-//             Self::AionAdapterRobes => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/6e431ef7eb277ca27ac4204b32cf03a1.jpg"
-//             },
-//             Self::AionAdapterBoots => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/09a5ab08b8f9f258fe5357a67188a3c9.jpg"
-//             },
-//             Self::AionAdapterBond => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/ed84553c654e3c5a74c83efa5354ffd8.jpg"
-//             },
-//             Self::AionAdapterHood => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/fc6f5043c2e35c80fa87cf557e105cb7.jpg"
-//             },
-//             Self::AIONRenewalRobes => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/90c55f512d646cf5100af428a194fdd0.jpg"
-//             },
-//             Self::Swarmers => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/1267deeabc5cb6863332d4ec05b5afc8.jpg"
-//             },
-//             Self::AIONRenewalBond => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/2d4242012ce9246f3289dafddfa9dd60.jpg"
-//             },
-//             Self::WarlockHood => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/1cb2285f74ece98b03e170a3f8d9abdc.jpg"
-//             },
-//             Self::WarlockGloves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/bfece8a540293e1ac584d894caaa7258.jpg"
-//             },
-//             Self::WarlockRobes => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/9fc0d6f0828aea5abe2f13354c6e63b5.jpg"
-//             },
-//             Self::WarlockBoots => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/1c3ae268b2f129c252f0609fe52b8028.jpg"
-//             },
-//             Self::Solipsism(_) => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/5d657945620203cc8a7b5ade47e6e12a.jpg"
-//             },
-//             Self::TechsecGloves => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/fe1fcf9002c3148bd933801a43613102.jpg"
-//             },
-//             Self::TechsecVestment => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/2e53661958423ed5bfd1fcdd3d2f0ec9.jpg"
-//             },
-//             Self::TwofoldCrownBoots => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/190b1833593db2263bf8318e59f1db31.jpg"
-//             },
-//             Self::TwofoldCrownBond => {
-//                 "https://www.bungie.net/common/destiny2_content/icons/efcc8e332f9d5a3c8ef4b4d0511f7673.jpg"
-//             },
-//         };
-
-//         write!(f, "{url}")
-//     }
-// }
-
-// impl Debug for ArmourName {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         let name = match self {
-//             Self::MelasPanoplia => "Melas Panoplia",
-//             Self::WormgodCaress => "Wormgod Caress",
-//             Self::BushidoHelm => "Bushido Helm",
-//             Self::BushidoPlate => "Bushido Plate",
-//             Self::BushidoGreaves => "Bushido Greaves",
-//             Self::BushidoMark => "Bushido Mark",
-//             Self::BushidoCowl => "Bushido Cowl",
-//             Self::BushidoGrips => "Bushido Grips",
-//             Self::LastDisciplineVest => "Last Discipline Vest",
-//             Self::LastDisciplineStrides => "Last Discipline Strides",
-//             Self::CollectivePsycheCover => "Collective Psyche Cover",
-//             Self::CollectivePsycheGloves => "Collective Psyche Gloves",
-//             Self::StarfireProtocol => "Starfire Protocol",
-//             Self::CollectivePsycheBoots => "Collective Psyche Boots",
-//             Self::CollectivePsycheBond => "Collective PsycheBond",
-//             Self::LustrousHelm => "Lustrous Helm",
-//             Self::LustrousPlate => "Lustrous Plate",
-//             Self::LustrousGreaves => "Lustrous Greaves",
-//             Self::LustrousMark => "Lustrous Mark",
-//             Self::AnInsurmountableSkullfort => "An Insurmountable Skullfort",
-//             Self::CollectivePsycheGauntlets => "Collective Psyche Gauntlets",
-//             Self::CollectivePsychePlate => "Collective Psyche Plate",
-//             Self::CollectivePsycheGreaves => "Collective Psyche Greaves",
-//             Self::CollectivePsycheMark => "Collective Psyche Mark",
-//             Self::MaskOfBakris => "Mask of Bakris",
-//             Self::Relativism(perks) => {
-//                 &format!("Relativism ({} + {})", perks.0, perks.1)
-//             },
-//             Self::BushidoVest => "Bushido Vest",
-//             Self::LastDisciplineCloak => "Last Discipline Cloak",
-//             Self::CollectivePsycheCasque => "Collective Psyche Casque",
-//             Self::CollectivePsycheCuirass => "Collective Psyche Cuirass",
-//             Self::CollectivePsycheSleeves => "Collective Psyche Sleeves",
-//             Self::CollectivePsycheStrides => "Collective Psyche Strides",
-//             Self::CollectivePsycheHelm => "Collective Psyche Helm",
-//             Self::WishfulIgnorance => "Wishful Ignorance",
-//             Self::GiftedConviction => "Gifted Conviction",
-//             Self::HunterHelmet => "Any Helmet",
-//             Self::HunterArms => "Any Arms",
-//             Self::HunterLegs => "Any Legs",
-//             Self::Cloak => "Any Cloak",
-//             Self::AionAdapterGloves => "Aion Adapter Gloves",
-//             Self::AionAdapterRobes => "Aion Adapter Robes",
-//             Self::AionAdapterBoots => "Aion Adapter Boots",
-//             Self::AionAdapterBond => "Aion Adapter Bond",
-//             Self::VeritysBrow => "Verity's Brow",
-//             Self::AionAdapterHood => "AION Adapter Hood",
-//             Self::AIONRenewalRobes => "AION Renewal Robes",
-//             Self::Swarmers => "Swarmers",
-//             Self::AIONRenewalBond => "AION Renewal Bond",
-//             Self::WarlockHood => "Any Hood",
-//             Self::WarlockGloves => "Any Gloves",
-//             Self::WarlockRobes => "Any Robe",
-//             Self::WarlockBoots => "Any Boots",
-//             Self::Solipsism(perks) => {
-//                 &format!("Solipsism ({} + {})", perks.0, perks.1)
-//             },
-//             Self::TechsecGloves => "Techsec Gloves",
-//             Self::TechsecVestment => "Techsec Vestment",
-//             Self::TwofoldCrownBoots => "Twofold Crown Boots",
-//             Self::TwofoldCrownBond => "Twofold Crown Bond",
-//         };
-
-//         write!(f, "{name}")
-//     }
-// }
 
 #[derive(Clone, Copy)]
 pub enum Stat {

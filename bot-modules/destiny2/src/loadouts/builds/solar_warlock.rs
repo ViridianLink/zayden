@@ -1,101 +1,107 @@
-use super::weapons::{MINT_RETROGRADE, SUNSHOT};
-use super::{
-    Abilities,
-    Armour,
-    ArmourName,
-    Artifact,
-    ArtifactPerk,
-    Aspect,
+use super::super::warlock::solar::{Abilities, Aspect, Melee, Super};
+use super::super::warlock::{
+    Bond,
+    Boots,
     ClassAbility,
+    Gloves,
+    Hood,
+    Jump,
+    Robes,
+    Subclass,
+};
+use super::super::{
+    Armour,
+    ArmsMod,
+    Artifact,
+    ChestMod,
+    ClassItemMod,
     DestinyClass,
     Details,
-    Fragment,
     Gear,
-    Grenade,
-    Jump,
+    HelmetMod,
+    LegsMod,
     Loadout,
-    Melee,
-    Mod,
     Mode,
+    Perk,
+    QueensfoilCenser,
+    SolarFragment,
+    SolarGrenade,
     Stat,
-    Subclass,
-    Subclass,
-    Super,
+    Weapon,
 };
 
-pub(super) const SOLAR_WARLOCK: Loadout<'_> = Loadout {
-    name: "Starfire Protocol",
-    class: DestinyClass::Warlock,
+pub const SOLAR_WARLOCK: Loadout<'_> = Loadout {
+    name: "Boots of the Assembler",
+    class: DestinyClass::Warlock(Subclass::Solar {
+        abilities: Abilities {
+            super_: Super::WellOfRadiance,
+            class: ClassAbility::HealingRift,
+            jump: Jump::BurstJump,
+            melee: Melee::IncineratorSnap,
+            grenade: SolarGrenade::Healing,
+        },
+        aspects: [
+            Aspect::Hellion([SolarFragment::Singeing, SolarFragment::Benevolence]),
+            Aspect::IcarusDash([
+                SolarFragment::Ashes,
+                SolarFragment::Torches,
+                SolarFragment::Searing,
+            ]),
+        ],
+    }),
     mode: Mode::PvE,
     tags: [None; 3],
-    subclass: SUBCLASS,
-    gear: GEAR,
-    artifact: Artifact::Unknown([
-        Some(ArtifactPerk::FeverAndChill),
-        Some(ArtifactPerk::RefreshThreads),
-        Some(ArtifactPerk::CauterizedDarkness),
-        Some(ArtifactPerk::RadiantShrapnel),
-        Some(ArtifactPerk::Shieldcrush),
+    gear: Gear {
+        weapons: [
+            Some(Weapon::MintRetrograde([Perk::BeaconRounds, Perk::BaitAndSwitch])),
+            Some(Weapon::ChoirOfOne(Perk::Onslaught)),
+            None,
+        ],
+        armour: Armour::Warlock {
+            helmet: Hood::Any([
+                HelmetMod::SpecialAmmoFinder,
+                HelmetMod::SpecialAmmoScout,
+                HelmetMod::VoidSiphon,
+            ]),
+            gloves: Gloves::Any([
+                ArmsMod::MeleeFont,
+                ArmsMod::VoidLoader,
+                ArmsMod::FocusingStrike,
+            ]),
+            robes: Robes::Any([
+                ChestMod::ConcussiveDampener,
+                ChestMod::Empty,
+                ChestMod::Empty,
+            ]),
+            boots: Boots::BootsOfTheAssembler([
+                LegsMod::StacksOnStacks,
+                LegsMod::VoidScavenger,
+                LegsMod::Empty,
+            ]),
+            bond: Bond::Any([
+                ClassItemMod::ClassFont,
+                ClassItemMod::TimeDilation,
+                ClassItemMod::PowerfulAttraction,
+            ]),
+        },
+        stats_priority: [
+            Stat::Weapons(200),
+            Stat::Super(200),
+            Stat::Class(200),
+            Stat::Grenade(200),
+            Stat::Melee(200),
+            Stat::Health(200),
+        ],
+    },
+    artifact: Artifact::QueensfoilCenser([
+        Some(QueensfoilCenser::RaysOfPrecision),
+        Some(QueensfoilCenser::RevitalizingBlast),
+        None,
+        None,
         None,
         None,
         None,
     ]),
-    details: Details::new("LlamaD2", "https://dim.gg/aelfwzq/Solar")
-        .video("https://www.youtube.com/watch?v=AkDl3T_iIuc"),
-};
-
-const SUBCLASS: Subclass = Subclass {
-    kind: Subclass::Solar,
-    abilities: ABILITIES,
-    aspects: [Aspect::TouchOfFlame, Aspect::Hellion],
-    fragments: [
-        Some(Fragment::EmberOfMercy),
-        Some(Fragment::EmberOfEmpyrean),
-        Some(Fragment::EmberOfTorches),
-        Some(Fragment::EmberOfSearing),
-        None,
-    ],
-};
-
-const ABILITIES: Abilities = Abilities {
-    super_: Super::SongOfFlame,
-    class: ClassAbility::PhoenixDive,
-    jump: Jump::BurstGlide,
-    melee: Melee::IncineratorSnap,
-    grenade: Grenade::Fusion,
-};
-
-const GEAR: Gear<'_> = Gear {
-    weapons: [Some(MINT_RETROGRADE), Some(SUNSHOT), None],
-    armour: [
-        Armour::new(ArmourName::CollectivePsycheCover, [
-            Mod::HarmonicSiphon,
-            Mod::SuperFont,
-            Mod::AshesToAssets,
-        ]),
-        Armour::new(ArmourName::CollectivePsycheGloves, [
-            Mod::GrenadeFont,
-            Mod::GrenadeFont,
-            Mod::Firepower,
-        ]),
-        Armour::new(ArmourName::StarfireProtocol, [Mod::Empty; 3]),
-        Armour::new(ArmourName::CollectivePsycheBoots, [
-            Mod::StacksOnStacks,
-            Mod::Innervation,
-            Mod::StrandScavenger,
-        ]),
-        Armour::new(ArmourName::CollectivePsycheBond, [
-            Mod::TimeDilation,
-            Mod::Reaper,
-            Mod::PowerfulAttraction,
-        ]),
-    ],
-    stats_priority: [
-        Stat::Grenade(200),
-        Stat::Super(200),
-        Stat::Melee(200),
-        Stat::Class(200),
-        Stat::Health(200),
-        Stat::Weapons(200),
-    ],
+    details: Details::new("LlamaD2", "https://dim.gg/la56xhi/Raid")
+        .video("https://youtu.be/Gt2pLQvbZUA?t=944"),
 };

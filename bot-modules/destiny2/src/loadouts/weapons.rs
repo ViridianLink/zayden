@@ -15,25 +15,43 @@ pub enum Weapon {
     LotusEater([Perk; 2]),
     PraxicBlade([Perk; 2]),
     YeartideApex([Perk; 2]),
+    BadJuju,
+    ServiceOfLuzaku,
+    MintRetrograde([Perk; 2]),
+    ChoirOfOne(Perk),
+    Khvostov7G0X,
+    MonteCarlo,
 }
 
 impl Weapon {
     #[must_use]
     pub const fn affinity(self) -> Affinity {
         match self {
-            Self::RecklessOracle(_) | Self::LotusEater(_) => Affinity::Void,
-            Self::PraxicBlade(_) => Affinity::Kinetic,
+            Self::RecklessOracle(_) | Self::LotusEater(_) | Self::ChoirOfOne(_) => {
+                Affinity::Void
+            },
+            Self::PraxicBlade(_)
+            | Self::BadJuju
+            | Self::Khvostov7G0X
+            | Self::MonteCarlo => Affinity::Kinetic,
             Self::YeartideApex(_) => Affinity::Solar,
+            Self::ServiceOfLuzaku | Self::MintRetrograde(_) => Affinity::Strand,
         }
     }
 
     #[must_use]
     pub const fn archtype(self) -> Archtype {
         match self {
-            Self::RecklessOracle(_) => Archtype::AutoRifle,
+            Self::RecklessOracle(_)
+            | Self::ChoirOfOne(_)
+            | Self::Khvostov7G0X
+            | Self::MonteCarlo => Archtype::AutoRifle,
             Self::LotusEater(_) => Archtype::RocketSidearm,
             Self::PraxicBlade(_) => Archtype::Sword,
             Self::YeartideApex(_) => Archtype::SMG,
+            Self::BadJuju => Archtype::PulseRifle,
+            Self::ServiceOfLuzaku => Archtype::MachineGun,
+            Self::MintRetrograde(_) => Archtype::RocketPulseRifle,
         }
     }
 
@@ -43,7 +61,15 @@ impl Weapon {
             Self::RecklessOracle(perks)
             | Self::LotusEater(perks)
             | Self::PraxicBlade(perks)
-            | Self::YeartideApex(perks) => perks,
+            | Self::YeartideApex(perks)
+            | Self::MintRetrograde(perks) => perks,
+            Self::BadJuju => [Perk::StringOfCurses, Perk::FullAutoTriggerSystem],
+            Self::ServiceOfLuzaku => {
+                [Perk::DichotomousThinking, Perk::MeaningMaking]
+            },
+            Self::ChoirOfOne(perk) => [perk, Perk::ShortActionStock],
+            Self::Khvostov7G0X => [Perk::TheRightChoice, Perk::ShootToLoot],
+            Self::MonteCarlo => [Perk::MonteCarloMethod, Perk::MarkovChain],
         }
     }
 
@@ -85,6 +111,12 @@ impl Display for Weapon {
             Self::LotusEater(_) => "Lotus Eater",
             Self::PraxicBlade(_) => "Praxic Blade",
             Self::YeartideApex(_) => "Yeartide Apex",
+            Self::BadJuju => "Bad Juju",
+            Self::ServiceOfLuzaku => "Service of Luzaku",
+            Self::MintRetrograde(_) => "Mint Retrograde",
+            Self::ChoirOfOne(_) => "Choir of One",
+            Self::Khvostov7G0X => "Khvostov 7G-0X",
+            Self::MonteCarlo => "Monte Carlo",
         };
 
         write!(f, "{s}")
@@ -108,9 +140,6 @@ impl From<Weapon> for CreateUnfurledMediaItem<'_> {
             // },
             // "Third Iteration" => {
             //     "https://www.bungie.net/common/destiny2_content/icons/58975dd6281e30bac63e9e6b3c868865.jpg"
-            // },
-            // "Mint Retrograde" => {
-            //     "https://www.bungie.net/common/destiny2_content/icons/fbf7032cc563c82757be6a7fe5e88713.jpg"
             // },
             // "Sunshot" => {
             //     "https://www.bungie.net/common/destiny2_content/icons/b84b4aecd0b0b36b9b9bf247b290ba08.jpg"
@@ -136,9 +165,6 @@ impl From<Weapon> for CreateUnfurledMediaItem<'_> {
             // "Dead Messenger" => {
             //     "https://www.bungie.net/common/destiny2_content/icons/c2e44f40d97a0a9eb1af8d25fb8c0f03.jpg"
             // },
-            // "Choir of One" => {
-            //     "https://www.bungie.net/common/destiny2_content/icons/e285e30c15aa9482df3f1f9c5810fe66.jpg"
-            // },
             Weapon::RecklessOracle(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/af58615844b44293f5911ccaae913804.jpg"
             },
@@ -150,6 +176,24 @@ impl From<Weapon> for CreateUnfurledMediaItem<'_> {
             },
             Weapon::YeartideApex(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/11238fa67ca0881554335d4612eda813.jpg"
+            },
+            Weapon::BadJuju => {
+                "https://www.bungie.net/common/destiny2_content/icons/a7cc8a658f8196f13cdde9d72ca9945d.jpg"
+            },
+            Weapon::ServiceOfLuzaku => {
+                "https://www.bungie.net/common/destiny2_content/icons/e7d4497fbdd8339eaf9da4b9151c9559.jpg"
+            },
+            Weapon::MintRetrograde(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/fbf7032cc563c82757be6a7fe5e88713.jpg"
+            },
+            Weapon::ChoirOfOne(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/e285e30c15aa9482df3f1f9c5810fe66.jpg"
+            },
+            Weapon::Khvostov7G0X => {
+                "https://www.bungie.net/common/destiny2_content/icons/23aac6d8454ee1bcd2234e303bd2d6bf.jpg"
+            },
+            Weapon::MonteCarlo => {
+                "https://www.bungie.net/common/destiny2_content/icons/d123aaf47eed3de479aac4492577f7e9.jpg"
             },
         };
 
@@ -269,6 +313,17 @@ pub enum Perk {
     CormorantCombo,
     HealClip,
     ChaosReshaped,
+    StringOfCurses,
+    FullAutoTriggerSystem,
+    DichotomousThinking,
+    MeaningMaking,
+    BeaconRounds,
+    BaitAndSwitch,
+    Onslaught,
+    ShortActionStock,
+    MasterOfArms,
+    TheRightChoice,
+    ShootToLoot,
 }
 
 impl Display for Perk {
@@ -307,6 +362,17 @@ impl Display for Perk {
             Self::CormorantCombo => "cormorant_combo",
             Self::HealClip => "heal_clip",
             Self::ChaosReshaped => "chaos_reshaped",
+            Self::StringOfCurses => "string_of_curses",
+            Self::FullAutoTriggerSystem => "full_auto_trigger_system",
+            Self::DichotomousThinking => "dichotomous_thinking",
+            Self::MeaningMaking => "meaning_making",
+            Self::BeaconRounds => "beacon_rounds",
+            Self::BaitAndSwitch => "bait_and_switch",
+            Self::Onslaught => "onslaught",
+            Self::ShortActionStock => "short_action_stock",
+            Self::MasterOfArms => "master_of_arms",
+            Self::TheRightChoice => "The Right Choice",
+            Self::ShootToLoot => "Shoot to Loot",
         };
 
         write!(f, "{name}")

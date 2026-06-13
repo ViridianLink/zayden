@@ -16,6 +16,7 @@ use super::super::{
 #[derive(Clone, Copy)]
 pub enum Helmet {
     Any([HelmetMod; 3]),
+    WillbreakersWatch([HelmetMod; 3]),
 }
 
 impl ArmourItem for Helmet {
@@ -47,12 +48,13 @@ impl Display for Helmet {
 }
 
 #[derive(Clone, Copy)]
-pub enum Gauntlets {
+pub enum Arms {
     Any([ArmsMod; 3]),
     AshenWake([ArmsMod; 3]),
+    WillbreakersFists([ArmsMod; 3]),
 }
 
-impl ArmourItem for Gauntlets {
+impl ArmourItem for Arms {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
             Self::Any(mods) | Self::AshenWake(mods) => mods.map(box_display),
@@ -73,7 +75,7 @@ impl ArmourItem for Gauntlets {
     }
 }
 
-impl Display for Gauntlets {
+impl Display for Arms {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Any(_) => "Any Titan Gauntlets",
@@ -85,17 +87,18 @@ impl Display for Gauntlets {
 }
 
 #[derive(Clone, Copy)]
-pub enum Plate {
+pub enum Chest {
     Any([ChestMod; 3]),
     HeartOfInmostLight([ChestMod; 3]),
+    HallowfireHeart([ChestMod; 3]),
 }
 
-impl ArmourItem for Plate {
+impl ArmourItem for Chest {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::HeartOfInmostLight(mods) => {
-                mods.map(box_display)
-            },
+            Self::Any(mods)
+            | Self::HeartOfInmostLight(mods)
+            | Self::HallowfireHeart(mods) => mods.map(box_display),
         }
     }
 
@@ -107,17 +110,21 @@ impl ArmourItem for Plate {
             Self::HeartOfInmostLight(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/34f23604746fc260a2153e93ccfaec7f.jpg"
             },
+            Self::HallowfireHeart(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/8aacd27b76e68afe6287a3984adeb601.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)
     }
 }
 
-impl Display for Plate {
+impl Display for Chest {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Any(_) => "Any Titan Chest Armour",
             Self::HeartOfInmostLight(_) => "Heart of Inmost Light",
+            Self::HallowfireHeart(_) => "Hallowfire Heart",
         };
 
         write!(f, "{s}")
@@ -125,12 +132,13 @@ impl Display for Plate {
 }
 
 #[derive(Clone, Copy)]
-pub enum Greaves {
+pub enum Legs {
     Any([LegsMod; 3]),
     PeregrineGreaves([LegsMod; 3]),
+    SmokeJumperBoots([LegsMod; 3]),
 }
 
-impl ArmourItem for Greaves {
+impl ArmourItem for Legs {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
             Self::Any(mods) | Self::PeregrineGreaves(mods) => mods.map(box_display),
@@ -151,7 +159,7 @@ impl ArmourItem for Greaves {
     }
 }
 
-impl Display for Greaves {
+impl Display for Legs {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Any(_) => "Any Titan Leg Armour",
@@ -165,6 +173,7 @@ impl Display for Greaves {
 #[derive(Clone, Copy)]
 pub enum Mark {
     Any([ClassItemMod; 3]),
+    SmokeJumperMark([ClassItemMod; 3]),
 }
 
 impl ArmourItem for Mark {

@@ -1,39 +1,99 @@
-use super::weapons::DEAD_MESSENGER;
-use super::{
-    Abilities,
-    Armour,
-    ArmourName,
-    Artifact,
-    ArtifactPerk,
-    Aspect,
+use super::super::warlock::void::{Abilities, Aspect, Melee, Super};
+use super::super::warlock::{
+    Bond,
+    Boots,
     ClassAbility,
+    Gloves,
+    Hood,
+    Jump,
+    Robes,
+    Subclass,
+};
+use super::super::{
+    Armour,
+    ArmsMod,
+    Artifact,
+    ChestMod,
+    ClassItemMod,
     DestinyClass,
     Details,
-    Fragment,
     Gear,
-    Grenade,
-    Jump,
+    HelmetMod,
+    HuntersJournal,
+    LegsMod,
     Loadout,
-    Melee,
-    Mod,
     Mode,
     Stat,
-    Subclass,
-    Subclass,
-    Super,
+    VoidFragment,
+    VoidGrenade,
+    Weapon,
 };
 
-pub(super) const VOID_WARLOCK: Loadout<'_> = Loadout {
-    name: "Handheld Supernova",
-    class: DestinyClass::Warlock,
+pub const VOID_WARLOCK: Loadout<'_> = Loadout {
+    name: "Soul Siphon",
+    class: DestinyClass::Warlock(Subclass::Void {
+        abilities: Abilities {
+            super_: Super::NovaBombCataclysm,
+            class: ClassAbility::HealingRift,
+            jump: Jump::BurstJump,
+            melee: Melee::PocketSingularity,
+            grenade: VoidGrenade::VortexGrenade,
+        },
+        aspects: [
+            Aspect::FeedTheVoid([
+                VoidFragment::Vigilance,
+                VoidFragment::Undermining,
+            ]),
+            Aspect::SoulSiphon([
+                VoidFragment::Persistence,
+                VoidFragment::Provision,
+                VoidFragment::Remnants,
+            ]),
+        ],
+    }),
     mode: Mode::PvE,
     tags: [None; 3],
-    subclass: SUBCLASS,
-    gear: GEAR,
-    artifact: Artifact::Unknown([
-        Some(ArtifactPerk::RefreshThreads),
-        Some(ArtifactPerk::ElementalCoalescence),
-        Some(ArtifactPerk::Shieldcrush),
+    gear: Gear {
+        weapons: [Some(Weapon::BadJuju), None, None],
+        armour: Armour::Warlock {
+            helmet: Hood::SkullOfDireAhamkara([
+                HelmetMod::HandsOn,
+                HelmetMod::KineticSiphon,
+                HelmetMod::RadiantLight,
+            ]),
+            gloves: Gloves::Any([
+                ArmsMod::MeleeFont,
+                ArmsMod::MeleeFont,
+                ArmsMod::HeavyHanded,
+            ]),
+            robes: Robes::Any([
+                ChestMod::ConcussiveDampener,
+                ChestMod::Empty,
+                ChestMod::Empty,
+            ]),
+            boots: Boots::Any([
+                LegsMod::StacksOnStacks,
+                LegsMod::Invigoration,
+                LegsMod::Empty,
+            ]),
+            bond: Bond::Any([
+                ClassItemMod::PowerfulAttraction,
+                ClassItemMod::TimeDilation,
+                ClassItemMod::Outreach,
+            ]),
+        },
+        stats_priority: [
+            Stat::Melee(200),
+            Stat::Super(200),
+            Stat::Grenade(200),
+            Stat::Health(200),
+            Stat::Class(200),
+            Stat::Weapons(200),
+        ],
+    },
+    artifact: Artifact::HuntersJournal([
+        Some(HuntersJournal::Shieldcrush),
+        Some(HuntersJournal::VoidHegemony),
         None,
         None,
         None,
@@ -42,64 +102,4 @@ pub(super) const VOID_WARLOCK: Loadout<'_> = Loadout {
     ]),
     details: Details::new("LlamaD2", "https://dim.gg/fiauzci/Void")
         .video("https://youtu.be/TBbOiMWPIkE"),
-};
-
-const SUBCLASS: Subclass = Subclass {
-    kind: Subclass::Void,
-    abilities: ABILITIES,
-    aspects: [Aspect::ChaosAccelerant, Aspect::FeedTheVoid],
-    fragments: [
-        Some(Fragment::EchoOfPersistence),
-        Some(Fragment::EchoOfInstability),
-        Some(Fragment::EchoOfExpulsion),
-        Some(Fragment::EchoOfVigilance),
-        None,
-    ],
-};
-
-const ABILITIES: Abilities = Abilities {
-    super_: Super::NovaBombCataclysm,
-    class: ClassAbility::HealingRift,
-    jump: Jump::BurstGlide,
-    melee: Melee::PocketSingularity,
-    grenade: Grenade::Magnetic,
-};
-
-const GEAR: Gear<'_> = Gear {
-    weapons: [None, Some(DEAD_MESSENGER), None],
-    armour: [
-        Armour::new(ArmourName::VeritysBrow, [
-            Mod::SpecialAmmoFinder,
-            Mod::AshesToAssets,
-            Mod::HarmonicSiphon,
-        ]),
-        Armour::new(ArmourName::AionAdapterGloves, [
-            Mod::GrenadeFont,
-            Mod::GrenadeFont,
-            Mod::Firepower,
-        ]),
-        Armour::new(ArmourName::AionAdapterRobes, [
-            Mod::VoidAmmoGeneration,
-            Mod::Empty,
-            Mod::Empty,
-        ]),
-        Armour::new(ArmourName::AionAdapterBoots, [
-            Mod::StacksOnStacks,
-            Mod::WeaponsFont,
-            Mod::HarmonicScavenger,
-        ]),
-        Armour::new(ArmourName::AionAdapterBond, [
-            Mod::TimeDilation,
-            Mod::Reaper,
-            Mod::SpecialFinisher,
-        ]),
-    ],
-    stats_priority: [
-        Stat::Grenade(200),
-        Stat::Super(200),
-        Stat::Weapons(200),
-        Stat::Melee(200),
-        Stat::Class(200),
-        Stat::Health(200),
-    ],
 };

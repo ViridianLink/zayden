@@ -1,12 +1,12 @@
 use super::super::titan::void::{Abilities, Aspect, Melee, Super};
 use super::super::titan::{
+    Arms,
+    Chest,
     ClassAbility,
-    Gauntlets,
-    Greaves,
     Helmet,
     Jump,
+    Legs,
     Mark,
-    Plate,
     Subclass,
 };
 use super::super::{
@@ -69,17 +69,17 @@ pub(crate) const VOID_TITAN: Loadout<'_> = Loadout {
                 HelmetMod::HandsOn,
                 HelmetMod::HarmonicSiphon,
             ]),
-            gauntlets: Gauntlets::Any([
+            arms: Arms::Any([
                 ArmsMod::HeavyHanded,
                 ArmsMod::HeavyHanded,
                 ArmsMod::HeavyHanded,
             ]),
-            plate: Plate::Any([
+            chest: Chest::Any([
                 ChestMod::ConcussiveDampener,
                 ChestMod::Empty,
                 ChestMod::Empty,
             ]),
-            greaves: Greaves::PeregrineGreaves([
+            legs: Legs::PeregrineGreaves([
                 LegsMod::StacksOnStacks,
                 LegsMod::Absolution,
                 LegsMod::Invigoration,

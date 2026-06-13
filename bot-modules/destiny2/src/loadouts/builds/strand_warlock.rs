@@ -1,105 +1,102 @@
-use super::weapons::NEW_MALPAIS;
-use super::{
-    Abilities,
-    Armour,
-    ArmourName,
-    Artifact,
-    ArtifactPerk,
-    Aspect,
+use super::super::warlock::strand::{Abilities, Aspect, Melee, Super};
+use super::super::warlock::{
+    Bond,
+    Boots,
     ClassAbility,
+    Gloves,
+    Hood,
+    Jump,
+    Robes,
+    Subclass,
+};
+use super::super::{
+    Armour,
+    ArmsMod,
+    Artifact,
+    ChestMod,
+    ClassItemMod,
     DestinyClass,
     Details,
-    Fragment,
     Gear,
-    Grenade,
-    Jump,
+    HelmetMod,
+    ImplementOfCuriosity,
+    LegsMod,
     Loadout,
-    Melee,
-    Mod,
     Mode,
     Stat,
-    Subclass,
-    Subclass,
-    Super,
+    StrandFragment,
+    StrandGrenade,
+    Weapon,
 };
 
-pub(super) const STRAND_WARLOCK: Loadout<'_> = Loadout {
+pub const STRAND_WARLOCK: Loadout<'_> = Loadout {
     name: "Weavewalk",
-    class: DestinyClass::Warlock,
+    class: DestinyClass::Warlock(Subclass::Strand {
+        abilities: Abilities {
+            super_: Super::Needlestorm,
+            class: ClassAbility::HealingRift,
+            jump: Jump::BurstJump,
+            melee: Melee::ArcaneNeedle,
+            grenade: StrandGrenade::Grapple,
+        },
+        aspects: [
+            Aspect::WeaversCall([StrandFragment::Fury, StrandFragment::Mind]),
+            Aspect::Weavewalk([
+                StrandFragment::Evolution,
+                StrandFragment::Generation,
+                StrandFragment::Propagation,
+            ]),
+        ],
+    }),
     mode: Mode::PvE,
     tags: [None; 3],
-    subclass: SUBCLASS,
-    gear: GEAR,
-    artifact: Artifact::Unknown([
-        Some(ArtifactPerk::TightlyWoven),
-        Some(ArtifactPerk::ThreadlingProliferation),
-        Some(ArtifactPerk::ElementalBenevolence),
-        Some(ArtifactPerk::RefreshThreads),
-        Some(ArtifactPerk::PackTactics),
-        Some(ArtifactPerk::ThreadedBlast),
-        Some(ArtifactPerk::Shieldcrush),
-        Some(ArtifactPerk::TangledWeb),
+    gear: Gear {
+        weapons: [None, None, Some(Weapon::ServiceOfLuzaku)],
+        armour: Armour::Warlock {
+            helmet: Hood::Deimosuffusion([
+                HelmetMod::Dynamo,
+                HelmetMod::HarmonicSiphon,
+                HelmetMod::HeavyAmmoFinder,
+            ]),
+            gloves: Gloves::Any([
+                ArmsMod::HarmonicLoader,
+                ArmsMod::MeleeFont,
+                ArmsMod::Firepower,
+            ]),
+            robes: Robes::Any([
+                ChestMod::ConcussiveDampener,
+                ChestMod::HarmonicAmmoGeneration,
+                ChestMod::Empty,
+            ]),
+            boots: Boots::Any([
+                LegsMod::StacksOnStacks,
+                LegsMod::HarmonicScavenger,
+                LegsMod::Insulation,
+            ]),
+            bond: Bond::Any([
+                ClassItemMod::PowerfulAttraction,
+                ClassItemMod::ClassFont,
+                ClassItemMod::TimeDilation,
+            ]),
+        },
+        stats_priority: [
+            Stat::Weapons(200),
+            Stat::Super(200),
+            Stat::Class(200),
+            Stat::Grenade(200),
+            Stat::Melee(200),
+            Stat::Health(200),
+        ],
+    },
+    artifact: Artifact::ImplementOfCuriosity([
+        Some(ImplementOfCuriosity::PackTactics),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
     ]),
     details: Details::new("LlamaD2", "https://dim.gg/fiauzci/Void")
         .video("https://youtu.be/TBbOiMWPIkE"),
-};
-
-const SUBCLASS: Subclass = Subclass {
-    kind: Subclass::Strand,
-    abilities: ABILITIES,
-    aspects: [Aspect::Weavewalk, Aspect::WeaversCall],
-    fragments: [
-        Some(Fragment::ThreadOfMind),
-        Some(Fragment::ThreadOfWarding),
-        Some(Fragment::ThreadOfEvolution),
-        Some(Fragment::ThreadOfGeneration),
-        Some(Fragment::ThreadOfFury),
-    ],
-};
-
-const ABILITIES: Abilities = Abilities {
-    super_: Super::Needlestorm,
-    class: ClassAbility::EmpoweringRift,
-    jump: Jump::BurstGlide,
-    melee: Melee::ArcaneNeedle,
-    grenade: Grenade::Threadling,
-};
-
-const GEAR: Gear<'_> = Gear {
-    weapons: [Some(NEW_MALPAIS), None, None],
-    armour: [
-        Armour::new(ArmourName::AionAdapterHood, [
-            Mod::SuperFont,
-            Mod::SpecialAmmoFinder,
-            Mod::HarmonicSiphon,
-        ]),
-        Armour::new(ArmourName::AionAdapterGloves, [
-            Mod::MeleeFont,
-            Mod::GrenadeFont,
-            Mod::MomentumTransfer,
-        ]),
-        Armour::new(ArmourName::AIONRenewalRobes, [
-            Mod::StrandAmmoGeneration,
-            Mod::Empty,
-            Mod::Empty,
-        ]),
-        Armour::new(ArmourName::Swarmers, [
-            Mod::WeaponsFont,
-            Mod::WeaponsFont,
-            Mod::HarmonicScavenger,
-        ]),
-        Armour::new(ArmourName::AIONRenewalBond, [
-            Mod::TimeDilation,
-            Mod::PowerfulAttraction,
-            Mod::Reaper,
-        ]),
-    ],
-    stats_priority: [
-        Stat::Weapons(200),
-        Stat::Melee(100),
-        Stat::Class(200),
-        Stat::Grenade(200),
-        Stat::Super(200),
-        Stat::Health(200),
-    ],
 };
