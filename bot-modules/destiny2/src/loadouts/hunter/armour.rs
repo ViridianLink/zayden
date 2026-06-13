@@ -13,8 +13,9 @@ use super::super::{
     box_display,
 };
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Helmet {
+pub(super) enum Helmet {
     Any([HelmetMod; 3]),
 }
 
@@ -27,9 +28,7 @@ impl ArmourItem for Helmet {
 
     fn as_unfurled_media_item<'a>(&self) -> CreateUnfurledMediaItem<'a> {
         let url = match self {
-            Self::Any(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/0f581262927001f7db9d95a40e9b2189.jpg"
-            },
+            Self::Any(_) => "",
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -39,34 +38,29 @@ impl ArmourItem for Helmet {
 impl Display for Helmet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Any(_) => "Any Titan Helmet",
+            Self::Any(_) => "Any Hunter Helmet",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Gauntlets {
+pub(super) enum Gauntlets {
     Any([ArmsMod; 3]),
-    AshenWake([ArmsMod; 3]),
 }
 
 impl ArmourItem for Gauntlets {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::AshenWake(mods) => mods.map(box_display),
+            Self::Any(mods) => mods.map(box_display),
         }
     }
 
     fn as_unfurled_media_item<'a>(&self) -> CreateUnfurledMediaItem<'a> {
         let url = match self {
-            Self::Any(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/f378e5316a99404cab087ecdce699758.jpg"
-            },
-            Self::AshenWake(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/9d29d23f2920b16378127d9603370722.jpg"
-            },
+            Self::Any(_) => "",
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -76,75 +70,61 @@ impl ArmourItem for Gauntlets {
 impl Display for Gauntlets {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Any(_) => "Any Titan Gauntlets",
-            Self::AshenWake(_) => "Ashen Wake",
+            Self::Any(_) => "Any Hunter Gauntlets",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Plate {
+pub(super) enum Vest {
     Any([ChestMod; 3]),
-    HeartOfInmostLight([ChestMod; 3]),
 }
 
-impl ArmourItem for Plate {
+impl ArmourItem for Vest {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::HeartOfInmostLight(mods) => {
-                mods.map(box_display)
-            },
+            Self::Any(mods) => mods.map(box_display),
         }
     }
 
     fn as_unfurled_media_item<'a>(&self) -> CreateUnfurledMediaItem<'a> {
         let url = match self {
-            Self::Any(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/8cc0f113cf22b387d05b6b040250dc64.jpg"
-            },
-            Self::HeartOfInmostLight(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/34f23604746fc260a2153e93ccfaec7f.jpg"
-            },
+            Self::Any(_) => "",
         };
 
         CreateUnfurledMediaItem::new(url)
     }
 }
 
-impl Display for Plate {
+impl Display for Vest {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Any(_) => "Any Titan Chest Armour",
-            Self::HeartOfInmostLight(_) => "Heart of Inmost Light",
+            Self::Any(_) => "Any Hunter Chest Armour",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Greaves {
+pub(super) enum Greaves {
     Any([LegsMod; 3]),
-    PeregrineGreaves([LegsMod; 3]),
 }
 
 impl ArmourItem for Greaves {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::PeregrineGreaves(mods) => mods.map(box_display),
+            Self::Any(mods) => mods.map(box_display),
         }
     }
 
     fn as_unfurled_media_item<'a>(&self) -> CreateUnfurledMediaItem<'a> {
         let url = match self {
-            Self::Any(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/e7464694d858cad360801638ccd96b07.jpg"
-            },
-            Self::PeregrineGreaves(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/b5a4ec9e6e4a0ec3f83ef47f406a8fa6.jpg"
-            },
+            Self::Any(_) => "",
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -154,20 +134,20 @@ impl ArmourItem for Greaves {
 impl Display for Greaves {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Any(_) => "Any Titan Leg Armour",
-            Self::PeregrineGreaves(_) => "Peregrine Greaves",
+            Self::Any(_) => "Any Hunter Leg Armour",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Mark {
+pub(super) enum Cloak {
     Any([ClassItemMod; 3]),
 }
 
-impl ArmourItem for Mark {
+impl ArmourItem for Cloak {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
             Self::Any(mods) => mods.map(box_display),
@@ -176,19 +156,17 @@ impl ArmourItem for Mark {
 
     fn as_unfurled_media_item<'a>(&self) -> CreateUnfurledMediaItem<'a> {
         let url = match self {
-            Self::Any(_) => {
-                "https://www.bungie.net/common/destiny2_content/icons/4a80cc7898c2e510cb3e6c4a42982c42.jpg"
-            },
+            Self::Any(_) => "",
         };
 
         CreateUnfurledMediaItem::new(url)
     }
 }
 
-impl Display for Mark {
+impl Display for Cloak {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Any(_) => "Any Titan Mark",
+            Self::Any(_) => "Any Hunter Cloak",
         };
 
         write!(f, "{s}")

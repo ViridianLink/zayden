@@ -43,21 +43,21 @@ impl AbilitiesTrait for Abilities {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
-    TwilightArsenal,
-    HammerOfSol,
-    Thundercrash,
-    GlacialQuake,
-    Bladefury,
+    StormsEdge,
+    ShadowshotDeadfall,
+    GoldenGunMarksman,
+    SilenceAndSquall,
+    Silkstrike,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::TwilightArsenal => "Twilight Arsenal",
-            Self::HammerOfSol => "Hammer of Sol",
-            Self::Thundercrash => "Thundercrash",
-            Self::GlacialQuake => "Glacial Quake",
-            Self::Bladefury => "Bladefury",
+            Self::StormsEdge => "Storm's Edge",
+            Self::ShadowshotDeadfall => "Shadowshot: Deadfall",
+            Self::GoldenGunMarksman => "Golden Gun: Marksman",
+            Self::SilenceAndSquall => "Silence and Squall",
+            Self::Silkstrike => "Silkstrike",
         };
 
         write!(f, "{s}")
@@ -67,21 +67,21 @@ impl Display for Super {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
-    SheildThrow,
-    ShiverStrike,
-    HammerStrike,
-    Thunderclap,
-    FrenziedBlade,
+    WitheringBlade,
+    SnareBomb,
+    KnifeTrick,
+    CombinationBlow,
+    ThreadedSpike,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::SheildThrow => "shield_throw",
-            Self::ShiverStrike => "shiver_strike",
-            Self::HammerStrike => "hammer_strike",
-            Self::Thunderclap => "thunderclap",
-            Self::FrenziedBlade => "frenzied_blade",
+            Self::WitheringBlade => "withering_blade",
+            Self::SnareBomb => "snare_bomb",
+            Self::KnifeTrick => "knife_trick",
+            Self::CombinationBlow => "combination_blow",
+            Self::ThreadedSpike => "threaded_spike",
         };
 
         write!(f, "{s}")
@@ -90,22 +90,22 @@ impl Display for Melee {
 
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub(crate) enum Grenade {
-    GlacierGrenade,
-    PulseGrenade,
-    ThermiteGrenade,
-    SuppressorGrenade,
-    ShackleGrenade,
+pub(super) enum Grenade {
+    Grapple,
+    MagneticGrenade,
+    SwarmGrenade,
+    ArcboltGrenade,
+    DuskfieldGrenade,
 }
 
 impl Display for Grenade {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::GlacierGrenade => "glacier_grenade",
-            Self::PulseGrenade => "pulse_grenade",
-            Self::ThermiteGrenade => "thermite_grenade",
-            Self::SuppressorGrenade => "suppressor_grenade",
-            Self::ShackleGrenade => "shackle_grenade",
+            Self::Grapple => "grapple",
+            Self::MagneticGrenade => "magnetic_grenade",
+            Self::SwarmGrenade => "swarm_grenade",
+            Self::ArcboltGrenade => "arcbolt_grenade",
+            Self::DuskfieldGrenade => "duskfield_grenade",
         };
 
         write!(f, "{s}")
@@ -115,27 +115,27 @@ impl Display for Grenade {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Aspect {
-    Unbreakable([PrismaticFragment; 3]),
-    Consecration([PrismaticFragment; 2]),
-    Knockout([PrismaticFragment; 2]),
-    DiamondLance([PrismaticFragment; 3]),
-    DrengrsLash([PrismaticFragment; 3]),
+    Ascension([PrismaticFragment; 2]),
+    StylishExecutioner([PrismaticFragment; 2]),
+    GunpowderGamble([PrismaticFragment; 3]),
+    WintersShroud([PrismaticFragment; 2]),
+    ThreadedSpecter([PrismaticFragment; 3]),
 }
 
 impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
-            Self::Unbreakable(fragments)
-            | Self::DiamondLance(fragments)
-            | Self::DrengrsLash(fragments) => [
-                Some(box_display(fragments[0])),
-                Some(box_display(fragments[1])),
-                Some(box_display(fragments[2])),
-            ],
-            Self::Knockout(fragments) | Self::Consecration(fragments) => [
+            Self::Ascension(fragments)
+            | Self::StylishExecutioner(fragments)
+            | Self::WintersShroud(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 None,
+            ],
+            Self::GunpowderGamble(fragments) | Self::ThreadedSpecter(fragments) => [
+                Some(box_display(fragments[0])),
+                Some(box_display(fragments[1])),
+                Some(box_display(fragments[2])),
             ],
         }
     }
@@ -144,11 +144,11 @@ impl AspectTrait for Aspect {
 impl Display for Aspect {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Unbreakable(_) => "unbreakable",
-            Self::Consecration(_) => "consecration",
-            Self::Knockout(_) => "knockout",
-            Self::DiamondLance(_) => "diamond_lance",
-            Self::DrengrsLash(_) => "drengrs_lash",
+            Self::Ascension(_) => "ascension",
+            Self::StylishExecutioner(_) => "stylish_executioner",
+            Self::GunpowderGamble(_) => "gunpowder_gamble",
+            Self::WintersShroud(_) => "winters_shroud",
+            Self::ThreadedSpecter(_) => "threaded_specter",
         };
 
         write!(f, "{s}")

@@ -30,25 +30,19 @@ use super::super::{
     Weapon,
 };
 
-pub const ARC_TITAN: Loadout<'_> = Loadout {
+pub(crate) const ARC_TITAN: Loadout<'_> = Loadout {
     name: "Heart of Innmost Light",
     class: DestinyClass::Titan(Subclass::Arc {
         abilities: Abilities {
             super_: Super::Thundercrash,
             class: ClassAbility::RallyBarricade,
-            jump: Jump::CatapultLift,
+            jump: Jump::Catapult,
             melee: Melee::Thunderclap,
-            grenade: ArcGrenade::PulseGrenade,
+            grenade: ArcGrenade::Pulse,
         },
         aspects: [
-            Aspect::StormsKeep([
-                ArcFragment::SparkOfMagnitude,
-                ArcFragment::SparkOfFrequency,
-            ]),
-            Aspect::Knockout([
-                ArcFragment::SparkOfResistance,
-                ArcFragment::SparkOfShock,
-            ]),
+            Aspect::StormsKeep([ArcFragment::Magnitude, ArcFragment::Frequency]),
+            Aspect::Knockout([ArcFragment::Resistance, ArcFragment::Shock]),
         ],
     }),
     mode: Mode::PvE,

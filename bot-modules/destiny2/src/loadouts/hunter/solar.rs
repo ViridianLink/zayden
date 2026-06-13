@@ -4,8 +4,8 @@ use std::fmt::{Display, Formatter};
 use super::super::{
     Abilities as AbilitiesTrait,
     Aspect as AspectTrait,
-    StasisFragment,
-    StasisGrenade,
+    SolarFragment,
+    SolarGrenade,
     box_display,
 };
 use super::{ClassAbility, Jump};
@@ -16,7 +16,7 @@ pub(crate) struct Abilities {
     pub class: ClassAbility,
     pub jump: Jump,
     pub melee: Melee,
-    pub grenade: StasisGrenade,
+    pub grenade: SolarGrenade,
 }
 
 impl AbilitiesTrait for Abilities {
@@ -44,13 +44,17 @@ impl AbilitiesTrait for Abilities {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
-    GlacialQuake,
+    GoldenGunDeadshot,
+    GoldenGunMarksman,
+    BladeBarrage,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::GlacialQuake => "Glacial Quake",
+            Self::GoldenGunDeadshot => "Golden Gun: Deadshot",
+            Self::GoldenGunMarksman => "Golden Gun: Marksman",
+            Self::BladeBarrage => "Blade Barrage",
         };
 
         write!(f, "{s}")
@@ -60,13 +64,19 @@ impl Display for Super {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
-    ShiverStrike,
+    LightweightKnife,
+    WeightedThrowingKnife,
+    KnifeTrick,
+    ProximityExplosiveKnife,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::ShiverStrike => "shiver_strike",
+            Self::LightweightKnife => "lightweight_knife",
+            Self::WeightedThrowingKnife => "weighted_throwing_knife",
+            Self::KnifeTrick => "knife_trick",
+            Self::ProximityExplosiveKnife => "proximity_explosive_knife",
         };
 
         write!(f, "{s}")
@@ -76,21 +86,23 @@ impl Display for Melee {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Aspect {
-    Cryoclasm([StasisFragment; 3]),
-    TectonicHarvest([StasisFragment; 2]),
-    HowlOfTheStorm([StasisFragment; 2]),
-    DiamondLance([StasisFragment; 3]),
+    KnockEmDown([SolarFragment; 2]),
+    OnYourMark([SolarFragment; 3]),
+    GunpowderGamble([SolarFragment; 2]),
+    Crackshot([SolarFragment; 2]),
 }
 
 impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
-            Self::TectonicHarvest(fragments) | Self::HowlOfTheStorm(fragments) => [
+            Self::GunpowderGamble(fragments)
+            | Self::KnockEmDown(fragments)
+            | Self::Crackshot(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 None,
             ],
-            Self::Cryoclasm(fragments) | Self::DiamondLance(fragments) => [
+            Self::OnYourMark(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 Some(box_display(fragments[2])),
@@ -102,10 +114,10 @@ impl AspectTrait for Aspect {
 impl Display for Aspect {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Cryoclasm(_) => "cryoclasm",
-            Self::TectonicHarvest(_) => "tectonic_harvest",
-            Self::HowlOfTheStorm(_) => "howl_of_the_storm",
-            Self::DiamondLance(_) => "diamond_lance",
+            Self::KnockEmDown(_) => "knock_em_down",
+            Self::OnYourMark(_) => "on_your_mark",
+            Self::GunpowderGamble(_) => "gunpowder_gamble",
+            Self::Crackshot(_) => "crackshot",
         };
 
         write!(f, "{s}")

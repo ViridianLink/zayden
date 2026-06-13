@@ -2,10 +2,12 @@ mod builds;
 mod class;
 mod fragments;
 mod grenades;
+mod hunter;
 mod mode;
 mod mods;
 mod tag;
 mod titan;
+mod warlock;
 pub mod weapons;
 
 use std::fmt::{Display, Formatter, Write};
@@ -13,8 +15,21 @@ use std::{fmt, iter};
 
 use builds::{ARC_TITAN, SOLAR_TITAN, VOID_TITAN};
 use class::DestinyClass;
-use fragments::{ArcFragment, SolarFragment, VoidFragment};
-use grenades::{ArcGrenade, SolarGrenade, VoidGrenade};
+use fragments::{
+    ArcFragment,
+    PrismaticFragment,
+    SolarFragment,
+    StasisFragment,
+    StrandFragment,
+    VoidFragment,
+};
+use grenades::{
+    ArcGrenade,
+    SolarGrenade,
+    StasisGrenade,
+    StrandGrenade,
+    VoidGrenade,
+};
 use mode::Mode;
 use mods::{ArmsMod, ChestMod, ClassItemMod, HelmetMod, LegsMod};
 use serenity::all::{
@@ -430,9 +445,8 @@ impl<'a> Loadout<'a> {
     }
 
     fn super_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
-        emoji_cache.emoji_str(
-            &self.class.subclass().abilities().super_().to_string().to_lowercase(),
-        )
+        emoji_cache
+            .emoji_str(&self.class.subclass().abilities().super_().to_string())
     }
 
     fn class_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
@@ -444,22 +458,12 @@ impl<'a> Loadout<'a> {
     }
 
     fn melee_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
-        emoji_cache.emoji_str(
-            &self.class.subclass().abilities().melee().to_string().to_lowercase(),
-        )
+        emoji_cache.emoji_str(&self.class.subclass().abilities().melee().to_string())
     }
 
     fn grenade_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
-        emoji_cache.emoji_str(
-            &self
-                .class
-                .subclass()
-                .abilities()
-                .grenade()
-                .to_string()
-                .to_lowercase()
-                .replace(' ', "_"),
-        )
+        emoji_cache
+            .emoji_str(&self.class.subclass().abilities().grenade().to_string())
     }
 
     fn fragments_str(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
@@ -520,10 +524,11 @@ pub trait Subclass: Display + Send {
         emoji_cache: &EmojiCache,
     ) -> EmojiResult<CreateButton<'a>> {
         let name = self.to_string();
+        let name_lower = name.to_lowercase();
 
-        let emoji = emoji_cache.emoji(&name.to_lowercase())?;
+        let emoji = emoji_cache.emoji(&name_lower)?;
 
-        let button = CreateButton::new(name.to_lowercase())
+        let button = CreateButton::new(name_lower)
             .label(name)
             .emoji(emoji)
             .style(ButtonStyle::Secondary);
@@ -542,6 +547,14 @@ pub trait Abilities {
 
 pub trait Aspect: Display {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3];
+}
+
+fn box_display<T: Display + 'static>(value: T) -> Box<dyn Display> {
+    Box::new(value)
+}
+
+fn box_aspect<T: Aspect + 'static>(value: T) -> Box<dyn Aspect> {
+    Box::new(value)
 }
 
 // #[derive(Clone, Copy)]
@@ -795,6 +808,7 @@ pub enum Armour {
 }
 
 impl Armour {
+    #[must_use]
     pub fn items(self) -> [Box<dyn ArmourItem>; 5] {
         match self {
             Self::Titan {

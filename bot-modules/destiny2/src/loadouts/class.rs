@@ -1,17 +1,18 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-use super::{Subclass, titan};
+use super::{Subclass, hunter, titan, warlock};
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum DestinyClass {
-    Warlock(titan::Subclass),
+pub(super) enum DestinyClass {
+    Warlock(warlock::Subclass),
     Titan(titan::Subclass),
-    Hunter(titan::Subclass),
+    Hunter(hunter::Subclass),
 }
 
 impl DestinyClass {
-    pub fn subclass(self) -> Box<dyn Subclass> {
+    pub(super) fn subclass(self) -> Box<dyn Subclass> {
         match self {
             Self::Warlock(subclass) => Box::new(subclass),
             Self::Titan(subclass) => Box::new(subclass),

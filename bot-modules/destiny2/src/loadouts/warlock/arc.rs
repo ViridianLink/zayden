@@ -3,9 +3,9 @@ use std::fmt::{Display, Formatter};
 
 use super::super::{
     Abilities as AbilitiesTrait,
+    ArcFragment,
+    ArcGrenade,
     Aspect as AspectTrait,
-    StasisFragment,
-    StasisGrenade,
     box_display,
 };
 use super::{ClassAbility, Jump};
@@ -16,7 +16,7 @@ pub(crate) struct Abilities {
     pub class: ClassAbility,
     pub jump: Jump,
     pub melee: Melee,
-    pub grenade: StasisGrenade,
+    pub grenade: ArcGrenade,
 }
 
 impl AbilitiesTrait for Abilities {
@@ -44,13 +44,15 @@ impl AbilitiesTrait for Abilities {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
-    GlacialQuake,
+    Stormtrance,
+    ChaosReach,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::GlacialQuake => "Glacial Quake",
+            Self::Stormtrance => "Stormtrance",
+            Self::ChaosReach => "Chaos Reach",
         };
 
         write!(f, "{s}")
@@ -60,13 +62,15 @@ impl Display for Super {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
-    ShiverStrike,
+    BallLightning,
+    ChainLightning,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::ShiverStrike => "shiver_strike",
+            Self::BallLightning => "ball_lightning",
+            Self::ChainLightning => "chain_lightning",
         };
 
         write!(f, "{s}")
@@ -76,21 +80,23 @@ impl Display for Melee {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Aspect {
-    Cryoclasm([StasisFragment; 3]),
-    TectonicHarvest([StasisFragment; 2]),
-    HowlOfTheStorm([StasisFragment; 2]),
-    DiamondLance([StasisFragment; 3]),
+    ArcSoul([ArcFragment; 2]),
+    LightningSurge([ArcFragment; 3]),
+    ElectrostaticMind([ArcFragment; 2]),
+    IonicSentry([ArcFragment; 2]),
 }
 
 impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
-            Self::TectonicHarvest(fragments) | Self::HowlOfTheStorm(fragments) => [
+            Self::ArcSoul(fragments)
+            | Self::ElectrostaticMind(fragments)
+            | Self::IonicSentry(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 None,
             ],
-            Self::Cryoclasm(fragments) | Self::DiamondLance(fragments) => [
+            Self::LightningSurge(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 Some(box_display(fragments[2])),
@@ -102,10 +108,10 @@ impl AspectTrait for Aspect {
 impl Display for Aspect {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Cryoclasm(_) => "cryoclasm",
-            Self::TectonicHarvest(_) => "tectonic_harvest",
-            Self::HowlOfTheStorm(_) => "howl_of_the_storm",
-            Self::DiamondLance(_) => "diamond_lance",
+            Self::ArcSoul(_) => "arc_soul",
+            Self::LightningSurge(_) => "lightning_surge",
+            Self::ElectrostaticMind(_) => "electrostatic_mind",
+            Self::IonicSentry(_) => "ionic_sentry",
         };
 
         write!(f, "{s}")

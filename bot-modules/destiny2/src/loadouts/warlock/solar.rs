@@ -4,8 +4,8 @@ use std::fmt::{Display, Formatter};
 use super::super::{
     Abilities as AbilitiesTrait,
     Aspect as AspectTrait,
-    StasisFragment,
-    StasisGrenade,
+    SolarFragment,
+    SolarGrenade,
     box_display,
 };
 use super::{ClassAbility, Jump};
@@ -16,7 +16,7 @@ pub(crate) struct Abilities {
     pub class: ClassAbility,
     pub jump: Jump,
     pub melee: Melee,
-    pub grenade: StasisGrenade,
+    pub grenade: SolarGrenade,
 }
 
 impl AbilitiesTrait for Abilities {
@@ -44,13 +44,17 @@ impl AbilitiesTrait for Abilities {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
-    GlacialQuake,
+    Daybreak,
+    WellOfRadiance,
+    SongOfFlame,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::GlacialQuake => "Glacial Quake",
+            Self::Daybreak => "Daybreak",
+            Self::WellOfRadiance => "Well of Radiance",
+            Self::SongOfFlame => "Song of Flame",
         };
 
         write!(f, "{s}")
@@ -60,13 +64,15 @@ impl Display for Super {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
-    ShiverStrike,
+    CelestialFire,
+    IncineratorSnap,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::ShiverStrike => "shiver_strike",
+            Self::CelestialFire => "celestial_fire",
+            Self::IncineratorSnap => "incinerator_snap",
         };
 
         write!(f, "{s}")
@@ -76,21 +82,23 @@ impl Display for Melee {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Aspect {
-    Cryoclasm([StasisFragment; 3]),
-    TectonicHarvest([StasisFragment; 2]),
-    HowlOfTheStorm([StasisFragment; 2]),
-    DiamondLance([StasisFragment; 3]),
+    IcarusDash([SolarFragment; 3]),
+    HeatRises([SolarFragment; 2]),
+    TouchOfFlame([SolarFragment; 2]),
+    Hellion([SolarFragment; 2]),
 }
 
 impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
-            Self::TectonicHarvest(fragments) | Self::HowlOfTheStorm(fragments) => [
+            Self::HeatRises(fragments)
+            | Self::TouchOfFlame(fragments)
+            | Self::Hellion(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 None,
             ],
-            Self::Cryoclasm(fragments) | Self::DiamondLance(fragments) => [
+            Self::IcarusDash(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 Some(box_display(fragments[2])),
@@ -102,10 +110,10 @@ impl AspectTrait for Aspect {
 impl Display for Aspect {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Cryoclasm(_) => "cryoclasm",
-            Self::TectonicHarvest(_) => "tectonic_harvest",
-            Self::HowlOfTheStorm(_) => "howl_of_the_storm",
-            Self::DiamondLance(_) => "diamond_lance",
+            Self::IcarusDash(_) => "icarus_dash",
+            Self::HeatRises(_) => "heat_rises",
+            Self::TouchOfFlame(_) => "touch_of_flame",
+            Self::Hellion(_) => "hellion",
         };
 
         write!(f, "{s}")

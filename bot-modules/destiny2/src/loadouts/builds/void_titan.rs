@@ -30,25 +30,25 @@ use super::super::{
     Weapon,
 };
 
-pub const VOID_TITAN: Loadout<'_> = Loadout {
+pub(crate) const VOID_TITAN: Loadout<'_> = Loadout {
     name: "Shield Bash",
     class: DestinyClass::Titan(Subclass::Void {
         abilities: Abilities {
             super_: Super::TwilightArsenal,
             class: ClassAbility::RallyBarricade,
-            jump: Jump::CatapultLift,
+            jump: Jump::Catapult,
             melee: Melee::ShieldBash,
             grenade: VoidGrenade::VortexGrenade,
         },
         aspects: [
             Aspect::Bastion([
-                VoidFragment::EchoOfStarvation,
-                VoidFragment::EchoOfUndermining,
-                VoidFragment::EchoOfPersistence,
+                VoidFragment::Starvation,
+                VoidFragment::Undermining,
+                VoidFragment::Persistence,
             ]),
             Aspect::OffensiveBulwark([
-                VoidFragment::EchoOfProvision,
-                VoidFragment::EchoOfLeeching,
+                VoidFragment::Provision,
+                VoidFragment::Leeching,
             ]),
         ],
     }),

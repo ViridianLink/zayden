@@ -6,11 +6,12 @@ use super::super::{
     ArcFragment,
     ArcGrenade,
     Aspect as AspectTrait,
+    box_display,
 };
 use super::{ClassAbility, Jump};
 
 #[derive(Clone, Copy)]
-pub struct Abilities {
+pub(crate) struct Abilities {
     pub super_: Super,
     pub class: ClassAbility,
     pub jump: Jump,
@@ -40,8 +41,9 @@ impl AbilitiesTrait for Abilities {
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Super {
+pub(crate) enum Super {
     FistsOfHavoc,
     Thundercrash,
 }
@@ -57,8 +59,9 @@ impl Display for Super {
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Melee {
+pub(crate) enum Melee {
     SeismicStrike,
     BallisticSlam,
     Thunderclap,
@@ -76,8 +79,9 @@ impl Display for Melee {
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Aspect {
+pub(crate) enum Aspect {
     TouchOfThunder([ArcFragment; 2]),
     Juggernaut([ArcFragment; 2]),
     Knockout([ArcFragment; 2]),
@@ -91,8 +95,8 @@ impl AspectTrait for Aspect {
             | Self::Juggernaut(fragments)
             | Self::Knockout(fragments)
             | Self::StormsKeep(fragments) => [
-                Some(Box::new(fragments[0]) as Box<dyn Display>),
-                Some(Box::new(fragments[1]) as Box<dyn Display>),
+                Some(box_display(fragments[0])),
+                Some(box_display(fragments[1])),
                 None,
             ],
         }

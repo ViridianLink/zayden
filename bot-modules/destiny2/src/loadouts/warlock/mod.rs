@@ -9,8 +9,6 @@ pub(super) mod void;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-pub(super) use armour::{Gauntlets, Greaves, Helmet, Mark, Plate};
-
 use super::{Abilities, Aspect, Subclass as SubclassTrait, box_aspect};
 
 #[expect(dead_code, reason = "reserved for future loadout builds")]
@@ -51,12 +49,12 @@ impl SubclassTrait for Subclass {
 impl Display for Subclass {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Arc { .. } => "Arc",
-            Self::Void { .. } => "Void",
-            Self::Strand { .. } => "Strand",
-            Self::Stasis { .. } => "Stasis",
-            Self::Solar { .. } => "Solar",
             Self::Prismatic { .. } => "Prismatic",
+            Self::Arc { .. } => "Arc",
+            Self::Solar { .. } => "Solar",
+            Self::Void { .. } => "Void",
+            Self::Stasis { .. } => "Stasis",
+            Self::Strand { .. } => "Strand",
         };
 
         write!(f, "{s}")
@@ -66,17 +64,17 @@ impl Display for Subclass {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(super) enum ClassAbility {
-    ToweringBarricade,
-    RallyBarricade,
-    Thruster,
+    HealingRift,
+    EmpoweringRift,
+    PhoenixDive,
 }
 
 impl Display for ClassAbility {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
-            Self::ToweringBarricade => "towering_barricade",
-            Self::RallyBarricade => "rally_barricade",
-            Self::Thruster => "thruster",
+            Self::HealingRift => "healing_rift",
+            Self::EmpoweringRift => "empowering_rift",
+            Self::PhoenixDive => "phoenix_dive",
         };
 
         write!(f, "{name}")
@@ -86,17 +84,19 @@ impl Display for ClassAbility {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(super) enum Jump {
-    High,
-    Strafe,
-    Catapult,
+    StrafeJump,
+    BurstJump,
+    BalancedJump,
+    Blink,
 }
 
 impl Display for Jump {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
-            Self::High => "high_lift",
-            Self::Strafe => "strafe_lift",
-            Self::Catapult => "catapult_lift",
+            Self::StrafeJump => "strafe_glide",
+            Self::BurstJump => "burst_glide",
+            Self::BalancedJump => "balanced_glide",
+            Self::Blink => "blink",
         };
 
         write!(f, "{name}")

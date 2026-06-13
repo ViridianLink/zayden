@@ -18,16 +18,17 @@ pub enum Weapon {
 }
 
 impl Weapon {
-    pub fn affinity(self) -> Affinity {
+    #[must_use]
+    pub const fn affinity(self) -> Affinity {
         match self {
-            Self::RecklessOracle(_) => Affinity::Void,
-            Self::LotusEater(_) => Affinity::Void,
+            Self::RecklessOracle(_) | Self::LotusEater(_) => Affinity::Void,
             Self::PraxicBlade(_) => Affinity::Kinetic,
             Self::YeartideApex(_) => Affinity::Solar,
         }
     }
 
-    pub fn archtype(self) -> Archtype {
+    #[must_use]
+    pub const fn archtype(self) -> Archtype {
         match self {
             Self::RecklessOracle(_) => Archtype::AutoRifle,
             Self::LotusEater(_) => Archtype::RocketSidearm,
@@ -36,7 +37,8 @@ impl Weapon {
         }
     }
 
-    pub fn perks(self) -> [Perk; 2] {
+    #[must_use]
+    pub const fn perks(self) -> [Perk; 2] {
         match self {
             Self::RecklessOracle(perks)
             | Self::LotusEater(perks)

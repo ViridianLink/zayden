@@ -44,13 +44,13 @@ impl AbilitiesTrait for Abilities {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
-    GlacialQuake,
+    WintersWrath,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::GlacialQuake => "Glacial Quake",
+            Self::WintersWrath => "Winter's Wrath",
         };
 
         write!(f, "{s}")
@@ -60,13 +60,13 @@ impl Display for Super {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
-    ShiverStrike,
+    PenumbralBlast,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::ShiverStrike => "shiver_strike",
+            Self::PenumbralBlast => "penumbral_blast",
         };
 
         write!(f, "{s}")
@@ -76,21 +76,23 @@ impl Display for Melee {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Aspect {
-    Cryoclasm([StasisFragment; 3]),
-    TectonicHarvest([StasisFragment; 2]),
-    HowlOfTheStorm([StasisFragment; 2]),
-    DiamondLance([StasisFragment; 3]),
+    IceflareBolts([StasisFragment; 2]),
+    Frostpulse([StasisFragment; 3]),
+    BleakWatcher([StasisFragment; 2]),
+    GlacialHarvest([StasisFragment; 2]),
 }
 
 impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
-            Self::TectonicHarvest(fragments) | Self::HowlOfTheStorm(fragments) => [
+            Self::IceflareBolts(fragments)
+            | Self::BleakWatcher(fragments)
+            | Self::GlacialHarvest(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 None,
             ],
-            Self::Cryoclasm(fragments) | Self::DiamondLance(fragments) => [
+            Self::Frostpulse(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 Some(box_display(fragments[2])),
@@ -102,10 +104,10 @@ impl AspectTrait for Aspect {
 impl Display for Aspect {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Cryoclasm(_) => "cryoclasm",
-            Self::TectonicHarvest(_) => "tectonic_harvest",
-            Self::HowlOfTheStorm(_) => "howl_of_the_storm",
-            Self::DiamondLance(_) => "diamond_lance",
+            Self::IceflareBolts(_) => "iceflare_bolts",
+            Self::Frostpulse(_) => "frostpulse",
+            Self::BleakWatcher(_) => "bleak_watcher",
+            Self::GlacialHarvest(_) => "glacial_harvest",
         };
 
         write!(f, "{s}")

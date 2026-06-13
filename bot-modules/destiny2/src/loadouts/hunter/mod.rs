@@ -9,8 +9,6 @@ pub(super) mod void;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-pub(super) use armour::{Gauntlets, Greaves, Helmet, Mark, Plate};
-
 use super::{Abilities, Aspect, Subclass as SubclassTrait, box_aspect};
 
 #[expect(dead_code, reason = "reserved for future loadout builds")]
@@ -66,17 +64,15 @@ impl Display for Subclass {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(super) enum ClassAbility {
-    ToweringBarricade,
-    RallyBarricade,
-    Thruster,
+    MarksmansDodge,
+    GamblersDodge,
 }
 
 impl Display for ClassAbility {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
-            Self::ToweringBarricade => "towering_barricade",
-            Self::RallyBarricade => "rally_barricade",
-            Self::Thruster => "thruster",
+            Self::MarksmansDodge => "marksmans_dodge",
+            Self::GamblersDodge => "gamblers_dodge",
         };
 
         write!(f, "{name}")
@@ -86,17 +82,19 @@ impl Display for ClassAbility {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(super) enum Jump {
-    High,
-    Strafe,
-    Catapult,
+    HighJump,
+    StrafeJump,
+    TripleJump,
+    Blink,
 }
 
 impl Display for Jump {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
-            Self::High => "high_lift",
-            Self::Strafe => "strafe_lift",
-            Self::Catapult => "catapult_lift",
+            Self::HighJump => "high_jump",
+            Self::StrafeJump => "strafe_jump",
+            Self::TripleJump => "triple_jump",
+            Self::Blink => "blink",
         };
 
         write!(f, "{name}")

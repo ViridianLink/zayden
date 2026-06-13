@@ -1,21 +1,22 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-use super::super::fragments::VoidFragment;
-use super::{
+use super::super::{
     Abilities as AbilitiesTrait,
     Aspect as AspectTrait,
-    ClassAbility,
-    Jump,
+    StrandFragment,
+    StrandGrenade,
+    box_display,
 };
+use super::{ClassAbility, Jump};
 
 #[derive(Clone, Copy)]
-pub struct Abilities {
+pub(crate) struct Abilities {
     pub super_: Super,
     pub class: ClassAbility,
     pub jump: Jump,
     pub melee: Melee,
-    pub grenade: Grenade,
+    pub grenade: StrandGrenade,
 }
 
 impl AbilitiesTrait for Abilities {
@@ -40,87 +41,61 @@ impl AbilitiesTrait for Abilities {
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Super {
-    FistsOfHavoc,
-    Thundercrash,
+pub(crate) enum Super {
+    Bladefury,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::FistsOfHavoc => "Fists of Havoc",
-            Self::Thundercrash => "Thundercrash",
+            Self::Bladefury => "Bladefury",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Melee {
-    SeismicStrike,
-    BallisticSlam,
-    Thunderclap,
+pub(crate) enum Melee {
+    FrenziedBlade,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::SeismicStrike => "Seismic Strike",
-            Self::BallisticSlam => "Ballistic Slam",
-            Self::Thunderclap => "Thunderclap",
+            Self::FrenziedBlade => "frenzied_blade",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Grenade {
-    LightningGrenade,
-    StormGrenade,
-    FlashbangGrenade,
-    PulseGrenade,
-    SkipGrenade,
-    FluxGrenade,
-    ArcboltGrenade,
-}
-
-impl Display for Grenade {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::LightningGrenade => "Lightning Grenade",
-            Self::StormGrenade => "Storm Grenade",
-            Self::FlashbangGrenade => "Flashbang Grenade",
-            Self::PulseGrenade => "Pulse Grenade",
-            Self::SkipGrenade => "Skip Grenade",
-            Self::FluxGrenade => "Flux Grenade",
-            Self::ArcboltGrenade => "Arcbolt Grenade",
-        };
-
-        write!(f, "{s}")
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Aspect {
-    TouchOfThunder([VoidFragment; 2]),
-    Juggernaut([VoidFragment; 2]),
-    Knockout([VoidFragment; 2]),
-    StormsKeep([VoidFragment; 2]),
+pub(crate) enum Aspect {
+    IntoTheFray([StrandFragment; 2]),
+    DrengrsLash([StrandFragment; 3]),
+    FlechetteStorm([StrandFragment; 2]),
+    BannerOfWar([StrandFragment; 2]),
 }
 
 impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
-            Self::TouchOfThunder(fragments)
-            | Self::Juggernaut(fragments)
-            | Self::Knockout(fragments)
-            | Self::StormsKeep(fragments) => [
-                Some(Box::new(fragments[0]) as Box<dyn Display>),
-                Some(Box::new(fragments[1]) as Box<dyn Display>),
+            Self::IntoTheFray(fragments)
+            | Self::FlechetteStorm(fragments)
+            | Self::BannerOfWar(fragments) => [
+                Some(box_display(fragments[0])),
+                Some(box_display(fragments[1])),
                 None,
+            ],
+            Self::DrengrsLash(fragments) => [
+                Some(box_display(fragments[0])),
+                Some(box_display(fragments[1])),
+                Some(box_display(fragments[2])),
             ],
         }
     }
@@ -129,10 +104,10 @@ impl AspectTrait for Aspect {
 impl Display for Aspect {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::TouchOfThunder(_) => "touch_of_thunder",
-            Self::Juggernaut(_) => "juggernaut",
-            Self::Knockout(_) => "knockout",
-            Self::StormsKeep(_) => "storms_keep",
+            Self::IntoTheFray(_) => "into_the_fray",
+            Self::DrengrsLash(_) => "drengrs_lash",
+            Self::FlechetteStorm(_) => "flechette_storm",
+            Self::BannerOfWar(_) => "banner_of_war",
         };
 
         write!(f, "{s}")

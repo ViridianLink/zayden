@@ -1,3 +1,11 @@
+#![cfg_attr(
+    not(feature = "ssr"),
+    expect(
+        clippy::unused_async_trait_impl,
+        reason = "Leptos #[server] macro generates an unawaited `run_body` stub for non-ssr builds"
+    )
+)]
+
 use leptos::form::ActionForm;
 use leptos::prelude::*;
 use leptos_meta::{Stylesheet, Title, provide_meta_context};

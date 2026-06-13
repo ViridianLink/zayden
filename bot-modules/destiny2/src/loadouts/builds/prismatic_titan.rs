@@ -61,7 +61,7 @@ const SUBCLASS: Subclass = Subclass {
 const ABILITIES: Abilities = Abilities {
     super_: Super::Thundercrash,
     class: ClassAbility::Thruster,
-    jump: Jump::CatapultLift,
+    jump: Jump::Catapult,
     melee: Melee::Thunderclap,
     grenade: Grenade::Shackle,
 };

@@ -30,25 +30,19 @@ use super::super::{
     Weapon,
 };
 
-pub const SOLAR_TITAN: Loadout<'_> = Loadout {
+pub(crate) const SOLAR_TITAN: Loadout<'_> = Loadout {
     name: "Fusion Grenades",
     class: DestinyClass::Titan(Subclass::Solar {
         abilities: Abilities {
             super_: Super::HammerOfSol,
             class: ClassAbility::RallyBarricade,
-            jump: Jump::CatapultLift,
+            jump: Jump::Catapult,
             melee: Melee::HammerStrike,
-            grenade: SolarGrenade::FusionGrenade,
+            grenade: SolarGrenade::Fusion,
         },
         aspects: [
-            Aspect::RoaringFlames([
-                SolarFragment::EmberOfChar,
-                SolarFragment::EmberOfAshes,
-            ]),
-            Aspect::SolInvictus([
-                SolarFragment::EmberOfResolve,
-                SolarFragment::EmberOfSearing,
-            ]),
+            Aspect::RoaringFlames([SolarFragment::Char, SolarFragment::Ashes]),
+            Aspect::SolInvictus([SolarFragment::Resolve, SolarFragment::Searing]),
         ],
     }),
     mode: Mode::PvE,

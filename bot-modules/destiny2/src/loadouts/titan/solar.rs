@@ -6,11 +6,12 @@ use super::super::{
     Aspect as AspectTrait,
     SolarFragment,
     SolarGrenade,
+    box_display,
 };
 use super::{ClassAbility, Jump};
 
 #[derive(Clone, Copy)]
-pub struct Abilities {
+pub(crate) struct Abilities {
     pub super_: Super,
     pub class: ClassAbility,
     pub jump: Jump,
@@ -40,8 +41,9 @@ impl AbilitiesTrait for Abilities {
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Super {
+pub(crate) enum Super {
     HammerOfSol,
     BurningMaul,
 }
@@ -57,8 +59,9 @@ impl Display for Super {
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Melee {
+pub(crate) enum Melee {
     HammerStrike,
     ThrowingHammer,
 }
@@ -74,8 +77,9 @@ impl Display for Melee {
     }
 }
 
+#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
-pub enum Aspect {
+pub(crate) enum Aspect {
     RoaringFlames([SolarFragment; 2]),
     SolInvictus([SolarFragment; 2]),
     Consecration([SolarFragment; 3]),
@@ -86,14 +90,14 @@ impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
             Self::RoaringFlames(fragments) | Self::SolInvictus(fragments) => [
-                Some(Box::new(fragments[0]) as Box<dyn Display>),
-                Some(Box::new(fragments[1]) as Box<dyn Display>),
+                Some(box_display(fragments[0])),
+                Some(box_display(fragments[1])),
                 None,
             ],
             Self::Consecration(fragments) | Self::Shieldburst(fragments) => [
-                Some(Box::new(fragments[0]) as Box<dyn Display>),
-                Some(Box::new(fragments[1]) as Box<dyn Display>),
-                Some(Box::new(fragments[2]) as Box<dyn Display>),
+                Some(box_display(fragments[0])),
+                Some(box_display(fragments[1])),
+                Some(box_display(fragments[2])),
             ],
         }
     }

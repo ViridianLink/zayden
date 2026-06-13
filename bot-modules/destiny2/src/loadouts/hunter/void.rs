@@ -4,8 +4,8 @@ use std::fmt::{Display, Formatter};
 use super::super::{
     Abilities as AbilitiesTrait,
     Aspect as AspectTrait,
-    StasisFragment,
-    StasisGrenade,
+    VoidFragment,
+    VoidGrenade,
     box_display,
 };
 use super::{ClassAbility, Jump};
@@ -16,7 +16,7 @@ pub(crate) struct Abilities {
     pub class: ClassAbility,
     pub jump: Jump,
     pub melee: Melee,
-    pub grenade: StasisGrenade,
+    pub grenade: VoidGrenade,
 }
 
 impl AbilitiesTrait for Abilities {
@@ -44,13 +44,17 @@ impl AbilitiesTrait for Abilities {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
-    GlacialQuake,
+    ShadowshotDeadfall,
+    SpectralBlades,
+    ShadowshotMoebiusQuiver,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::GlacialQuake => "Glacial Quake",
+            Self::ShadowshotDeadfall => "Shadowshot: Deadfall",
+            Self::SpectralBlades => "Spectral Blades",
+            Self::ShadowshotMoebiusQuiver => "Shadowshot: Moebius Quiver",
         };
 
         write!(f, "{s}")
@@ -60,13 +64,15 @@ impl Display for Super {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
-    ShiverStrike,
+    SnareBomb,
+    PhantomSurge,
 }
 
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::ShiverStrike => "shiver_strike",
+            Self::SnareBomb => "snare_bomb",
+            Self::PhantomSurge => "phantom_surge",
         };
 
         write!(f, "{s}")
@@ -76,21 +82,23 @@ impl Display for Melee {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Aspect {
-    Cryoclasm([StasisFragment; 3]),
-    TectonicHarvest([StasisFragment; 2]),
-    HowlOfTheStorm([StasisFragment; 2]),
-    DiamondLance([StasisFragment; 3]),
+    TrappersAmbush([VoidFragment; 2]),
+    VanishingStep([VoidFragment; 2]),
+    StylishExecutioner([VoidFragment; 2]),
+    OnTheProwl([VoidFragment; 3]),
 }
 
 impl AspectTrait for Aspect {
     fn fragments(&self) -> [Option<Box<dyn Display>>; 3] {
         match *self {
-            Self::TectonicHarvest(fragments) | Self::HowlOfTheStorm(fragments) => [
+            Self::VanishingStep(fragments)
+            | Self::StylishExecutioner(fragments)
+            | Self::TrappersAmbush(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 None,
             ],
-            Self::Cryoclasm(fragments) | Self::DiamondLance(fragments) => [
+            Self::OnTheProwl(fragments) => [
                 Some(box_display(fragments[0])),
                 Some(box_display(fragments[1])),
                 Some(box_display(fragments[2])),
@@ -102,10 +110,10 @@ impl AspectTrait for Aspect {
 impl Display for Aspect {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::Cryoclasm(_) => "cryoclasm",
-            Self::TectonicHarvest(_) => "tectonic_harvest",
-            Self::HowlOfTheStorm(_) => "howl_of_the_storm",
-            Self::DiamondLance(_) => "diamond_lance",
+            Self::TrappersAmbush(_) => "trappers_ambush",
+            Self::VanishingStep(_) => "vanishing_step",
+            Self::StylishExecutioner(_) => "stylish_executioner",
+            Self::OnTheProwl(_) => "on_the_prowl",
         };
 
         write!(f, "{s}")
