@@ -42,7 +42,7 @@ pub async fn channel_creator<
         match GuildManager::get_creator_channel(pool, guild_id).await {
             Ok(Some(channel)) => channel,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
-                debug!();
+                debug!(%guild_id, "no creator channel configured for guild");
                 return Ok(());
             },
             Err(e) => return Err(e.into()),
@@ -73,7 +73,10 @@ pub async fn channel_creator<
                 ..
             },
         ))) => {
-            debug!();
+            debug!(
+                %creator_channel_id,
+                "missing access to creator channel's category; skipping channel creation"
+            );
             return Ok(());
         },
         Err(e) => return Err(e.into()),
@@ -122,7 +125,11 @@ pub async fn channel_creator<
             if delete_voice_channel_if_inactive(http, guild_id, member.user.id, &vc)
                 .await
             {
-                debug!();
+                debug!(
+                    channel_id = %vc.id,
+                    user_id = %member.user.id,
+                    "deleted temp voice channel; user did not join within the timeout"
+                );
                 return Ok(());
             }
         },

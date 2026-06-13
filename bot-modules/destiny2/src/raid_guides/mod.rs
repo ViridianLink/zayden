@@ -246,8 +246,7 @@ impl<const E: usize> RaidGuide<'_, E> {
         ));
 
         let Some(Some(encounter)) = DESERT_PERPETUAL.encounters.first() else {
-            // first encounter not populated — raid data not fully loaded
-            debug!();
+            debug!("desert perpetual raid guide has no encounters populated");
             return Ok(());
         };
 

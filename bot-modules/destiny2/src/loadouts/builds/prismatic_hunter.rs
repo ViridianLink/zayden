@@ -3,9 +3,9 @@ use super::super::hunter::{
     ClassAbility,
     Cloak,
     Gauntlets,
-    Greaves,
     Helmet,
     Jump,
+    Legs,
     RelativismTrait,
     Subclass,
     Vest,
@@ -29,13 +29,13 @@ use super::super::{
     Weapon,
 };
 
-pub const PRISMATIC_HUNTER: Loadout<'_> = Loadout {
+pub(crate) const PRISMATIC_HUNTER: Loadout<'_> = Loadout {
     name: "Ascension",
     class: DestinyClass::Hunter(Subclass::Prismatic {
         abilities: Abilities {
             super_: Super::GoldenGunMarksman,
             class: ClassAbility::GamblersDodge,
-            jump: Jump::TripleJump,
+            jump: Jump::Triple,
             melee: Melee::ThreadedSpike,
             grenade: Grenade::Grapple,
         },
@@ -68,7 +68,7 @@ pub const PRISMATIC_HUNTER: Loadout<'_> = Loadout {
                 ChestMod::Empty,
                 ChestMod::Empty,
             ]),
-            greaves: Greaves::Any([
+            legs: Legs::Any([
                 LegsMod::StacksOnStacks,
                 LegsMod::ArcScavenger,
                 LegsMod::Innervation,

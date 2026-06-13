@@ -9,7 +9,7 @@ pub(super) mod void;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-pub(super) use armour::{Cloak, Gauntlets, Greaves, Helmet, RelativismTrait, Vest};
+pub(super) use armour::{Cloak, Gauntlets, Legs, Helmet, RelativismTrait, Vest};
 
 use super::{Abilities, Aspect, Subclass as SubclassTrait, box_aspect};
 
@@ -84,18 +84,18 @@ impl Display for ClassAbility {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(super) enum Jump {
-    HighJump,
-    StrafeJump,
-    TripleJump,
+    High,
+    Strafe,
+    Triple,
     Blink,
 }
 
 impl Display for Jump {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
-            Self::HighJump => "high_jump",
-            Self::StrafeJump => "strafe_jump",
-            Self::TripleJump => "triple_jump",
+            Self::High => "high_jump",
+            Self::Strafe => "strafe_jump",
+            Self::Triple => "triple_jump",
             Self::Blink => "blink",
         };
 

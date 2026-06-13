@@ -1,6 +1,7 @@
 use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
 use serenity::all::{Context, GenericChannelId, Message};
+use tracing::debug;
 use zayden_app::state::AppState;
 
 use crate::{BotError, RegistryBuilder, Result};
@@ -82,7 +83,7 @@ impl Ai {
             GenericChannelId::new(1_281_440_730_820_116_582);
 
         if message.channel_id != GAMBLING_CHANNEL {
-            debug!();
+            debug!(channel_id = %message.channel_id, "message not in the AI channel; ignoring");
             return Ok(());
         }
 
@@ -91,12 +92,19 @@ impl Ai {
             .as_ref()
             .is_some_and(|msg| msg.content.is_empty())
         {
-            debug!();
+            debug!(
+                channel_id = %message.channel_id,
+                "referenced message has no content; ignoring"
+            );
             return Ok(());
         }
 
         if !message.mentions_me(ctx).await.unwrap_or(false) {
-            debug!();
+            debug!(
+                channel_id = %message.channel_id,
+                author_id = %message.author.id,
+                "message does not mention the bot; ignoring"
+            );
             return Ok(());
         }
 

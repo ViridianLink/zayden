@@ -36,7 +36,7 @@ pub async fn channel_deleter<
     let guild_data = match GuildManager::get(pool, old.guild_id).await {
         Ok(row) => row,
         Err(sqlx::Error::RowNotFound) => {
-            debug!();
+            debug!(guild_id = %old.guild_id, "no temp-voice configuration found for guild");
             return Ok(());
         },
         Err(e) => return Err(e.into()),
@@ -49,15 +49,18 @@ pub async fn channel_deleter<
             channel_id
         },
         (Some(channel_id), Some(creator_channel)) => {
-            return Err(TempVoiceError::Internal(format!()));
+            debug!(%channel_id, %creator_channel, "previous channel was the creator channel; skipping cleanup");
+            return Ok(());
         },
         (_, None) => {
-            // No voice creator channel
-            debug!();
+            debug!(guild_id = %old.guild_id, "no temp-voice creator channel configured for guild");
             return Ok(());
         },
         (None, Some(creator_channel)) => {
-            return Err(TempVoiceError::Internal(format!()));
+            return Err(TempVoiceError::Internal(format!(
+                "voice state cache inconsistency: user {} in guild {} has no previous channel_id but creator channel {creator_channel} is configured",
+                old.user_id, old.guild_id
+            )));
         },
     };
 

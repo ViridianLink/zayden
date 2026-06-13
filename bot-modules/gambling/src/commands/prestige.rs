@@ -273,7 +273,11 @@ impl Commands {
         let metadata = message_metadata(&interaction.message)?;
 
         if interaction.user != metadata.user {
-            debug!();
+            debug!(
+                user_id = %interaction.user.id,
+                owner_id = %metadata.user.id,
+                "user does not own this prestige confirmation; ignoring"
+            );
             return Ok(());
         }
 
@@ -327,7 +331,11 @@ impl Commands {
         interaction: &ComponentInteraction,
     ) -> Result<()> {
         if interaction.user.id != interaction.message.author.id {
-            debug!();
+            debug!(
+                user_id = %interaction.user.id,
+                owner_id = %interaction.message.author.id,
+                "user does not own this prestige message; ignoring cancel"
+            );
             return Ok(());
         }
 

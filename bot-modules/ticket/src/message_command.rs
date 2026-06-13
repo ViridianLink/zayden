@@ -11,6 +11,7 @@ use serenity::all::{
     Message,
 };
 use sqlx::{Database, Pool};
+use tracing::debug;
 use zayden_core::CoreError;
 
 use crate::{
@@ -36,7 +37,7 @@ impl SupportMessageCommand {
         let row = match GuildManager::get(pool, guild_id).await {
             Ok(Some(row)) => row,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
-                debug!();
+                debug!(%guild_id, "no ticket configuration found for guild; ignoring support message");
                 return Ok(());
             },
             Err(e) => return Err(e.into()),

@@ -1,3 +1,12 @@
+#![expect(
+    clippy::redundant_pub_crate,
+    reason = "items here are pub(crate) so they're usable from sibling \
+              submodules (e.g. builds), but the enclosing modules are \
+              intentionally private to keep them out of this crate's public \
+              API; clippy::unreachable_pub would fire if these were `pub` \
+              instead, so the two lints are mutually exclusive here"
+)]
+
 mod builds;
 mod class;
 mod fragments;
@@ -836,7 +845,7 @@ pub enum Armour {
         helmet: hunter::Helmet,
         gauntlets: hunter::Gauntlets,
         vest: hunter::Vest,
-        legs: hunter::Greaves,
+        legs: hunter::Legs,
         cloak: hunter::Cloak,
     },
 }

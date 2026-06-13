@@ -1,5 +1,5 @@
 use serenity::all::{Context, Entitlement, GuildId, UserId};
-use tracing::warn;
+use tracing::{debug, warn};
 use zayden_app::entitlement::{DiscordProvider, EntitlementProvider};
 use zayden_app::state::AppState;
 
@@ -16,7 +16,10 @@ pub(super) async fn entitlement_create(
         entitlement.guild_id.map(GuildId::get),
         entitlement.ends_at.map(|t| t.unix_timestamp()),
     ) else {
-        debug!();
+        debug!(
+            entitlement_id = entitlement.id.get(),
+            "could not build entitlement grant data; ignoring"
+        );
         return Ok(());
     };
 

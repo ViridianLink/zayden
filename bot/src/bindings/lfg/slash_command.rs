@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
 use sqlx::Postgres;
+use tracing::debug;
 use zayden_core::ctx::{AutocompleteCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleAutocomplete, ModuleCommand};
@@ -42,7 +43,7 @@ impl ModuleAutocomplete for Lfg {
 
     async fn run(&self, cx: &AutocompleteCtx<'_>) -> Result<(), HandlerError> {
         let Some(option) = cx.interaction.data.autocomplete() else {
-            debug!();
+            debug!("autocomplete interaction has no focused option; ignoring");
             return Ok(());
         };
         lfg::Command::autocomplete(&cx.ctx.http, cx.interaction, option).await?;

@@ -91,21 +91,21 @@ impl Display for Melee {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Grenade {
-    VortexGrenade,
-    HealingGrenade,
-    StormGrenade,
-    ColdsnapGrenade,
-    ThreadlingGrenade,
+    Vortex,
+    Healing,
+    Storm,
+    Coldsnap,
+    Threadling,
 }
 
 impl Display for Grenade {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::VortexGrenade => "vortex_grenade",
-            Self::HealingGrenade => "healing_grenade",
-            Self::StormGrenade => "storm_grenade",
-            Self::ColdsnapGrenade => "coldsnap_grenade",
-            Self::ThreadlingGrenade => "threadling_grenade",
+            Self::Vortex => "vortex_grenade",
+            Self::Healing => "healing_grenade",
+            Self::Storm => "storm_grenade",
+            Self::Coldsnap => "coldsnap_grenade",
+            Self::Threadling => "threadling_grenade",
         };
 
         write!(f, "{s}")

@@ -29,13 +29,13 @@ use super::super::{
     Weapon,
 };
 
-pub const STRAND_WARLOCK: Loadout<'_> = Loadout {
+pub(crate) const STRAND_WARLOCK: Loadout<'_> = Loadout {
     name: "Weavewalk",
     class: DestinyClass::Warlock(Subclass::Strand {
         abilities: Abilities {
             super_: Super::Needlestorm,
             class: ClassAbility::HealingRift,
-            jump: Jump::BurstJump,
+            jump: Jump::Burst,
             melee: Melee::ArcaneNeedle,
             grenade: StrandGrenade::Grapple,
         },

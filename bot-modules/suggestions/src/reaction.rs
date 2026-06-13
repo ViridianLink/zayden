@@ -17,6 +17,7 @@ use serenity::all::{
     ReactionType,
 };
 use sqlx::{Database, Pool};
+use tracing::debug;
 
 use crate::{Result, Suggestions, SuggestionsError, SuggestionsGuildManager};
 
@@ -27,7 +28,7 @@ impl Suggestions {
         pool: &Pool<Db>,
     ) -> Result<()> {
         let Some(channel) = reaction.channel(http).await?.guild() else {
-            debug!();
+            debug!(channel_id = %reaction.channel_id, "reaction channel is not a guild channel; ignoring");
             return Ok(());
         };
 
@@ -36,7 +37,7 @@ impl Suggestions {
         let row = match Manager::get(pool, guild_id).await {
             Ok(Some(row)) => row,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
-                debug!();
+                debug!(%guild_id, "no suggestions configuration found for guild; ignoring reaction");
                 return Ok(());
             },
             Err(e) => return Err(e.into()),

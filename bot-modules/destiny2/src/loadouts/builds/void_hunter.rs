@@ -3,9 +3,9 @@ use super::super::hunter::{
     ClassAbility,
     Cloak,
     Gauntlets,
-    Greaves,
     Helmet,
     Jump,
+    Legs,
     Subclass,
     Vest,
 };
@@ -30,13 +30,13 @@ use super::super::{
     Weapon,
 };
 
-pub const VOID_HUNTER: Loadout<'_> = Loadout {
+pub(crate) const VOID_HUNTER: Loadout<'_> = Loadout {
     name: "Soul Siphon",
     class: DestinyClass::Hunter(Subclass::Void {
         abilities: Abilities {
             super_: Super::ShadowshotMoebiusQuiver,
             class: ClassAbility::GamblersDodge,
-            jump: Jump::TripleJump,
+            jump: Jump::Triple,
             melee: Melee::PhantomSurge,
             grenade: VoidGrenade::VortexGrenade,
         },
@@ -75,7 +75,7 @@ pub const VOID_HUNTER: Loadout<'_> = Loadout {
                 ChestMod::HarmonicAmmoGeneration,
                 ChestMod::Empty,
             ]),
-            greaves: Greaves::Any([
+            legs: Legs::Any([
                 LegsMod::StacksOnStacks,
                 LegsMod::StrandScavenger,
                 LegsMod::HarmonicScavenger,

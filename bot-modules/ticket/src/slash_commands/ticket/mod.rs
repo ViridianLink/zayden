@@ -12,12 +12,11 @@ use serenity::all::{
     Http,
     Permissions,
     ResolvedOption,
-    ResolvedValue,
 };
 use sqlx::{Database, Pool};
 use zayden_core::{CoreError as ZaydenError, parse_options, parse_subcommand};
 
-use crate::{Result, Ticket, TicketGuildManager, TicketManager};
+use crate::{Result, Ticket, TicketError, TicketGuildManager, TicketManager};
 
 impl Ticket {
     pub async fn run<
@@ -65,7 +64,11 @@ impl Ticket {
                 Self::remove::<Db, Manager>(http, interaction, pool, options)
                     .await?;
             },
-            name => return Err(),
+            name => {
+                return Err(TicketError::Internal(format!(
+                    "unrecognized ticket subcommand: {name}"
+                )));
+            },
         }
 
         Ok(())

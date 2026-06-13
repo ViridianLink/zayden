@@ -44,24 +44,23 @@ impl AbilitiesTrait for Abilities {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
-    NovaWarp,
-    NovaBombVortex,
-    NovaBombCataclysm,
+    Warp,
+    Vortex,
+    Cataclysm,
 }
 
 impl Display for Super {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::NovaWarp => "Nova Warp",
-            Self::NovaBombVortex => "Nova Bomb: Vortex",
-            Self::NovaBombCataclysm => "Nova Bomb: Cataclysm",
+            Self::Warp => "Nova Warp",
+            Self::Vortex => "Nova Bomb: Vortex",
+            Self::Cataclysm => "Nova Bomb: Cataclysm",
         };
 
         write!(f, "{s}")
     }
 }
 
-#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
     PocketSingularity,

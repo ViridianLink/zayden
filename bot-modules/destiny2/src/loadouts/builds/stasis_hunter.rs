@@ -3,7 +3,7 @@ use super::super::hunter::{
     ClassAbility,
     Cloak,
     Gauntlets,
-    Greaves,
+    Legs,
     Helmet,
     Jump,
     Subclass,
@@ -29,13 +29,13 @@ use super::super::{
     Weapon,
 };
 
-pub const STASIS_HUNTER: Loadout<'_> = Loadout {
+pub(crate) const STASIS_HUNTER: Loadout<'_> = Loadout {
     name: "",
     class: DestinyClass::Hunter(Subclass::Stasis {
         abilities: Abilities {
             super_: Super::SilenceAndSquall,
             class: ClassAbility::GamblersDodge,
-            jump: Jump::TripleJump,
+            jump: Jump::Triple,
             melee: Melee::WitheringBlade,
             grenade: StasisGrenade::Shatter,
         },
@@ -67,7 +67,7 @@ pub const STASIS_HUNTER: Loadout<'_> = Loadout {
                 ChestMod::Empty,
                 ChestMod::Empty,
             ]),
-            greaves: Greaves::FortunesFavor([
+            legs: Legs::FortunesFavor([
                 LegsMod::ElementalCharge,
                 LegsMod::Absolution,
                 LegsMod::Innervation,

@@ -30,13 +30,13 @@ use super::super::{
     Weapon,
 };
 
-pub const SOLAR_WARLOCK: Loadout<'_> = Loadout {
+pub(crate) const SOLAR_WARLOCK: Loadout<'_> = Loadout {
     name: "Boots of the Assembler",
     class: DestinyClass::Warlock(Subclass::Solar {
         abilities: Abilities {
             super_: Super::WellOfRadiance,
             class: ClassAbility::HealingRift,
-            jump: Jump::BurstJump,
+            jump: Jump::Burst,
             melee: Melee::IncineratorSnap,
             grenade: SolarGrenade::Healing,
         },

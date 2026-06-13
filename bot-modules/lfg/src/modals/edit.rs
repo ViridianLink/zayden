@@ -10,6 +10,7 @@ use serenity::all::{
     ModalInteraction,
 };
 use sqlx::{Database, Pool};
+use tracing::debug;
 use zayden_core::{CronJobData, parse_modal_components};
 
 use super::start_time;
@@ -102,8 +103,7 @@ impl Edit {
                     ..
                 },
             ))) => {
-                // Thread/Event deleted
-                debug!();
+                debug!(thread_id = %thread, "lfg thread no longer exists; skipping edit");
                 return Ok(());
             },
             Err(e) => return Err(e.into()),

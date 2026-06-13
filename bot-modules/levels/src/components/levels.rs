@@ -5,7 +5,7 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 use sqlx::{Database, Pool};
-use tracing::{debug, warn};
+use tracing::debug;
 use zayden_core::GuildMembersCache;
 
 use crate::common::levels::create_embed;

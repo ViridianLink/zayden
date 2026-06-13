@@ -41,7 +41,6 @@ impl AbilitiesTrait for Abilities {
     }
 }
 
-#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Super {
     Needlestorm,
@@ -57,7 +56,6 @@ impl Display for Super {
     }
 }
 
-#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(crate) enum Melee {
     ArcaneNeedle,

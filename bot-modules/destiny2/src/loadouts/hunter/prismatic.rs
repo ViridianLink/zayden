@@ -92,20 +92,20 @@ impl Display for Melee {
 #[derive(Clone, Copy)]
 pub(crate) enum Grenade {
     Grapple,
-    MagneticGrenade,
-    SwarmGrenade,
-    ArcboltGrenade,
-    DuskfieldGrenade,
+    Magnetic,
+    Swarm,
+    Arcbolt,
+    Duskfield,
 }
 
 impl Display for Grenade {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Grapple => "grapple",
-            Self::MagneticGrenade => "magnetic_grenade",
-            Self::SwarmGrenade => "swarm_grenade",
-            Self::ArcboltGrenade => "arcbolt_grenade",
-            Self::DuskfieldGrenade => "duskfield_grenade",
+            Self::Magnetic => "magnetic_grenade",
+            Self::Swarm => "swarm_grenade",
+            Self::Arcbolt => "arcbolt_grenade",
+            Self::Duskfield => "duskfield_grenade",
         };
 
         write!(f, "{s}")

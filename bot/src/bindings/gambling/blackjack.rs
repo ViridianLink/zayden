@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use gambling::Commands;
 use serenity::all::CreateCommand;
 use sqlx::Postgres;
+use tracing::debug;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::message_metadata;
@@ -50,7 +51,11 @@ impl ModuleComponent for Blackjack {
         let metadata = message_metadata(&cx.interaction.message)?;
 
         if cx.interaction.user != metadata.user {
-            debug!();
+            debug!(
+                user_id = %cx.interaction.user.id,
+                owner_id = %metadata.user.id,
+                "user does not own this blackjack message; ignoring"
+            );
             return Ok(());
         }
 

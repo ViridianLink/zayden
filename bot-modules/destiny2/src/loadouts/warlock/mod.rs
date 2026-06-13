@@ -86,18 +86,18 @@ impl Display for ClassAbility {
 #[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(super) enum Jump {
-    StrafeJump,
-    BurstJump,
-    BalancedJump,
+    Strafe,
+    Burst,
+    Balanced,
     Blink,
 }
 
 impl Display for Jump {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let name = match self {
-            Self::StrafeJump => "strafe_glide",
-            Self::BurstJump => "burst_glide",
-            Self::BalancedJump => "balanced_glide",
+            Self::Strafe => "strafe_glide",
+            Self::Burst => "burst_glide",
+            Self::Balanced => "balanced_glide",
             Self::Blink => "blink",
         };
 

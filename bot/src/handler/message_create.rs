@@ -4,6 +4,7 @@ use futures::{FutureExt, TryFutureExt};
 use gambling::GamblingManager;
 use serenity::all::{Context, Message};
 use sqlx::{PgPool, Postgres};
+use tracing::debug;
 use zayden_app::state::AppState;
 
 use crate::bindings::ai::Ai;
@@ -21,7 +22,7 @@ impl Handler {
         app: Arc<AppState>,
     ) -> Result<()> {
         if msg.author.bot() {
-            debug!();
+            debug!(author_id = %msg.author.id, "message author is a bot; ignoring");
             return Ok(());
         }
 

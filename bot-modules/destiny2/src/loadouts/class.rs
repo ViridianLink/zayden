@@ -3,7 +3,6 @@ use std::fmt::{Display, Formatter};
 
 use super::{Subclass, hunter, titan, warlock};
 
-#[expect(dead_code, reason = "reserved for future loadout builds")]
 #[derive(Clone, Copy)]
 pub(super) enum DestinyClass {
     Warlock(warlock::Subclass),

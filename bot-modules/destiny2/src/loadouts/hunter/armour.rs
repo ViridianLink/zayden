@@ -116,12 +116,12 @@ impl Display for Vest {
 }
 
 #[derive(Clone, Copy)]
-pub enum Greaves {
+pub enum Legs {
     Any([LegsMod; 3]),
     FortunesFavor([LegsMod; 3]),
 }
 
-impl ArmourItem for Greaves {
+impl ArmourItem for Legs {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
             Self::Any(mods) | Self::FortunesFavor(mods) => mods.map(box_display),
@@ -142,7 +142,7 @@ impl ArmourItem for Greaves {
     }
 }
 
-impl Display for Greaves {
+impl Display for Legs {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Any(_) => "Any Hunter Leg Armour",
@@ -238,6 +238,6 @@ impl Display for RelativismTrait {
             Self::Claw => "Claw",
         };
 
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }

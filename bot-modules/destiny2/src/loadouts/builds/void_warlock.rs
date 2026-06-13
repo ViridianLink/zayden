@@ -29,13 +29,13 @@ use super::super::{
     Weapon,
 };
 
-pub const VOID_WARLOCK: Loadout<'_> = Loadout {
+pub(crate) const VOID_WARLOCK: Loadout<'_> = Loadout {
     name: "Soul Siphon",
     class: DestinyClass::Warlock(Subclass::Void {
         abilities: Abilities {
-            super_: Super::NovaBombCataclysm,
+            super_: Super::Cataclysm,
             class: ClassAbility::HealingRift,
-            jump: Jump::BurstJump,
+            jump: Jump::Burst,
             melee: Melee::PocketSingularity,
             grenade: VoidGrenade::VortexGrenade,
         },

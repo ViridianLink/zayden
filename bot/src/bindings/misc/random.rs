@@ -12,6 +12,7 @@ use serenity::all::{
     CreateInteractionResponseMessage,
     ResolvedValue,
 };
+use tracing::debug;
 use zayden_core::{HandlerError, InvocationCtx, ModuleCommand};
 
 pub(super) struct Random;
@@ -166,7 +167,7 @@ impl ModuleCommand for Random {
             })
         };
         let Some((option_name, value)) = pick else {
-            debug!();
+            debug!("no random options provided; nothing to pick from");
             return Ok(());
         };
 

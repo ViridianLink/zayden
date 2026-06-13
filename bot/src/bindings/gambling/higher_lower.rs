@@ -7,6 +7,7 @@ use gambling::games::higherlower::HigherLowerManager;
 use serenity::all::{CreateCommand, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, Postgres};
+use tracing::debug;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
@@ -64,7 +65,11 @@ impl ModuleComponent for HigherLower {
         let metadata = message_metadata(&cx.interaction.message)?;
 
         if cx.interaction.user != metadata.user {
-            debug!();
+            debug!(
+                user_id = %cx.interaction.user.id,
+                owner_id = %metadata.user.id,
+                "user does not own this higher/lower message; ignoring"
+            );
             return Ok(());
         }
 

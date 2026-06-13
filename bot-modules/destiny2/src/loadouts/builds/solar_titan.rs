@@ -3,8 +3,6 @@ use super::super::titan::{
     Arms,
     Chest,
     ClassAbility,
-    Gauntlets,
-    Greaves,
     Helmet,
     Jump,
     Legs,
@@ -19,18 +17,15 @@ use super::super::{
     ClassItemMod,
     DestinyClass,
     Details,
-    EncryptedDataDisk,
     Gear,
     HelmetMod,
     LegsMod,
     Loadout,
     Mode,
-    Perk,
     SolarFragment,
     SolarGrenade,
     Stat,
     TabletOfRuin,
-    Weapon,
 };
 
 pub(crate) const SOLAR_TITAN: Loadout<'_> = Loadout {
