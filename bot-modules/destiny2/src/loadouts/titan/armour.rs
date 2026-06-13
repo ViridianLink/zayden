@@ -22,7 +22,7 @@ pub enum Helmet {
 impl ArmourItem for Helmet {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) => mods.map(box_display),
+            Self::Any(mods) | Self::WillbreakersWatch(mods) => mods.map(box_display),
         }
     }
 
@@ -30,6 +30,9 @@ impl ArmourItem for Helmet {
         let url = match self {
             Self::Any(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/0f581262927001f7db9d95a40e9b2189.jpg"
+            },
+            Self::WillbreakersWatch(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/8483dd383731573ac8921490f1721f75.jpg"
             },
         };
 
@@ -41,6 +44,7 @@ impl Display for Helmet {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Any(_) => "Any Titan Helmet",
+            Self::WillbreakersWatch(_) => "Willbreaker's Watch",
         };
 
         write!(f, "{s}")
@@ -57,7 +61,9 @@ pub enum Arms {
 impl ArmourItem for Arms {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::AshenWake(mods) => mods.map(box_display),
+            Self::Any(mods)
+            | Self::AshenWake(mods)
+            | Self::WillbreakersFists(mods) => mods.map(box_display),
         }
     }
 
@@ -68,6 +74,9 @@ impl ArmourItem for Arms {
             },
             Self::AshenWake(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/9d29d23f2920b16378127d9603370722.jpg"
+            },
+            Self::WillbreakersFists(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/4586c65813639d37c11e665ae45cfc98.jpg"
             },
         };
 
@@ -80,6 +89,7 @@ impl Display for Arms {
         let s = match self {
             Self::Any(_) => "Any Titan Gauntlets",
             Self::AshenWake(_) => "Ashen Wake",
+            Self::WillbreakersFists(_) => "Willbreaker's Fists",
         };
 
         write!(f, "{s}")
@@ -141,7 +151,9 @@ pub enum Legs {
 impl ArmourItem for Legs {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::PeregrineGreaves(mods) => mods.map(box_display),
+            Self::Any(mods)
+            | Self::PeregrineGreaves(mods)
+            | Self::SmokeJumperBoots(mods) => mods.map(box_display),
         }
     }
 
@@ -152,6 +164,9 @@ impl ArmourItem for Legs {
             },
             Self::PeregrineGreaves(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/b5a4ec9e6e4a0ec3f83ef47f406a8fa6.jpg"
+            },
+            Self::SmokeJumperBoots(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/15c3a83be21ce72bc8622ad059527ab7.jpg"
             },
         };
 
@@ -164,6 +179,7 @@ impl Display for Legs {
         let s = match self {
             Self::Any(_) => "Any Titan Leg Armour",
             Self::PeregrineGreaves(_) => "Peregrine Greaves",
+            Self::SmokeJumperBoots(_) => "Smoke Jumper Boots",
         };
 
         write!(f, "{s}")
@@ -179,7 +195,7 @@ pub enum Mark {
 impl ArmourItem for Mark {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) => mods.map(box_display),
+            Self::Any(mods) | Self::SmokeJumperMark(mods) => mods.map(box_display),
         }
     }
 
@@ -187,6 +203,9 @@ impl ArmourItem for Mark {
         let url = match self {
             Self::Any(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/4a80cc7898c2e510cb3e6c4a42982c42.jpg"
+            },
+            Self::SmokeJumperMark(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/eb7f47e45fac99fd61abcd6bc2be938f.jpg"
             },
         };
 
@@ -198,6 +217,7 @@ impl Display for Mark {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
             Self::Any(_) => "Any Titan Mark",
+            Self::SmokeJumperMark(_) => "Smoke Jumper Mark",
         };
 
         write!(f, "{s}")
