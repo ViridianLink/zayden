@@ -377,8 +377,6 @@ async fn game_end<
             )
             .await?;
 
-        // intentional: player busted — bust response sent above; skip the
-        // dealer-play path
         return Ok(());
     }
 

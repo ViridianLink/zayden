@@ -21,6 +21,7 @@ use serenity::all::{
     MessageFlags,
     Permissions,
 };
+use tracing::debug;
 pub use weapons::Weapon;
 
 #[derive(Clone, Copy)]
@@ -245,8 +246,8 @@ impl<const E: usize> RaidGuide<'_, E> {
         ));
 
         let Some(Some(encounter)) = DESERT_PERPETUAL.encounters.first() else {
-            // intentional: first encounter not populated — raid data not fully
-            // loaded; skip
+            // first encounter not populated — raid data not fully loaded
+            debug!();
             return Ok(());
         };
 

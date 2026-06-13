@@ -15,7 +15,7 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
-use zayden_core::{CoreError as ZaydenError, parse_options};
+use zayden_core::{CoreError as ZaydenError, parse_options, parse_subcommand};
 
 use crate::{Result, Ticket, TicketGuildManager, TicketManager};
 
@@ -28,20 +28,14 @@ impl Ticket {
         http: &Http,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
-        mut options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
-        let command = options.remove(0);
-
-        let (ResolvedValue::SubCommand(options)
-        | ResolvedValue::SubCommandGroup(options)) = command.value
-        else {
-            return Ok(());
-        };
+        let (name, options) = parse_subcommand(options)?;
         let options = parse_options(options);
 
-        match command.name {
+        match name {
             "close" => {
                 Self::close::<Db, GuildManager>(
                     http,
@@ -71,7 +65,7 @@ impl Ticket {
                 Self::remove::<Db, Manager>(http, interaction, pool, options)
                     .await?;
             },
-            _ => return Ok(()),
+            name => return Err(),
         }
 
         Ok(())

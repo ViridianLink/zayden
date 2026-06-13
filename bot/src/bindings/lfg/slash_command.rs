@@ -42,6 +42,7 @@ impl ModuleAutocomplete for Lfg {
 
     async fn run(&self, cx: &AutocompleteCtx<'_>) -> Result<(), HandlerError> {
         let Some(option) = cx.interaction.data.autocomplete() else {
+            debug!();
             return Ok(());
         };
         lfg::Command::autocomplete(&cx.ctx.http, cx.interaction, option).await?;

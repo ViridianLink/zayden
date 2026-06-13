@@ -41,7 +41,10 @@ pub async fn channel_creator<
     let creator_channel =
         match GuildManager::get_creator_channel(pool, guild_id).await {
             Ok(Some(channel)) => channel,
-            Ok(None) | Err(sqlx::Error::RowNotFound) => return Ok(()),
+            Ok(None) | Err(sqlx::Error::RowNotFound) => {
+                debug!();
+                return Ok(());
+            },
             Err(e) => return Err(e.into()),
         };
 
@@ -70,6 +73,7 @@ pub async fn channel_creator<
                 ..
             },
         ))) => {
+            debug!();
             return Ok(());
         },
         Err(e) => return Err(e.into()),
@@ -118,6 +122,7 @@ pub async fn channel_creator<
             if delete_voice_channel_if_inactive(http, guild_id, member.user.id, &vc)
                 .await
             {
+                debug!();
                 return Ok(());
             }
         },

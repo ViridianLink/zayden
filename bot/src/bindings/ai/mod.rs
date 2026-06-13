@@ -82,6 +82,7 @@ impl Ai {
             GenericChannelId::new(1_281_440_730_820_116_582);
 
         if message.channel_id != GAMBLING_CHANNEL {
+            debug!();
             return Ok(());
         }
 
@@ -90,10 +91,12 @@ impl Ai {
             .as_ref()
             .is_some_and(|msg| msg.content.is_empty())
         {
+            debug!();
             return Ok(());
         }
 
         if !message.mentions_me(ctx).await.unwrap_or(false) {
+            debug!();
             return Ok(());
         }
 

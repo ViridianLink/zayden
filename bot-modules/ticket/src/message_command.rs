@@ -35,7 +35,10 @@ impl SupportMessageCommand {
 
         let row = match GuildManager::get(pool, guild_id).await {
             Ok(Some(row)) => row,
-            Ok(None) | Err(sqlx::Error::RowNotFound) => return Ok(()),
+            Ok(None) | Err(sqlx::Error::RowNotFound) => {
+                debug!();
+                return Ok(());
+            },
             Err(e) => return Err(e.into()),
         };
 

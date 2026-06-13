@@ -50,6 +50,7 @@ impl ModuleComponent for Blackjack {
         let metadata = message_metadata(&cx.interaction.message)?;
 
         if cx.interaction.user != metadata.user {
+            debug!();
             return Ok(());
         }
 

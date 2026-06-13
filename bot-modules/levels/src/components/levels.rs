@@ -5,7 +5,7 @@ use serenity::all::{
     CreateInteractionResponseMessage,
 };
 use sqlx::{Database, Pool};
-use tracing::warn;
+use tracing::{debug, warn};
 use zayden_core::GuildMembersCache;
 
 use crate::common::levels::create_embed;
@@ -59,7 +59,7 @@ impl Levels {
                 let Some(row_number) =
                     Manager::user_rank(pool, interaction.user.id).await?
                 else {
-                    warn!("user has no rank entry");
+                    debug!("user has no rank entry");
                     return Ok(());
                 };
 

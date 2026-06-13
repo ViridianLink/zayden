@@ -14,6 +14,7 @@ use serenity::all::{
     UserId,
 };
 use sqlx::{Database, FromRow, Pool};
+use tracing::debug;
 use zayden_core::message_metadata;
 
 use crate::commands::inventory::InventoryManager;
@@ -272,6 +273,7 @@ impl Commands {
         let metadata = message_metadata(&interaction.message)?;
 
         if interaction.user != metadata.user {
+            debug!();
             return Ok(());
         }
 
@@ -325,6 +327,7 @@ impl Commands {
         interaction: &ComponentInteraction,
     ) -> Result<()> {
         if interaction.user.id != interaction.message.author.id {
+            debug!();
             return Ok(());
         }
 

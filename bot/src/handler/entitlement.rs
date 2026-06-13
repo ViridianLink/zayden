@@ -16,6 +16,7 @@ pub(super) async fn entitlement_create(
         entitlement.guild_id.map(GuildId::get),
         entitlement.ends_at.map(|t| t.unix_timestamp()),
     ) else {
+        debug!();
         return Ok(());
     };
 

@@ -95,14 +95,17 @@ impl Edit {
             .await
         {
             Ok(_) => {},
-            // Thread/Event deleted
             Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
                 ErrorResponse {
                     error:
                         DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
                     ..
                 },
-            ))) => return Ok(()),
+            ))) => {
+                // Thread/Event deleted
+                debug!();
+                return Ok(());
+            },
             Err(e) => return Err(e.into()),
         }
 

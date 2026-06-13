@@ -35,7 +35,10 @@ pub async fn channel_deleter<
 
     let guild_data = match GuildManager::get(pool, old.guild_id).await {
         Ok(row) => row,
-        Err(sqlx::Error::RowNotFound) => return Ok(()),
+        Err(sqlx::Error::RowNotFound) => {
+            debug!();
+            return Ok(());
+        },
         Err(e) => return Err(e.into()),
     };
 
@@ -45,14 +48,16 @@ pub async fn channel_deleter<
         {
             channel_id
         },
-        (_, None) => return Ok(()),
-        _ => {
-            return Err(TempVoiceError::Internal(format!(
-                "guild {} has no eligible temp-voice channel to clean up (old_channel={:?}, creator_channel={:?})",
-                old.guild_id,
-                old.channel_id,
-                guild_data.creator_channel()
-            )));
+        (Some(channel_id), Some(creator_channel)) => {
+            return Err(TempVoiceError::Internal(format!()));
+        },
+        (_, None) => {
+            // No voice creator channel
+            debug!();
+            return Ok(());
+        },
+        (None, Some(creator_channel)) => {
+            return Err(TempVoiceError::Internal(format!()));
         },
     };
 

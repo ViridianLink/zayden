@@ -166,6 +166,7 @@ impl ModuleCommand for Random {
             })
         };
         let Some((option_name, value)) = pick else {
+            debug!();
             return Ok(());
         };
 

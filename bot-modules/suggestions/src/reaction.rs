@@ -27,17 +27,18 @@ impl Suggestions {
         pool: &Pool<Db>,
     ) -> Result<()> {
         let Some(channel) = reaction.channel(http).await?.guild() else {
-            return Err(SuggestionsError::Internal(format!(
-                "reaction in channel {} is not a guild channel",
-                reaction.channel_id
-            )));
+            debug!();
+            return Ok(());
         };
 
         let guild_id = channel.base.guild_id;
 
         let row = match Manager::get(pool, guild_id).await {
             Ok(Some(row)) => row,
-            Ok(None) | Err(sqlx::Error::RowNotFound) => return Ok(()),
+            Ok(None) | Err(sqlx::Error::RowNotFound) => {
+                debug!();
+                return Ok(());
+            },
             Err(e) => return Err(e.into()),
         };
 

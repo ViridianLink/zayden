@@ -21,6 +21,7 @@ impl Handler {
         app: Arc<AppState>,
     ) -> Result<()> {
         if msg.author.bot() {
+            debug!();
             return Ok(());
         }
 
