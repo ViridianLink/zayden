@@ -45,6 +45,7 @@ pub async fn channel_deleter<
         {
             channel_id
         },
+        (_, None) => return Ok(()),
         _ => {
             return Err(TempVoiceError::Internal(format!(
                 "guild {} has no eligible temp-voice channel to clean up (old_channel={:?}, creator_channel={:?})",

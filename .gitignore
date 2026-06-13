@@ -15,6 +15,7 @@ target/
 *.json
 *.ps1
 *.md
+config.toml
 
 # Frontend
 # Logs
