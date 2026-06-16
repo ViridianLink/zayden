@@ -84,10 +84,13 @@ impl EndgameAnalysisSheet {
                 let data = sheet.data.pop()?;
                 Some((sheet.properties.title, data))
             })
-            .flat_map(|(title, data)| {
+            .filter_map(|(title, data)| {
                 Self::parse_weapon_data(manifest, &title, data)
+                    .inspect_err(|e| error!("Skipping sheet '{title}': {e}"))
+                    .ok()
             })
-            .collect::<Vec<_>>();
+            .flatten()
+            .collect::<Vec<Weapon>>();
 
         let json = serde_json::to_string(&weapons)?;
         fs::write("weapons.json", json)?;
@@ -99,35 +102,41 @@ impl EndgameAnalysisSheet {
         manifest: &HashMap<String, DestinyInventoryItemDefinition>,
         title: &str,
         data: GridData,
-    ) -> Vec<Weapon> {
+    ) -> Result<Vec<Weapon>> {
         let mut iter = data.row_data.into_iter().skip(1);
         let Some(header) = iter.next() else {
-            error!("Sheet '{title}' has no header row");
-            return Vec::new();
+            return Err(crate::EndgameAnalysisError::MissingHeaderRow(
+                title.to_string(),
+            ));
         };
 
-        iter.filter_map(|r| {
-            WeaponBuilder::from_row(title, &header, r)
-                .map_err(|e| error!("Skipping weapon row in '{title}': {e}"))
-                .ok()
-                .flatten()
-        })
-        .filter_map(|builder| {
-            let item = match manifest.values().find(|item| {
-                item.display_properties.name.eq_ignore_ascii_case(&builder.name)
-            }) {
-                Some(item) => item,
-                None => {
-                    error!("Missing item: {}", builder.name);
-                    &DestinyInventoryItemDefinition::default()
-                },
-            };
+        let weapons = iter
+            .filter_map(|r| {
+                WeaponBuilder::from_row(title, &header, r)
+                    .inspect_err(|e| error!("Skipping weapon in '{title}': {e}"))
+                    .ok()
+                    .flatten()
+            })
+            .filter_map(|builder| {
+                let item = match manifest.values().find(|item| {
+                    item.display_properties.name.eq_ignore_ascii_case(&builder.name)
+                }) {
+                    Some(item) => item,
+                    None => {
+                        error!("Missing item: {}", builder.name);
+                        &DestinyInventoryItemDefinition::default()
+                    },
+                };
 
-            builder
-                .build(item)
-                .map_err(|e| error!("Skipping weapon build in '{title}': {e}"))
-                .ok()
-        })
-        .collect()
+                builder
+                    .build(item)
+                    .inspect_err(|e| {
+                        error!("Skipping weapon build in '{title}': {e}");
+                    })
+                    .ok()
+            })
+            .collect();
+
+        Ok(weapons)
     }
 }

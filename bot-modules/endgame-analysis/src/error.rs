@@ -8,6 +8,7 @@ pub type Result<T> = std::result::Result<T, EndgameAnalysisError>;
 #[derive(Debug, thiserror::Error)]
 pub enum EndgameAnalysisError {
     WeaponNotFound(String),
+    MissingHeaderRow(String),
 
     Io(#[from] std::io::Error),
     Json(#[from] serde_json::Error),
@@ -20,6 +21,7 @@ impl std::fmt::Display for EndgameAnalysisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::WeaponNotFound(weapon) => write!(f, "Weapon {weapon} not found"),
+            Self::MissingHeaderRow(sheet) => write!(f, "Sheet '{sheet}' has no header row"),
             Self::Io(e) => e.fmt(f),
             Self::Json(e) => e.fmt(f),
             Self::BungieApi(e) => e.fmt(f),
@@ -37,7 +39,8 @@ impl Respond for EndgameAnalysisError {
             Self::Io(_)
             | Self::Json(_)
             | Self::BungieApi(_)
-            | Self::GoogleSheets(_) => None,
+            | Self::GoogleSheets(_)
+            | Self::MissingHeaderRow(_) => None,
         }
     }
 }

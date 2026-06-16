@@ -52,7 +52,8 @@ impl SupportMessageCommand {
         let channel_id = message.channel_id.expect_channel();
 
         if support_channel != channel_id {
-            return Err(TicketError::NotInSupportChannel);
+            debug!(%guild_id, %channel_id, "message not in support channel; ignoring");
+            return Ok(());
         }
 
         let role_ids = row.role_ids();
