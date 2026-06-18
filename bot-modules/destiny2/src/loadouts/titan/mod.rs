@@ -9,7 +9,7 @@ pub(super) mod void;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-pub(super) use armour::{Legs, Arms, Helmet, Mark, Chest};
+pub(super) use armour::{Arms, Chest, Helmet, Legs, Mark, StoicismTrait};
 
 use super::{Abilities, Aspect, Subclass as SubclassTrait, box_aspect};
 

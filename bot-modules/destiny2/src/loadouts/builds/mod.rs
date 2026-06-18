@@ -1,5 +1,6 @@
 mod arc_titan;
 mod prismatic_hunter;
+mod prismatic_titan;
 mod solar_titan;
 mod solar_warlock;
 mod stasis_hunter;
@@ -10,6 +11,7 @@ mod void_warlock;
 
 pub(super) use arc_titan::ARC_TITAN;
 pub(super) use prismatic_hunter::PRISMATIC_HUNTER;
+pub(super) use prismatic_titan::PRISMATIC_TITAN;
 pub(super) use solar_titan::SOLAR_TITAN;
 pub(super) use solar_warlock::SOLAR_WARLOCK;
 pub(super) use stasis_hunter::STASIS_HUNTER;

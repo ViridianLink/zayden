@@ -22,6 +22,7 @@ pub enum Weapon {
     Khvostov7G0X,
     MonteCarlo,
     CullsShadow(Perk),
+    FestivalFlight([Perk; 2]),
 }
 
 impl Weapon {
@@ -37,7 +38,9 @@ impl Weapon {
             | Self::MonteCarlo
             | Self::CullsShadow(_) => Affinity::Kinetic,
             Self::YeartideApex(_) => Affinity::Solar,
-            Self::ServiceOfLuzaku | Self::MintRetrograde(_) => Affinity::Strand,
+            Self::ServiceOfLuzaku
+            | Self::MintRetrograde(_)
+            | Self::FestivalFlight(_) => Affinity::Strand,
         }
     }
 
@@ -55,6 +58,7 @@ impl Weapon {
             Self::ServiceOfLuzaku => Archtype::MachineGun,
             Self::MintRetrograde(_) => Archtype::RocketPulseRifle,
             Self::CullsShadow(_) => Archtype::FusionRifle,
+            Self::FestivalFlight(_) => Archtype::BreechGrenadeLauncher,
         }
     }
 
@@ -65,7 +69,8 @@ impl Weapon {
             | Self::LotusEater(perks)
             | Self::PraxicBlade(perks)
             | Self::YeartideApex(perks)
-            | Self::MintRetrograde(perks) => perks,
+            | Self::MintRetrograde(perks)
+            | Self::FestivalFlight(perks) => perks,
             Self::BadJuju => [Perk::StringOfCurses, Perk::FullAutoTriggerSystem],
             Self::ServiceOfLuzaku => {
                 [Perk::DichotomousThinking, Perk::MeaningMaking]
@@ -122,6 +127,7 @@ impl Display for Weapon {
             Self::Khvostov7G0X => "Khvostov 7G-0X",
             Self::MonteCarlo => "Monte Carlo",
             Self::CullsShadow(_) => "Cull's Shadow",
+            Self::FestivalFlight(_) => "Festival Flight",
         };
 
         write!(f, "{s}")
@@ -202,6 +208,9 @@ impl From<Weapon> for CreateUnfurledMediaItem<'_> {
             },
             Weapon::CullsShadow(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/d4f9351b75ec209ab6cc368b996dd6bc.jpg"
+            },
+            Weapon::FestivalFlight(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/e3d2241387a0f536fbd52a80f522d3f4.jpg"
             },
         };
 
@@ -334,6 +343,7 @@ pub enum Perk {
     ShootToLoot,
     Soulburn,
     SoulfireZeal,
+    AttritionOrbs,
 }
 
 impl Display for Perk {
@@ -385,6 +395,7 @@ impl Display for Perk {
             Self::ShootToLoot => "shoot_to_loot",
             Self::Soulburn => "soulburn",
             Self::SoulfireZeal => "soulfire_zeal",
+            Self::AttritionOrbs => "attrition_orbs",
         };
 
         write!(f, "{name}")
