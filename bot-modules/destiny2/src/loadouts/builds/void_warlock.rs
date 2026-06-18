@@ -23,6 +23,7 @@ use super::super::{
     LegsMod,
     Loadout,
     Mode,
+    Perk,
     Stat,
     VoidFragment,
     VoidGrenade,
@@ -41,65 +42,72 @@ pub(crate) const VOID_WARLOCK: Loadout<'_> = Loadout {
         },
         aspects: [
             Aspect::FeedTheVoid([
+                VoidFragment::Persistence,
                 VoidFragment::Vigilance,
-                VoidFragment::Undermining,
             ]),
             Aspect::SoulSiphon([
-                VoidFragment::Persistence,
+                VoidFragment::Undermining,
+                VoidFragment::Expulsion,
                 VoidFragment::Provision,
-                VoidFragment::Remnants,
             ]),
         ],
     }),
     mode: Mode::PvE,
     tags: [None; 3],
     gear: Gear {
-        weapons: [Some(Weapon::BadJuju), None, None],
+        weapons: [
+            Some(Weapon::CullsShadow(Perk::SoulfireZeal)),
+            Some(Weapon::RecklessOracle([
+                Perk::DestabilizingRounds,
+                Perk::ChaosReshaped,
+            ])),
+            None,
+        ],
         armour: Armour::Warlock {
-            helmet: Hood::SkullOfDireAhamkara([
+            helmet: Hood::MaskOfDetestation([
                 HelmetMod::HandsOn,
-                HelmetMod::KineticSiphon,
-                HelmetMod::RadiantLight,
+                HelmetMod::HandsOn,
+                HelmetMod::HarmonicSiphon,
             ]),
-            gloves: Gloves::Any([
-                ArmsMod::MeleeFont,
-                ArmsMod::MeleeFont,
+            gloves: Gloves::WintersGuile([
                 ArmsMod::HeavyHanded,
+                ArmsMod::HeavyHanded,
+                ArmsMod::MeleeFont,
             ]),
-            robes: Robes::Any([
+            robes: Robes::RobesOfDetestation([
                 ChestMod::ConcussiveDampener,
                 ChestMod::Empty,
                 ChestMod::Empty,
             ]),
-            boots: Boots::Any([
+            boots: Boots::BootsOfDetestation([
                 LegsMod::StacksOnStacks,
+                LegsMod::Absolution,
                 LegsMod::Invigoration,
-                LegsMod::Empty,
             ]),
-            bond: Bond::Any([
-                ClassItemMod::PowerfulAttraction,
+            bond: Bond::BondOfDetestation([
                 ClassItemMod::TimeDilation,
-                ClassItemMod::Outreach,
+                ClassItemMod::ClassFont,
+                ClassItemMod::PowerfulAttraction,
             ]),
         },
         stats_priority: [
             Stat::Melee(200),
-            Stat::Super(200),
             Stat::Grenade(200),
+            Stat::Super(200),
             Stat::Health(200),
-            Stat::Class(200),
             Stat::Weapons(200),
+            Stat::Class(200),
         ],
     },
     artifact: Artifact::HuntersJournal([
-        Some(HuntersJournal::Shieldcrush),
+        Some(HuntersJournal::EnergyDiffusionSubstrate),
+        Some(HuntersJournal::SustainedFire),
+        Some(HuntersJournal::TargetingAutoloader),
+        Some(HuntersJournal::ElementalSiphon),
         Some(HuntersJournal::VoidHegemony),
-        None,
-        None,
-        None,
-        None,
-        None,
+        Some(HuntersJournal::ExpandingAbyss),
+        Some(HuntersJournal::Shieldcrush),
     ]),
-    details: Details::new("LlamaD2", "https://dim.gg/fiauzci/Void")
-        .video("https://youtu.be/TBbOiMWPIkE"),
+    details: Details::new("LlamaD2", "https://dim.gg/dchyh6y/Raid")
+        .video("https://youtu.be/LyWoZXrUGTM"),
 };

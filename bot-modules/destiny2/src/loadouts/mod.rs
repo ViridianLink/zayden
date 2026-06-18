@@ -20,6 +20,7 @@ mod warlock;
 mod weapons;
 
 use std::fmt::{Display, Formatter, Write};
+use std::time::Duration;
 use std::{fmt, iter};
 
 use builds::{
@@ -199,10 +200,10 @@ impl Loadout<'_> {
             let name = build.name.to_lowercase().replace([' ', '|'], "_");
             format!("{subclass}___{name}").as_str() == value
         }) else {
-            return Err(CoreError::MissingData("matching build").into());
+            return Err(CoreError::missing_data("matching build").into());
         };
 
-        let component = build.into_component::<Data>(ctx, parent_token).await;
+        let component = build.into_component::<Data>(ctx, parent_token).await?;
 
         interaction
             .create_response(
@@ -217,6 +218,30 @@ impl Loadout<'_> {
 
         Ok(())
     }
+}
+
+async fn resolve_emoji<T>(
+    emoji_cache: &mut EmojiCache,
+    ctx: &Context,
+    parent_token: &str,
+    mut f: impl FnMut(&EmojiCache) -> EmojiResult<T>,
+) -> Result<T> {
+    const MAX_ATTEMPTS: u8 = 10;
+
+    for _ in 0..MAX_ATTEMPTS {
+        match f(emoji_cache) {
+            Ok(value) => return Ok(value),
+            Err(name) => {
+                emoji_cache.upload(ctx, parent_token, &name).await;
+                tokio::time::sleep(Duration::from_secs(5)).await;
+            },
+        }
+    }
+
+    Err(CoreError::missing_data(format!(
+        "emoji unavailable after {MAX_ATTEMPTS} upload attempts"
+    ))
+    .into())
 }
 
 impl<'a> Loadout<'a> {
@@ -240,19 +265,17 @@ impl<'a> Loadout<'a> {
         self,
         ctx: &Context,
         parent_token: &str,
-    ) -> CreateComponent<'a> {
+    ) -> Result<CreateComponent<'a>> {
         let data_lock = ctx.data::<RwLock<Data>>();
         let mut data = data_lock.write().await;
         let emoji_cache = data.emojis_mut();
 
         let mut components = Vec::with_capacity(21);
 
-        let subclass_btn = loop {
-            match self.class.subclass().as_button(emoji_cache) {
-                Ok(btn) => break btn,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let subclass_btn = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.class.subclass().as_button(cache)
+        })
+        .await?;
 
         let tags = CreateContainerComponent::ActionRow(CreateActionRow::buttons(
             iter::once(subclass_btn)
@@ -298,47 +321,35 @@ impl<'a> Loadout<'a> {
             ),
         );
 
-        let aspects = loop {
-            match self.aspects_str(emoji_cache) {
-                Ok(s) => break s,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let aspects = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.aspects_str(cache)
+        })
+        .await?;
 
-        let super_emoji = loop {
-            match self.super_emoji(emoji_cache) {
-                Ok(emoji) => break emoji,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let super_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.super_emoji(cache)
+        })
+        .await?;
 
-        let class_emoji = loop {
-            match self.class_emoji(emoji_cache) {
-                Ok(emoji) => break emoji,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let class_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.class_emoji(cache)
+        })
+        .await?;
 
-        let jump_emoji = loop {
-            match self.jump_emoji(emoji_cache) {
-                Ok(emoji) => break emoji,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let jump_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.jump_emoji(cache)
+        })
+        .await?;
 
-        let melee_emoji = loop {
-            match self.melee_emoji(emoji_cache) {
-                Ok(emoji) => break emoji,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let melee_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.melee_emoji(cache)
+        })
+        .await?;
 
-        let grenade_emoji = loop {
-            match self.grenade_emoji(emoji_cache) {
-                Ok(emoji) => break emoji,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let grenade_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.grenade_emoji(cache)
+        })
+        .await?;
 
         let subclass = CreateContainerComponent::TextDisplay(
             CreateTextDisplay::new(format!(
@@ -346,12 +357,10 @@ impl<'a> Loadout<'a> {
             )),
         );
 
-        let fragments_str = loop {
-            match self.fragments_str(emoji_cache) {
-                Ok(s) => break s,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let fragments_str = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.fragments_str(cache)
+        })
+        .await?;
 
         let fragments = CreateContainerComponent::TextDisplay(
             CreateTextDisplay::new(format!("#{fragments_str}")),
@@ -361,33 +370,25 @@ impl<'a> Loadout<'a> {
             CreateTextDisplay::new("### GEAR AND MODS"),
         );
 
-        let weapons = loop {
-            match self.weapon_components(emoji_cache) {
-                Ok(v) => break v,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let weapons = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.weapon_components(cache)
+        })
+        .await?;
 
-        let armour = loop {
-            match self.armour_components(emoji_cache) {
-                Ok(v) => break v,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let armour = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.armour_components(cache)
+        })
+        .await?;
 
-        let stat_prio = loop {
-            match self.stat_prio_str(emoji_cache) {
-                Ok(s) => break s,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let stat_prio = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.stat_prio_str(cache)
+        })
+        .await?;
 
-        let artifact = loop {
-            match self.artifact.try_to_str(emoji_cache) {
-                Ok(s) => break s,
-                Err(name) => emoji_cache.upload(ctx, parent_token, &name).await,
-            }
-        };
+        let artifact = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
+            self.artifact.try_to_str(cache)
+        })
+        .await?;
 
         let mut misc_content = format!(
             "### Stats Priority\n#{stat_prio}\n### ARTIFACT PERKS\n# {artifact}",
@@ -415,14 +416,16 @@ impl<'a> Loadout<'a> {
             line_sep,
             gear_and_mods_heading,
         ]);
-        components.extend(weapons);
-        components.push(CreateContainerComponent::Separator(
-            CreateSeparator::new().spacing(SeparatorSpacingSize::Large),
-        ));
+        if !weapons.is_empty() {
+            components.extend(weapons);
+            components.push(CreateContainerComponent::Separator(
+                CreateSeparator::new().spacing(SeparatorSpacingSize::Large),
+            ));
+        }
         components.extend(armour);
         components.push(misc);
 
-        CreateComponent::Container(CreateContainer::new(components))
+        Ok(CreateComponent::Container(CreateContainer::new(components)))
     }
 
     fn weapon_components(
@@ -474,8 +477,19 @@ impl<'a> Loadout<'a> {
     }
 
     fn super_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
-        emoji_cache
-            .emoji_str(&self.class.subclass().abilities().super_().to_string())
+        let sanitized: String = self
+            .class
+            .subclass()
+            .abilities()
+            .super_()
+            .to_string()
+            .chars()
+            .filter(|&c| c != ':')
+            .map(|c| if c == ' ' { '_' } else { c })
+            .flat_map(|c| c.to_lowercase())
+            .collect();
+
+        emoji_cache.emoji_str(&sanitized)
     }
 
     fn class_emoji(self, emoji_cache: &EmojiCache) -> EmojiResult<String> {
@@ -584,238 +598,6 @@ fn box_display<T: Display + 'static>(value: T) -> Box<dyn Display> {
 
 fn box_aspect<T: Aspect + 'static>(value: T) -> Box<dyn Aspect> {
     Box::new(value)
-}
-
-// #[derive(Clone, Copy)]
-// pub enum Super {
-//     BurningMaul,
-//     GoldenGunMarksman,
-//     SongOfFlame,
-//     Thundercrash,
-//     GatheringStorm,
-//     Bladefury,
-//     NovaBombCataclysm,
-//     Needlestorm,
-//     ChaosReach,
-// }
-
-// impl Display for Super {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         let name = match self {
-//             Self::BurningMaul => "Burning Maul",
-//             Self::GoldenGunMarksman => "Golden Gun: Marksman",
-//             Self::SongOfFlame => "Song of Flame",
-//             Self::Thundercrash => "Thundercrash",
-//             Self::GatheringStorm => "Gathering Storm",
-//             Self::Bladefury => "Bladefury",
-//             Self::NovaBombCataclysm => "Nova Bomb: Cataclysm",
-//             Self::Needlestorm => "Needlestorm",
-//             Self::ChaosReach => "Chaos Reach",
-//         };
-
-//         write!(f, "{name}")
-//     }
-// }
-
-// impl Debug for Super {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         let name = match self {
-//             Self::BurningMaul => "burning_maul",
-//             Self::GoldenGunMarksman => "golden_gun__marksman",
-//             Self::SongOfFlame => "song_of_flame",
-//             Self::Thundercrash => "thundercrash",
-//             Self::GatheringStorm => "gathering_storm",
-//             Self::Bladefury => "bladefury",
-//             Self::NovaBombCataclysm => "nova_bomb_cataclysm",
-//             Self::Needlestorm => "needlestorm",
-//             Self::ChaosReach => "chaos_reach",
-//         };
-
-//         write!(f, "{name}")
-//     }
-// }
-
-#[derive(Clone, Copy)]
-pub enum ClassAbility {
-    MarksmansDodge,
-    PhoenixDive,
-    Thruster,
-    GamblersDodge,
-    HealingRift,
-    EmpoweringRift,
-}
-
-impl Display for ClassAbility {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            Self::MarksmansDodge => "marksmans_dodge",
-            Self::PhoenixDive => "phoenix_dive",
-            Self::Thruster => "thruster",
-            Self::GamblersDodge => "gamblers_dodge",
-            Self::HealingRift => "healing_rift",
-            Self::EmpoweringRift => "empowering_rift",
-        };
-
-        write!(f, "{name}")
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Jump {
-    CatapultLift,
-    Triple,
-    BurstGlide,
-}
-
-impl Display for Jump {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            Self::CatapultLift => "catapult_lift",
-            Self::Triple => "triple_jump",
-            Self::BurstGlide => "burst_glide",
-        };
-
-        write!(f, "{name}")
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Melee {
-    ThrowingHammer,
-    ThreadedSpike,
-    IncineratorSnap,
-    Thunderclap,
-    CombinationBlow,
-    FrenziedBlade,
-    PocketSingularity,
-    ArcaneNeedle,
-    BallLightning,
-}
-
-impl Display for Melee {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            Self::ThrowingHammer => "throwing_hammer",
-            Self::ThreadedSpike => "threaded_spike",
-            Self::IncineratorSnap => "incinerator_snap",
-            Self::Thunderclap => "thunderclap",
-            Self::CombinationBlow => "combination_blow",
-            Self::FrenziedBlade => "frenzied_blade",
-            Self::PocketSingularity => "pocket_singularity",
-            Self::ArcaneNeedle => "arcane_needle",
-            Self::BallLightning => "ball_lightning",
-        };
-
-        write!(f, "{name}")
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Grenade {
-    Healing,
-    Grapple,
-    Fusion,
-    Shackle,
-    Flux,
-    Magnetic,
-    Threadling,
-    Vortex,
-    Pulse,
-}
-
-impl Display for Grenade {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            Self::Healing => "healing_grenade",
-            Self::Grapple => "grapple_grenade",
-            Self::Fusion => "fusion_grenade",
-            Self::Shackle => "shackle_grenade",
-            Self::Flux => "flux_grenade",
-            Self::Magnetic => "magnetic_grenade",
-            Self::Threadling => "threadling_grenade",
-            Self::Vortex => "vortex_grenade",
-            Self::Pulse => "pulse_grenade",
-        };
-
-        write!(f, "{name}")
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum Fragment {
-    EmberOfAshes,
-    EmberOfEmpyrean,
-    EmberOfSearing,
-    EmberOfTorches,
-    FacetOfHope,
-    FacetOfProtection,
-    FacetOfPurpose,
-    FacetOfDawn,
-    FacetOfBlessing,
-    EmberOfMercy,
-    FacetOfCourage,
-    FacetOfAwakening,
-    FacetOfSacrifice,
-    SparkOfResistance,
-    SparkOfAmplitude,
-    SparkOfFrequency,
-    SparkOfDischarge,
-    ThreadOfFury,
-    ThreadOfWarding,
-    ThreadOfTransmutation,
-    ThreadOfGeneration,
-    SparkOfIons,
-    SparkOfFeedback,
-    EchoOfPersistence,
-    EchoOfInstability,
-    EchoOfExpulsion,
-    EchoOfVigilance,
-    ThreadOfMind,
-    ThreadOfEvolution,
-    FacetOfDominance,
-    SparkOfShock,
-    SparkOfBeacons,
-}
-
-impl Display for Fragment {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let name = match self {
-            Self::EmberOfAshes => "ember_of_ashes",
-            Self::EmberOfEmpyrean => "ember_of_empyrean",
-            Self::EmberOfSearing => "ember_of_searing",
-            Self::EmberOfTorches => "ember_of_torches",
-            Self::EmberOfMercy => "ember_of_mercy",
-            Self::FacetOfHope => "facet_of_hope",
-            Self::FacetOfProtection => "facet_of_protection",
-            Self::FacetOfPurpose => "facet_of_purpose",
-            Self::FacetOfDawn => "facet_of_dawn",
-            Self::FacetOfBlessing => "facet_of_blessing",
-            Self::FacetOfCourage => "facet_of_courage",
-            Self::FacetOfAwakening => "facet_of_awakening",
-            Self::FacetOfSacrifice => "facet_of_sacrifice",
-            Self::FacetOfDominance => "facet_of_dominance",
-            Self::SparkOfResistance => "spark_of_resistance",
-            Self::SparkOfAmplitude => "spark_of_amplitude",
-            Self::SparkOfFrequency => "spark_of_frequency",
-            Self::SparkOfDischarge => "spark_of_discharge",
-            Self::ThreadOfFury => "thread_of_fury",
-            Self::ThreadOfWarding => "thread_of_warding",
-            Self::ThreadOfTransmutation => "thread_of_transmutation",
-            Self::ThreadOfGeneration => "thread_of_generation",
-            Self::ThreadOfMind => "thread_of_mind",
-            Self::ThreadOfEvolution => "thread_of_evolution",
-            Self::SparkOfIons => "spark_of_ions",
-            Self::SparkOfFeedback => "spark_of_feedback",
-            Self::EchoOfPersistence => "echo_of_persistence",
-            Self::EchoOfInstability => "echo_of_instability",
-            Self::EchoOfExpulsion => "echo_of_expulsion",
-            Self::EchoOfVigilance => "echo_of_vigilance",
-            Self::SparkOfShock => "spark_of_shock",
-            Self::SparkOfBeacons => "spark_of_beacons",
-        };
-
-        write!(f, "{name}")
-    }
 }
 
 #[derive(Clone, Copy)]

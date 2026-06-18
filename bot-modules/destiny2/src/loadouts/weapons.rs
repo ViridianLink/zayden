@@ -21,6 +21,7 @@ pub enum Weapon {
     ChoirOfOne(Perk),
     Khvostov7G0X,
     MonteCarlo,
+    CullsShadow(Perk),
 }
 
 impl Weapon {
@@ -33,7 +34,8 @@ impl Weapon {
             Self::PraxicBlade(_)
             | Self::BadJuju
             | Self::Khvostov7G0X
-            | Self::MonteCarlo => Affinity::Kinetic,
+            | Self::MonteCarlo
+            | Self::CullsShadow(_) => Affinity::Kinetic,
             Self::YeartideApex(_) => Affinity::Solar,
             Self::ServiceOfLuzaku | Self::MintRetrograde(_) => Affinity::Strand,
         }
@@ -52,6 +54,7 @@ impl Weapon {
             Self::BadJuju => Archtype::PulseRifle,
             Self::ServiceOfLuzaku => Archtype::MachineGun,
             Self::MintRetrograde(_) => Archtype::RocketPulseRifle,
+            Self::CullsShadow(_) => Archtype::FusionRifle,
         }
     }
 
@@ -70,6 +73,7 @@ impl Weapon {
             Self::ChoirOfOne(perk) => [perk, Perk::ShortActionStock],
             Self::Khvostov7G0X => [Perk::TheRightChoice, Perk::ShootToLoot],
             Self::MonteCarlo => [Perk::MonteCarloMethod, Perk::MarkovChain],
+            Self::CullsShadow(perk) => [Perk::Soulburn, perk],
         }
     }
 
@@ -117,6 +121,7 @@ impl Display for Weapon {
             Self::ChoirOfOne(_) => "Choir of One",
             Self::Khvostov7G0X => "Khvostov 7G-0X",
             Self::MonteCarlo => "Monte Carlo",
+            Self::CullsShadow(_) => "Cull's Shadow",
         };
 
         write!(f, "{s}")
@@ -194,6 +199,9 @@ impl From<Weapon> for CreateUnfurledMediaItem<'_> {
             },
             Weapon::MonteCarlo => {
                 "https://www.bungie.net/common/destiny2_content/icons/d123aaf47eed3de479aac4492577f7e9.jpg"
+            },
+            Weapon::CullsShadow(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/d4f9351b75ec209ab6cc368b996dd6bc.jpg"
             },
         };
 
@@ -324,6 +332,8 @@ pub enum Perk {
     MasterOfArms,
     TheRightChoice,
     ShootToLoot,
+    Soulburn,
+    SoulfireZeal,
 }
 
 impl Display for Perk {
@@ -371,8 +381,10 @@ impl Display for Perk {
             Self::Onslaught => "onslaught",
             Self::ShortActionStock => "short_action_stock",
             Self::MasterOfArms => "master_of_arms",
-            Self::TheRightChoice => "The Right Choice",
-            Self::ShootToLoot => "Shoot to Loot",
+            Self::TheRightChoice => "the_right_choice",
+            Self::ShootToLoot => "shoot_to_loot",
+            Self::Soulburn => "soulburn",
+            Self::SoulfireZeal => "soulfire_zeal",
         };
 
         write!(f, "{name}")

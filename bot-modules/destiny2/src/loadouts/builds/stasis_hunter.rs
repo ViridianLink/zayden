@@ -3,9 +3,9 @@ use super::super::hunter::{
     ClassAbility,
     Cloak,
     Gauntlets,
-    Legs,
     Helmet,
     Jump,
+    Legs,
     Subclass,
     Vest,
 };
@@ -30,7 +30,7 @@ use super::super::{
 };
 
 pub(crate) const STASIS_HUNTER: Loadout<'_> = Loadout {
-    name: "",
+    name: "Shatter",
     class: DestinyClass::Hunter(Subclass::Stasis {
         abilities: Abilities {
             super_: Super::SilenceAndSquall,

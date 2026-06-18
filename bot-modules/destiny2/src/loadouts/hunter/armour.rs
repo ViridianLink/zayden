@@ -98,7 +98,9 @@ impl ArmourItem for Vest {
 
     fn as_unfurled_media_item<'a>(&self) -> CreateUnfurledMediaItem<'a> {
         let url = match self {
-            Self::Any(_) => "",
+            Self::Any(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/4809aed7a4b4803dd9235baa9a36ee36.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)

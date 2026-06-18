@@ -70,9 +70,9 @@ pub(crate) enum Melee {
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::SeismicStrike => "Seismic Strike",
-            Self::BallisticSlam => "Ballistic Slam",
-            Self::Thunderclap => "Thunderclap",
+            Self::SeismicStrike => "seismic_strike",
+            Self::BallisticSlam => "ballistic_slam",
+            Self::Thunderclap => "thunderclap",
         };
 
         write!(f, "{s}")

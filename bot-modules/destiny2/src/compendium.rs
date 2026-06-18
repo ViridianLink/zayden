@@ -24,12 +24,12 @@ pub async fn update(api_key: &str) -> Result<()> {
         .sheets
         .into_iter()
         .find(|sheet| sheet.properties.title.eq_ignore_ascii_case("gear perks"))
-        .ok_or(CoreError::MissingData("gear perks sheet"))?;
+        .ok_or_else(|| CoreError::missing_data("gear perks sheet"))?;
 
     let data = perks_sheet
         .data
         .pop()
-        .ok_or(CoreError::MissingData("gear perks sheet data"))?;
+        .ok_or_else(|| CoreError::missing_data("gear perks sheet data"))?;
 
     let perks = data
         .row_data

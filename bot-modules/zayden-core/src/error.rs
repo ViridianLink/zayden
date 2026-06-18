@@ -106,7 +106,7 @@ pub enum CoreError {
     NotInteractionAuthor,
 
     MessageConflict,
-    MissingData(&'static str),
+    MissingData(String),
 
     InvalidOption(String),
 
@@ -118,6 +118,10 @@ pub enum CoreError {
 }
 
 impl CoreError {
+    pub fn missing_data(s: impl Into<String>) -> Self {
+        Self::MissingData(s.into())
+    }
+
     pub fn invalid_option(s: impl Into<String>) -> Self {
         Self::InvalidOption(s.into())
     }

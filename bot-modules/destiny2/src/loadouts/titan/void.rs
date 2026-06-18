@@ -71,8 +71,8 @@ pub(crate) enum Melee {
 impl Display for Melee {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::ShieldBash => "Shield Bash",
-            Self::ShieldThrow => "Shield Throw",
+            Self::ShieldBash => "shield_bash",
+            Self::ShieldThrow => "shield_throw",
         };
 
         write!(f, "{s}")

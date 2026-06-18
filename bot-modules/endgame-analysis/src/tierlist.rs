@@ -51,7 +51,7 @@ impl TierListCommand {
         let tiers: &[TierLabel] = match options.get("tier") {
             Some(ResolvedValue::String(tier)) => {
                 let Ok(tier) = tier.parse::<TierLabel>() else {
-                    return Err(CoreError::MissingData("tier value").into());
+                    return Err(CoreError::missing_data("tier value").into());
                 };
                 let index =
                     TIERS.iter().position(|t| t == &tier).unwrap_or(TIERS.len() - 1);
