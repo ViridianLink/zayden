@@ -64,8 +64,8 @@ pub(crate) const PRISMATIC_TITAN: Loadout<'_> = Loadout {
                 HelmetMod::PowerfulFriends,
             ]),
             arms: Arms::LuminopotentGauntlets([
-                ArmsMod::Firepower,
                 ArmsMod::StrandLoader,
+                ArmsMod::Firepower,
                 ArmsMod::BolsteringDetonation,
             ]),
             chest: Chest::LuminopotentPlate([
@@ -74,14 +74,14 @@ pub(crate) const PRISMATIC_TITAN: Loadout<'_> = Loadout {
                 ChestMod::Empty,
             ]),
             legs: Legs::LuminopotentGreaves([
-                LegsMod::StrandScavenger,
                 LegsMod::StacksOnStacks,
+                LegsMod::StrandScavenger,
                 LegsMod::Insulation,
             ]),
             mark: Mark::Stoicism([StoicismTrait::Abeyant, StoicismTrait::Horn], [
-                ClassItemMod::PowerfulAttraction,
                 ClassItemMod::ClassFont,
                 ClassItemMod::TimeDilation,
+                ClassItemMod::PowerfulAttraction,
             ]),
         },
         stats_priority: [
