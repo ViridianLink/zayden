@@ -11,7 +11,20 @@ use crate::scope::{CommandMetadata, CommandScope, IdMatch};
 pub trait ModuleCommand: Send + Sync {
     /// The command name, acquired at runtime so the same trait can be reused
     /// across multiple bot applications without hard-coding.
-    fn name(&self) -> Cow<'static, str>;
+    fn name(&self) -> Cow<'static, str> {
+        let command = self.definition();
+        let name = if let Ok(value) = serde_json::to_value(command) {
+            value
+                .get("name")
+                .and_then(|v| v.as_str())
+                .map(String::from)
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
+
+        Cow::Owned(name)
+    }
 
     fn definition(&self) -> CreateCommand<'static>;
 
