@@ -63,6 +63,7 @@ impl Commands {
                 .next()
                 .unwrap_or_default()
                 .timestamp()
+                .as_second()
         };
 
         let coin = emojis.emoji("heads").map_err(|n| {
