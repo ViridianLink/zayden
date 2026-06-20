@@ -42,7 +42,7 @@ pub struct HigherLower;
 #[async_trait]
 impl ModuleCommand for HigherLower {
     fn name(&self) -> Cow<'static, str> {
-        Cow::Borrowed("higher_lower")
+        Cow::Borrowed("higherorlower")
     }
 
     fn definition(&self) -> CreateCommand<'static> {
