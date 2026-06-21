@@ -488,7 +488,7 @@ impl<'a> Loadout<'a> {
             .chars()
             .filter(|&c| c != ':')
             .map(|c| if c == ' ' { '_' } else { c })
-            .flat_map(|c| c.to_lowercase())
+            .flat_map(char::to_lowercase)
             .collect();
 
         emoji_cache.emoji_str(&sanitized)
