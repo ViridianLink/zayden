@@ -47,7 +47,7 @@ impl DailyManager<Postgres> for DailyTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: DailyRow) -> sqlx::Result<PgQueryResult> {
+    async fn save(pool: &PgPool, row: &DailyRow) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "INSERT INTO gambling (user_id, coins, gems, daily)
             VALUES ($1, $2, $3, now())

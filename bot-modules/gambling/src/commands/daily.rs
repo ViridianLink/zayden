@@ -39,7 +39,7 @@ pub trait DailyManager<Db: Database> {
         pool: &Pool<Db>,
         id: UserId,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>>;
-    async fn save(pool: &Pool<Db>, row: DailyRow) -> sqlx::Result<Db::QueryResult>;
+    async fn save(pool: &Pool<Db>, row: &DailyRow) -> sqlx::Result<Db::QueryResult>;
 }
 
 #[derive(FromRow)]
@@ -125,6 +125,9 @@ impl Commands {
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);
 
         *row.coins_mut() += amount;
+
+        Manager::save(pool, &row).await?;
+
         let mut goals = Manager::goal_rows(pool, interaction.user.id).await?;
         if goals.is_empty() || !goals.first().is_some_and(GamblingGoalsRow::is_today)
         {
@@ -151,8 +154,6 @@ impl Commands {
                 }
             })
             .collect::<String>();
-
-        Manager::save(pool, row).await?;
 
         let coin = {
             let data_lock = ctx.data::<RwLock<Data>>();
