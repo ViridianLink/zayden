@@ -1,104 +1,98 @@
-use super::weapons::DELICATE_TOMB;
-use super::{
-    Abilities,
-    Armour,
-    ArmourName,
-    Artifact,
-    ArtifactPerk,
-    Aspect,
+use super::super::warlock::arc::{Abilities, Aspect, Melee, Super};
+use super::super::warlock::{
+    Bond,
+    Boots,
     ClassAbility,
+    Gloves,
+    Hood,
+    Jump,
+    Robes,
+    Subclass,
+};
+use super::super::{
+    ArcFragment,
+    ArcGrenade,
+    Armour,
+    ArmsMod,
+    Artifact,
+    ChestMod,
+    ClassItemMod,
     DestinyClass,
     Details,
-    Fragment,
     Gear,
-    Grenade,
-    Jump,
+    HelmetMod,
+    LegsMod,
     Loadout,
-    Melee,
-    Mod,
     Mode,
     Stat,
-    Subclass,
-    Subclass,
-    Super,
+    TabletOfRuin,
+    Weapon,
 };
 
-pub(super) const ARC_WARLOCK: Loadout<'_> = Loadout {
-    name: "Buddy Build",
-    class: DestinyClass::Warlock,
+pub(crate) const ARC_WARLOCK: Loadout<'_> = Loadout {
+    name: "Geomag Super Spam",
+    class: DestinyClass::Warlock(Subclass::Arc {
+        abilities: Abilities {
+            super_: Super::ChaosReach,
+            class: ClassAbility::HealingRift,
+            jump: Jump::Burst,
+            melee: Melee::ChainLightning,
+            grenade: ArcGrenade::Pulse,
+        },
+        aspects: [
+            Aspect::ElectrostaticMind([ArcFragment::Shock, ArcFragment::Resistance]),
+            Aspect::IonicSentry([ArcFragment::Discharge, ArcFragment::Frequency]),
+        ],
+    }),
     mode: Mode::PvE,
     tags: [None; 3],
-    subclass: SUBCLASS,
-    gear: GEAR,
-    artifact: Artifact::Unknown([
-        Some(ArtifactPerk::RefreshThreads),
-        Some(ArtifactPerk::ElementalCoalescence),
-        Some(ArtifactPerk::Shieldcrush),
-        Some(ArtifactPerk::ElementalOverdrive),
-        None,
-        None,
-        None, None
+    gear: Gear {
+        weapons: [None, Some(Weapon::DelicateTomb), None],
+        armour: Armour::Warlock {
+            helmet: Hood::LuminopotentCover([
+                HelmetMod::SpecialAmmoFinder,
+                HelmetMod::SuperFont,
+                HelmetMod::HarmonicSiphon,
+            ]),
+            gloves: Gloves::LuminopotentGloves([
+                ArmsMod::GrenadeFont,
+                ArmsMod::BolsteringDetonation,
+                ArmsMod::HarmonicLoader,
+            ]),
+            robes: Robes::LuminopotentRobes([
+                ChestMod::ConcussiveDampener,
+                ChestMod::Empty,
+                ChestMod::Empty,
+            ]),
+            boots: Boots::GeomagStabilizers([
+                LegsMod::ElementalCharge,
+                LegsMod::WeaponsFont,
+                LegsMod::HarmonicScavenger,
+            ]),
+            bond: Bond::LuminopotentBond([
+                ClassItemMod::ClassFont,
+                ClassItemMod::PowerfulAttraction,
+                ClassItemMod::TimeDilation,
+            ]),
+        },
+        stats_priority: [
+            Stat::Weapons(200),
+            Stat::Super(200),
+            Stat::Class(200),
+            Stat::Grenade(200),
+            Stat::Melee(200),
+            Stat::Health(200),
+        ],
+    },
+    artifact: Artifact::TabletOfRuin([
+        Some(TabletOfRuin::Dielectric),
+        Some(TabletOfRuin::ElementalSiphon),
+        Some(TabletOfRuin::GoldFromLead),
+        Some(TabletOfRuin::PhotonicFlare),
+        Some(TabletOfRuin::Flashover),
+        Some(TabletOfRuin::DefibrillatingBlast),
+        Some(TabletOfRuin::LimitBreak),
     ]),
     details: Details::new("LlamaD2", "https://dim.gg/i2kny6a/Arc")
         .video("https://youtu.be/sFzAdAl3ULw"),
-};
-
-const SUBCLASS: Subclass = Subclass {
-    kind: Subclass::Arc,
-    abilities: ABILITIES,
-    aspects: [Aspect::ArcSoul, Aspect::IonicSentry],
-    fragments: [
-        Some(Fragment::SparkOfShock),
-        Some(Fragment::SparkOfResistance),
-        Some(Fragment::SparkOfDischarge),
-        Some(Fragment::SparkOfBeacons),
-        None,
-    ],
-};
-
-const ABILITIES: Abilities = Abilities {
-    super_: Super::ChaosReach,
-    class: ClassAbility::HealingRift,
-    jump: Jump::BurstGlide,
-    melee: Melee::BallLightning,
-    grenade: Grenade::Pulse,
-};
-
-const GEAR: Gear<'_> = Gear {
-    weapons: [None, Some(DELICATE_TOMB), None],
-    armour: [
-        Armour::new(ArmourName::VeritysBrow, [
-            Mod::SpecialAmmoFinder,
-            Mod::AshesToAssets,
-            Mod::HarmonicSiphon,
-        ]),
-        Armour::new(ArmourName::TechsecGloves, [
-            Mod::GrenadeFont,
-            Mod::BolsteringDetonation,
-            Mod::Firepower,
-        ]),
-        Armour::new(ArmourName::TechsecVestment, [
-            Mod::HarmonicAmmoGeneration,
-            Mod::Empty,
-            Mod::Empty,
-        ]),
-        Armour::new(ArmourName::TwofoldCrownBoots, [
-            Mod::StacksOnStacks,
-            Mod::WeaponsFont,
-            Mod::HarmonicScavenger,
-        ]),
-        Armour::new(ArmourName::TwofoldCrownBond, [
-            Mod::TimeDilation,
-            Mod::ClassFont,
-            Mod::SpecialFinisher,
-        ]),
-    ],
-    stats_priority: [
-        Stat::Grenade(200),
-        Stat::Class(100),
-        Stat::Super(200),
-        Stat::Weapons(200),
-        Stat::Melee(200),
-        Stat::Health(200),
-    ],
 };

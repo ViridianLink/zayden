@@ -23,6 +23,7 @@ pub enum Weapon {
     MonteCarlo,
     CullsShadow(Perk),
     FestivalFlight([Perk; 2]),
+    DelicateTomb,
 }
 
 impl Weapon {
@@ -41,6 +42,7 @@ impl Weapon {
             Self::ServiceOfLuzaku
             | Self::MintRetrograde(_)
             | Self::FestivalFlight(_) => Affinity::Strand,
+            Self::DelicateTomb => Affinity::Arc,
         }
     }
 
@@ -57,7 +59,7 @@ impl Weapon {
             Self::BadJuju => Archtype::PulseRifle,
             Self::ServiceOfLuzaku => Archtype::MachineGun,
             Self::MintRetrograde(_) => Archtype::RocketPulseRifle,
-            Self::CullsShadow(_) => Archtype::FusionRifle,
+            Self::CullsShadow(_) | Self::DelicateTomb => Archtype::FusionRifle,
             Self::FestivalFlight(_) => Archtype::BreechGrenadeLauncher,
         }
     }
@@ -79,6 +81,7 @@ impl Weapon {
             Self::Khvostov7G0X => [Perk::TheRightChoice, Perk::ShootToLoot],
             Self::MonteCarlo => [Perk::MonteCarloMethod, Perk::MarkovChain],
             Self::CullsShadow(perk) => [Perk::Soulburn, perk],
+            Self::DelicateTomb => [Perk::TraitorsVessel, Perk::TempestCascade],
         }
     }
 
@@ -128,6 +131,7 @@ impl Display for Weapon {
             Self::MonteCarlo => "Monte Carlo",
             Self::CullsShadow(_) => "Cull's Shadow",
             Self::FestivalFlight(_) => "Festival Flight",
+            Self::DelicateTomb => "Delicate Tomb",
         };
 
         write!(f, "{s}")
@@ -211,6 +215,9 @@ impl From<Weapon> for CreateUnfurledMediaItem<'_> {
             },
             Weapon::FestivalFlight(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/e3d2241387a0f536fbd52a80f522d3f4.jpg"
+            },
+            Weapon::DelicateTomb => {
+                "https://www.bungie.net/common/destiny2_content/icons/8a626d617f8e503df45142835bb5b659.jpg"
             },
         };
 

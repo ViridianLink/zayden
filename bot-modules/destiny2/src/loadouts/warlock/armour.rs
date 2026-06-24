@@ -19,6 +19,7 @@ pub enum Hood {
     SkullOfDireAhamkara([HelmetMod; 3]),
     Deimosuffusion([HelmetMod; 3]),
     MaskOfDetestation([HelmetMod; 3]),
+    LuminopotentCover([HelmetMod; 3]),
 }
 
 impl ArmourItem for Hood {
@@ -27,7 +28,8 @@ impl ArmourItem for Hood {
             Self::Any(mods)
             | Self::SkullOfDireAhamkara(mods)
             | Self::Deimosuffusion(mods)
-            | Self::MaskOfDetestation(mods) => mods.map(box_display),
+            | Self::MaskOfDetestation(mods)
+            | Self::LuminopotentCover(mods) => mods.map(box_display),
         }
     }
 
@@ -45,6 +47,9 @@ impl ArmourItem for Hood {
             Self::MaskOfDetestation(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/2281d9c9707d932817746416e462c9d3.jpg"
             },
+            Self::LuminopotentCover(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/998be02d221c2ed9e8b3d23588854095.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -58,22 +63,27 @@ impl Display for Hood {
             Self::SkullOfDireAhamkara(_) => "Skull of Dire Ahamkara",
             Self::Deimosuffusion(_) => "Deimosuffusion",
             Self::MaskOfDetestation(_) => "Mask of Detestation",
+            Self::LuminopotentCover(_) => "Luminopotent Cover",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(clippy::enum_variant_names, reason = "names match the Destiny 2 API")]
 #[derive(Clone, Copy)]
 pub enum Gloves {
     Any([ArmsMod; 3]),
     WintersGuile([ArmsMod; 3]),
+    LuminopotentGloves([ArmsMod; 3]),
 }
 
 impl ArmourItem for Gloves {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::WintersGuile(mods) => mods.map(box_display),
+            Self::Any(mods)
+            | Self::WintersGuile(mods)
+            | Self::LuminopotentGloves(mods) => mods.map(box_display),
         }
     }
 
@@ -84,6 +94,9 @@ impl ArmourItem for Gloves {
             },
             Self::WintersGuile(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/0c586f183b821e16dd9b696c8e871d2b.jpg"
+            },
+            Self::LuminopotentGloves(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/8870f2e6d70dafd01a13a0cd6b0c4239.jpg"
             },
         };
 
@@ -96,24 +109,27 @@ impl Display for Gloves {
         let s = match self {
             Self::Any(_) => "Any Warlock Gauntlets",
             Self::WintersGuile(_) => "Winter's Guile",
+            Self::LuminopotentGloves(_) => "Luminopotent Gloves",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(clippy::enum_variant_names, reason = "names match the Destiny 2 API")]
 #[derive(Clone, Copy)]
 pub enum Robes {
     Any([ChestMod; 3]),
     RobesOfDetestation([ChestMod; 3]),
+    LuminopotentRobes([ChestMod; 3]),
 }
 
 impl ArmourItem for Robes {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::RobesOfDetestation(mods) => {
-                mods.map(box_display)
-            },
+            Self::Any(mods)
+            | Self::RobesOfDetestation(mods)
+            | Self::LuminopotentRobes(mods) => mods.map(box_display),
         }
     }
 
@@ -124,6 +140,9 @@ impl ArmourItem for Robes {
             },
             Self::RobesOfDetestation(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/a8f9110c2e8ecbc49e31a1c4260091ff.jpg"
+            },
+            Self::LuminopotentRobes(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/c7f3bb12569c4fed60947f3dfd854a1f.jpg"
             },
         };
 
@@ -136,6 +155,7 @@ impl Display for Robes {
         let s = match self {
             Self::Any(_) => "Any Warlock Robes",
             Self::RobesOfDetestation(_) => "Robes of Detestation",
+            Self::LuminopotentRobes(_) => "Luminopotent Robes",
         };
 
         write!(f, "{s}")
@@ -148,6 +168,7 @@ pub enum Boots {
     Any([LegsMod; 3]),
     BootsOfTheAssembler([LegsMod; 3]),
     BootsOfDetestation([LegsMod; 3]),
+    GeomagStabilizers([LegsMod; 3]),
 }
 
 impl ArmourItem for Boots {
@@ -155,7 +176,8 @@ impl ArmourItem for Boots {
         match self {
             Self::Any(mods)
             | Self::BootsOfTheAssembler(mods)
-            | Self::BootsOfDetestation(mods) => mods.map(box_display),
+            | Self::BootsOfDetestation(mods)
+            | Self::GeomagStabilizers(mods) => mods.map(box_display),
         }
     }
 
@@ -170,6 +192,9 @@ impl ArmourItem for Boots {
             Self::BootsOfDetestation(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/a5c91a9a5315f593533fe024992967fc.jpg"
             },
+            Self::GeomagStabilizers(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/395d6f306e29ddf0afdd5b1ffaaf1e5f.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -182,22 +207,27 @@ impl Display for Boots {
             Self::Any(_) => "Any Warlock Boots",
             Self::BootsOfTheAssembler(_) => "Boots of the Assembler",
             Self::BootsOfDetestation(_) => "Boots of Detestation",
+            Self::GeomagStabilizers(_) => "Geomag Stabilizers",
         };
 
         write!(f, "{s}")
     }
 }
 
+#[expect(clippy::enum_variant_names, reason = "names match the Destiny 2 API")]
 #[derive(Clone, Copy)]
 pub enum Bond {
     Any([ClassItemMod; 3]),
     BondOfDetestation([ClassItemMod; 3]),
+    LuminopotentBond([ClassItemMod; 3]),
 }
 
 impl ArmourItem for Bond {
     fn mods(&self) -> [Box<dyn Display>; 3] {
         match self {
-            Self::Any(mods) | Self::BondOfDetestation(mods) => mods.map(box_display),
+            Self::Any(mods)
+            | Self::BondOfDetestation(mods)
+            | Self::LuminopotentBond(mods) => mods.map(box_display),
         }
     }
 
@@ -208,6 +238,9 @@ impl ArmourItem for Bond {
             },
             Self::BondOfDetestation(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/a5c91a9a5315f593533fe024992967fc.jpg"
+            },
+            Self::LuminopotentBond(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/64f47c0bbaeb62837a68b3b2b1dd7f6e.jpg"
             },
         };
 
@@ -220,6 +253,7 @@ impl Display for Bond {
         let s = match self {
             Self::Any(_) => "Any Warlock Bond",
             Self::BondOfDetestation(_) => "Boots of Detestation",
+            Self::LuminopotentBond(_) => "Luminopotent Bond",
         };
 
         write!(f, "{s}")

@@ -25,6 +25,7 @@ use std::{fmt, iter};
 
 use builds::{
     ARC_TITAN,
+    ARC_WARLOCK,
     PRISMATIC_HUNTER,
     PRISMATIC_TITAN,
     SOLAR_TITAN,
@@ -93,8 +94,9 @@ use zayden_core::{
 
 use crate::Result;
 
-const BUILDS: [Loadout<'_>; 10] = [
+const BUILDS: [Loadout<'_>; 11] = [
     ARC_TITAN,
+    ARC_WARLOCK,
     PRISMATIC_HUNTER,
     PRISMATIC_TITAN,
     SOLAR_TITAN,
