@@ -21,7 +21,9 @@ impl std::fmt::Display for EndgameAnalysisError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::WeaponNotFound(weapon) => write!(f, "Weapon {weapon} not found"),
-            Self::MissingHeaderRow(sheet) => write!(f, "Sheet '{sheet}' has no header row"),
+            Self::MissingHeaderRow(sheet) => {
+                write!(f, "Sheet '{sheet}' has no header row")
+            },
             Self::Io(e) => e.fmt(f),
             Self::Json(e) => e.fmt(f),
             Self::BungieApi(e) => e.fmt(f),

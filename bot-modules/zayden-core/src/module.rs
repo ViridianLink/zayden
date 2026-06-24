@@ -13,13 +13,16 @@ pub trait ModuleCommand: Send + Sync {
     /// across multiple bot applications without hard-coding.
     fn name(&self) -> Cow<'static, str> {
         let command = self.definition();
-        let name = serde_json::to_value(command).map_or_else(|_| String::new(), |value| {
-            value
-                .get("name")
-                .and_then(|v| v.as_str())
-                .map(String::from)
-                .unwrap_or_default()
-        });
+        let name = serde_json::to_value(command).map_or_else(
+            |_| String::new(),
+            |value| {
+                value
+                    .get("name")
+                    .and_then(|v| v.as_str())
+                    .map(String::from)
+                    .unwrap_or_default()
+            },
+        );
 
         Cow::Owned(name)
     }
