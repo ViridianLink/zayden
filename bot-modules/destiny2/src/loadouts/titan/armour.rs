@@ -171,7 +171,7 @@ impl Display for Chest {
             Self::HeartOfInmostLight(_) => "Heart of Inmost Light",
             Self::HallowfireHeart(_) => "Hallowfire Heart",
             Self::LuminopotentPlate(_) => "Luminopotent Plate",
-            Self::CrestOfAlphaLupi(_) => "Crest Of Alpha Lupi",
+            Self::CrestOfAlphaLupi(_) => "Crest of Alpha Lupi",
         };
 
         write!(f, "{s}")

@@ -31,7 +31,7 @@ use super::super::{
 };
 
 pub(crate) const ARC_TITAN: Loadout<'_> = Loadout {
-    name: "Heart of Innmost Light",
+    name: "Crest of Alpha Lupi",
     class: DestinyClass::Titan(Subclass::Arc {
         abilities: Abilities {
             super_: Super::Thundercrash,
