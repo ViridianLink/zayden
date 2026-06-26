@@ -18,6 +18,7 @@ pub enum Helmet {
     Any([HelmetMod; 3]),
     WillbreakersWatch([HelmetMod; 3]),
     LuminopotentHelm([HelmetMod; 3]),
+    WarNumensCrown([HelmetMod; 3]),
 }
 
 impl ArmourItem for Helmet {
@@ -25,7 +26,8 @@ impl ArmourItem for Helmet {
         match self {
             Self::Any(mods)
             | Self::WillbreakersWatch(mods)
-            | Self::LuminopotentHelm(mods) => mods.map(box_display),
+            | Self::LuminopotentHelm(mods)
+            | Self::WarNumensCrown(mods) => mods.map(box_display),
         }
     }
 
@@ -40,6 +42,9 @@ impl ArmourItem for Helmet {
             Self::LuminopotentHelm(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/6ca2447b1f35e1cb3ab667b88be12148.jpg"
             },
+            Self::WarNumensCrown(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/1706a0543a5a8549ea0be30979fd3a8b.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -52,6 +57,7 @@ impl Display for Helmet {
             Self::Any(_) => "Any Titan Helmet",
             Self::WillbreakersWatch(_) => "Willbreaker's Watch",
             Self::LuminopotentHelm(_) => "Luminopotent Helm",
+            Self::WarNumensCrown(_) => "War Numen's Crown",
         };
 
         write!(f, "{s}")
@@ -64,6 +70,7 @@ pub enum Arms {
     AshenWake([ArmsMod; 3]),
     WillbreakersFists([ArmsMod; 3]),
     LuminopotentGauntlets([ArmsMod; 3]),
+    WarNumensFist([ArmsMod; 3]),
 }
 
 impl ArmourItem for Arms {
@@ -72,7 +79,8 @@ impl ArmourItem for Arms {
             Self::Any(mods)
             | Self::AshenWake(mods)
             | Self::WillbreakersFists(mods)
-            | Self::LuminopotentGauntlets(mods) => mods.map(box_display),
+            | Self::LuminopotentGauntlets(mods)
+            | Self::WarNumensFist(mods) => mods.map(box_display),
         }
     }
 
@@ -90,6 +98,9 @@ impl ArmourItem for Arms {
             Self::LuminopotentGauntlets(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/91d60b8234efa6a4c9ce38c137788db1.jpg"
             },
+            Self::WarNumensFist(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/7084b10a0a9580035b5a53f5c9e5a2fc.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -103,6 +114,7 @@ impl Display for Arms {
             Self::AshenWake(_) => "Ashen Wake",
             Self::WillbreakersFists(_) => "Willbreaker's Fists",
             Self::LuminopotentGauntlets(_) => "Luminopotent Gauntlets",
+            Self::WarNumensFist(_) => "War Numen's Fist",
         };
 
         write!(f, "{s}")
@@ -115,6 +127,7 @@ pub enum Chest {
     HeartOfInmostLight([ChestMod; 3]),
     HallowfireHeart([ChestMod; 3]),
     LuminopotentPlate([ChestMod; 3]),
+    CrestOfAlphaLupi([ChestMod; 3]),
 }
 
 impl ArmourItem for Chest {
@@ -123,7 +136,8 @@ impl ArmourItem for Chest {
             Self::Any(mods)
             | Self::HeartOfInmostLight(mods)
             | Self::HallowfireHeart(mods)
-            | Self::LuminopotentPlate(mods) => mods.map(box_display),
+            | Self::LuminopotentPlate(mods)
+            | Self::CrestOfAlphaLupi(mods) => mods.map(box_display),
         }
     }
 
@@ -141,6 +155,9 @@ impl ArmourItem for Chest {
             Self::LuminopotentPlate(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/b925e4c7db92776935709e1bb386e32d.jpg"
             },
+            Self::CrestOfAlphaLupi(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/9ddd5eb2eee64925a01abdc4cd9830ad.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -153,7 +170,8 @@ impl Display for Chest {
             Self::Any(_) => "Any Titan Chest Armour",
             Self::HeartOfInmostLight(_) => "Heart of Inmost Light",
             Self::HallowfireHeart(_) => "Hallowfire Heart",
-            Self::LuminopotentPlate(_) => "LuminopotentPlate",
+            Self::LuminopotentPlate(_) => "Luminopotent Plate",
+            Self::CrestOfAlphaLupi(_) => "Crest Of Alpha Lupi",
         };
 
         write!(f, "{s}")
@@ -166,6 +184,7 @@ pub enum Legs {
     PeregrineGreaves([LegsMod; 3]),
     SmokeJumperBoots([LegsMod; 3]),
     LuminopotentGreaves([LegsMod; 3]),
+    PromisedReunionGreaves([LegsMod; 3]),
 }
 
 impl ArmourItem for Legs {
@@ -174,7 +193,8 @@ impl ArmourItem for Legs {
             Self::Any(mods)
             | Self::PeregrineGreaves(mods)
             | Self::SmokeJumperBoots(mods)
-            | Self::LuminopotentGreaves(mods) => mods.map(box_display),
+            | Self::LuminopotentGreaves(mods)
+            | Self::PromisedReunionGreaves(mods) => mods.map(box_display),
         }
     }
 
@@ -192,6 +212,9 @@ impl ArmourItem for Legs {
             Self::LuminopotentGreaves(_) => {
                 "https://www.bungie.net/common/destiny2_content/icons/68260602ad60c4d66918ac23211bee88.jpg"
             },
+            Self::PromisedReunionGreaves(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/763be34b15ca48074a5a0ae87b3abb41.jpg"
+            },
         };
 
         CreateUnfurledMediaItem::new(url)
@@ -205,6 +228,7 @@ impl Display for Legs {
             Self::PeregrineGreaves(_) => "Peregrine Greaves",
             Self::SmokeJumperBoots(_) => "Smoke Jumper Boots",
             Self::LuminopotentGreaves(_) => "Luminopotent Greaves",
+            Self::PromisedReunionGreaves(_) => "Promised Reunion Greaves",
         };
 
         write!(f, "{s}")
@@ -217,6 +241,7 @@ pub enum Mark {
     Any([ClassItemMod; 3]),
     SmokeJumperMark([ClassItemMod; 3]),
     Stoicism([StoicismTrait; 2], [ClassItemMod; 3]),
+    PromisedReunionMark([ClassItemMod; 3]),
 }
 
 impl ArmourItem for Mark {
@@ -224,7 +249,8 @@ impl ArmourItem for Mark {
         match self {
             Self::Any(mods)
             | Self::SmokeJumperMark(mods)
-            | Self::Stoicism(_, mods) => mods.map(box_display),
+            | Self::Stoicism(_, mods)
+            | Self::PromisedReunionMark(mods) => mods.map(box_display),
         }
     }
 
@@ -238,6 +264,9 @@ impl ArmourItem for Mark {
             },
             Self::Stoicism(..) => {
                 "https://www.bungie.net/common/destiny2_content/icons/9db95c112130c018f823f394668cfb5a.jpg"
+            },
+            Self::PromisedReunionMark(_) => {
+                "https://www.bungie.net/common/destiny2_content/icons/ac1b3858885da7455c199604b8ba853e.jpg"
             },
         };
 
@@ -253,6 +282,7 @@ impl Display for Mark {
             Self::Stoicism(traits, _) => {
                 return write!(f, "Stoicism ({} + {})", traits[0], traits[1]);
             },
+            Self::PromisedReunionMark(_) => "Promised Reunion Mark",
         };
 
         write!(f, "{s}")

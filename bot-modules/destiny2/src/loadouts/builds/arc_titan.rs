@@ -41,45 +41,42 @@ pub(crate) const ARC_TITAN: Loadout<'_> = Loadout {
             grenade: ArcGrenade::Pulse,
         },
         aspects: [
-            Aspect::StormsKeep([ArcFragment::Magnitude, ArcFragment::Frequency]),
-            Aspect::Knockout([ArcFragment::Resistance, ArcFragment::Shock]),
+            Aspect::StormsKeep([ArcFragment::Shock, ArcFragment::Frequency]),
+            Aspect::Knockout([ArcFragment::Resistance, ArcFragment::Ions]),
         ],
     }),
     mode: Mode::PvE,
     tags: [None; 3],
     gear: Gear {
         weapons: [
-            None,
-            Some(Weapon::RecklessOracle([
-                Perk::DestabilizingRounds,
-                Perk::OneForAll,
-            ])),
+            Some(Weapon::MintRetrograde([Perk::FieldPrep, Perk::Slice])),
+            Some(Weapon::ChoirOfOne(Perk::DestabilizingRounds)),
             None,
         ],
         armour: Armour::Titan {
-            helmet: Helmet::Any([
+            helmet: Helmet::WarNumensCrown([
                 HelmetMod::SpecialAmmoFinder,
                 HelmetMod::SpecialAmmoScout,
                 HelmetMod::VoidSiphon,
             ]),
-            arms: Arms::Any([
-                ArmsMod::VoidLoader,
+            arms: Arms::WarNumensFist([
+                ArmsMod::HeavyHanded,
                 ArmsMod::BolsteringDetonation,
-                ArmsMod::Firepower,
+                ArmsMod::VoidLoader,
             ]),
-            chest: Chest::HeartOfInmostLight([
+            chest: Chest::CrestOfAlphaLupi([
                 ChestMod::ConcussiveDampener,
                 ChestMod::Empty,
                 ChestMod::Empty,
             ]),
-            legs: Legs::Any([
+            legs: Legs::PromisedReunionGreaves([
                 LegsMod::StacksOnStacks,
-                LegsMod::Recuperation,
-                LegsMod::Insulation,
+                LegsMod::StrandScavenger,
+                LegsMod::Invigoration,
             ]),
-            mark: Mark::Any([
+            mark: Mark::PromisedReunionMark([
                 ClassItemMod::SpecialFinisher,
-                ClassItemMod::Reaper,
+                ClassItemMod::PowerfulAttraction,
                 ClassItemMod::PowerfulAttraction,
             ]),
         },
@@ -93,14 +90,14 @@ pub(crate) const ARC_TITAN: Loadout<'_> = Loadout {
         ],
     },
     artifact: Artifact::TabletOfRuin([
+        Some(TabletOfRuin::Dielectric),
         Some(TabletOfRuin::VolatileMarksman),
         Some(TabletOfRuin::MalignedHarvest),
-        Some(TabletOfRuin::Dielectric),
+        Some(TabletOfRuin::GoldFromLead),
         Some(TabletOfRuin::Flashover),
         Some(TabletOfRuin::DefibrillatingBlast),
-        None,
-        None,
+        Some(TabletOfRuin::ToShreds),
     ]),
-    details: Details::new("LlamaD2", "https://dim.gg/bht5ddi/Arc")
-        .video("https://youtu.be/IhBfmN00LEs?t=483"),
+    details: Details::new("LlamaD2", "https://dim.gg/go2ivrq/Raid")
+        .video("https://youtu.be/PIS5RRBkn0E"),
 };
