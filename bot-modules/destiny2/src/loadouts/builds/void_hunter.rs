@@ -31,7 +31,7 @@ use super::super::{
 };
 
 pub(crate) const VOID_HUNTER: Loadout<'_> = Loadout {
-    name: "Soul Siphon",
+    name: "Trapper's Ambush",
     class: DestinyClass::Hunter(Subclass::Void {
         abilities: Abilities {
             super_: Super::ShadowshotMoebiusQuiver,
