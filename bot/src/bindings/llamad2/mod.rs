@@ -1,6 +1,8 @@
+use std::sync::OnceLock;
+
 use serenity::all::GuildId;
 
-use crate::{LLAMAD2_GUILD, RegistryBuilder};
+use crate::RegistryBuilder;
 
 mod dungeon_report;
 mod goof;
@@ -18,9 +20,15 @@ use raidreport::RaidReport;
 use sensitivity::Sensitivity;
 use socials::Socials;
 
-static LLAMA_GUILDS: [GuildId; 1] = [LLAMAD2_GUILD];
+static LLAMA_GUILDS: OnceLock<GuildId> = OnceLock::new();
 
-pub fn register(builder: &mut RegistryBuilder) {
+pub(super) fn llama_guild() -> Option<GuildId> {
+    LLAMA_GUILDS.get().copied()
+}
+
+pub fn register(builder: &mut RegistryBuilder, llamad2_guild: u64) {
+    LLAMA_GUILDS.get_or_init(|| GuildId::new(llamad2_guild));
+
     builder
         .add_command(DungeonReport)
         .add_command(Goof)

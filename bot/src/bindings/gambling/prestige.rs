@@ -16,7 +16,6 @@ use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
 use super::stamina::MAX_STAMINA;
-use crate::ZAYDEN_ID;
 
 pub struct PrestigeTable;
 
@@ -51,10 +50,14 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         .await
     }
 
-    async fn lotto(pool: &PgPool, tickets: i64) -> sqlx::Result<PgQueryResult> {
+    async fn lotto(
+        pool: &PgPool,
+        tickets: i64,
+        zayden_id: u64,
+    ) -> sqlx::Result<PgQueryResult> {
         sqlx::query_file!(
             "./sql/gambling/PrestigeManager/lotto.sql",
-            as_i64(ZAYDEN_ID.get()),
+            as_i64(zayden_id),
             LOTTO_TICKET.id,
             tickets,
         )
@@ -214,6 +217,7 @@ impl ModuleComponent for Prestige {
                     cx.ctx,
                     cx.interaction,
                     &cx.app.db,
+                    cx.app.zayden_id,
                 )
                 .await?;
             },

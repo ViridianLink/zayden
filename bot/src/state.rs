@@ -20,7 +20,7 @@ use crate::bindings::gambling::{
     LottoTable,
     StaminaTable,
 };
-use crate::{Result, ZAYDEN_ID, ZAYDEN_TOKEN, zayden_token};
+use crate::{Result, ZAYDEN_TOKEN, zayden_token};
 
 /// Bot-specific application state stored in Serenity's context data.
 pub struct BotState {
@@ -74,8 +74,13 @@ impl BotState {
         }
     }
 
-    pub async fn ready(ctx: &Context, ready: &Ready, pool: &PgPool) -> Result<()> {
-        let cache = if ready.application.id.get() == ZAYDEN_ID.get() {
+    pub async fn ready(
+        ctx: &Context,
+        ready: &Ready,
+        pool: &PgPool,
+        zayden_id: u64,
+    ) -> Result<()> {
+        let cache = if ready.application.id.get() == zayden_id {
             EmojiCache::new(ctx).await?
         } else {
             let token = ZAYDEN_TOKEN.get_or_try_init(|| zayden_token(pool)).await?;

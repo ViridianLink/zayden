@@ -4,7 +4,6 @@ use std::sync::Arc;
 
 use base64::Engine;
 use base64::engine::general_purpose;
-// use futures::future;
 use reqwest::ClientBuilder;
 use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
 use serde::Deserialize;
@@ -64,10 +63,6 @@ impl EmojiCache {
         parent_token: &str,
     ) -> serenity::Result<Self> {
         let current_emojis = ctx.get_application_emojis().await?;
-        // let iter = current_emojis
-        //     .into_iter()
-        //     .map(|emoji| ctx.delete_application_emoji(emoji.id));
-        // future::join_all(iter).await;
 
         let client = reqwest::Client::new();
 
@@ -225,9 +220,6 @@ impl EmojiCache {
                 return HashMap::new();
             },
         };
-
-        // let emojis = serde_json::from_str::<ApplicationEmojis>(&text)
-        //     .unwrap_or_else(|_| panic!("Failed to parse: {text}"));
 
         emojis.items.into_iter().map(|emoji| (emoji.name, emoji.id)).collect()
     }

@@ -2,7 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
-use serenity::all::{ClientBuilder, GatewayIntents, GuildId, Http, Token, UserId};
+use serenity::all::{ClientBuilder, GatewayIntents, Http, Token};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
 use tracing::info;
@@ -28,11 +28,6 @@ use zayden_app::events::listener::EventListener;
 
 use crate::sqlx_lib::new_pool_with_retry;
 use crate::webhook_logger::WebhookLogger;
-
-pub const OSCAR_SIX: UserId = UserId::new(211_486_447_369_322_506);
-pub const ZAYDEN_GUILD: GuildId = GuildId::new(1_222_360_995_700_150_443);
-pub const LLAMAD2_GUILD: GuildId = GuildId::new(1_133_034_263_579_734_037);
-pub const ZAYDEN_ID: UserId = UserId::new(787_490_197_943_091_211);
 
 pub static ZAYDEN_TOKEN: OnceCell<String> = OnceCell::const_new();
 
@@ -64,8 +59,8 @@ async fn main() -> Result<()> {
     let bot_state =
         Arc::new(RwLock::new(BotState::new(Arc::clone(&app_state), &bot_config)?));
 
-    let registry =
-        bindings::build_registry().map_err(|e| BotError::Other(e.to_string()))?;
+    let registry = bindings::build_registry(bot_config.llamad2_guild)
+        .map_err(|e| BotError::Other(e.to_string()))?;
 
     let mut client = ClientBuilder::new(
         bot_config.discord_token.parse::<Token>().map_err(serenity::Error::Token)?,

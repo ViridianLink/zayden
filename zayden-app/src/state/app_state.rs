@@ -29,6 +29,8 @@ pub struct AppState {
     pub google_api_key: String,
     pub error_log_webhook: String,
     pub normal_log_webhook: String,
+    /// Discord user/application ID of the bot itself.
+    pub zayden_id: u64,
 }
 
 impl AppState {
@@ -67,6 +69,7 @@ impl AppState {
                 .normal_log_webhook
                 .clone()
                 .unwrap_or_default(),
+            zayden_id: config.zayden_id,
         }
     }
 

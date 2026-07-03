@@ -31,7 +31,9 @@ pub mod ticket;
 
 pub mod verify;
 
-pub fn build_registry() -> Result<Arc<CommandRegistry>, OverlapError> {
+pub fn build_registry(
+    llamad2_guild: u64,
+) -> Result<Arc<CommandRegistry>, OverlapError> {
     let mut builder = RegistryBuilder::new();
     ai::register(&mut builder);
     destiny2::register(&mut builder);
@@ -40,7 +42,7 @@ pub fn build_registry() -> Result<Arc<CommandRegistry>, OverlapError> {
     gold_star::register(&mut builder);
     lfg::register(&mut builder)?;
     levels::register(&mut builder)?;
-    llamad2::register(&mut builder);
+    llamad2::register(&mut builder, llamad2_guild);
     misc::register(&mut builder);
     ticket::register(&mut builder)?;
     verify::register(&mut builder)?;

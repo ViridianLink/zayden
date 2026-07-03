@@ -4,6 +4,8 @@ use async_trait::async_trait;
 use serenity::all::CreateCommand;
 use zayden_core::{CommandScope, HandlerError, InvocationCtx, ModuleCommand};
 
+use super::llama_guild;
+
 pub(super) struct Hello;
 
 #[async_trait]
@@ -17,7 +19,7 @@ impl ModuleCommand for Hello {
     }
 
     fn scope(&self) -> CommandScope {
-        CommandScope::Guilds(Cow::Borrowed(&super::LLAMA_GUILDS))
+        CommandScope::Guilds(Cow::Owned(llama_guild().into_iter().collect()))
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {

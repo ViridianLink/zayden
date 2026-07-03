@@ -5,7 +5,7 @@ use tracing::info;
 
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
-use crate::{BotState, Result, ZAYDEN_ID};
+use crate::{BotState, Result};
 
 impl Handler {
     pub async fn ready(&self, ctx: &Context, ready: &Ready) -> Result<()> {
@@ -19,10 +19,10 @@ impl Handler {
         ctx.set_presence(None, OnlineStatus::Online);
 
         let pool = self.app.db.clone();
-        BotState::ready(ctx, ready, &pool).await?;
+        BotState::ready(ctx, ready, &pool, self.app.zayden_id).await?;
 
         if self.cron_started.set(()).is_ok() {
-            if ready.application.id.get() == ZAYDEN_ID.get() {
+            if ready.application.id.get() == self.app.zayden_id {
                 self.bot_state.write().await.setup_static_cron();
             }
 

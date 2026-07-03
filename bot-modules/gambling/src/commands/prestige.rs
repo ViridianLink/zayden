@@ -41,7 +41,11 @@ pub trait PrestigeManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<PrestigeRow>>;
 
-    async fn lotto(pool: &Pool<Db>, tickets: i64) -> sqlx::Result<Db::QueryResult>;
+    async fn lotto(
+        pool: &Pool<Db>,
+        tickets: i64,
+        zayden_id: u64,
+    ) -> sqlx::Result<Db::QueryResult>;
 
     async fn save(
         pool: &Pool<Db>,
@@ -269,6 +273,7 @@ impl Commands {
         ctx: &Context,
         interaction: &ComponentInteraction,
         pool: &Pool<Db>,
+        zayden_id: u64,
     ) -> Result<()> {
         let metadata = message_metadata(&interaction.message)?;
 
@@ -304,6 +309,7 @@ impl Commands {
                 .map(|item| item.quantity)
                 .unwrap_or_default()
                 .min(100_000),
+            zayden_id,
         )
         .await?;
         prestige_row.do_prestige();
