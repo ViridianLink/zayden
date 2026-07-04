@@ -4094,8 +4094,9 @@ version = "1.0.0"
 dependencies = [
  "async-trait",
  "dashmap 6.2.1",
+ "futures",
  "rand 0.10.2",
- "reqwest 0.13.4",
+ "reqwest 0.12.28",
  "rspotify",
  "rusty_ytdl",
  "serenity",
@@ -4104,6 +4105,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "url",
  "zayden-app",
  "zayden-core",
 ]
@@ -7009,6 +7011,7 @@ name = "temp-voice"
 version = "1.0.0"
 dependencies = [
  "async-trait",
+ "dashmap 5.5.3",
  "serenity",
  "sqlx",
  "tokio",

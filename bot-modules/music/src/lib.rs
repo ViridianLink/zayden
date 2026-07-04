@@ -14,5 +14,8 @@ pub use manager::MusicManager;
 pub use occupancy::VoiceOccupancy;
 pub use player::{GuildPlayer, NowPlaying};
 pub use queue::Queue;
-pub use resolve::{PlaylistOrigin, Resolution, SourceKind, SourceQuery, TrackResolver};
+pub use resolve::{
+    parse_spotify_url, CompositeResolver, PlaylistOrigin, Resolution, SourceKind, SourceQuery,
+    SpotifyKind, SpotifyResolver, TrackResolver, YouTubeResolver,
+};
 pub use track::{LoopMode, RequestedBy, ResolvedTrack, TrackSource};

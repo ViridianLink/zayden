@@ -188,6 +188,7 @@ tokio = { version = "*", default-features = false }
 toml = { version = "*", default-features = false }
 tracing = { version = "*", default-features = false }
 tracing-subscriber = { version = "*", default-features = false }
+url = { version = "*", default-features = false }
 
 # [profile.release]
 # opt-level = 3
