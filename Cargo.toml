@@ -173,6 +173,7 @@ serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", d
   "transport_compression_zlib",
   "transport_compression_zstd",
 ] }
+songbird = { git = "https://github.com/serenity-rs/songbird", branch = "serenity-next", default-features = false }
 sqlx = { version = "*", default-features = false, features = [
   "macros",
   "postgres",
