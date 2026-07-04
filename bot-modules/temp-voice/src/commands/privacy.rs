@@ -15,14 +15,14 @@ use serenity::all::{
     UserId,
 };
 use serenity::small_fixed_array::FixedArray;
-use tokio::sync::RwLock;
 
 use crate::error::PermissionError;
 use crate::{TempVoiceError, VoiceChannelRow, VoiceStateCache};
 
-pub(super) async fn privacy<Data: VoiceStateCache>(
+pub(super) async fn privacy(
     ctx: &Context,
     interaction: &CommandInteraction,
+    voice_states: &VoiceStateCache,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     guild_id: GuildId,
     channel_id: ChannelId,
@@ -44,16 +44,7 @@ pub(super) async fn privacy<Data: VoiceStateCache>(
     let channel =
         channel_id.to_guild_channel(&ctx.http, interaction.guild_id).await?;
 
-    let users = {
-        let data = ctx.data::<RwLock<Data>>();
-        let data = data.read().await;
-
-        data.get()
-            .values()
-            .filter(|state| state.channel_id == Some(channel_id))
-            .map(|state| state.user_id)
-            .collect::<Vec<_>>()
-    };
+    let users = voice_states.occupants(channel_id);
 
     let perms = channel.permission_overwrites;
 

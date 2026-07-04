@@ -9,7 +9,7 @@ use music::MusicManager;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::{PgPool, Postgres};
-use temp_voice::{CachedState, VoiceStateCache};
+use temp_voice::VoiceStateCache;
 use tokio::sync::RwLock;
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState;
@@ -29,10 +29,10 @@ pub struct BotState {
     pub app: Arc<AppState>,
     pub songbird: Arc<Songbird>,
     pub music: Arc<MusicManager>,
+    pub voice_states: Arc<VoiceStateCache>,
     bungie_client: Arc<BungieClient>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
-    voice_stats: HashMap<UserId, CachedState>,
     guild_members: HashMap<GuildId, Vec<UserId>>,
     gambling_cache: GameCache,
     good_morning_cache: HashMap<GenericChannelId, (UserId, bool)>,
@@ -50,10 +50,10 @@ impl BotState {
             app,
             songbird: Songbird::serenity(),
             music: Arc::new(MusicManager::new()),
+            voice_states: Arc::new(VoiceStateCache::new()),
             bungie_client: Arc::new(bungie_client),
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),
-            voice_stats: HashMap::new(),
             guild_members: HashMap::new(),
             gambling_cache: GameCache::default(),
             good_morning_cache: HashMap::new(),
@@ -102,7 +102,7 @@ impl BotState {
 
     pub async fn guild_create(data: Arc<RwLock<Self>>, guild: &Guild) {
         let mut data = data.write().await;
-        VoiceStateCache::guild_create(&mut *data, guild);
+        data.voice_states.guild_create(guild);
         GuildMembersCache::guild_create(&mut *data, guild);
         data.music.occupancy().guild_create(guild);
     }
@@ -133,16 +133,6 @@ impl CronJobData<Postgres> for BotState {
 
     fn jobs_mut(&mut self) -> &mut Vec<CronJob<Postgres>> {
         &mut self.cron_jobs
-    }
-}
-
-impl VoiceStateCache for BotState {
-    fn get(&self) -> &HashMap<UserId, CachedState> {
-        &self.voice_stats
-    }
-
-    fn get_mut(&mut self) -> &mut HashMap<UserId, CachedState> {
-        &mut self.voice_stats
     }
 }
 

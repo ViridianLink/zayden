@@ -5,7 +5,6 @@ use serenity::all::{
     EditInteractionResponse,
 };
 use sqlx::{Database, Pool};
-use tokio::sync::RwLock;
 
 use crate::{
     TempVoiceError,
@@ -15,14 +14,11 @@ use crate::{
     owner_perms,
 };
 
-pub(super) async fn claim<
-    Data: VoiceStateCache,
-    Db: Database,
-    Manager: VoiceChannelManager<Db>,
->(
+pub(super) async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
     ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
+    voice_states: &VoiceStateCache,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
 ) -> Result<(), TempVoiceError> {
@@ -32,7 +28,7 @@ pub(super) async fn claim<
         return Err(TempVoiceError::UserIsOwner);
     }
 
-    if !row.is_persistent() && is_claimable::<Data>(ctx, &row).await {
+    if !row.is_persistent() && is_claimable(voice_states, &row) {
         return Err(TempVoiceError::OwnerInChannel);
     }
 
@@ -57,15 +53,6 @@ pub(super) async fn claim<
     Ok(())
 }
 
-async fn is_claimable<Data: VoiceStateCache>(
-    ctx: &Context,
-    channel_data: &VoiceChannelRow,
-) -> bool {
-    let data = ctx.data::<RwLock<Data>>();
-    let guard = data.read().await;
-    let result =
-        guard.get().get(&channel_data.owner_id()).and_then(|state| state.channel_id)
-            == Some(channel_data.channel_id());
-    drop(guard);
-    result
+fn is_claimable(voice_states: &VoiceStateCache, channel_data: &VoiceChannelRow) -> bool {
+    voice_states.current_channel(channel_data.owner_id()) == Some(channel_data.channel_id())
 }

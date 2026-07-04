@@ -68,7 +68,6 @@ pub struct VoiceCommand;
 
 impl VoiceCommand {
     pub async fn run<
-        Data: VoiceStateCache,
         Db: Database,
         GuildManager: TempVoiceGuildManager<Db>,
         ChannelManager: VoiceChannelManager<Db>,
@@ -76,6 +75,7 @@ impl VoiceCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
+        voice_states: &VoiceStateCache,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(TempVoiceError::MissingGuildId)?;
 
@@ -145,10 +145,11 @@ impl VoiceCommand {
 
         match sub_name {
             "claim" => {
-                claim::<Data, Db, ChannelManager>(
+                claim::<Db, ChannelManager>(
                     ctx,
                     interaction,
                     pool,
+                    voice_states,
                     channel_id,
                     row,
                 )
@@ -169,9 +170,10 @@ impl VoiceCommand {
                 limit(&ctx.http, interaction, options, channel_id, &row).await?;
             },
             "privacy" => {
-                privacy::<Data>(
+                privacy(
                     ctx,
                     interaction,
+                    voice_states,
                     options,
                     guild_id,
                     channel_id,

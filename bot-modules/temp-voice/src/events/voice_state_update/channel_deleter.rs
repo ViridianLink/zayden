@@ -6,7 +6,6 @@ use serenity::all::{
     JsonErrorCode,
 };
 use sqlx::{Database, Pool};
-use tokio::sync::RwLock;
 use tracing::debug;
 
 use crate::{
@@ -19,13 +18,13 @@ use crate::{
 };
 
 pub async fn channel_deleter<
-    Data: VoiceStateCache,
     Db: Database,
     GuildManager: TempVoiceGuildManager<Db>,
     ChannelManager: VoiceChannelManager<Db>,
 >(
     ctx: &Context,
     pool: &Pool<Db>,
+    voice_states: &VoiceStateCache,
     old: Option<&CachedState>,
 ) -> Result<()> {
     let Some(old) = old else {
@@ -106,17 +105,7 @@ pub async fn channel_deleter<
         )));
     }
 
-    let users = {
-        let data = ctx.data::<RwLock<Data>>();
-        let guard = data.read().await;
-        let count = guard
-            .get()
-            .values()
-            .filter(|id| id.channel_id == Some(channel_id))
-            .count();
-        drop(guard);
-        count
-    };
+    let users = voice_states.occupants(channel_id).len();
 
     if users == 0 {
         row.delete::<Db, ChannelManager>(pool).await?;

@@ -4,10 +4,10 @@ pub mod events;
 pub mod guild_manager;
 pub mod voice_channel_manager;
 
-use std::collections::HashMap;
 use std::time::Duration;
 
 pub use commands::VoiceCommand;
+use dashmap::DashMap;
 pub use error::{Result, TempVoiceError};
 pub use guild_manager::{GuildTable, TempVoiceGuildManager, TempVoiceRow};
 use serenity::all::{
@@ -28,7 +28,7 @@ use serenity::all::{
 };
 pub use voice_channel_manager::{VoiceChannelManager, VoiceChannelRow};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct CachedState {
     pub channel_id: Option<ChannelId>,
     pub guild_id: GuildId,
@@ -58,36 +58,50 @@ impl TryFrom<&VoiceState> for CachedState {
     }
 }
 
-pub trait VoiceStateCache: Send + Sync + 'static {
-    fn get(&self) -> &HashMap<UserId, CachedState>;
+#[derive(Default)]
+pub struct VoiceStateCache {
+    states: DashMap<UserId, CachedState>,
+}
 
-    fn get_mut(&mut self) -> &mut HashMap<UserId, CachedState>;
-
-    fn guild_create(&mut self, guild: &Guild) {
-        let cache = self.get_mut();
-
-        guild
-            .voice_states
-            .iter()
-            .filter(|state| state.channel_id.is_some())
-            .for_each(|state| {
-                cache.insert(
-                    state.user_id,
-                    CachedState::new(state.channel_id, guild.id, state.user_id),
-                );
-            });
+impl VoiceStateCache {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    fn update(&mut self, new: &VoiceState) -> Result<Option<CachedState>> {
-        let cache = self.get_mut();
+    pub fn guild_create(&self, guild: &Guild) {
+        for state in
+            guild.voice_states.iter().filter(|state| state.channel_id.is_some())
+        {
+            self.states.insert(
+                state.user_id,
+                CachedState::new(state.channel_id, guild.id, state.user_id),
+            );
+        }
+    }
 
+    pub fn update(&self, new: &VoiceState) -> Result<Option<CachedState>> {
         let old = if new.channel_id.is_none() {
-            cache.remove(&new.user_id)
+            self.states.remove(&new.user_id).map(|(_, state)| state)
         } else {
-            cache.insert(new.user_id, CachedState::try_from(new)?)
+            self.states.insert(new.user_id, CachedState::try_from(new)?)
         };
 
         Ok(old)
+    }
+
+    #[must_use]
+    pub fn current_channel(&self, user_id: UserId) -> Option<ChannelId> {
+        self.states.get(&user_id).and_then(|state| state.channel_id)
+    }
+
+    #[must_use]
+    pub fn occupants(&self, channel_id: ChannelId) -> Vec<UserId> {
+        self.states
+            .iter()
+            .filter(|entry| entry.value().channel_id == Some(channel_id))
+            .map(|entry| *entry.key())
+            .collect()
     }
 }
 
