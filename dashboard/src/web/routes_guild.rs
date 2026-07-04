@@ -4,7 +4,6 @@ use axum::http::StatusCode;
 use serde::Deserialize;
 use serde_json::Value;
 use tracing::warn;
-use zayden_app::config::guild_config::{GuildConfig, GuildConfigPatch};
 
 use crate::{Error, Result, WebState};
 
@@ -33,27 +32,8 @@ async fn discord_get(state: &WebState, path: &str) -> Result<Value> {
     resp.json().await.map_err(|e| Error::Upstream(e.to_string()))
 }
 
-fn guild_config_to_json(cfg: &GuildConfig) -> Value {
-    let updated_at_ms = cfg.updated_at.to_jiff().as_millisecond();
-    serde_json::json!({
-        "id": cfg.id.to_string(),
-        "support_channel_id": cfg.support_channel_id.map(|v| v.to_string()),
-        "support_role_id": cfg.support_role_id.map(|v| v.to_string()),
-        "faq_channel_id": cfg.faq_channel_id.map(|v| v.to_string()),
-        "suggestions_channel_id": cfg.suggestions_channel_id.map(|v| v.to_string()),
-        "review_channel_id": cfg.review_channel_id.map(|v| v.to_string()),
-        "rules_channel_id": cfg.rules_channel_id.map(|v| v.to_string()),
-        "general_channel_id": cfg.general_channel_id.map(|v| v.to_string()),
-        "spoiler_channel_id": cfg.spoiler_channel_id.map(|v| v.to_string()),
-        "artist_role_id": cfg.artist_role_id.map(|v| v.to_string()),
-        "sleep_role_id": cfg.sleep_role_id.map(|v| v.to_string()),
-        "temp_voice_category": cfg.temp_voice_category.map(|v| v.to_string()),
-        "temp_voice_creator_channel": cfg.temp_voice_creator_channel.map(|v| v.to_string()),
-        "lfg_channel_id": cfg.lfg_channel_id.map(|v| v.to_string()),
-        "lfg_role_id": cfg.lfg_role_id.map(|v| v.to_string()),
-        "lfg_scheduled_thread_id": cfg.lfg_scheduled_thread_id.map(|v| v.to_string()),
-        "updated_at": updated_at_ms,
-    })
+fn opt_str(v: Option<i64>) -> Option<String> {
+    v.map(|n| n.to_string())
 }
 
 pub(super) async fn guild(
@@ -121,14 +101,32 @@ pub(super) async fn settings(
         return Err(Error::BadRequest);
     };
 
-    let cfg = state.app.config_store.try_get(guild_id).await?;
+    let settings = &state.app.settings;
+    let support = settings.support.get(guild_id).await?;
+    let suggestions = settings.suggestions.get(guild_id).await?;
+    let channels = settings.channels.get(guild_id).await?;
+    let roles = settings.roles.get(guild_id).await?;
+    let temp_voice = settings.temp_voice.get(guild_id).await?;
+    let lfg = settings.lfg.get(guild_id).await?;
 
-    let json = cfg.map_or_else(
-        || guild_config_to_json(&GuildConfig::empty(guild_id)),
-        |c| guild_config_to_json(&c),
-    );
-
-    Ok(Json(json))
+    Ok(Json(serde_json::json!({
+        "id": guild_id.to_string(),
+        "support_channel_id": opt_str(support.support_channel_id),
+        "support_role_id": opt_str(support.support_role_id),
+        "faq_channel_id": opt_str(support.faq_channel_id),
+        "suggestions_channel_id": opt_str(suggestions.suggestions_channel_id),
+        "review_channel_id": opt_str(suggestions.review_channel_id),
+        "rules_channel_id": opt_str(channels.rules_channel_id),
+        "general_channel_id": opt_str(channels.general_channel_id),
+        "spoiler_channel_id": opt_str(channels.spoiler_channel_id),
+        "artist_role_id": opt_str(roles.artist_role_id),
+        "sleep_role_id": opt_str(roles.sleep_role_id),
+        "temp_voice_category": opt_str(temp_voice.temp_voice_category),
+        "temp_voice_creator_channel": opt_str(temp_voice.temp_voice_creator_channel),
+        "lfg_channel_id": opt_str(lfg.lfg_channel_id),
+        "lfg_role_id": opt_str(lfg.lfg_role_id),
+        "lfg_scheduled_thread_id": opt_str(lfg.lfg_scheduled_thread_id),
+    })))
 }
 
 pub(super) async fn settings_patch(
@@ -140,27 +138,70 @@ pub(super) async fn settings_patch(
         return Err(Error::BadRequest);
     };
 
-    let updated = state
-        .app
-        .config_store
-        .update(guild_id, |p: &mut GuildConfigPatch| {
+    let settings = &state.app.settings;
+
+    let support = settings
+        .support
+        .update(guild_id, |p| {
             p.support_channel_id = body.support_channel_id;
             p.support_role_id = body.support_role_id;
             p.faq_channel_id = body.faq_channel_id;
+        })
+        .await?;
+    let suggestions = settings
+        .suggestions
+        .update(guild_id, |p| {
             p.suggestions_channel_id = body.suggestions_channel_id;
             p.review_channel_id = body.review_channel_id;
+        })
+        .await?;
+    let channels = settings
+        .channels
+        .update(guild_id, |p| {
             p.rules_channel_id = body.rules_channel_id;
             p.general_channel_id = body.general_channel_id;
             p.spoiler_channel_id = body.spoiler_channel_id;
+        })
+        .await?;
+    let roles = settings
+        .roles
+        .update(guild_id, |p| {
             p.artist_role_id = body.artist_role_id;
             p.sleep_role_id = body.sleep_role_id;
+        })
+        .await?;
+    let temp_voice = settings
+        .temp_voice
+        .update(guild_id, |p| {
             p.temp_voice_category = body.temp_voice_category;
             p.temp_voice_creator_channel = body.temp_voice_creator_channel;
+        })
+        .await?;
+    let lfg = settings
+        .lfg
+        .update(guild_id, |p| {
             p.lfg_channel_id = body.lfg_channel_id;
             p.lfg_role_id = body.lfg_role_id;
             p.lfg_scheduled_thread_id = body.lfg_scheduled_thread_id;
         })
         .await?;
 
-    Ok(Json(guild_config_to_json(&updated)))
+    Ok(Json(serde_json::json!({
+        "id": guild_id.to_string(),
+        "support_channel_id": opt_str(support.support_channel_id),
+        "support_role_id": opt_str(support.support_role_id),
+        "faq_channel_id": opt_str(support.faq_channel_id),
+        "suggestions_channel_id": opt_str(suggestions.suggestions_channel_id),
+        "review_channel_id": opt_str(suggestions.review_channel_id),
+        "rules_channel_id": opt_str(channels.rules_channel_id),
+        "general_channel_id": opt_str(channels.general_channel_id),
+        "spoiler_channel_id": opt_str(channels.spoiler_channel_id),
+        "artist_role_id": opt_str(roles.artist_role_id),
+        "sleep_role_id": opt_str(roles.sleep_role_id),
+        "temp_voice_category": opt_str(temp_voice.temp_voice_category),
+        "temp_voice_creator_channel": opt_str(temp_voice.temp_voice_creator_channel),
+        "lfg_channel_id": opt_str(lfg.lfg_channel_id),
+        "lfg_role_id": opt_str(lfg.lfg_role_id),
+        "lfg_scheduled_thread_id": opt_str(lfg.lfg_scheduled_thread_id),
+    })))
 }

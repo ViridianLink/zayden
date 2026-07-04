@@ -8,10 +8,10 @@ use jiff::tz::TimeZone;
 use jiff_sqlx::Timestamp;
 use lfg::commands::{JoinedManager, SetupManager};
 use lfg::components::{EditManager, EditRow};
-use lfg::modals::create::{GuildManager, GuildRow};
 use lfg::models::timezone_manager::locale_to_timezone;
 use lfg::{
     Components,
+    GuildTable,
     Join,
     JoinedRow,
     KickComponent,
@@ -26,7 +26,6 @@ use serenity::all::{GenericChannelId, GuildId, MessageId, RoleId, UserId};
 pub use slash_command::Lfg;
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
-use zayden_app::config::ConfigStore;
 use zayden_core::ctx::{ComponentCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
@@ -34,7 +33,6 @@ use zayden_core::scope::IdMatch;
 use zayden_core::{as_i64, as_u64};
 
 use crate::registry::OverlapError;
-use crate::sqlx_lib::GuildTable;
 use crate::{BotState, RegistryBuilder};
 
 // region: PostTable
@@ -240,17 +238,7 @@ impl SetupManager<Postgres> for PostTable {
         channel: impl Into<GenericChannelId> + Send,
         role: Option<RoleId>,
     ) -> sqlx::Result<PgQueryResult> {
-        let id = id.into();
-        let channel = channel.into();
-
-        ConfigStore::from_pool(pool.clone())
-            .update(as_i64(id.get()), |patch| {
-                patch.lfg_channel_id = Some(as_i64(channel.get()));
-                patch.lfg_role_id = role.map(|r| as_i64(r.get()));
-            })
-            .await?;
-
-        Ok(PgQueryResult::default())
+        GuildTable::insert(pool, id, channel, role).await
     }
 }
 
@@ -354,32 +342,6 @@ impl TimezoneManager<Postgres> for UsersTable {
         tz_name)
         .execute(pool)
         .await
-    }
-}
-
-// endregion
-
-// region: GuildTable
-
-#[async_trait]
-impl GuildManager<Postgres> for GuildTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<Option<GuildRow>> {
-        let id = id.into();
-
-        let Some(cfg) =
-            ConfigStore::from_pool(pool.clone()).try_get(as_i64(id.get())).await?
-        else {
-            return Ok(None);
-        };
-
-        Ok(Some(GuildRow {
-            lfg_channel_id: cfg.lfg_channel_id,
-            lfg_role_id: cfg.lfg_role_id,
-            lfg_scheduled_thread_id: cfg.lfg_scheduled_thread_id,
-        }))
     }
 }
 

@@ -6,52 +6,112 @@
       {
         "ordinal": 0,
         "name": "miners",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "miners"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "mines",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "mines"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "land",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "land"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "countries",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "countries"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "continents",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "continents"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "planets",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "planets"
+          }
+        }
       },
       {
         "ordinal": 6,
         "name": "solar_systems",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "solar_systems"
+          }
+        }
       },
       {
         "ordinal": 7,
         "name": "galaxies",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "galaxies"
+          }
+        }
       },
       {
         "ordinal": 8,
         "name": "universes",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "universes"
+          }
+        }
       },
       {
         "ordinal": 9,
         "name": "prestige",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "prestige"
+          }
+        }
       }
     ],
     "parameters": {

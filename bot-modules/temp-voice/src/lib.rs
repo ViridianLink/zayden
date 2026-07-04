@@ -9,7 +9,7 @@ use std::time::Duration;
 
 pub use commands::VoiceCommand;
 pub use error::{Result, TempVoiceError};
-pub use guild_manager::{TempVoiceGuildManager, TempVoiceRow};
+pub use guild_manager::{GuildTable, TempVoiceGuildManager, TempVoiceRow};
 use serenity::all::{
     ChannelId,
     DiscordJsonError,

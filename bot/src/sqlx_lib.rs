@@ -8,8 +8,6 @@ use tracing::{error, info};
 
 const MAX_LIFETIME: Duration = Duration::from_mins(30);
 
-pub struct GuildTable;
-
 pub async fn new_pool(url: &str) -> sqlx::Result<PgPool> {
     PgPoolOptions::new()
         .max_connections(10)

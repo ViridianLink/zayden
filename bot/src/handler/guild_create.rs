@@ -3,9 +3,10 @@ use sqlx::{PgPool, Postgres};
 use tokio::sync::RwLock;
 use tracing::info;
 
+use lfg::GuildTable;
+
 use super::Handler;
 use crate::bindings::lfg::PostTable;
-use crate::sqlx_lib::GuildTable;
 use crate::{BotState, Result};
 
 impl Handler {

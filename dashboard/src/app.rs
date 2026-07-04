@@ -250,38 +250,42 @@ async fn get_guild_settings(
         return Err(ServerFnError::ServerError("forbidden".to_string()));
     }
 
-    let config = match app.config_store.try_get(guild_id_i64).await {
-        Ok(c) => c,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
+    fn opt_str(v: Option<i64>) -> Option<String> {
+        v.map(|n| n.to_string())
+    }
+    fn app_err(e: sqlx::Error) -> ServerFnError {
+        ServerFnError::ServerError(e.to_string())
+    }
+
+    let support = app.settings.support.get(guild_id_i64).await.map_err(app_err)?;
+    let suggestions =
+        app.settings.suggestions.get(guild_id_i64).await.map_err(app_err)?;
+    let channels = app.settings.channels.get(guild_id_i64).await.map_err(app_err)?;
+    let roles = app.settings.roles.get(guild_id_i64).await.map_err(app_err)?;
+    let temp_voice = app.settings.temp_voice.get(guild_id_i64).await.map_err(app_err)?;
+    let lfg = app.settings.lfg.get(guild_id_i64).await.map_err(app_err)?;
 
     let scope = EntitlementScope::UserInGuild(discord_user_id_u64, guild_id_u64);
     let is_pro = app.entitlements.allows(scope, Tier::Pro).await;
 
-    fn opt_str(v: Option<i64>) -> Option<String> {
-        v.map(|n| n.to_string())
-    }
-
-    let settings = config.map_or_else(GuildSettings::default, |c| GuildSettings {
-        support_channel_id: opt_str(c.support_channel_id),
-        support_role_id: opt_str(c.support_role_id),
-        faq_channel_id: opt_str(c.faq_channel_id),
-        suggestions_channel_id: opt_str(c.suggestions_channel_id),
-        review_channel_id: opt_str(c.review_channel_id),
-        rules_channel_id: opt_str(c.rules_channel_id),
-        general_channel_id: opt_str(c.general_channel_id),
-        spoiler_channel_id: opt_str(c.spoiler_channel_id),
-        artist_role_id: opt_str(c.artist_role_id),
-        sleep_role_id: opt_str(c.sleep_role_id),
-        temp_voice_category: opt_str(c.temp_voice_category),
-        temp_voice_creator_channel: opt_str(c.temp_voice_creator_channel),
-        lfg_channel_id: opt_str(c.lfg_channel_id),
-        lfg_role_id: opt_str(c.lfg_role_id),
-        lfg_scheduled_thread_id: opt_str(c.lfg_scheduled_thread_id),
+    Ok(GuildSettings {
+        support_channel_id: opt_str(support.support_channel_id),
+        support_role_id: opt_str(support.support_role_id),
+        faq_channel_id: opt_str(support.faq_channel_id),
+        suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
+        review_channel_id: opt_str(suggestions.review_channel_id),
+        rules_channel_id: opt_str(channels.rules_channel_id),
+        general_channel_id: opt_str(channels.general_channel_id),
+        spoiler_channel_id: opt_str(channels.spoiler_channel_id),
+        artist_role_id: opt_str(roles.artist_role_id),
+        sleep_role_id: opt_str(roles.sleep_role_id),
+        temp_voice_category: opt_str(temp_voice.temp_voice_category),
+        temp_voice_creator_channel: opt_str(temp_voice.temp_voice_creator_channel),
+        lfg_channel_id: opt_str(lfg.lfg_channel_id),
+        lfg_role_id: opt_str(lfg.lfg_role_id),
+        lfg_scheduled_thread_id: opt_str(lfg.lfg_scheduled_thread_id),
         is_pro,
-    });
-
-    Ok(settings)
+    })
 }
 
 /// SSR-only guard shared by all per-fieldset save server functions.
@@ -405,12 +409,14 @@ async fn save_support_settings(
 ) -> Result<(), ServerFnError> {
     use std::sync::Arc;
 
-    use zayden_app::config::guild_config::GuildConfigPatch;
     use zayden_app::state::AppState;
 
     fn parse_id(s: &str) -> Option<i64> {
         let t = s.trim();
         if t.is_empty() { None } else { t.parse().ok() }
+    }
+    fn app_err(e: sqlx::Error) -> ServerFnError {
+        ServerFnError::ServerError(e.to_string())
     }
 
     let (guild_id_i64, _) = guild_write_guard(&guild).await?;
@@ -419,17 +425,25 @@ async fn save_support_settings(
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
 
-    app.config_store
-        .update(guild_id_i64, |p: &mut GuildConfigPatch| {
+    app.settings
+        .support
+        .update(guild_id_i64, |p| {
             p.support_channel_id = parse_id(&support_channel_id);
             p.support_role_id = parse_id(&support_role_id);
             p.faq_channel_id = parse_id(&faq_channel_id);
+        })
+        .await
+        .map_err(app_err)?;
+
+    app.settings
+        .suggestions
+        .update(guild_id_i64, |p| {
             p.suggestions_channel_id = parse_id(&suggestions_channel_id);
             p.review_channel_id = parse_id(&review_channel_id);
         })
         .await
         .map(|_| ())
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))
+        .map_err(app_err)
 }
 
 /// Persist channel-section settings (rules, general, spoiler).
@@ -442,7 +456,6 @@ async fn save_channel_settings(
 ) -> Result<(), ServerFnError> {
     use std::sync::Arc;
 
-    use zayden_app::config::guild_config::GuildConfigPatch;
     use zayden_app::state::AppState;
 
     fn parse_id(s: &str) -> Option<i64> {
@@ -456,8 +469,9 @@ async fn save_channel_settings(
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
 
-    app.config_store
-        .update(guild_id_i64, |p: &mut GuildConfigPatch| {
+    app.settings
+        .channels
+        .update(guild_id_i64, |p| {
             p.rules_channel_id = parse_id(&rules_channel_id);
             p.general_channel_id = parse_id(&general_channel_id);
             p.spoiler_channel_id = parse_id(&spoiler_channel_id);
@@ -476,7 +490,6 @@ async fn save_role_settings(
 ) -> Result<(), ServerFnError> {
     use std::sync::Arc;
 
-    use zayden_app::config::guild_config::GuildConfigPatch;
     use zayden_app::state::AppState;
 
     fn parse_id(s: &str) -> Option<i64> {
@@ -490,8 +503,9 @@ async fn save_role_settings(
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
 
-    app.config_store
-        .update(guild_id_i64, |p: &mut GuildConfigPatch| {
+    app.settings
+        .roles
+        .update(guild_id_i64, |p| {
             p.artist_role_id = parse_id(&artist_role_id);
             p.sleep_role_id = parse_id(&sleep_role_id);
         })
@@ -509,7 +523,6 @@ async fn save_temp_voice_settings(
 ) -> Result<(), ServerFnError> {
     use std::sync::Arc;
 
-    use zayden_app::config::guild_config::GuildConfigPatch;
     use zayden_app::state::AppState;
 
     fn parse_id(s: &str) -> Option<i64> {
@@ -523,8 +536,9 @@ async fn save_temp_voice_settings(
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
 
-    app.config_store
-        .update(guild_id_i64, |p: &mut GuildConfigPatch| {
+    app.settings
+        .temp_voice
+        .update(guild_id_i64, |p| {
             p.temp_voice_category = parse_id(&temp_voice_category);
             p.temp_voice_creator_channel = parse_id(&temp_voice_creator_channel);
         })
@@ -543,7 +557,6 @@ async fn save_lfg_settings(
 ) -> Result<(), ServerFnError> {
     use std::sync::Arc;
 
-    use zayden_app::config::guild_config::GuildConfigPatch;
     use zayden_app::state::AppState;
 
     fn parse_id(s: &str) -> Option<i64> {
@@ -557,8 +570,9 @@ async fn save_lfg_settings(
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
 
-    app.config_store
-        .update(guild_id_i64, |p: &mut GuildConfigPatch| {
+    app.settings
+        .lfg
+        .update(guild_id_i64, |p| {
             p.lfg_channel_id = parse_id(&lfg_channel_id);
             p.lfg_role_id = parse_id(&lfg_role_id);
             p.lfg_scheduled_thread_id = parse_id(&lfg_scheduled_thread_id);

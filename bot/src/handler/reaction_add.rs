@@ -1,12 +1,11 @@
 use reaction_roles::ReactionRoleReaction;
 use serenity::all::{Context, Reaction};
 use sqlx::{PgPool, Postgres};
-use suggestions::Suggestions;
+use suggestions::{GuildTable, Suggestions};
 
 use super::Handler;
 use crate::Result;
 use crate::bindings::reaction_roles::ReactionRolesTable;
-use crate::sqlx_lib::GuildTable;
 
 impl Handler {
     pub(super) async fn reaction_add(

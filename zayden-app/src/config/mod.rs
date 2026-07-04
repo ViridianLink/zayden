@@ -1,7 +1,8 @@
 pub mod bot_config;
-pub mod guild_config;
-pub mod store;
+pub mod registry;
+pub mod settings_store;
+pub mod tables;
 
 pub use bot_config::BotConfig;
-pub use guild_config::{GuildConfig, GuildConfigPatch, ModuleConfig};
-pub use store::ConfigStore;
+pub use registry::SettingsRegistry;
+pub use settings_store::{SettingsRow, SettingsStore};

@@ -20,7 +20,7 @@ use error::Result;
 pub use error::TicketError;
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
-pub use support_guild_manager::TicketGuildManager;
+pub use support_guild_manager::{GuildTable, TicketGuildManager};
 pub use ticket_manager::TicketManager;
 
 pub struct Support;

@@ -3,13 +3,12 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
 use sqlx::Postgres;
-use ticket::{Support, Ticket};
+use ticket::{GuildTable, Support, Ticket};
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
 
 use super::TicketTable;
-use crate::sqlx_lib::GuildTable;
 
 pub struct TicketCommand;
 

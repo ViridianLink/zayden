@@ -5,7 +5,7 @@ use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
 
-use crate::sqlx_lib::GuildTable;
+use suggestions::GuildTable;
 
 pub struct FetchSuggestions;
 

@@ -3,13 +3,12 @@ use std::borrow::Cow;
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
 use sqlx::Postgres;
-use temp_voice::VoiceCommand;
+use temp_voice::{GuildTable, VoiceCommand};
 use zayden_core::error::HandlerError;
 use zayden_core::{InvocationCtx, ModuleCommand};
 
 use super::VoiceChannelTable;
 use crate::BotState;
-use crate::sqlx_lib::GuildTable;
 
 pub struct Voice;
 

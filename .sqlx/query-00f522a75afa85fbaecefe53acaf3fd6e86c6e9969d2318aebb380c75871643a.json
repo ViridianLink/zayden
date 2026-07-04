@@ -6,7 +6,13 @@
       {
         "ordinal": 0,
         "name": "role_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_support_roles",
+            "name": "role_id"
+          }
+        }
       }
     ],
     "parameters": {

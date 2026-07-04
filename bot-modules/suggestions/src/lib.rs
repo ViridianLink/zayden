@@ -7,7 +7,7 @@ pub mod slash_command;
 
 use error::Result;
 pub use error::SuggestionsError;
-pub use guild_manager::{SuggestionsGuildManager, SuggestionsGuildRow};
+pub use guild_manager::{GuildTable, SuggestionsGuildManager, SuggestionsGuildRow};
 pub use slash_command::FetchSuggestions;
 
 pub struct Suggestions;

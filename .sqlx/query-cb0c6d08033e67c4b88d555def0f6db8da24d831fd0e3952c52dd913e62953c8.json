@@ -6,17 +6,35 @@
       {
         "ordinal": 0,
         "name": "xp",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "xp"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "level",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "level"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "total_xp",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "total_xp"
+          }
+        }
       }
     ],
     "parameters": {

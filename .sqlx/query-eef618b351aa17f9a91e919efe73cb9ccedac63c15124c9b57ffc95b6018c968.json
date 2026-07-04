@@ -6,32 +6,68 @@
       {
         "ordinal": 0,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "xp",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "xp"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "level",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "level"
+          }
+        }
       },
       {
         "ordinal": 3,
         "name": "total_xp",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "total_xp"
+          }
+        }
       },
       {
         "ordinal": 4,
         "name": "message_count",
-        "type_info": "Int4"
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "message_count"
+          }
+        }
       },
       {
         "ordinal": 5,
         "name": "last_xp: jiff_sqlx::Timestamp",
-        "type_info": "Timestamptz"
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "last_xp"
+          }
+        }
       }
     ],
     "parameters": {

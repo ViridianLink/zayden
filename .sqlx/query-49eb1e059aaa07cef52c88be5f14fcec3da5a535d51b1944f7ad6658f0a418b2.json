@@ -6,17 +6,35 @@
       {
         "ordinal": 0,
         "name": "user_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "user_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "coins",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "coins"
+          }
+        }
       },
       {
         "ordinal": 2,
         "name": "quantity",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_inventory",
+            "name": "quantity"
+          }
+        }
       }
     ],
     "parameters": {

@@ -1,0 +1,51 @@
+use std::sync::Arc;
+
+use sqlx::PgPool;
+use tokio::sync::broadcast;
+
+use super::SettingsStore;
+use super::tables::{
+    GuildChannelsRow,
+    LfgSettingsRow,
+    RolesSettingsRow,
+    SuggestionsSettingsRow,
+    SupportSettingsRow,
+    TempVoiceSettingsRow,
+};
+use crate::events::AppEvent;
+
+pub struct SettingsRegistry {
+    pub support: Arc<SettingsStore<SupportSettingsRow>>,
+    pub suggestions: Arc<SettingsStore<SuggestionsSettingsRow>>,
+    pub channels: Arc<SettingsStore<GuildChannelsRow>>,
+    pub roles: Arc<SettingsStore<RolesSettingsRow>>,
+    pub temp_voice: Arc<SettingsStore<TempVoiceSettingsRow>>,
+    pub lfg: Arc<SettingsStore<LfgSettingsRow>>,
+}
+
+impl SettingsRegistry {
+    #[must_use]
+    pub fn new(db: PgPool, events: &broadcast::Sender<AppEvent>) -> Self {
+        let support = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let suggestions = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let channels = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let roles = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let temp_voice = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let lfg = Arc::new(SettingsStore::new(db, events.clone()));
+
+        SettingsStore::spawn_invalidator(Arc::clone(&support), events.subscribe());
+        SettingsStore::spawn_invalidator(
+            Arc::clone(&suggestions),
+            events.subscribe(),
+        );
+        SettingsStore::spawn_invalidator(Arc::clone(&channels), events.subscribe());
+        SettingsStore::spawn_invalidator(Arc::clone(&roles), events.subscribe());
+        SettingsStore::spawn_invalidator(
+            Arc::clone(&temp_voice),
+            events.subscribe(),
+        );
+        SettingsStore::spawn_invalidator(Arc::clone(&lfg), events.subscribe());
+
+        Self { support, suggestions, channels, roles, temp_voice, lfg }
+    }
+}

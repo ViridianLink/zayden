@@ -10,66 +10,12 @@ pub fn register(builder: &mut RegistryBuilder) {
 }
 
 use async_trait::async_trait;
-use serenity::all::{ChannelId, GuildId, UserId};
+use serenity::all::{ChannelId, UserId};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use temp_voice::voice_channel_manager::VoiceChannelMode;
-use temp_voice::{
-    TempVoiceGuildManager,
-    TempVoiceRow,
-    VoiceChannelManager,
-    VoiceChannelRow,
-};
-use zayden_app::config::ConfigStore;
-use zayden_core::{as_i64, as_u64};
-
-use crate::sqlx_lib::GuildTable;
-
-#[async_trait]
-impl TempVoiceGuildManager<Postgres> for GuildTable {
-    async fn save(
-        pool: &PgPool,
-        id: GuildId,
-        category: ChannelId,
-        creator_channel: ChannelId,
-    ) -> sqlx::Result<PgQueryResult> {
-        ConfigStore::from_pool(pool.clone())
-            .update(as_i64(id.get()), |patch| {
-                patch.temp_voice_category = Some(as_i64(category.get()));
-                patch.temp_voice_creator_channel =
-                    Some(as_i64(creator_channel.get()));
-            })
-            .await?;
-
-        Ok(PgQueryResult::default())
-    }
-
-    async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<TempVoiceRow> {
-        let cfg = ConfigStore::from_pool(pool.clone()).get(as_i64(id.get())).await?;
-
-        Ok(TempVoiceRow {
-            id: cfg.id,
-            temp_voice_category: cfg.temp_voice_category,
-            temp_voice_creator_channel: cfg.temp_voice_creator_channel,
-        })
-    }
-
-    async fn get_category(pool: &PgPool, id: GuildId) -> sqlx::Result<ChannelId> {
-        let cfg = ConfigStore::from_pool(pool.clone()).get(as_i64(id.get())).await?;
-
-        let category = cfg.temp_voice_category.ok_or(sqlx::Error::RowNotFound)?;
-        Ok(ChannelId::new(as_u64(category)))
-    }
-
-    async fn get_creator_channel(
-        pool: &PgPool,
-        id: GuildId,
-    ) -> sqlx::Result<Option<ChannelId>> {
-        let cfg = ConfigStore::from_pool(pool.clone()).get(as_i64(id.get())).await?;
-
-        Ok(cfg.temp_voice_creator_channel.map(|id| ChannelId::new(as_u64(id))))
-    }
-}
+use temp_voice::{VoiceChannelManager, VoiceChannelRow};
+use zayden_core::as_i64;
 
 #[derive(sqlx::Type)]
 #[sqlx(type_name = "temp_voice_mode")]

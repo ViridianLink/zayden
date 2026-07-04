@@ -6,7 +6,8 @@
       {
         "ordinal": 0,
         "name": "row_number",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {

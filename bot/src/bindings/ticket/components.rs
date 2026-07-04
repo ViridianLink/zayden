@@ -11,14 +11,13 @@ use serenity::all::{
     InputTextStyle,
 };
 use sqlx::Postgres;
-use ticket::{TicketComponent, TicketModal};
+use ticket::{GuildTable, TicketComponent, TicketModal};
 use zayden_core::ctx::{ComponentCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
 use zayden_core::scope::IdMatch;
 
 use super::TicketTable;
-use crate::sqlx_lib::GuildTable;
 
 fn make_ticket_modal_components<'a>() -> Vec<CreateModalComponent<'a>> {
     vec![

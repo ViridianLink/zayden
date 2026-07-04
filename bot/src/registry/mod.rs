@@ -16,10 +16,8 @@ use serenity::all::{
     ModalInteraction,
 };
 use tracing::warn;
-use zayden_app::config::GuildConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState;
-use zayden_core::as_i64;
 use zayden_core::ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{
@@ -129,12 +127,6 @@ impl CommandRegistry {
             .collect()
     }
 
-    /// Dispatch a slash-command interaction.
-    ///
-    /// Returns `None` if no handler is registered for the command name,
-    /// allowing the caller to fall back to a legacy dispatch path during
-    /// the M3.4–M3.5 migration.  Returns `Some(result)` once a handler is
-    /// found and invoked.
     pub async fn run_command(
         &self,
         ctx: &Context,
@@ -142,7 +134,6 @@ impl CommandRegistry {
         app: Arc<AppState>,
     ) -> Option<Result<(), HandlerError>> {
         let cmd = Arc::clone(self.commands.get(interaction.data.name.as_str())?);
-        let guild_config = resolve_guild_config(&app, interaction.guild_id).await;
 
         // Entitlement gate
         let required = cmd.metadata().required_tier;
@@ -171,13 +162,10 @@ impl CommandRegistry {
             }
         }
 
-        let cx = InvocationCtx { ctx, interaction, app, guild_config };
+        let cx = InvocationCtx { ctx, interaction, app };
         Some(cmd.run(&cx).await)
     }
 
-    /// Dispatch a message-component interaction.
-    ///
-    /// Returns `None` if no handler matches the `custom_id`.
     pub async fn run_component(
         &self,
         ctx: &Context,
@@ -185,14 +173,10 @@ impl CommandRegistry {
         app: Arc<AppState>,
     ) -> Option<Result<(), HandlerError>> {
         let comp = Arc::clone(self.components.lookup(&interaction.data.custom_id)?);
-        let guild_config = resolve_guild_config(&app, interaction.guild_id).await;
-        let cx = ComponentCtx { ctx, interaction, app, guild_config };
+        let cx = ComponentCtx { ctx, interaction, app };
         Some(comp.run(&cx).await)
     }
 
-    /// Dispatch a modal-submit interaction.
-    ///
-    /// Returns `None` if no handler matches the `custom_id`.
     pub async fn run_modal(
         &self,
         ctx: &Context,
@@ -200,14 +184,10 @@ impl CommandRegistry {
         app: Arc<AppState>,
     ) -> Option<Result<(), HandlerError>> {
         let modal = Arc::clone(self.modals.lookup(&interaction.data.custom_id)?);
-        let guild_config = resolve_guild_config(&app, interaction.guild_id).await;
-        let cx = ModalCtx { ctx, interaction, app, guild_config };
+        let cx = ModalCtx { ctx, interaction, app };
         Some(modal.run(&cx).await)
     }
 
-    /// Dispatch an autocomplete interaction.
-    ///
-    /// Returns `None` if no handler is registered for the command name.
     pub async fn run_autocomplete(
         &self,
         ctx: &Context,
@@ -216,34 +196,7 @@ impl CommandRegistry {
     ) -> Option<Result<(), HandlerError>> {
         let auto =
             Arc::clone(self.autocompletes.get(interaction.data.name.as_str())?);
-        let guild_config = resolve_guild_config(&app, interaction.guild_id).await;
-        let cx = AutocompleteCtx { ctx, interaction, app, guild_config };
+        let cx = AutocompleteCtx { ctx, interaction, app };
         Some(auto.run(&cx).await)
-    }
-}
-
-/// Fetch or synthesise a [`GuildConfig`] for the given guild.
-///
-/// Falls back to an empty config (all `None` / zero) when the guild has no row
-/// in the database yet, or when the interaction originates from a DM.
-async fn resolve_guild_config(
-    app: &AppState,
-    guild_id: Option<GuildId>,
-) -> Arc<GuildConfig> {
-    let Some(gid) = guild_id else {
-        return Arc::new(GuildConfig::empty(0));
-    };
-
-    match app.config_store.try_get(as_i64(gid.get())).await {
-        Ok(Some(config)) => config,
-        Ok(None) => Arc::new(GuildConfig::empty(as_i64(gid.get()))),
-        Err(err) => {
-            warn!(
-                guild_id = %gid,
-                error = ?err,
-                "failed to fetch guild config; using empty config",
-            );
-            Arc::new(GuildConfig::empty(as_i64(gid.get())))
-        },
     }
 }

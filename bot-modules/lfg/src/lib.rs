@@ -5,6 +5,7 @@ pub mod components;
 pub mod cron;
 pub mod error;
 pub mod events;
+pub mod guild_manager;
 pub mod modals;
 pub mod models;
 pub mod templates;
@@ -15,6 +16,7 @@ pub use commands::{Command, JoinedManager, JoinedRow};
 pub use components::{Components, KickComponent, TagsComponent};
 pub use error::LfgError;
 use error::Result;
+pub use guild_manager::GuildTable;
 pub use modals::{Create, Edit, GuildManager};
 pub use models::{
     Join,

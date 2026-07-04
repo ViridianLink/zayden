@@ -6,12 +6,19 @@
       {
         "ordinal": 0,
         "name": "thread_id",
-        "type_info": "Int8"
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "tickets",
+            "name": "thread_id"
+          }
+        }
       },
       {
         "ordinal": 1,
         "name": "role_ids!",
-        "type_info": "Int8Array"
+        "type_info": "Int8Array",
+        "origin": "Expression"
       }
     ],
     "parameters": {
