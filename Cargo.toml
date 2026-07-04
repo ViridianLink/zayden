@@ -140,6 +140,7 @@ gold-star = { path = "./bot-modules/gold-star" }
 levels = { path = "./bot-modules/levels" }
 lfg = { path = "./bot-modules/lfg" }
 llamad2 = { path = "./bot-modules/llamad2" }
+music = { path = "./bot-modules/music" }
 reaction-roles = { path = "./bot-modules/reaction-roles" }
 suggestions = { path = "./bot-modules/suggestions" }
 temp-voice = { path = "./bot-modules/temp-voice" }
@@ -166,6 +167,8 @@ rand = { version = "*", default-features = false }
 rand_distr = { version = "*", default-features = false }
 regex = { version = "*", default-features = false }
 reqwest = { version = "*", default-features = false, features = ["rustls"] }
+rspotify = { version = "*", default-features = false }
+rusty_ytdl = { version = "*", default-features = false }
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", default-features = false, features = [

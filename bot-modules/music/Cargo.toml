@@ -1,0 +1,37 @@
+[package]
+name = "music"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+zayden-app = { workspace = true }
+zayden-core = { workspace = true }
+
+async-trait = { workspace = true }
+dashmap = { workspace = true }
+rand = { version = "0.10", default-features = false, features = ["thread_rng"] }
+reqwest = { workspace = true }
+rspotify = { workspace = true, features = [
+    "client-reqwest",
+    "reqwest-rustls-tls",
+] }
+rusty_ytdl = { workspace = true, features = ["search", "rustls-tls"] }
+serenity = { workspace = true }
+songbird = { workspace = true, features = [
+    "driver",
+    "gateway",
+    "rustls",
+    "serenity",
+    "tungstenite",
+] }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }

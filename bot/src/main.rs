@@ -56,8 +56,9 @@ async fn main() -> Result<()> {
 
     EventListener::spawn(pool.clone(), app_state.events.clone());
 
-    let bot_state =
-        Arc::new(RwLock::new(BotState::new(Arc::clone(&app_state), &bot_config)?));
+    let bot_state_inner = BotState::new(Arc::clone(&app_state), &bot_config)?;
+    let songbird = Arc::clone(&bot_state_inner.songbird);
+    let bot_state = Arc::new(RwLock::new(bot_state_inner));
 
     let registry = bindings::build_registry(bot_config.llamad2_guild)
         .map_err(|e| BotError::Other(e.to_string()))?;
@@ -71,6 +72,7 @@ async fn main() -> Result<()> {
             | GatewayIntents::MESSAGE_CONTENT
             | GatewayIntents::GUILD_PRESENCES,
     )
+    .voice_manager(songbird)
     .data(Arc::clone(&bot_state))
     .event_handler(Arc::new(Handler {
         app: Arc::clone(&app_state),

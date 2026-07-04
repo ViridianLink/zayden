@@ -5,7 +5,9 @@ use bungie_api::{BungieClient, BungieClientBuilder};
 use destiny2_core::BungieClientData;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
+use music::MusicManager;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
+use songbird::Songbird;
 use sqlx::{PgPool, Postgres};
 use temp_voice::{CachedState, VoiceStateCache};
 use tokio::sync::RwLock;
@@ -25,6 +27,8 @@ use crate::{Result, ZAYDEN_TOKEN, zayden_token};
 /// Bot-specific application state stored in Serenity's context data.
 pub struct BotState {
     pub app: Arc<AppState>,
+    pub songbird: Arc<Songbird>,
+    pub music: Arc<MusicManager>,
     bungie_client: Arc<BungieClient>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
@@ -44,6 +48,8 @@ impl BotState {
 
         Ok(Self {
             app,
+            songbird: Songbird::serenity(),
+            music: Arc::new(MusicManager::new()),
             bungie_client: Arc::new(bungie_client),
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),
@@ -98,6 +104,7 @@ impl BotState {
         let mut data = data.write().await;
         VoiceStateCache::guild_create(&mut *data, guild);
         GuildMembersCache::guild_create(&mut *data, guild);
+        data.music.occupancy().guild_create(guild);
     }
 }
 

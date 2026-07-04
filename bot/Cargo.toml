@@ -18,6 +18,7 @@ gold-star = { workspace = true }
 levels = { workspace = true }
 lfg = { workspace = true }
 llamad2 = { workspace = true }
+music = { workspace = true }
 reaction-roles = { workspace = true }
 suggestions = { workspace = true }
 temp-voice = { workspace = true }
@@ -42,6 +43,13 @@ serenity = { workspace = true, features = [
   "gateway",
   "transport_compression_zlib",
   "transport_compression_zstd",
+] }
+songbird = { workspace = true, features = [
+  "driver",
+  "gateway",
+  "rustls",
+  "serenity",
+  "tungstenite",
 ] }
 sqlx = { workspace = true, features = [
   "macros",
