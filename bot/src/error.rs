@@ -10,6 +10,7 @@ pub enum BotError {
 
     EndgameAnalysis(endgame_analysis::EndgameAnalysisError),
     Lfg(lfg::LfgError),
+    Music(music::MusicError),
     ReactionRole(reaction_roles::ReactionRoleError),
     Suggestions(suggestions::SuggestionsError),
     Ticket(ticket::TicketError),
@@ -39,6 +40,7 @@ impl std::fmt::Display for BotError {
 
             Self::EndgameAnalysis(e) => e.fmt(f),
             Self::Lfg(e) => e.fmt(f),
+            Self::Music(e) => e.fmt(f),
             Self::ReactionRole(e) => e.fmt(f),
             Self::Suggestions(e) => e.fmt(f),
             Self::Ticket(e) => e.fmt(f),
@@ -57,6 +59,7 @@ impl std::error::Error for BotError {
         match self {
             Self::EndgameAnalysis(e) => Some(e),
             Self::Lfg(e) => Some(e),
+            Self::Music(e) => Some(e),
             Self::ReactionRole(e) => Some(e),
             Self::Suggestions(e) => Some(e),
             Self::Ticket(e) => Some(e),
@@ -82,6 +85,7 @@ impl Respond for BotError {
 
             Self::EndgameAnalysis(e) => e.user_message(),
             Self::Lfg(e) => e.user_message(),
+            Self::Music(e) => e.user_message(),
             Self::ReactionRole(e) => e.user_message(),
             Self::Suggestions(e) => e.user_message(),
             Self::Ticket(e) => e.user_message(),
@@ -107,6 +111,12 @@ impl From<endgame_analysis::EndgameAnalysisError> for BotError {
 impl From<lfg::LfgError> for BotError {
     fn from(e: lfg::LfgError) -> Self {
         Self::Lfg(e)
+    }
+}
+
+impl From<music::MusicError> for BotError {
+    fn from(e: music::MusicError) -> Self {
+        Self::Music(e)
     }
 }
 

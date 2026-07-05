@@ -2,6 +2,7 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
+use music::{CompositeResolver, SpotifyResolver, TrackResolver, YouTubeResolver};
 use serenity::all::{ClientBuilder, GatewayIntents, Http, Token};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
@@ -24,6 +25,7 @@ use tracing::warn;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Layer, Registry, filter, fmt};
+use zayden_app::config::BotConfig;
 use zayden_app::events::listener::EventListener;
 
 use crate::sqlx_lib::new_pool_with_retry;
@@ -37,6 +39,18 @@ async fn zayden_token(pool: &PgPool) -> sqlx::Result<String> {
         .await
 }
 
+async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolver>> {
+    let youtube = YouTubeResolver::new().map_err(BotError::from)?;
+    let spotify = SpotifyResolver::new(
+        config.spotify_client_id.clone(),
+        config.spotify_client_secret.clone(),
+    )
+    .await
+    .map_err(BotError::from)?;
+
+    Ok(Arc::new(CompositeResolver::new(youtube, spotify)))
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv()
@@ -47,7 +61,7 @@ async fn main() -> Result<()> {
 
     let pool = new_pool_with_retry().await?;
 
-    let bot_config = zayden_app::config::BotConfig::load(&pool).await?;
+    let bot_config = BotConfig::load(&pool).await?;
     info!("BotConfig loaded successfully");
 
     let app_state =
@@ -56,7 +70,10 @@ async fn main() -> Result<()> {
 
     EventListener::spawn(pool.clone(), app_state.events.clone());
 
-    let bot_state_inner = BotState::new(Arc::clone(&app_state), &bot_config)?;
+    let music_resolver = build_music_resolver(&bot_config).await?;
+
+    let bot_state_inner =
+        BotState::new(Arc::clone(&app_state), &bot_config, music_resolver)?;
     let songbird = Arc::clone(&bot_state_inner.songbird);
     let bot_state = Arc::new(RwLock::new(bot_state_inner));
 

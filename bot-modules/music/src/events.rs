@@ -7,7 +7,6 @@ use songbird::{Event, EventContext, EventHandler, Songbird};
 use tracing::{error, warn};
 
 use crate::manager::MusicManager;
-use crate::player::NowPlaying;
 use crate::resolve::TrackResolver;
 use crate::voice;
 
@@ -33,27 +32,19 @@ impl EventHandler for TrackEndNotifier {
         };
 
         let next_track = next?;
-        let call = voice::get_call(&self.songbird, self.guild_id)?;
+        let next_generation = self.generation.wrapping_add(1);
 
-        match self.resolver.stream(&next_track).await {
-            Ok(input) => {
-                let handle = {
-                    let mut call = call.lock().await;
-                    call.play_input(input)
-                };
-
-                let mut guard = player.lock().await;
-                if guard.generation == self.generation.wrapping_add(1) {
-                    guard.current = Some(NowPlaying {
-                        track: next_track,
-                        handle,
-                        started_at: Instant::now(),
-                    });
-                }
-            },
-            Err(e) => {
-                error!(error = ?e, guild_id = %self.guild_id, "failed to stream next track");
-            },
+        if let Err(e) = voice::start_playback(
+            &self.songbird,
+            &self.music,
+            &self.resolver,
+            self.guild_id,
+            next_generation,
+            next_track,
+        )
+        .await
+        {
+            error!(error = ?e, guild_id = %self.guild_id, "failed to start next track");
         }
 
         None

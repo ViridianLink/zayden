@@ -6,92 +6,60 @@ use sqlx::PgPool;
 
 use crate::{Error, Result};
 
-// Defaults matching the current hardcoded constants in bot/src/main.rs.
 const DEFAULT_OSCAR_SIX: u64 = 211_486_447_369_322_506;
 const DEFAULT_ZAYDEN_GUILD: u64 = 1_222_360_995_700_150_443;
 const DEFAULT_LLAMAD2_GUILD: u64 = 1_133_034_263_579_734_037;
 const DEFAULT_ZAYDEN_ID: u64 = 787_490_197_943_091_211;
 
-// AI provider defaults (OpenRouter free tier).
 const DEFAULT_AI_ENDPOINT: &str = "https://openrouter.ai/api/v1";
 const DEFAULT_AI_MODEL: &str = "google/gemma-4-31b-it:free";
 
-// Dashboard defaults.
 const DEFAULT_FRONTEND_URL: &str = "http://localhost:5173";
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
 
-/// Static + deployment-level configuration for the bot process.
-///
-/// Populated once at startup via `BotConfig::load`; thereafter immutable.
-/// Merge order (lowest → highest priority):
-///   1. Environment variables (required secrets)
-///   2. `config.toml` (optional, deployment-specific overrides)
-///   3. `bot_config` SQL row (optional, highest-priority runtime overrides)
 #[derive(Debug, Clone)]
 pub struct BotConfig {
-    /// Discord bot token.
     pub discord_token: String,
-    /// Bungie API key for Destiny 2 integration.
     pub bungie_api_key: String,
-    /// AI provider API key (used for `OpenRouter` or any OpenAI-compatible API).
     pub ai_provider_key: String,
     /// Google Sheets API key for endgame analysis / destiny2 compendium.
     pub google_api_key: String,
-    /// Discord `OAuth2` client secret for the web dashboard.
     pub discord_client_secret: String,
+    pub spotify_client_id: String,
+    pub spotify_client_secret: String,
 
-    /// Base URL of the AI provider endpoint (e.g. `https://openrouter.ai/api/v1`).
     pub ai_api_endpoint: String,
-    /// Model identifier passed to the AI provider (e.g. `google/gemini-2.5-flash`).
     pub ai_model: String,
 
-    /// Discord user ID of the bot owner.
     pub bot_owner: u64,
-    /// Guild ID of the primary Zayden server.
     pub zayden_guild: u64,
-    /// Guild ID of the `LlamaD2` server.
     pub llamad2_guild: u64,
     /// Discord user/application ID of the Zayden bot itself.
     pub zayden_id: u64,
 
-    /// Discord webhook URL for error-level log messages.
     pub error_log_webhook: Option<String>,
-    /// Discord webhook URL for info/warn-level log messages.
     pub normal_log_webhook: Option<String>,
 
-    /// Base URL of the Leptos/Svelte frontend (used for CORS and OAuth redirect
-    /// errors).
     pub frontend_url: String,
-    /// Full `OAuth2` redirect URI registered with Discord
-    /// (e.g. `http://localhost:3000/auth/callback`).
     pub redirect_uri: String,
-    /// Socket address the dashboard HTTP server binds to
-    /// (e.g. `0.0.0.0:3000`).
     pub bind_addr: String,
-    /// Discord bot invite URL. If absent the `/invite` route returns 404.
     pub invite_url: Option<String>,
-    /// URL for the Pro subscription checkout (e.g. a Ko-fi page).
-    /// When set, free-tier users see an "Upgrade to Pro" link in the dashboard.
     pub upgrade_url: Option<String>,
 }
 
 impl BotConfig {
-    /// Load the bot configuration by merging three sources.
-    ///
-    /// Fails fast if any required environment variable is absent.
     pub async fn load(pool: &PgPool) -> Result<Self> {
-        // 1. Required env vars — fail early with a clear message.
         let discord_token = require_env("DISCORD_TOKEN")?;
         let bungie_api_key = require_env("BUNGIE_API_KEY")?;
         let ai_provider_key = require_env("AI_PROVIDER_KEY")?;
         let google_api_key = require_env("GOOGLE_API_KEY")?;
         let discord_client_secret = require_env("DISCORD_CLIENT_SECRET")?;
+        let spotify_client_id = require_env("SPOTIFY_CLIENT_ID")?;
+        let spotify_client_secret = require_env("SPOTIFY_CLIENT_SECRET")?;
 
-        // 2. config.toml (optional file, silently skipped if absent).
         let toml_cfg = load_toml_config()?;
 
-        // 3. bot_config SQL row (optional, takes precedence over config.toml).
         let db = load_db_row(pool).await?;
 
         Ok(Self {
@@ -100,6 +68,8 @@ impl BotConfig {
             ai_provider_key,
             google_api_key,
             discord_client_secret,
+            spotify_client_id,
+            spotify_client_secret,
 
             ai_api_endpoint: toml_cfg
                 .ai
@@ -146,14 +116,10 @@ impl BotConfig {
     }
 }
 
-// --- helpers ---
-
 fn require_env(var: &str) -> Result<String> {
     env::var(var).map_err(|_e| Error::MissingEnvVar(var.to_owned()))
 }
 
-/// Reads `config.toml` from the working directory or `bot/config.toml` as a
-/// fallback; returns an empty/default config when neither file exists.
 fn load_toml_config() -> Result<TomlConfig> {
     let path = if Path::new("config.toml").exists() {
         Path::new("config.toml")
@@ -168,8 +134,6 @@ fn load_toml_config() -> Result<TomlConfig> {
     Ok(cfg)
 }
 
-/// Fetches the single-row `bot_config` override table (may not exist yet —
-/// uses dynamic query so no compile-time DB check is needed).
 async fn load_db_row(pool: &PgPool) -> Result<Option<DbConfigRow>> {
     let row = sqlx::query_as::<_, DbConfigRow>(
         "SELECT error_log_webhook, normal_log_webhook FROM bot_config WHERE id = 1",
@@ -179,8 +143,6 @@ async fn load_db_row(pool: &PgPool) -> Result<Option<DbConfigRow>> {
 
     Ok(row)
 }
-
-// --- TOML deserialization types ---
 
 #[derive(Debug, Default, Deserialize)]
 struct TomlConfig {
@@ -196,9 +158,7 @@ struct TomlConfig {
 
 #[derive(Debug, Default, Deserialize)]
 struct TomlAi {
-    /// Base URL of the AI provider (default: `OpenRouter`).
     endpoint: Option<String>,
-    /// Model identifier (default: `google/gemini-2.5-flash`).
     model: Option<String>,
 }
 

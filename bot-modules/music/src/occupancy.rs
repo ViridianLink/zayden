@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use dashmap::DashMap;
 use serenity::all::{ChannelId, Guild, GuildId, UserId, VoiceState};
 
@@ -49,5 +51,32 @@ impl VoiceOccupancy {
                 g == guild_id && c == channel_id && *entry.key() != bot_id
             })
             .count()
+    }
+
+    #[must_use]
+    pub fn channel_of(
+        &self,
+        guild_id: GuildId,
+        user_id: UserId,
+    ) -> Option<ChannelId> {
+        self.members.get(&user_id).and_then(|entry| {
+            let (g, c) = *entry.value();
+            (g == guild_id).then_some(c)
+        })
+    }
+
+    #[must_use]
+    pub fn members_in_channel(
+        &self,
+        guild_id: GuildId,
+        channel_id: ChannelId,
+    ) -> HashSet<UserId> {
+        self.members
+            .iter()
+            .filter_map(|entry| {
+                let (g, c) = *entry.value();
+                (g == guild_id && c == channel_id).then(|| *entry.key())
+            })
+            .collect()
     }
 }

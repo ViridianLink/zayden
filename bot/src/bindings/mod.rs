@@ -21,6 +21,8 @@ pub mod llamad2;
 
 pub mod misc;
 
+pub mod music;
+
 pub mod reaction_roles;
 
 pub mod suggestions;
@@ -44,6 +46,7 @@ pub fn build_registry(
     levels::register(&mut builder)?;
     llamad2::register(&mut builder, llamad2_guild);
     misc::register(&mut builder);
+    music::register(&mut builder)?;
     ticket::register(&mut builder)?;
     verify::register(&mut builder)?;
     suggestions::register(&mut builder)?;

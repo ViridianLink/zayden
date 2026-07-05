@@ -25,6 +25,7 @@ pub struct GuildPlayer {
     pub skip_votes: HashSet<UserId>,
     pub generation: u64,
     pub idle_since: Option<Instant>,
+    pub periodic_registered: bool,
 }
 
 impl GuildPlayer {
@@ -40,6 +41,7 @@ impl GuildPlayer {
             skip_votes: HashSet::new(),
             generation: 0,
             idle_since: None,
+            periodic_registered: false,
         }
     }
 
