@@ -12,7 +12,12 @@ use crate::track::ResolvedTrack;
 pub mod spotify;
 pub mod youtube;
 
-pub use spotify::{parse_spotify_url, CompositeResolver, SpotifyKind, SpotifyResolver};
+pub use spotify::{
+    CompositeResolver,
+    SpotifyKind,
+    SpotifyResolver,
+    parse_spotify_url,
+};
 pub use youtube::YouTubeResolver;
 
 #[async_trait]

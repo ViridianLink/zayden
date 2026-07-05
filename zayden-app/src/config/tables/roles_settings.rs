@@ -16,7 +16,10 @@ impl SettingsRow for RolesSettingsRow {
         Self { guild_id, artist_role_id: None, sleep_role_id: None }
     }
 
-    async fn select(pool: &PgPool, guild_id: i64) -> Result<Option<Self>, sqlx::Error> {
+    async fn select(
+        pool: &PgPool,
+        guild_id: i64,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             Self,
             r#"

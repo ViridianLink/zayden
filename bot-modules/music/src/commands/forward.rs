@@ -4,8 +4,8 @@ use std::time::Duration;
 use serenity::all::ResolvedValue;
 use zayden_core::required_option;
 
-use super::seek::{current_elapsed, seek_to};
 use super::MusicCtx;
+use super::seek::{current_elapsed, seek_to};
 use crate::error::Result;
 
 pub(super) async fn run(

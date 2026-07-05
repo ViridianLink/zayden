@@ -30,12 +30,14 @@ pub(super) async fn run(
         Some(ResolvedValue::Boolean(true))
     );
     let dj_role: Option<&Role> = optional_option(&mut options, "dj_role");
-    let default_volume: Option<i64> = optional_option(&mut options, "default_volume");
+    let default_volume: Option<i64> =
+        optional_option(&mut options, "default_volume");
     let auto_disconnect_secs: Option<i64> =
         optional_option(&mut options, "auto_disconnect_secs");
     let announce_now_playing: Option<bool> =
         optional_option(&mut options, "announce_now_playing");
-    let stay_connected: Option<bool> = optional_option(&mut options, "stay_connected");
+    let stay_connected: Option<bool> =
+        optional_option(&mut options, "stay_connected");
     let autoplay: Option<bool> = optional_option(&mut options, "autoplay");
 
     if let Some(volume) = default_volume
@@ -98,16 +100,8 @@ fn view_embed(row: &MusicSettingsRow) -> CreateEmbed<'static> {
         .title("Music Settings")
         .field("DJ Role", dj_role, true)
         .field("Default Volume", format!("{}%", row.default_volume), true)
-        .field(
-            "Auto-disconnect",
-            format!("{}s", row.auto_disconnect_secs),
-            true,
-        )
-        .field(
-            "Announce Now Playing",
-            row.announce_now_playing.to_string(),
-            true,
-        )
+        .field("Auto-disconnect", format!("{}s", row.auto_disconnect_secs), true)
+        .field("Announce Now Playing", row.announce_now_playing.to_string(), true)
         .field("24/7 (Stay Connected)", row.stay_connected.to_string(), true)
         .field("Autoplay", row.autoplay.to_string(), true)
 }

@@ -4,11 +4,10 @@ use std::sync::Arc;
 use serenity::all::{EditInteractionResponse, ResolvedValue};
 use zayden_core::required_option;
 
-use super::play::{resolve_head, spawn_lazy_tail};
 use super::MusicCtx;
-use crate::embeds;
+use super::play::{resolve_head, spawn_lazy_tail};
 use crate::error::{MusicError, Result};
-use crate::voice;
+use crate::{embeds, voice};
 
 pub(super) async fn run(
     ctx: &MusicCtx<'_>,

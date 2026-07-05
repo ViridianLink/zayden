@@ -16,7 +16,10 @@ impl SettingsRow for SuggestionsSettingsRow {
         Self { guild_id, suggestions_channel_id: None, review_channel_id: None }
     }
 
-    async fn select(pool: &PgPool, guild_id: i64) -> Result<Option<Self>, sqlx::Error> {
+    async fn select(
+        pool: &PgPool,
+        guild_id: i64,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             Self,
             r#"

@@ -3,13 +3,19 @@ use songbird::tracks::TrackHandle;
 
 use super::MusicCtx;
 use crate::error::{MusicError, Result};
-use crate::permissions;
 use crate::track::ResolvedTrack;
-use crate::voice;
+use crate::{permissions, voice};
 
 enum Outcome {
-    Skipped { old_handle: Option<TrackHandle>, next: Option<ResolvedTrack>, generation: u64 },
-    VoteRegistered { have: usize, needed: usize },
+    Skipped {
+        old_handle: Option<TrackHandle>,
+        next: Option<ResolvedTrack>,
+        generation: u64,
+    },
+    VoteRegistered {
+        have: usize,
+        needed: usize,
+    },
 }
 
 pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {

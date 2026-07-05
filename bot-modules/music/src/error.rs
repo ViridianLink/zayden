@@ -20,15 +20,21 @@ pub enum MusicError {
     QueuePositionOutOfRange(usize),
     #[error("You need the DJ role or Manage Server permission to do that.")]
     NotPrivileged,
-    #[error("That playlist has too many tracks (max {max}); the first {max} were queued.")]
+    #[error(
+        "That playlist has too many tracks (max {max}); the first {max} were queued."
+    )]
     PlaylistTruncated { max: usize },
     #[error("Couldn't find any results for that query.")]
     NoResults,
     #[error("That doesn't look like a supported YouTube or Spotify link.")]
     UnsupportedSource,
+    #[error("Spotify support isn't configured on this bot.")]
+    SpotifyDisabled,
     #[error("Seeking isn't supported on live streams.")]
     SeekOnLiveStream,
-    #[error("That doesn't look like a valid timestamp (try `mm:ss` or a number of seconds).")]
+    #[error(
+        "That doesn't look like a valid timestamp (try `mm:ss` or a number of seconds)."
+    )]
     InvalidTimestamp,
     #[error("Volume must be between 0 and 100.")]
     VolumeOutOfRange,
@@ -61,6 +67,7 @@ impl Respond for MusicError {
             | Self::PlaylistTruncated { .. }
             | Self::NoResults
             | Self::UnsupportedSource
+            | Self::SpotifyDisabled
             | Self::SeekOnLiveStream
             | Self::InvalidTimestamp
             | Self::VolumeOutOfRange
@@ -85,7 +92,9 @@ impl From<HandlerError> for MusicError {
         match e {
             HandlerError::Discord(e) => Self::Serenity(e),
             HandlerError::Database(e) => Self::Sqlx(e),
-            HandlerError::Module { source, .. } => Self::Internal(source.to_string()),
+            HandlerError::Module { source, .. } => {
+                Self::Internal(source.to_string())
+            },
         }
     }
 }

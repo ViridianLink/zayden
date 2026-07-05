@@ -262,7 +262,8 @@ async fn get_guild_settings(
         app.settings.suggestions.get(guild_id_i64).await.map_err(app_err)?;
     let channels = app.settings.channels.get(guild_id_i64).await.map_err(app_err)?;
     let roles = app.settings.roles.get(guild_id_i64).await.map_err(app_err)?;
-    let temp_voice = app.settings.temp_voice.get(guild_id_i64).await.map_err(app_err)?;
+    let temp_voice =
+        app.settings.temp_voice.get(guild_id_i64).await.map_err(app_err)?;
     let lfg = app.settings.lfg.get(guild_id_i64).await.map_err(app_err)?;
 
     let scope = EntitlementScope::UserInGuild(discord_user_id_u64, guild_id_u64);

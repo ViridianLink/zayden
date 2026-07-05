@@ -22,7 +22,7 @@ pub(super) async fn run(
         "track" => LoopMode::Track,
         "queue" => LoopMode::Queue,
         other => {
-            return Err(MusicError::Internal(format!("unknown loop mode: {other}")))
+            return Err(MusicError::Internal(format!("unknown loop mode: {other}")));
         },
     };
 
@@ -34,7 +34,8 @@ pub(super) async fn run(
     ctx.interaction
         .edit_response(
             ctx.http,
-            EditInteractionResponse::new().content(format!("Loop mode set to {mode:?}.")),
+            EditInteractionResponse::new()
+                .content(format!("Loop mode set to {mode:?}.")),
         )
         .await?;
 

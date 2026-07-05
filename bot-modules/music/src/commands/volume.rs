@@ -20,7 +20,8 @@ pub(super) async fn run(
         ctx.interaction
             .edit_response(
                 ctx.http,
-                EditInteractionResponse::new().content(format!("Volume: {current}%")),
+                EditInteractionResponse::new()
+                    .content(format!("Volume: {current}%")),
             )
             .await?;
         return Ok(());
@@ -53,7 +54,8 @@ pub(super) async fn run(
     ctx.interaction
         .edit_response(
             ctx.http,
-            EditInteractionResponse::new().content(format!("Volume set to {volume}%.")),
+            EditInteractionResponse::new()
+                .content(format!("Volume set to {volume}%.")),
         )
         .await?;
 

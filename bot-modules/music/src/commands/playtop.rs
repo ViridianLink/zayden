@@ -4,8 +4,8 @@ use std::sync::Arc;
 use serenity::all::{EditInteractionResponse, ResolvedValue};
 use zayden_core::required_option;
 
-use super::play::{enqueue, resolve_head, spawn_lazy_tail};
 use super::MusicCtx;
+use super::play::{enqueue, resolve_head, spawn_lazy_tail};
 use crate::error::Result;
 
 pub(super) async fn run(

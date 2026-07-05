@@ -7,11 +7,10 @@ use serenity::all::{
 };
 use songbird::tracks::PlayMode;
 
-use super::{PanelCtx, CONTROL_PANEL_PREFIX};
-use crate::embeds;
+use super::{CONTROL_PANEL_PREFIX, PanelCtx};
 use crate::error::{MusicError, Result};
 use crate::track::LoopMode;
-use crate::voice;
+use crate::{embeds, voice};
 
 pub struct ControlPanel;
 
@@ -59,7 +58,8 @@ impl ControlPanel {
         let settings = ctx.settings().await?;
         ctx.require_privileged(&settings)?;
 
-        let player = ctx.music.get(ctx.guild_id).ok_or(MusicError::NothingPlaying)?;
+        let player =
+            ctx.music.get(ctx.guild_id).ok_or(MusicError::NothingPlaying)?;
         let handle = {
             let guard = player.lock().await;
             let now = guard.current.as_ref().ok_or(MusicError::NothingPlaying)?;
@@ -84,7 +84,8 @@ impl ControlPanel {
         let settings = ctx.settings().await?;
         ctx.require_privileged(&settings)?;
 
-        let player = ctx.music.get(ctx.guild_id).ok_or(MusicError::NothingPlaying)?;
+        let player =
+            ctx.music.get(ctx.guild_id).ok_or(MusicError::NothingPlaying)?;
         let (old_handle, next, generation) = {
             let mut guard = player.lock().await;
             guard.current.as_ref().ok_or(MusicError::NothingPlaying)?;
@@ -118,7 +119,8 @@ impl ControlPanel {
         let settings = ctx.settings().await?;
         ctx.require_privileged(&settings)?;
 
-        let player = ctx.music.get(ctx.guild_id).ok_or(MusicError::NothingPlaying)?;
+        let player =
+            ctx.music.get(ctx.guild_id).ok_or(MusicError::NothingPlaying)?;
         let mut guard = player.lock().await;
         guard.loop_mode = match guard.loop_mode {
             LoopMode::Off => LoopMode::Track,

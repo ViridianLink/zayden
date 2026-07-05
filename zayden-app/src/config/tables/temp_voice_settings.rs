@@ -13,10 +13,17 @@ impl SettingsRow for TempVoiceSettingsRow {
     const TABLE: &'static str = "temp_voice_settings";
 
     fn empty(guild_id: i64) -> Self {
-        Self { guild_id, temp_voice_category: None, temp_voice_creator_channel: None }
+        Self {
+            guild_id,
+            temp_voice_category: None,
+            temp_voice_creator_channel: None,
+        }
     }
 
-    async fn select(pool: &PgPool, guild_id: i64) -> Result<Option<Self>, sqlx::Error> {
+    async fn select(
+        pool: &PgPool,
+        guild_id: i64,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             Self,
             r#"

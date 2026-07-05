@@ -14,7 +14,9 @@ pub(super) async fn run(
     ctx.interaction.defer(ctx.http).await?;
 
     let page = match options.remove("page") {
-        Some(ResolvedValue::Integer(n)) => usize::try_from(n.max(1) - 1).unwrap_or(0),
+        Some(ResolvedValue::Integer(n)) => {
+            usize::try_from(n.max(1) - 1).unwrap_or(0)
+        },
         _ => 0,
     };
 
@@ -28,9 +30,9 @@ pub(super) async fn run(
     ctx.interaction
         .edit_response(
             ctx.http,
-            EditInteractionResponse::new()
-                .embed(embed)
-                .components(vec![CreateComponent::ActionRow(QueuePager::buttons(page, total_pages))]),
+            EditInteractionResponse::new().embed(embed).components(vec![
+                CreateComponent::ActionRow(QueuePager::buttons(page, total_pages)),
+            ]),
         )
         .await?;
 

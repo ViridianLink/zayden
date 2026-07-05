@@ -53,6 +53,10 @@ pub(super) async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
     Ok(())
 }
 
-fn is_claimable(voice_states: &VoiceStateCache, channel_data: &VoiceChannelRow) -> bool {
-    voice_states.current_channel(channel_data.owner_id()) == Some(channel_data.channel_id())
+fn is_claimable(
+    voice_states: &VoiceStateCache,
+    channel_data: &VoiceChannelRow,
+) -> bool {
+    voice_states.current_channel(channel_data.owner_id())
+        == Some(channel_data.channel_id())
 }

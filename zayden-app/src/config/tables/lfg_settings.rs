@@ -22,7 +22,10 @@ impl SettingsRow for LfgSettingsRow {
         }
     }
 
-    async fn select(pool: &PgPool, guild_id: i64) -> Result<Option<Self>, sqlx::Error> {
+    async fn select(
+        pool: &PgPool,
+        guild_id: i64,
+    ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             Self,
             r#"

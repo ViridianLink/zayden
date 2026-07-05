@@ -3,6 +3,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 use sqlx::PgPool;
+use tracing::warn;
 
 use crate::{Error, Result};
 
@@ -19,6 +20,12 @@ const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
 
 #[derive(Debug, Clone)]
+pub struct SpotifyCredentials {
+    pub client_id: String,
+    pub client_secret: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct BotConfig {
     pub discord_token: String,
     pub bungie_api_key: String,
@@ -26,8 +33,7 @@ pub struct BotConfig {
     /// Google Sheets API key for endgame analysis / destiny2 compendium.
     pub google_api_key: String,
     pub discord_client_secret: String,
-    pub spotify_client_id: String,
-    pub spotify_client_secret: String,
+    pub spotify: Option<SpotifyCredentials>,
 
     pub ai_api_endpoint: String,
     pub ai_model: String,
@@ -55,8 +61,22 @@ impl BotConfig {
         let ai_provider_key = require_env("AI_PROVIDER_KEY")?;
         let google_api_key = require_env("GOOGLE_API_KEY")?;
         let discord_client_secret = require_env("DISCORD_CLIENT_SECRET")?;
-        let spotify_client_id = require_env("SPOTIFY_CLIENT_ID")?;
-        let spotify_client_secret = require_env("SPOTIFY_CLIENT_SECRET")?;
+        let spotify = match (
+            env::var("SPOTIFY_CLIENT_ID"),
+            env::var("SPOTIFY_CLIENT_SECRET"),
+        ) {
+            (Ok(client_id), Ok(client_secret)) => {
+                Some(SpotifyCredentials { client_id, client_secret })
+            },
+            (Err(_), Err(_)) => None,
+            (Ok(_), Err(_)) | (Err(_), Ok(_)) => {
+                warn!(
+                    "only one of SPOTIFY_CLIENT_ID/SPOTIFY_CLIENT_SECRET is set; \
+                     Spotify support disabled until both are provided"
+                );
+                None
+            },
+        };
 
         let toml_cfg = load_toml_config()?;
 
@@ -68,8 +88,7 @@ impl BotConfig {
             ai_provider_key,
             google_api_key,
             discord_client_secret,
-            spotify_client_id,
-            spotify_client_secret,
+            spotify,
 
             ai_api_endpoint: toml_cfg
                 .ai

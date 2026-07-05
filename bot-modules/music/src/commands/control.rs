@@ -17,9 +17,9 @@ pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
     ctx.interaction
         .edit_response(
             ctx.http,
-            EditInteractionResponse::new()
-                .embed(embed)
-                .components(vec![CreateComponent::ActionRow(ControlPanel::buttons())]),
+            EditInteractionResponse::new().embed(embed).components(vec![
+                CreateComponent::ActionRow(ControlPanel::buttons()),
+            ]),
         )
         .await?;
 

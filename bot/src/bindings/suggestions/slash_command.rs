@@ -1,11 +1,10 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
+use suggestions::GuildTable;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
-
-use suggestions::GuildTable;
 
 pub struct FetchSuggestions;
 

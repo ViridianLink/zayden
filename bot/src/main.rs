@@ -41,12 +41,24 @@ async fn zayden_token(pool: &PgPool) -> sqlx::Result<String> {
 
 async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolver>> {
     let youtube = YouTubeResolver::new().map_err(BotError::from)?;
-    let spotify = SpotifyResolver::new(
-        config.spotify_client_id.clone(),
-        config.spotify_client_secret.clone(),
-    )
-    .await
-    .map_err(BotError::from)?;
+
+    let spotify = match &config.spotify {
+        Some(creds) => {
+            let resolver = SpotifyResolver::new(
+                creds.client_id.clone(),
+                creds.client_secret.clone(),
+            )
+            .await
+            .map_err(BotError::from)?;
+            Some(resolver)
+        },
+        None => {
+            warn!(
+                "Spotify credentials not configured; Spotify links will be unsupported"
+            );
+            None
+        },
+    };
 
     Ok(Arc::new(CompositeResolver::new(youtube, spotify)))
 }

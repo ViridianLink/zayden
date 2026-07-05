@@ -3,12 +3,11 @@ pub mod queue_pager;
 
 use std::sync::Arc;
 
+pub use control_panel::ControlPanel;
+pub use queue_pager::QueuePager;
 use serenity::all::{ComponentInteraction, GuildId, Http, UserId};
 use songbird::Songbird;
 use zayden_app::config::SettingsStore;
-
-pub use control_panel::ControlPanel;
-pub use queue_pager::QueuePager;
 
 use crate::error::{MusicError, Result};
 use crate::manager::MusicManager;
@@ -61,11 +60,7 @@ impl<'a> PanelCtx<'a> {
             member.and_then(|m| m.permissions),
             settings.dj_role_id,
         );
-        if privileged {
-            Ok(())
-        } else {
-            Err(MusicError::NotPrivileged)
-        }
+        if privileged { Ok(()) } else { Err(MusicError::NotPrivileged) }
     }
 }
 

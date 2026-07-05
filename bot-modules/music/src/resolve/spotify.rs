@@ -182,12 +182,15 @@ impl TrackResolver for SpotifyResolver {
 
 pub struct CompositeResolver {
     youtube: YouTubeResolver,
-    spotify: SpotifyResolver,
+    spotify: Option<SpotifyResolver>,
 }
 
 impl CompositeResolver {
     #[must_use]
-    pub const fn new(youtube: YouTubeResolver, spotify: SpotifyResolver) -> Self {
+    pub const fn new(
+        youtube: YouTubeResolver,
+        spotify: Option<SpotifyResolver>,
+    ) -> Self {
         Self { youtube, spotify }
     }
 }
@@ -200,8 +203,9 @@ impl TrackResolver for CompositeResolver {
         requested_by: UserId,
     ) -> Result<Resolution> {
         match query.kind {
-            SourceKind::SpotifyUrl => {
-                self.spotify.resolve(query, requested_by).await
+            SourceKind::SpotifyUrl => match &self.spotify {
+                Some(spotify) => spotify.resolve(query, requested_by).await,
+                None => Err(MusicError::SpotifyDisabled),
             },
             SourceKind::YouTubeUrl | SourceKind::Search => {
                 self.youtube.resolve(query, requested_by).await
