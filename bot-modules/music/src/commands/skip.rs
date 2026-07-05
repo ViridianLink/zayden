@@ -1,4 +1,6 @@
-use serenity::all::EditInteractionResponse;
+use std::collections::HashMap;
+
+use serenity::all::{EditInteractionResponse, ResolvedValue};
 use songbird::tracks::TrackHandle;
 
 use super::MusicCtx;
@@ -11,6 +13,7 @@ enum Outcome {
         old_handle: Option<TrackHandle>,
         next: Option<ResolvedTrack>,
         generation: u64,
+        forced: bool,
     },
     VoteRegistered {
         have: usize,
@@ -18,8 +21,14 @@ enum Outcome {
     },
 }
 
-pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
+pub(super) async fn run(
+    ctx: &MusicCtx<'_>,
+    mut options: HashMap<&str, ResolvedValue<'_>>,
+) -> Result<()> {
     ctx.interaction.defer(ctx.http).await?;
+
+    let force =
+        matches!(options.remove("force"), Some(ResolvedValue::Boolean(true)));
 
     let user_id = ctx.interaction.user.id;
     let bot_channel = ctx
@@ -33,6 +42,9 @@ pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
 
     let settings = ctx.settings().await?;
     let privileged = ctx.is_privileged(&settings);
+    if force {
+        ctx.require_privileged(&settings)?;
+    }
     let listeners =
         ctx.music.occupancy().non_bot_count(ctx.guild_id, bot_channel, ctx.bot_id);
 
@@ -44,7 +56,7 @@ pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
         let is_requester = now.track.requested_by.user_id == user_id;
         let alone = listeners <= 1;
 
-        let can_skip_now = privileged || is_requester || alone || {
+        let can_skip_now = force || privileged || is_requester || alone || {
             guard.skip_votes.insert(user_id);
             guard.skip_votes.len() >= permissions::vote_threshold(listeners)
         };
@@ -52,7 +64,12 @@ pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
         if can_skip_now {
             let old_handle = guard.current.as_ref().map(|now| now.handle.clone());
             let next = guard.advance_queue();
-            Outcome::Skipped { old_handle, next, generation: guard.generation }
+            Outcome::Skipped {
+                old_handle,
+                next,
+                generation: guard.generation,
+                forced: force,
+            }
         } else {
             Outcome::VoteRegistered {
                 have: guard.skip_votes.len(),
@@ -62,7 +79,7 @@ pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
     };
 
     let message = match outcome {
-        Outcome::Skipped { old_handle, next, generation } => {
+        Outcome::Skipped { old_handle, next, generation, forced } => {
             let started_next = next.is_some();
             voice::stop_current_and_start(
                 &ctx.songbird,
@@ -74,10 +91,11 @@ pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
                 generation,
             )
             .await?;
+            let verb = if forced { "Force-skipped" } else { "Skipped" };
             if started_next {
-                "Skipped. Playing the next track.".to_string()
+                format!("{verb}. Playing the next track.")
             } else {
-                "Skipped. The queue is now empty.".to_string()
+                format!("{verb}. The queue is now empty.")
             }
         },
         Outcome::VoteRegistered { have, needed } => {

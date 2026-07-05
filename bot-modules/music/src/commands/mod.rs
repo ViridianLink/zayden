@@ -3,7 +3,6 @@ mod clear;
 mod control;
 mod ctx;
 mod disconnect;
-mod forceskip;
 mod forward;
 mod join;
 mod r#loop;
@@ -159,13 +158,12 @@ impl Command {
             CommandOptionType::SubCommand,
             "skip",
             "Vote to skip the current track",
-        );
-
-        let forceskip = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "forceskip",
-            "Immediately skip the current track, bypassing voting",
-        );
+        )
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::Boolean,
+            "force",
+            "Immediately skip, bypassing voting (requires privileges)",
+        ));
 
         let skipto = CreateCommandOption::new(
             CommandOptionType::SubCommand,
@@ -348,7 +346,6 @@ impl Command {
             .add_option(rewind)
             .add_option(volume)
             .add_option(skip)
-            .add_option(forceskip)
             .add_option(skipto)
             .add_option(playnow)
             .add_option(playtop)
@@ -384,8 +381,7 @@ impl Command {
             "forward" => forward::run(ctx, options).await,
             "rewind" => rewind::run(ctx, options).await,
             "volume" => volume::run(ctx, options).await,
-            "skip" => skip::run(ctx).await,
-            "forceskip" => forceskip::run(ctx).await,
+            "skip" => skip::run(ctx, options).await,
             "skipto" => skipto::run(ctx, options).await,
             "playnow" => playnow::run(ctx, options).await,
             "playtop" => playtop::run(ctx, options).await,
