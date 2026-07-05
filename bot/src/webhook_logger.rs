@@ -22,6 +22,8 @@ struct Inner {
 
     error_logs: Option<Webhook>,
     normal_logs: Option<Webhook>,
+
+    handle: tokio::runtime::Handle,
 }
 
 #[derive(Clone)]
@@ -58,7 +60,13 @@ impl WebhookLogger {
         let normal_logs =
             resolve_webhook(&http, normal_log_url, "normal_log_webhook").await;
 
-        Self(Arc::new(Inner { http, bot_name, error_logs, normal_logs }))
+        Self(Arc::new(Inner {
+            http,
+            bot_name,
+            error_logs,
+            normal_logs,
+            handle: tokio::runtime::Handle::current(),
+        }))
     }
 
     pub async fn send_log(
@@ -116,7 +124,9 @@ impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for WebhookLogger {
         }
 
         let this = self.clone();
-        tokio::spawn(async move { this.send_log(level, target, message.0).await });
+        this.0.handle.clone().spawn(async move {
+            this.send_log(level, target, message.0).await;
+        });
     }
 }
 

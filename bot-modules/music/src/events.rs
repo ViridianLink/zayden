@@ -3,12 +3,37 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId, UserId};
+use songbird::tracks::PlayMode;
 use songbird::{Event, EventContext, EventHandler, Songbird};
 use tracing::{error, warn};
 
 use crate::manager::MusicManager;
 use crate::resolve::TrackResolver;
 use crate::voice;
+
+pub struct TrackErrorNotifier {
+    pub guild_id: GuildId,
+    pub title: String,
+}
+
+#[async_trait]
+impl EventHandler for TrackErrorNotifier {
+    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+        if let EventContext::Track(states) = ctx {
+            for (state, _) in *states {
+                if let PlayMode::Errored(err) = &state.playing {
+                    error!(
+                        guild_id = %self.guild_id,
+                        title = %self.title,
+                        "track playback failed: {err}"
+                    );
+                }
+            }
+        }
+
+        None
+    }
+}
 
 pub struct TrackEndNotifier {
     pub guild_id: GuildId,

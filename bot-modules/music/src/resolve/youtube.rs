@@ -8,16 +8,11 @@ use rusty_ytdl::search::{
     Video as SearchVideo,
     YouTube as YouTubeSearch,
 };
-use rusty_ytdl::{
-    VideoDetails,
-    VideoFormat,
-    VideoOptions,
-    VideoQuality,
-    VideoSearchOptions,
-};
+use rusty_ytdl::{VideoDetails, VideoOptions, VideoQuality, VideoSearchOptions};
 use serenity::all::UserId;
-use songbird::input::{HttpRequest, Input};
+use songbird::input::{Input, YoutubeDl};
 use songbird_reqwest::Client;
+use tokio::process::Command;
 
 use super::{
     LazyTail,
@@ -167,32 +162,29 @@ impl TrackResolver for YouTubeResolver {
     }
 
     async fn stream(&self, track: &ResolvedTrack) -> Result<Input> {
-        let video = rusty_ytdl::Video::new_with_options(
-            &track.source_id,
-            Self::video_options(),
-        )
-        .map_err(|e| MusicError::Resolve(e.to_string()))?;
-        let info = video
-            .get_info()
-            .await
-            .map_err(|e| MusicError::Resolve(e.to_string()))?;
-        let format = select_playback_format(&info.formats)?;
-
-        Ok(HttpRequest::new(self.http.clone(), format.url).into())
+        Ok(YoutubeDl::new(self.http.clone(), track.url.clone()).into())
     }
 }
 
-fn select_playback_format(formats: &[VideoFormat]) -> Result<VideoFormat> {
-    formats
-        .iter()
-        .filter(|format| {
-            format.has_audio
-                && !format.has_video
-                && format.mime_type.container == "mp4"
-        })
-        .max_by_key(|format| format.bitrate)
-        .cloned()
-        .ok_or(MusicError::NoPlayableFormat)
+pub const YT_DLP_PROGRAM: &str = "yt-dlp";
+
+pub async fn probe_yt_dlp() -> Result<String> {
+    let output = Command::new(YT_DLP_PROGRAM)
+        .arg("--version")
+        .output()
+        .await
+        .map_err(|e| {
+            MusicError::Internal(format!("could not run `{YT_DLP_PROGRAM}`: {e}"))
+        })?;
+
+    if !output.status.success() {
+        return Err(MusicError::Internal(format!(
+            "`{YT_DLP_PROGRAM} --version` exited with status {}",
+            output.status
+        )));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
 fn from_video_details(

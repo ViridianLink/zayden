@@ -8,7 +8,7 @@ use songbird::{Call, Event, Songbird, TrackEvent};
 use tokio::sync::Mutex;
 
 use crate::error::{MusicError, Result};
-use crate::events::{InactivityCheck, TrackEndNotifier};
+use crate::events::{InactivityCheck, TrackEndNotifier, TrackErrorNotifier};
 use crate::manager::MusicManager;
 use crate::player::NowPlaying;
 use crate::resolve::TrackResolver;
@@ -113,6 +113,13 @@ pub async fn start_playback(
             music: Arc::clone(music),
             songbird: Arc::clone(songbird),
             resolver: Arc::clone(resolver),
+        })
+        .map_err(|e| MusicError::Songbird(e.to_string()))?;
+
+    handle
+        .add_event(Event::Track(TrackEvent::Error), TrackErrorNotifier {
+            guild_id,
+            title: track.title.clone(),
         })
         .map_err(|e| MusicError::Songbird(e.to_string()))?;
 

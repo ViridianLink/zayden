@@ -31,6 +31,7 @@ pub use resolve::{
     TrackResolver,
     YouTubeResolver,
     parse_spotify_url,
+    probe_yt_dlp,
 };
 pub use settings::MusicSettingsRow;
 pub use track::{LoopMode, RequestedBy, ResolvedTrack, TrackSource};

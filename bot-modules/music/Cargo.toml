@@ -33,6 +33,7 @@ songbird = { workspace = true, features = [
 ] }
 sqlx = { workspace = true }
 symphonia = { version = "0.5", default-features = false, features = [
+    "mkv",
     "isomp4",
     "aac",
 ] }

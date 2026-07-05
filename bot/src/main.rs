@@ -2,11 +2,17 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
-use music::{CompositeResolver, SpotifyResolver, TrackResolver, YouTubeResolver};
+use music::{
+    CompositeResolver,
+    SpotifyResolver,
+    TrackResolver,
+    YouTubeResolver,
+    probe_yt_dlp,
+};
 use serenity::all::{ClientBuilder, GatewayIntents, Http, Token};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
-use tracing::info;
+use tracing::{error, info};
 
 pub mod bindings;
 pub mod cron;
@@ -41,6 +47,15 @@ async fn zayden_token(pool: &PgPool) -> sqlx::Result<String> {
 
 async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolver>> {
     let youtube = YouTubeResolver::new().map_err(BotError::from)?;
+
+    match probe_yt_dlp().await {
+        Ok(version) => info!("yt-dlp available (version {version})"),
+        Err(e) => error!(
+            "yt-dlp is unavailable ({e}); YouTube playback will NOT work. \
+             Install yt-dlp on this host (and ideally a JS runtime such as \
+             deno) and restart."
+        ),
+    }
 
     let spotify = match &config.spotify {
         Some(creds) => {
