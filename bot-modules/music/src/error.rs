@@ -26,6 +26,8 @@ pub enum MusicError {
     PlaylistTruncated { max: usize },
     #[error("Couldn't find any results for that query.")]
     NoResults,
+    #[error("Couldn't find a playable audio stream for that track.")]
+    NoPlayableFormat,
     #[error("That doesn't look like a supported YouTube or Spotify link.")]
     UnsupportedSource,
     #[error("Spotify support isn't configured on this bot.")]
@@ -66,6 +68,7 @@ impl Respond for MusicError {
             | Self::NotPrivileged
             | Self::PlaylistTruncated { .. }
             | Self::NoResults
+            | Self::NoPlayableFormat
             | Self::UnsupportedSource
             | Self::SpotifyDisabled
             | Self::SeekOnLiveStream

@@ -32,6 +32,10 @@ songbird = { workspace = true, features = [
     "tungstenite",
 ] }
 sqlx = { workspace = true }
+symphonia = { version = "*", default-features = false, features = [
+    "isomp4",
+    "aac",
+] }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

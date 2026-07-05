@@ -10,10 +10,10 @@ use rusty_ytdl::search::{
 };
 use rusty_ytdl::{
     VideoDetails,
+    VideoFormat,
     VideoOptions,
     VideoQuality,
     VideoSearchOptions,
-    choose_format,
 };
 use serenity::all::UserId;
 use songbird::input::{HttpRequest, Input};
@@ -176,11 +176,23 @@ impl TrackResolver for YouTubeResolver {
             .get_info()
             .await
             .map_err(|e| MusicError::Resolve(e.to_string()))?;
-        let format = choose_format(&info.formats, &Self::video_options())
-            .map_err(|e| MusicError::Resolve(e.to_string()))?;
+        let format = select_playback_format(&info.formats)?;
 
         Ok(HttpRequest::new(self.http.clone(), format.url).into())
     }
+}
+
+fn select_playback_format(formats: &[VideoFormat]) -> Result<VideoFormat> {
+    formats
+        .iter()
+        .filter(|format| {
+            format.has_audio
+                && !format.has_video
+                && format.mime_type.container == "mp4"
+        })
+        .max_by_key(|format| format.bitrate)
+        .cloned()
+        .ok_or(MusicError::NoPlayableFormat)
 }
 
 fn from_video_details(
@@ -210,7 +222,8 @@ fn from_search_video(video: &SearchVideo, requested_by: UserId) -> ResolvedTrack
         url: video.url.clone(),
         source_id: video.id.clone(),
         source: TrackSource::YouTube,
-        duration: (video.duration > 0).then(|| Duration::from_secs(video.duration)),
+        duration: (video.duration > 0)
+            .then(|| Duration::from_millis(video.duration)),
         is_live: video.duration == 0,
         thumbnail_url: video.thumbnails.last().map(|t| t.url.clone()),
         requested_by: RequestedBy {
