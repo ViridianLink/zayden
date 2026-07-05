@@ -638,6 +638,7 @@ dependencies = [
  "music",
  "rand 0.10.2",
  "reaction-roles",
+ "rustls",
  "serde_json",
  "serenity",
  "songbird",

@@ -36,6 +36,7 @@ futures = { workspace = true, features = ["async-await"] }
 jiff = { workspace = true }
 jiff-sqlx = { workspace = true, features = ["postgres"] }
 rand = { workspace = true, features = ["thread_rng"] }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
 serde_json = { workspace = true }
 serenity = { workspace = true, features = [
   "rustls_backend",

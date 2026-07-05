@@ -65,6 +65,10 @@ async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolve
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    if rustls::crypto::aws_lc_rs::default_provider().install_default().is_err() {
+        warn!("Rustls CryptoProvider was already installed");
+    }
+
     if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv()
         && dotenvy::from_path(Path::new("bot/.env")).is_err()
     {
