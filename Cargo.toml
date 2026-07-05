@@ -169,7 +169,6 @@ regex = { version = "*", default-features = false }
 reqwest = { version = "*", default-features = false, features = ["rustls"] }
 rspotify = { version = "*", default-features = false }
 rustls = { version = "*", default-features = false }
-rusty_ytdl = { version = "*", default-features = false }
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 serenity = { git = "https://github.com/serenity-rs/serenity", branch = "next", default-features = false, features = [

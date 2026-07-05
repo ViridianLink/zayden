@@ -30,7 +30,9 @@ pub use resolve::{
     SpotifyResolver,
     TrackResolver,
     YouTubeResolver,
+    has_playlist,
     parse_spotify_url,
+    playlist_start_index,
     probe_yt_dlp,
 };
 pub use settings::MusicSettingsRow;

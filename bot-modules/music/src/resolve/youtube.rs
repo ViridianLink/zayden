@@ -1,18 +1,12 @@
 use std::time::Duration;
 
 use async_trait::async_trait;
-use rusty_ytdl::search::{
-    Playlist,
-    PlaylistSearchOptions,
-    SearchResult,
-    Video as SearchVideo,
-    YouTube as YouTubeSearch,
-};
-use rusty_ytdl::{VideoDetails, VideoOptions, VideoQuality, VideoSearchOptions};
+use serde::Deserialize;
 use serenity::all::UserId;
 use songbird::input::{Input, YoutubeDl};
 use songbird_reqwest::Client;
 use tokio::process::Command;
+use url::Url;
 
 use super::{
     LazyTail,
@@ -27,41 +21,24 @@ use crate::track::{RequestedBy, ResolvedTrack, TrackSource};
 
 const PLAYLIST_CAP: u64 = 500;
 
+pub const YT_DLP_PROGRAM: &str = "yt-dlp";
+
 pub struct YouTubeResolver {
-    search: YouTubeSearch,
     http: Client,
 }
 
 impl YouTubeResolver {
     pub fn new() -> Result<Self> {
-        Ok(Self {
-            search: YouTubeSearch::new()
-                .map_err(|e| MusicError::Resolve(e.to_string()))?,
-            http: Client::new(),
-        })
-    }
-
-    fn video_options() -> VideoOptions {
-        VideoOptions {
-            quality: VideoQuality::HighestAudio,
-            filter: VideoSearchOptions::Audio,
-            ..Default::default()
-        }
+        Ok(Self { http: Client::new() })
     }
 
     async fn resolve_single(
         &self,
-        url_or_id: &str,
+        url: &str,
         requested_by: UserId,
     ) -> Result<ResolvedTrack> {
-        let video =
-            rusty_ytdl::Video::new_with_options(url_or_id, Self::video_options())
-                .map_err(|e| MusicError::Resolve(e.to_string()))?;
-        let info = video
-            .get_info()
-            .await
-            .map_err(|e| MusicError::Resolve(e.to_string()))?;
-        Ok(from_video_details(&info.video_details, requested_by))
+        let output = run_yt_dlp(&["--no-playlist", url]).await?;
+        output.into_track(requested_by).ok_or(MusicError::NoResults)
     }
 
     async fn resolve_search(
@@ -69,21 +46,14 @@ impl YouTubeResolver {
         query: &str,
         requested_by: UserId,
     ) -> Result<ResolvedTrack> {
-        let result = self
-            .search
-            .search_one(query, None)
-            .await
-            .map_err(|e| MusicError::Resolve(e.to_string()))?
-            .ok_or(MusicError::NoResults)?;
-
-        match result {
-            SearchResult::Video(video) => {
-                Ok(from_search_video(&video, requested_by))
-            },
-            SearchResult::Playlist(_) | SearchResult::Channel(_) => {
-                Err(MusicError::NoResults)
-            },
-        }
+        let target = format!("ytsearch1:{query}");
+        let output = run_yt_dlp(&["--flat-playlist", &target]).await?;
+        output
+            .entries
+            .into_iter()
+            .next()
+            .and_then(|entry| entry.into_track(requested_by))
+            .ok_or(MusicError::NoResults)
     }
 
     async fn resolve_playlist(
@@ -91,33 +61,37 @@ impl YouTubeResolver {
         url: &str,
         requested_by: UserId,
     ) -> Result<Resolution> {
-        let head_playlist = Playlist::get(
-            url,
-            Some(&PlaylistSearchOptions { limit: 1, ..Default::default() }),
-        )
-        .await
-        .map_err(|e| MusicError::Resolve(e.to_string()))?;
+        let start = playlist_start_index(url);
 
-        let first = head_playlist.videos.first().ok_or(MusicError::NoResults)?;
-        let head = vec![from_search_video(first, requested_by)];
+        let head_output = run_yt_dlp(&[
+            "--flat-playlist",
+            "--playlist-items",
+            &start.to_string(),
+            url,
+        ])
+        .await?;
+        let first = head_output
+            .entries
+            .into_iter()
+            .next()
+            .and_then(|entry| entry.into_track(requested_by))
+            .ok_or(MusicError::NoResults)?;
+        let head = vec![first];
 
         let url = url.to_string();
         let tail: LazyTail = Box::pin(async move {
-            let playlist = Playlist::get(
-                &url,
-                Some(&PlaylistSearchOptions {
-                    limit: PLAYLIST_CAP,
-                    ..Default::default()
-                }),
-            )
-            .await
-            .map_err(|e| MusicError::Resolve(e.to_string()))?;
-
-            Ok(playlist
-                .videos
+            let items = format!(
+                "{}:{}",
+                start.saturating_add(1),
+                start.saturating_add(PLAYLIST_CAP - 1)
+            );
+            let output =
+                run_yt_dlp(&["--flat-playlist", "--playlist-items", &items, &url])
+                    .await?;
+            Ok(output
+                .entries
                 .into_iter()
-                .skip(1)
-                .map(|video| from_search_video(&video, requested_by))
+                .filter_map(|entry| entry.into_track(requested_by))
                 .collect())
         });
 
@@ -136,13 +110,14 @@ impl TrackResolver for YouTubeResolver {
         query: &SourceQuery,
         requested_by: UserId,
     ) -> Result<Resolution> {
+        let raw = query.raw.trim();
+
         match query.kind {
-            SourceKind::YouTubeUrl if Playlist::is_playlist(query.raw.trim()) => {
-                self.resolve_playlist(query.raw.trim(), requested_by).await
+            SourceKind::YouTubeUrl if has_playlist(raw) => {
+                self.resolve_playlist(raw, requested_by).await
             },
             SourceKind::YouTubeUrl => {
-                let track =
-                    self.resolve_single(query.raw.trim(), requested_by).await?;
+                let track = self.resolve_single(raw, requested_by).await?;
                 Ok(Resolution {
                     head: vec![track],
                     tail: None,
@@ -166,7 +141,49 @@ impl TrackResolver for YouTubeResolver {
     }
 }
 
-pub const YT_DLP_PROGRAM: &str = "yt-dlp";
+#[must_use]
+pub fn has_playlist(raw: &str) -> bool {
+    Url::parse(raw).is_ok_and(|url| {
+        url.query_pairs().any(|(key, value)| key == "list" && !value.is_empty())
+    })
+}
+
+#[must_use]
+pub fn playlist_start_index(raw: &str) -> u64 {
+    Url::parse(raw)
+        .ok()
+        .and_then(|url| {
+            url.query_pairs()
+                .find(|(key, _)| key == "index")
+                .and_then(|(_, value)| value.parse::<u64>().ok())
+        })
+        .filter(|index| *index >= 1)
+        .unwrap_or(1)
+}
+
+async fn run_yt_dlp(args: &[&str]) -> Result<YtDlpOutput> {
+    let output = Command::new(YT_DLP_PROGRAM)
+        .arg("--dump-single-json")
+        .arg("--no-warnings")
+        .args(args)
+        .output()
+        .await
+        .map_err(|e| {
+            MusicError::Resolve(format!("could not run `{YT_DLP_PROGRAM}`: {e}"))
+        })?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(MusicError::Resolve(format!(
+            "`{YT_DLP_PROGRAM}` failed: {}",
+            stderr.trim()
+        )));
+    }
+
+    serde_json::from_slice(&output.stdout).map_err(|e| {
+        MusicError::Resolve(format!("could not parse yt-dlp output: {e}"))
+    })
+}
 
 pub async fn probe_yt_dlp() -> Result<String> {
     let output = Command::new(YT_DLP_PROGRAM)
@@ -187,40 +204,68 @@ pub async fn probe_yt_dlp() -> Result<String> {
     Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
-fn from_video_details(
-    details: &VideoDetails,
-    requested_by: UserId,
-) -> ResolvedTrack {
-    let duration = details.length_seconds.parse().ok().map(Duration::from_secs);
-
-    ResolvedTrack {
-        title: details.title.clone(),
-        url: details.video_url.clone(),
-        source_id: details.video_id.clone(),
-        source: TrackSource::YouTube,
-        duration,
-        is_live: details.is_live_content,
-        thumbnail_url: details.thumbnails.last().map(|t| t.url.clone()),
-        requested_by: RequestedBy {
-            user_id: requested_by,
-            display_name: String::new(),
-        },
-    }
+#[derive(Deserialize)]
+struct YtDlpOutput {
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    duration: Option<f64>,
+    #[serde(default)]
+    webpage_url: Option<String>,
+    #[serde(default)]
+    url: Option<String>,
+    #[serde(default)]
+    thumbnail: Option<String>,
+    #[serde(default)]
+    thumbnails: Vec<Thumbnail>,
+    #[serde(default)]
+    live_status: Option<String>,
+    #[serde(default)]
+    is_live: Option<bool>,
+    #[serde(default)]
+    entries: Vec<Self>,
 }
 
-fn from_search_video(video: &SearchVideo, requested_by: UserId) -> ResolvedTrack {
-    ResolvedTrack {
-        title: video.title.clone(),
-        url: video.url.clone(),
-        source_id: video.id.clone(),
-        source: TrackSource::YouTube,
-        duration: (video.duration > 0)
-            .then(|| Duration::from_millis(video.duration)),
-        is_live: video.duration == 0,
-        thumbnail_url: video.thumbnails.last().map(|t| t.url.clone()),
-        requested_by: RequestedBy {
-            user_id: requested_by,
-            display_name: String::new(),
-        },
+#[derive(Deserialize)]
+struct Thumbnail {
+    url: String,
+}
+
+impl YtDlpOutput {
+    fn into_track(self, requested_by: UserId) -> Option<ResolvedTrack> {
+        let id = self.id?;
+
+        let url = self
+            .webpage_url
+            .or(self.url)
+            .unwrap_or_else(|| format!("https://www.youtube.com/watch?v={id}"));
+
+        let is_live = self.is_live.unwrap_or(false)
+            || self.live_status.as_deref() == Some("is_live");
+
+        let duration = self
+            .duration
+            .filter(|secs| secs.is_finite() && *secs > 0.0)
+            .map(Duration::from_secs_f64);
+
+        let thumbnail_url = self
+            .thumbnail
+            .or_else(|| self.thumbnails.into_iter().next_back().map(|t| t.url));
+
+        Some(ResolvedTrack {
+            title: self.title.unwrap_or_else(|| id.clone()),
+            url,
+            source_id: id,
+            source: TrackSource::YouTube,
+            duration,
+            is_live,
+            thumbnail_url,
+            requested_by: RequestedBy {
+                user_id: requested_by,
+                display_name: String::new(),
+            },
+        })
     }
 }

@@ -22,7 +22,8 @@ rspotify = { workspace = true, features = [
     "client-reqwest",
     "reqwest-rustls-tls",
 ] }
-rusty_ytdl = { workspace = true, features = ["search", "rustls-tls"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
 serenity = { workspace = true }
 songbird = { workspace = true, features = [
     "driver",

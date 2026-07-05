@@ -18,7 +18,12 @@ pub use spotify::{
     SpotifyResolver,
     parse_spotify_url,
 };
-pub use youtube::{YouTubeResolver, probe_yt_dlp};
+pub use youtube::{
+    YouTubeResolver,
+    has_playlist,
+    playlist_start_index,
+    probe_yt_dlp,
+};
 
 #[async_trait]
 pub trait TrackResolver: Send + Sync {
