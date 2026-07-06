@@ -18,7 +18,6 @@ pub struct ShopItem<'a> {
     pub category: ShopPage,
     pub sellable: bool,
     pub useable: bool,
-    pub effect_fn: fn(i64, i64) -> i64,
     pub effect_duration: Option<Duration>,
 }
 
@@ -41,7 +40,6 @@ impl<'a> ShopItem<'a> {
             category,
             sellable: false,
             useable: false,
-            effect_fn: |_, payout| payout,
             effect_duration: None,
         }
     }
@@ -71,11 +69,6 @@ impl<'a> ShopItem<'a> {
 
     const fn useable(mut self, value: bool) -> Self {
         self.useable = value;
-        self
-    }
-
-    const fn effect_fn(mut self, f: fn(i64, i64) -> i64) -> Self {
-        self.effect_fn = f;
         self
     }
 
@@ -182,8 +175,7 @@ pub const LUCKY_CHIP: ShopItem<'static> = ShopItem::new(
     ShopCurrency::Gems,
     ShopPage::Boost1,
 )
-.useable(true)
-.effect_fn(|bet, _| bet);
+.useable(true);
 
 pub const ALL_INS: ShopItem<'static> = ShopItem::new(
     "allins",
@@ -218,13 +210,6 @@ const PAYOUT_X2: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.effect_fn(|_, payout| {
-    if payout < 0 {
-        return payout;
-    }
-
-    payout * 2
-})
 .duration(Duration::from_mins(15));
 
 const PAYOUT_X5: ShopItem<'static> = ShopItem::new(
@@ -237,13 +222,6 @@ const PAYOUT_X5: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.effect_fn(|_, payout| {
-    if payout < 0 {
-        return payout;
-    }
-
-    payout * 5
-})
 .duration(Duration::from_mins(10));
 
 const PAYOUT_X10: ShopItem<'static> = ShopItem::new(
@@ -256,13 +234,6 @@ const PAYOUT_X10: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.effect_fn(|_, payout| {
-    if payout < 0 {
-        return payout;
-    }
-
-    payout * 10
-})
 .duration(Duration::from_mins(5));
 
 const PAYOUT_X50: ShopItem<'static> = ShopItem::new(
@@ -275,13 +246,6 @@ const PAYOUT_X50: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.effect_fn(|_, payout| {
-    if payout < 0 {
-        return payout;
-    }
-
-    payout * 50
-})
 .duration(Duration::from_mins(2));
 
 const PAYOUT_X100: ShopItem<'static> = ShopItem::new(
@@ -294,13 +258,6 @@ const PAYOUT_X100: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.effect_fn(|_, payout| {
-    if payout < 0 {
-        return payout;
-    }
-
-    payout * 100
-})
 .duration(Duration::from_mins(1));
 
 // region: Mine

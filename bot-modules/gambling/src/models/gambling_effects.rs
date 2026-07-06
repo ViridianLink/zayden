@@ -1,12 +1,17 @@
 use std::collections::HashMap;
 
 use async_trait::async_trait;
+use futures::TryStreamExt;
 use jiff_sqlx::Timestamp;
 use serenity::all::UserId;
-use sqlx::{Database, Pool};
+use sqlx::postgres::PgQueryResult;
+use sqlx::postgres::types::PgInterval;
+use sqlx::{Database, PgConnection, Pool, Postgres};
+use zayden_core::as_i64;
 
-use crate::common::shop::{ALL_INS, LUCKY_CHIP, SHOP_ITEMS, ShopItem};
+use crate::models::effects::get_effect;
 use crate::models::gambling::GamblingManager;
+use crate::shop::{ALL_INS, ShopItem};
 use crate::{GamblingError, Result, ShopCurrency};
 
 #[async_trait]
@@ -45,27 +50,31 @@ pub trait EffectsManager<Db: Database>: Send {
             return Err(GamblingError::MinimumBetAmount(MIN));
         }
 
-        let user_id = user_id.into();
-
-        let mut tx = pool.begin().await?;
-
-        if let Some(effect) = Self::get_effect(&mut *tx, user_id, ALL_INS.id).await?
-        {
-            Self::remove_effect(&mut *tx, effect.id).await?;
-        } else {
-            let max = GamblingHandler::max_bet(&mut *tx, user_id).await?;
-            if bet > max {
-                return Err(GamblingError::MaximumBetAmount(max));
-            }
-        }
-
-        tx.commit().await?;
-
         if bet > coins {
             return Err(GamblingError::InsufficientFunds {
                 required: bet - coins,
                 currency: ShopCurrency::Coins,
             });
+        }
+
+        let user_id = user_id.into();
+
+        let mut conn = pool.acquire().await?;
+
+        let max = GamblingHandler::max_bet(&mut *conn, user_id).await?;
+
+        if bet > max {
+            let all_in = bet == coins;
+
+            let all_ins_active = all_in
+                && Self::get_effect(&mut *conn, user_id, ALL_INS.id)
+                    .await?
+                    .and_then(|row| row.expiry)
+                    .is_some_and(|expiry| expiry.to_jiff() > jiff::Timestamp::now());
+
+            if !all_ins_active {
+                return Err(GamblingError::MaximumBetAmount(max));
+            }
         }
 
         Ok(())
@@ -75,45 +84,49 @@ pub trait EffectsManager<Db: Database>: Send {
         pool: &Pool<Db>,
         user_id: impl Into<UserId> + Send,
         bet: i64,
-        mut payout: i64,
+        payout: i64,
         win: Option<bool>,
     ) -> i64 {
         let base_payout = payout;
-        payout = 0;
+
+        let Some(win) = win else {
+            return base_payout;
+        };
 
         let user_id = user_id.into();
 
         let result: sqlx::Result<i64> = (async {
             let mut tx = pool.begin().await?;
-            let mut effects = Self::get_effects(&mut *tx, user_id).await?;
+            let effects = Self::get_effects(&mut *tx, user_id).await?;
 
-            {
-                let lucky_chip = effects.remove(LUCKY_CHIP.id);
-                if let Some(id) = lucky_chip {
-                    Self::remove_effect(&mut *tx, id).await?;
+            let mut contribution: i64 = 0;
 
-                    if win == Some(false) {
-                        payout = bet;
-                    }
-                }
-            }
-
-            for (item_id, id) in effects.drain() {
+            for (item_id, id) in effects {
                 Self::remove_effect(&mut *tx, id).await?;
 
-                let Some(item) = SHOP_ITEMS.get(&item_id) else {
-                    tracing::warn!("effect item_id '{item_id}' not found in SHOP_ITEMS, skipping");
+                let Some(effect) = get_effect(&item_id) else {
+                    tracing::warn!(
+                        "effect item_id '{item_id}' not found in registry, skipping"
+                    );
                     continue;
                 };
 
-                if win == Some(true) && item_id.starts_with("payout") {
-                    payout += (item.effect_fn)(bet, base_payout);
-                }
+                contribution += if win {
+                    effect.on_win(bet, base_payout)
+                } else {
+                    effect.on_loss(bet, base_payout)
+                };
             }
 
             tx.commit().await?;
 
-            Ok(payout.max(base_payout))
+            let payout = if win {
+                bet + (base_payout - bet).max(contribution)
+            } else {
+                base_payout.max(contribution)
+            };
+
+            Ok(payout)
         })
         .await;
 
@@ -128,4 +141,84 @@ pub struct EffectsRow {
     pub id: i32,
     pub item_id: String,
     pub expiry: Option<Timestamp>,
+}
+
+pub struct EffectsTable;
+
+#[async_trait]
+impl EffectsManager<Postgres> for EffectsTable {
+    async fn get_effects(
+        conn: &mut PgConnection,
+        user_id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<HashMap<String, i32>> {
+        let user_id = user_id.into();
+
+        sqlx::query_as!(
+            EffectsRow,
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1"#,
+            as_i64(user_id.get()),
+        )
+        .fetch(conn)
+        .map_ok(|row| (row.item_id, row.id))
+        .try_collect()
+        .await
+    }
+
+    async fn get_effect(
+        conn: &mut PgConnection,
+        user_id: impl Into<UserId> + Send,
+        effect: &str,
+    ) -> sqlx::Result<Option<EffectsRow>> {
+        let user_id = user_id.into();
+
+        sqlx::query_as!(
+            EffectsRow,
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1 AND item_id = $2"#,
+            as_i64(user_id.get()),
+            effect
+        )
+        .fetch_optional(conn)
+        .await
+    }
+
+    async fn add_effect(
+        conn: &mut PgConnection,
+        user_id: impl Into<UserId> + Send,
+        item: &ShopItem<'_>,
+    ) -> sqlx::Result<PgQueryResult> {
+        let user_id = user_id.into();
+
+        let duration = item
+            .effect_duration
+            .map(|d| {
+                PgInterval::try_from(d)
+                    .map_err(|e| sqlx::Error::Protocol(e.to_string()))
+            })
+            .transpose()?;
+
+        sqlx::query!(
+            "INSERT INTO gambling_effects (user_id, item_id, expiry)
+            VALUES ($1, $2, NOW() + $3)
+            ON CONFLICT (user_id, item_id)
+            DO UPDATE SET
+                expiry = GREATEST(gambling_effects.expiry + $3, EXCLUDED.expiry)",
+            as_i64(user_id.get()),
+            item.id,
+            duration
+        )
+        .execute(conn)
+        .await
+    }
+
+    async fn remove_effect(
+        conn: &mut PgConnection,
+        id: i32,
+    ) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
+            "DELETE FROM gambling_effects WHERE id = $1 AND (expiry <= NOW() OR expiry IS NULL)",
+            id
+        )
+        .execute(conn)
+        .await
+    }
 }

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use gambling::commands::inventory::{InventoryManager, InventoryRow};
-use gambling::{Commands, GamblingItem, GamblingItems};
+use gambling::{Commands, EffectsTable, GamblingItem, GamblingItems};
 use serenity::all::{CreateCommand, UserId};
 use sqlx::{PgConnection, PgPool, Postgres};
 use zayden_core::as_i64;
@@ -11,7 +11,6 @@ use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
 
 use crate::BotState;
-use crate::bindings::gambling::EffectsTable;
 
 pub struct InventoryTable;
 

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use gambling::Commands;
+use gambling::{Commands, EffectsTable};
 use serenity::all::CreateCommand;
 use sqlx::Postgres;
 use tracing::debug;
@@ -11,7 +11,7 @@ use zayden_core::message_metadata;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
-use super::{EffectsTable, GamblingTable, GameTable, GoalsTable};
+use super::{GamblingTable, GameTable, GoalsTable};
 use crate::BotState;
 
 pub struct Blackjack;

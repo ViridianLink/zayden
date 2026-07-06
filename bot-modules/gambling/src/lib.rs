@@ -41,6 +41,8 @@ pub use models::{
     Coins,
     EffectsManager,
     EffectsRow,
+    EffectsTable,
+    GamblingEffect,
     GamblingGoalsRow,
     GamblingItem,
     GamblingItems,

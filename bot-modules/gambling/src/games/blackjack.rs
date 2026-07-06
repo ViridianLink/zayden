@@ -351,6 +351,12 @@ pub fn surrender_button<'a>() -> CreateButton<'a> {
         .style(ButtonStyle::Danger)
 }
 
+struct GameOutcome {
+    bet: i64,
+    payout: i64,
+    win: Option<bool>,
+}
+
 async fn game_end_common<
     Db: Database,
     GoalsHandler: GoalsManager<Db> + Send + Sync,
@@ -362,9 +368,10 @@ async fn game_end_common<
     emojis: &EmojiCache,
     user_id: UserId,
     channel_id: GenericChannelId,
-    bet: i64,
-    mut payout: i64,
+    outcome: GameOutcome,
 ) -> Result<(i64, i64)> {
+    let GameOutcome { bet, mut payout, win } = outcome;
+
     let mut row = GameHandler::row(pool, user_id)
         .await?
         .unwrap_or_else(|| GameRow::new(user_id));
@@ -375,11 +382,17 @@ async fn game_end_common<
         .fire(
             channel_id,
             &mut row,
-            Event::Game(GameEvent::new("blackjack", user_id, bet, payout, true)),
+            Event::Game(GameEvent::new(
+                "blackjack",
+                user_id,
+                bet,
+                payout,
+                win == Some(true),
+            )),
         )
         .await?;
 
-    payout = EffectsHandler::payout(pool, user_id, bet, payout, None).await;
+    payout = EffectsHandler::payout(pool, user_id, bet, payout, win).await;
 
     row.add_coins(payout);
 
@@ -425,7 +438,12 @@ pub async fn game_end_draw<
 
     let (_, coins) =
         game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-            ctx, pool, emojis, user_id, channel_id, bet, bet,
+            ctx,
+            pool,
+            emojis,
+            user_id,
+            channel_id,
+            GameOutcome { bet, payout: bet, win: None },
         )
         .await?;
 
@@ -475,7 +493,12 @@ pub async fn game_end_blackjack<
 
     let (payout, coins) =
         game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-            ctx, pool, emojis, user_id, channel_id, bet, payout,
+            ctx,
+            pool,
+            emojis,
+            user_id,
+            channel_id,
+            GameOutcome { bet, payout, win: Some(true) },
         )
         .await?;
 

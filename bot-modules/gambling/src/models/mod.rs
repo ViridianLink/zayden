@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+pub mod effects;
 pub mod gambling;
 mod gambling_effects;
 mod gambling_goals;
@@ -7,8 +8,9 @@ pub mod gambling_inventory;
 pub mod gambling_stats;
 mod game_row;
 
+pub use effects::{GamblingEffect, get_effect};
 pub use gambling::GamblingManager;
-pub use gambling_effects::{EffectsManager, EffectsRow};
+pub use gambling_effects::{EffectsManager, EffectsRow, EffectsTable};
 pub use gambling_goals::GamblingGoalsRow;
 pub use gambling_inventory::{
     GamblingItem,
