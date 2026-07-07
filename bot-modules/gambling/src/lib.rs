@@ -38,6 +38,7 @@ pub use game_cache::GameCache;
 pub use games::{HigherLower, Lotto, LottoManager, LottoRow, jackpot};
 pub use goals::GoalHandler;
 pub use models::{
+    AppliedEffect,
     Coins,
     EffectsManager,
     EffectsRow,
@@ -55,6 +56,7 @@ pub use models::{
     MaxValues,
     MineHourly,
     Mining,
+    PayoutResult,
     Prestige,
     Stamina,
     StatsManager,

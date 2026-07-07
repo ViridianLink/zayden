@@ -10,11 +10,11 @@ pub trait GamblingEffect: Send + Sync {
 
     fn description(&self) -> &'static str;
 
-    fn on_win(&self, _bet: i64, _base_payout: i64) -> i64 {
+    fn on_win(&self, _game: &str, _bet: i64, _base_payout: i64) -> i64 {
         0
     }
 
-    fn on_loss(&self, _bet: i64, _base_payout: i64) -> i64 {
+    fn on_loss(&self, _game: &str, _bet: i64, _base_payout: i64) -> i64 {
         0
     }
 }

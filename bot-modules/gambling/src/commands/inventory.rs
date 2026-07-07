@@ -216,7 +216,12 @@ impl Commands {
 
         match name {
             "show" => {
-                show::<Data, Db, InventoryHandler>(ctx, interaction, pool).await
+                show::<Data, Db, EffectsHandler, InventoryHandler>(
+                    ctx,
+                    interaction,
+                    pool,
+                )
+                .await
             },
             "use" => {
                 use_item::<Data, Db, EffectsHandler, InventoryHandler>(
@@ -266,7 +271,12 @@ impl Commands {
     }
 }
 
-async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>(
+async fn show<
+    Data: EmojiCacheData,
+    Db: Database,
+    EffectsHandler: EffectsManager<Db>,
+    Manager: InventoryManager<Db>,
+>(
     ctx: &Context,
     interaction: &CommandInteraction,
     pool: &Pool<Db>,
@@ -276,6 +286,11 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
 
     let inventory_items =
         Manager::inventory_items(pool, interaction.user.id).await?;
+
+    let active_effects = {
+        let mut conn = pool.acquire().await?;
+        EffectsHandler::active_effects(&mut conn, interaction.user.id).await?
+    };
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -312,6 +327,28 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
         .emoji("heads")
         .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
+    let active_boosts = if active_effects.is_empty() {
+        "No active boosts".to_string()
+    } else {
+        active_effects
+            .iter()
+            .map(|row| {
+                let label = SHOP_ITEMS
+                    .get(row.item_id.as_str())
+                    .and_then(|item| item.as_str(&emojis).ok())
+                    .unwrap_or_else(|| row.item_id.clone());
+
+                row.expiry.map_or_else(
+                    || format!("{label} (ready)"),
+                    |expiry| {
+                        format!("{label} (<t:{}:R>)", expiry.to_jiff().as_second())
+                    },
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
     let mut embed = CreateEmbed::new()
         .field(
             "Currencies",
@@ -344,6 +381,7 @@ async fn show<Data: EmojiCacheData, Db: Database, Manager: InventoryManager<Db>>
                 .join("\n"),
             true,
         )
+        .field("Active Boosts", active_boosts, false)
         .field("Resources", gambling_row.resources(&emojis)?, true)
         .field("Crafted", gambling_row.crafted(&emojis)?, false)
         .field(

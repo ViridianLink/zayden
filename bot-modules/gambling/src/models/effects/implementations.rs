@@ -15,7 +15,7 @@ impl GamblingEffect for LuckyChipEffect {
         "Refund your bet if you lose"
     }
 
-    fn on_loss(&self, bet: i64, _base_payout: i64) -> i64 {
+    fn on_loss(&self, _game: &str, bet: i64, _base_payout: i64) -> i64 {
         bet
     }
 }
@@ -65,7 +65,7 @@ impl GamblingEffect for PayoutMultiplierEffect {
         "Multiplies your winning payouts"
     }
 
-    fn on_win(&self, bet: i64, base_payout: i64) -> i64 {
+    fn on_win(&self, _game: &str, bet: i64, base_payout: i64) -> i64 {
         (base_payout - bet) * self.multiplier
     }
 }

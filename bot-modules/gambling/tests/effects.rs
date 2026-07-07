@@ -16,8 +16,8 @@ fn lucky_chip_refunds_bet_on_loss_only() {
     let lucky_chip = get_effect("luckychip").expect("luckychip is registered");
 
     // Lucky Chip returns the full stake on a loss and nothing on a win.
-    assert_eq!(lucky_chip.on_loss(500, 0), 500);
-    assert_eq!(lucky_chip.on_win(500, 1000), 0);
+    assert_eq!(lucky_chip.on_loss("blackjack", 500, 0), 500);
+    assert_eq!(lucky_chip.on_win("blackjack", 500, 1000), 0);
 }
 
 #[test]
@@ -26,8 +26,8 @@ fn all_ins_has_no_payout_contribution() {
 
     // All Ins carries no payout hooks; its limit-lifting lives in
     // `EffectsManager::bet_limit`, not in the trait.
-    assert_eq!(all_ins.on_win(500, 1000), 0);
-    assert_eq!(all_ins.on_loss(500, 0), 0);
+    assert_eq!(all_ins.on_win("blackjack", 500, 1000), 0);
+    assert_eq!(all_ins.on_loss("blackjack", 500, 0), 0);
 }
 
 #[test]
@@ -35,7 +35,7 @@ fn payout_multiplier_scales_winnings() {
     let payout5x = get_effect("payout5x").expect("payout5x is registered");
 
     // bet 100, base payout 200 => winnings 100, scaled x5 => 500.
-    assert_eq!(payout5x.on_win(100, 200), 500);
+    assert_eq!(payout5x.on_win("blackjack", 100, 200), 500);
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn payout_multiplier_neutral_on_loss() {
     let payout2x = get_effect("payout2x").expect("payout2x is registered");
 
     // Multipliers only ever contribute on a win.
-    assert_eq!(payout2x.on_loss(500, 0), 0);
+    assert_eq!(payout2x.on_loss("blackjack", 500, 0), 0);
 }
 
 #[test]

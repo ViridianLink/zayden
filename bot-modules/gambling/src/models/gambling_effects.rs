@@ -38,6 +38,11 @@ pub trait EffectsManager<Db: Database>: Send {
         id: i32,
     ) -> sqlx::Result<Db::QueryResult>;
 
+    async fn active_effects(
+        conn: &mut Db::Connection,
+        user_id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Vec<EffectsRow>>;
+
     async fn bet_limit<GamblingHandler: GamblingManager<Db>>(
         pool: &Pool<Db>,
         user_id: impl Into<UserId> + Send,
@@ -83,23 +88,25 @@ pub trait EffectsManager<Db: Database>: Send {
     async fn payout(
         pool: &Pool<Db>,
         user_id: impl Into<UserId> + Send,
+        game: &str,
         bet: i64,
         payout: i64,
         win: Option<bool>,
-    ) -> i64 {
+    ) -> PayoutResult {
         let base_payout = payout;
 
         let Some(win) = win else {
-            return base_payout;
+            return PayoutResult::base(base_payout);
         };
 
         let user_id = user_id.into();
 
-        let result: sqlx::Result<i64> = (async {
+        let result: sqlx::Result<PayoutResult> = (async {
             let mut tx = pool.begin().await?;
             let effects = Self::get_effects(&mut *tx, user_id).await?;
 
             let mut contribution: i64 = 0;
+            let mut applied: Vec<AppliedEffect> = Vec::new();
 
             for (item_id, id) in effects {
                 Self::remove_effect(&mut *tx, id).await?;
@@ -111,29 +118,59 @@ pub trait EffectsManager<Db: Database>: Send {
                     continue;
                 };
 
-                contribution += if win {
-                    effect.on_win(bet, base_payout)
+                let delta = if win {
+                    effect.on_win(game, bet, base_payout)
                 } else {
-                    effect.on_loss(bet, base_payout)
+                    effect.on_loss(game, bet, base_payout)
                 };
+
+                if delta > 0 {
+                    contribution += delta;
+                    applied.push(AppliedEffect {
+                        id: effect.id(),
+                        name: effect.name(),
+                    });
+                }
             }
 
             tx.commit().await?;
 
-            let payout = if win {
-                bet + (base_payout - bet).max(contribution)
+            let result = if win {
+                if contribution > base_payout - bet {
+                    PayoutResult { payout: bet + contribution, effects: applied }
+                } else {
+                    PayoutResult::base(base_payout)
+                }
+            } else if contribution > base_payout {
+                PayoutResult { payout: contribution, effects: applied }
             } else {
-                base_payout.max(contribution)
+                PayoutResult::base(base_payout)
             };
 
-            Ok(payout)
+            Ok(result)
         })
         .await;
 
         result.unwrap_or_else(|e| {
             tracing::error!(error = ?e, "payout effects DB error, falling back to base payout");
-            base_payout
+            PayoutResult::base(base_payout)
         })
+    }
+}
+
+pub struct AppliedEffect {
+    pub id: &'static str,
+    pub name: &'static str,
+}
+
+pub struct PayoutResult {
+    pub payout: i64,
+    pub effects: Vec<AppliedEffect>,
+}
+
+impl PayoutResult {
+    const fn base(payout: i64) -> Self {
+        Self { payout, effects: Vec::new() }
     }
 }
 
@@ -219,6 +256,24 @@ impl EffectsManager<Postgres> for EffectsTable {
             id
         )
         .execute(conn)
+        .await
+    }
+
+    async fn active_effects(
+        conn: &mut PgConnection,
+        user_id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Vec<EffectsRow>> {
+        let user_id = user_id.into();
+
+        sqlx::query_as!(
+            EffectsRow,
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp"
+            FROM gambling_effects
+            WHERE user_id = $1 AND (expiry IS NULL OR expiry > NOW())
+            ORDER BY item_id, expiry DESC NULLS LAST"#,
+            as_i64(user_id.get()),
+        )
+        .fetch_all(conn)
         .await
     }
 }

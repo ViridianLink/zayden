@@ -3,8 +3,28 @@ use std::fmt::Display;
 use serenity::all::{Colour, CreateEmbed};
 use zayden_core::{EmojiCache, FormatNum};
 
-use crate::GamblingError;
 use crate::error::Result;
+use crate::{AppliedEffect, GamblingError, SHOP_ITEMS};
+
+#[must_use]
+pub fn effects_summary(emojis: &EmojiCache, effects: &[AppliedEffect]) -> String {
+    if effects.is_empty() {
+        return String::new();
+    }
+
+    let list = effects
+        .iter()
+        .map(|effect| {
+            SHOP_ITEMS
+                .get(effect.id)
+                .and_then(|item| item.as_str(emojis).ok())
+                .unwrap_or_else(|| effect.name.to_string())
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    format!("\n\n**Effects:** {list}")
+}
 
 #[derive(Clone, Copy)]
 pub enum Emoji {
@@ -75,6 +95,7 @@ pub fn game_embed<'a>(
     bet: i64,
     payout: i64,
     coins: i64,
+    effects: &[AppliedEffect],
 ) -> Result<CreateEmbed<'a>> {
     let prediction: GameResult = prediction.into();
     let outcome: GameResult = outcome.into();
@@ -97,11 +118,12 @@ pub fn game_embed<'a>(
         **{outcome_text}:** {} ({outcome})
 
         {result}
-        Your coins: {}",
+        Your coins: {}{}",
         bet.format(),
         prediction.emoji(emojis)?,
         outcome.emoji(emojis)?,
-        coins.format()
+        coins.format(),
+        effects_summary(emojis, effects),
     );
 
     Ok(CreateEmbed::<'a>::new().title(title).description(desc).colour(colour))

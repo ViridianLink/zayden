@@ -21,6 +21,7 @@ use zayden_core::{EmojiCacheData, FormatNum, parse_options};
 use super::Commands;
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::models::GamblingManager;
+use crate::utils::effects_summary;
 use crate::{
     Coins,
     EffectsManager,
@@ -111,9 +112,16 @@ impl Commands {
             )
             .await?;
 
-        payout =
-            EffectsHandler::payout(pool, interaction.user.id, bet, payout, winner)
-                .await;
+        let payout_result = EffectsHandler::payout(
+            pool,
+            interaction.user.id,
+            "rps",
+            bet,
+            payout,
+            winner,
+        )
+        .await;
+        payout = payout_result.payout;
 
         row.add_coins(payout);
 
@@ -140,13 +148,14 @@ impl Commands {
             **Zayden picked:** {} ({computer_choice})
             
             Payout: {} ({})
-            Your coins: {}",
+            Your coins: {}{}",
             bet.format(),
             user_choice.emoji(),
             computer_choice.emoji(),
             payout.format(),
             (payout - bet).format(),
-            coins.format()
+            coins.format(),
+            effects_summary(&emojis, &payout_result.effects),
         );
 
         let colour = if winner == Some(true) {

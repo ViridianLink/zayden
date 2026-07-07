@@ -24,7 +24,9 @@ use sqlx::{Database, Pool};
 use zayden_core::{EmojiCache, FormatNum};
 
 use crate::events::{Dispatch, Event, GameEvent};
+use crate::utils::effects_summary;
 use crate::{
+    AppliedEffect,
     CARD_DECK,
     Coins,
     EffectsManager,
@@ -369,7 +371,7 @@ async fn game_end_common<
     user_id: UserId,
     channel_id: GenericChannelId,
     outcome: GameOutcome,
-) -> Result<(i64, i64)> {
+) -> Result<(i64, i64, Vec<AppliedEffect>)> {
     let GameOutcome { bet, mut payout, win } = outcome;
 
     let mut row = GameHandler::row(pool, user_id)
@@ -392,7 +394,9 @@ async fn game_end_common<
         )
         .await?;
 
-    payout = EffectsHandler::payout(pool, user_id, bet, payout, win).await;
+    let payout_result =
+        EffectsHandler::payout(pool, user_id, "blackjack", bet, payout, win).await;
+    payout = payout_result.payout;
 
     row.add_coins(payout);
 
@@ -400,7 +404,7 @@ async fn game_end_common<
 
     GameHandler::save(pool, row).await?;
 
-    Ok((payout, coins))
+    Ok((payout, coins, payout_result.effects))
 }
 
 fn build_hand_str(
@@ -436,7 +440,7 @@ pub async fn game_end_draw<
     let bet = game.bet();
     let dealer_value = sum_cards(emojis, dealer_hand)?;
 
-    let (_, coins) =
+    let (_, coins, _) =
         game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx,
             pool,
@@ -491,7 +495,7 @@ pub async fn game_end_blackjack<
     let payout = bet + (3 * bet) / 2;
     let dealer_value = sum_cards(emojis, dealer_hand)?;
 
-    let (payout, coins) =
+    let (payout, coins, effects) =
         game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
             ctx,
             pool,
@@ -519,9 +523,10 @@ pub async fn game_end_blackjack<
     let embed = CreateEmbed::new()
         .title("Blackjack - You Won!")
         .description(format!(
-            "{desc}\n\nBLACKJACK!\n\nProfit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
+            "{desc}\n\nBLACKJACK!\n\nProfit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
             (payout - game.bet()).format(),
-            coins.format()
+            coins.format(),
+            effects_summary(emojis, &effects),
         ))
         .colour(Colour::DARK_GREEN);
 

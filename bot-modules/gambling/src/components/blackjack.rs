@@ -31,6 +31,7 @@ use crate::games::blackjack::{
     sum_cards,
     surrender_button,
 };
+use crate::utils::effects_summary;
 use crate::{
     Coins,
     EffectsManager,
@@ -249,14 +250,16 @@ impl Blackjack {
             )
             .await?;
 
-        payout = EffectsHandler::payout(
+        let payout_result = EffectsHandler::payout(
             pool,
             interaction.user.id,
+            "blackjack",
             game.bet(),
             payout,
             Some(false),
         )
         .await;
+        payout = payout_result.payout;
 
         row.add_coins(payout);
 
@@ -296,9 +299,10 @@ impl Blackjack {
                         .components(vec![CreateComponent::Container(CreateContainer::new(
                             vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
                                 format!(
-                                    "### Blackjack - Surrender!\n{desc}\n\nYou surrender!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
+                                    "### Blackjack - Surrender!\n{desc}\n\nYou surrender!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
                                     (payout - game.bet()).format(),
-                                    coins.format()
+                                    coins.format(),
+                                    effects_summary(&emojis, &payout_result.effects),
                                 ),
                             ))],
                         ).accent_colour(Colour::RED))])
@@ -410,9 +414,16 @@ async fn game_end<
         )
         .await?;
 
-    payout =
-        EffectsHandler::payout(pool, interaction.user.id, game.bet(), payout, win)
-            .await;
+    let payout_result = EffectsHandler::payout(
+        pool,
+        interaction.user.id,
+        "blackjack",
+        game.bet(),
+        payout,
+        win,
+    )
+    .await;
+    payout = payout_result.payout;
 
     row.add_coins(payout);
 
@@ -441,12 +452,12 @@ async fn game_end<
 
     let container = if win == Some(true) {
         CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-            format!("### Blackjack - You Won!\n{desc}\n\nProfit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>", (payout - game.bet()).format(), coins.format()),
+            format!("### Blackjack - You Won!\n{desc}\n\nProfit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}", (payout - game.bet()).format(), coins.format(), effects_summary(emojis, &payout_result.effects)),
         ))])
         .accent_colour(Colour::DARK_GREEN)
     } else if win == Some(false) {
         CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-            format!("### Blackjack - You Lost!\n{desc}\n\nDealer wins!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>", (payout - game.bet()).format(), coins.format()),
+            format!("### Blackjack - You Lost!\n{desc}\n\nDealer wins!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}", (payout - game.bet()).format(), coins.format(), effects_summary(emojis, &payout_result.effects)),
         ))])
         .accent_colour(Colour::RED)
     } else {
@@ -498,14 +509,16 @@ async fn bust<
         )
         .await?;
 
-    let payout = EffectsHandler::payout(
+    let payout_result = EffectsHandler::payout(
         pool,
         interaction.user.id,
+        "blackjack",
         game.bet(),
         0,
         Some(false),
     )
     .await;
+    let payout = payout_result.payout;
 
     row.add_coins(payout);
 
@@ -534,9 +547,10 @@ async fn bust<
     let player_hand_str = game.player_hand_str(emojis)?;
 
     Ok(format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>",
+        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
         game.bet().format(),
         (payout - game.bet()).format(),
-        coins.format()
+        coins.format(),
+        effects_summary(emojis, &payout_result.effects)
     ))
 }

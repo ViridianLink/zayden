@@ -10,7 +10,13 @@ mod game_row;
 
 pub use effects::{GamblingEffect, get_effect};
 pub use gambling::GamblingManager;
-pub use gambling_effects::{EffectsManager, EffectsRow, EffectsTable};
+pub use gambling_effects::{
+    AppliedEffect,
+    EffectsManager,
+    EffectsRow,
+    EffectsTable,
+    PayoutResult,
+};
 pub use gambling_goals::GamblingGoalsRow;
 pub use gambling_inventory::{
     GamblingItem,

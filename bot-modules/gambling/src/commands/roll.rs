@@ -108,14 +108,16 @@ impl Commands {
             )
             .await?;
 
-        payout = EffectsHandler::payout(
+        let payout_result = EffectsHandler::payout(
             pool,
             interaction.user.id,
+            "roll",
             bet,
             payout,
             Some(roll == prediction),
         )
         .await;
+        payout = payout_result.payout;
 
         row.add_coins(payout);
 
@@ -132,6 +134,7 @@ impl Commands {
             bet,
             payout,
             coins,
+            &payout_result.effects,
         )?;
 
         interaction
