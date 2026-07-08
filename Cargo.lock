@@ -463,6 +463,7 @@ dependencies = [
  "levels",
  "lfg",
  "llamad2",
+ "marathon",
  "music",
  "rand 0.10.2",
  "reaction-roles",
@@ -3433,7 +3434,6 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tracing",
- "zayden-app",
  "zayden-core",
 ]
 

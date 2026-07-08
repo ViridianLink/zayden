@@ -18,6 +18,7 @@ gold-star = { workspace = true }
 levels = { workspace = true }
 lfg = { workspace = true }
 llamad2 = { workspace = true }
+marathon = { workspace = true }
 music = { workspace = true }
 reaction-roles = { workspace = true }
 suggestions = { workspace = true }

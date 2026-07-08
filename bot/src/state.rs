@@ -5,6 +5,8 @@ use bungie_api::{BungieClient, BungieClientBuilder};
 use destiny2_core::BungieClientData;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
+use marathon::client::MarathonClient;
+use marathon::cron::{MarathonAnnounceCron, MarathonNewsCron};
 use music::{MusicManager, MusicSettingsRow, TrackResolver};
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
@@ -32,7 +34,9 @@ pub struct BotState {
     pub music_settings: Arc<SettingsStore<MusicSettingsRow>>,
     pub music_resolver: Arc<dyn TrackResolver>,
     pub voice_states: Arc<VoiceStateCache>,
+    pub marathon: Arc<MarathonClient>,
     bungie_client: Arc<BungieClient>,
+    marathon_bungie_api_key: String,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
     guild_members: HashMap<GuildId, Vec<UserId>>,
@@ -49,6 +53,11 @@ impl BotState {
         let bungie_client =
             BungieClientBuilder::new(config.bungie_api_key.clone()).build()?;
 
+        let marathon = Arc::new(MarathonClient::new(
+            app.http.clone(),
+            config.marathon_flaresolverr_url.clone(),
+        ));
+
         let music_settings =
             Arc::new(SettingsStore::new(app.db.clone(), app.events.clone()));
         SettingsStore::spawn_invalidator(
@@ -63,7 +72,9 @@ impl BotState {
             music_settings,
             music_resolver,
             voice_states: Arc::new(VoiceStateCache::new()),
+            marathon,
             bungie_client: Arc::new(bungie_client),
+            marathon_bungie_api_key: config.bungie_api_key.clone(),
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),
             guild_members: HashMap::new(),
@@ -80,6 +91,11 @@ impl BotState {
             endgame_analysis::EndgameAnalysisSheetCron::cron_job::<Postgres>(
                 Arc::clone(&self.bungie_client),
                 self.app.google_api_key.clone(),
+            ),
+            MarathonAnnounceCron::cron_job(Arc::clone(&self.marathon)),
+            MarathonNewsCron::cron_job(
+                self.app.http.clone(),
+                Some(self.marathon_bungie_api_key.clone()),
             ),
         ];
         for job in jobs {
