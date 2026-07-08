@@ -162,3 +162,13 @@ pub struct Schedule {
     pub duo_map_pool: Vec<String>,
     pub weekly_game_mode: Option<String>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NewsItem {
+    pub feed_key: String,
+    pub id: String,
+    pub source_label: String,
+    pub title: String,
+    pub url: Option<String>,
+    pub summary: Option<String>,
+}

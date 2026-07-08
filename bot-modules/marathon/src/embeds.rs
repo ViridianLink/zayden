@@ -23,6 +23,7 @@ use crate::model::{
     MapStatus,
     MarathonMap,
     MetaEntry,
+    NewsItem,
     RotationWindow,
     Runner,
     Schedule,
@@ -373,6 +374,20 @@ pub fn meta_component(entries: &[MetaEntry]) -> CreateComponent<'static> {
 
     CreateComponent::Container(
         CreateContainer::new(components).accent_colour(ACCENT),
+    )
+}
+
+pub fn news_item_component(item: &NewsItem) -> CreateComponent<'static> {
+    let mut body = format!("### {}\n-# {}", item.title, item.source_label);
+    if let Some(summary) = &item.summary {
+        let _ = write!(body, "\n\n{summary}");
+    }
+    if let Some(url) = &item.url {
+        let _ = write!(body, "\n\n{url}");
+    }
+
+    CreateComponent::Container(
+        CreateContainer::new(vec![text(body)]).accent_colour(ACCENT),
     )
 }
 

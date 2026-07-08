@@ -16,7 +16,7 @@ jiff = { workspace = true, features = ["std"] }
 jiff-cron = { workspace = true }
 moka = { workspace = true, features = ["future"] }
 regex = { workspace = true, features = ["std"] }
-reqwest = { workspace = true, features = ["rustls", "json"] }
+reqwest = { workspace = true, features = ["rustls", "json", "query"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serenity = { workspace = true, features = ["rustls_backend", "builder", "gateway"] }

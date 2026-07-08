@@ -79,3 +79,43 @@ impl MarathonAnnounceRow {
         Ok(())
     }
 }
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct NewsSeenRow {
+    pub source: String,
+    pub last_id: Option<String>,
+}
+
+impl NewsSeenRow {
+    pub async fn get(pool: &PgPool, source: &str) -> Result<Option<Self>> {
+        let row = sqlx::query_as!(
+            Self,
+            "SELECT source, last_id FROM marathon_news_seen WHERE source = $1",
+            source
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(row)
+    }
+
+    pub async fn set_last_id(
+        pool: &PgPool,
+        source: &str,
+        last_id: &str,
+    ) -> Result<()> {
+        sqlx::query!(
+            r#"
+            INSERT INTO marathon_news_seen (source, last_id)
+            VALUES ($1, $2)
+            ON CONFLICT (source) DO UPDATE SET last_id = EXCLUDED.last_id, updated_at = now()
+            "#,
+            source,
+            last_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+}
