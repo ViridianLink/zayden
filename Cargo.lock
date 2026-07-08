@@ -3422,6 +3422,7 @@ version = "1.0.0"
 dependencies = [
  "async-trait",
  "jiff",
+ "jiff-cron",
  "moka",
  "regex",
  "reqwest 0.13.4",
