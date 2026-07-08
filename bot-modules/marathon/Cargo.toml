@@ -1,0 +1,27 @@
+[package]
+name = "marathon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+zayden-app = { workspace = true }
+zayden-core = { workspace = true }
+
+async-trait = { workspace = true }
+jiff = { workspace = true }
+moka = { workspace = true, features = ["future"] }
+reqwest = { workspace = true, features = ["rustls", "json"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+serenity = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }

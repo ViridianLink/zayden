@@ -140,6 +140,7 @@ gold-star = { path = "./bot-modules/gold-star" }
 levels = { path = "./bot-modules/levels" }
 lfg = { path = "./bot-modules/lfg" }
 llamad2 = { path = "./bot-modules/llamad2" }
+marathon = { path = "./bot-modules/marathon" }
 music = { path = "./bot-modules/music" }
 reaction-roles = { path = "./bot-modules/reaction-roles" }
 suggestions = { path = "./bot-modules/suggestions" }
@@ -166,7 +167,7 @@ moka = { version = "*", default-features = false }
 rand = { version = "*", default-features = false }
 rand_distr = { version = "*", default-features = false }
 regex = { version = "*", default-features = false }
-reqwest = { version = "*", default-features = false, features = ["rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 rspotify = { version = "*", default-features = false }
 rustls = { version = "*", default-features = false }
 serde = { version = "*", default-features = false }

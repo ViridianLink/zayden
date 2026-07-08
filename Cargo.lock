@@ -3417,6 +3417,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "marathon"
+version = "1.0.0"
+dependencies = [
+ "async-trait",
+ "jiff",
+ "moka",
+ "reqwest 0.13.4",
+ "serde",
+ "serde_json",
+ "serenity",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "zayden-app",
+ "zayden-core",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
