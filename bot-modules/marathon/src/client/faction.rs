@@ -13,7 +13,13 @@ impl MarathonClient {
 
         let factions = if let Some(mobalytics) = &self.mobalytics {
             match mobalytics.fetch_document("factions").await {
-                Ok(doc) => parse::parse_faction_listing(&doc),
+                Ok(doc) => {
+                    let mut factions = Vec::new();
+                    for stub in parse::parse_faction_listing(&doc) {
+                        factions.push((*self.faction(&stub.slug).await?).clone());
+                    }
+                    factions
+                },
                 Err(_) => self.factions_from_marathondb().await?,
             }
         } else {
