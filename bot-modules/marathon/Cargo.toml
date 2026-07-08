@@ -14,6 +14,7 @@ zayden-core = { workspace = true }
 async-trait = { workspace = true }
 jiff = { workspace = true }
 moka = { workspace = true, features = ["future"] }
+regex = { workspace = true, features = ["std"] }
 reqwest = { workspace = true, features = ["rustls", "json"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
