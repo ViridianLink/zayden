@@ -10,12 +10,11 @@ workspace = true
 [dependencies]
 zayden-core = { workspace = true }
 
-async-trait = { workspace = true }
 jiff = { workspace = true, features = ["std"] }
 jiff-cron = { workspace = true }
 moka = { workspace = true, features = ["future"] }
 regex = { workspace = true, features = ["std"] }
-reqwest = { workspace = true, features = ["rustls", "json", "query"] }
+reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serenity = { workspace = true, features = ["rustls_backend", "builder", "gateway"] }
