@@ -4,6 +4,7 @@ mod faction;
 mod map;
 mod meta;
 mod runner;
+mod schedule;
 mod weapon;
 
 use std::hash::Hash;

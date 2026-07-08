@@ -8,4 +8,5 @@ pub mod error;
 pub mod gql;
 pub mod model;
 pub mod parse;
+pub mod schedule_rules;
 pub mod transport;

@@ -12,7 +12,7 @@ zayden-app = { workspace = true }
 zayden-core = { workspace = true }
 
 async-trait = { workspace = true }
-jiff = { workspace = true }
+jiff = { workspace = true, features = ["std"] }
 moka = { workspace = true, features = ["future"] }
 regex = { workspace = true, features = ["std"] }
 reqwest = { workspace = true, features = ["rustls", "json"] }
