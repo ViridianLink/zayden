@@ -1,0 +1,20 @@
+[ai]
+endpoint = "https://openrouter.ai/api/v1"
+model = "google/gemma-4-31b-it:free"
+
+[ids]
+oscar_six = 211486447369322506
+zayden_guild = 1222360995700150443
+llamad2_guild = 1133034263579734037
+zayden_id = 787490197943091211
+
+[webhooks]
+error_log = "https://discord.com/api/webhooks/<id>/<token>"
+normal_log = "https://discord.com/api/webhooks/<id>/<token>"
+
+[dashboard]
+frontend_url = "http://localhost:5173"
+redirect_uri = "http://localhost:3000/auth/callback"
+bind_addr = "0.0.0.0:3000"
+invite_url = "https://discord.com/oauth2/authorize?client_id=<id>&permissions=8&integration_type=0&scope=bot+applications.commands"
+upgrade_url = "https://ko-fi.com/your-page"
