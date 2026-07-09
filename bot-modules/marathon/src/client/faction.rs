@@ -80,7 +80,7 @@ impl MarathonClient {
             match mobalytics.fetch_document(&format!("factions/{}", stub.slug)).await
             {
                 Ok(detail) => {
-                    factions.push(parse::parse_faction(&stub.slug, &detail))
+                    factions.push(parse::parse_faction(&stub.slug, &detail));
                 },
                 Err(_) => factions.push(stub),
             }
