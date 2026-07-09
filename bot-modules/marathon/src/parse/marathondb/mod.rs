@@ -1,8 +1,10 @@
 mod faction;
+mod map;
 mod runner;
 mod weapon;
 
 pub use faction::marathondb_contracts_to_factions;
+pub use map::marathondb_map_to_model;
 pub use runner::marathondb_runner_to_model;
 use serde_json::Value;
 pub use weapon::marathondb_weapon_to_model;

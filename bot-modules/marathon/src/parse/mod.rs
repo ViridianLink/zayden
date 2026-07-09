@@ -14,6 +14,7 @@ pub use faction::{parse_faction, parse_faction_listing};
 pub use map::parse_map;
 pub use marathondb::{
     marathondb_contracts_to_factions,
+    marathondb_map_to_model,
     marathondb_runner_to_model,
     marathondb_weapon_to_model,
 };

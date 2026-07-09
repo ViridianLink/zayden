@@ -190,6 +190,35 @@ fn marathondb_contracts_fallback_groups_by_faction() {
 }
 
 #[test]
+fn marathondb_map_maps_layout_and_categorised_pois() {
+    let data = load_fixture("marathondb_map_perimeter");
+    let payload = data.get("map").expect("fixture should have a map envelope");
+
+    let map = parse::marathondb_map_to_model("perimeter", payload);
+
+    assert_eq!(map.slug, "perimeter");
+    assert_eq!(map.name, "Perimeter");
+    assert_eq!(map.status, Some(MapStatus::Available));
+    assert!(
+        map.map_image_url
+            .as_deref()
+            .is_some_and(|url| url.contains("maps/perimeter")),
+        "map image URL should come from MarathonDB"
+    );
+
+    // `zones` become the general points of interest.
+    assert!(!map.pois.is_empty());
+
+    // POIs are split by MarathonDB's `category` field.
+    assert!(!map.extractions.is_empty());
+    assert!(map.extractions.iter().any(|l| l.name.contains("Exfil")));
+    assert!(!map.event_spawns.is_empty());
+
+    // Keycard rooms are the `*_key` loot POIs (e.g. Lockbox / Hazard Override).
+    assert!(map.keycard_rooms.iter().any(|r| r.name.to_lowercase().contains("key")));
+}
+
+#[test]
 fn missing_document_degrades_to_none_rather_than_panicking() {
     let marathon_state = load_fixture("mobalytics_weapon_d54");
     assert!(

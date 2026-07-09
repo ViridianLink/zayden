@@ -23,7 +23,7 @@ use crate::model::{
     Runner,
     Weapon,
 };
-use crate::transport::{MarathonDb, Mobalytics};
+use crate::transport::{Fandom, MarathonDb, Mobalytics};
 
 const LONG_TTL: Duration = Duration::from_hours(8);
 
@@ -38,6 +38,7 @@ where
 pub struct MarathonClient {
     mobalytics: Option<Mobalytics>,
     marathondb: MarathonDb,
+    fandom: Fandom,
 
     weapon_cache: Cache<String, Arc<Weapon>>,
     weapon_list_cache: Cache<(), Arc<[Weapon]>>,
@@ -61,7 +62,8 @@ impl MarathonClient {
 
         Self {
             mobalytics,
-            marathondb: MarathonDb::new(client),
+            marathondb: MarathonDb::new(client.clone()),
+            fandom: Fandom::new(client),
             weapon_cache: ttl_cache(),
             weapon_list_cache: ttl_cache(),
             runner_cache: ttl_cache(),
