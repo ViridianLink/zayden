@@ -229,3 +229,85 @@ fn missing_document_degrades_to_none_rather_than_panicking() {
         gql::find_ug_document(&marathon_state, "builds", "does-not-exist").is_none()
     );
 }
+
+#[test]
+fn parses_map_from_mapgenie_fixtures() {
+    let taxonomy = load_fixture("mapgenie_manifest");
+    let data = load_fixture("mapgenie_map_outpost");
+
+    let map = parse::mapgenie_map_to_model("outpost", &taxonomy, &data);
+
+    assert_eq!(map.slug, "outpost");
+    assert_eq!(map.name, "Outpost");
+    // MapGenie carries no availability flag; that scalar is left for another
+    // source to fill during cross-referencing.
+    assert_eq!(map.status, None::<MapStatus>);
+
+    // Locations are sorted into sections by their MapGenie category:
+    // Exfil-family -> extractions, Access Card / Locked Room -> keycard rooms,
+    // Spawn Point / Activity / Contract -> event spawns, the rest -> POIs.
+    assert!(!map.extractions.is_empty());
+    assert!(!map.keycard_rooms.is_empty());
+    assert!(!map.event_spawns.is_empty());
+    assert!(!map.pois.is_empty());
+
+    // Upper-case MapGenie titles are rendered in title case for Discord (allow
+    // short all-caps acronyms like "TAD" through).
+    assert!(
+        map.pois
+            .iter()
+            .all(|p| p.name != p.name.to_uppercase() || p.name.len() <= 3),
+        "poi names should be title-cased, not SHOUTING"
+    );
+}
+
+#[test]
+fn cross_reference_unions_lists_and_fills_scalar_gaps() {
+    use marathon::merge::Merge;
+    use marathon::model::{Location, MapStatus, MarathonMap, Poi};
+
+    // Higher-priority source: has status but only one POI, and no image.
+    let mut primary = MarathonMap {
+        slug: "outpost".to_string(),
+        name: "Outpost".to_string(),
+        status: Some(MapStatus::Available),
+        map_image_url: None,
+        pois: vec![Poi { name: "Airfield".to_string(), description: None }],
+        extractions: Vec::new(),
+        event_spawns: Vec::new(),
+        keycard_rooms: Vec::new(),
+    };
+
+    // Lower-priority source: overlapping POI (different casing), a new POI, an
+    // extraction, and an image the primary lacks.
+    let secondary = MarathonMap {
+        slug: "outpost".to_string(),
+        name: "Outpost".to_string(),
+        status: Some(MapStatus::Locked),
+        map_image_url: Some("https://example.com/outpost.png".to_string()),
+        pois: vec![Poi { name: "AIRFIELD".to_string(), description: None }, Poi {
+            name: "Drone Wing".to_string(),
+            description: None,
+        }],
+        extractions: vec![Location {
+            name: "North Exfil".to_string(),
+            description: None,
+        }],
+        event_spawns: Vec::new(),
+        keycard_rooms: Vec::new(),
+    };
+
+    primary.merge_from(secondary);
+
+    // Higher-priority scalar wins; gap gets filled from the secondary.
+    assert_eq!(primary.status, Some(MapStatus::Available));
+    assert_eq!(
+        primary.map_image_url.as_deref(),
+        Some("https://example.com/outpost.png")
+    );
+    // Lists union with case-insensitive dedup: Airfield counted once, Drone Wing
+    // added, extraction pulled in.
+    assert_eq!(primary.pois.len(), 2);
+    assert!(primary.pois.iter().any(|p| p.name == "Drone Wing"));
+    assert_eq!(primary.extractions.len(), 1);
+}

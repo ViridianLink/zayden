@@ -263,6 +263,17 @@ pub fn build_component(build: &BuildRecipe) -> CreateComponent<'static> {
     )
 }
 
+const MAX_MAP_MARKERS: usize = 30;
+
+fn cap_markers(mut lines: Vec<String>) -> Vec<String> {
+    if lines.len() > MAX_MAP_MARKERS {
+        let extra = lines.len() - MAX_MAP_MARKERS;
+        lines.truncate(MAX_MAP_MARKERS);
+        lines.push(format!("-# …and {extra} more (see the in-game map)"));
+    }
+    lines
+}
+
 pub fn map_component(map: &MarathonMap) -> CreateComponent<'static> {
     let status = match map.status {
         Some(MapStatus::Available) => "🟢 Available",
@@ -296,7 +307,7 @@ pub fn map_component(map: &MarathonMap) -> CreateComponent<'static> {
         .iter()
         .map(|poi| named_line(&poi.name, poi.description.as_deref()))
         .collect::<Vec<_>>();
-    components.push(labelled_list("Points of Interest", &poi_lines));
+    components.push(labelled_list("Points of Interest", &cap_markers(poi_lines)));
     components.push(separator());
 
     let extraction_lines = map
@@ -304,7 +315,8 @@ pub fn map_component(map: &MarathonMap) -> CreateComponent<'static> {
         .iter()
         .map(|location| named_line(&location.name, location.description.as_deref()))
         .collect::<Vec<_>>();
-    components.push(labelled_list("Possible Extractions", &extraction_lines));
+    components
+        .push(labelled_list("Possible Extractions", &cap_markers(extraction_lines)));
     components.push(separator());
 
     let event_lines = map
@@ -312,7 +324,7 @@ pub fn map_component(map: &MarathonMap) -> CreateComponent<'static> {
         .iter()
         .map(|location| named_line(&location.name, location.description.as_deref()))
         .collect::<Vec<_>>();
-    components.push(labelled_list("Event Spawns", &event_lines));
+    components.push(labelled_list("Event Spawns", &cap_markers(event_lines)));
     components.push(separator());
 
     let keycard_lines = map
@@ -320,7 +332,8 @@ pub fn map_component(map: &MarathonMap) -> CreateComponent<'static> {
         .iter()
         .map(|room| named_line(&room.name, room.location_hint.as_deref()))
         .collect::<Vec<_>>();
-    components.push(labelled_list("Keycard / Loot Rooms", &keycard_lines));
+    components
+        .push(labelled_list("Keycard / Loot Rooms", &cap_markers(keycard_lines)));
 
     CreateComponent::Container(
         CreateContainer::new(components).accent_colour(ACCENT),

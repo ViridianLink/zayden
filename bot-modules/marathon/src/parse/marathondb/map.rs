@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
+use crate::merge::dedup;
 use crate::model::{Location, LootRoom, MapStatus, MarathonMap, Poi};
 
 #[must_use]
@@ -112,23 +113,6 @@ fn zone_names(data: &Value) -> HashMap<i64, String> {
             Some((id, name))
         })
         .collect()
-}
-
-fn dedup<T, K, F>(items: impl Iterator<Item = T>, key: F) -> Vec<T>
-where
-    K: PartialEq,
-    F: Fn(&T) -> K,
-{
-    let mut seen: Vec<K> = Vec::new();
-    let mut out: Vec<T> = Vec::new();
-    for item in items {
-        let k = key(&item);
-        if !seen.contains(&k) {
-            seen.push(k);
-            out.push(item);
-        }
-    }
-    out
 }
 
 fn string_field(value: &Value, key: &str) -> Option<String> {

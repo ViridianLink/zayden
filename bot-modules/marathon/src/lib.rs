@@ -6,6 +6,7 @@ pub mod cron;
 pub mod embeds;
 pub mod error;
 pub mod gql;
+pub mod merge;
 pub mod model;
 pub mod news;
 pub mod parse;
