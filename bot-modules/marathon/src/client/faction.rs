@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use super::MarathonClient;
+use super::{MarathonClient, collect_candidate};
 use crate::error::{MarathonError, Result};
 use crate::model::Faction;
-use crate::parse;
+use crate::source::SourceId;
+use crate::{merge, parse};
 
 impl MarathonClient {
     pub async fn factions(&self) -> Result<Arc<[Faction]>> {
@@ -11,17 +12,11 @@ impl MarathonClient {
             return Ok(cached);
         }
 
-        let factions = match self.marathondb.contracts().await {
-            Ok(contracts) => {
-                let mut factions =
-                    parse::marathondb_contracts_to_factions(&contracts);
-                for faction in &mut factions {
-                    self.enrich_faction(faction).await;
-                }
-                factions
-            },
-            Err(_) => self.factions_from_mobalytics().await?,
-        };
+        let slugs = self.faction_slugs().await?;
+        let mut factions = Vec::with_capacity(slugs.len());
+        for slug in &slugs {
+            factions.push((*self.faction(slug).await?).clone());
+        }
 
         let entry: Arc<[Faction]> = factions.into();
         self.faction_list_cache.insert((), Arc::clone(&entry)).await;
@@ -33,66 +28,104 @@ impl MarathonClient {
             return Ok(cached);
         }
 
-        let faction = match self.marathondb.contracts().await {
-            Ok(contracts) => {
-                let mut faction =
-                    parse::marathondb_contracts_to_factions(&contracts)
-                        .into_iter()
-                        .find(|f| f.slug == slug)
-                        .ok_or_else(|| MarathonError::NotFound {
-                            entity: "faction",
-                            query: slug.to_string(),
-                        })?;
-                self.enrich_faction(&mut faction).await;
-                faction
-            },
-            // Fall back to Mobalytics only if the structured source is down.
-            Err(_) if self.mobalytics.is_some() => {
-                self.faction_from_mobalytics(slug).await?
-            },
-            Err(err) => return Err(err),
-        };
+        let candidates = self.gather_faction(slug).await;
+        let faction = merge::faction(&candidates).ok_or_else(|| {
+            MarathonError::NotFound { entity: "faction", query: slug.to_string() }
+        })?;
 
         let entry = Arc::new(faction);
         self.faction_cache.insert(slug.to_string(), Arc::clone(&entry)).await;
         Ok(entry)
     }
 
-    async fn enrich_faction(&self, faction: &mut Faction) {
-        if faction.upgrades.is_empty()
-            && let Some(mobalytics) = &self.mobalytics
-            && let Ok(doc) = mobalytics
-                .fetch_document(&format!("factions/{}", faction.slug))
-                .await
-        {
-            faction.upgrades = parse::parse_faction(&faction.slug, &doc).upgrades;
-        }
+    async fn gather_faction(&self, slug: &str) -> Vec<(SourceId, Faction)> {
+        let (marathondb, mobalytics, cyberacme) = tokio::join!(
+            self.marathondb_faction(slug),
+            self.mobalytics_faction(slug),
+            self.cyberacme_faction(slug),
+        );
+
+        let mut out = Vec::new();
+        collect_candidate(
+            &mut out,
+            SourceId::MarathonDb,
+            marathondb,
+            slug,
+            "faction",
+        );
+        collect_candidate(
+            &mut out,
+            SourceId::Mobalytics,
+            mobalytics,
+            slug,
+            "faction",
+        );
+        collect_candidate(&mut out, SourceId::CyberAcme, cyberacme, slug, "faction");
+        out
     }
 
-    async fn factions_from_mobalytics(&self) -> Result<Vec<Faction>> {
-        let Some(mobalytics) = &self.mobalytics else {
-            return Err(MarathonError::SourceUnavailable);
-        };
-        let doc = mobalytics.fetch_document("factions").await?;
-
-        let mut factions = Vec::new();
-        for stub in parse::parse_faction_listing(&doc) {
-            match mobalytics.fetch_document(&format!("factions/{}", stub.slug)).await
-            {
-                Ok(detail) => {
-                    factions.push(parse::parse_faction(&stub.slug, &detail));
-                },
-                Err(_) => factions.push(stub),
-            }
-        }
-        Ok(factions)
+    async fn marathondb_faction(&self, slug: &str) -> Result<Faction> {
+        let contracts = self.marathondb.contracts().await?;
+        parse::marathondb_contracts_to_factions(&contracts)
+            .into_iter()
+            .find(|f| f.slug == slug)
+            .ok_or_else(|| MarathonError::NotFound {
+                entity: "faction",
+                query: slug.to_string(),
+            })
     }
 
-    async fn faction_from_mobalytics(&self, slug: &str) -> Result<Faction> {
+    async fn mobalytics_faction(&self, slug: &str) -> Result<Faction> {
         let Some(mobalytics) = &self.mobalytics else {
             return Err(MarathonError::SourceUnavailable);
         };
         let doc = mobalytics.fetch_document(&format!("factions/{slug}")).await?;
         Ok(parse::parse_faction(slug, &doc))
+    }
+
+    async fn cyberacme_faction(&self, slug: &str) -> Result<Faction> {
+        let envelope = self.cyberacme.faction(slug).await?;
+        Ok(parse::cyberacme_faction_to_model(slug, &envelope))
+    }
+
+    async fn faction_slugs(&self) -> Result<Vec<String>> {
+        let mut slugs: Vec<String> = Vec::new();
+        let mut push = |slug: String| {
+            if !slugs.contains(&slug) {
+                slugs.push(slug);
+            }
+        };
+
+        match self.marathondb.contracts().await {
+            Ok(contracts) => parse::marathondb_contracts_to_factions(&contracts)
+                .into_iter()
+                .for_each(|f| push(f.slug)),
+            Err(err) => tracing::debug!(%err, "marathondb faction list unavailable"),
+        }
+
+        if let Some(mobalytics) = &self.mobalytics
+            && let Ok(doc) = mobalytics.fetch_document("factions").await
+        {
+            for f in parse::parse_faction_listing(&doc) {
+                push(f.slug);
+            }
+        }
+
+        match self.cyberacme.factions().await {
+            Ok(factions) => factions
+                .iter()
+                .filter_map(|f| {
+                    f.get("slug")
+                        .and_then(serde_json::Value::as_str)
+                        .map(str::to_string)
+                })
+                .for_each(&mut push),
+            Err(err) => tracing::debug!(%err, "cyberacme faction list unavailable"),
+        }
+
+        if slugs.is_empty() {
+            return Err(MarathonError::SourceUnavailable);
+        }
+        Ok(slugs)
     }
 }

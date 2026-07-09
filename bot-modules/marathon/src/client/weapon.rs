@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use super::MarathonClient;
+use super::{MarathonClient, collect_candidate};
 use crate::error::{MarathonError, Result};
 use crate::model::{Attachment, Weapon};
-use crate::parse;
+use crate::source::SourceId;
+use crate::{merge, parse};
 
 impl MarathonClient {
     pub async fn weapon(&self, slug: &str) -> Result<Arc<Weapon>> {
@@ -18,41 +19,62 @@ impl MarathonClient {
         Ok(entry)
     }
 
+    /// Fetch the weapon from every source, cross-reference into one record, and
+    /// backfill lore from the wiki if no source supplied a description.
     async fn fetch_weapon(&self, slug: &str) -> Result<Weapon> {
-        match self.marathondb.weapon(slug).await {
-            Ok(data) => {
-                let mut weapon = parse::marathondb_weapon_to_model(slug, &data);
-                self.enrich_weapon(&mut weapon).await;
-                Ok(weapon)
-            },
-            Err(err) => match &self.mobalytics {
-                Some(mobalytics) => {
-                    let doc = mobalytics
-                        .fetch_document(&format!("weapons/{slug}"))
-                        .await?;
-                    Ok(parse::parse_weapon(slug, &doc))
-                },
-                None => Err(err),
-            },
-        }
-    }
-
-    async fn enrich_weapon(&self, weapon: &mut Weapon) {
-        if weapon.attachment_slots.is_empty()
-            && let Some(mobalytics) = &self.mobalytics
-            && let Ok(doc) =
-                mobalytics.fetch_document(&format!("weapons/{}", weapon.slug)).await
-        {
-            let parsed = parse::parse_weapon(&weapon.slug, &doc);
-            weapon.attachment_slots = parsed.attachment_slots;
-            if weapon.thumbnail_url.is_none() {
-                weapon.thumbnail_url = parsed.thumbnail_url;
-            }
-        }
+        let candidates = self.gather_weapon(slug).await;
+        let mut weapon = merge::weapon(&candidates).ok_or_else(|| {
+            MarathonError::NotFound { entity: "weapon", query: slug.to_string() }
+        })?;
 
         if weapon.description.is_none() {
             weapon.description = self.fandom.description(&weapon.name).await;
         }
+        Ok(weapon)
+    }
+
+    async fn gather_weapon(&self, slug: &str) -> Vec<(SourceId, Weapon)> {
+        let (marathondb, mobalytics, cyberacme) = tokio::join!(
+            self.marathondb_weapon(slug),
+            self.mobalytics_weapon(slug),
+            self.cyberacme_weapon(slug),
+        );
+
+        let mut out = Vec::new();
+        collect_candidate(
+            &mut out,
+            SourceId::MarathonDb,
+            marathondb,
+            slug,
+            "weapon",
+        );
+        collect_candidate(
+            &mut out,
+            SourceId::Mobalytics,
+            mobalytics,
+            slug,
+            "weapon",
+        );
+        collect_candidate(&mut out, SourceId::CyberAcme, cyberacme, slug, "weapon");
+        out
+    }
+
+    async fn marathondb_weapon(&self, slug: &str) -> Result<Weapon> {
+        let data = self.marathondb.weapon(slug).await?;
+        Ok(parse::marathondb_weapon_to_model(slug, &data))
+    }
+
+    async fn mobalytics_weapon(&self, slug: &str) -> Result<Weapon> {
+        let Some(mobalytics) = &self.mobalytics else {
+            return Err(MarathonError::SourceUnavailable);
+        };
+        let doc = mobalytics.fetch_document(&format!("weapons/{slug}")).await?;
+        Ok(parse::parse_weapon(slug, &doc))
+    }
+
+    async fn cyberacme_weapon(&self, slug: &str) -> Result<Weapon> {
+        let item = self.cyberacme.item(slug).await?;
+        Ok(parse::cyberacme_item_to_weapon(slug, &item))
     }
 
     pub async fn weapons(&self) -> Result<Arc<[Weapon]>> {

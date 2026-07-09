@@ -14,6 +14,7 @@ use std::time::Duration;
 use moka::future::Cache;
 use reqwest::Client;
 
+use crate::error::Result;
 use crate::model::{
     BuildRecipe,
     Cradle,
@@ -23,9 +24,25 @@ use crate::model::{
     Runner,
     Weapon,
 };
-use crate::transport::{Fandom, MapGenie, MarathonDb, Mobalytics};
+use crate::source::SourceId;
+use crate::transport::{CyberAcme, Fandom, MapGenie, MarathonDb, Mobalytics};
 
 const LONG_TTL: Duration = Duration::from_hours(8);
+
+fn collect_candidate<T>(
+    out: &mut Vec<(SourceId, T)>,
+    source: SourceId,
+    result: Result<T>,
+    slug: &str,
+    entity: &str,
+) {
+    match result {
+        Ok(value) => out.push((source, value)),
+        Err(err) => {
+            tracing::debug!(%source, %slug, entity, %err, "source unavailable");
+        },
+    }
+}
 
 fn ttl_cache<K, V>() -> Cache<K, V>
 where
@@ -40,6 +57,7 @@ pub struct MarathonClient {
     marathondb: MarathonDb,
     mapgenie: MapGenie,
     fandom: Fandom,
+    cyberacme: CyberAcme,
 
     weapon_cache: Cache<String, Arc<Weapon>>,
     weapon_list_cache: Cache<(), Arc<[Weapon]>>,
@@ -65,6 +83,7 @@ impl MarathonClient {
             mobalytics,
             marathondb: MarathonDb::new(client.clone()),
             mapgenie: MapGenie::new(client.clone()),
+            cyberacme: CyberAcme::new(client.clone()),
             fandom: Fandom::new(client),
             weapon_cache: ttl_cache(),
             weapon_list_cache: ttl_cache(),

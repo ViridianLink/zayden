@@ -5,6 +5,7 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 
 use crate::error::{MarathonError, Result};
+use crate::parse::html;
 
 const GAME: &str = "marathon";
 const SEED_MAP: &str = "perimeter";
@@ -111,45 +112,7 @@ fn roster_from_data(data: &Value) -> Vec<(String, i64)> {
         .collect()
 }
 
-fn extract_map_data(html: &str) -> Result<Value> {
-    let (_, rest) = html.split_once(MAP_DATA_MARKER).ok_or_else(|| {
-        MarathonError::Parse("mapgenie page has no window.mapData".into())
-    })?;
-    let json = balanced_object(rest)?;
-    serde_json::from_str(json).map_err(|e| MarathonError::Parse(e.to_string()))
-}
-
-fn balanced_object(s: &str) -> Result<&str> {
-    let mut depth: i32 = 0;
-    let mut in_string = false;
-    let mut escaped = false;
-
-    for (i, b) in s.bytes().enumerate() {
-        if in_string {
-            if escaped {
-                escaped = false;
-            } else if b == b'\\' {
-                escaped = true;
-            } else if b == b'"' {
-                in_string = false;
-            }
-            continue;
-        }
-
-        match b {
-            b'"' => in_string = true,
-            b'{' => depth += 1,
-            b'}' => {
-                depth -= 1;
-                if depth == 0 {
-                    return s.get(..=i).ok_or_else(|| {
-                        MarathonError::Parse("mapgenie json slicing error".into())
-                    });
-                }
-            },
-            _ => {},
-        }
-    }
-
-    Err(MarathonError::Parse("mapgenie window.mapData is unbalanced".into()))
+fn extract_map_data(page: &str) -> Result<Value> {
+    let doc = html::document(page);
+    html::script_json_after_marker(&doc, MAP_DATA_MARKER)
 }

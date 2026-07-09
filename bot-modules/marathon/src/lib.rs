@@ -11,4 +11,5 @@ pub mod model;
 pub mod news;
 pub mod parse;
 pub mod schedule_rules;
+pub mod source;
 pub mod transport;

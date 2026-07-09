@@ -1,6 +1,8 @@
 mod build;
 mod cradle;
+mod cyberacme;
 mod faction;
+pub mod html;
 mod lexical;
 mod map;
 mod mapgenie;
@@ -11,6 +13,11 @@ mod weapon;
 
 pub use build::parse_build;
 pub use cradle::parse_cradle;
+pub use cyberacme::{
+    cyberacme_faction_to_model,
+    cyberacme_item_to_weapon,
+    cyberacme_runner_to_model,
+};
 pub use faction::{parse_faction, parse_faction_listing};
 pub use map::parse_map;
 pub use mapgenie::mapgenie_map_to_model;
