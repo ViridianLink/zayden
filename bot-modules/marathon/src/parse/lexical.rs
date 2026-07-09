@@ -105,6 +105,25 @@ pub(super) fn single_cell_rows(widget_data: &Value) -> Vec<String> {
         .collect()
 }
 
+pub(super) fn first_image_src(widget_data: &Value) -> Option<String> {
+    let root = widget_data.pointer("/contentV2/root")?;
+    find_image_src(root)
+}
+
+fn find_image_src(node: &Value) -> Option<String> {
+    let obj = node.as_object()?;
+
+    if obj.get("type").and_then(Value::as_str) == Some("image") {
+        return obj.get("src").and_then(Value::as_str).map(str::to_string);
+    }
+
+    obj.get("children")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .find_map(find_image_src)
+}
+
 pub(super) fn plain_paragraphs(widget_data: &Value) -> Vec<String> {
     let mut out = Vec::new();
     if let Some(root) = widget_data.pointer("/contentV2/root") {

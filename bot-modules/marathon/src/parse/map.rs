@@ -2,6 +2,7 @@ use serde_json::Value;
 
 use super::lexical::{
     content_array,
+    first_image_src,
     header_fields,
     is_content_widget,
     tables_in_widget,
@@ -15,6 +16,7 @@ pub fn parse_map(slug: &str, doc_data: &Value) -> MarathonMap {
     let content = content_array(doc_data);
     let (name, _description, _thumbnail) = header_fields(content);
 
+    let mut map_image_url = None;
     let mut pois = Vec::new();
     let mut extractions = Vec::new();
     let mut event_spawns = Vec::new();
@@ -34,6 +36,13 @@ pub fn parse_map(slug: &str, doc_data: &Value) -> MarathonMap {
                 .any(|kw| lower.contains(kw));
         if !is_relevant {
             continue;
+        }
+
+        if map_image_url.is_none()
+            && lower.contains("spawn")
+            && lower.contains("exfil")
+        {
+            map_image_url = first_image_src(widget_data(widget));
         }
 
         for row in tables_in_widget(widget_data(widget)).into_iter().flatten() {
@@ -66,8 +75,8 @@ pub fn parse_map(slug: &str, doc_data: &Value) -> MarathonMap {
     MarathonMap {
         slug: slug.to_string(),
         name: name.unwrap_or_else(|| slug.to_string()),
-        status: None, /* confirmed absent from the source - see Design §Unverified
-                       * Assumptions 5 */
+        status: None,
+        map_image_url,
         pois,
         extractions,
         event_spawns,

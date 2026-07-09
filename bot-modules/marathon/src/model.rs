@@ -110,6 +110,7 @@ pub struct MarathonMap {
     pub slug: String,
     pub name: String,
     pub status: Option<MapStatus>,
+    pub map_image_url: Option<String>,
     pub pois: Vec<Poi>,
     pub extractions: Vec<Location>,
     pub event_spawns: Vec<Location>,

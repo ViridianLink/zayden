@@ -186,6 +186,7 @@ fn map_component_renders_all_sections_and_status() {
         slug: "perimeter".to_string(),
         name: "Perimeter".to_string(),
         status: Some(MapStatus::Duo),
+        map_image_url: Some("https://example.com/perimeter-map.png".to_string()),
         pois: vec![Poi { name: "Lighthouse".to_string(), description: None }],
         extractions: vec![Location {
             name: "North Dock".to_string(),
@@ -210,6 +211,7 @@ fn map_component_renders_all_sections_and_status() {
     assert!(json.contains("Vault Room"));
     assert!(json.contains("Armory"));
     assert!(json.contains("Behind the lighthouse."));
+    assert!(json.contains("https://example.com/perimeter-map.png"));
 }
 
 #[test]

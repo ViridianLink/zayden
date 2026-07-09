@@ -6,6 +6,8 @@ use serenity::all::{
     CreateComponent,
     CreateContainer,
     CreateContainerComponent,
+    CreateMediaGallery,
+    CreateMediaGalleryItem,
     CreateSection,
     CreateSectionAccessory,
     CreateSectionComponent,
@@ -271,6 +273,23 @@ pub fn map_component(map: &MarathonMap) -> CreateComponent<'static> {
 
     let mut components =
         vec![text(format!("# {}\n**Status:** {status}", map.name)), separator()];
+
+    if let Some(map_image_url) = &map.map_image_url {
+        components.push(CreateContainerComponent::MediaGallery(
+            CreateMediaGallery::new(vec![
+                CreateMediaGalleryItem::new(CreateUnfurledMediaItem::new(
+                    map_image_url.clone(),
+                ))
+                .description(format!("{} spawn and exfil map", map.name)),
+            ]),
+        ));
+        components.push(text(
+            "-# Marker counts below come from the source wiki's legend and \
+             may be stale — the map above is the more reliable reference."
+                .to_string(),
+        ));
+        components.push(separator());
+    }
 
     let poi_lines = map
         .pois

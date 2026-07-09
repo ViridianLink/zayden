@@ -114,6 +114,11 @@ fn parses_map_from_mobalytics_fixture() {
     assert_eq!(map.status, None::<MapStatus>);
     assert!(!map.extractions.is_empty());
     assert!(map.extractions.iter().any(|l| l.name.contains("Exfil")));
+    assert!(
+        map.map_image_url
+            .as_deref()
+            .is_some_and(|url| url.contains("map-perimeter-starter.png"))
+    );
 }
 
 #[test]
