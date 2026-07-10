@@ -114,8 +114,8 @@ impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for WebhookLogger {
     ) {
         let metadata = event.metadata();
 
-        let mut message = StringVisitor(String::new());
-        event.record(&mut message);
+        let mut visitor = StringVisitor::new();
+        event.record(&mut visitor);
 
         let level = *metadata.level();
         let target = metadata.target();
@@ -123,25 +123,55 @@ impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for WebhookLogger {
             return;
         }
 
+        let message = visitor.into_string();
+        if message.is_empty() {
+            return;
+        }
+
         let this = self.clone();
         this.0.handle.clone().spawn(async move {
-            this.send_log(level, target, message.0).await;
+            this.send_log(level, target, message).await;
         });
     }
 }
 
-struct StringVisitor(String);
+struct StringVisitor {
+    message: String,
+    fields: String,
+}
+
+impl StringVisitor {
+    const fn new() -> Self {
+        Self { message: String::new(), fields: String::new() }
+    }
+
+    fn into_string(self) -> String {
+        if self.fields.is_empty() {
+            self.message
+        } else {
+            format!("{} |{}", self.message, self.fields)
+        }
+    }
+}
 
 impl tracing::field::Visit for StringVisitor {
     fn record_debug(
         &mut self,
-        _field: &tracing::field::Field,
+        field: &tracing::field::Field,
         value: &dyn std::fmt::Debug,
     ) {
-        let _ = write!(self.0, "{value:?}");
+        if field.name() == "message" {
+            let _ = write!(self.message, "{value:?}");
+        } else {
+            let _ = write!(self.fields, " {}={:?}", field.name(), value);
+        }
     }
 
-    fn record_str(&mut self, _field: &tracing::field::Field, value: &str) {
-        self.0.push_str(value);
+    fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
+        if field.name() == "message" {
+            self.message.push_str(value);
+        } else {
+            let _ = write!(self.fields, " {}={}", field.name(), value);
+        }
     }
 }

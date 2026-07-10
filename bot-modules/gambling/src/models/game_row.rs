@@ -4,7 +4,7 @@ use sqlx::{Database, FromRow, Pool};
 use zayden_core::as_i64;
 
 use super::{Coins, Gems, MaxBet};
-use crate::Prestige;
+use crate::{Prestige, START_AMOUNT};
 
 #[async_trait]
 pub trait GameManager<Db: Database> {
@@ -31,7 +31,7 @@ impl GameRow {
 
         Self {
             user_id: as_i64(id.get()),
-            coins: 0,
+            coins: START_AMOUNT,
             gems: 0,
             level: Some(0),
             prestige: Some(0),

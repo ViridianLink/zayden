@@ -279,17 +279,6 @@ impl HigherLower {
         pool: &Pool<Db>,
         emojis: &EmojiCache,
     ) -> Result<()> {
-        let mut tx = pool.begin().await?;
-
-        StatsHandler::higherlower(
-            &mut *tx,
-            interaction.user.id,
-            i32::try_from(self.payout / 1000).unwrap_or(i32::MAX),
-        )
-        .await?;
-
-        tx.commit().await?;
-
         let mut row = GameHandler::row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
@@ -315,6 +304,17 @@ impl HigherLower {
             .await?;
 
         GameHandler::save(pool, row).await?;
+
+        let mut tx = pool.begin().await?;
+
+        StatsHandler::higherlower(
+            &mut *tx,
+            interaction.user.id,
+            i32::try_from(self.payout / 1000).unwrap_or(i32::MAX),
+        )
+        .await?;
+
+        tx.commit().await?;
 
         let result = format!("Payout: {}", self.payout.format());
 
