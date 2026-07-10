@@ -7,6 +7,7 @@ mod lexical;
 mod map;
 mod mapgenie;
 mod marathondb;
+mod marathonmeta;
 mod meta;
 mod runner;
 mod tauceti;
@@ -28,6 +29,7 @@ pub use marathondb::{
     marathondb_runner_to_model,
     marathondb_weapon_to_model,
 };
+pub use marathonmeta::{marathonmeta_html_to_runner, marathonmeta_html_to_weapon};
 pub use meta::parse_meta;
 pub use runner::parse_runner;
 pub use tauceti::{

@@ -19,8 +19,6 @@ impl MarathonClient {
         Ok(entry)
     }
 
-    /// Fetch the weapon from every source, cross-reference into one record, and
-    /// backfill lore from the wiki if no source supplied a description.
     async fn fetch_weapon(&self, slug: &str) -> Result<Weapon> {
         let candidates = self.gather_weapon(slug).await;
         let mut weapon = merge::weapon(&candidates).ok_or_else(|| {
@@ -34,11 +32,12 @@ impl MarathonClient {
     }
 
     async fn gather_weapon(&self, slug: &str) -> Vec<(SourceId, Weapon)> {
-        let (marathondb, mobalytics, cyberacme, tauceti) = tokio::join!(
+        let (marathondb, mobalytics, cyberacme, tauceti, marathonmeta) = tokio::join!(
             self.marathondb_weapon(slug),
             self.mobalytics_weapon(slug),
             self.cyberacme_weapon(slug),
             self.tauceti_weapon(slug),
+            self.marathonmeta_weapon(slug),
         );
 
         let mut out = Vec::new();
@@ -58,6 +57,13 @@ impl MarathonClient {
         );
         collect_candidate(&mut out, SourceId::CyberAcme, cyberacme, slug, "weapon");
         collect_candidate(&mut out, SourceId::TauCeti, tauceti, slug, "weapon");
+        collect_candidate(
+            &mut out,
+            SourceId::MarathonMeta,
+            marathonmeta,
+            slug,
+            "weapon",
+        );
         out
     }
 
@@ -85,6 +91,14 @@ impl MarathonClient {
         };
         let item = tauceti.weapon(slug).await?;
         Ok(parse::tauceti_item_to_weapon(slug, &item))
+    }
+
+    async fn marathonmeta_weapon(&self, slug: &str) -> Result<Weapon> {
+        let Some(marathonmeta) = &self.marathonmeta else {
+            return Err(MarathonError::SourceUnavailable);
+        };
+        let rendered = marathonmeta.weapon(slug).await?;
+        Ok(parse::marathonmeta_html_to_weapon(slug, &rendered))
     }
 
     pub async fn weapons(&self) -> Result<Arc<[Weapon]>> {

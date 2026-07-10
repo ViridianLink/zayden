@@ -30,6 +30,7 @@ use crate::transport::{
     Fandom,
     MapGenie,
     MarathonDb,
+    MarathonMeta,
     Mobalytics,
     TauCeti,
 };
@@ -62,6 +63,7 @@ where
 pub struct MarathonClient {
     mobalytics: Option<Mobalytics>,
     tauceti: Option<TauCeti>,
+    marathonmeta: Option<MarathonMeta>,
     marathondb: MarathonDb,
     mapgenie: MapGenie,
     fandom: Fandom,
@@ -87,12 +89,16 @@ impl MarathonClient {
         let tauceti = flaresolverr_url
             .as_ref()
             .map(|url| TauCeti::new(client.clone(), url.clone()));
+        let marathonmeta = flaresolverr_url
+            .as_ref()
+            .map(|url| MarathonMeta::new(client.clone(), url.clone()));
         let mobalytics =
             flaresolverr_url.map(|url| Mobalytics::new(client.clone(), url));
 
         Self {
             mobalytics,
             tauceti,
+            marathonmeta,
             marathondb: MarathonDb::new(client.clone()),
             mapgenie: MapGenie::new(client.clone()),
             cyberacme: CyberAcme::new(client.clone()),

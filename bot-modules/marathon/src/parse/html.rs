@@ -1,4 +1,4 @@
-use scraper::{Html, Selector};
+use scraper::{ElementRef, Html, Selector};
 use serde_json::Value;
 
 use crate::error::{MarathonError, Result};
@@ -13,13 +13,43 @@ fn selector(css: &str) -> Result<Selector> {
         .map_err(|e| MarathonError::Parse(format!("invalid selector `{css}`: {e}")))
 }
 
+/// Concatenate an element's descendant text and collapse runs of whitespace.
+fn element_text(el: ElementRef<'_>) -> String {
+    let joined = el.text().collect::<Vec<_>>().join(" ");
+    joined.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 pub fn text_of(doc: &Html, css: &str) -> Result<Option<String>> {
     let sel = selector(css)?;
     Ok(doc.select(&sel).next().and_then(|el| {
-        let joined = el.text().collect::<Vec<_>>().join(" ");
-        let cleaned = joined.split_whitespace().collect::<Vec<_>>().join(" ");
+        let cleaned = element_text(el);
         (!cleaned.is_empty()).then_some(cleaned)
     }))
+}
+
+/// For every element matching `row_css`, pair the text of its first two
+/// descendant `<span>` elements as `(label, value)`.
+///
+/// This suits the common "stat row" shape used by server-rendered dashboards
+/// (`<div><span>Label</span><span>Value</span>…</div>`); a trailing third span
+/// such as a tooltip is ignored. Rows without two spans, or whose label or
+/// value is blank, are skipped.
+pub fn span_pairs(doc: &Html, row_css: &str) -> Result<Vec<(String, String)>> {
+    let rows = selector(row_css)?;
+    let span = selector("span")?;
+    let mut out = Vec::new();
+    for row in doc.select(&rows) {
+        let mut spans = row.select(&span);
+        let (Some(label), Some(value)) = (spans.next(), spans.next()) else {
+            continue;
+        };
+        let label = element_text(label);
+        let value = element_text(value);
+        if !label.is_empty() && !value.is_empty() {
+            out.push((label, value));
+        }
+    }
+    Ok(out)
 }
 
 pub fn attr_of(doc: &Html, css: &str, attr: &str) -> Result<Option<String>> {
