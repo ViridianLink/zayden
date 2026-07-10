@@ -20,6 +20,7 @@ lfg = { workspace = true }
 llamad2 = { workspace = true }
 marathon = { workspace = true }
 music = { workspace = true }
+palworld = { workspace = true }
 reaction-roles = { workspace = true }
 suggestions = { workspace = true }
 temp-voice = { workspace = true }

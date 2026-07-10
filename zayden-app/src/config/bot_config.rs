@@ -47,7 +47,9 @@ pub struct BotConfig {
     pub error_log_webhook: Option<String>,
     pub normal_log_webhook: Option<String>,
 
-    pub marathon_flaresolverr_url: Option<String>,
+    pub flaresolverr_url: Option<String>,
+
+    pub palworld_paldex_url: Option<String>,
 
     pub frontend_url: String,
     pub redirect_uri: String,
@@ -119,7 +121,9 @@ impl BotConfig {
                 .and_then(|r| r.normal_log_webhook.clone())
                 .or(toml_cfg.webhooks.normal_log),
 
-            marathon_flaresolverr_url: env::var("MARATHON_FLARESOLVERR_URL").ok(),
+            flaresolverr_url: env::var("FLARESOLVERR_URL").ok(),
+
+            palworld_paldex_url: env::var("PALWORLD_PALDEX_URL").ok(),
 
             frontend_url: toml_cfg
                 .dashboard

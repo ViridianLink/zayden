@@ -20,6 +20,8 @@ config.toml
 # Test fixtures must be committed despite the blanket *.json/*.md ignores above.
 !bot-modules/marathon/tests/fixtures/
 !bot-modules/marathon/tests/fixtures/**
+!bot-modules/palworld/tests/fixtures/
+!bot-modules/palworld/tests/fixtures/**
 
 # Frontend
 # Logs

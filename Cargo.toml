@@ -142,6 +142,7 @@ lfg = { path = "./bot-modules/lfg" }
 llamad2 = { path = "./bot-modules/llamad2" }
 marathon = { path = "./bot-modules/marathon" }
 music = { path = "./bot-modules/music" }
+palworld = { path = "./bot-modules/palworld" }
 reaction-roles = { path = "./bot-modules/reaction-roles" }
 suggestions = { path = "./bot-modules/suggestions" }
 temp-voice = { path = "./bot-modules/temp-voice" }

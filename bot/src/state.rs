@@ -8,6 +8,7 @@ use llamad2::GoodMorningCache;
 use marathon::client::MarathonClient;
 use marathon::cron::{MarathonAnnounceCron, MarathonNewsCron};
 use music::{MusicManager, MusicSettingsRow, TrackResolver};
+use palworld::client::PalworldClient;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::{PgPool, Postgres};
@@ -35,6 +36,7 @@ pub struct BotState {
     pub music_resolver: Arc<dyn TrackResolver>,
     pub voice_states: Arc<VoiceStateCache>,
     pub marathon: Arc<MarathonClient>,
+    pub palworld: Arc<PalworldClient>,
     bungie_client: Arc<BungieClient>,
     marathon_bungie_api_key: String,
     emoji_cache: Arc<EmojiCache>,
@@ -55,7 +57,13 @@ impl BotState {
 
         let marathon = Arc::new(MarathonClient::new(
             app.http.clone(),
-            config.marathon_flaresolverr_url.clone(),
+            config.flaresolverr_url.clone(),
+        ));
+
+        let palworld = Arc::new(PalworldClient::new(
+            app.http.clone(),
+            config.flaresolverr_url.clone(),
+            config.palworld_paldex_url.clone(),
         ));
 
         let music_settings =
@@ -73,6 +81,7 @@ impl BotState {
             music_resolver,
             voice_states: Arc::new(VoiceStateCache::new()),
             marathon,
+            palworld,
             bungie_client: Arc::new(bungie_client),
             marathon_bungie_api_key: config.bungie_api_key.clone(),
             emoji_cache: Arc::default(),

@@ -1,0 +1,24 @@
+[package]
+name = "palworld"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+zayden-core = { workspace = true }
+
+moka = { workspace = true, features = ["future"] }
+reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
+scraper = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+serenity = { workspace = true, features = ["rustls_backend", "builder", "gateway"] }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }

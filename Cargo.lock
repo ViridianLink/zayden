@@ -465,6 +465,7 @@ dependencies = [
  "llamad2",
  "marathon",
  "music",
+ "palworld",
  "rand 0.10.2",
  "reaction-roles",
  "rustls",
@@ -4021,6 +4022,22 @@ checksum = "fe42f1670a52a47d448f14b6a5c61dd78fce51856e68edaa38f7ae3a46b8d6b6"
 dependencies = [
  "elliptic-curve",
  "primeorder",
+]
+
+[[package]]
+name = "palworld"
+version = "1.0.0"
+dependencies = [
+ "moka",
+ "reqwest 0.13.4",
+ "scraper",
+ "serde",
+ "serde_json",
+ "serenity",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "zayden-core",
 ]
 
 [[package]]

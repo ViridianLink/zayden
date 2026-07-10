@@ -1,0 +1,12 @@
+pub mod autocomplete;
+pub mod breeding;
+pub mod client;
+pub mod commands;
+pub mod embeds;
+pub mod error;
+pub mod merge;
+pub mod model;
+pub mod parse;
+pub mod source;
+pub mod transport;
+pub mod typechart;
