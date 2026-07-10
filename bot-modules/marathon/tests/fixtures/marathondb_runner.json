@@ -1,0 +1,127 @@
+{
+    "success": true,
+    "data": {
+        "id": 2,
+        "slug": "assassin",
+        "name": "Assassin",
+        "prior_name": "Stealth",
+        "rename_notes": "Renamed from Stealth to Assassin",
+        "role": "Shadow Agent",
+        "tech": "Invisibility systems",
+        "description": "Active Camo and synthetic smoke deployment allows for unseen strikes or the perfect cover during hostile engagements. The ability to move undetected makes Assassins valued allies and lethal enemies.",
+        "lore_excerpt": "excerpt, UESC threat eval: rnnr.assn.fileID70064c_p223",
+        "portrait_url": "https://helpbot.marathondb.gg/assets/runners/assassin/portrait.png",
+        "portrait_url_webp": "https://helpbot.marathondb.gg/assets/runners/assassin/portrait.webp",
+        "hero_url": "https://helpbot.marathondb.gg/assets/runners/assassin/hero.png",
+        "hero_url_webp": "https://helpbot.marathondb.gg/assets/runners/assassin/hero.webp",
+        "abilities": [
+            {
+                "ability_type": "tech",
+                "name": "Invisibility Systems",
+                "description": "Active Camo and synthetic smoke deployment allows for unseen strikes or the perfect cover during hostile engagements.",
+                "cooldown_seconds": null,
+                "icon_url": "https://helpbot.marathondb.gg/assets/runners/assassin/abilities/tech.png"
+            },
+            {
+                "ability_type": "prime",
+                "name": "Smoke Screen",
+                "description": "Throw a smoke disc that emits a line of smoke fields in front of you, disrupting the optics of those who step inside.",
+                "cooldown_seconds": 163,
+                "icon_url": "https://helpbot.marathondb.gg/assets/runners/assassin/abilities/prime.png"
+            },
+            {
+                "ability_type": "tactical",
+                "name": "Active Camo",
+                "description": "Activate your shell's camouflage systems, pulling a shroud of invisibility over yourself. Performing offensive actions, taking damage, and using abilities or consumables briefly disrupts your invisibility.",
+                "cooldown_seconds": 78,
+                "icon_url": "https://helpbot.marathondb.gg/assets/runners/assassin/abilities/tactical.png"
+            },
+            {
+                "ability_type": "trait_1",
+                "name": "Shadow Dive",
+                "description": "Activate while airborne to slam a smoke disc into the ground, deploying a smoke field.",
+                "cooldown_seconds": 57,
+                "icon_url": "https://helpbot.marathondb.gg/assets/runners/assassin/abilities/trait-1.png"
+            },
+            {
+                "ability_type": "trait_2",
+                "name": "Shroud",
+                "description": "Your shell automatically activates its camouflage systems when entering any smoke field, making you invisible. Invisibility persists for a short time after leaving the smoke field.",
+                "cooldown_seconds": null,
+                "icon_url": "https://helpbot.marathondb.gg/assets/runners/assassin/abilities/trait-2.png"
+            }
+        ],
+        "stats": [
+            {
+                "season_id": 2,
+                "season_name": "Server Slam",
+                "season_version": "Server Slam",
+                "patch_version": "0.9.0.0",
+                "patch_notes": null,
+                "season_type": "beta",
+                "release_date": "2026-02-26",
+                "is_current": true,
+                "heat_capacity": 10,
+                "agility": 20,
+                "loot_speed": 15,
+                "melee_damage": 10,
+                "prime_recovery": 10,
+                "tactical_recovery": 5,
+                "self_repair_speed": 10,
+                "finisher_siphon": 10,
+                "revive_speed": 15,
+                "hardware": 10,
+                "firewall": 20,
+                "fall_resistance": 10,
+                "ping_duration": 10
+            },
+            {
+                "season_id": 3,
+                "season_name": "Season 1 - First Step",
+                "season_version": null,
+                "patch_version": "1.0.0",
+                "patch_notes": null,
+                "season_type": "release",
+                "release_date": "2026-03-05",
+                "is_current": true,
+                "heat_capacity": 10,
+                "agility": 20,
+                "loot_speed": 15,
+                "melee_damage": 10,
+                "prime_recovery": 10,
+                "tactical_recovery": 5,
+                "self_repair_speed": 10,
+                "finisher_siphon": 10,
+                "revive_speed": 15,
+                "hardware": 10,
+                "firewall": 20,
+                "fall_resistance": 10,
+                "ping_duration": 10
+            },
+            {
+                "season_id": 4,
+                "season_name": "Season 2",
+                "season_version": null,
+                "patch_version": null,
+                "patch_notes": null,
+                "season_type": "release",
+                "release_date": "2026-06-02",
+                "is_current": false,
+                "heat_capacity": 10,
+                "agility": 20,
+                "loot_speed": 15,
+                "melee_damage": 10,
+                "prime_recovery": 10,
+                "tactical_recovery": 5,
+                "self_repair_speed": 10,
+                "finisher_siphon": 10,
+                "revive_speed": 15,
+                "hardware": 10,
+                "firewall": 20,
+                "fall_resistance": 10,
+                "ping_duration": 10
+            }
+        ],
+        "rating": null
+    }
+}

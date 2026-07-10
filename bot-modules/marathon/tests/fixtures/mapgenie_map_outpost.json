@@ -1,0 +1,3541 @@
+{
+    "maps": [
+        {
+            "id": 883,
+            "title": "Perimeter",
+            "slug": "perimeter"
+        },
+        {
+            "id": 884,
+            "title": "Dire Marsh",
+            "slug": "dire-marsh"
+        },
+        {
+            "id": 885,
+            "title": "Outpost",
+            "slug": "outpost"
+        },
+        {
+            "id": 886,
+            "title": "Cryo Archive",
+            "slug": "cryo-archive"
+        }
+    ],
+    "map": {
+        "id": 885,
+        "title": "Outpost",
+        "slug": "outpost"
+    },
+    "regions": [],
+    "locations": [
+        {
+            "id": 545122,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "AIRFIELD",
+            "description": null,
+            "latitude": "0.83704392527788",
+            "longitude": "-0.76608748056850",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545125,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "FLIGHT CONTROL",
+            "description": "",
+            "latitude": "0.73134612514448",
+            "longitude": "-0.73229020218605",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545127,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "ORIENTATION",
+            "description": "",
+            "latitude": "0.76533485329685",
+            "longitude": "-0.63576936721685",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545129,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "DESTROYED WING",
+            "description": null,
+            "latitude": "0.71504764175020",
+            "longitude": "-0.64803484490875",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545131,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "DORMITORIES",
+            "description": null,
+            "latitude": "0.68064289346485",
+            "longitude": "-0.52938897991891",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545135,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "DRONE WING",
+            "description": null,
+            "latitude": "0.65090673343123",
+            "longitude": "-0.82405520488587",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545137,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "PINWHEEL BASE",
+            "description": null,
+            "latitude": "0.65227679500906",
+            "longitude": "-0.68110286954573",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545139,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "COMMAND WING",
+            "description": "",
+            "latitude": "0.54741519000611",
+            "longitude": "-0.62536484271362",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545140,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14983,
+            "title": "PROCESSING",
+            "description": null,
+            "latitude": "0.57418271396880",
+            "longitude": "-0.77198949808442",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545511,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14988,
+            "title": "DCON",
+            "description": "",
+            "latitude": "0.55248357979114",
+            "longitude": "-0.72252273559283",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545513,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14988,
+            "title": "DCON",
+            "description": "",
+            "latitude": "0.82240141615681",
+            "longitude": "-0.78329086303671",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545514,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14988,
+            "title": "DCON",
+            "description": "",
+            "latitude": "0.76007282546213",
+            "longitude": "-0.56631088256711",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545283,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14985,
+            "title": "Exfil",
+            "description": "",
+            "latitude": "0.73091431772868",
+            "longitude": "-0.82036972045901",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546517,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14985,
+            "title": "Final Exfil",
+            "description": "**Note:** Final Exfils are always static",
+            "latitude": "0.67770449702236",
+            "longitude": "-0.62576812374837",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 563461,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14985,
+            "title": "Final Exfill",
+            "description": "**Note:** Final Exfils are always static",
+            "latitude": "0.75598683573703",
+            "longitude": "-0.70601223879484",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545271,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14986,
+            "title": "Guarded Exfil",
+            "description": "",
+            "latitude": "0.63213019624969",
+            "longitude": "-0.84259986877453",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545279,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14986,
+            "title": "Guarded Exfil",
+            "description": "",
+            "latitude": "0.80282347059850",
+            "longitude": "-0.67462091629392",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545288,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14986,
+            "title": "Guarded Exfil",
+            "description": "",
+            "latitude": "0.61837944982979",
+            "longitude": "-0.53116672022657",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545403,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14986,
+            "title": "Guarded Exfil",
+            "description": "",
+            "latitude": "0.88882695807723",
+            "longitude": "-0.76955795288043",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545428,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14986,
+            "title": "Guarded Exfil",
+            "description": null,
+            "latitude": "0.54026832202354",
+            "longitude": "-0.82678812451010",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545430,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14986,
+            "title": "Guarded Exfil",
+            "description": null,
+            "latitude": "0.48475188002629",
+            "longitude": "-0.70047561123815",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545285,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Locked Room",
+            "description": "**Requires:** Destroyed Wing Key",
+            "latitude": "0.75567230227290",
+            "longitude": "-0.61570658542297",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545289,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Locked Room",
+            "description": "**Requires:** Flight Control Key",
+            "latitude": "0.72430268917076",
+            "longitude": "-0.72882465650994",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545507,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Pinwheel Access Terminal",
+            "description": "**Requires:** 1-3 **Access Clearance Codes** that can be found throughout the map",
+            "latitude": "0.60082526516672",
+            "longitude": "-0.71069955825757",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545508,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Pinwheel Access Terminal",
+            "description": "**Requires:** 1-3 **Access Clearance Codes** that can be found throughout the map",
+            "latitude": "0.65620418261773",
+            "longitude": "-0.62574863433801",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545509,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Pinwheel Access Terminal",
+            "description": "**Requires:** 1-3 **Access Clearance Codes** that can be found throughout the map",
+            "latitude": "0.69866081294677",
+            "longitude": "-0.71547761571588",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 550824,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Processing Basement Locked Room",
+            "description": "**Requires:** ?? Processing Basement Key - Located in the underground section under drone wing",
+            "latitude": "0.66756778309494",
+            "longitude": "-0.76103134439546",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122727,
+                    "title": "",
+                    "file_name": "bd3d9777-27f6-4889-9886-581dc44ba656.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/bd3d9777-27f6-4889-9886-581dc44ba656.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550826,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Airfield Locked Key Room",
+            "description": "**Requires:** Airfield Locked Room Key on the second floor of east building",
+            "latitude": "0.85940592114932",
+            "longitude": "-0.72518711203756",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122729,
+                    "title": "",
+                    "file_name": "ac1255b8-f30f-4205-8e0c-89be0743d0b3.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/ac1255b8-f30f-4205-8e0c-89be0743d0b3.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550829,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Armory Locked Room - Flight Control",
+            "description": "Locked room that requires Outpost Access Code Clearance Cards:\n**Requires:**\n1x Green Access Code\n2x Yellow Access Code\n\nContains Weapon Lockers and 1 Strongbox",
+            "latitude": "0.73673811607460",
+            "longitude": "-0.73304833168743",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122732,
+                    "title": "",
+                    "file_name": "8cdfab5c-bed3-458d-a871-818217a7e619.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/8cdfab5c-bed3-458d-a871-818217a7e619.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550835,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Armory Locked Room - Dormitories",
+            "description": "Locked room that requires Outpost Access Code Clearance Cards:\n**Requires:**\n1x Green Access Code\n2x Yellow Access Code\n\nContains Weapon Lockers and 1 Strongbox",
+            "latitude": "0.62381858648018",
+            "longitude": "-0.57285858305951",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122738,
+                    "title": "",
+                    "file_name": "556f0d5d-f344-42eb-bd92-99c3712fae98.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/556f0d5d-f344-42eb-bd92-99c3712fae98.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550836,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Dormitories Locked Key Room",
+            "description": "**Requires:** ?? Dormitories Key\nSecond floor West side",
+            "latitude": "0.62611165340275",
+            "longitude": "-0.61585614571078",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122739,
+                    "title": "",
+                    "file_name": "da7d2ca9-3c15-4bc5-9e27-7604d37a7df7.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/da7d2ca9-3c15-4bc5-9e27-7604d37a7df7.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550994,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Processing Armory Locked Room",
+            "description": "**Requires:** 2 Yellow Key Cards and One Green",
+            "latitude": "0.60378471727390",
+            "longitude": "-0.74573383230370",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 563462,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14987,
+            "title": "Welcome Center Locked Room",
+            "description": "**Requires:** Welcome Center Key",
+            "latitude": "0.77363822351823",
+            "longitude": "-0.65343439578947",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545278,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15234,
+            "title": "Restricted Exfil",
+            "description": "**Requires:** Master Clearance Card",
+            "latitude": "0.75872111085546",
+            "longitude": "-0.75084686279251",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545410,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15234,
+            "title": "Restricted Exfil",
+            "description": "**Requires:** Master Clearance Card",
+            "latitude": "0.57723299757357",
+            "longitude": "-0.69767666725295",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545412,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15234,
+            "title": "Restricted Exfil",
+            "description": "**Requires:** Master Clearance Card",
+            "latitude": "0.73507676547257",
+            "longitude": "-0.63789367675886",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545413,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15234,
+            "title": "Restricted Exfil",
+            "description": "**Requires:** Master Clearance Card",
+            "latitude": "0.63559539823294",
+            "longitude": "-0.59570789337053",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545273,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.63506056555077",
+            "longitude": "-0.70642256991201",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545274,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": "",
+            "latitude": "0.61678406316504",
+            "longitude": "-0.56027417296747",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545275,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.75554209076995",
+            "longitude": "-0.63627403809102",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545276,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": "",
+            "latitude": "0.84673183487607",
+            "longitude": "-0.73282241821136",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545277,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": "",
+            "latitude": "0.73488089796705",
+            "longitude": "-0.84007165507865",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545284,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.83278490738310",
+            "longitude": "-0.63802427614934",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545286,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.58637341994933",
+            "longitude": "-0.61102278623650",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545287,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.59430817767696",
+            "longitude": "-0.52447974103546",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545312,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.51369904060766",
+            "longitude": "-0.85925959888706",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545469,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.67125957634958",
+            "longitude": "-0.50848642424924",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 550468,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.46317566349001",
+            "longitude": "-0.69964253268043",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 550834,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Rook Spawn Point - Flight Control",
+            "description": "Rook spawns right next to stairway entrance to flight control",
+            "latitude": "0.76240662573959",
+            "longitude": "-0.75440918515767",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122737,
+                    "title": "",
+                    "file_name": "8b7b2571-2dcd-47f1-b7b8-d47c2de8b83d.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/8b7b2571-2dcd-47f1-b7b8-d47c2de8b83d.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550849,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.65964713811675",
+            "longitude": "-0.92621815794533",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 552044,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.58840903952419",
+            "longitude": "-0.83547516560358",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 123393,
+                    "title": "",
+                    "file_name": "536b5523-adf9-4cd0-9259-b63bb8e0d3d7.jpeg",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/536b5523-adf9-4cd0-9259-b63bb8e0d3d7.jpeg",
+                    "type": "image",
+                    "mime_type": "image/jpeg",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 563460,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14984,
+            "title": "Spawn Point",
+            "description": null,
+            "latitude": "0.90915013298414",
+            "longitude": "-0.78232322383445",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545398,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14990,
+            "title": "UESC Commander Escort",
+            "description": null,
+            "latitude": "0.87823311610890",
+            "longitude": "-0.79097244826949",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545404,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14990,
+            "title": "Activity ??",
+            "description": null,
+            "latitude": "0.74762012979033",
+            "longitude": "-0.64790275221213",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545119,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Introducing: Sekiguchi",
+            "description": "**CyberAcme** - **[Outpost]**\n\n**Rewards:**\n- Random Deluxe Core\n- Random Enhanced Core\n- Random Core\n- Unstable Diode\n- 1,000 Credits\n\n**Objectives:**\n- Inject the [Necrotic Sample](https://mapgenie.io/marathon/maps/outpost?locationIds=545310#L) in Southern Flight Control\n- [Scan your shell](https://mapgenie.io/marathon/maps/outpost?locationIds=545309) in Southeastern Orientation\n\n**Previous Contracts:**\n- [Introducing: Arachne](https://mapgenie.io/marathon/maps/perimeter?locationIds=544366) - Perimeter Zone\n- [Introducing: MIDA](https://mapgenie.io/marathon/maps/perimeter?locationIds=544364)  - Perimeter Zone\n\n**Next Contract:** [Baseline Calibration](https://mapgenie.io/marathon/maps/outpost?locationIds=545424)",
+            "latitude": "0.74086985638340",
+            "longitude": "-0.43876647949219",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545393,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Protect/Destroy [4/5]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ??\n- ??\n- ?? Credits\n\n**Objectives:**  \n- Download [Shipping Manifest](https://mapgenie.io/marathon/maps/outpost?locationIds=545399#L) from terminal in Northwest [Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545140)\n- Scan [Tagged Container A](https://mapgenie.io/marathon/maps/outpost?locationIds=545406), [B](https://mapgenie.io/marathon/maps/outpost?locationIds=545407), [C](https://mapgenie.io/marathon/maps/outpost?locationIds=545405), and [D](https://mapgenie.io/marathon/maps/outpost?locationIds=545408) in [Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545122)\n- Hack second-floor [Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545409) in [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545125), then Exfil  \n\n\n**Previous Contract:** [Protect/Destroy [3/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=544380) - Dire Marsh Zone  \n**Next Contract:**  [Protect/Destroy [5/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=545414) - Dire Marsh Zone",
+            "latitude": "0.74086985638340",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545424,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Baseline Calibration",
+            "description": "**Sekuguchi** - **[Multi-Zone]**\n\n**Rewards:**\n- ??\n- ??\n- ??\n- ?? Credits\n\n**Objectives:**\n- Take fall damage x40\n- Take damage from ticks x20\n- Overheat your shell x3\n\n**Previous Contract:** [Introducing: Sekiguchi](https://mapgenie.io/marathon/maps/outpost?locationIds=545119)  \n**Next Contract:** [Parasitism [1/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545504)",
+            "latitude": "0.73743691453183",
+            "longitude": "-0.43876647949219",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545504,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Parasitism [1/5]",
+            "description": "**Sekuguchi** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ??\n- ??\n- ?? Credits\n\n**Objectives:**\n- Acquire [Combat Data](https://mapgenie.io/marathon/maps/outpost?locationIds=545505#L) from UESC Ghosts on the [Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545140) rooftop\n- Acquire [UESC Data Bank](https://mapgenie.io/marathon/maps/outpost?locationIds=545506) from [Pinwheel Base](https://mapgenie.io/marathon/maps/outpost?locationIds=545137) Center\n- Deliver UESC Data Bank to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545511)\n\n**Previous Contract:** [Baseline Calibration](https://mapgenie.io/marathon/maps/outpost?locationIds=545424)    \n**Next Contract:** [Parasitism [2/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545515)",
+            "latitude": "0.73400397003276",
+            "longitude": "-0.43876647949219",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545515,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Parasitism [2/5]",
+            "description": "**Sekuguchi** - **[Multi-Zone]**\n\n**Rewards:**\n- ??\n- ??\n- ??\n- ?? Credits\n\n**Objectives:**\n- Exfil Fractal Circuits, Paradox Circuits, or Neural Insulation x12\n    - [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545125#L)\n    - [ Dormitories](https://mapgenie.io/marathon/maps/outpost?locationIds=545131#L)\n    - [Pinwheel Base](https://mapgenie.io/marathon/maps/outpost?locationIds=545137#L)\n    - Perimeter Zone - [North Relay](https://mapgenie.io/marathon/maps/perimeter?locationIds=542625)\n   - Locked Rooms\n- Exfil Storage Drives, Amygdala Drives, or Predictive Frameworks x12\n  - Perimeter Zone - [SouthRelay](https://mapgenie.io/marathon/maps/perimeter?locationIds=542628)\n  - Locked Rooms\n\n**Previous Contract:** [Parasitism [1/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545504)      \n**Next Contract:** [Parasitism [3/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=545517) - Dire Marsh Zone",
+            "latitude": "0.73057102289849",
+            "longitude": "-0.43876647949219",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545550,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Run/Hide [3/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Sabotage [UESC Comms Antenna in Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545551#L)  OR [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545552#L)\n- Defeat the responding [UESC Commander](https://mapgenie.io/marathon/maps/outpost?locationIds=545553)\n- Acquire [Commander's Credentials](https://mapgenie.io/marathon/maps/outpost?locationIds=545553), then Exfil\n\n**Previous Contract:** [Run/Hide [2/6]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=545546) - Dire Marsh Zone    \n**Next Contract:** [Run/Hide [4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545554)",
+            "latitude": "0.73743691453183",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545554,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Run/Hide [4/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Acquire Surveillance Gear from [Hidden Stash](https://mapgenie.io/marathon/maps/outpost?locationIds=545556#L) in [Dormitories](https://mapgenie.io/marathon/maps/outpost?locationIds=545131)\n- Place [Surveillance Gear in Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545558) and [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545557)\n- Activate surveillance gear at [North Orientation Roadway Checkpoint](https://mapgenie.io/marathon/maps/outpost?locationIds=545559)\n\n**Previous Contract:** [Run/Hide [3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545550)     \n**Next Contract:** [Run/Hide [5/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545560)",
+            "latitude": "0.73400397003276",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545560,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Run/Hide [5/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Acquire [Data Drive](https://mapgenie.io/marathon/maps/outpost?locationIds=545561#L) in Eastern [Dormitories](https://mapgenie.io/marathon/maps/outpost?locationIds=545131)\n- Download surveillance data at the [North Orientation Roadway Checkpoint](https://mapgenie.io/marathon/maps/outpost?locationIds=545559)\n- Deliver Data Drive to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545514)\n\n**Previous Contract:** [Run/Hide [4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545554)    \n**Next Contract:** [Run/Hide [6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545562)",
+            "latitude": "0.73057102289849",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545562,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Run/Hide [6/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Infiltrate third-floor [Armory in Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545563#L)\n- Scan the classified [UESC Documents](https://mapgenie.io/marathon/maps/outpost?locationIds=545564) in the Armory x3\n- Download intel from the [Armory Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545565), then Exfil\n\n**Previous Contract:** [Run/Hide [5/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545560)    \n**Next Contract:** [Truth/Lies[1/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545568)",
+            "latitude": "0.72713807314139",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545568,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Truth/Lies[1/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Acquire a [Transponder](https://mapgenie.io/marathon/maps/outpost?locationIds=546550#L) from second-floor Flight Control\n- [Hack Transponder](https://mapgenie.io/marathon/maps/outpost?locationIds=546554)  at first-floor terminal in Flight Control\n- Upload malware to [Dropship A](https://mapgenie.io/marathon/maps/outpost?locationIds=546555) and [B](https://mapgenie.io/marathon/maps/outpost?locationIds=546556) outside of Flight Control\n\n**Previous Contract:** [Run/Hide [6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545562)  \n**Next Contract:** [Truth/Lies[2/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546545)",
+            "latitude": "0.72370512077372",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546246,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Co-Evolution [1/5]",
+            "description": "**Sekuguchi** - **[Outpost]**\n\n**Rewards:**\n- ??\n\n**Objectives:**\n- Collect a [Necrotic Sample](https://mapgenie.io/marathon/maps/outpost?locationIds=545310#L) from [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545125)\n- Insert the sample into a [ROOK Body](https://mapgenie.io/marathon/maps/outpost?locationIds=546518) in [Destroyed Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545129)\n- Deliver the [ROOK's Head](https://mapgenie.io/marathon/maps/outpost?locationIds=546518) to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545514)\n\n**Previous Contract:** [Parasitism [5/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=545523) - Dire Marsh Zone       \n**Next Contract:** [Co-Evolution [2/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=546247) - Dire Marsh Zone",
+            "latitude": "0.72713807314139",
+            "longitude": "-0.43876647949219",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546248,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Co-Evolution [3/5]",
+            "description": "**Sekuguchi** - **[Outpost]**\n\n**Rewards:**\n- ??\n\n**Objectives:**\n- Find [Bio-Chain](https://mapgenie.io/marathon/maps/outpost?locationIds=546519#L) in [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545125)\n- [Synthesize SIMbiont](https://mapgenie.io/marathon/maps/outpost?locationIds=546520) with **Unstable Gel** + Bio-Chain in [Orientation](https://mapgenie.io/marathon/maps/outpost?locationIds=545127)\n- Inject SIMbiont, defeat UESC x18, and Exfil\n\n**Previous Contract:** [Co-Evolution [2/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=546247) - Dire Marsh Zone  \n**Next Contract:** [Co-Evolution [4/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=546249) - Dire Marsh Zone",
+            "latitude": "0.72370512077372",
+            "longitude": "-0.43876647949219",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546537,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Unsanctioned Hostilities [4/5]",
+            "description": "**Traxus**  - **[Outpost]**\n\n**Rewards:**\n- ??\n\n**Objectives:**\n- Acquire [Unsent Missives](https://mapgenie.io/marathon/maps/outpost?locationIds=546542#L) in [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)\n- Acquire the responding [Commander's Credentials](https://mapgenie.io/marathon/maps/outpost?locationIds=546544)\n- Exfil\n\n**Previous Contract:** [Unsanctioned Hostilities [3/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=546532) - Dire Marsh Zone  \n**Next Contract:** [Unsanctioned Hostilities [5/5]](https://mapgenie.io/marathon/maps/dire-marsh?locationIds=546533)  - Dire Marsh Zone",
+            "latitude": "0.74086985638340",
+            "longitude": "-0.45249938964844",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546545,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Truth/Lies[2/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Scan [Drones](https://mapgenie.io/marathon/maps/outpost?locationIds=546557#L) in [Drone Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545135) x3\n- Hack the [Security Shielding Protocols](https://mapgenie.io/marathon/maps/outpost?locationIds=546558)\n- Destroy [Drone Wing Control System](https://mapgenie.io/marathon/maps/outpost?locationIds=546559) x7, then Exfil\n\n**Previous Contract:** [Truth/Lies[1/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545568)  \n**Next Contract:** [Truth/Lies[3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546546)",
+            "latitude": "0.72027216580784",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546546,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Truth/Lies[3/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Hack [Shipping Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=546561#L) in Southeastern [Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545140)\n- Using explosives, acquire Restricted Intel from Container [#204, #355](https://mapgenie.io/marathon/maps/outpost?locationIds=546562), and [#571](https://mapgenie.io/marathon/maps/outpost?locationIds=546563) [Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545122) containers\n- Deliver Restricted Intel to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545513)\n\n**Previous Contract:** [Truth/Lies[2/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546545)  \n**Next Contract:** [Truth/Lies[4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546547)",
+            "latitude": "0.71683920825606",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546547,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Truth/Lies[4/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Acquire [UESC Beacon](https://mapgenie.io/marathon/maps/outpost?locationIds=546566#L) from secured room in [Processing ](https://mapgenie.io/marathon/maps/outpost?locationIds=545140)\n- [Plant Beacon](https://mapgenie.io/marathon/maps/outpost?locationIds=546567) at the North end of [Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545122)\n- Acquire the responding Commander's Credentials, and Exfil\n\n**Previous Contract:** [Truth/Lies[3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546546)  \n**Next Contract:** [Truth/Lies[5/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546548)",
+            "latitude": "0.71340624813072",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546548,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Truth/Lies[5/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Investigate the [Crashed UESC Ship](https://mapgenie.io/marathon/maps/outpost?locationIds=546568#L) in Western [Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545140)\n- Acquire the Specimen Unit from inside the ship\n- Deliver Specimen Unit to any DCON\n\n**Previous Contract:** [Truth/Lies[4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546547)  \n**Next Contract:** [Truth/Lies[6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546549)",
+            "latitude": "0.70997328544414",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546549,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14989,
+            "title": "Truth/Lies[6/6]",
+            "description": "**MIDA** - **[Outpost]**\n\n**Rewards:**\n- ??\n- ?? Credits\n\n**Objectives:**\n- Hack PA Systems:\n    - [Communications System - Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=546569#L) \n    - [Communications System - Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=546582#L)\n    - [Communications System - Dormotories ](https://mapgenie.io/marathon/maps/outpost?locationIds=546577#L)\n- [Upload  and Broadcast](https://mapgenie.io/marathon/maps/outpost?locationIds=546586) MIDA's message in the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)\n- Keep the MIDA broadcast going for 3 minutes\n\n**Previous Contract:** [Truth/Lies[5/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546548)  \n**Next Contract:** ??",
+            "latitude": "0.70654032020862",
+            "longitude": "-0.44563293457031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545555,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "Key 18-452-136",
+            "description": "**Location:** On the second floor, inside the [Dormotories](https://mapgenie.io/marathon/maps/outpost?locationIds=545131) in the room 18, by the bed\n\n[Hidden Stash Location](https://mapgenie.io/marathon/maps/outpost?locationIds=545556#L)",
+            "latitude": "0.64672050461543",
+            "longitude": "-0.61738014221231",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 547275,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "Prestige Key - Marathon C.05",
+            "description": "Have a chance to drop from [TOX Warden](https://mapgenie.io/marathon/maps/outpost?locationIds=547274)\n\n**Note:** Can be used in **Cryo Archive** Zone",
+            "latitude": "0.62975009821284",
+            "longitude": "-0.58707724320027",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 550819,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Red] Master Clearance Card - Catwalk/Loading Bay",
+            "description": "**Red Card** At the very end of the long catwalk in Loading Bay",
+            "latitude": "0.69956710177821",
+            "longitude": "-0.91241240501543",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122722,
+                    "title": "",
+                    "file_name": "6d9057fa-461f-4168-9e63-cc0247a44f85.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/6d9057fa-461f-4168-9e63-cc0247a44f85.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550820,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Red] Master Clearance Card - Dormitories",
+            "description": "**Red Access Card** \nRoof of the South Dormitories building at the far south side",
+            "latitude": "0.61407304095744",
+            "longitude": "-0.59751051897939",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122723,
+                    "title": "",
+                    "file_name": "c56ff55b-dc3c-42c7-8474-2a89323b0691.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/c56ff55b-dc3c-42c7-8474-2a89323b0691.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550821,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Red] Master Clearance Card - Processing",
+            "description": "**Red Card** On top of the ledge on the north side of the processing building",
+            "latitude": "0.62223081319405",
+            "longitude": "-0.71608786319220",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122724,
+                    "title": "",
+                    "file_name": "8bdadc92-f2f2-4558-85a4-fde7856b42d4.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/8bdadc92-f2f2-4558-85a4-fde7856b42d4.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550822,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Red] Master Clearance Access Card - North Tarmac",
+            "description": "**Red Access Card** \nNorth Tarmac under Destroyed Wing on top of building east of flight control",
+            "latitude": "0.72271324714436",
+            "longitude": "-0.68724348268697",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122725,
+                    "title": "",
+                    "file_name": "c4da691d-5eb9-426f-9d5c-c7407961f1c9.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/c4da691d-5eb9-426f-9d5c-c7407961f1c9.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550825,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card",
+            "description": "**Yellow Card** Second floor of west building right next to locked key room",
+            "latitude": "0.86068183915360",
+            "longitude": "-0.72194275047374",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122728,
+                    "title": "",
+                    "file_name": "e07565e8-79dd-464a-a41c-55543c54969c.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/e07565e8-79dd-464a-a41c-55543c54969c.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550827,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Loading Bay 1",
+            "description": "**Yellow Access Card** \nLocated on the first floor on the south west side under Flight Control.",
+            "latitude": "0.71517230723681",
+            "longitude": "-0.76889831467491",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122730,
+                    "title": "",
+                    "file_name": "0ead3b25-19c5-4839-8a97-be8148d4bc68.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/0ead3b25-19c5-4839-8a97-be8148d4bc68.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550828,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Flight Control North 1",
+            "description": "**Yellow Access Card** \nInside of Flight Control on the second floor at the very north of the building facing towards Loading Bay/West side of the map",
+            "latitude": "0.77214267884553",
+            "longitude": "-0.75524929295759",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122731,
+                    "title": "",
+                    "file_name": "55eaf64e-012c-4131-b1e8-b592cadeed76.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/55eaf64e-012c-4131-b1e8-b592cadeed76.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550830,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Access Clearance Card Spawn - Orientation Central 1",
+            "description": "**Green Access Card** \nNorth East side of main Orientation building on the first floor lab office right next to under bridge connecting entrance",
+            "latitude": "0.76503852463232",
+            "longitude": "-0.60941518464134",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122733,
+                    "title": "",
+                    "file_name": "db53cf0e-30b4-46db-96d9-7dfa08a5c7a9.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/db53cf0e-30b4-46db-96d9-7dfa08a5c7a9.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550831,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Airfield West 1",
+            "description": "**Yellow Access Card** \nWest building of airfield in the garages",
+            "latitude": "0.80951571084842",
+            "longitude": "-0.80572593844016",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122734,
+                    "title": "",
+                    "file_name": "b0db2b03-5a9b-4c7a-baee-57a1df75ac2f.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/b0db2b03-5a9b-4c7a-baee-57a1df75ac2f.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550832,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Dormitories North West 1",
+            "description": "**Yellow Access Card** \nSecond floor of the south Dorm building  (same building as the Warden Boss)  Room is on the North West side of building.",
+            "latitude": "0.66490520642388",
+            "longitude": "-0.61955877353100",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122735,
+                    "title": "",
+                    "file_name": "9eb666ce-2710-4a03-90ee-e6efc95e0416.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/9eb666ce-2710-4a03-90ee-e6efc95e0416.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550833,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Processing East 1",
+            "description": "**Yellow Access Card** \nFar right side catwalk of Processing on the east side right near Pinwheel entrance lock",
+            "latitude": "0.57165105124336",
+            "longitude": "-0.68866535179995",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122736,
+                    "title": "",
+                    "file_name": "b9172d89-b6a9-4686-b7a1-f585655c1237.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/b9172d89-b6a9-4686-b7a1-f585655c1237.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550837,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Access Clearance Card - Airfield East 1",
+            "description": "**Green Card** On the table in the East building at the very north workshop/garage",
+            "latitude": "0.87671307610817",
+            "longitude": "-0.72178619197641",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122740,
+                    "title": "",
+                    "file_name": "9b404abf-26ba-438a-94c3-70a6fc1111b9.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/9b404abf-26ba-438a-94c3-70a6fc1111b9.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550838,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Access Clearance Card - Airfield West 1",
+            "description": "**Green Card**\nWest building inside the Workshop on the table",
+            "latitude": "0.84675709471657",
+            "longitude": "-0.80942714428031",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122741,
+                    "title": "",
+                    "file_name": "1b9f4263-6c4e-4d21-a60a-f9e512375be1.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/1b9f4263-6c4e-4d21-a60a-f9e512375be1.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550839,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Airfield West 2",
+            "description": "**Yellow Card**\nOn the table of the big meeting/office room connected to the workshops in the west building",
+            "latitude": "0.85506294025961",
+            "longitude": "-0.80265880480232",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122742,
+                    "title": "",
+                    "file_name": "2da1a597-ba2e-4587-83e0-9a7c3b65d636.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/2da1a597-ba2e-4587-83e0-9a7c3b65d636.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550840,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Orientation Connector 2",
+            "description": "**Yellow Card** Second floor lobby of the connection building on the wall going to connecting bridge of main building",
+            "latitude": "0.75304250017811",
+            "longitude": "-0.58835174363668",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122743,
+                    "title": "",
+                    "file_name": "d6c10c30-626c-46ea-866d-39818e27d0ad.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/d6c10c30-626c-46ea-866d-39818e27d0ad.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550841,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Orientation Connector 1",
+            "description": "**Yellow Card** First floor of connecting building on the admin desk",
+            "latitude": "0.74625778835562",
+            "longitude": "-0.58542416379751",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122744,
+                    "title": "",
+                    "file_name": "e7a581dd-86cf-4373-842a-a1069003377e.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/e7a581dd-86cf-4373-842a-a1069003377e.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550842,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Airfield East 1",
+            "description": "**Yellow Card** First floor on the table of the workshop/garage in the East building",
+            "latitude": "0.83929374550350",
+            "longitude": "-0.69723824493144",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122745,
+                    "title": "",
+                    "file_name": "e5e366e0-a960-4ad9-8717-4bda9cce737c.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/e5e366e0-a960-4ad9-8717-4bda9cce737c.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550843,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Access Clearance Card - Airfield West 2",
+            "description": "**Green Card**\nOn the desk of the garages in the West building",
+            "latitude": "0.81924614067158",
+            "longitude": "-0.81221411261407",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122746,
+                    "title": "",
+                    "file_name": "feeed7aa-f6c2-4ada-80cc-061d07dd1c35.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/feeed7aa-f6c2-4ada-80cc-061d07dd1c35.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550844,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Clearance Card - Orientation Connector 2",
+            "description": "**Green Card** Right next to yellow card spawn on the second floor of connecting building between Drientation and Dorm on the table.",
+            "latitude": "0.75355743980006",
+            "longitude": "-0.58775092881783",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122747,
+                    "title": "",
+                    "file_name": "701d4b30-3a65-4abc-a138-d37cd5ce2e36.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/701d4b30-3a65-4abc-a138-d37cd5ce2e36.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550845,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Access Clearance Card - Airfield West 3",
+            "description": "**Green Card** On the big table in the large meeting room next to yellow card spawn in the West Airfield building",
+            "latitude": "0.85514528995506",
+            "longitude": "-0.80375529473818",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122748,
+                    "title": "",
+                    "file_name": "4b3f5f01-c84a-4de1-841b-720918ffa3e6.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/4b3f5f01-c84a-4de1-841b-720918ffa3e6.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550846,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Processing Center 3",
+            "description": "**Yellow Card** Second floor of central Processing building on the connecting catwalks next to survey office room",
+            "latitude": "0.58458496609880",
+            "longitude": "-0.75393843384379",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122749,
+                    "title": "",
+                    "file_name": "aec89850-4105-4f3b-8179-b72089c656ce.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/aec89850-4105-4f3b-8179-b72089c656ce.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550847,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Processing 2",
+            "description": "**Yellow Card** Second floor inside the small room in the central building with the Nitrogen tank",
+            "latitude": "0.57493021833429",
+            "longitude": "-0.72890375080078",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122750,
+                    "title": "",
+                    "file_name": "70e4be5f-242c-4160-8459-fcdab0a6720b.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/70e4be5f-242c-4160-8459-fcdab0a6720b.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 554517,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Access Clearance Card",
+            "description": "On the table",
+            "latitude": "0.68943756178842",
+            "longitude": "-0.82933473547828",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 554518,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "Conveyance Request",
+            "description": "East Processing\n\nPossible spawn location",
+            "latitude": "0.57942179777179",
+            "longitude": "-0.67929729207398",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 554520,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card - Orientation NW",
+            "description": "2f break room desk",
+            "latitude": "0.79246802180117",
+            "longitude": "-0.65005034493259",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 563463,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Yellow] Supply Clearance Card",
+            "description": "**Location:** 2nd floor, southwest side near a glass window",
+            "latitude": "0.61955656003529",
+            "longitude": "-0.60618981382746",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 128086,
+                    "title": "",
+                    "file_name": "ada694d5-068e-4e28-9ce5-4911bf96de07.jpeg",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/ada694d5-068e-4e28-9ce5-4911bf96de07.jpeg",
+                    "type": "image",
+                    "mime_type": "image/jpeg",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 563464,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14999,
+            "title": "[Green] Access Clearance Card",
+            "description": "**Location:** Outside on the green table under the tarp",
+            "latitude": "0.61036310505125",
+            "longitude": "-0.57986606375576",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 128087,
+                    "title": "",
+                    "file_name": "205daf83-fcce-4b1e-825c-4785570624ea.jpeg",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/205daf83-fcce-4b1e-825c-4785570624ea.jpeg",
+                    "type": "image",
+                    "mime_type": "image/jpeg",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 545427,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14994,
+            "title": "Supply Drop",
+            "description": "**Requires:** Supply Code",
+            "latitude": "0.71396410432612",
+            "longitude": "-0.59693098068328",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545512,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14994,
+            "title": "Supply Drop",
+            "description": "**Requires:** Supply Code",
+            "latitude": "0.58813681803730",
+            "longitude": "-0.80617759480214",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545282,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14993,
+            "title": "Tox Clear",
+            "description": null,
+            "latitude": "0.65551326344119",
+            "longitude": "-0.79328317449324",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 550823,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14993,
+            "title": "Wall Safe - Flight Control",
+            "description": "Under counter in lab room right next to Pinwheel Entrance",
+            "latitude": "0.72574625307080",
+            "longitude": "-0.72349087535727",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122726,
+                    "title": "",
+                    "file_name": "c3badda8-71a4-4057-92d5-1259fb185b14.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/c3badda8-71a4-4057-92d5-1259fb185b14.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 550848,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 14993,
+            "title": "Wall Safe - Processing Central",
+            "description": "Under the counter at the top of the stairs to second floor in the survey office room in central processing room",
+            "latitude": "0.58314880635568",
+            "longitude": "-0.76830077698844",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 122751,
+                    "title": "",
+                    "file_name": "23d0cd5d-ad24-4180-aa78-50d7dca07604.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/23d0cd5d-ad24-4180-aa78-50d7dca07604.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 547274,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15001,
+            "title": "TOX Warden",
+            "description": "**Loot:**\n- [Prestige Key - Marathon C.05](https://mapgenie.io/marathon/maps/outpost?locationIds=547275)\n- ??",
+            "latitude": "0.62768556393773",
+            "longitude": "-0.59120656035711",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545309,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Shell Scan",
+            "description": "**Primary Contract:** [Introducing: Sekiguchi](https://mapgenie.io/marathon/maps/outpost?locationIds=545119)\n\n\n**Requirements:**  [Necrotic Sample](https://mapgenie.io/marathon/maps/outpost?locationIds=545310#L)",
+            "latitude": "0.72958405011187",
+            "longitude": "-0.60278892517059",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545310,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Necrotic Sample",
+            "description": "**Primary Contracts:**\n- [Introducing: Sekiguchi](https://mapgenie.io/marathon/maps/outpost?locationIds=545119)\n- [Co-Evolution [1/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=546246)\n\n**Location:** On the second floor in the drawer\n\n**Next Objectives:**\n- **Introducing: Sekiguchi** - [Shell Scan](https://mapgenie.io/marathon/maps/outpost?locationIds=545309#L)\n- **Co-Evolution [1/5]** - Insert the sample into a [ROOK Body](https://mapgenie.io/marathon/maps/outpost?locationIds=546518#L) in [Destroyed Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545129)",
+            "latitude": "0.69205670207580",
+            "longitude": "-0.73426674969761",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": [
+                {
+                    "id": 121245,
+                    "title": "image",
+                    "file_name": "36f57262-d4ea-4026-9c58-bdd2d1807c18.png",
+                    "attribution": "",
+                    "url": "https://media.mapgenie.io/storage/media/36f57262-d4ea-4026-9c58-bdd2d1807c18.png",
+                    "type": "image",
+                    "mime_type": "image/png",
+                    "meta": null,
+                    "order": 10
+                }
+            ]
+        },
+        {
+            "id": 545399,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Shipping Manifest Terminal",
+            "description": "**Primary Contract:** [Protect/Destroy [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545393)\n\n**Location:** On the second floor\n\n**Tagged Containers:**\n- [Tagged Container A](https://mapgenie.io/marathon/maps/outpost?locationIds=545406#L)\n- [Tagged Container B](https://mapgenie.io/marathon/maps/outpost?locationIds=545407#L)\n- [Tagged Container C](https://mapgenie.io/marathon/maps/outpost?locationIds=545405#L)\n- [Tagged ContainerD](https://mapgenie.io/marathon/maps/outpost?locationIds=545408#L)",
+            "latitude": "0.60466597594188",
+            "longitude": "-0.76904296874883",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545405,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Tagged Container C",
+            "description": "**Primary Contract:** [Protect/Destroy [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545393)\n\n**Location:** ??\n\n\n**Requirements:**  [Shipping Manifest Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545399#L)",
+            "latitude": "0.86172908067894",
+            "longitude": "-0.76803445815915",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545406,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Tagged Container A",
+            "description": "**Primary Contract:** [Protect/Destroy [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545393)\n\n**Location:** ??\n\n\n**Requirements:**  [Shipping Manifest Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545399#L)",
+            "latitude": "0.88569451357210",
+            "longitude": "-0.74209213256700",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545407,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Tagged Container B",
+            "description": "**Primary Contract:** [Protect/Destroy [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545393)\n\n**Location:** ??\n\n\n**Requirements:**  [Shipping Manifest Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545399#L)",
+            "latitude": "0.90202672294254",
+            "longitude": "-0.75674772262414",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545408,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Tagged Container D",
+            "description": "**Primary Contract:** [Protect/Destroy [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545393)\n\n**Location:** ??\n\n\n**Requirements:**  [Shipping Manifest Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545399#L)",
+            "latitude": "0.84599475659972",
+            "longitude": "-0.73938846588047",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545409,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Shipping Server Terminal",
+            "description": "**Primary Contract:** [Protect/Destroy [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545393)\n\n**Location:** Second floor\n\n**Requirements:**\n- [Tagged Container A](https://mapgenie.io/marathon/maps/outpost?locationIds=545406#L)\n- [Tagged Container B](https://mapgenie.io/marathon/maps/outpost?locationIds=545407#L)\n- [Tagged Container C](https://mapgenie.io/marathon/maps/outpost?locationIds=545405#L)\n- [Tagged ContainerD](https://mapgenie.io/marathon/maps/outpost?locationIds=545408#L)",
+            "latitude": "0.75606059198505",
+            "longitude": "-0.75539588928456",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545505,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Ghosts - UESC Combat Data",
+            "description": "**Primary Contract:** [Parasitism [1/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545504)\n\n**Location:** On the rooftop\n\n**Next Objective:** [UESC Data Bank](https://mapgenie.io/marathon/maps/outpost?locationIds=545506#L)",
+            "latitude": "0.58507694456861",
+            "longitude": "-0.74106216430835",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545506,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Data Bank",
+            "description": "**Primary Contract:** [Parasitism [1/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=545504)\n\n**Location:** Inside the [Pinwheel Base](https://mapgenie.io/marathon/maps/outpost?locationIds=545137), use **Access Clearance Codes** that can be found throughout the map to unlock **[Pinwheel Access Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545509)** located at any entrance to the Pinwheel\n\n**Requirements:** Acquire [UESC Combat Data](https://mapgenie.io/marathon/maps/outpost?locationIds=545505)\n\n**Next Objective:** Deliver UESC Data to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545511#L)",
+            "latitude": "0.65626855141200",
+            "longitude": "-0.69033622741685",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545551,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Comms Antenna - Processing",
+            "description": "**Primary Contract:** [Run/Hide [3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545550)\n\n**Location:** At the end of the walkway\n\n**Next Objective:** ??",
+            "latitude": "0.59595755268379",
+            "longitude": "-0.89527672417645",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545553,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Commander - UESC Credentials",
+            "description": "**Primary Contract:** [Run/Hide [3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545550)\n\n**Location:** Dropped from the UESC Commander after sabotaging [UESC Comms Antenna in Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545551#L) OR [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545552#L)\n\n**Next Objective:** Exfil",
+            "latitude": "0.59582590016805",
+            "longitude": "-0.89023590087797",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545556,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Hidden Stash - Surveillance Equipment",
+            "description": "**Primary Contract:** [Run/Hide [4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545554)\n\n**Requires:** [Key 18-452-136](https://mapgenie.io/marathon/maps/outpost?locationIds=545555#L)\n\n**Location:** First floor, at the back of the refrigerator in the cafeteria kitchen\n\n**Next Objective:** Place [Surveillance Gear in Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545558#L) and [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545557#L)",
+            "latitude": "0.65392981803005",
+            "longitude": "-0.61025619506918",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545557,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Place Surveillance Gear - Flight Control",
+            "description": "**Primary Contract:** [Run/Hide [4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545554)\n\n**Requirements:** Acquire [Surveillance Equipment](https://mapgenie.io/marathon/maps/outpost?locationIds=545556#L)\n\n**Location:** On the wall of the conference room\n\n**Next Objective:** Activate surveillance gear at [North Orientation Roadway Checkpoint](https://mapgenie.io/marathon/maps/outpost?locationIds=545559#L)",
+            "latitude": "0.71696794421160",
+            "longitude": "-0.71784496307515",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545558,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Place Surveillance Gear - Airfield",
+            "description": "**Primary Contract:** [Run/Hide [4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545554)\n\n**Requirements:** Acquire [Surveillance Equipment](https://mapgenie.io/marathon/maps/outpost?locationIds=545556#L)\n\n**Location:** On the wall of the conference room\n\n**Next Objective:** Activate surveillance gear at [North Orientation Roadway Checkpoint](https://mapgenie.io/marathon/maps/outpost?locationIds=545559#L)",
+            "latitude": "0.82755072364469",
+            "longitude": "-0.81629276275700",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545559,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Access Outpost Intranet",
+            "description": "**Primary Contracts:**\n- [Run/Hide [4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545554)\n- [Run/Hide [5/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545560)\n\n**Requirements:** Place [Surveillance Gear in Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545558#L) and [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545557#L)\n\n**Location:** Inside the small roadway checkpoint building\n\n**Run/Hide [5/6] Next Objective:** Deliver Data Drive to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545514#L)",
+            "latitude": "0.82072083124676",
+            "longitude": "-0.65308570861967",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545561,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Data Drive",
+            "description": "**Primary Contract:** [Run/Hide [5/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545560)\n\n**Location:** On the second floor of the Eastern side of the Dormitories\n\n**Next Objective:** Download surveillance data at the [North Orientation Roadway Checkpoint](https://mapgenie.io/marathon/maps/outpost?locationIds=545559#L)",
+            "latitude": "0.71149666295119",
+            "longitude": "-0.55380105972344",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545563,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Armory Room",
+            "description": "**Primary Contract:** [Run/Hide [6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545562)\n\n**Requires:** 1-3 **Access Clearance Codes** that can be found throughout the map\n\n**Location:** Third floor of the building\n\n**Next Objective:** [Scan UESC Documents](https://mapgenie.io/marathon/maps/outpost?locationIds=545564#L)",
+            "latitude": "0.62155219700328",
+            "longitude": "-0.80202341079652",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545564,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Scan UESC Documents",
+            "description": "**Primary Contract:** [Run/Hide [6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545562)\n\n**Location:** In the [Armory Room](https://mapgenie.io/marathon/maps/outpost?locationIds=545563)\n\n\n**Next Objective:** ??",
+            "latitude": "0.61967476083291",
+            "longitude": "-0.80425500869612",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545565,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Armory Terminal - Download Classified Intel",
+            "description": "**Primary Contract:** [Run/Hide [6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545562)\n\n**Location:** In the [Armory Room](https://mapgenie.io/marathon/maps/outpost?locationIds=545563)",
+            "latitude": "0.61734673906042",
+            "longitude": "-0.80165863036910",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546518,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "ROOK Body - Detached ROOK Head",
+            "description": "**Primary Contract:** [Co-Evolution [1/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=546246)\n\n**Location:** On the lower floor of the [Destroyed Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545129)\n\n**Requirements:** [Necrotic Sample](https://mapgenie.io/marathon/maps/outpost?locationIds=545310)\n\n**Next Objective:** Deliver the ROOK's head to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545514#L)",
+            "latitude": "0.69825828116041",
+            "longitude": "-0.66626071929878",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546519,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Bio-Chain",
+            "description": "**Primary Contract:** [Co-Evolution [3/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=546248)\n\n**Location:** On the second floor in the same set of drawers as [Necrotic Sample](https://mapgenie.io/marathon/maps/outpost?locationIds=545310)\n\n**Next Objective:** [Synthesize SIMbiont](https://mapgenie.io/marathon/maps/outpost?locationIds=546520#L) with **Unstable Gel** + **Bio-Chain** in [Orientation](https://mapgenie.io/marathon/maps/outpost?locationIds=545127)",
+            "latitude": "0.69195018980673",
+            "longitude": "-0.73756456374929",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546520,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Synthesizer - SIMbiont 0.3",
+            "description": "**Primary Contract:** [Co-Evolution [3/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=546248)\n\n**Location:** On the ground floor in a lab room\n\n**Requirements:** Find [Bio-Chain](https://mapgenie.io/marathon/maps/outpost?locationIds=546519#L) in [Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=545125) and  **Unstable Gel**\n\n**Next Objective:** Inject SIMbiont, defeat UESC x18, and Exfil",
+            "latitude": "0.78298754146141",
+            "longitude": "-0.64186334609749",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546542,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Unsent Missives",
+            "description": "**Primary Contract:** [Unsanctioned Hostilities [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=546537)\n\n**Location:** At the end of the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545139)\n\n\n**Next Objective:** Acquire the responding [Commander's Credentials](https://mapgenie.io/marathon/maps/outpost?locationIds=546544#L)",
+            "latitude": "0.53219625979527",
+            "longitude": "-0.61669349670294",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546544,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Commander - UESC Credentials",
+            "description": "**Primary Contract:** [Unsanctioned Hostilities [4/5]](https://mapgenie.io/marathon/maps/outpost?locationIds=546537)\n\n**Location:** Dropped from the UESC Commander after collecting [Unsent Missives](https://mapgenie.io/marathon/maps/outpost?locationIds=546542)\n\n**Next Objective:** Exfil",
+            "latitude": "0.52888119157552",
+            "longitude": "-0.61506271362435",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546550,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Transponder",
+            "description": "**Primary Contract:** [Truth/Lies[1/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545568)\n\n**Location:** Second floor of the Flight Control, on a table\n\n**Next Objective:** [Hack Transponder](https://mapgenie.io/marathon/maps/outpost?locationIds=546554#L)",
+            "latitude": "0.75905639301240",
+            "longitude": "-0.74476776009607",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546554,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Hack Transponder",
+            "description": "**Primary Contract:** [Truth/Lies[1/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545568)\n\n**Location:** At first-floor terminal in Flight Control\n\n**Requirements:** Collect [UESC Transponder](https://mapgenie.io/marathon/maps/outpost?locationIds=546550#L)\n\n**Next Objective:** Upload malware to [Dropship A](https://mapgenie.io/marathon/maps/outpost?locationIds=546555#L) and [B](https://mapgenie.io/marathon/maps/outpost?locationIds=546556#L) outside of Flight Control",
+            "latitude": "0.74910890595207",
+            "longitude": "-0.74554681777965",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546555,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Dropship A",
+            "description": "**Primary Contract:** [Truth/Lies[1/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545568)\n\n**Requirements:** [Hack Transponder](https://mapgenie.io/marathon/maps/outpost?locationIds=546554#L)",
+            "latitude": "0.74344456102708",
+            "longitude": "-0.77026605605943",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546556,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Dropship B",
+            "description": "**Primary Contract:** [Truth/Lies[1/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545568)\n\n**Requirements:** [Hack Transponder](https://mapgenie.io/marathon/maps/outpost?locationIds=546554#L)",
+            "latitude": "0.73521622885976",
+            "longitude": "-0.79135894775206",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546557,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Scan Drones x3",
+            "description": "**Primary Contract:** [Truth/Lies[2/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546545)\n\n**Location:** Multiple drones located throughout the [Drone Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545135)\n\n\n**Next Objective:** Hack the [Security Shielding Protocols](https://mapgenie.io/marathon/maps/outpost?locationIds=546558#L)",
+            "latitude": "0.65201492030046",
+            "longitude": "-0.77849305886932",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546558,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Workstation - Security Shielding Protocols",
+            "description": "**Primary Contract:** [Truth/Lies[2/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546545)\n\n**Location:** ??\n\n**Requirements:** Scan three [Drones](https://mapgenie.io/marathon/maps/outpost?locationIds=546557)\n\n**Next Objective:** Destroy [Drone Wing Control System](https://mapgenie.io/marathon/maps/outpost?locationIds=546559#L), then Exfil",
+            "latitude": "0.65146763477701",
+            "longitude": "-0.72080930699443",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546559,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Drone Wing Control System",
+            "description": "**Primary Contract:** [Truth/Lies[2/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546545)\n\n**Location:** On walls and pillars of the [Drone Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545135) after hacking [Security Shielding Protocols](https://mapgenie.io/marathon/maps/outpost?locationIds=546558#L)\n\n**Next Objective:** Exfil",
+            "latitude": "0.65189147153181",
+            "longitude": "-0.75561046600251",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546561,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Workstation - Shipping Terminal",
+            "description": "**Primary Contract:** [Truth/Lies[3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546546)\n\n**Location:** Second floor in the garage\n\n**Next Objective:** Using explosives, acquire Restricted Intel from Container [#204, #355](https://mapgenie.io/marathon/maps/outpost?locationIds=546562#L), and [#571](https://mapgenie.io/marathon/maps/outpost?locationIds=546563#L) [Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545122) containers",
+            "latitude": "0.56503572104566",
+            "longitude": "-0.71683645248373",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546562,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Restricted Intel x2",
+            "description": "**Primary Contract:** [Truth/Lies[3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546546)\n\n**Location:** In the locked containers #204, and #355,  that can be opened by using explosives\n\n**Requirements:** Hack [Shipping Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=546561#L) in Southeastern [Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545140)\n\n**Next Objective:** Deliver Restricted Intel to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545513#L)",
+            "latitude": "0.80101026398181",
+            "longitude": "-0.80335378646902",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546563,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Restricted Intel",
+            "description": "**Primary Contract:** [Truth/Lies[3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546546)\n\n**Location:**In the locked container #571 that can be opened by using explosives  \n\n**Requirements:** Hack [Shipping Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=546561#L) in Southeastern [Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=545140)\n\n**Next Objective:** Deliver Restricted Intel to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545513#L)",
+            "latitude": "0.81289663533350",
+            "longitude": "-0.73520421981780",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546566,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Reinforcements Beacon",
+            "description": "**Primary Contract:** [Truth/Lies[4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546547)\n\n**Location:** In a secured room on the ground floor - destroy red boxes to gain access\n\n**Next Objective:** [Plant Beacon](https://mapgenie.io/marathon/maps/outpost?locationIds=546567#L) at the North end of [Airfield](https://mapgenie.io/marathon/maps/outpost?locationIds=545122)",
+            "latitude": "0.56893009784609",
+            "longitude": "-0.71464776992860",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546567,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Plant UESC Reinforcements Beacon",
+            "description": "**Primary Contract:** [Truth/Lies[4/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546547)\n\n**Location:** At the north end of the Airfield\n\n**Requirements:** [UESC Reinforcements Beacon](https://mapgenie.io/marathon/maps/outpost?locationIds=546566#L)\n\n**Next Objective:** Acquire the responding Commander's Credentials, and Exfil",
+            "latitude": "0.92254347656143",
+            "longitude": "-0.78152060508461",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546568,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "UESC Ship Crash Site - Specimen Unit",
+            "description": "**Primary Contract:** [Truth/Lies[5/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546548)\n\n**Location:**Outside\n\n**Next Objective:** Acquire the Specimen Unit from inside the ship and deliver Specimen Unit to any [DCON](https://mapgenie.io/marathon/maps/outpost?locationIds=545511#L)",
+            "latitude": "0.63919649612751",
+            "longitude": "-0.85920180901681",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546569,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Communications System - Flight Control",
+            "description": "**Primary Contract:** [Truth/Lies[6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546549)\n\n**Location:** Second floor\n\n**Next Objective:** [Upload  and Broadcast](https://mapgenie.io/marathon/maps/outpost?locationIds=546586#L) MIDA's message in the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)",
+            "latitude": "0.77489874665085",
+            "longitude": "-0.75754165649477",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546577,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Communications System - Dormotories",
+            "description": "**Primary Contract:** [Truth/Lies[6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546549)\n\n**Location:** Second floor\n\n\n**Next Objective:** [Upload  and Broadcast](https://mapgenie.io/marathon/maps/outpost?locationIds=546586#L) MIDA's message in the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)",
+            "latitude": "0.63571877225694",
+            "longitude": "-0.61333537101683",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546582,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Communications System - Processing",
+            "description": "**Primary Contract:** [Truth/Lies[6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546549)\n\n**Location:** Right by the [Pinwheel Access Terminal](https://mapgenie.io/marathon/maps/outpost?locationIds=545507)\n\n\n**Next Objective:** [Upload  and Broadcast](https://mapgenie.io/marathon/maps/outpost?locationIds=546586#L) MIDA's message in the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)",
+            "latitude": "0.59505082119310",
+            "longitude": "-0.71421861648528",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546586,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15006,
+            "title": "Upload MIDA Broadcast Terminal",
+            "description": "**Primary Contract:** [Truth/Lies[6/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=546549)\n\n**Location:** At the end of the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)\n\n**Requirements:** \n- Hack PA Systems:\n    - [Communications System - Flight Control](https://mapgenie.io/marathon/maps/outpost?locationIds=546569#L) \n    - [Communications System - Processing](https://mapgenie.io/marathon/maps/outpost?locationIds=546582#L)\n    - [Communications System - Dormotories ](https://mapgenie.io/marathon/maps/outpost?locationIds=546577#L)\n\n**Next Objective:**  Keep the MIDA broadcast going for 3 minutes",
+            "latitude": "0.53918042679916",
+            "longitude": "-0.61991214752234",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545272,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Workstation",
+            "description": "Hack the workstation to get inside of the Pinwheel",
+            "latitude": "0.61620954833135",
+            "longitude": "-0.71245908737188",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545280,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Workstation",
+            "description": "Hack the workstation to get inside the Pinwheel",
+            "latitude": "0.69340920488196",
+            "longitude": "-0.70209503173803",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545510,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Workstation",
+            "description": "Hack the workstation to get inside the Pinwheel",
+            "latitude": "0.64696725211738",
+            "longitude": "-0.64057588577109",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 545552,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "UESC Comms Antenna - Flight Control",
+            "description": "**Primary Contract:** [Run/Hide [3/6]](https://mapgenie.io/marathon/maps/outpost?locationIds=545550)\n\n**Location:** At the end of the walkway",
+            "latitude": "0.69686810538181",
+            "longitude": "-0.91414168214692",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546538,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Locked Door",
+            "description": "The red barrier can be disabled by destroying 4 red boxes that are attached to the outside of the [Destroyed Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=545129) structure",
+            "latitude": "0.72284688227620",
+            "longitude": "-0.64551115036204",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546539,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Command Access Terminal - Destroyed Wing",
+            "description": "One of the terminals that is used to get access to the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)\n\n**Location:** In the center of the Destroyed Wing on a wall\n\n[Drone Wing Terminal Location](https://mapgenie.io/marathon/maps/outpost?locationIds=546540#L)",
+            "latitude": "0.68963292964834",
+            "longitude": "-0.65355777740209",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546540,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Command Access Terminal - Drone Wing",
+            "description": "One of the terminals that is used to get access to the [Command Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546543)\n\n**Location:** At the Southwest end of the Drone Wing on a South wall\n\n[Destroyed Wing Terminal Location](https://mapgenie.io/marathon/maps/outpost?locationIds=546539)",
+            "latitude": "0.63970428797404",
+            "longitude": "-0.82133531570148",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 546543,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Command Wing Access",
+            "description": "Interact with Command Access Terminals in [Destroyed Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546539#L) and [Drone Wing](https://mapgenie.io/marathon/maps/outpost?locationIds=546540#L)",
+            "latitude": "0.62359055551306",
+            "longitude": "-0.66879272460861",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 550996,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15002,
+            "title": "Bioprinter",
+            "description": "",
+            "latitude": "0.68950955696982",
+            "longitude": "-0.73582649230880",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 550995,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15005,
+            "title": "TAD",
+            "description": null,
+            "latitude": "0.83729857572440",
+            "longitude": "-0.70981903767338",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        },
+        {
+            "id": 554519,
+            "map_id": 885,
+            "region_id": null,
+            "category_id": 15005,
+            "title": "TAD",
+            "description": null,
+            "latitude": "0.77272867020127",
+            "longitude": "-0.66441923736636",
+            "features": null,
+            "ign_page_id": null,
+            "tags": [],
+            "media": []
+        }
+    ],
+    "heatmapGroups": [],
+    "heatmapCategories": [],
+    "tags": [],
+    "tagsById": [],
+    "distanceToolConfig": null,
+    "proCategoryLocationCounts": [],
+    "presets": [],
+    "styles": {
+        "mapStyle": {
+            "bounds": [
+                -1.4,
+                0,
+                0,
+                1.4
+            ],
+            "fontName": "planer-demibold",
+            "glyphsUrl": "/fonts/the-cycle-frontier/pbf/{fontstack}/{range}.pbf",
+            "locationPolygonsEnabled": true,
+            "locationLinesEnabled": true,
+            "subregionsEnabled": false,
+            "showRegionTitles": true,
+            "showRegionPolygons": false,
+            "showRegionPolygonBorders": false,
+            "showPersistentRegionHighlights": false,
+            "showSubregionPolygonBorders": false,
+            "showSubregionPolygons": false,
+            "regionHoverEnabled": false,
+            "subregionHoverEnabled": false,
+            "regionBorderPaint": {},
+            "regionFillPaint": {},
+            "regionHighlightFillPaint": {},
+            "regionTitlesPaint": {
+                "text-color": "#ffffff",
+                "text-halo-width": 0.5,
+                "text-halo-color": "#1E222B",
+                "text-halo-blur": 0.5
+            },
+            "regionTitlesLayout": {
+                "text-transform": "uppercase",
+                "text-size": {
+                    "stops": [
+                        [
+                            8,
+                            14
+                        ],
+                        [
+                            12,
+                            24
+                        ]
+                    ]
+                }
+            },
+            "subregionTitlesLayout": {},
+            "subregionTitlesPaint": {},
+            "subregionBorderPaint": {},
+            "subregionFillPaint": {},
+            "locationTitlesLayout": {
+                "text-size": {
+                    "stops": [
+                        [
+                            9,
+                            15
+                        ],
+                        [
+                            10,
+                            21
+                        ],
+                        [
+                            13,
+                            50
+                        ]
+                    ]
+                }
+            },
+            "locationTitlesPaint": {
+                "text-color": "#ffffff",
+                "text-halo-width": 40,
+                "text-halo-color": "#171F27"
+            },
+            "locationLinesConfig": {
+                "line-color": "#8AF6FC",
+                "line-width": 2,
+                "line-opacity": 0.7
+            },
+            "locationLinesPaint": {
+                "line-dasharray": [
+                    2
+                ]
+            },
+            "accentColor": "#FFFFFF",
+            "geometryTolerance": 0.375,
+            "markerAnchor": "bottom",
+            "popupOffset": [
+                0,
+                -44
+            ],
+            "tooltipOffset": [
+                14,
+                -28
+            ],
+            "noteMarkersConfig": {
+                "imagePath": "images/games/rdr2/pins",
+                "pixelRatio": 2,
+                "width": 33,
+                "height": 44
+            },
+            "circleLocationsPaint": {
+                "circle-radius": 6
+            },
+            "heatmapPaint": {}
+        },
+        "textStyles": {},
+        "lineStyles": {},
+        "regionStyles": {
+            "126": {
+                "text-color": "#c29cd8",
+                "text-halo-color": "#253139",
+                "line-color": "#533f5d",
+                "line-width": 2,
+                "fill-color": "#533f5d",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "127": {
+                "text-color": "#c29cd8",
+                "text-halo-color": "#253139",
+                "line-color": "#533f5d",
+                "line-width": 2,
+                "fill-color": "#533f5d",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "128": {
+                "text-color": "#c29cd8",
+                "text-halo-color": "#253139",
+                "line-color": "#533f5d",
+                "line-width": 2,
+                "fill-color": "#533f5d",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "129": {
+                "text-color": "#769CB3",
+                "text-halo-color": "#253139",
+                "line-color": "#445A67",
+                "line-width": 2,
+                "fill-color": "#445A67",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "130": {
+                "text-color": "#769CB3",
+                "text-halo-color": "#253139",
+                "line-color": "#445A67",
+                "line-width": 2,
+                "fill-color": "#445A67",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "131": {
+                "text-color": "#769CB3",
+                "text-halo-color": "#253139",
+                "line-color": "#445A67",
+                "line-width": 2,
+                "fill-color": "#445A67",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "132": {
+                "text-color": "#efefef",
+                "text-halo-color": "#aaaaaa",
+                "line-color": "#b1b1b1",
+                "line-width": 2,
+                "fill-color": "#b1b1b1",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "133": {
+                "text-color": "#efefef",
+                "text-halo-color": "#aaaaaa",
+                "line-color": "#b1b1b1",
+                "line-width": 2,
+                "fill-color": "#b1b1b1",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "134": {
+                "text-color": "#61BA76",
+                "text-halo-color": "#23462B",
+                "line-color": "#3C7449",
+                "line-width": 2,
+                "fill-color": "#3C7449",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "135": {
+                "text-color": "#61BA76",
+                "text-halo-color": "#23462B",
+                "line-color": "#3C7449",
+                "line-width": 2,
+                "fill-color": "#3C7449",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "136": {
+                "text-color": "#61BA76",
+                "text-halo-color": "#23462B",
+                "line-color": "#3C7449",
+                "line-width": 2,
+                "fill-color": "#3C7449",
+                "fill-opacity": [
+                    "case",
+                    [
+                        "boolean",
+                        [
+                            "feature-state",
+                            "hover"
+                        ],
+                        false
+                    ],
+                    0.25,
+                    0
+                ]
+            },
+            "354": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "355": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "356": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "357": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "358": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "3202": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "3203": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "474": {
+                "text-color": "#B07CEE",
+                "line-color": "#ff6a13"
+            },
+            "475": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "476": {
+                "text-color": "#B07CEE",
+                "line-color": "#ff6a13"
+            },
+            "477": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "478": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "479": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "480": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "481": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "482": {
+                "text-color": "#B07CEE",
+                "line-color": "#ff6a13"
+            },
+            "483": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "484": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "485": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "486": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "487": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "488": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "489": {
+                "text-color": "#FFFFFF",
+                "line-color": "#FFFFFF"
+            },
+            "2886": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2887": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#31efd5"
+            },
+            "2888": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#eabea5"
+            },
+            "2889": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#0f7cf5"
+            },
+            "2890": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2891": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#0f7cf5"
+            },
+            "2892": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2893": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#701f25"
+            },
+            "2894": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#b7c7e8"
+            },
+            "2895": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#c48748"
+            },
+            "2896": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#10916b"
+            },
+            "2897": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#9446fc"
+            },
+            "2898": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#f8448b"
+            },
+            "2899": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#5bffff"
+            },
+            "2900": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#4530a7"
+            },
+            "2901": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2902": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#4530a7"
+            },
+            "2903": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#37e5fd"
+            },
+            "3065": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#37e5fd"
+            },
+            "2904": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#1d8804"
+            },
+            "3066": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#1d8804"
+            },
+            "2905": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2906": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#134402"
+            },
+            "2907": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2908": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#7198fd"
+            },
+            "2909": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#d75c8a"
+            },
+            "2910": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#cebec1"
+            },
+            "2911": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#998169"
+            },
+            "2912": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2913": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#fbd4e7"
+            },
+            "3067": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#fbd4e7"
+            },
+            "2914": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#e6a1d8"
+            },
+            "2915": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#016f66"
+            },
+            "2916": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#e8e3a9"
+            },
+            "2917": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2918": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#4abbf7"
+            },
+            "2919": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#5a5d26"
+            },
+            "2920": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2921": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#cfdf4b"
+            },
+            "2922": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#cfd4d8"
+            },
+            "2923": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#"
+            },
+            "2924": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#4379a6"
+            },
+            "2925": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#b240c0"
+            },
+            "2926": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#c7b6e9"
+            },
+            "2927": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#8503b7"
+            },
+            "2928": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#609d6d"
+            },
+            "2929": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#28be33"
+            },
+            "2930": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#7e9b28"
+            },
+            "2931": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#27a1ea"
+            },
+            "3061": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#0b59a5"
+            },
+            "3063": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#ffb300"
+            },
+            "3199": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#ffb300"
+            },
+            "3329": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#ffb300"
+            },
+            "4275": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#ffb300"
+            },
+            "3050": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#eabea5"
+            },
+            "3054": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#31efd5"
+            },
+            "3042": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#0f7cf5"
+            },
+            "3057": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#f8448b"
+            },
+            "3046": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#4530a7"
+            },
+            "3055": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#701f25"
+            },
+            "3047": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#c48748"
+            },
+            "3056": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#b7c7e8"
+            },
+            "3043": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#cebec1"
+            },
+            "3051": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#998169"
+            },
+            "3053": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#4abbf7"
+            },
+            "3044": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#134402"
+            },
+            "3052": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#37e5fd"
+            },
+            "3049": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#1d8804"
+            },
+            "3045": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#fbd4e7"
+            },
+            "3048": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#016f66"
+            },
+            "3060": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#eabea5"
+            },
+            "3058": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#0b59a5"
+            },
+            "3059": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#A4CFEC"
+            },
+            "3167": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#1d8804"
+            },
+            "3262": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#ffb300"
+            },
+            "3330": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#ffb300"
+            },
+            "4460": {
+                "text-color": "#E6E6E6",
+                "text-halo-color": "#253139",
+                "fill-color": "#ffb300"
+            },
+            "2870": {
+                "text-color": "#E6E6E6",
+                "line-color": "#ff0000",
+                "fill-color": "#4C2B33"
+            },
+            "2865": {
+                "text-color": "#E6E6E6",
+                "line-color": "#FFEA4C",
+                "fill-color": "#484A21"
+            },
+            "2868": {
+                "text-color": "#E6E6E6",
+                "line-color": "#ff0000",
+                "fill-color": "#4C2B33"
+            },
+            "2871": {
+                "text-color": "#E6E6E6",
+                "line-color": "#ff0000",
+                "fill-color": "#4C2B33"
+            },
+            "2864": {
+                "text-color": "#E6E6E6",
+                "line-color": "#2EB8F6",
+                "fill-color": "#2A6D93"
+            },
+            "2869": {
+                "text-color": "#E6E6E6",
+                "line-color": "#2EB8F6",
+                "fill-color": "#2A6D93"
+            },
+            "2866": {
+                "text-color": "#E6E6E6",
+                "line-color": "#2EB8F6",
+                "fill-color": "#2A6D93"
+            },
+            "2867": {
+                "text-color": "#E6E6E6",
+                "line-color": "#FFEA4C",
+                "fill-color": "#484A21"
+            },
+            "2863": {
+                "text-color": "#E6E6E6",
+                "line-color": "#FFEA4C",
+                "fill-color": "#484A21"
+            }
+        },
+        "shapeStyles": {},
+        "polygonStyles": {},
+        "polygonStylesByTag": {}
+    }
+}

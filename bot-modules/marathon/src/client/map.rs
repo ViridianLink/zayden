@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
 use serde_json::Value;
+use tracing::warn;
 
 use super::MarathonClient;
+use super::health::flag_degraded_sources;
 use crate::error::{MarathonError, Result};
 use crate::merge::Merge;
 use crate::model::MarathonMap;
 use crate::parse;
+use crate::source::SourceId;
 
 impl MarathonClient {
     pub async fn map(&self, slug: &str) -> Result<Arc<MarathonMap>> {
@@ -20,12 +23,25 @@ impl MarathonClient {
     }
 
     async fn cross_reference_map(&self, slug: &str) -> Result<MarathonMap> {
-        let (marathondb, mapgenie) =
-            tokio::join!(self.marathondb_map(slug), self.mapgenie_map(slug));
+        let (marathondb, mapgenie, metaforge) = tokio::join!(
+            self.marathondb_map(slug),
+            self.mapgenie_map(slug),
+            self.metaforge_map(slug),
+        );
+
+        let mut candidates: Vec<(SourceId, MarathonMap)> = Vec::new();
+        collect_map(&mut candidates, SourceId::MarathonDb, marathondb, slug);
+        collect_map(&mut candidates, SourceId::MapGenie, mapgenie, slug);
+        collect_map(&mut candidates, SourceId::MetaForge, metaforge, slug);
+        flag_degraded_sources(&candidates, "map", slug);
 
         let mut merged: Option<MarathonMap> = None;
-        fold_source(&mut merged, marathondb, slug);
-        fold_source(&mut merged, mapgenie, slug);
+        for (_, map) in candidates {
+            match &mut merged {
+                Some(existing) => existing.merge_from(map),
+                None => merged = Some(map),
+            }
+        }
 
         merged.ok_or_else(|| MarathonError::NotFound {
             entity: "map",
@@ -41,6 +57,17 @@ impl MarathonClient {
     async fn mapgenie_map(&self, slug: &str) -> Result<MarathonMap> {
         let doc = self.mapgenie.map(slug).await?;
         Ok(parse::mapgenie_map_to_model(slug, &doc.taxonomy, &doc.data))
+    }
+
+    async fn metaforge_map(&self, slug: &str) -> Result<MarathonMap> {
+        let rows = self.metaforge.map_markers(slug).await?;
+        if rows.is_empty() {
+            return Err(MarathonError::NotFound {
+                entity: "map",
+                query: slug.to_string(),
+            });
+        }
+        Ok(parse::metaforge_markers_to_map(slug, &rows))
     }
 
     pub async fn maps(&self) -> Result<Arc<[MarathonMap]>> {
@@ -74,12 +101,12 @@ impl MarathonClient {
                     m.get("slug").and_then(Value::as_str).map(str::to_string)
                 })
                 .for_each(&mut push),
-            Err(err) => tracing::debug!(%err, "marathondb map list unavailable"),
+            Err(err) => warn!(%err, "marathondb map list unavailable"),
         }
 
         match self.mapgenie.slugs().await {
             Ok(mg) => mg.into_iter().for_each(&mut push),
-            Err(err) => tracing::debug!(%err, "mapgenie roster unavailable"),
+            Err(err) => warn!(%err, "mapgenie roster unavailable"),
         }
 
         if slugs.is_empty() {
@@ -89,16 +116,16 @@ impl MarathonClient {
     }
 }
 
-fn fold_source(
-    merged: &mut Option<MarathonMap>,
+fn collect_map(
+    candidates: &mut Vec<(SourceId, MarathonMap)>,
+    source: SourceId,
     candidate: Result<MarathonMap>,
     slug: &str,
 ) {
     match candidate {
-        Ok(map) => match merged {
-            Some(existing) => existing.merge_from(map),
-            None => *merged = Some(map),
+        Ok(map) => candidates.push((source, map)),
+        Err(err) => {
+            warn!(%source, %slug, %err, "map source unavailable");
         },
-        Err(err) => tracing::debug!(%slug, %err, "map source unavailable"),
     }
 }

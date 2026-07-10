@@ -1,0 +1,23 @@
+{
+ "id": "b2a26526-3309-4ff0-85fd-b5b9d07a175b",
+ "slug": "mida",
+ "name": "MIDA",
+ "description": "A radical anarchist group with a complicated history, MIDA stands against the UESC and corporate control across the system. Their interest in the New Cascadia colony seems largely due to correcting what they see as overreach by the UESC, but there are rumors they have a deeper agenda.",
+ "imageUrl": "https://cdn.tauceti.gg/images/1770900945669-0qxifuhiq.webp",
+ "iconUrl": "https://cdn.tauceti.gg/images/1770900941053-ug0cnd1nz.webp",
+ "representativeName": "_GANTRY",
+ "representativeImageUrl": "https://cdn.tauceti.gg/images/1770900930033-ibkfadrrx.webp",
+ "representativeDescription": "$undefined",
+ "color": "#bf72e4",
+ "reputationActivities": [
+  "Complete MIDA contracts",
+  "Loot Lockboxes and Munitions Crates",
+  "Find coordinates and loot caches",
+  "Complete secured resource events",
+  "Exfil MIDA Valuables"
+ ],
+ "createdAt": "2026-02-12T10:07:36.400106+00:00",
+ "updatedAt": "2026-03-01T19:16:49.623179+00:00",
+ "upgrades": [],
+ "contracts": []
+}

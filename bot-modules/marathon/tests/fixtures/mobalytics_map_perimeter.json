@@ -1,0 +1,3414 @@
+{
+  "apollo": {
+    "graphqlV2": {
+      "mutations": [],
+      "queries": [
+        {
+          "dehydratedAt": 1783674048709,
+          "state": {
+            "data": [
+              {
+                "game": {
+                  "settings": {
+                    "banners": {
+                      "takeovers": []
+                    }
+                  }
+                }
+              },
+              null
+            ],
+            "dataUpdateCount": 1,
+            "dataUpdatedAt": 1783674048470,
+            "error": null,
+            "errorUpdateCount": 0,
+            "errorUpdatedAt": 0,
+            "fetchFailureCount": 0,
+            "fetchFailureReason": null,
+            "fetchMeta": null,
+            "isInvalidated": false,
+            "status": "success",
+            "fetchStatus": "idle"
+          },
+          "queryKey": [
+            "ngf-banner-takeover"
+          ],
+          "queryHash": "[\"ngf-banner-takeover\"]"
+        },
+        {
+          "dehydratedAt": 1783674048709,
+          "state": {
+            "data": [
+              {
+                "game": {
+                  "documents": {
+                    "structDocumentBySlug": {
+                      "error": null,
+                      "data": {
+                        "id": "dc4b10e5-a6df-41df-be8c-3b910a83898d",
+                        "category": "ST",
+                        "slug": "maps/perimeter",
+                        "version": 27,
+                        "status": "PUBLISHED",
+                        "seo": {
+                          "title": "Perimeter Map - Spawn Points, Loot Routes & More - Marathon",
+                          "description": "Check out Perimeter map in Marathon, as well as its details. Learn about spawn points, loot routes, and more!",
+                          "ogImage": "https://cdn.mobalytics.gg/assets/marathon/images/pages/maps/perimeter-map.png",
+                          "schemaMarkup": "",
+                          "canonicalUrl": "",
+                          "noIndex": false
+                        },
+                        "createdAt": "2026-02-10T14:15:28Z",
+                        "updatedAt": "2026-06-03T16:18:12Z",
+                        "data": {
+                          "childrenIds": [
+                            "root"
+                          ],
+                          "tierLists": {
+                            "values": []
+                          }
+                        },
+                        "content": [
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "root",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "a8b43a6d-88c7-436f-94bd-5ab302c32246",
+                                "16f5b97a-4125-4dce-9b22-cba83a7c7e2c",
+                                "7000bb84-6ede-4caa-a34c-771985f681ee"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionVideoAdV1",
+                            "id": "a8b43a6d-88c7-436f-94bd-5ab302c32246",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "5"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "5f695ac5-3bbd-420f-8c96-99a11ae118fb",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "2",
+                                "12",
+                                "8",
+                                "9",
+                                "10",
+                                "11",
+                                "13"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "fa8ce973-7fd4-41e0-ad33-16a78bcc8a7a",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "1",
+                                "6"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto400V1",
+                            "id": "7000bb84-6ede-4caa-a34c-771985f681ee",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "5f695ac5-3bbd-420f-8c96-99a11ae118fb",
+                                "fa8ce973-7fd4-41e0-ad33-16a78bcc8a7a"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetTableOfContentV1",
+                            "id": "1",
+                            "data": {
+                              "isStickyInEditingMode": true,
+                              "isStickyInViewMode": true,
+                              "focusMode": null,
+                              "stub": "Table of Content"
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "2",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Overview",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Perimeter is the starting zone on Tau Ceti IV, situated on the outskirts of the UESC colony and originally designated as an expansion and terraforming site. ",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "The map features wide exterior terrain and industrial infrastructure tied to early settlement efforts, including Points of Interest such as the Data Wall, the Hauler, and the Twin Relays, which indicate large-scale data collection and transmission systems\u2014many of which now appear dormant, though still guarded by UESC forces.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "\"You're going to start with Perimeter, where you're on the outskirts of the colony. It's a little more spread out with more areas to be safe and to sneak around. But it's also a little more straightforward. It really brings the sense of scale. It sits in our fantasy as an expansion site for the colony on the very edges where they had settled on Tau Ceti. UESC are also there trying to understand what has happened and secure the area.\"",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Players",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 2,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Teams",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 2,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Threat",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 2,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "15",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "5 teams of 3",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "color: ;",
+                                                      "text": "Low",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "color: ;",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "textStyle": "color: ;",
+                                              "type": "tablecell",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "textStyle": "color: ;",
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246,
+                                        236
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "textStyle": "color: ;",
+                                      "type": "table",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 1,
+                                  "textStyle": "color: ;",
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentStWidgetHeaderV2",
+                            "id": "5",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": {
+                                "enabled": false
+                              },
+                              "title": "Perimeter",
+                              "optionalSubTitleV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Perimeter, the starting zone, on the outskirts of the colony (5 teams of 3).",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Updated on June 2nd 2026",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              },
+                              "backgroundCss": "https://cdn.mobalytics.gg/assets/marathon/images/pages/general/marathon-cover-3.png",
+                              "backgroundImageMask": ""
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetPromoBannerHorizontalV1",
+                            "id": "6",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Explore Other Maps",
+                              "subTitle": null,
+                              "buttonColor": "#F2BF43",
+                              "buttonTitle": "See Maps",
+                              "buttonTextColor": "#000000",
+                              "backgroundCss": "https://cdn.mobalytics.gg/assets/marathon/images/pages/general/marathon-cover-3.png",
+                              "backgroundImageMask": null,
+                              "linkUrl": "/marathon/maps",
+                              "openLinkInNewTab": null,
+                              "platforms": null,
+                              "userLevels": null,
+                              "mixpanelSlug": "promo-banner"
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "669ccd78-1a15-4207-bfbb-3f90e7caf416",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "7"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "16f5b97a-4125-4dce-9b22-cba83a7c7e2c",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "669ccd78-1a15-4207-bfbb-3f90e7caf416"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetCrossPageTabBarV1",
+                            "id": "7",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "items": [
+                                {
+                                  "title": "Perimeter",
+                                  "path": "/marathon/maps/perimeter",
+                                  "tag": null
+                                },
+                                {
+                                  "title": "Dire Marsh",
+                                  "path": "/marathon/maps/dire-marsh",
+                                  "tag": null
+                                },
+                                {
+                                  "title": "Outpost",
+                                  "path": "/marathon/maps/outpost",
+                                  "tag": null
+                                },
+                                {
+                                  "title": "Cryo Archive",
+                                  "path": "/marathon/maps/cryo-archive",
+                                  "tag": null
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "8",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Spawn Points & Exfils",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "Perimeter Map",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/assets/marathon/images/pages/maps/map-perimeter-starter.png",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "100%"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Press on the Map to see in full-screen",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Map Legend",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Number on the Map",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "display": 1,
+                                                      "groupId": "pointsOfInterest",
+                                                      "icon": "https://cdn.mobalytics.gg/assets/marathon/images/activities/spawn-point.png",
+                                                      "iconStyle": "square-rounded",
+                                                      "id": "spawn-point",
+                                                      "isShowLabel": true,
+                                                      "label": "Spawn Point",
+                                                      "link": "",
+                                                      "type": "static-data-widget",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "11",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "display": 1,
+                                                      "groupId": "pointsOfInterest",
+                                                      "icon": "https://cdn.mobalytics.gg/assets/marathon/images/activities/crew-exfil.png",
+                                                      "iconStyle": "square-rounded",
+                                                      "id": "crew-exfil",
+                                                      "isShowLabel": true,
+                                                      "label": "Crew Exfil",
+                                                      "type": "static-data-widget",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "7",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "display": 1,
+                                                      "groupId": "pointsOfInterest",
+                                                      "icon": "https://cdn.mobalytics.gg/assets/marathon/images/activities/guarded-exfil.png",
+                                                      "iconStyle": "square-rounded",
+                                                      "id": "guarded-exfil",
+                                                      "isShowLabel": true,
+                                                      "label": "Guarded Exfil",
+                                                      "type": "static-data-widget",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "3",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": null,
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "9",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "TAD & DCON",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "Perimeter Map",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/assets/marathon/images/pages/maps/map-perimeter-interactive-tad-dcon.png",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "100%"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Press on the Map to see in full-screen",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Map Legend",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Number on the Map",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "alt": "Target Acquisition Device (TAD)",
+                                                      "height": 20,
+                                                      "src": "https://cdn.mobalytics.gg/uploads/images/marathon/map-tad.png",
+                                                      "type": "inline-image",
+                                                      "version": 1,
+                                                      "width": "auto"
+                                                    },
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": " Target Acquisition Device (TAD)",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "4",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "alt": "DCON",
+                                                      "height": 20,
+                                                      "src": "https://cdn.mobalytics.gg/uploads/images/marathon/map-dcon.png",
+                                                      "type": "inline-image",
+                                                      "version": 1,
+                                                      "width": "auto"
+                                                    },
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": " DCON",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "left",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "4",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": null,
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "10",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Supply Drops, Hazard Room & Intercepts",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "Perimeter Map",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/assets/marathon/images/pages/maps/map-perimeter-interactive-valuables.png",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "100%"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Press on the Map to see in full-screen",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Map Legend",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Number on the Map",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "display": 1,
+                                                      "groupId": "pointsOfInterest",
+                                                      "icon": "https://cdn.mobalytics.gg/assets/marathon/images/activities/supply-drop.png",
+                                                      "iconStyle": "square-rounded",
+                                                      "id": "supply-drop",
+                                                      "isShowLabel": true,
+                                                      "label": "Supply Drop",
+                                                      "type": "static-data-widget",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "1",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "display": 1,
+                                                      "groupId": "pointsOfInterest",
+                                                      "icon": "https://cdn.mobalytics.gg/assets/marathon/images/activities/hazard-room.png",
+                                                      "iconStyle": "square-rounded",
+                                                      "id": "hazard-room",
+                                                      "isShowLabel": true,
+                                                      "label": "Hazard Room",
+                                                      "type": "static-data-widget",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "2",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "display": 1,
+                                                      "groupId": "pointsOfInterest",
+                                                      "icon": "https://cdn.mobalytics.gg/assets/marathon/images/activities/intercept.png",
+                                                      "iconStyle": "square-rounded",
+                                                      "id": "intercept",
+                                                      "isShowLabel": true,
+                                                      "label": "Intercept",
+                                                      "type": "static-data-widget",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "3",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": null,
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "11",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Dangers",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "Perimeter Map",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/assets/marathon/images/pages/maps/map-perimeter-interactive-dangers.png",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "100%"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Press on the Map to see in full-screen",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Map Legend",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Number on the Map",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "alt": "Ticks",
+                                                      "height": 20,
+                                                      "src": "https://cdn.mobalytics.gg/uploads/images/marathon/map-tick.png",
+                                                      "type": "inline-image",
+                                                      "version": 1,
+                                                      "width": "auto"
+                                                    },
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": " Ticks",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "5",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "alt": "Birds",
+                                                      "height": 20,
+                                                      "src": "https://cdn.mobalytics.gg/uploads/images/marathon/map-birds.png",
+                                                      "type": "inline-image",
+                                                      "version": 1,
+                                                      "width": "auto"
+                                                    },
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": " Birds",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "2",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "12",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "How to do the Intercept Event (Profit Opportunity)",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "For more explanation on how to complete Perimeter's map events, check out this in-depth video by our expert, ",
+                                          "type": "text",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "detail": 0,
+                                              "format": 0,
+                                              "mode": "normal",
+                                              "style": "",
+                                              "text": "Wallzer",
+                                              "type": "text",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "rel": "ugc nofollow noopener noreferrer",
+                                          "target": "_blank",
+                                          "title": null,
+                                          "type": "link",
+                                          "url": "https://youtu.be/tnph2mWZv-U?si=YGhkfm_1vstLjBiW&t=75",
+                                          "version": 1
+                                        },
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": ".",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "height": "auto",
+                                          "isAutoplay": false,
+                                          "isLoop": false,
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://youtu.be/tnph2mWZv-U?si=YGhkfm_1vstLjBiW&t=75",
+                                          "type": "video",
+                                          "version": 1,
+                                          "width": "100%"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "center",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "The Intercept requires you to find a panel with a three number code and activate it.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "interecept panel perimeter",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/uploads/images/marathon/intercept%20panel%20perimeter.jpg",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "inherit"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "From there, you'll see multiple highlighted pings for other panels on the map, and you must find the one that matches the number on the original panel. ",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "other panels perimeter",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/uploads/images/marathon/other%20panels%20perimeter.jpg",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "inherit"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "You can see the original number at all times at the top right where your contract is listed.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Once you find it, activate it and then wait for a keycard to pop out of it and reveal a ping for the last location.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "key card objective updated",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/uploads/images/marathon/key%20card%20objective%20updated.jpg",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "inherit"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "At the last location, enter the keycard into the terminal to spawn three UESC dropships. These will have high-tier enemies and one ship will have a bright yellow supply crate.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "alt": "shoot yellow supply crate",
+                                          "height": "auto",
+                                          "maxWidth": "100%",
+                                          "minHeight": 24,
+                                          "minWidth": 24,
+                                          "src": "https://cdn.mobalytics.gg/uploads/images/marathon/shoot%20yellow%20supply%20crate.jpg",
+                                          "type": "image",
+                                          "version": 1,
+                                          "width": "inherit"
+                                        }
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "You must shoot it down before it leaves or you will miss out on its rewards.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "13",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": {
+                                "enabled": false
+                              },
+                              "title": "General Tips",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "detail": 0,
+                                              "format": 1,
+                                              "mode": "normal",
+                                              "style": "",
+                                              "text": "Stick to the outer ring",
+                                              "type": "text",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "textFormat": 1,
+                                          "type": "listitem",
+                                          "value": 1,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "You'll find all the main exfils out there with way less player traffic. The center just pulls everyone into pointless fights.",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 1,
+                                                  "type": "listitem",
+                                                  "value": 1,
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "indent": 0,
+                                              "listType": "bullet",
+                                              "start": 1,
+                                              "tag": "ul",
+                                              "textFormat": 1,
+                                              "type": "list",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "listitem",
+                                          "value": 2,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "detail": 0,
+                                              "format": 1,
+                                              "mode": "normal",
+                                              "style": "",
+                                              "text": "Hit North Relay first",
+                                              "type": "text",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "textFormat": 1,
+                                          "type": "listitem",
+                                          "value": 2,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Drop there for good loot right away, then get out quick. It turns into a hot zone if you hang around too long.",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 1,
+                                                  "type": "listitem",
+                                                  "value": 1,
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "indent": 0,
+                                              "listType": "bullet",
+                                              "start": 1,
+                                              "tag": "ul",
+                                              "textFormat": 1,
+                                              "type": "list",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "listitem",
+                                          "value": 3,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "detail": 0,
+                                              "format": 1,
+                                              "mode": "normal",
+                                              "style": "",
+                                              "text": "Commit fully to Station",
+                                              "type": "text",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "textFormat": 1,
+                                          "type": "listitem",
+                                          "value": 3,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Don't just peek it and leave, clear it properly or skip it. It's one of the best spots but needs your full attention.",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 1,
+                                                  "type": "listitem",
+                                                  "value": 1,
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "indent": 0,
+                                              "listType": "bullet",
+                                              "start": 1,
+                                              "tag": "ul",
+                                              "textFormat": 1,
+                                              "type": "list",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "listitem",
+                                          "value": 4,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "detail": 0,
+                                              "format": 1,
+                                              "mode": "normal",
+                                              "style": "",
+                                              "text": "Use Ravine and Tunnels to rotate",
+                                              "type": "text",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "textFormat": 1,
+                                          "type": "listitem",
+                                          "value": 4,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "They let you move between areas without being seen. Perfect for getting to exfils safely.",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 1,
+                                                  "type": "listitem",
+                                                  "value": 1,
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "indent": 0,
+                                              "listType": "bullet",
+                                              "start": 1,
+                                              "tag": "ul",
+                                              "textFormat": 1,
+                                              "type": "list",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "listitem",
+                                          "value": 5,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "detail": 0,
+                                              "format": 1,
+                                              "mode": "normal",
+                                              "style": "",
+                                              "text": "Skip Overflow unless you're loaded",
+                                              "type": "text",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "textFormat": 1,
+                                          "type": "listitem",
+                                          "value": 5,
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "The enemies there can overwhelm you fast. Only go if you have strong weapons and plenty of ammo.",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 1,
+                                                  "type": "listitem",
+                                                  "value": 1,
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "indent": 0,
+                                              "listType": "bullet",
+                                              "start": 1,
+                                              "tag": "ul",
+                                              "textFormat": 1,
+                                              "type": "list",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "listitem",
+                                          "value": 6,
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "listType": "bullet",
+                                      "start": 1,
+                                      "tag": "ul",
+                                      "textFormat": 1,
+                                      "type": "list",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 1,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "userGeneratedDocumentTypes": {
+                      "error": null,
+                      "data": [
+                        {
+                          "slug": "builds",
+                          "name": "Build",
+                          "pluralName": "Builds",
+                          "description": "Create a Build",
+                          "index": 1,
+                          "creationIsAllowed": true,
+                          "tagGroups": [
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Runner Shell",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Runner Shell"
+                              },
+                              "required": true,
+                              "slug": "runner",
+                              "values": [
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/assassin.png",
+                                  "name": "Assassin",
+                                  "pluralName": null,
+                                  "slug": "assassin",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/destroyer.png",
+                                  "name": "Destroyer",
+                                  "pluralName": null,
+                                  "slug": "destroyer",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/recon.png",
+                                  "name": "Recon",
+                                  "pluralName": null,
+                                  "slug": "recon",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/thief.png",
+                                  "name": "Thief",
+                                  "pluralName": null,
+                                  "slug": "thief",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/triage.png",
+                                  "name": "Triage",
+                                  "pluralName": null,
+                                  "slug": "triage",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/vandal.png",
+                                  "name": "Vandal",
+                                  "pluralName": null,
+                                  "slug": "vandal",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Season",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Season"
+                              },
+                              "required": true,
+                              "slug": "season",
+                              "values": [
+                                {
+                                  "groupSlug": "season",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Season 1",
+                                  "pluralName": null,
+                                  "slug": "season-1",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Matchmaking",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Matchmaking"
+                              },
+                              "required": false,
+                              "slug": "Matchmaking",
+                              "values": [
+                                {
+                                  "groupSlug": "Matchmaking",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Solo",
+                                  "pluralName": null,
+                                  "slug": "solo",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "Matchmaking",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Squad",
+                                  "pluralName": null,
+                                  "slug": "squad",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Map",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Map"
+                              },
+                              "required": false,
+                              "slug": "map",
+                              "values": [
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Perimeter",
+                                  "pluralName": null,
+                                  "slug": "perimeter",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Dire Marsh",
+                                  "pluralName": null,
+                                  "slug": "dire-marsh",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Outpost",
+                                  "pluralName": null,
+                                  "slug": "outpost",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Cryo Archive",
+                                  "pluralName": null,
+                                  "slug": "cryo-archive",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Budget",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Budget"
+                              },
+                              "required": false,
+                              "slug": "Budget",
+                              "values": [
+                                {
+                                  "groupSlug": "Budget",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Low Budget",
+                                  "pluralName": null,
+                                  "slug": "low-budget",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "Budget",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Medium Budget",
+                                  "pluralName": null,
+                                  "slug": "medium-budget",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "Budget",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "High Budget",
+                                  "pluralName": null,
+                                  "slug": "high-budget",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Verified",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Verification"
+                              },
+                              "required": false,
+                              "slug": "verified",
+                              "values": [
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Verified",
+                                  "pluralName": null,
+                                  "slug": "expert-verification",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Creator",
+                                  "pluralName": null,
+                                  "slug": "creator-verification",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Featured",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Build"
+                              },
+                              "required": false,
+                              "slug": "featured",
+                              "values": [
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Featured",
+                                  "pluralName": null,
+                                  "slug": "featrued",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Trending",
+                                  "pluralName": null,
+                                  "slug": "trending",
+                                  "linkUrl": null
+                                }
+                              ]
+                            }
+                          ],
+                          "displayMetadata": {
+                            "iconTagGroupSlug": "",
+                            "subTitleTagGroupSlug": ""
+                          }
+                        },
+                        {
+                          "slug": "guides",
+                          "name": "Guide",
+                          "pluralName": "Guides",
+                          "description": "Create a Guide",
+                          "index": 2,
+                          "creationIsAllowed": false,
+                          "tagGroups": [
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Topic",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Topic"
+                              },
+                              "required": true,
+                              "slug": "topic",
+                              "values": [
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Beginner",
+                                  "pluralName": null,
+                                  "slug": "Beginner",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Mechanics",
+                                  "pluralName": null,
+                                  "slug": "Mechanics",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "News",
+                                  "pluralName": null,
+                                  "slug": "News",
+                                  "linkUrl": null
+                                }
+                              ]
+                            }
+                          ],
+                          "displayMetadata": {
+                            "iconTagGroupSlug": "",
+                            "subTitleTagGroupSlug": ""
+                          }
+                        },
+                        {
+                          "slug": "tier-lists",
+                          "name": "Tier List",
+                          "pluralName": "Tier Lists",
+                          "description": "Create a Tier List",
+                          "index": 3,
+                          "creationIsAllowed": true,
+                          "tagGroups": [
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Topic",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Topic"
+                              },
+                              "required": false,
+                              "slug": "topic",
+                              "values": [
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Runners",
+                                  "pluralName": null,
+                                  "slug": "runners",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Ammo",
+                                  "pluralName": null,
+                                  "slug": "ammo",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Backpacks",
+                                  "pluralName": null,
+                                  "slug": "backpacks",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Consumables",
+                                  "pluralName": null,
+                                  "slug": "consumables",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Cores",
+                                  "pluralName": null,
+                                  "slug": "cores",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Equipment",
+                                  "pluralName": null,
+                                  "slug": "equipment",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Implants",
+                                  "pluralName": null,
+                                  "slug": "implants",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Mods",
+                                  "pluralName": null,
+                                  "slug": "mods",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Points of Interest",
+                                  "pluralName": null,
+                                  "slug": "points-of-interest",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Salvage",
+                                  "pluralName": null,
+                                  "slug": "salvage",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Stats",
+                                  "pluralName": null,
+                                  "slug": "stats",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Weapons",
+                                  "pluralName": null,
+                                  "slug": "weapons",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Verified",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Verification"
+                              },
+                              "required": false,
+                              "slug": "verified",
+                              "values": [
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Verified",
+                                  "pluralName": null,
+                                  "slug": "expert-verification",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Creator",
+                                  "pluralName": null,
+                                  "slug": "creator-verification",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Featured",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Build"
+                              },
+                              "required": false,
+                              "slug": "featured",
+                              "values": [
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Featured",
+                                  "pluralName": null,
+                                  "slug": "featrued",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Trending",
+                                  "pluralName": null,
+                                  "slug": "trending",
+                                  "linkUrl": null
+                                }
+                              ]
+                            }
+                          ],
+                          "displayMetadata": {
+                            "iconTagGroupSlug": "",
+                            "subTitleTagGroupSlug": ""
+                          }
+                        }
+                      ]
+                    },
+                    "wikiDocumentType": {
+                      "error": "INTERNAL",
+                      "data": {
+                        "staticDataTypes": null
+                      }
+                    }
+                  },
+                  "permissions": {
+                    "user": {
+                      "id": null,
+                      "role": "UNAUTHORIZED_USER"
+                    }
+                  },
+                  "settings": {
+                    "availableColors": null
+                  }
+                }
+              },
+              null
+            ],
+            "dataUpdateCount": 1,
+            "dataUpdatedAt": 1783674048486,
+            "error": null,
+            "errorUpdateCount": 0,
+            "errorUpdatedAt": 0,
+            "fetchFailureCount": 0,
+            "fetchFailureReason": null,
+            "fetchMeta": null,
+            "isInvalidated": false,
+            "status": "success",
+            "fetchStatus": "idle"
+          },
+          "queryKey": [
+            "ngf-st-document-page",
+            "maps/perimeter",
+            []
+          ],
+          "queryHash": "[\"ngf-st-document-page\",\"maps/perimeter\",[]]"
+        }
+      ]
+    }
+  }
+}

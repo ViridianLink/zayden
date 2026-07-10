@@ -5,6 +5,7 @@ mod mapgenie;
 mod marathondb;
 mod marathonguide;
 mod marathonmeta;
+mod metaforge;
 mod mobalytics;
 mod tauceti;
 
@@ -14,5 +15,6 @@ pub use mapgenie::{MapGenie, MapGenieDoc};
 pub use marathondb::MarathonDb;
 pub use marathonguide::MarathonGuide;
 pub use marathonmeta::MarathonMeta;
+pub use metaforge::MetaForge;
 pub use mobalytics::Mobalytics;
 pub use tauceti::TauCeti;

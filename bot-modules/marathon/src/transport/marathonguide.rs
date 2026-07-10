@@ -42,6 +42,14 @@ impl MarathonGuide {
         self.fetch(&format!("{BASE}/runners/{slug}")).await
     }
 
+    pub async fn faction_contracts(&self, slug: &str) -> Result<String> {
+        self.fetch(&format!("{BASE}/factions/{slug}/contracts")).await
+    }
+
+    pub async fn faction_upgrades(&self, slug: &str) -> Result<String> {
+        self.fetch(&format!("{BASE}/factions/{slug}/upgrades")).await
+    }
+
     async fn fetch(&self, url: &str) -> Result<String> {
         let text = self
             .client

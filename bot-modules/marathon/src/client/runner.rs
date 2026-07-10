@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
+use super::health::flag_degraded_sources;
 use super::{MarathonClient, collect_candidate};
 use crate::error::{MarathonError, Result};
 use crate::model::Runner;
@@ -79,6 +80,7 @@ impl MarathonClient {
             slug,
             "runner",
         );
+        flag_degraded_sources(&out, "runner", slug);
         out
     }
 

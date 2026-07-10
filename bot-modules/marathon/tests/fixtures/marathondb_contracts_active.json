@@ -1,0 +1,196 @@
+{
+    "success": true,
+    "count": 3,
+    "data": [
+        {
+            "slug": "introducing-nucaloric",
+            "name": "Introducing: Nucaloric",
+            "description": "In Perimeter, retrieve a NuCal ID from a tick-infested building. Use the nearby workstation, then head northeast of the infested building to find the DCON on a rooftop.",
+            "contract_type": "permanent",
+            "difficulty": "easy",
+            "difficulty_rating": 2,
+            "scope": "single_run",
+            "faction_slug": "nucaloric",
+            "faction_name": "Nucaloric",
+            "faction_icon": "https://helpbot.marathondb.gg/assets/items/reputations/nucaloric-200x200.png",
+            "faction_color": "#ff125d",
+            "season_id": null,
+            "season_slug": null,
+            "season_name": null,
+            "is_active": true,
+            "is_repeatable": false,
+            "available_from": null,
+            "available_until": null,
+            "estimated_time_minutes": 15,
+            "estimated_time_range": "10\u201125",
+            "step_count": 3,
+            "reward_summary": null,
+            "total_reputation": 225,
+            "tags": [
+                "combat",
+                "exploration",
+                "delivery",
+                "sabotage",
+                "intel"
+            ],
+            "tag_objects": [
+                {
+                    "slug": "combat",
+                    "name": "Combat",
+                    "color": "#dc2626"
+                },
+                {
+                    "slug": "exploration",
+                    "name": "Exploration",
+                    "color": "#06b6d4"
+                },
+                {
+                    "slug": "delivery",
+                    "name": "Delivery",
+                    "color": "#8b5cf6"
+                },
+                {
+                    "slug": "sabotage",
+                    "name": "Sabotage",
+                    "color": "#e11d48"
+                },
+                {
+                    "slug": "intel",
+                    "name": "Intel",
+                    "color": "#0ea5e9"
+                }
+            ],
+            "map_slug": "perimeter",
+            "chain_slug": null,
+            "chain_position": null,
+            "chain_total": null,
+            "sort_order": 1,
+            "created_at": "2026-02-14 15:20:16",
+            "updated_at": "2026-02-14 15:20:16"
+        },
+        {
+            "slug": "friction-2",
+            "name": "Friction 2",
+            "description": "Defeat hostiles with precision shots, especially Runners. Exfil with Implants or Cores for SekGen.",
+            "contract_type": "permanent",
+            "difficulty": "normal",
+            "difficulty_rating": 3,
+            "scope": "single_run",
+            "faction_slug": "sekiguchi",
+            "faction_name": "Sekiguchi",
+            "faction_icon": "https://helpbot.marathondb.gg/assets/items/reputations/sekiguchi-200x200.png",
+            "faction_color": "#cfb72f",
+            "season_id": null,
+            "season_slug": null,
+            "season_name": null,
+            "is_active": true,
+            "is_repeatable": false,
+            "available_from": null,
+            "available_until": null,
+            "estimated_time_minutes": null,
+            "estimated_time_range": null,
+            "step_count": 2,
+            "reward_summary": null,
+            "total_reputation": 90,
+            "tags": [
+                "combat",
+                "extraction",
+                "delivery"
+            ],
+            "tag_objects": [
+                {
+                    "slug": "combat",
+                    "name": "Combat",
+                    "color": "#dc2626"
+                },
+                {
+                    "slug": "extraction",
+                    "name": "Extraction",
+                    "color": "#22c55e"
+                },
+                {
+                    "slug": "delivery",
+                    "name": "Delivery",
+                    "color": "#8b5cf6"
+                }
+            ],
+            "map_slug": "any-zone",
+            "chain_slug": null,
+            "chain_position": null,
+            "chain_total": null,
+            "sort_order": 1,
+            "created_at": "2026-02-21 05:44:24",
+            "updated_at": "2026-02-21 05:44:24"
+        },
+        {
+            "slug": "inventory-control-1",
+            "name": "Inventory Control  1",
+            "description": "Find and loot containers for Traxus, especially Arms Lockers, Arms Cabinets, and Tool Carts. They'll also provide compensation for any weapons or weapon mods delivered to a DCON.",
+            "contract_type": "permanent",
+            "difficulty": "normal",
+            "difficulty_rating": 1,
+            "scope": "cumulative",
+            "faction_slug": "traxus",
+            "faction_name": "Traxus",
+            "faction_icon": "https://helpbot.marathondb.gg/assets/items/reputations/traxus-200x200.png",
+            "faction_color": "#ff7300",
+            "season_id": null,
+            "season_slug": null,
+            "season_name": null,
+            "is_active": true,
+            "is_repeatable": false,
+            "available_from": null,
+            "available_until": null,
+            "estimated_time_minutes": 14,
+            "estimated_time_range": null,
+            "step_count": 2,
+            "reward_summary": null,
+            "total_reputation": 40,
+            "tags": [
+                "extraction",
+                "exploration",
+                "delivery",
+                "bounty"
+            ],
+            "tag_objects": [
+                {
+                    "slug": "extraction",
+                    "name": "Extraction",
+                    "color": "#22c55e"
+                },
+                {
+                    "slug": "exploration",
+                    "name": "Exploration",
+                    "color": "#06b6d4"
+                },
+                {
+                    "slug": "delivery",
+                    "name": "Delivery",
+                    "color": "#8b5cf6"
+                },
+                {
+                    "slug": "bounty",
+                    "name": "Bounty",
+                    "color": "#a855f7"
+                }
+            ],
+            "map_slug": "any-zone",
+            "chain_slug": null,
+            "chain_position": null,
+            "chain_total": null,
+            "sort_order": 1,
+            "created_at": "2026-02-21 05:40:46",
+            "updated_at": "2026-02-21 05:40:46"
+        }
+    ],
+    "meta": {
+        "by_type": {
+            "permanent": 3
+        },
+        "by_faction": {
+            "nucaloric": 1,
+            "sekiguchi": 1,
+            "traxus": 1
+        }
+    }
+}

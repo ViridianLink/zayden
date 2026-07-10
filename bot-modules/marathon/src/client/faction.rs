@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use tracing::warn;
+
+use super::health::flag_degraded_sources;
 use super::{MarathonClient, collect_candidate};
 use crate::error::{MarathonError, Result};
 use crate::model::Faction;
@@ -39,11 +42,12 @@ impl MarathonClient {
     }
 
     async fn gather_faction(&self, slug: &str) -> Vec<(SourceId, Faction)> {
-        let (marathondb, mobalytics, cyberacme, tauceti) = tokio::join!(
+        let (marathondb, mobalytics, cyberacme, tauceti, marathonguide) = tokio::join!(
             self.marathondb_faction(slug),
             self.mobalytics_faction(slug),
             self.cyberacme_faction(slug),
             self.tauceti_faction(slug),
+            self.marathonguide_faction(slug),
         );
 
         let mut out = Vec::new();
@@ -63,6 +67,14 @@ impl MarathonClient {
         );
         collect_candidate(&mut out, SourceId::CyberAcme, cyberacme, slug, "faction");
         collect_candidate(&mut out, SourceId::TauCeti, tauceti, slug, "faction");
+        collect_candidate(
+            &mut out,
+            SourceId::MarathonGuide,
+            marathonguide,
+            slug,
+            "faction",
+        );
+        flag_degraded_sources(&out, "faction", slug);
         out
     }
 
@@ -98,6 +110,45 @@ impl MarathonClient {
         Ok(parse::tauceti_faction_to_model(slug, &value))
     }
 
+    async fn marathonguide_faction(&self, slug: &str) -> Result<Faction> {
+        let (contracts, upgrades) = tokio::join!(
+            self.marathonguide.faction_contracts(slug),
+            self.marathonguide.faction_upgrades(slug),
+        );
+
+        let contracts = contracts
+            .inspect_err(|err| {
+                warn!(
+                    %err,
+                    slug,
+                    "marathon-guide faction contracts page unavailable"
+                );
+            })
+            .ok();
+        let upgrades = upgrades
+            .inspect_err(|err| {
+                warn!(
+                    %err,
+                    slug,
+                    "marathon-guide faction upgrades page unavailable"
+                );
+            })
+            .ok();
+
+        if contracts.is_none() && upgrades.is_none() {
+            return Err(MarathonError::NotFound {
+                entity: "faction",
+                query: slug.to_string(),
+            });
+        }
+
+        Ok(parse::marathonguide_html_to_faction(
+            slug,
+            contracts.as_deref(),
+            upgrades.as_deref(),
+        ))
+    }
+
     async fn faction_slugs(&self) -> Result<Vec<String>> {
         let mut slugs: Vec<String> = Vec::new();
         let mut push = |slug: String| {
@@ -110,7 +161,7 @@ impl MarathonClient {
             Ok(contracts) => parse::marathondb_contracts_to_factions(&contracts)
                 .into_iter()
                 .for_each(|f| push(f.slug)),
-            Err(err) => tracing::debug!(%err, "marathondb faction list unavailable"),
+            Err(err) => warn!(%err, "marathondb faction list unavailable"),
         }
 
         if let Some(mobalytics) = &self.mobalytics
@@ -130,7 +181,7 @@ impl MarathonClient {
                         .map(str::to_string)
                 })
                 .for_each(&mut push),
-            Err(err) => tracing::debug!(%err, "cyberacme faction list unavailable"),
+            Err(err) => warn!(%err, "cyberacme faction list unavailable"),
         }
 
         if slugs.is_empty() {

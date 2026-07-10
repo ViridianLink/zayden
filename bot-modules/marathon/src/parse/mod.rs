@@ -10,6 +10,7 @@ mod marathondb;
 mod marathonguide;
 mod marathonmeta;
 mod meta;
+mod metaforge;
 mod runner;
 mod tauceti;
 mod weapon;
@@ -31,11 +32,13 @@ pub use marathondb::{
     marathondb_weapon_to_model,
 };
 pub use marathonguide::{
+    marathonguide_html_to_faction,
     marathonguide_html_to_runner,
     marathonguide_html_to_weapon,
 };
 pub use marathonmeta::{marathonmeta_html_to_runner, marathonmeta_html_to_weapon};
 pub use meta::parse_meta;
+pub use metaforge::metaforge_markers_to_map;
 pub use runner::parse_runner;
 pub use tauceti::{
     tauceti_faction_to_model,

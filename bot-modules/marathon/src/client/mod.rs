@@ -1,6 +1,7 @@
 mod build;
 mod cradle;
 mod faction;
+mod health;
 mod map;
 mod meta;
 mod runner;
@@ -13,6 +14,7 @@ use std::time::Duration;
 
 use moka::future::Cache;
 use reqwest::Client;
+use tracing::warn;
 
 use crate::error::Result;
 use crate::model::{
@@ -32,6 +34,7 @@ use crate::transport::{
     MarathonDb,
     MarathonGuide,
     MarathonMeta,
+    MetaForge,
     Mobalytics,
     TauCeti,
 };
@@ -48,7 +51,7 @@ fn collect_candidate<T>(
     match result {
         Ok(value) => out.push((source, value)),
         Err(err) => {
-            tracing::debug!(%source, %slug, entity, %err, "source unavailable");
+            warn!(%source, %slug, entity, %err, "source unavailable");
         },
     }
 }
@@ -68,6 +71,7 @@ pub struct MarathonClient {
     marathondb: MarathonDb,
     marathonguide: MarathonGuide,
     mapgenie: MapGenie,
+    metaforge: MetaForge,
     fandom: Fandom,
     cyberacme: CyberAcme,
 
@@ -104,6 +108,7 @@ impl MarathonClient {
             marathondb: MarathonDb::new(client.clone()),
             marathonguide: MarathonGuide::new(client.clone()),
             mapgenie: MapGenie::new(client.clone()),
+            metaforge: MetaForge::new(client.clone()),
             cyberacme: CyberAcme::new(client.clone()),
             fandom: Fandom::new(client),
             weapon_cache: ttl_cache(),

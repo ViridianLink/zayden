@@ -18,7 +18,7 @@ pub enum SourceId {
     CyberAcme,
     /// <https://marathonmeta.gg>
     MarathonMeta,
-    /// <https://metaforge.gg>
+    /// <https://metaforge.app>
     MetaForge,
 }
 

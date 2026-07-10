@@ -1,0 +1,95 @@
+{
+ "id": "9ffcaf53-9f0b-4a41-b9aa-c89b5681b7c9",
+ "slug": "rook",
+ "name": "Rook",
+ "description": "ALERT: Solo only\nALERT: Limited loadout\nALERT: Contracts paused\nALERT: Restricted zone access\nALERT: Requires Season Level 3\nALERT: GOOD LUCK\n[excerpt, UESC threat eval:rnnr.rk.instrctn.mnl_p103]",
+ "runners": [
+  {
+   "id": "6a66fae3-e80c-4851-8c4f-80b0e3716df1",
+   "name": "Rook",
+   "imageUrl": null,
+   "iconUrl": null,
+   "abilities": [
+    {
+     "id": "eafc6dc2-260c-4d99-925d-96ef8bb98567",
+     "slug": "a",
+     "name": "Recuperation ",
+     "classId": "9ffcaf53-9f0b-4a41-b9aa-c89b5681b7c9",
+     "runnerId": "6a66fae3-e80c-4851-8c4f-80b0e3716df1",
+     "description": "Activate your prototype frame's emergency repair system to slowly restore health. Interrupted when you take damage.",
+     "cooldown": null,
+     "duration": null,
+     "cost": null,
+     "imageUrl": null,
+     "iconUrl": "https://cdn.tauceti.gg/images/1772041843122-nmuzcdkoc.webp",
+     "type": "ability",
+     "abilityType": "prime",
+     "createdAt": "2026-03-18T17:47:03.130418+00:00",
+     "updatedAt": "2026-03-18T17:47:03.130418+00:00"
+    },
+    {
+     "id": "80f8e097-ede8-4f91-8b60-6ef31e08fffc",
+     "slug": "shadow-strike",
+     "name": "Signal Mask",
+     "classId": "9ffcaf53-9f0b-4a41-b9aa-c89b5681b7c9",
+     "runnerId": "6a66fae3-e80c-4851-8c4f-80b0e3716df1",
+     "description": "Activate a temporary holodisplay mask to deceive UESC forces, making them unaware of your presence. Disrupted when you sprint or take damage.",
+     "cooldown": null,
+     "duration": null,
+     "cost": null,
+     "imageUrl": null,
+     "iconUrl": "https://cdn.tauceti.gg/images/1772041845552-i9g73oa30.webp",
+     "type": "ability",
+     "abilityType": "tactical",
+     "createdAt": "2026-03-18T17:47:03.130418+00:00",
+     "updatedAt": "2026-03-18T17:47:03.130418+00:00"
+    }
+   ],
+   "traits": []
+  }
+ ],
+ "abilities": [],
+ "imageUrl": "https://cdn.tauceti.gg/images/1772142957893-tr4oo1amk.webp",
+ "iconUrl": "https://cdn.tauceti.gg/images/1770919340335-cj0f9p9qg.webp",
+ "fullBodyUrl": "https://cdn.tauceti.gg/images/1772143050243-nt3wv9o1l.webp",
+ "playstyle": "Scavenger",
+ "strengths": [
+  "[limited]"
+ ],
+ "weaknesses": [],
+ "baseStats": {
+  "agility": 10,
+  "firewall": 20,
+  "hardware": 25,
+  "lootSpeed": 5,
+  "meleeDamage": 15,
+  "reviveSpeed": 10,
+  "heatCapacity": 15,
+  "pingDuration": 5,
+  "finisherSpeed": 10,
+  "primeRecovery": 5,
+  "fallResistance": 5,
+  "selfRepairSpeed": 15,
+  "tacticalRecovery": 10
+ },
+ "customizationOptions": [
+  {
+   "id": "codex-icon",
+   "name": "Codex Icon",
+   "type": "codex_icon",
+   "imageUrl": "https://cdn.tauceti.gg/images/1772143192781-u66to4qow.webp"
+  },
+  {
+   "id": "listing-image",
+   "name": "Listing Image",
+   "type": "listing_image",
+   "imageUrl": "https://cdn.tauceti.gg/images/1772143205883-xhrals1ug.webp"
+  }
+ ],
+ "createdAt": "2026-02-12T11:51:27.499441+00:00",
+ "updatedAt": "2026-03-18T17:47:02.508962+00:00",
+ "model": null,
+ "series": "Rook",
+ "gender": "Unknown",
+ "listingImageUrl": "https://cdn.tauceti.gg/images/1772143205883-xhrals1ug.webp"
+}

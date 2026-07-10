@@ -1,0 +1,3247 @@
+{
+  "apollo": {
+    "graphqlV2": {
+      "mutations": [],
+      "queries": [
+        {
+          "dehydratedAt": 1783685248572,
+          "state": {
+            "data": [
+              {
+                "game": {
+                  "settings": {
+                    "banners": {
+                      "takeovers": []
+                    }
+                  }
+                }
+              },
+              null
+            ],
+            "dataUpdateCount": 1,
+            "dataUpdatedAt": 1783685248483,
+            "error": null,
+            "errorUpdateCount": 0,
+            "errorUpdatedAt": 0,
+            "fetchFailureCount": 0,
+            "fetchFailureReason": null,
+            "fetchMeta": null,
+            "isInvalidated": false,
+            "status": "success",
+            "fetchStatus": "idle"
+          },
+          "queryKey": [
+            "ngf-banner-takeover"
+          ],
+          "queryHash": "[\"ngf-banner-takeover\"]"
+        },
+        {
+          "dehydratedAt": 1783685248572,
+          "state": {
+            "data": [
+              {
+                "game": {
+                  "documents": {
+                    "structDocumentBySlug": {
+                      "error": null,
+                      "data": {
+                        "id": "976c7d22-00e7-49ea-a0a1-4a43a0120a0d",
+                        "category": "ST",
+                        "slug": "weapons/d54-battle-pistol",
+                        "version": 10,
+                        "status": "PUBLISHED",
+                        "seo": {
+                          "title": "D54 Battle Pistol - Guide, Stats, Mods & More - Marathon",
+                          "description": "Find out everything you need to know about D54 Battle Pistol in Marathon: stats, mods, sources and more.",
+                          "ogImage": "https://cdn.mobalytics.gg/uploads/images/marathon/d54-battle-pistol.jpg",
+                          "schemaMarkup": "",
+                          "canonicalUrl": "",
+                          "noIndex": false
+                        },
+                        "createdAt": "2026-05-28T20:34:58Z",
+                        "updatedAt": "2026-06-16T19:58:45Z",
+                        "data": {
+                          "childrenIds": [
+                            "root"
+                          ],
+                          "tierLists": {
+                            "values": []
+                          }
+                        },
+                        "content": [
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "root",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "6a89799b-2741-4dd4-b8c0-c1110a500204",
+                                "9778f7fd-0b39-4cd7-8cc9-754b08cdcce3"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionVideoAdV1",
+                            "id": "6a89799b-2741-4dd4-b8c0-c1110a500204",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "2"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "bc2b0f78-6f64-4370-a5a4-539bb5b37403",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "3",
+                                "1",
+                                "6",
+                                "7"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto1V1",
+                            "id": "d65fd549-a97d-41b8-bc46-168fba847101",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "5",
+                                "11"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmSectionAuto400V1",
+                            "id": "9778f7fd-0b39-4cd7-8cc9-754b08cdcce3",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "childrenIds": [
+                                "bc2b0f78-6f64-4370-a5a4-539bb5b37403",
+                                "d65fd549-a97d-41b8-bc46-168fba847101"
+                              ]
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "1",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Stats",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Firepower",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "24",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Damage",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "16",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Precision Multiplier",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "1.5",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Rate of Fire",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "1140 RPM",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Range",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "29m",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Accuracy",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "60.5",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Hipfire Spread",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "1.93\u00b0",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Recoil",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "93.5%",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "ADS Spread",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "1.16\u00b0",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Crouch Spread Bonus",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "85%",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Moving Inaccuracy",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "17.7%",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Handling",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "48",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Equip Speed",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "detail": 0,
+                                                          "format": 0,
+                                                          "mode": "normal",
+                                                          "style": "",
+                                                          "text": "0.9s",
+                                                          "type": "text",
+                                                          "version": 1
+                                                        }
+                                                      ],
+                                                      "direction": "ltr",
+                                                      "format": "",
+                                                      "indent": 0,
+                                                      "isUnlinked": true,
+                                                      "rel": "ugc nofollow noopener noreferrer",
+                                                      "target": "_blank",
+                                                      "title": null,
+                                                      "type": "autolink",
+                                                      "url": "https://0.9s",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "ADS Speed",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "detail": 0,
+                                                          "format": 0,
+                                                          "mode": "normal",
+                                                          "style": "",
+                                                          "text": "0.1s",
+                                                          "type": "text",
+                                                          "version": 1
+                                                        }
+                                                      ],
+                                                      "direction": "ltr",
+                                                      "format": "",
+                                                      "indent": 0,
+                                                      "isUnlinked": true,
+                                                      "rel": "ugc nofollow noopener noreferrer",
+                                                      "target": "_blank",
+                                                      "title": null,
+                                                      "type": "autolink",
+                                                      "url": "https://0.33s",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Reload Speed",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "detail": 0,
+                                                          "format": 0,
+                                                          "mode": "normal",
+                                                          "style": "",
+                                                          "text": "2.69s",
+                                                          "type": "text",
+                                                          "version": 1
+                                                        }
+                                                      ],
+                                                      "direction": "ltr",
+                                                      "format": "",
+                                                      "indent": 0,
+                                                      "isUnlinked": true,
+                                                      "rel": "ugc nofollow noopener noreferrer",
+                                                      "target": "_blank",
+                                                      "title": null,
+                                                      "type": "autolink",
+                                                      "url": "https://2.69s",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Weight",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "27.5%",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Recoil",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "93.5%",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Aim Assist",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "2",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    },
+                                                    {
+                                                      "children": [
+                                                        {
+                                                          "detail": 0,
+                                                          "format": 0,
+                                                          "mode": "normal",
+                                                          "style": "",
+                                                          "text": ".",
+                                                          "type": "text",
+                                                          "version": 1
+                                                        }
+                                                      ],
+                                                      "direction": null,
+                                                      "format": "",
+                                                      "indent": 0,
+                                                      "isUnlinked": true,
+                                                      "rel": "ugc nofollow noopener noreferrer",
+                                                      "target": "_blank",
+                                                      "title": null,
+                                                      "type": "autolink",
+                                                      "url": "https://1.55",
+                                                      "version": 1
+                                                    },
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "47",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Magazine & Optics",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 2,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Magazine Size",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "21",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Zoom",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "1.3\u00d7",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        246,
+                                        246
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentStWidgetHeaderV2",
+                            "id": "2",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": {
+                                "enabled": false
+                              },
+                              "title": "D54 Battle Pistol",
+                              "optionalSubTitleV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "The D54 Battle Pistol is a new pistol being added in Season 2. It thrives in 1v1 duels and close encounters.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Updated on June 16th, 2026",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              },
+                              "backgroundCss": "https://cdn.mobalytics.gg/assets/marathon/images/pages/weapons/d54-battle-pistol.png",
+                              "backgroundImageMask": ""
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "3",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Overview",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Type",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Pistol",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Ammo Type",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "color": "#FFFFFF",
+                                                      "display": 1,
+                                                      "groupId": "ammo",
+                                                      "icon": "https://cdn.mobalytics.gg/assets/marathon/images/ammo/light-rounds.png",
+                                                      "iconStyle": "square-rounded",
+                                                      "id": "light-rounds",
+                                                      "isShowLabel": true,
+                                                      "label": "Light Rounds",
+                                                      "type": "static-data-widget",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Rarity",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Standard",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "backgroundColor": "rgb(242, 243, 245)",
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "Price",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": "ltr",
+                                                  "format": "",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": "ltr",
+                                              "format": "",
+                                              "headerState": 1,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            },
+                                            {
+                                              "backgroundColor": null,
+                                              "children": [
+                                                {
+                                                  "children": [
+                                                    {
+                                                      "detail": 0,
+                                                      "format": 0,
+                                                      "mode": "normal",
+                                                      "style": "",
+                                                      "text": "160",
+                                                      "type": "text",
+                                                      "version": 1
+                                                    }
+                                                  ],
+                                                  "direction": null,
+                                                  "format": "start",
+                                                  "indent": 0,
+                                                  "textFormat": 0,
+                                                  "textStyle": "",
+                                                  "type": "paragraph",
+                                                  "version": 1
+                                                }
+                                              ],
+                                              "colSpan": 1,
+                                              "direction": null,
+                                              "format": "",
+                                              "headerState": 0,
+                                              "indent": 0,
+                                              "rowSpan": 1,
+                                              "type": "tablecell",
+                                              "version": 1,
+                                              "width": 75
+                                            }
+                                          ],
+                                          "direction": null,
+                                          "format": "",
+                                          "indent": 0,
+                                          "type": "tablerow",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "colWidths": [
+                                        119,
+                                        119
+                                      ],
+                                      "direction": null,
+                                      "format": "",
+                                      "indent": 0,
+                                      "type": "table",
+                                      "version": 1
+                                    },
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "A fully automatic 3-round burst handgun.",
+                                          "type": "text",
+                                          "version": 1
+                                        },
+                                        {
+                                          "type": "linebreak",
+                                          "version": 1
+                                        },
+                                        {
+                                          "type": "linebreak",
+                                          "version": 1
+                                        },
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "A fantastic weapon for close encounters and 1v1 duels, the D54 comes with a red dot sight and fires full-auto three-round bursts. It\u2019s a high-handling, medium rate-of-fire sidearm \u2014 think a hybrid between the BR33 Volley Rifle and the BRRT SMG \u2014 a perfect companion for sniper rifles and other long-range weapons.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetTableOfContentV1",
+                            "id": "5",
+                            "data": {
+                              "isStickyInEditingMode": true,
+                              "isStickyInViewMode": true,
+                              "focusMode": null,
+                              "stub": "Table of Content"
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "6",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Compatible Mods",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Coming soon...",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetRichTextV2",
+                            "id": "7",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": null,
+                              "title": "Sources",
+                              "optionalSubTitleV2": null,
+                              "contentV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 2,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Coming soon...",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 2,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "textFormat": 2,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              }
+                            }
+                          },
+                          {
+                            "__typename": "NgfDocumentCmWidgetGameDataCardGridV2",
+                            "id": "11",
+                            "data": {
+                              "isStickyInEditingMode": false,
+                              "isStickyInViewMode": false,
+                              "focusMode": {
+                                "enabled": false
+                              },
+                              "title": "Other Pistols",
+                              "optionalDescriptionV2": {
+                                "charLimit": 1000,
+                                "placeholder": null,
+                                "value": null
+                              },
+                              "optionalSubTitleV2": {
+                                "root": {
+                                  "children": [
+                                    {
+                                      "children": [
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": "Explore all ",
+                                          "type": "text",
+                                          "version": 1
+                                        },
+                                        {
+                                          "children": [
+                                            {
+                                              "detail": 0,
+                                              "format": 0,
+                                              "mode": "normal",
+                                              "style": "",
+                                              "text": "Pistols",
+                                              "type": "text",
+                                              "version": 1
+                                            }
+                                          ],
+                                          "direction": "ltr",
+                                          "format": "",
+                                          "indent": 0,
+                                          "rel": null,
+                                          "target": null,
+                                          "title": null,
+                                          "type": "link",
+                                          "url": "/marathon/weapons#5-pistols-3",
+                                          "version": 1
+                                        },
+                                        {
+                                          "detail": 0,
+                                          "format": 0,
+                                          "mode": "normal",
+                                          "style": "",
+                                          "text": ", learn their stats, compatible mods and fundamental tips.",
+                                          "type": "text",
+                                          "version": 1
+                                        }
+                                      ],
+                                      "direction": "ltr",
+                                      "format": "",
+                                      "indent": 0,
+                                      "textFormat": 0,
+                                      "textStyle": "",
+                                      "type": "paragraph",
+                                      "version": 1
+                                    }
+                                  ],
+                                  "direction": "ltr",
+                                  "format": "",
+                                  "indent": 0,
+                                  "type": "root",
+                                  "version": 7
+                                }
+                              },
+                              "iconStyle": "SQUARE",
+                              "layoutV2": "HORIZONTAL",
+                              "items": [
+                                {
+                                  "slug": "ce-tactical-sidearm",
+                                  "groupSlug": "weapons",
+                                  "title": "CE Tactical Sidearm",
+                                  "subTitle": "Weapon",
+                                  "linkUrl": "/marathon/weapons/ce-tactical-sidearm",
+                                  "openLinkInNewTab": false,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/weapons/ce-tactical-sidearm.png",
+                                  "iconStyle": "SQUARE"
+                                },
+                                {
+                                  "slug": "magnum-mc",
+                                  "groupSlug": "weapons",
+                                  "title": "Magnum MC",
+                                  "subTitle": "Weapon",
+                                  "linkUrl": "/marathon/weapons/magnum-mc",
+                                  "openLinkInNewTab": false,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/weapons/magnum-mc.png",
+                                  "iconStyle": "SQUARE"
+                                },
+                                {
+                                  "slug": "v11-punch",
+                                  "groupSlug": "weapons",
+                                  "title": "V11 Punch",
+                                  "subTitle": "Weapon",
+                                  "linkUrl": "/marathon/weapons/v11-punch",
+                                  "openLinkInNewTab": false,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/weapons/v11-punch.png",
+                                  "iconStyle": "SQUARE"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "userGeneratedDocumentTypes": {
+                      "error": null,
+                      "data": [
+                        {
+                          "slug": "builds",
+                          "name": "Build",
+                          "pluralName": "Builds",
+                          "description": "Create a Build",
+                          "index": 1,
+                          "creationIsAllowed": true,
+                          "tagGroups": [
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Runner Shell",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Runner Shell"
+                              },
+                              "required": true,
+                              "slug": "runner",
+                              "values": [
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/assassin.png",
+                                  "name": "Assassin",
+                                  "pluralName": null,
+                                  "slug": "assassin",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/destroyer.png",
+                                  "name": "Destroyer",
+                                  "pluralName": null,
+                                  "slug": "destroyer",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/recon.png",
+                                  "name": "Recon",
+                                  "pluralName": null,
+                                  "slug": "recon",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/thief.png",
+                                  "name": "Thief",
+                                  "pluralName": null,
+                                  "slug": "thief",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/triage.png",
+                                  "name": "Triage",
+                                  "pluralName": null,
+                                  "slug": "triage",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "runner",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": "https://cdn.mobalytics.gg/assets/marathon/images/runners/vandal.png",
+                                  "name": "Vandal",
+                                  "pluralName": null,
+                                  "slug": "vandal",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Season",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Season"
+                              },
+                              "required": true,
+                              "slug": "season",
+                              "values": [
+                                {
+                                  "groupSlug": "season",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Season 1",
+                                  "pluralName": null,
+                                  "slug": "season-1",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Matchmaking",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Matchmaking"
+                              },
+                              "required": false,
+                              "slug": "Matchmaking",
+                              "values": [
+                                {
+                                  "groupSlug": "Matchmaking",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Solo",
+                                  "pluralName": null,
+                                  "slug": "solo",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "Matchmaking",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Squad",
+                                  "pluralName": null,
+                                  "slug": "squad",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Map",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Map"
+                              },
+                              "required": false,
+                              "slug": "map",
+                              "values": [
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Perimeter",
+                                  "pluralName": null,
+                                  "slug": "perimeter",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Dire Marsh",
+                                  "pluralName": null,
+                                  "slug": "dire-marsh",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Outpost",
+                                  "pluralName": null,
+                                  "slug": "outpost",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "map",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Cryo Archive",
+                                  "pluralName": null,
+                                  "slug": "cryo-archive",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": "null",
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Budget",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Budget"
+                              },
+                              "required": false,
+                              "slug": "Budget",
+                              "values": [
+                                {
+                                  "groupSlug": "Budget",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Low Budget",
+                                  "pluralName": null,
+                                  "slug": "low-budget",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "Budget",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Medium Budget",
+                                  "pluralName": null,
+                                  "slug": "medium-budget",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "Budget",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "High Budget",
+                                  "pluralName": null,
+                                  "slug": "high-budget",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Verified",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Verification"
+                              },
+                              "required": false,
+                              "slug": "verified",
+                              "values": [
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Verified",
+                                  "pluralName": null,
+                                  "slug": "expert-verification",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Creator",
+                                  "pluralName": null,
+                                  "slug": "creator-verification",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Featured",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Build"
+                              },
+                              "required": false,
+                              "slug": "featured",
+                              "values": [
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Featured",
+                                  "pluralName": null,
+                                  "slug": "featrued",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Trending",
+                                  "pluralName": null,
+                                  "slug": "trending",
+                                  "linkUrl": null
+                                }
+                              ]
+                            }
+                          ],
+                          "displayMetadata": {
+                            "iconTagGroupSlug": "",
+                            "subTitleTagGroupSlug": ""
+                          }
+                        },
+                        {
+                          "slug": "guides",
+                          "name": "Guide",
+                          "pluralName": "Guides",
+                          "description": "Create a Guide",
+                          "index": 2,
+                          "creationIsAllowed": false,
+                          "tagGroups": [
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Topic",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Topic"
+                              },
+                              "required": true,
+                              "slug": "topic",
+                              "values": [
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Beginner",
+                                  "pluralName": null,
+                                  "slug": "Beginner",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Mechanics",
+                                  "pluralName": null,
+                                  "slug": "Mechanics",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "News",
+                                  "pluralName": null,
+                                  "slug": "News",
+                                  "linkUrl": null
+                                }
+                              ]
+                            }
+                          ],
+                          "displayMetadata": {
+                            "iconTagGroupSlug": "",
+                            "subTitleTagGroupSlug": ""
+                          }
+                        },
+                        {
+                          "slug": "tier-lists",
+                          "name": "Tier List",
+                          "pluralName": "Tier Lists",
+                          "description": "Create a Tier List",
+                          "index": 3,
+                          "creationIsAllowed": true,
+                          "tagGroups": [
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": false,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Topic",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Topic"
+                              },
+                              "required": false,
+                              "slug": "topic",
+                              "values": [
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Runners",
+                                  "pluralName": null,
+                                  "slug": "runners",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Ammo",
+                                  "pluralName": null,
+                                  "slug": "ammo",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Backpacks",
+                                  "pluralName": null,
+                                  "slug": "backpacks",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Consumables",
+                                  "pluralName": null,
+                                  "slug": "consumables",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Cores",
+                                  "pluralName": null,
+                                  "slug": "cores",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Equipment",
+                                  "pluralName": null,
+                                  "slug": "equipment",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Implants",
+                                  "pluralName": null,
+                                  "slug": "implants",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Mods",
+                                  "pluralName": null,
+                                  "slug": "mods",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Points of Interest",
+                                  "pluralName": null,
+                                  "slug": "points-of-interest",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Salvage",
+                                  "pluralName": null,
+                                  "slug": "salvage",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Stats",
+                                  "pluralName": null,
+                                  "slug": "stats",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "topic",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Weapons",
+                                  "pluralName": null,
+                                  "slug": "weapons",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": false,
+                              "name": "Verified",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Verification"
+                              },
+                              "required": false,
+                              "slug": "verified",
+                              "values": [
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Verified",
+                                  "pluralName": null,
+                                  "slug": "expert-verification",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "verified",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Creator",
+                                  "pluralName": null,
+                                  "slug": "creator-verification",
+                                  "linkUrl": null
+                                }
+                              ]
+                            },
+                            {
+                              "archived": false,
+                              "isHidden": null,
+                              "defaultSlug": null,
+                              "inputProhibitedForRegularUser": true,
+                              "useGroupName": false,
+                              "multiselect": true,
+                              "name": "Featured",
+                              "noValue": {
+                                "description": null,
+                                "iconUrl": "https://cdn.mobalytics.gg/assets/common/icons/all-option.svg",
+                                "name": "Any Build"
+                              },
+                              "required": false,
+                              "slug": "featured",
+                              "values": [
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Featured",
+                                  "pluralName": null,
+                                  "slug": "featrued",
+                                  "linkUrl": null
+                                },
+                                {
+                                  "groupSlug": "featured",
+                                  "archived": false,
+                                  "description": null,
+                                  "iconUrl": null,
+                                  "imageUrl": null,
+                                  "name": "Trending",
+                                  "pluralName": null,
+                                  "slug": "trending",
+                                  "linkUrl": null
+                                }
+                              ]
+                            }
+                          ],
+                          "displayMetadata": {
+                            "iconTagGroupSlug": "",
+                            "subTitleTagGroupSlug": ""
+                          }
+                        }
+                      ]
+                    },
+                    "wikiDocumentType": {
+                      "error": "INTERNAL",
+                      "data": {
+                        "staticDataTypes": null
+                      }
+                    }
+                  },
+                  "permissions": {
+                    "user": {
+                      "id": null,
+                      "role": "UNAUTHORIZED_USER"
+                    }
+                  },
+                  "settings": {
+                    "availableColors": null
+                  }
+                }
+              },
+              null
+            ],
+            "dataUpdateCount": 1,
+            "dataUpdatedAt": 1783685248491,
+            "error": null,
+            "errorUpdateCount": 0,
+            "errorUpdatedAt": 0,
+            "fetchFailureCount": 0,
+            "fetchFailureReason": null,
+            "fetchMeta": null,
+            "isInvalidated": false,
+            "status": "success",
+            "fetchStatus": "idle"
+          },
+          "queryKey": [
+            "ngf-st-document-page",
+            "weapons/d54-battle-pistol",
+            []
+          ],
+          "queryHash": "[\"ngf-st-document-page\",\"weapons/d54-battle-pistol\",[]]"
+        }
+      ]
+    }
+  }
+}

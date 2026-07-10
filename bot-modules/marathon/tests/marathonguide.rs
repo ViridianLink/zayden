@@ -1,8 +1,10 @@
 //! Marathon Guide parse tests against live-captured HTML (2026-07-10).
 //!
 //! Marathon Guide is a statically prerendered Angular site: every weapon is
-//! rendered onto a single `/weapons/card` page, and each runner has its own
-//! `/runners/<slug>` detail page. The fixtures are those pages verbatim.
+//! rendered onto a single `/weapons/card` page, each runner has its own
+//! `/runners/<slug>` detail page, and each faction is split across
+//! `/factions/<slug>/{summary,contracts,upgrades}`. The fixtures are those
+//! pages verbatim.
 
 use std::fs;
 
@@ -119,6 +121,63 @@ fn maps_runner_abilities_and_summary_tags() {
     assert!(runner.stats.iter().all(|s| s.name != "Role"));
 }
 
+#[test]
+fn maps_faction_contracts_and_upgrades() {
+    let contracts = load("marathonguide_faction_cyberacme_contracts.html");
+    let upgrades = load("marathonguide_faction_cyberacme_upgrades.html");
+    let faction = parse::marathonguide_html_to_faction(
+        "cyberacme",
+        Some(&contracts),
+        Some(&upgrades),
+    );
+
+    assert_eq!(faction.slug, "cyberacme");
+    assert_eq!(faction.name, "CyberAcme");
+
+    // Contract cards carry name + description; the slug is derived from the
+    // name so it lines up with MarathonDB's `introducing-nucaloric`.
+    let nucaloric = faction
+        .priority_contracts
+        .iter()
+        .find(|c| c.slug == "introducing-nucaloric")
+        .expect("NuCaloric contract present");
+    assert_eq!(nucaloric.name, "Introducing: NuCaloric");
+    assert!(
+        nucaloric.description.as_deref().is_some_and(|d| d.contains("NuCal ID"))
+    );
+    // The card has no difficulty rating - that stays open for other sources.
+    assert_eq!(nucaloric.difficulty, None);
+
+    // Upgrade tree nodes surface as name-only upgrades (cost/requirements are
+    // only rendered for the selected node, so they stay `None`).
+    let names: Vec<&str> =
+        faction.upgrades.iter().map(|u| u.name.as_str()).collect();
+    assert!(names.contains(&"expansion"));
+    assert!(names.contains(&"scavenger"));
+    assert!(names.contains(&"locksmith"));
+    assert!(faction.upgrades.iter().all(|u| u.cost.is_none()));
+    assert!(faction.upgrades.iter().all(|u| u.requirements.is_none()));
+}
+
+#[test]
+fn faction_tolerates_a_missing_sub_page() {
+    let contracts = load("marathonguide_faction_cyberacme_contracts.html");
+
+    // Only the contracts page survived the fetch: the faction still parses,
+    // keeping its contracts and name, with an empty upgrade list.
+    let faction =
+        parse::marathonguide_html_to_faction("cyberacme", Some(&contracts), None);
+    assert_eq!(faction.name, "CyberAcme");
+    assert!(!faction.priority_contracts.is_empty());
+    assert!(faction.upgrades.is_empty());
+
+    // Neither page available: name degrades to the slug, lists are empty.
+    let empty = parse::marathonguide_html_to_faction("cyberacme", None, None);
+    assert_eq!(empty.name, "cyberacme");
+    assert!(empty.priority_contracts.is_empty());
+    assert!(empty.upgrades.is_empty());
+}
+
 /// Opt-in live check:
 /// `cargo test -p marathon --test marathonguide -- --ignored`.
 /// Marathon Guide has no Cloudflare gate, so this needs no `FlareSolverr`.
@@ -138,4 +197,30 @@ async fn live_weapon_and_runner_parse_non_empty() {
     let runner = parse::marathonguide_html_to_runner("rook", &rook);
     assert_eq!(runner.name, "Rook");
     assert!(!runner.abilities.is_empty(), "live runner should carry abilities");
+}
+
+/// Opt-in live check for the faction sub-pages:
+/// `cargo test -p marathon --test marathonguide -- --ignored`.
+#[tokio::test]
+#[ignore = "hits the live Marathon Guide site"]
+async fn live_faction_parses_non_empty() {
+    let client = reqwest::Client::new();
+    let guide = marathon::transport::MarathonGuide::new(client);
+
+    let contracts =
+        guide.faction_contracts("cyberacme").await.expect("live contracts page");
+    let upgrades =
+        guide.faction_upgrades("cyberacme").await.expect("live upgrades page");
+    let faction = parse::marathonguide_html_to_faction(
+        "cyberacme",
+        Some(&contracts),
+        Some(&upgrades),
+    );
+
+    assert_eq!(faction.name, "CyberAcme");
+    assert!(
+        !faction.priority_contracts.is_empty(),
+        "live faction should carry contracts"
+    );
+    assert!(!faction.upgrades.is_empty(), "live faction should carry upgrades");
 }

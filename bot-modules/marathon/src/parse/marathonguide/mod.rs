@@ -1,6 +1,8 @@
+mod faction;
 mod runner;
 mod weapon;
 
+pub use faction::marathonguide_html_to_faction;
 pub use runner::marathonguide_html_to_runner;
 use scraper::{ElementRef, Selector};
 pub use weapon::marathonguide_html_to_weapon;
