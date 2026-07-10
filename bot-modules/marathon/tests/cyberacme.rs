@@ -1,4 +1,4 @@
-//! CyberAcme parse tests against live-captured fixtures (2026-07-09) plus an
+//! `CyberAcme` parse tests against live-captured fixtures (2026-07-09) plus an
 //! opt-in live smoke test (`--ignored`) that re-verifies the API schema.
 
 use std::fs;
@@ -46,7 +46,7 @@ fn maps_faction_contracts() {
         !faction.priority_contracts.is_empty(),
         "cyberacme faction fixture has contracts"
     );
-    let first = &faction.priority_contracts[0];
+    let first = faction.priority_contracts.first().unwrap();
     assert!(!first.name.is_empty());
     assert!(first.description.is_some());
 }
@@ -55,7 +55,7 @@ fn maps_faction_contracts() {
 fn maps_runner_identity() {
     let envelope = load("cyberacme_runners");
     let runners = envelope.get("runners").and_then(Value::as_array).unwrap();
-    let first = &runners[0];
+    let first = runners.first().unwrap();
     let slug = first.get("slug").and_then(Value::as_str).unwrap();
     let runner = parse::cyberacme_runner_to_model(slug, first);
 

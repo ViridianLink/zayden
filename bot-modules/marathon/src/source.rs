@@ -2,23 +2,23 @@ use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceId {
-    /// https://marathondb.gg
+    /// <https://marathondb.gg>
     MarathonDb,
-    /// https://marathonthegame.fandom.com
+    /// <https://marathonthegame.fandom.com>
     Fandom,
-    /// https://mobalytics.gg/marathon
+    /// <https://mobalytics.gg/marathon>
     Mobalytics,
-    /// https://mapgenie.io/marathon
+    /// <https://mapgenie.io/marathon>
     MapGenie,
-    /// https://tauceti.gg
+    /// <https://tauceti.gg>
     TauCeti,
-    /// https://marathon-guide.com
+    /// <https://marathon-guide.com>
     MarathonGuide,
-    /// https://cyberacme.org
+    /// <https://cyberacme.org>
     CyberAcme,
-    /// https://marathonmeta.gg
+    /// <https://marathonmeta.gg>
     MarathonMeta,
-    /// https://metaforge.gg
+    /// <https://metaforge.gg>
     MetaForge,
 }
 

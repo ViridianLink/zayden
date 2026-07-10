@@ -2,6 +2,7 @@
 //! sources. No network.
 
 use marathon::parse::html;
+use serde_json::Value;
 
 const NEXT_PAGE: &str = r#"
 <html><head><title>x</title></head><body>
@@ -26,11 +27,9 @@ fn extracts_next_data_json() {
     let doc = html::document(NEXT_PAGE);
     let value = html::script_json_by_selector(&doc, "script#__NEXT_DATA__")
         .expect("should parse __NEXT_DATA__");
-    assert_eq!(value.pointer("/buildId").and_then(|v| v.as_str()), Some("abc"));
+    assert_eq!(value.pointer("/buildId").and_then(Value::as_str), Some("abc"));
     assert_eq!(
-        value
-            .pointer("/props/pageProps/weapon/slug")
-            .and_then(|v| v.as_str()),
+        value.pointer("/props/pageProps/weapon/slug").and_then(Value::as_str),
         Some("m77")
     );
 }
@@ -40,9 +39,9 @@ fn extracts_global_assignment_object_with_brace_in_string() {
     let doc = html::document(GLOBAL_PAGE);
     let value = html::script_json_after_marker(&doc, "window.mapData = ")
         .expect("should parse window.mapData object");
-    assert_eq!(value.pointer("/map/id").and_then(|v| v.as_i64()), Some(42));
+    assert_eq!(value.pointer("/map/id").and_then(Value::as_i64), Some(42));
     // The `}` inside a string must not terminate the object early.
-    assert_eq!(value.pointer("/nested/a").and_then(|v| v.as_str()), Some("}"));
+    assert_eq!(value.pointer("/nested/a").and_then(Value::as_str), Some("}"));
 }
 
 #[test]
