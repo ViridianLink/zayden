@@ -32,12 +32,20 @@ impl MarathonClient {
     }
 
     async fn gather_runner(&self, slug: &str) -> Vec<(SourceId, Runner)> {
-        let (marathondb, mobalytics, cyberacme, tauceti, marathonmeta) = tokio::join!(
+        let (
+            marathondb,
+            mobalytics,
+            cyberacme,
+            tauceti,
+            marathonmeta,
+            marathonguide,
+        ) = tokio::join!(
             self.marathondb_runner(slug),
             self.mobalytics_runner(slug),
             self.cyberacme_runner(slug),
             self.tauceti_runner(slug),
             self.marathonmeta_runner(slug),
+            self.marathonguide_runner(slug),
         );
 
         let mut out = Vec::new();
@@ -61,6 +69,13 @@ impl MarathonClient {
             &mut out,
             SourceId::MarathonMeta,
             marathonmeta,
+            slug,
+            "runner",
+        );
+        collect_candidate(
+            &mut out,
+            SourceId::MarathonGuide,
+            marathonguide,
             slug,
             "runner",
         );
@@ -99,6 +114,11 @@ impl MarathonClient {
         };
         let rendered = marathonmeta.runner(slug).await?;
         Ok(parse::marathonmeta_html_to_runner(slug, &rendered))
+    }
+
+    async fn marathonguide_runner(&self, slug: &str) -> Result<Runner> {
+        let page = self.marathonguide.runner(slug).await?;
+        Ok(parse::marathonguide_html_to_runner(slug, &page))
     }
 
     pub async fn runners(&self) -> Result<Arc<[Runner]>> {

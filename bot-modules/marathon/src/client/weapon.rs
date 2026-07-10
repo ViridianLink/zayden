@@ -32,12 +32,20 @@ impl MarathonClient {
     }
 
     async fn gather_weapon(&self, slug: &str) -> Vec<(SourceId, Weapon)> {
-        let (marathondb, mobalytics, cyberacme, tauceti, marathonmeta) = tokio::join!(
+        let (
+            marathondb,
+            mobalytics,
+            cyberacme,
+            tauceti,
+            marathonmeta,
+            marathonguide,
+        ) = tokio::join!(
             self.marathondb_weapon(slug),
             self.mobalytics_weapon(slug),
             self.cyberacme_weapon(slug),
             self.tauceti_weapon(slug),
             self.marathonmeta_weapon(slug),
+            self.marathonguide_weapon(slug),
         );
 
         let mut out = Vec::new();
@@ -61,6 +69,13 @@ impl MarathonClient {
             &mut out,
             SourceId::MarathonMeta,
             marathonmeta,
+            slug,
+            "weapon",
+        );
+        collect_candidate(
+            &mut out,
+            SourceId::MarathonGuide,
+            marathonguide,
             slug,
             "weapon",
         );
@@ -99,6 +114,13 @@ impl MarathonClient {
         };
         let rendered = marathonmeta.weapon(slug).await?;
         Ok(parse::marathonmeta_html_to_weapon(slug, &rendered))
+    }
+
+    async fn marathonguide_weapon(&self, slug: &str) -> Result<Weapon> {
+        let page = self.marathonguide.weapons().await?;
+        parse::marathonguide_html_to_weapon(slug, &page).ok_or_else(|| {
+            MarathonError::NotFound { entity: "weapon", query: slug.to_string() }
+        })
     }
 
     pub async fn weapons(&self) -> Result<Arc<[Weapon]>> {

@@ -13,8 +13,8 @@ fn selector(css: &str) -> Result<Selector> {
         .map_err(|e| MarathonError::Parse(format!("invalid selector `{css}`: {e}")))
 }
 
-/// Concatenate an element's descendant text and collapse runs of whitespace.
-fn element_text(el: ElementRef<'_>) -> String {
+#[must_use]
+pub fn element_text(el: ElementRef<'_>) -> String {
     let joined = el.text().collect::<Vec<_>>().join(" ");
     joined.split_whitespace().collect::<Vec<_>>().join(" ")
 }

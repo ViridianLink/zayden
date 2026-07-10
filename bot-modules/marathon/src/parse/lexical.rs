@@ -256,3 +256,16 @@ pub(super) fn slugify(s: &str) -> String {
         .collect();
     cleaned.split('-').filter(|part| !part.is_empty()).collect::<Vec<_>>().join("-")
 }
+
+pub(super) fn non_empty<S: AsRef<str>>(s: S) -> Option<String> {
+    let trimmed = s.as_ref().trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+pub(super) fn leading_number(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    let end = trimmed
+        .find(|c: char| !(c.is_ascii_digit() || c == '.'))
+        .unwrap_or(trimmed.len());
+    trimmed.get(..end).and_then(non_empty)
+}

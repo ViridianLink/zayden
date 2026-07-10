@@ -4,6 +4,8 @@ mod weapon;
 pub use runner::marathonmeta_html_to_runner;
 pub use weapon::marathonmeta_html_to_weapon;
 
+use crate::parse::lexical::{leading_number, non_empty};
+
 pub(super) const BASE: &str = "https://marathonmeta.gg";
 
 pub(super) struct Identity {
@@ -49,15 +51,3 @@ pub(super) fn identity(doc: &scraper::Html, slug: &str) -> Identity {
     }
 }
 
-pub(super) fn leading_number(value: &str) -> Option<String> {
-    let trimmed = value.trim();
-    let end = trimmed
-        .find(|c: char| !(c.is_ascii_digit() || c == '.'))
-        .unwrap_or(trimmed.len());
-    trimmed.get(..end).and_then(non_empty)
-}
-
-fn non_empty<S: AsRef<str>>(s: S) -> Option<String> {
-    let trimmed = s.as_ref().trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_string())
-}

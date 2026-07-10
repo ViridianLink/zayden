@@ -7,6 +7,7 @@ mod lexical;
 mod map;
 mod mapgenie;
 mod marathondb;
+mod marathonguide;
 mod marathonmeta;
 mod meta;
 mod runner;
@@ -28,6 +29,10 @@ pub use marathondb::{
     marathondb_map_to_model,
     marathondb_runner_to_model,
     marathondb_weapon_to_model,
+};
+pub use marathonguide::{
+    marathonguide_html_to_runner,
+    marathonguide_html_to_weapon,
 };
 pub use marathonmeta::{marathonmeta_html_to_runner, marathonmeta_html_to_weapon};
 pub use meta::parse_meta;
