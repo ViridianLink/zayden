@@ -32,10 +32,11 @@ impl MarathonClient {
     }
 
     async fn gather_runner(&self, slug: &str) -> Vec<(SourceId, Runner)> {
-        let (marathondb, mobalytics, cyberacme) = tokio::join!(
+        let (marathondb, mobalytics, cyberacme, tauceti) = tokio::join!(
             self.marathondb_runner(slug),
             self.mobalytics_runner(slug),
             self.cyberacme_runner(slug),
+            self.tauceti_runner(slug),
         );
 
         let mut out = Vec::new();
@@ -54,6 +55,7 @@ impl MarathonClient {
             "runner",
         );
         collect_candidate(&mut out, SourceId::CyberAcme, cyberacme, slug, "runner");
+        collect_candidate(&mut out, SourceId::TauCeti, tauceti, slug, "runner");
         out
     }
 
@@ -73,6 +75,14 @@ impl MarathonClient {
     async fn cyberacme_runner(&self, slug: &str) -> Result<Runner> {
         let runner = self.cyberacme.runner(slug).await?;
         Ok(parse::cyberacme_runner_to_model(slug, &runner))
+    }
+
+    async fn tauceti_runner(&self, slug: &str) -> Result<Runner> {
+        let Some(tauceti) = &self.tauceti else {
+            return Err(MarathonError::SourceUnavailable);
+        };
+        let runner = tauceti.runner(slug).await?;
+        Ok(parse::tauceti_runner_to_model(slug, &runner))
     }
 
     pub async fn runners(&self) -> Result<Arc<[Runner]>> {

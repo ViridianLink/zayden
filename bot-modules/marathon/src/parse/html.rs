@@ -55,6 +55,87 @@ pub fn script_json_after_marker(doc: &Html, marker: &str) -> Result<Value> {
     Err(MarathonError::Parse(format!("no <script> contained `{marker}`")))
 }
 
+#[must_use]
+pub fn next_flight(doc: &Html) -> String {
+    let Ok(script) = selector("script") else { return String::new() };
+    let mut flight = String::new();
+    for el in doc.select(&script) {
+        let body: String = el.text().collect();
+        for rest in body.split(".push([1,").skip(1) {
+            if let Some(chunk) = leading_json_string(rest) {
+                flight.push_str(&chunk);
+            }
+        }
+    }
+    flight
+}
+
+fn leading_json_string(s: &str) -> Option<String> {
+    let start = s.find('"')?;
+    let bytes = s.as_bytes();
+    let mut i = start + 1;
+    let mut escaped = false;
+    while let Some(&b) = bytes.get(i) {
+        if escaped {
+            escaped = false;
+        } else if b == b'\\' {
+            escaped = true;
+        } else if b == b'"' {
+            let literal = s.get(start..=i)?;
+            return serde_json::from_str::<String>(literal).ok();
+        }
+        i += 1;
+    }
+    None
+}
+
+#[must_use]
+pub fn flight_object_by_slug(flight: &str, slug: &str) -> Option<Value> {
+    const MARKER: &str = "{\"id\":\"";
+    let needle = format!("\"slug\":\"{slug}\"");
+
+    let mut best: Option<Value> = None;
+    let mut best_keys = 0usize;
+    let mut best_refs = usize::MAX;
+    let mut from = 0usize;
+
+    while let Some(rel) = flight.get(from..).and_then(|tail| tail.find(MARKER)) {
+        let start = from + rel;
+        from = start + MARKER.len();
+
+        let Some(tail) = flight.get(start..) else { break };
+        let Ok(obj) = balanced_object(tail) else { continue };
+        if !obj.contains(&needle) {
+            continue;
+        }
+        let Ok(value) = serde_json::from_str::<Value>(obj) else { continue };
+        if value.get("slug").and_then(Value::as_str) != Some(slug) {
+            continue;
+        }
+
+        let keys = value.as_object().map_or(0, serde_json::Map::len);
+        let refs = count_chunk_refs(&value);
+        if keys > best_keys || (keys == best_keys && refs < best_refs) {
+            best_keys = keys;
+            best_refs = refs;
+            best = Some(value);
+        }
+    }
+    best
+}
+
+fn count_chunk_refs(value: &Value) -> usize {
+    value.as_object().map_or(0, |obj| {
+        obj.values().filter(|v| v.as_str().is_some_and(is_chunk_ref)).count()
+    })
+}
+
+fn is_chunk_ref(s: &str) -> bool {
+    s.strip_prefix('$').is_some_and(|rest| {
+        !rest.is_empty() && rest.bytes().all(|b| b.is_ascii_hexdigit())
+    })
+}
+
 fn balanced_object(s: &str) -> Result<&str> {
     let mut depth: i32 = 0;
     let mut in_string = false;

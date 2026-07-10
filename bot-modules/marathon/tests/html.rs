@@ -44,6 +44,34 @@ fn extracts_global_assignment_object_with_brace_in_string() {
     assert_eq!(value.pointer("/nested/a").and_then(Value::as_str), Some("}"));
 }
 
+const FLIGHT_PAGE: &str = r#"
+<html><body>
+<script>self.__next_f=self.__next_f||[]</script>
+<script>self.__next_f.push([1,"22:{\"id\":\"a1\",\"slug\":\"m77\",\"name\":\"M77\",\"stats\":\"$25\"}\n"])</script>
+<script>self.__next_f.push([1,"25:{\"damage\":30}\n26:[\"$\",\"div\",null,{\"item\":{\"id\":\"a1\",\"slug\":\"m77\",\"name\":\"M77\",\"stats\":{\"damage\":30},\"note\":\"has a } brace\"}}]\n"])</script>
+</body></html>
+"#;
+
+#[test]
+fn next_flight_concatenates_and_resolves_object() {
+    let doc = html::document(FLIGHT_PAGE);
+    let flight = html::next_flight(&doc);
+    assert!(flight.contains("\"slug\":\"m77\""));
+
+    let obj = html::flight_object_by_slug(&flight, "m77")
+        .expect("should find resolved m77 object");
+    // The fully-inlined copy (stats as an object) must win over the `$25` stub.
+    assert_eq!(obj.pointer("/stats/damage").and_then(Value::as_i64), Some(30));
+    assert_eq!(obj.pointer("/note").and_then(Value::as_str), Some("has a } brace"));
+}
+
+#[test]
+fn flight_object_missing_slug_is_none() {
+    let doc = html::document(FLIGHT_PAGE);
+    let flight = html::next_flight(&doc);
+    assert!(html::flight_object_by_slug(&flight, "nope").is_none());
+}
+
 #[test]
 fn text_and_attr_helpers() {
     let doc = html::document(

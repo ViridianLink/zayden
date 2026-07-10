@@ -34,10 +34,11 @@ impl MarathonClient {
     }
 
     async fn gather_weapon(&self, slug: &str) -> Vec<(SourceId, Weapon)> {
-        let (marathondb, mobalytics, cyberacme) = tokio::join!(
+        let (marathondb, mobalytics, cyberacme, tauceti) = tokio::join!(
             self.marathondb_weapon(slug),
             self.mobalytics_weapon(slug),
             self.cyberacme_weapon(slug),
+            self.tauceti_weapon(slug),
         );
 
         let mut out = Vec::new();
@@ -56,6 +57,7 @@ impl MarathonClient {
             "weapon",
         );
         collect_candidate(&mut out, SourceId::CyberAcme, cyberacme, slug, "weapon");
+        collect_candidate(&mut out, SourceId::TauCeti, tauceti, slug, "weapon");
         out
     }
 
@@ -75,6 +77,14 @@ impl MarathonClient {
     async fn cyberacme_weapon(&self, slug: &str) -> Result<Weapon> {
         let item = self.cyberacme.item(slug).await?;
         Ok(parse::cyberacme_item_to_weapon(slug, &item))
+    }
+
+    async fn tauceti_weapon(&self, slug: &str) -> Result<Weapon> {
+        let Some(tauceti) = &self.tauceti else {
+            return Err(MarathonError::SourceUnavailable);
+        };
+        let item = tauceti.weapon(slug).await?;
+        Ok(parse::tauceti_item_to_weapon(slug, &item))
     }
 
     pub async fn weapons(&self) -> Result<Arc<[Weapon]>> {

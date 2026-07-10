@@ -39,10 +39,11 @@ impl MarathonClient {
     }
 
     async fn gather_faction(&self, slug: &str) -> Vec<(SourceId, Faction)> {
-        let (marathondb, mobalytics, cyberacme) = tokio::join!(
+        let (marathondb, mobalytics, cyberacme, tauceti) = tokio::join!(
             self.marathondb_faction(slug),
             self.mobalytics_faction(slug),
             self.cyberacme_faction(slug),
+            self.tauceti_faction(slug),
         );
 
         let mut out = Vec::new();
@@ -61,6 +62,7 @@ impl MarathonClient {
             "faction",
         );
         collect_candidate(&mut out, SourceId::CyberAcme, cyberacme, slug, "faction");
+        collect_candidate(&mut out, SourceId::TauCeti, tauceti, slug, "faction");
         out
     }
 
@@ -86,6 +88,14 @@ impl MarathonClient {
     async fn cyberacme_faction(&self, slug: &str) -> Result<Faction> {
         let envelope = self.cyberacme.faction(slug).await?;
         Ok(parse::cyberacme_faction_to_model(slug, &envelope))
+    }
+
+    async fn tauceti_faction(&self, slug: &str) -> Result<Faction> {
+        let Some(tauceti) = &self.tauceti else {
+            return Err(MarathonError::SourceUnavailable);
+        };
+        let value = tauceti.faction(slug).await?;
+        Ok(parse::tauceti_faction_to_model(slug, &value))
     }
 
     async fn faction_slugs(&self) -> Result<Vec<String>> {

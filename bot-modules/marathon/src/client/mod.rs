@@ -25,7 +25,14 @@ use crate::model::{
     Weapon,
 };
 use crate::source::SourceId;
-use crate::transport::{CyberAcme, Fandom, MapGenie, MarathonDb, Mobalytics};
+use crate::transport::{
+    CyberAcme,
+    Fandom,
+    MapGenie,
+    MarathonDb,
+    Mobalytics,
+    TauCeti,
+};
 
 const LONG_TTL: Duration = Duration::from_hours(8);
 
@@ -54,6 +61,7 @@ where
 
 pub struct MarathonClient {
     mobalytics: Option<Mobalytics>,
+    tauceti: Option<TauCeti>,
     marathondb: MarathonDb,
     mapgenie: MapGenie,
     fandom: Fandom,
@@ -76,11 +84,15 @@ pub struct MarathonClient {
 impl MarathonClient {
     #[must_use]
     pub fn new(client: Client, flaresolverr_url: Option<String>) -> Self {
+        let tauceti = flaresolverr_url
+            .as_ref()
+            .map(|url| TauCeti::new(client.clone(), url.clone()));
         let mobalytics =
             flaresolverr_url.map(|url| Mobalytics::new(client.clone(), url));
 
         Self {
             mobalytics,
+            tauceti,
             marathondb: MarathonDb::new(client.clone()),
             mapgenie: MapGenie::new(client.clone()),
             cyberacme: CyberAcme::new(client.clone()),

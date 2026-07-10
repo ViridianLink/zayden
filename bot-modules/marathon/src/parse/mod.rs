@@ -9,6 +9,7 @@ mod mapgenie;
 mod marathondb;
 mod meta;
 mod runner;
+mod tauceti;
 mod weapon;
 
 pub use build::parse_build;
@@ -29,4 +30,9 @@ pub use marathondb::{
 };
 pub use meta::parse_meta;
 pub use runner::parse_runner;
+pub use tauceti::{
+    tauceti_faction_to_model,
+    tauceti_item_to_weapon,
+    tauceti_runner_to_model,
+};
 pub use weapon::parse_weapon;
