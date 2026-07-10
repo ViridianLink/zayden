@@ -31,7 +31,10 @@ fn maps_weapon_identity_and_stats() {
     // with display values kept verbatim.
     assert!(weapon.stats.iter().any(|s| s.name == "Range" && s.value == "46"));
     assert!(
-        weapon.stats.iter().any(|s| s.name == "Rate of Fire" && s.value == "450 RPM")
+        weapon
+            .stats
+            .iter()
+            .any(|s| s.name == "Rate of Fire" && s.value == "450 RPM")
     );
     assert!(weapon.stats.iter().any(|s| s.name == "Recoil"));
     // The sidebar's list of every other weapon must not leak into the stats.
@@ -68,8 +71,7 @@ async fn live_weapon_parses_non_empty() {
     };
     let client = reqwest::Client::new();
     let marathonmeta = marathon::transport::MarathonMeta::new(client, flaresolverr);
-    let html =
-        marathonmeta.weapon("m77-assault-rifle").await.expect("live fetch");
+    let html = marathonmeta.weapon("m77-assault-rifle").await.expect("live fetch");
     let weapon = parse::marathonmeta_html_to_weapon("m77-assault-rifle", &html);
     assert_eq!(weapon.name, "M77 Assault Rifle");
     assert!(weapon.damage.is_some(), "live weapon should carry stats");

@@ -24,11 +24,9 @@ fn lore_source_backfills_missing_description() {
         ..Pal::default()
     };
 
-    let merged = merge::pal(&[
-        (SourceId::Paldex, paldex_base()),
-        (SourceId::Fandom, fandom),
-    ])
-    .expect("non-empty candidates");
+    let merged =
+        merge::pal(&[(SourceId::Paldex, paldex_base()), (SourceId::Fandom, fandom)])
+            .expect("non-empty candidates");
 
     // Description comes from the lore source; typed data stays from Paldex.
     assert_eq!(merged.description.as_deref(), Some("A fluffy Pal."));

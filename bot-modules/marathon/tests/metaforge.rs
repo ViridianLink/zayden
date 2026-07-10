@@ -29,7 +29,8 @@ fn buckets_markers_by_category() {
     assert_eq!(map.name, "Perimeter");
 
     // `locations/*-exfil` markers become extractions.
-    let exfils: Vec<&str> = map.extractions.iter().map(|l| l.name.as_str()).collect();
+    let exfils: Vec<&str> =
+        map.extractions.iter().map(|l| l.name.as_str()).collect();
     assert!(has(&exfils, "Guarded Exfil"));
     assert!(has(&exfils, "Crew Exfil"));
     assert!(has(&exfils, "Final Exfil"));

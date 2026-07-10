@@ -21,10 +21,7 @@ pub(super) async fn run(
 
     let passives = client.passives().await?;
     let key = find_passive_key(&passives, query).ok_or_else(|| {
-        PalworldError::NotFound {
-            entity: "passive skill",
-            query: query.to_string(),
-        }
+        PalworldError::NotFound { entity: "passive skill", query: query.to_string() }
     })?;
 
     let passive = client.passive(&key).await?;

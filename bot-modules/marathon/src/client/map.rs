@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use serde_json::Value;
-use tracing::warn;
+use tracing::{debug, warn};
 
 use super::MarathonClient;
-use super::health::flag_degraded_sources;
+use super::health::{SourceData, flag_degraded_sources};
 use crate::error::{MarathonError, Result};
 use crate::merge::Merge;
 use crate::model::MarathonMap;
@@ -51,7 +51,14 @@ impl MarathonClient {
 
     async fn marathondb_map(&self, slug: &str) -> Result<MarathonMap> {
         let data = self.marathondb.map(slug).await?;
-        Ok(parse::marathondb_map_to_model(slug, &data))
+        let map = parse::marathondb_map_to_model(slug, &data);
+        if map.is_degraded() {
+            return Err(MarathonError::NotFound {
+                entity: "map",
+                query: slug.to_string(),
+            });
+        }
+        Ok(map)
     }
 
     async fn mapgenie_map(&self, slug: &str) -> Result<MarathonMap> {
@@ -124,6 +131,9 @@ fn collect_map(
 ) {
     match candidate {
         Ok(map) => candidates.push((source, map)),
+        Err(MarathonError::NotFound { .. }) => {
+            debug!(%source, %slug, "source does not cover this map");
+        },
         Err(err) => {
             warn!(%source, %slug, %err, "map source unavailable");
         },

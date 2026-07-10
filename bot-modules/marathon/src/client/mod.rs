@@ -14,9 +14,9 @@ use std::time::Duration;
 
 use moka::future::Cache;
 use reqwest::Client;
-use tracing::warn;
+use tracing::{debug, warn};
 
-use crate::error::Result;
+use crate::error::{MarathonError, Result};
 use crate::model::{
     BuildRecipe,
     Cradle,
@@ -50,6 +50,9 @@ fn collect_candidate<T>(
 ) {
     match result {
         Ok(value) => out.push((source, value)),
+        Err(MarathonError::NotFound { .. }) => {
+            debug!(%source, %slug, entity, "source does not cover this entity");
+        },
         Err(err) => {
             warn!(%source, %slug, entity, %err, "source unavailable");
         },

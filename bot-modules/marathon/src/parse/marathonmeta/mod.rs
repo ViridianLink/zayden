@@ -50,4 +50,3 @@ pub(super) fn identity(doc: &scraper::Html, slug: &str) -> Identity {
         description,
     }
 }
-

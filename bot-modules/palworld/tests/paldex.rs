@@ -46,10 +46,8 @@ fn parses_items_and_passives() {
     let raw_passives: HashMap<String, RawPassive> =
         serde_json::from_str(&fixture("paldex_passive_skills.json"))
             .expect("valid passives json");
-    let passives: Vec<_> = raw_passives
-        .into_iter()
-        .map(|(k, v)| passive_from_raw(k, v))
-        .collect();
+    let passives: Vec<_> =
+        raw_passives.into_iter().map(|(k, v)| passive_from_raw(k, v)).collect();
     let artisan =
         passives.iter().find(|p| p.key == "artisan").expect("artisan present");
     assert_eq!(artisan.name, "Artisan");

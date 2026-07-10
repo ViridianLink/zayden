@@ -49,20 +49,30 @@ fn all_empty_yields_none() {
     // Empty/whitespace never reaches consensus if callers pre-clean; here we
     // pass raw Nones and blanks are still distinct non-None strings, so assert
     // the pre-clean helper strips them.
-    let cleaned: Vec<_> = candidates
-        .into_iter()
-        .map(|(s, v)| (s, merge::nonempty(v)))
-        .collect();
+    let cleaned: Vec<_> =
+        candidates.into_iter().map(|(s, v)| (s, merge::nonempty(v))).collect();
     assert!(consensus("x", Category::Stats, &cleaned).is_none());
 }
 
 #[test]
 fn category_rank_orders_sources() {
-    assert!(Category::Stats.rank(SourceId::MarathonDb) < Category::Stats.rank(SourceId::Mobalytics));
-    assert!(Category::Lore.rank(SourceId::Fandom) < Category::Lore.rank(SourceId::MarathonDb));
-    assert!(Category::Map.rank(SourceId::MapGenie) < Category::Map.rank(SourceId::MetaForge));
+    assert!(
+        Category::Stats.rank(SourceId::MarathonDb)
+            < Category::Stats.rank(SourceId::Mobalytics)
+    );
+    assert!(
+        Category::Lore.rank(SourceId::Fandom)
+            < Category::Lore.rank(SourceId::MarathonDb)
+    );
+    assert!(
+        Category::Map.rank(SourceId::MapGenie)
+            < Category::Map.rank(SourceId::MetaForge)
+    );
     // Unlisted source ranks last.
-    assert_eq!(Category::Meta.rank(SourceId::Fandom), Category::Meta.precedence().len());
+    assert_eq!(
+        Category::Meta.rank(SourceId::Fandom),
+        Category::Meta.precedence().len()
+    );
 }
 
 #[test]
@@ -79,10 +89,10 @@ fn weapon_merge_cross_references_stats_and_unions_lists() {
         name: "Assault Rifle".into(),
         damage: Some("32".into()),
         description: Some("A reliable rifle.".into()),
-        stats: vec![
-            Stat { name: "Damage".into(), value: "32".into() },
-            Stat { name: "Range".into(), value: "40m".into() },
-        ],
+        stats: vec![Stat { name: "Damage".into(), value: "32".into() }, Stat {
+            name: "Range".into(),
+            value: "40m".into(),
+        }],
         ..Default::default()
     };
     let cyberacme = Weapon {

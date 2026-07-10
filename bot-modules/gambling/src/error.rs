@@ -205,27 +205,27 @@ impl From<GamblingError> for HandlerError {
             GamblingError::Sqlx(e) => Self::Database(e),
             GamblingError::Serenity(e) => Self::Discord(e),
             e @ (GamblingError::Overflow(_)
-                | GamblingError::MessageConflict
-                | GamblingError::Internal(_)
-                | GamblingError::PremiumRequired
-                | GamblingError::InsufficientFunds { .. }
-                | GamblingError::MinimumBetAmount(_)
-                | GamblingError::MaximumBetAmount(_)
-                | GamblingError::MaximumSendAmount(_)
-                | GamblingError::DailyClaimed(_)
-                | GamblingError::OutOfStamina(_)
-                | GamblingError::GiftUsed(_)
-                | GamblingError::SelfGift
-                | GamblingError::SelfSend
-                | GamblingError::NegativeAmount
-                | GamblingError::ZeroAmount
-                | GamblingError::Cooldown(_)
-                | GamblingError::InvalidPrediction
-                | GamblingError::InvalidAmount
-                | GamblingError::InsufficientCapacity(_)
-                | GamblingError::ItemNotInInventory
-                | GamblingError::InsufficientItemQuantity(_)
-                | GamblingError::NotEnoughMiners { .. }) => Self::from_respond(e),
+            | GamblingError::MessageConflict
+            | GamblingError::Internal(_)
+            | GamblingError::PremiumRequired
+            | GamblingError::InsufficientFunds { .. }
+            | GamblingError::MinimumBetAmount(_)
+            | GamblingError::MaximumBetAmount(_)
+            | GamblingError::MaximumSendAmount(_)
+            | GamblingError::DailyClaimed(_)
+            | GamblingError::OutOfStamina(_)
+            | GamblingError::GiftUsed(_)
+            | GamblingError::SelfGift
+            | GamblingError::SelfSend
+            | GamblingError::NegativeAmount
+            | GamblingError::ZeroAmount
+            | GamblingError::Cooldown(_)
+            | GamblingError::InvalidPrediction
+            | GamblingError::InvalidAmount
+            | GamblingError::InsufficientCapacity(_)
+            | GamblingError::ItemNotInInventory
+            | GamblingError::InsufficientItemQuantity(_)
+            | GamblingError::NotEnoughMiners { .. }) => Self::from_respond(e),
         }
     }
 }
