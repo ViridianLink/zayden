@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_endgame_weapons (\n                name, archetype, affinity, frame, enhanceable, reserves,\n                barrel, magazine, perk_1, perk_2, origin_trait, rank,\n                tier, tier_colour, notes, icon\n            )\n            VALUES (\n                $1, $2, $3, $4, $5, $6,\n                $7, $8, $9, $10, $11, $12,\n                $13, $14, $15, $16\n            )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        {
+          "Custom": {
+            "name": "destiny2_affinity",
+            "kind": {
+              "Enum": [
+                "kinetic",
+                "arc",
+                "void",
+                "solar",
+                "stasis",
+                "strand"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Bool",
+        "Int4",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int2",
+        {
+          "Custom": {
+            "name": "destiny2_tier",
+            "kind": {
+              "Enum": [
+                "s",
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "none"
+              ]
+            }
+          }
+        },
+        "Int4",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e26d2151f5c836c921f1fbcddcb813e9daab90f67a587824f1143190f1766fe9"
+}

@@ -5,7 +5,6 @@ use std::ops::Deref;
 use bungie_api::types::destiny::DestinyItemType;
 use bungie_api::{DestinyInventoryItemDefinition, DestinyPlugSetDefinition};
 use google_sheets_api::types::sheet::{CellData, RowData};
-use serde::{Deserialize, Serialize};
 use serenity::all::{
     AutocompleteChoice,
     CreateEmbed,
@@ -288,14 +287,21 @@ impl WeaponBuilder {
         item: &DestinyInventoryItemDefinition,
     ) -> Result<Weapon, EndgameAnalysisError> {
         let icon = item.display_properties.icon.clone();
-        let affinity = self
-            .affinity
-            .parse()
-            .map_err(|()| ZaydenError::missing_data("affinity parse"))?;
+        let affinity = if self.affinity.is_empty() {
+            None
+        } else {
+            Some(
+                self.affinity
+                    .parse()
+                    .map_err(|()| ZaydenError::missing_data("affinity parse"))?,
+            )
+        };
         let frame = self
             .frame
             .map(|f| {
-                f.parse().map_err(|()| ZaydenError::missing_data("frame parse"))
+                f.parse::<Frame>()
+                    .map(|frame| frame.to_string())
+                    .map_err(|()| ZaydenError::missing_data("frame parse"))
             })
             .transpose()?;
 
@@ -319,13 +325,13 @@ impl WeaponBuilder {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub struct Weapon {
     pub icon: Option<String>,
     pub name: String,
     pub archetype: String,
-    pub affinity: Affinity,
-    pub frame: Option<Frame>,
+    pub affinity: Option<Affinity>,
+    pub frame: Option<String>,
     pub enhanceable: bool,
     pub reserves: Option<u16>,
     pub barrel: String,
@@ -540,6 +546,12 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
         let frame =
             value.frame.as_ref().map(|f| format!("{f} ")).unwrap_or_default();
 
+        let affinity = value
+            .affinity
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+
         let mut description =
             format!("Tier: {} (#{})", value.tier.tier(), value.rank);
         if let Some(reserves) = value.reserves {
@@ -548,9 +560,7 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
 
         let mut embed = CreateEmbed::new()
             .author(CreateEmbedAuthor::new(format!(
-                "{} {}{}",
-                value.affinity,
-                frame,
+                "{affinity} {frame}{}",
                 value.archetype(),
             )))
             .title(value.name.clone())

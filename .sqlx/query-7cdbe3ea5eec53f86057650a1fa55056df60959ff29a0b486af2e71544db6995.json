@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "TRUNCATE destiny2_compendium_perks RESTART IDENTITY",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "7cdbe3ea5eec53f86057650a1fa55056df60959ff29a0b486af2e71544db6995"
+}

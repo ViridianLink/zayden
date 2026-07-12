@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use bungie_api::{BungieClient, BungieClientBuilder};
+use destiny2::endgame_analysis::EndgameAnalysisSheetCron;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
 use marathon::client::MarathonClient;
@@ -86,7 +87,7 @@ impl BotState {
             StaminaCron::cron_job::<Postgres, StaminaTable>(),
             Lotto::cron_job::<Self, Postgres, GamblingTable, LottoTable>(),
             HigherLower::cron_job::<Postgres, GamblingTable, HigherLowerTable>(),
-            destiny2::endgame_analysis::EndgameAnalysisSheetCron::cron_job::<Postgres>(
+            EndgameAnalysisSheetCron::cron_job(
                 Arc::clone(&self.bungie_client),
                 self.app.google_api_key.clone(),
             ),

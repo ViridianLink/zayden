@@ -1,5 +1,3 @@
-use std::fs;
-
 use bungie_api::BungieClient;
 use futures::future;
 use serenity::all::{
@@ -12,10 +10,12 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
+use sqlx::PgPool;
 use tracing::error;
 
+use crate::db::endgame;
 use crate::endgame_analysis::EndgameAnalysisError;
-use crate::endgame_analysis::sheet::{EndgameAnalysisSheet, TierLabel, Weapon};
+use crate::endgame_analysis::sheet::{EndgameAnalysisSheet, TierLabel};
 
 pub struct DimWishlistCommand;
 
@@ -24,6 +24,7 @@ impl DimWishlistCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
+        pool: &PgPool,
         client: &BungieClient,
         api_key: &str,
     ) -> Result<(), EndgameAnalysisError> {
@@ -57,14 +58,10 @@ impl DimWishlistCommand {
             .await?
         };
 
-        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(weapons) => serde_json::from_str(&weapons)?,
-            Err(_) => {
-                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let weapons = fs::read_to_string("weapons.json")?;
-                serde_json::from_str(&weapons)?
-            },
-        };
+        if endgame::is_empty(pool).await? {
+            EndgameAnalysisSheet::update(pool, &item_manifest, api_key).await?;
+        }
+        let weapons = endgame::all(pool).await?;
 
         let wishlist = weapons
             .into_iter()

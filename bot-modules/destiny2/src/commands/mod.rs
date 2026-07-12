@@ -5,6 +5,7 @@ use serenity::all::{
     Context,
     CreateCommand,
 };
+use sqlx::PgPool;
 use zayden_core::error::HandlerError;
 use zayden_core::{CoreError, EmojiCacheData, parse_subcommand};
 
@@ -29,12 +30,10 @@ impl Command {
             .add_option(RaidGuide::<0>::register())
     }
 
-    /// Routes `/destiny2 <subcommand>`.
-    ///
-    /// `Data` supplies the emoji cache used by the `builds` subcommand.
     pub async fn run<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
+        pool: &PgPool,
         client: &BungieClient,
         api_key: &str,
         parent_token: &str,
@@ -43,13 +42,15 @@ impl Command {
 
         match name {
             "perk" => {
-                Perk::run(ctx, interaction, sub_options.into_vec(), api_key).await?;
+                Perk::run(ctx, interaction, sub_options.into_vec(), pool, api_key)
+                    .await?;
             },
             "weapon" => {
                 WeaponCommand::run(
                     ctx,
                     interaction,
                     sub_options.into_vec(),
+                    pool,
                     client,
                     api_key,
                 )
@@ -60,6 +61,7 @@ impl Command {
                     ctx,
                     interaction,
                     sub_options.into_vec(),
+                    pool,
                     client,
                     api_key,
                 )
@@ -70,6 +72,7 @@ impl Command {
                     ctx,
                     interaction,
                     sub_options.into_vec(),
+                    pool,
                     client,
                     api_key,
                 )
@@ -97,11 +100,11 @@ impl Command {
         Ok(())
     }
 
-    /// Routes autocomplete requests for `/destiny2` subcommands.
     pub async fn autocomplete(
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        pool: &PgPool,
         client: &BungieClient,
         api_key: &str,
     ) -> Result<(), HandlerError> {
@@ -109,13 +112,15 @@ impl Command {
 
         match name {
             "perk" => {
-                Perk::autocomplete(&ctx.http, interaction, option, api_key).await?;
+                Perk::autocomplete(&ctx.http, interaction, option, pool, api_key)
+                    .await?;
             },
             "weapon" => {
                 WeaponCommand::autocomplete(
                     ctx,
                     interaction,
                     option,
+                    pool,
                     client,
                     api_key,
                 )
@@ -126,6 +131,7 @@ impl Command {
                     ctx,
                     interaction,
                     option,
+                    pool,
                     client,
                     api_key,
                 )

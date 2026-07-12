@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_compendium_perks (key, name, description)\n             VALUES ($1, $2, $3)\n             ON CONFLICT (key) DO UPDATE\n                SET name = EXCLUDED.name, description = EXCLUDED.description",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "79b7b846d9b76543f2a2d4fa9220f2bfec5a963663b66078a63fb20653147d8a"
+}

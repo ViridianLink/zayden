@@ -1,5 +1,3 @@
-use std::fs;
-
 use bungie_api::BungieClient;
 use serenity::all::{
     AutocompleteChoice,
@@ -13,10 +11,10 @@ use serenity::all::{
     EditInteractionResponse,
     ResolvedOption,
 };
+use sqlx::PgPool;
 use zayden_core::sole_option;
 
 use crate::endgame_analysis::sheet::EndgameAnalysisSheet;
-use crate::endgame_analysis::sheet::weapon::Weapon;
 use crate::endgame_analysis::{EndgameAnalysisError, Result};
 
 pub struct WeaponCommand;
@@ -26,6 +24,7 @@ impl WeaponCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
+        pool: &PgPool,
         client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
@@ -33,19 +32,7 @@ impl WeaponCommand {
 
         let name: &str = sole_option(&mut options)?;
 
-        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(w) => serde_json::from_str(&w)?,
-            Err(_) => {
-                let manifest = client.destiny_manifest().await?;
-                let item_manifest = client
-                    .destiny_inventory_item_definition(&manifest, "en")
-                    .await?;
-
-                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let w = fs::read_to_string("weapons.json")?;
-                serde_json::from_str(&w)?
-            },
-        };
+        let weapons = EndgameAnalysisSheet::weapons(pool, client, api_key).await?;
 
         let weapon = weapons
             .iter()
@@ -83,22 +70,11 @@ impl WeaponCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        pool: &PgPool,
         client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
-        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(weapons) => serde_json::from_str(&weapons)?,
-            Err(_) => {
-                let manifest = client.destiny_manifest().await?;
-                let item_manifest = client
-                    .destiny_inventory_item_definition(&manifest, "en")
-                    .await?;
-
-                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let weapons = fs::read_to_string("weapons.json")?;
-                serde_json::from_str(&weapons)?
-            },
-        };
+        let weapons = EndgameAnalysisSheet::weapons(pool, client, api_key).await?;
 
         let weapons = weapons
             .into_iter()

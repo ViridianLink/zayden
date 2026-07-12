@@ -10,8 +10,7 @@ pub enum EndgameAnalysisError {
     WeaponNotFound(String),
     MissingHeaderRow(String),
 
-    Io(#[from] std::io::Error),
-    Json(#[from] serde_json::Error),
+    Sqlx(#[from] sqlx::Error),
     BungieApi(#[from] bungie_api::BungieApiError),
     GoogleSheets(#[from] google_sheets_api::Error),
     ZaydenCore(#[from] ZaydenError),
@@ -24,8 +23,7 @@ impl std::fmt::Display for EndgameAnalysisError {
             Self::MissingHeaderRow(sheet) => {
                 write!(f, "Sheet '{sheet}' has no header row")
             },
-            Self::Io(e) => e.fmt(f),
-            Self::Json(e) => e.fmt(f),
+            Self::Sqlx(e) => e.fmt(f),
             Self::BungieApi(e) => e.fmt(f),
             Self::GoogleSheets(e) => e.fmt(f),
             Self::ZaydenCore(e) => e.fmt(f),
@@ -38,8 +36,7 @@ impl Respond for EndgameAnalysisError {
         match self {
             Self::WeaponNotFound(_) => Some(Cow::Owned(self.to_string())),
             Self::ZaydenCore(e) => e.user_message(),
-            Self::Io(_)
-            | Self::Json(_)
+            Self::Sqlx(_)
             | Self::BungieApi(_)
             | Self::GoogleSheets(_)
             | Self::MissingHeaderRow(_) => None,

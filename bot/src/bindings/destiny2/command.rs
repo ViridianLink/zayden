@@ -37,6 +37,7 @@ impl ModuleCommand for Destiny2 {
         Destiny2Command::run::<BotState>(
             cx.ctx,
             cx.interaction,
+            &cx.app.db,
             &client,
             &cx.app.google_api_key,
             parent_token,

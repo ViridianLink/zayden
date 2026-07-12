@@ -2,7 +2,6 @@ use std::fmt;
 use std::str::FromStr;
 
 use google_sheets_api::types::sheet::CellData;
-use serde::{Deserialize, Serialize};
 use serenity::all::Colour;
 use zayden_core::CoreError as ZaydenError;
 
@@ -18,7 +17,7 @@ pub const TIERS: [TierLabel; 7] = [
     TierLabel::F,
 ];
 
-#[derive(Debug, Default, Deserialize, Serialize)]
+#[derive(Debug, Default)]
 pub struct Tier {
     pub tier: TierLabel,
     pub colour: Colour,
@@ -54,8 +53,9 @@ impl TryFrom<CellData> for Tier {
 }
 
 #[derive(
-    Debug, Default, PartialEq, Eq, Hash, Clone, Copy, Deserialize, Serialize,
+    Debug, Default, PartialEq, Eq, Hash, Clone, Copy, sqlx::Type,
 )]
+#[sqlx(type_name = "destiny2_tier", rename_all = "lowercase")]
 pub enum TierLabel {
     S,
     A,

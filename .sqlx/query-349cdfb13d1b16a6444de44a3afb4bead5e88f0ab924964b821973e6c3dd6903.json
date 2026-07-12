@@ -1,0 +1,236 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            icon,\n            name,\n            archetype,\n            affinity AS \"affinity?: Affinity\",\n            frame,\n            enhanceable,\n            reserves,\n            barrel,\n            magazine,\n            perk_1,\n            perk_2,\n            origin_trait,\n            rank,\n            tier AS \"tier!: TierLabel\",\n            tier_colour,\n            notes\n        FROM destiny2_endgame_weapons\n        ORDER BY rank",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "icon",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "icon"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "archetype",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "archetype"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "affinity?: Affinity",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_affinity",
+            "kind": {
+              "Enum": [
+                "kinetic",
+                "arc",
+                "void",
+                "solar",
+                "stasis",
+                "strand"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "affinity"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "frame",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "frame"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "enhanceable",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "enhanceable"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "reserves",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "reserves"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "barrel",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "barrel"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "magazine",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "magazine"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "perk_1",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "perk_1"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "perk_2",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "perk_2"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "origin_trait",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "origin_trait"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "rank",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "rank"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "tier!: TierLabel",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_tier",
+            "kind": {
+              "Enum": [
+                "s",
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "none"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "tier"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "tier_colour",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "tier_colour"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "notes",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_endgame_weapons",
+            "name": "notes"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "349cdfb13d1b16a6444de44a3afb4bead5e88f0ab924964b821973e6c3dd6903"
+}

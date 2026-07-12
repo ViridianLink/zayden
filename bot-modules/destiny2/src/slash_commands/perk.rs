@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-use std::fs;
-
 use serenity::all::{
     AutocompleteChoice,
     AutocompleteOption,
@@ -16,9 +13,10 @@ use serenity::all::{
     Http,
     ResolvedOption,
 };
+use sqlx::PgPool;
 use zayden_core::sole_option;
 
-use crate::compendium::PerkInfo;
+use crate::db::compendium as perk_db;
 use crate::{DestinyError, Result, compendium};
 
 pub struct Perk;
@@ -28,22 +26,17 @@ impl Perk {
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
+        pool: &PgPool,
         api_key: &str,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
         let perk: &str = sole_option(&mut options)?;
 
-        let perks_json = match fs::read_to_string("perks.json") {
-            Ok(s) => s,
-            Err(_) => {
-                compendium::update(api_key).await?;
-                fs::read_to_string("perks.json")?
-            },
-        };
-        let mut perks: HashMap<String, PerkInfo> =
-            serde_json::from_str(&perks_json)?;
-        let Some(perk) = perks.remove(&perk.to_lowercase()) else {
+        if perk_db::is_empty(pool).await? {
+            compendium::update(pool, api_key).await?;
+        }
+        let Some(perk) = perk_db::find(pool, &perk.to_lowercase()).await? else {
             return Err(DestinyError::PerkNotFound(perk.to_string()));
         };
 
@@ -76,22 +69,17 @@ impl Perk {
         http: &Http,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        pool: &PgPool,
         api_key: &str,
     ) -> Result<()> {
-        let perks_json = match fs::read_to_string("perks.json") {
-            Ok(s) => s,
-            Err(_) => {
-                compendium::update(api_key).await?;
-                fs::read_to_string("perks.json")?
-            },
-        };
-        let perks: HashMap<String, PerkInfo> = serde_json::from_str(&perks_json)?;
+        if perk_db::is_empty(pool).await? {
+            compendium::update(pool, api_key).await?;
+        }
 
-        let perks = perks
+        let perks = perk_db::search(pool, &option.value.to_lowercase())
+            .await?
             .into_iter()
-            .filter(|(name, _)| name.contains(&option.value.to_lowercase()))
-            .map(|(_, perk)| AutocompleteChoice::from(perk.name))
-            .take(25)
+            .map(|perk| AutocompleteChoice::from(perk.name))
             .collect::<Vec<_>>();
 
         interaction

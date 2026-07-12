@@ -1362,8 +1362,6 @@ dependencies = [
  "futures",
  "google-sheets-api",
  "jiff-cron",
- "serde",
- "serde_json",
  "serenity",
  "sqlx",
  "thiserror 2.0.18",

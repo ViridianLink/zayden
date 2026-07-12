@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::fs;
 
 use bungie_api::{BungieClient, DestinyInventoryItemDefinition};
 use google_sheets_api::SheetsClientBuilder;
 use google_sheets_api::types::common::Color;
 use google_sheets_api::types::sheet::GridData;
+use sqlx::PgPool;
 
 pub mod affinity;
 pub mod frame;
@@ -17,6 +17,7 @@ pub use tier::{TIERS, Tier, TierLabel};
 use tracing::error;
 pub use weapon::{Weapon, WeaponBuilder};
 
+use crate::db::endgame;
 use crate::endgame_analysis::{EndgameAnalysisError, Result};
 
 const ENDGAME_ANALYSIS_ID: &str = "1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY";
@@ -60,7 +61,23 @@ impl EndgameAnalysisSheet {
         }
     }
 
+    pub async fn weapons(
+        pool: &PgPool,
+        client: &BungieClient,
+        api_key: &str,
+    ) -> Result<Vec<Weapon>> {
+        if endgame::is_empty(pool).await? {
+            let manifest = client.destiny_manifest().await?;
+            let item_manifest =
+                client.destiny_inventory_item_definition(&manifest, "en").await?;
+            Self::update(pool, &item_manifest, api_key).await?;
+        }
+
+        Ok(endgame::all(pool).await?)
+    }
+
     pub async fn update(
+        pool: &PgPool,
         manifest: &HashMap<String, DestinyInventoryItemDefinition>,
         api_key: &str,
     ) -> Result<()> {
@@ -90,8 +107,7 @@ impl EndgameAnalysisSheet {
             .flatten()
             .collect::<Vec<Weapon>>();
 
-        let json = serde_json::to_string(&weapons)?;
-        fs::write("weapons.json", json)?;
+        endgame::replace(pool, &weapons).await?;
 
         Ok(())
     }

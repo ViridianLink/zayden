@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod compendium;
+pub mod db;
 pub mod endgame_analysis;
 pub mod error;
 pub mod loadouts;

@@ -1,10 +1,9 @@
 use std::fmt;
 use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
 use tracing::error;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug)]
 pub enum Frame {
     Rapid,
     RapidSlug,

@@ -13,9 +13,7 @@ pub enum DestinyError {
     #[error(transparent)]
     HandlerError(HandlerError),
     #[error(transparent)]
-    Io(#[from] std::io::Error),
-    #[error(transparent)]
-    Json(#[from] serde_json::Error),
+    Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
     ZaydenCore(#[from] zayden_core::CoreError),
     #[error("No perk found for: {0}")]

@@ -32,6 +32,7 @@ impl ModuleAutocomplete for Destiny2 {
             cx.ctx,
             cx.interaction,
             option,
+            &cx.app.db,
             &client,
             &cx.app.google_api_key,
         )

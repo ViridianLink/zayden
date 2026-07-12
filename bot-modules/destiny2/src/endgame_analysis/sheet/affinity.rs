@@ -1,11 +1,9 @@
 use std::fmt;
 use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, sqlx::Type)]
+#[sqlx(type_name = "destiny2_affinity", rename_all = "lowercase")]
 pub enum Affinity {
-    None,
     Kinetic,
     Arc,
     Void,
@@ -19,7 +17,6 @@ impl FromStr for Affinity {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "" => Ok(Self::None),
             "Kinetic" => Ok(Self::Kinetic),
             "Arc" => Ok(Self::Arc),
             "Void" => Ok(Self::Void),
@@ -34,7 +31,6 @@ impl FromStr for Affinity {
 impl fmt::Display for Affinity {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::None => write!(f, ""),
             Self::Kinetic => write!(f, "Kinetic"),
             Self::Arc => write!(f, "Arc"),
             Self::Void => write!(f, "Void"),

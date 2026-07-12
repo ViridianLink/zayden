@@ -1,21 +1,18 @@
-use std::collections::HashMap;
-use std::fs;
-
 use google_sheets_api::SheetsClientBuilder;
-use serde::{Deserialize, Serialize};
+use sqlx::PgPool;
 use zayden_core::CoreError;
 
 use crate::Result;
+use crate::db::compendium;
 
 const COMPENDIUM_ID: &str = "1WaxvbLx7UoSZaBqdFr1u32F2uWVLo-CJunJB4nlGUE4";
 
-#[derive(Deserialize, Serialize)]
 pub struct PerkInfo {
     pub name: String,
     pub description: String,
 }
 
-pub async fn update(api_key: &str) -> Result<()> {
+pub async fn update(pool: &PgPool, api_key: &str) -> Result<()> {
     let client = SheetsClientBuilder::new(api_key).build()?;
 
     let spreadsheet = client.spreadsheet(COMPENDIUM_ID, true).await?;
@@ -50,10 +47,9 @@ pub async fn update(api_key: &str) -> Result<()> {
                 None
             }
         })
-        .collect::<HashMap<String, PerkInfo>>();
+        .collect::<Vec<(String, PerkInfo)>>();
 
-    let json = serde_json::to_string(&perks)?;
-    fs::write("perks.json", json)?;
+    compendium::replace(pool, &perks).await?;
 
     Ok(())
 }

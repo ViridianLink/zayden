@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::fs;
 
 use bungie_api::BungieClient;
 use serenity::all::{
@@ -17,6 +16,7 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
+use sqlx::PgPool;
 use zayden_core::{CoreError, parse_options, required_option};
 
 use crate::endgame_analysis::Result;
@@ -31,6 +31,7 @@ impl TierListCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
+        pool: &PgPool,
         client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
@@ -59,19 +60,7 @@ impl TierListCommand {
             _ => &TIERS,
         };
 
-        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(w) => serde_json::from_str(&w)?,
-            Err(_) => {
-                let manifest = client.destiny_manifest().await?;
-                let item_manifest = client
-                    .destiny_inventory_item_definition(&manifest, "en")
-                    .await?;
-
-                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let w = fs::read_to_string("weapons.json")?;
-                serde_json::from_str(&w)?
-            },
-        };
+        let weapons = EndgameAnalysisSheet::weapons(pool, client, api_key).await?;
 
         let init_map = tiers
             .iter()
@@ -155,22 +144,11 @@ impl TierListCommand {
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        pool: &PgPool,
         client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
-        let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
-            Ok(weapons) => serde_json::from_str(&weapons)?,
-            Err(_) => {
-                let manifest = client.destiny_manifest().await?;
-                let item_manifest = client
-                    .destiny_inventory_item_definition(&manifest, "en")
-                    .await?;
-
-                EndgameAnalysisSheet::update(&item_manifest, api_key).await?;
-                let weapons = fs::read_to_string("weapons.json")?;
-                serde_json::from_str(&weapons)?
-            },
-        };
+        let weapons = EndgameAnalysisSheet::weapons(pool, client, api_key).await?;
 
         let choices = match option.name {
             "archetype" => weapons
