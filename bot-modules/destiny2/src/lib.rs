@@ -1,6 +1,9 @@
+pub mod commands;
 pub mod compendium;
+pub mod endgame_analysis;
 pub mod error;
 pub mod loadouts;
 pub mod raid_guides;
 pub mod slash_commands;
+pub use endgame_analysis::EndgameAnalysisError;
 pub use error::{DestinyError, Result};

@@ -61,7 +61,6 @@ use serenity::all::{
     Context,
     CreateActionRow,
     CreateButton,
-    CreateCommand,
     CreateCommandOption,
     CreateComponent,
     CreateContainer,
@@ -121,7 +120,7 @@ pub struct Loadout<'a> {
 }
 
 impl Loadout<'_> {
-    pub fn register<'a>() -> CreateCommand<'a> {
+    pub fn register<'a>() -> CreateCommandOption<'a> {
         let mut warlock_builds = CreateCommandOption::new(
             CommandOptionType::String,
             "build",
@@ -160,32 +159,35 @@ impl Loadout<'_> {
             }
         }
 
-        CreateCommand::new("builds")
-            .description("Destiny 2 Builds")
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::SubCommand,
-                    "warlock",
-                    "Warlock Builds",
-                )
-                .add_sub_option(warlock_builds),
+        CreateCommandOption::new(
+            CommandOptionType::SubCommandGroup,
+            "builds",
+            "Destiny 2 Builds",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::SubCommand,
+                "warlock",
+                "Warlock Builds",
             )
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::SubCommand,
-                    "titan",
-                    "Titan Builds",
-                )
-                .add_sub_option(titan_builds),
+            .add_sub_option(warlock_builds),
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::SubCommand,
+                "titan",
+                "Titan Builds",
             )
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::SubCommand,
-                    "hunter",
-                    "Hunter Builds",
-                )
-                .add_sub_option(hunter_builds),
+            .add_sub_option(titan_builds),
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::SubCommand,
+                "hunter",
+                "Hunter Builds",
             )
+            .add_sub_option(hunter_builds),
+        )
     }
 
     pub async fn run<Data: EmojiCacheData>(

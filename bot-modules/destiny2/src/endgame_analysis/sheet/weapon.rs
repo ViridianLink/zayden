@@ -16,7 +16,7 @@ use tracing::error;
 use zayden_core::CoreError as ZaydenError;
 
 use super::{Affinity, Frame, Tier};
-use crate::EndgameAnalysisError;
+use crate::endgame_analysis::EndgameAnalysisError;
 
 #[derive(Default)]
 pub struct WeaponBuilder {

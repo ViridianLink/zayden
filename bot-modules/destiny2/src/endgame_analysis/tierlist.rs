@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
-use destiny2_core::BungieClientData;
+use bungie_api::BungieClient;
 use serenity::all::{
     AutocompleteChoice,
     AutocompleteOption,
@@ -9,7 +9,6 @@ use serenity::all::{
     CommandOptionType,
     Context,
     CreateAutocompleteResponse,
-    CreateCommand,
     CreateCommandOption,
     CreateEmbed,
     CreateEmbedFooter,
@@ -18,21 +17,21 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use tokio::sync::RwLock;
 use zayden_core::{CoreError, parse_options, required_option};
 
-use super::endgame_analysis::tier::{TIERS, TierLabel};
-use crate::Result;
-use crate::endgame_analysis::EndgameAnalysisSheet;
-use crate::endgame_analysis::weapon::Weapon;
+use crate::endgame_analysis::Result;
+use crate::endgame_analysis::sheet::EndgameAnalysisSheet;
+use crate::endgame_analysis::sheet::tier::{TIERS, TierLabel};
+use crate::endgame_analysis::sheet::weapon::Weapon;
 
 pub struct TierListCommand;
 
 impl TierListCommand {
-    pub async fn run<Data: BungieClientData>(
+    pub async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
+        client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
@@ -63,12 +62,6 @@ impl TierListCommand {
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
             Ok(w) => serde_json::from_str(&w)?,
             Err(_) => {
-                let client = {
-                    let data_lock = ctx.data::<RwLock<Data>>();
-                    let data = data_lock.read().await;
-                    data.bungie_client()
-                };
-
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")
@@ -124,7 +117,7 @@ impl TierListCommand {
         Ok(())
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
+    pub fn register<'a>() -> CreateCommandOption<'a> {
         let tier_option = TIERS.iter().fold(
             CreateCommandOption::new(
                 CommandOptionType::String,
@@ -136,40 +129,38 @@ impl TierListCommand {
             },
         );
 
-        CreateCommand::new("tierlist")
-            .description("Get a tier list of weapons from Destiny 2")
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::String,
-                    "archetype",
-                    "The archetype of weapon to display",
-                )
-                .required(true)
-                .set_autocomplete(true),
+        CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "tierlist",
+            "Get a tier list of weapons from Destiny 2",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "archetype",
+                "The archetype of weapon to display",
             )
-            .add_option(tier_option)
-            .add_option(CreateCommandOption::new(
-                CommandOptionType::Integer,
-                "count",
-                "The number of weapons to display",
-            ))
+            .required(true)
+            .set_autocomplete(true),
+        )
+        .add_sub_option(tier_option)
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::Integer,
+            "count",
+            "The number of weapons to display",
+        ))
     }
 
-    pub async fn autocomplete<Data: BungieClientData>(
+    pub async fn autocomplete(
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
             Ok(weapons) => serde_json::from_str(&weapons)?,
             Err(_) => {
-                let client = {
-                    let data_lock = ctx.data::<RwLock<Data>>();
-                    let data = data_lock.read().await;
-                    data.bungie_client()
-                };
-
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")

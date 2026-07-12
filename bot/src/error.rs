@@ -8,7 +8,7 @@ pub enum BotError {
     NotInteractionAuthor,
     NegativeHours,
 
-    EndgameAnalysis(endgame_analysis::EndgameAnalysisError),
+    EndgameAnalysis(destiny2::EndgameAnalysisError),
     Lfg(lfg::LfgError),
     Music(music::MusicError),
     ReactionRole(reaction_roles::ReactionRoleError),
@@ -102,8 +102,8 @@ impl Respond for BotError {
     }
 }
 
-impl From<endgame_analysis::EndgameAnalysisError> for BotError {
-    fn from(e: endgame_analysis::EndgameAnalysisError) -> Self {
+impl From<destiny2::EndgameAnalysisError> for BotError {
+    fn from(e: destiny2::EndgameAnalysisError) -> Self {
         Self::EndgameAnalysis(e)
     }
 }

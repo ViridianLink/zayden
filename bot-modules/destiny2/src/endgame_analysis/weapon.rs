@@ -1,6 +1,6 @@
 use std::fs;
 
-use destiny2_core::BungieClientData;
+use bungie_api::BungieClient;
 use serenity::all::{
     AutocompleteChoice,
     AutocompleteOption,
@@ -8,42 +8,34 @@ use serenity::all::{
     CommandOptionType,
     Context,
     CreateAutocompleteResponse,
-    CreateCommand,
     CreateCommandOption,
     CreateInteractionResponse,
     EditInteractionResponse,
+    ResolvedOption,
 };
-use tokio::sync::RwLock;
 use zayden_core::sole_option;
 
-use super::endgame_analysis::EndgameAnalysisSheet;
-use super::endgame_analysis::weapon::Weapon;
-use crate::{EndgameAnalysisError, Result};
+use crate::endgame_analysis::sheet::EndgameAnalysisSheet;
+use crate::endgame_analysis::sheet::weapon::Weapon;
+use crate::endgame_analysis::{EndgameAnalysisError, Result};
 
 pub struct WeaponCommand;
 
 impl WeaponCommand {
-    pub async fn run<Data: BungieClientData>(
+    pub async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
+        mut options: Vec<ResolvedOption<'_>>,
+        client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let name: &str = {
-            let mut options = interaction.data.options();
-            sole_option(&mut options)?
-        };
+        let name: &str = sole_option(&mut options)?;
 
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
             Ok(w) => serde_json::from_str(&w)?,
             Err(_) => {
-                let client = {
-                    let data_lock = ctx.data::<RwLock<Data>>();
-                    let data = data_lock.read().await;
-                    data.bungie_client()
-                };
-
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")
@@ -70,35 +62,33 @@ impl WeaponCommand {
         Ok(())
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("weapon")
-            .description("Get a weapon from Destiny 2")
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::String,
-                    "name",
-                    "The name of the weapon",
-                )
-                .required(true)
-                .set_autocomplete(true),
+    pub fn register<'a>() -> CreateCommandOption<'a> {
+        CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "weapon",
+            "Get a weapon from Destiny 2",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "name",
+                "The name of the weapon",
             )
+            .required(true)
+            .set_autocomplete(true),
+        )
     }
 
-    pub async fn autocomplete<Data: BungieClientData>(
+    pub async fn autocomplete(
         ctx: &Context,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
+        client: &BungieClient,
         api_key: &str,
     ) -> Result<()> {
         let weapons: Vec<Weapon> = match fs::read_to_string("weapons.json") {
             Ok(weapons) => serde_json::from_str(&weapons)?,
             Err(_) => {
-                let client = {
-                    let data_lock = ctx.data::<RwLock<Data>>();
-                    let data = data_lock.read().await;
-                    data.bungie_client()
-                };
-
                 let manifest = client.destiny_manifest().await?;
                 let item_manifest = client
                     .destiny_inventory_item_definition(&manifest, "en")

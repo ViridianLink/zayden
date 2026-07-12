@@ -5,7 +5,8 @@ use jiff_cron;
 use sqlx::Database;
 use zayden_core::CronJob;
 
-use crate::endgame_analysis::EndgameAnalysisSheet;
+use crate::compendium;
+use crate::endgame_analysis::sheet::EndgameAnalysisSheet;
 
 pub struct EndgameAnalysisSheetCron;
 
@@ -30,9 +31,7 @@ impl EndgameAnalysisSheetCron {
                             "endgame_analysis sheet update failed"
                         );
                     }
-                    if let Err(e) =
-                        destiny2::compendium::update(&google_api_key).await
-                    {
+                    if let Err(e) = compendium::update(&google_api_key).await {
                         tracing::error!(
                             error = ?e,
                             "destiny2 compendium update failed"

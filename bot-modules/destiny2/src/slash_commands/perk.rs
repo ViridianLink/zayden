@@ -8,7 +8,6 @@ use serenity::all::{
     CommandOptionType,
     Context,
     CreateAutocompleteResponse,
-    CreateCommand,
     CreateCommandOption,
     CreateEmbed,
     CreateEmbedFooter,
@@ -60,8 +59,13 @@ impl Perk {
         Ok(())
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("perk").description("Perk information").add_option(
+    pub fn register<'a>() -> CreateCommandOption<'a> {
+        CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "perk",
+            "Perk information",
+        )
+        .add_sub_option(
             CreateCommandOption::new(CommandOptionType::String, "perk", "Perk name")
                 .required(true)
                 .set_autocomplete(true),

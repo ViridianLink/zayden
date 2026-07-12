@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use bungie_api::{BungieClient, BungieClientBuilder};
-use destiny2_core::BungieClientData;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
 use marathon::client::MarathonClient;
@@ -27,7 +26,6 @@ use crate::bindings::gambling::{
 };
 use crate::{Result, ZAYDEN_TOKEN, zayden_token};
 
-/// Bot-specific application state stored in Serenity's context data.
 pub struct BotState {
     pub app: Arc<AppState>,
     pub songbird: Arc<Songbird>,
@@ -37,7 +35,7 @@ pub struct BotState {
     pub voice_states: Arc<VoiceStateCache>,
     pub marathon: Arc<MarathonClient>,
     pub palworld: Arc<PalworldClient>,
-    bungie_client: Arc<BungieClient>,
+    pub bungie_client: Arc<BungieClient>,
     marathon_bungie_api_key: String,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob<Postgres>>,
@@ -97,7 +95,7 @@ impl BotState {
             StaminaCron::cron_job::<Postgres, StaminaTable>(),
             Lotto::cron_job::<Self, Postgres, GamblingTable, LottoTable>(),
             HigherLower::cron_job::<Postgres, GamblingTable, HigherLowerTable>(),
-            endgame_analysis::EndgameAnalysisSheetCron::cron_job::<Postgres>(
+            destiny2::endgame_analysis::EndgameAnalysisSheetCron::cron_job::<Postgres>(
                 Arc::clone(&self.bungie_client),
                 self.app.google_api_key.clone(),
             ),
@@ -142,14 +140,6 @@ impl BotState {
         data.voice_states.guild_create(guild);
         GuildMembersCache::guild_create(&mut *data, guild);
         data.music.occupancy().guild_create(guild);
-    }
-}
-
-// --- Trait implementations (trivial field accessors) ---
-
-impl BungieClientData for BotState {
-    fn bungie_client(&self) -> Arc<BungieClient> {
-        Arc::clone(&self.bungie_client)
     }
 }
 

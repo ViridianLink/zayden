@@ -5,8 +5,9 @@ pub mod weapons;
 use desert_perpetual::DESERT_PERPETUAL;
 use serenity::all::{
     CommandInteraction,
+    CommandOptionType,
     CreateActionRow,
-    CreateCommand,
+    CreateCommandOption,
     CreateComponent,
     CreateContainer,
     CreateContainerComponent,
@@ -19,7 +20,6 @@ use serenity::all::{
     CreateTextDisplay,
     Http,
     MessageFlags,
-    Permissions,
 };
 use tracing::debug;
 pub use weapons::Weapon;
@@ -221,10 +221,12 @@ impl<'a, const E: usize> RaidGuide<'a, E> {
 }
 
 impl<const E: usize> RaidGuide<'_, E> {
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("raidguide")
-            .description("Raid Guides")
-            .default_member_permissions(Permissions::ADMINISTRATOR)
+    pub fn register<'a>() -> CreateCommandOption<'a> {
+        CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "raidguide",
+            "Raid Guides",
+        )
     }
 
     pub async fn run(

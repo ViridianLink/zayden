@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 
-use bungie_api::DestinyInventoryItemDefinition;
-use destiny2_core::BungieClientData;
+use bungie_api::{BungieClient, DestinyInventoryItemDefinition};
 use google_sheets_api::SheetsClientBuilder;
 use google_sheets_api::types::common::Color;
 use google_sheets_api::types::sheet::GridData;
@@ -18,7 +17,7 @@ pub use tier::{TIERS, Tier, TierLabel};
 use tracing::error;
 pub use weapon::{Weapon, WeaponBuilder};
 
-use crate::Result;
+use crate::endgame_analysis::{EndgameAnalysisError, Result};
 
 const ENDGAME_ANALYSIS_ID: &str = "1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY";
 
@@ -41,10 +40,9 @@ fn heavy_colour(color: &Color) -> bool {
 pub struct EndgameAnalysisSheet;
 
 impl EndgameAnalysisSheet {
-    pub async fn item_manifest<Data: BungieClientData>(
-        data: &Data,
+    pub async fn item_manifest(
+        client: &BungieClient,
     ) -> HashMap<String, DestinyInventoryItemDefinition> {
-        let client = data.bungie_client();
         let manifest = match client.destiny_manifest().await {
             Ok(manifest) => manifest,
             Err(e) => {
@@ -105,9 +103,7 @@ impl EndgameAnalysisSheet {
     ) -> Result<Vec<Weapon>> {
         let mut iter = data.row_data.into_iter().skip(1);
         let Some(header) = iter.next() else {
-            return Err(crate::EndgameAnalysisError::MissingHeaderRow(
-                title.to_string(),
-            ));
+            return Err(EndgameAnalysisError::MissingHeaderRow(title.to_string()));
         };
 
         let weapons = iter

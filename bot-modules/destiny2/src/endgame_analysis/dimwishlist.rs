@@ -1,31 +1,30 @@
 use std::fs;
 
-use destiny2_core::BungieClientData;
+use bungie_api::BungieClient;
 use futures::future;
 use serenity::all::{
     CommandInteraction,
     CommandOptionType,
     Context,
     CreateAttachment,
-    CreateCommand,
     CreateCommandOption,
     EditInteractionResponse,
     ResolvedOption,
     ResolvedValue,
 };
-use tokio::sync::RwLock;
 use tracing::error;
 
-use crate::EndgameAnalysisError;
-use crate::endgame_analysis::{EndgameAnalysisSheet, Weapon};
+use crate::endgame_analysis::EndgameAnalysisError;
+use crate::endgame_analysis::sheet::{EndgameAnalysisSheet, Weapon};
 
 pub struct DimWishlistCommand;
 
 impl DimWishlistCommand {
-    pub async fn run<Data: BungieClientData>(
+    pub async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
+        client: &BungieClient,
         api_key: &str,
     ) -> Result<(), EndgameAnalysisError> {
         interaction.defer_ephemeral(&ctx.http).await?;
@@ -49,11 +48,6 @@ impl DimWishlistCommand {
         };
 
         let (item_manifest, perk_manifest) = {
-            let client = {
-                let data_lock = ctx.data::<RwLock<Data>>();
-                let data = data_lock.read().await;
-                data.bungie_client()
-            };
             let manifest = client.destiny_manifest().await?;
 
             future::try_join(
@@ -100,17 +94,20 @@ impl DimWishlistCommand {
         Ok(())
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("dimwishlist")
-            .description("Get a wishlist from DIM")
-            .add_option(
-                CreateCommandOption::new(CommandOptionType::String, "strict", "Soft: All | Regular: S, A, B, C, D | Semi: S, A, B, C | Strict: S, A, B | Very: S, A | Uber: S")
-                    .add_string_choice("Soft", "soft")
-                    .add_string_choice("Regular", "regular")
-                    .add_string_choice("Semi-strict", "semi-strict")
-                    .add_string_choice("Strict", "strict")
-                    .add_string_choice("Very Strict", "very strict")
-                    .add_string_choice("Uber Strict", "uber strict"),
-            )
+    pub fn register<'a>() -> CreateCommandOption<'a> {
+        CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "dimwishlist",
+            "Get a wishlist from DIM",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(CommandOptionType::String, "strict", "Soft: All | Regular: S, A, B, C, D | Semi: S, A, B, C | Strict: S, A, B | Very: S, A | Uber: S")
+                .add_string_choice("Soft", "soft")
+                .add_string_choice("Regular", "regular")
+                .add_string_choice("Semi-strict", "semi-strict")
+                .add_string_choice("Strict", "strict")
+                .add_string_choice("Very Strict", "very strict")
+                .add_string_choice("Uber Strict", "uber strict"),
+        )
     }
 }

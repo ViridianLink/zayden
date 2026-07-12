@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serenity::all::Colour;
 use zayden_core::CoreError as ZaydenError;
 
-use crate::EndgameAnalysisError;
+use crate::endgame_analysis::EndgameAnalysisError;
 
 pub const TIERS: [TierLabel; 7] = [
     TierLabel::S,

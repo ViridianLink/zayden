@@ -1,7 +1,7 @@
 pub mod cron;
 pub mod dimwishlist;
-pub mod endgame_analysis;
 pub mod error;
+pub mod sheet;
 pub mod tierlist;
 pub mod weapon;
 
