@@ -26,6 +26,7 @@ pub use faction::{parse_faction, parse_faction_listing};
 pub use map::parse_map;
 pub use mapgenie::mapgenie_map_to_model;
 pub use marathondb::{
+    WeaponStat,
     marathondb_contracts_to_factions,
     marathondb_map_to_model,
     marathondb_runner_to_model,

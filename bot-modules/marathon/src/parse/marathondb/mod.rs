@@ -7,7 +7,7 @@ pub use faction::marathondb_contracts_to_factions;
 pub use map::marathondb_map_to_model;
 pub use runner::marathondb_runner_to_model;
 use serde_json::Value;
-pub use weapon::marathondb_weapon_to_model;
+pub use weapon::{WeaponStat, marathondb_weapon_to_model};
 
 fn current_or_last_stats(stats: &Value) -> Option<&serde_json::Map<String, Value>> {
     let stats = stats.as_array()?;

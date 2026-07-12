@@ -1,14 +1,14 @@
+use core::SlashCommand;
 use std::fmt::Display;
 
 use chrono::NaiveDateTime;
-use serenity::all::{Context, CreateCommand, GuildId, Ready, User, UserId};
-use sqlx::{postgres::PgQueryResult, FromRow, PgPool};
-use core::SlashCommand;
-use zayden_core::as_i64;
-
 pub use infraction::Infraction;
 pub use logs::Logs;
 pub use rules::RulesCommand;
+use serenity::all::{Context, CreateCommand, GuildId, Ready, User, UserId};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{FromRow, PgPool};
+use zayden_core::as_i64;
 
 use crate::Result;
 
@@ -17,6 +17,8 @@ mod infraction_kind;
 mod infraction_row;
 mod logs;
 mod rules;
+
+pub(crate) const NO_REASON: &str = "No reason provided.";
 
 pub fn register(ctx: &Context, ready: &Ready) -> Result<Vec<CreateCommand>> {
     let commands = vec![

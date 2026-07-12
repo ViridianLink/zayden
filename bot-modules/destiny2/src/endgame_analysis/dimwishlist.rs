@@ -15,7 +15,7 @@ use serenity::all::{
 use tracing::error;
 
 use crate::endgame_analysis::EndgameAnalysisError;
-use crate::endgame_analysis::sheet::{EndgameAnalysisSheet, Weapon};
+use crate::endgame_analysis::sheet::{EndgameAnalysisSheet, TierLabel, Weapon};
 
 pub struct DimWishlistCommand;
 
@@ -70,7 +70,7 @@ impl DimWishlistCommand {
             .into_iter()
             .filter(|weapon| {
                 tier.contains(&weapon.tier.tier().as_str())
-                    || weapon.tier.tier() == "None"
+                    || weapon.tier.tier == TierLabel::None
             })
             .map(|weapon| weapon.as_wishlist(&item_manifest, &perk_manifest))
             .collect::<Vec<_>>();

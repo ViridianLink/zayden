@@ -1,7 +1,33 @@
+use std::str::FromStr;
+
 use serde_json::Value;
 
 use super::{current_or_last_stats, json_scalar_to_string};
 use crate::model::{Stat, Weapon};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WeaponStat {
+    Damage,
+    RateOfFire,
+    MagazineSize,
+    ReloadSpeed,
+    Range,
+}
+
+impl FromStr for WeaponStat {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "damage" => Ok(Self::Damage),
+            "rate_of_fire" => Ok(Self::RateOfFire),
+            "magazine_size" => Ok(Self::MagazineSize),
+            "reload_speed" => Ok(Self::ReloadSpeed),
+            "range_meters" => Ok(Self::Range),
+            _ => Err(()),
+        }
+    }
+}
 
 const WEAPON_STAT_META_FIELDS: &[&str] = &[
     "season_id",
@@ -39,13 +65,13 @@ pub fn marathondb_weapon_to_model(slug: &str, data: &Value) -> Weapon {
                 continue;
             }
             let Some(v) = json_scalar_to_string(value) else { continue };
-            match key.as_str() {
-                "damage" => damage = Some(v.clone()),
-                "rate_of_fire" => fire_rate = Some(v.clone()),
-                "magazine_size" => magazine_size = Some(v.clone()),
-                "reload_speed" => reload_speed = Some(v.clone()),
-                "range_meters" => range = Some(v.clone()),
-                _ => {},
+            match key.parse::<WeaponStat>() {
+                Ok(WeaponStat::Damage) => damage = Some(v.clone()),
+                Ok(WeaponStat::RateOfFire) => fire_rate = Some(v.clone()),
+                Ok(WeaponStat::MagazineSize) => magazine_size = Some(v.clone()),
+                Ok(WeaponStat::ReloadSpeed) => reload_speed = Some(v.clone()),
+                Ok(WeaponStat::Range) => range = Some(v.clone()),
+                Err(()) => {},
             }
             stats.push(Stat { name: key.clone(), value: v });
         }

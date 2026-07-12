@@ -17,7 +17,7 @@ use zayden_core::required_option;
 
 use crate::{Error, Result};
 
-use super::{InfractionKind, InfractionRow};
+use super::{InfractionKind, InfractionRow, NO_REASON};
 
 pub struct Infraction;
 
@@ -44,7 +44,7 @@ impl SlashCommand<Error, Postgres> for Infraction {
 
         let reason = match options.remove("reason") {
             Some(ResolvedValue::String(reason)) => reason,
-            _ => "No reason provided.",
+            _ => NO_REASON,
         };
 
         let infractions = InfractionRow::user_infractions(pool, user.id, false).await?;
@@ -189,7 +189,7 @@ async fn warn<'a>(
     .await?;
 
     let guild_name = guild_id.to_partial_guild(ctx).await?.name;
-    let desc = if reason == "No reason provided." {
+    let desc = if reason == NO_REASON {
         format!("You have been warned in {}.", guild_name)
     } else {
         format!(
@@ -201,7 +201,7 @@ async fn warn<'a>(
     send_user_message(ctx, user.id, InfractionKind::Warn, desc).await?;
 
     let mut embed = CreateEmbed::new().title(format!("{} has been warned", user.name));
-    if reason != "No reason provided." {
+    if reason != NO_REASON {
         embed = embed.description(reason);
     }
     Ok(embed)
@@ -256,7 +256,7 @@ async fn mute<'a>(
     }
 
     let guild_name = guild_id.to_partial_guild(ctx).await?.name;
-    let desc: String = if reason == "No reason provided." {
+    let desc: String = if reason == NO_REASON {
         format!("You have been muted in {} for {}.", guild_name, duration_str)
     } else {
         format!("You have been muted in {} for {}\n{}", guild_name, duration_str, reason)
@@ -265,7 +265,7 @@ async fn mute<'a>(
     send_user_message(ctx, user.id, InfractionKind::Mute, &desc).await?;
 
     let mut embed = CreateEmbed::new().title(format!("{} has been muted", user.name));
-    if reason != "No reason provided." {
+    if reason != NO_REASON {
         embed = embed.description(reason);
     }
     Ok(embed)
@@ -283,7 +283,7 @@ async fn ban<'a>(
     let member = guild_id.member(ctx, user.id).await?;
 
     let guild_name = guild_id.to_partial_guild(ctx).await?.name;
-    let desc = if reason == "No reason provided." {
+    let desc = if reason == NO_REASON {
         format!("You have been banned from {}.", guild_name)
     } else {
         format!(
@@ -309,7 +309,7 @@ async fn ban<'a>(
     .await?;
 
     let mut embed = CreateEmbed::new().title(format!("{} has been banned", user.name));
-    if reason != "No reason provided." {
+    if reason != NO_REASON {
         embed = embed.description(reason);
     }
     Ok(embed)

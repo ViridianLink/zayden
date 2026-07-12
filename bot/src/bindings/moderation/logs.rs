@@ -1,20 +1,56 @@
-use async_trait::async_trait;
-use serenity::all::{
-    CommandInteraction, CommandOptionType, Context, CreateCommand, CreateCommandOption,
-    CreateEmbed, EditInteractionResponse, Permissions, Ready, ResolvedOption, ResolvedValue, User,
-};
-use sqlx::{PgPool, Postgres};
 use core::{SlashCommand, parse_options, required_option};
 
-use crate::{Error, Result};
+use async_trait::async_trait;
+use serenity::all::{
+    CommandInteraction,
+    CommandOptionType,
+    Context,
+    CreateCommand,
+    CreateCommandOption,
+    CreateEmbed,
+    EditInteractionResponse,
+    Permissions,
+    Ready,
+    ResolvedOption,
+    ResolvedValue,
+    User,
+};
+use sqlx::{PgPool, Postgres};
 
 use super::InfractionRow;
+use crate::{Error, Result};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum LogFilter {
+    #[default]
+    Recent,
+    All,
+}
+
+impl LogFilter {
+    const ALL: &'static str = "all";
+    const RECENT: &'static str = "recent";
+
+    fn is_recent(self) -> bool {
+        matches!(self, Self::Recent)
+    }
+}
+
+impl From<&str> for LogFilter {
+    fn from(value: &str) -> Self {
+        match value {
+            Self::ALL => Self::All,
+            _ => Self::Recent,
+        }
+    }
+}
 
 pub struct Logs;
 
 #[async_trait]
 impl SlashCommand<Error, Postgres> for Logs {
-    async fn run(&self,
+    async fn run(
+        &self,
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
@@ -27,12 +63,13 @@ impl SlashCommand<Error, Postgres> for Logs {
         let user: &User = required_option(&mut options, "user")?;
 
         let filter = match options.remove("filter") {
-            Some(ResolvedValue::String(filter)) => filter,
-            _ => "recent",
+            Some(ResolvedValue::String(filter)) => LogFilter::from(filter),
+            _ => LogFilter::default(),
         };
 
         let infractions =
-            InfractionRow::user_infractions(pool, user.id, filter == "recent").await?;
+            InfractionRow::user_infractions(pool, user.id, filter.is_recent())
+                .await?;
 
         let fields = infractions.into_iter().map(|infraction| {
             (
@@ -80,8 +117,8 @@ impl SlashCommand<Error, Postgres> for Logs {
                     "filter",
                     "The number of logs to get",
                 )
-                .add_string_choice("Recent (default)", "recent")
-                .add_string_choice("All", "all"),
+                .add_string_choice("Recent (default)", LogFilter::RECENT)
+                .add_string_choice("All", LogFilter::ALL),
             );
 
         Ok(command)
