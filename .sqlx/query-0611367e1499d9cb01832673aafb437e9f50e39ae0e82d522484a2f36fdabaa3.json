@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT guild_id, suggestions_channel_id, review_channel_id\n            FROM suggestions_settings\n            WHERE guild_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "suggestions_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "suggestions_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "review_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "review_channel_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "0611367e1499d9cb01832673aafb437e9f50e39ae0e82d522484a2f36fdabaa3"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO ticket_settings (guild_id, thread_id)\n            VALUES ($1, 1)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                thread_id = ticket_settings.thread_id + 1,\n                updated_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b5ba501087a8a75652826c5fd1c77a64a092af76ed6ff022041f3c378d7ee804"
+}

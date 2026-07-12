@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO guild_channels (guild_id, rules_channel_id, general_channel_id, spoiler_channel_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                rules_channel_id = EXCLUDED.rules_channel_id,\n                general_channel_id = EXCLUDED.general_channel_id,\n                spoiler_channel_id = EXCLUDED.spoiler_channel_id,\n                updated_at = now()\n            RETURNING guild_id, rules_channel_id, general_channel_id, spoiler_channel_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "rules_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "rules_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "general_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "general_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "spoiler_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "spoiler_channel_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "f1337562d6f7432e53179549fa2f50c3351a56d05f13d02ce5dcbe06219356e3"
+}

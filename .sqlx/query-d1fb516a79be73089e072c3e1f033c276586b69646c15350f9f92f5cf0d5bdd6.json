@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO support_settings (guild_id, support_channel_id, support_thread_id, support_role_id, faq_channel_id)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                support_channel_id = EXCLUDED.support_channel_id,\n                support_thread_id = EXCLUDED.support_thread_id,\n                support_role_id = EXCLUDED.support_role_id,\n                faq_channel_id = EXCLUDED.faq_channel_id,\n                updated_at = now()\n            RETURNING guild_id, support_channel_id, support_thread_id, support_role_id, faq_channel_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "support_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "support_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "support_thread_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "support_thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "support_role_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "support_role_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "faq_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "faq_channel_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "d1fb516a79be73089e072c3e1f033c276586b69646c15350f9f92f5cf0d5bdd6"
+}

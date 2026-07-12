@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM marathon_announce WHERE guild_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "029863aeebc9d51d4ad9b145e3116baf17b5fec4617e836255c807a226e71993"
+}

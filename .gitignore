@@ -12,7 +12,6 @@ target/
 # User Files
 .env
 .env.dev
-*.json
 *.ps1
 *.md
 config.toml

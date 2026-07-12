@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO suggestions_settings (guild_id, suggestions_channel_id, review_channel_id)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                suggestions_channel_id = EXCLUDED.suggestions_channel_id,\n                review_channel_id = EXCLUDED.review_channel_id,\n                updated_at = now()\n            RETURNING guild_id, suggestions_channel_id, review_channel_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "suggestions_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "suggestions_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "review_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "review_channel_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "06b745931b24b0cfd7e60c196fdb17c14763e27129ddd7778779066b00b8ccd4"
+}

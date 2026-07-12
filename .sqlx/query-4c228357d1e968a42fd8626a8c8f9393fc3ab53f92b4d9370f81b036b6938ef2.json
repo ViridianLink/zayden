@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO marathon_news_seen (source, last_id)\n            VALUES ($1, $2)\n            ON CONFLICT (source) DO UPDATE SET last_id = EXCLUDED.last_id, updated_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4c228357d1e968a42fd8626a8c8f9393fc3ab53f92b4d9370f81b036b6938ef2"
+}

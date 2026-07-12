@@ -1,0 +1,304 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n    g.user_id,\n    g.coins,\n    g.gems,\n    g.stamina,\n\n    m.miners,\n    m.mines,\n    m.land,\n    m.countries,\n    m.continents,\n    m.planets,\n    m.solar_systems,\n    m.galaxies,\n    m.universes,\n    m.prestige,\n    m.coal,\n    m.iron,\n    m.gold,\n    m.redstone,\n    m.lapis,\n    m.diamonds,\n    m.emeralds,\n    m.tech,\n    m.utility,\n    m.production\nFROM\n    gambling g\nJOIN gambling_mine m ON g.user_id = m.user_id\nWHERE\n    g.user_id = $1;\n\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "coins",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "coins"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "gems",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "gems"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "stamina",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "stamina"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "miners",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "miners"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "mines",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "mines"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "land",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "land"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "countries",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "countries"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "continents",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "continents"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "planets",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "planets"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "solar_systems",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "solar_systems"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "galaxies",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "galaxies"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "universes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "universes"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "prestige",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "prestige"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "coal",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "coal"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "iron",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "iron"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "gold",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "gold"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "redstone",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "redstone"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "lapis",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "lapis"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "diamonds",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "diamonds"
+          }
+        }
+      },
+      {
+        "ordinal": 20,
+        "name": "emeralds",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "emeralds"
+          }
+        }
+      },
+      {
+        "ordinal": 21,
+        "name": "tech",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "tech"
+          }
+        }
+      },
+      {
+        "ordinal": 22,
+        "name": "utility",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "utility"
+          }
+        }
+      },
+      {
+        "ordinal": 23,
+        "name": "production",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "production"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6b30ac8a45047139fd0f810e73c78bf6c5469368c4a4c6bc876ed21f6b6c8e37"
+}

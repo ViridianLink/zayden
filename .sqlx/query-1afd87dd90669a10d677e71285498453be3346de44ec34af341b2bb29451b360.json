@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT guild_id, rules_channel_id, general_channel_id, spoiler_channel_id\n            FROM guild_channels\n            WHERE guild_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "rules_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "rules_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "general_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "general_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "spoiler_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guild_channels",
+            "name": "spoiler_channel_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "1afd87dd90669a10d677e71285498453be3346de44ec34af341b2bb29451b360"
+}

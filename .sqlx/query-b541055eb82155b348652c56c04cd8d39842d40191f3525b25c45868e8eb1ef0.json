@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO music_settings (\n                guild_id, dj_role_id, default_volume, auto_disconnect_secs,\n                stay_connected, autoplay, announce_now_playing\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                dj_role_id = EXCLUDED.dj_role_id,\n                default_volume = EXCLUDED.default_volume,\n                auto_disconnect_secs = EXCLUDED.auto_disconnect_secs,\n                stay_connected = EXCLUDED.stay_connected,\n                autoplay = EXCLUDED.autoplay,\n                announce_now_playing = EXCLUDED.announce_now_playing,\n                updated_at = now()\n            RETURNING\n                guild_id,\n                dj_role_id,\n                default_volume,\n                auto_disconnect_secs,\n                stay_connected,\n                autoplay,\n                announce_now_playing\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "dj_role_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "dj_role_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "default_volume",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "default_volume"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "auto_disconnect_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "auto_disconnect_secs"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "stay_connected",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "stay_connected"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "autoplay",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "autoplay"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "announce_now_playing",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "announce_now_playing"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int2",
+        "Int4",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b541055eb82155b348652c56c04cd8d39842d40191f3525b25c45868e8eb1ef0"
+}

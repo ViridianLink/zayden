@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT temp_voice_category FROM temp_voice_settings WHERE guild_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "temp_voice_category",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "temp_voice_settings",
+            "name": "temp_voice_category"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "21785c200c569f3665d1fc8cc34f929965fccaac3ef4f9e785bcfabf1c84ab9c"
+}

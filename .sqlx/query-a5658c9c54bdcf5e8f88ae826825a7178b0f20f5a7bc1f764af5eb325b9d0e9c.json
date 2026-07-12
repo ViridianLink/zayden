@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO lfg_settings (guild_id, lfg_channel_id, lfg_role_id)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                lfg_channel_id = EXCLUDED.lfg_channel_id,\n                lfg_role_id = EXCLUDED.lfg_role_id,\n                updated_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5658c9c54bdcf5e8f88ae826825a7178b0f20f5a7bc1f764af5eb325b9d0e9c"
+}

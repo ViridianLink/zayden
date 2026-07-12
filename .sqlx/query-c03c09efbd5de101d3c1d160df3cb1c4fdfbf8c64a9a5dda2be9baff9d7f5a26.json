@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                p.owner_id AS \"owner_id!\",\n                p.activity AS \"activity!\",\n                p.start_time AS \"start_time!: jiff_sqlx::Timestamp\",\n                p.description AS \"description!\",\n                p.fireteam_size AS \"fireteam_size!\",\n                u.timezone AS \"timezone?\"\n            FROM\n                lfg_posts AS p\n            LEFT JOIN\n                lfg_user_config AS u ON p.owner_id = u.id\n            WHERE\n                p.id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "owner_id!",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lfg_posts",
+            "name": "owner_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "activity!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lfg_posts",
+            "name": "activity"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "start_time!: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "lfg_posts",
+            "name": "start_time"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "description!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lfg_posts",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "fireteam_size!",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "lfg_posts",
+            "name": "fireteam_size"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "timezone?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "lfg_user_config",
+            "name": "timezone"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "c03c09efbd5de101d3c1d160df3cb1c4fdfbf8c64a9a5dda2be9baff9d7f5a26"
+}

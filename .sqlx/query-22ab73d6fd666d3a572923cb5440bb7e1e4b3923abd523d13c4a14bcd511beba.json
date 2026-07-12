@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO lfg_settings (guild_id, lfg_channel_id, lfg_role_id, lfg_scheduled_thread_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                lfg_channel_id = EXCLUDED.lfg_channel_id,\n                lfg_role_id = EXCLUDED.lfg_role_id,\n                lfg_scheduled_thread_id = EXCLUDED.lfg_scheduled_thread_id,\n                updated_at = now()\n            RETURNING guild_id, lfg_channel_id, lfg_role_id, lfg_scheduled_thread_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lfg_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "lfg_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lfg_settings",
+            "name": "lfg_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "lfg_role_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lfg_settings",
+            "name": "lfg_role_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "lfg_scheduled_thread_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "lfg_settings",
+            "name": "lfg_scheduled_thread_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "22ab73d6fd666d3a572923cb5440bb7e1e4b3923abd523d13c4a14bcd511beba"
+}

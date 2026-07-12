@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT source, last_id FROM marathon_news_seen WHERE source = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "marathon_news_seen",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "last_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "marathon_news_seen",
+            "name": "last_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "def914ef9a8d7c111b5e7bdc942e9a1c7fb51761f20b9ec47187fac73dbda9e7"
+}
