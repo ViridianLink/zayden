@@ -1,20 +1,6 @@
-use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId, RoleId};
-use sqlx::{Database, FromRow, PgPool, Pool, Postgres};
+use sqlx::{FromRow, PgPool};
 use zayden_core::{as_i64, as_u64};
-
-#[async_trait]
-pub trait TicketGuildManager<Db: Database> {
-    async fn get(
-        pool: &Pool<Db>,
-        id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<Option<TicketGuildRow>>;
-
-    async fn update_thread_id(
-        pool: &Pool<Db>,
-        id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<()>;
-}
 
 #[derive(FromRow)]
 pub struct TicketGuildRow {
@@ -40,17 +26,12 @@ impl TicketGuildRow {
     pub fn faq_channel_id(&self) -> Option<ChannelId> {
         self.faq_channel_id.map(|id| ChannelId::new(as_u64(id)))
     }
-}
 
-pub struct GuildTable;
-
-#[async_trait]
-impl TicketGuildManager<Postgres> for GuildTable {
-    async fn get(
+    pub async fn get(
         pool: &PgPool,
         id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<Option<TicketGuildRow>> {
-        let id = id.into();
+    ) -> sqlx::Result<Option<Self>> {
+        let id = as_i64(id.into().get());
 
         let Some(row) = sqlx::query!(
             r#"
@@ -63,7 +44,7 @@ impl TicketGuildManager<Postgres> for GuildTable {
             LEFT JOIN ticket_settings t ON t.guild_id = s.guild_id
             WHERE s.guild_id = $1
             "#,
-            as_i64(id.get())
+            id
         )
         .fetch_optional(pool)
         .await?
@@ -73,12 +54,12 @@ impl TicketGuildManager<Postgres> for GuildTable {
 
         let support_role_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT role_id FROM guild_support_roles WHERE guild_id = $1",
-            as_i64(id.get())
+            id
         )
         .fetch_all(pool)
         .await?;
 
-        Ok(Some(TicketGuildRow {
+        Ok(Some(Self {
             id: row.id,
             thread_id: row.thread_id,
             support_channel_id: row.support_channel_id,
@@ -87,7 +68,7 @@ impl TicketGuildManager<Postgres> for GuildTable {
         }))
     }
 
-    async fn update_thread_id(
+    pub async fn increment_thread_id(
         pool: &PgPool,
         id: impl Into<GuildId> + Send,
     ) -> sqlx::Result<()> {

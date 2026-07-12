@@ -6,14 +6,14 @@ use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
 use marathon::client::MarathonClient;
 use marathon::cron::{MarathonAnnounceCron, MarathonNewsCron};
-use music::{MusicManager, MusicSettingsRow, TrackResolver};
+use music::{MusicManager, TrackResolver};
 use palworld::client::PalworldClient;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::{PgPool, Postgres};
 use temp_voice::VoiceStateCache;
 use tokio::sync::RwLock;
-use zayden_app::config::{BotConfig, SettingsStore};
+use zayden_app::config::BotConfig;
 use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;
 use zayden_core::{CronJob, CronJobData, EmojiCache, EmojiCacheData};
@@ -30,7 +30,6 @@ pub struct BotState {
     pub app: Arc<AppState>,
     pub songbird: Arc<Songbird>,
     pub music: Arc<MusicManager>,
-    pub music_settings: Arc<SettingsStore<MusicSettingsRow>>,
     pub music_resolver: Arc<dyn TrackResolver>,
     pub voice_states: Arc<VoiceStateCache>,
     pub marathon: Arc<MarathonClient>,
@@ -64,18 +63,10 @@ impl BotState {
             config.palworld_paldex_url.clone(),
         ));
 
-        let music_settings =
-            Arc::new(SettingsStore::new(app.db.clone(), app.events.clone()));
-        SettingsStore::spawn_invalidator(
-            Arc::clone(&music_settings),
-            app.subscribe(),
-        );
-
         Ok(Self {
             app,
             songbird: Songbird::serenity(),
             music: Arc::new(MusicManager::new()),
-            music_settings,
             music_resolver,
             voice_states: Arc::new(VoiceStateCache::new()),
             marathon,

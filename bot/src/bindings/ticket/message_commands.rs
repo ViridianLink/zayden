@@ -1,11 +1,11 @@
 use serenity::all::{Http, Message};
-use sqlx::{PgPool, Postgres};
-use ticket::{GuildTable, SupportMessageCommand};
+use sqlx::PgPool;
+use ticket::SupportMessageCommand;
 
 use crate::Result;
 
 pub async fn support(http: &Http, msg: &Message, pool: &PgPool) -> Result<()> {
-    SupportMessageCommand::run::<Postgres, GuildTable>(http, msg, pool).await?;
+    SupportMessageCommand::run(http, msg, pool).await?;
 
     Ok(())
 }

@@ -5,8 +5,9 @@ use tokio::sync::broadcast;
 
 use super::SettingsStore;
 use super::tables::{
-    GuildChannelsRow,
+    ChannelsSettingsRow,
     LfgSettingsRow,
+    MusicSettingsRow,
     RolesSettingsRow,
     SuggestionsSettingsRow,
     SupportSettingsRow,
@@ -17,10 +18,11 @@ use crate::events::AppEvent;
 pub struct SettingsRegistry {
     pub support: Arc<SettingsStore<SupportSettingsRow>>,
     pub suggestions: Arc<SettingsStore<SuggestionsSettingsRow>>,
-    pub channels: Arc<SettingsStore<GuildChannelsRow>>,
+    pub channels: Arc<SettingsStore<ChannelsSettingsRow>>,
     pub roles: Arc<SettingsStore<RolesSettingsRow>>,
     pub temp_voice: Arc<SettingsStore<TempVoiceSettingsRow>>,
     pub lfg: Arc<SettingsStore<LfgSettingsRow>>,
+    pub music: Arc<SettingsStore<MusicSettingsRow>>,
 }
 
 impl SettingsRegistry {
@@ -31,7 +33,8 @@ impl SettingsRegistry {
         let channels = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let roles = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let temp_voice = Arc::new(SettingsStore::new(db.clone(), events.clone()));
-        let lfg = Arc::new(SettingsStore::new(db, events.clone()));
+        let lfg = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let music = Arc::new(SettingsStore::new(db, events.clone()));
 
         SettingsStore::spawn_invalidator(Arc::clone(&support), events.subscribe());
         SettingsStore::spawn_invalidator(
@@ -45,7 +48,8 @@ impl SettingsRegistry {
             events.subscribe(),
         );
         SettingsStore::spawn_invalidator(Arc::clone(&lfg), events.subscribe());
+        SettingsStore::spawn_invalidator(Arc::clone(&music), events.subscribe());
 
-        Self { support, suggestions, channels, roles, temp_voice, lfg }
+        Self { support, suggestions, channels, roles, temp_voice, lfg, music }
     }
 }

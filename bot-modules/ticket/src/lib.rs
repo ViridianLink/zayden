@@ -20,8 +20,8 @@ use error::Result;
 pub use error::TicketError;
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
-pub use support_guild_manager::{GuildTable, TicketGuildManager};
-pub use ticket_manager::TicketManager;
+pub use support_guild_manager::TicketGuildRow;
+pub use ticket_manager::TicketRow;
 
 pub struct Support;
 pub struct Ticket;

@@ -294,7 +294,7 @@ impl EditManager<Postgres> for PostTable {
             FROM
                 lfg_posts AS p
             LEFT JOIN
-                lfg_user_config AS u ON p.owner_id = u.id
+                lfg_user_settings AS u ON p.owner_id = u.id
             WHERE
                 p.id = $1
             "#,
@@ -315,7 +315,7 @@ pub struct UsersTable;
 impl TimezoneManager<Postgres> for UsersTable {
     async fn get(pool: &PgPool, id: UserId, locale: &str) -> sqlx::Result<TimeZone> {
         let row = sqlx::query!(
-            "SELECT timezone FROM lfg_user_config WHERE id = $1",
+            "SELECT timezone FROM lfg_user_settings WHERE id = $1",
             as_i64(id.get())
         )
         .fetch_optional(pool)
@@ -337,7 +337,7 @@ impl TimezoneManager<Postgres> for UsersTable {
         let id = id.into();
 
         sqlx::query!(
-            "INSERT INTO lfg_user_config (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
+            "INSERT INTO lfg_user_settings (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
             as_i64(id.get()),
         tz_name)
         .execute(pool)

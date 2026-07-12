@@ -7,16 +7,16 @@ use serenity::all::{
     MessageId,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{as_u64, required_option};
 
-use crate::{Result, Ticket, TicketManager};
+use crate::{Result, Ticket, TicketRow};
 
 impl Ticket {
-    pub(super) async fn remove<Db: Database, Manager: TicketManager<Db>>(
+    pub(super) async fn remove(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -34,7 +34,7 @@ impl Ticket {
             .delete_message(http, message_id, Some("Deleted created ticket message"))
             .await?;
 
-        Manager::delete(pool, message_id).await?;
+        TicketRow::delete(pool, message_id).await?;
 
         interaction
             .edit_response(

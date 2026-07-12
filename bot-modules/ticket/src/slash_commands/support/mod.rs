@@ -10,16 +10,16 @@ use serenity::all::{
     Permissions,
     ResolvedOption,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{CoreError as ZaydenError, parse_options, parse_subcommand};
 
-use crate::{Result, Support, TicketError, TicketGuildManager};
+use crate::{Result, Support, TicketError};
 
 impl Support {
-    pub async fn run<Db: Database, GuildManager: TicketGuildManager<Db>>(
+    pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
@@ -29,18 +29,10 @@ impl Support {
 
         match name {
             "get" => {
-                Self::get::<Db, GuildManager>(
-                    http,
-                    interaction,
-                    pool,
-                    options,
-                    guild_id,
-                )
-                .await?;
+                Self::get(http, interaction, pool, options, guild_id).await?;
             },
             "list" => {
-                Self::list::<Db, GuildManager>(http, interaction, pool, guild_id)
-                    .await?;
+                Self::list(http, interaction, pool, guild_id).await?;
             },
             _ => {
                 return Err(TicketError::Internal(format!(

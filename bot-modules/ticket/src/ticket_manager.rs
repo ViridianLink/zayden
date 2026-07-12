@@ -1,19 +1,6 @@
-use async_trait::async_trait;
 use serenity::all::{MessageId, RoleId};
-use sqlx::{Database, FromRow, Pool};
-use zayden_core::as_u64;
-
-#[async_trait]
-pub trait TicketManager<Db: Database> {
-    async fn get(
-        pool: &Pool<Db>,
-        id: impl Into<MessageId> + Send,
-    ) -> sqlx::Result<TicketRow>;
-    async fn delete(
-        pool: &Pool<Db>,
-        id: impl Into<MessageId> + Send,
-    ) -> sqlx::Result<()>;
-}
+use sqlx::{FromRow, PgPool};
+use zayden_core::{as_i64, as_u64};
 
 #[derive(FromRow)]
 pub struct TicketRow {
@@ -30,5 +17,35 @@ impl TicketRow {
     #[must_use]
     pub fn role_ids(&self) -> Vec<RoleId> {
         self.role_ids.iter().copied().map(|id| RoleId::new(as_u64(id))).collect()
+    }
+
+    pub async fn get(
+        pool: &PgPool,
+        id: impl Into<MessageId> + Send,
+    ) -> sqlx::Result<Self> {
+        sqlx::query_as!(
+            Self,
+            r#"SELECT thread_id, COALESCE(
+                        (SELECT array_agg(role_id) FROM ticket_roles WHERE ticket_id = t.thread_id),
+                        ARRAY[]::bigint[]
+                    ) AS "role_ids!" FROM tickets t WHERE thread_id = $1"#,
+            as_i64(id.into().get())
+        )
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn delete(
+        pool: &PgPool,
+        id: impl Into<MessageId> + Send,
+    ) -> sqlx::Result<()> {
+        sqlx::query!(
+            "DELETE FROM tickets WHERE thread_id = $1",
+            as_i64(id.into().get())
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 }

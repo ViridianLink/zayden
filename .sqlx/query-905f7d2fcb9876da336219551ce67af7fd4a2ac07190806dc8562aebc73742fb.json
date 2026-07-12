@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                p.owner_id AS \"owner_id!\",\n                p.activity AS \"activity!\",\n                p.start_time AS \"start_time!: jiff_sqlx::Timestamp\",\n                p.description AS \"description!\",\n                p.fireteam_size AS \"fireteam_size!\",\n                u.timezone AS \"timezone?\"\n            FROM\n                lfg_posts AS p\n            LEFT JOIN\n                lfg_user_config AS u ON p.owner_id = u.id\n            WHERE\n                p.id = $1\n            ",
+  "query": "\n            SELECT\n                p.owner_id AS \"owner_id!\",\n                p.activity AS \"activity!\",\n                p.start_time AS \"start_time!: jiff_sqlx::Timestamp\",\n                p.description AS \"description!\",\n                p.fireteam_size AS \"fireteam_size!\",\n                u.timezone AS \"timezone?\"\n            FROM\n                lfg_posts AS p\n            LEFT JOIN\n                lfg_user_settings AS u ON p.owner_id = u.id\n            WHERE\n                p.id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -64,7 +64,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "lfg_user_config",
+            "table": "lfg_user_settings",
             "name": "timezone"
           }
         }
@@ -84,5 +84,5 @@
       false
     ]
   },
-  "hash": "c03c09efbd5de101d3c1d160df3cb1c4fdfbf8c64a9a5dda2be9baff9d7f5a26"
+  "hash": "905f7d2fcb9876da336219551ce67af7fd4a2ac07190806dc8562aebc73742fb"
 }

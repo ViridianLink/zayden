@@ -13,20 +13,16 @@ use serenity::all::{
     Permissions,
     ResolvedOption,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{CoreError as ZaydenError, parse_options, parse_subcommand};
 
-use crate::{Result, Ticket, TicketError, TicketGuildManager, TicketManager};
+use crate::{Result, Ticket, TicketError};
 
 impl Ticket {
-    pub async fn run<
-        Db: Database,
-        GuildManager: TicketGuildManager<Db>,
-        Manager: TicketManager<Db>,
-    >(
+    pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
@@ -36,33 +32,17 @@ impl Ticket {
 
         match name {
             "close" => {
-                Self::close::<Db, GuildManager>(
-                    http,
-                    interaction,
-                    pool,
-                    options,
-                    guild_id,
-                )
-                .await?;
+                Self::close(http, interaction, pool, options, guild_id).await?;
             },
             "create" => Self::create(http, interaction, options).await?,
             "fixed" => {
-                Self::fixed::<Db, GuildManager>(
-                    http,
-                    interaction,
-                    pool,
-                    options,
-                    guild_id,
-                )
-                .await?;
+                Self::fixed(http, interaction, pool, options, guild_id).await?;
             },
             "open" => {
-                Self::open::<Db, GuildManager>(http, interaction, pool, guild_id)
-                    .await?;
+                Self::open(http, interaction, pool, guild_id).await?;
             },
             "remove" => {
-                Self::remove::<Db, Manager>(http, interaction, pool, options)
-                    .await?;
+                Self::remove(http, interaction, pool, options).await?;
             },
             name => {
                 return Err(TicketError::Internal(format!(

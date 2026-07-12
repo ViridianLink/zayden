@@ -2,13 +2,10 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
-use sqlx::Postgres;
-use ticket::{GuildTable, Support, Ticket};
+use ticket::{Support, Ticket};
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
-
-use super::TicketTable;
 
 pub struct TicketCommand;
 
@@ -23,7 +20,7 @@ impl ModuleCommand for TicketCommand {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Ticket::run::<Postgres, GuildTable, TicketTable>(
+        Ticket::run(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -47,7 +44,7 @@ impl ModuleCommand for SupportCommand {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Support::run::<Postgres, GuildTable>(
+        Support::run(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,

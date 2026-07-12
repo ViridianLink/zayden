@@ -9,16 +9,16 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::required_option;
 
-use crate::{Result, Support, TicketError, TicketGuildManager};
+use crate::{Result, Support, TicketError, TicketGuildRow};
 
 impl Support {
-    pub(super) async fn get<Db: Database, GuildManager: TicketGuildManager<Db>>(
+    pub(super) async fn get(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
         guild_id: GuildId,
     ) -> Result<()> {
@@ -26,7 +26,7 @@ impl Support {
 
         let id: &str = required_option(&mut options, "id")?;
 
-        let faq_channel_id = GuildManager::get(pool, guild_id)
+        let faq_channel_id = TicketGuildRow::get(pool, guild_id)
             .await?
             .ok_or(TicketError::SupportNotFound)?
             .faq_channel_id()

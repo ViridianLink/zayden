@@ -31,8 +31,9 @@ impl ModuleCommand for Music {
         let songbird = Arc::clone(&guard.songbird);
         let music = Arc::clone(&guard.music);
         let resolver = Arc::clone(&guard.music_resolver);
-        let settings = Arc::clone(&guard.music_settings);
         drop(guard);
+
+        let settings = Arc::clone(&cx.app.settings.music);
 
         let music_ctx = MusicCtx::new(
             &cx.ctx.http,

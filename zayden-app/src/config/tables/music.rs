@@ -1,5 +1,6 @@
 use sqlx::PgPool;
-use zayden_app::config::SettingsRow;
+
+use crate::config::SettingsRow;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct MusicSettingsRow {

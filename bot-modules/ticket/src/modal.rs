@@ -11,14 +11,14 @@ use serenity::all::{
     Mentionable,
     ModalInteraction,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{CoreError, parse_modal_components};
 
-use crate::ticket_manager::TicketManager;
+use crate::ticket_manager::TicketRow;
 use crate::{
     Result,
     TicketError,
-    TicketGuildManager,
+    TicketGuildRow,
     send_support_message,
     thread_name,
     to_title_case,
@@ -27,18 +27,14 @@ use crate::{
 pub struct TicketModal;
 
 impl TicketModal {
-    pub async fn run<
-        Db: Database,
-        GuildManager: TicketGuildManager<Db>,
-        Manager: TicketManager<Db>,
-    >(
+    pub async fn run(
         http: &Http,
         interaction: &ModalInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(CoreError::MissingGuildId)?;
 
-        let guild_row = GuildManager::get(pool, guild_id)
+        let guild_row = TicketGuildRow::get(pool, guild_id)
             .await?
             .ok_or(TicketError::SupportNotFound)?;
 
@@ -47,7 +43,7 @@ impl TicketModal {
                 "TicketModal::run: interaction has no associated message".into(),
             ));
         };
-        let ticket_row = Manager::get(pool, message.id).await?;
+        let ticket_row = TicketRow::get(pool, message.id).await?;
         let role_ids = ticket_row.role_ids();
 
         let mut data =
@@ -107,7 +103,7 @@ impl TicketModal {
             )
             .await?;
 
-        GuildManager::update_thread_id(pool, guild_id).await?;
+        TicketGuildRow::increment_thread_id(pool, guild_id).await?;
 
         let mentions = if role_ids.is_empty() {
             let owner_id = guild_id.to_partial_guild(http).await?.owner_id;

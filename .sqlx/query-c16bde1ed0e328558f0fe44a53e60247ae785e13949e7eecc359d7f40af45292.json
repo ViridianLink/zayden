@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT thread_id, COALESCE(\n                        (SELECT array_agg(role_id) FROM ticket_roles WHERE ticket_id = t.thread_id), \n                        ARRAY[]::bigint[]\n                    ) AS \"role_ids!\" FROM tickets t WHERE thread_id = $1",
+  "query": "SELECT thread_id, COALESCE(\n                        (SELECT array_agg(role_id) FROM ticket_roles WHERE ticket_id = t.thread_id),\n                        ARRAY[]::bigint[]\n                    ) AS \"role_ids!\" FROM tickets t WHERE thread_id = $1",
   "describe": {
     "columns": [
       {
@@ -31,5 +31,5 @@
       null
     ]
   },
-  "hash": "c19acab878f84f1605a11dc91cb4441a8af3fd01246650a293d86c9ae5284171"
+  "hash": "c16bde1ed0e328558f0fe44a53e60247ae785e13949e7eecc359d7f40af45292"
 }

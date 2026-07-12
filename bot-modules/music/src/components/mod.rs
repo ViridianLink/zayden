@@ -7,13 +7,12 @@ pub use control_panel::ControlPanel;
 pub use queue_pager::QueuePager;
 use serenity::all::{ComponentInteraction, GuildId, Http, UserId};
 use songbird::Songbird;
-use zayden_app::config::SettingsStore;
+use zayden_app::config::{MusicSettingsRow, SettingsStore};
 
 use crate::error::{MusicError, Result};
 use crate::manager::MusicManager;
 use crate::permissions;
 use crate::resolve::TrackResolver;
-use crate::settings::MusicSettingsRow;
 
 pub struct PanelCtx<'a> {
     pub http: &'a Http,

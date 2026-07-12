@@ -2,14 +2,13 @@ use std::sync::Arc;
 
 use serenity::all::{CommandInteraction, GuildId, Http, UserId};
 use songbird::Songbird;
-use zayden_app::config::SettingsStore;
+use zayden_app::config::{MusicSettingsRow, SettingsStore};
 use zayden_app::entitlement::EntitlementService;
 
 use crate::error::{MusicError, Result};
 use crate::manager::MusicManager;
 use crate::permissions;
 use crate::resolve::TrackResolver;
-use crate::settings::MusicSettingsRow;
 use crate::voice::SessionRequest;
 
 pub struct MusicServices {

@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
 use serenity::all::{CreateEmbed, EditInteractionResponse, ResolvedValue, Role};
+use zayden_app::config::MusicSettingsRow;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_core::{as_i64, optional_option};
 
 use super::MusicCtx;
 use crate::error::{MusicError, Result};
-use crate::settings::MusicSettingsRow;
 
 pub(super) async fn run(
     ctx: &MusicCtx<'_>,

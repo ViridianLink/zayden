@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO guild_channels (guild_id, rules_channel_id, general_channel_id, spoiler_channel_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                rules_channel_id = EXCLUDED.rules_channel_id,\n                general_channel_id = EXCLUDED.general_channel_id,\n                spoiler_channel_id = EXCLUDED.spoiler_channel_id,\n                updated_at = now()\n            RETURNING guild_id, rules_channel_id, general_channel_id, spoiler_channel_id\n            ",
+  "query": "\n            INSERT INTO channels_settings (guild_id, rules_channel_id, general_channel_id, spoiler_channel_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                rules_channel_id = EXCLUDED.rules_channel_id,\n                general_channel_id = EXCLUDED.general_channel_id,\n                spoiler_channel_id = EXCLUDED.spoiler_channel_id,\n                updated_at = now()\n            RETURNING guild_id, rules_channel_id, general_channel_id, spoiler_channel_id\n            ",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "guild_channels",
+            "table": "channels_settings",
             "name": "guild_id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "guild_channels",
+            "table": "channels_settings",
             "name": "rules_channel_id"
           }
         }
@@ -31,7 +31,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "guild_channels",
+            "table": "channels_settings",
             "name": "general_channel_id"
           }
         }
@@ -42,7 +42,7 @@
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "guild_channels",
+            "table": "channels_settings",
             "name": "spoiler_channel_id"
           }
         }
@@ -63,5 +63,5 @@
       true
     ]
   },
-  "hash": "f1337562d6f7432e53179549fa2f50c3351a56d05f13d02ce5dcbe06219356e3"
+  "hash": "6fae3c0b76a33cb97451250c088b95b7e0d8ec7a65e1347f9acd91a08d69a85b"
 }

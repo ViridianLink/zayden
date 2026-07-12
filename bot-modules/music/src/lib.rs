@@ -9,7 +9,6 @@ pub mod permissions;
 pub mod player;
 pub mod queue;
 pub mod resolve;
-pub mod settings;
 pub mod track;
 pub mod voice;
 
@@ -35,5 +34,5 @@ pub use resolve::{
     playlist_start_index,
     probe_yt_dlp,
 };
-pub use settings::MusicSettingsRow;
 pub use track::{LoopMode, RequestedBy, ResolvedTrack, TrackSource};
+pub use zayden_app::config::MusicSettingsRow;

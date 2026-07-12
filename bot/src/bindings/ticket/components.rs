@@ -10,14 +10,11 @@ use serenity::all::{
     CreateSelectMenuOption,
     InputTextStyle,
 };
-use sqlx::Postgres;
-use ticket::{GuildTable, TicketComponent, TicketModal};
+use ticket::{TicketComponent, TicketModal};
 use zayden_core::ctx::{ComponentCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
 use zayden_core::scope::IdMatch;
-
-use super::TicketTable;
 
 fn make_ticket_modal_components<'a>() -> Vec<CreateModalComponent<'a>> {
     vec![
@@ -107,12 +104,8 @@ impl ModuleComponent for SupportFaq {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TicketComponent::support_faq::<Postgres, GuildTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        TicketComponent::support_faq(&cx.ctx.http, cx.interaction, &cx.app.db)
+            .await?;
         Ok(())
     }
 }
@@ -126,12 +119,7 @@ impl ModuleModal for CreateTicketModal {
     }
 
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
-        TicketModal::run::<Postgres, GuildTable, TicketTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        TicketModal::run(&cx.ctx.http, cx.interaction, &cx.app.db).await?;
         Ok(())
     }
 }

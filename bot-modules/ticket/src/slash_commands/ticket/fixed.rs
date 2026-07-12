@@ -9,15 +9,15 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::{Result, Ticket, TicketError, TicketGuildManager};
+use crate::{Result, Ticket, TicketError, TicketGuildRow};
 
 impl Ticket {
-    pub(super) async fn fixed<Db: Database, GuildManager: TicketGuildManager<Db>>(
+    pub(super) async fn fixed(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
         guild_id: GuildId,
     ) -> Result<()> {
@@ -32,7 +32,7 @@ impl Ticket {
             interaction.defer(http).await?;
         }
 
-        let support_channel_id = GuildManager::get(pool, guild_id)
+        let support_channel_id = TicketGuildRow::get(pool, guild_id)
             .await?
             .ok_or(TicketError::NotInSupportChannel)?
             .channel_id()

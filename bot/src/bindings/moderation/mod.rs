@@ -34,7 +34,7 @@ pub struct InfractionRow {
     pub user_id: i64,
     pub username: String,
     pub guild_id: i64,
-    pub infraction_type: String,
+    pub infraction_type: InfractionKind,
     pub moderator_id: i64,
     pub moderator_username: String,
     pub points: i32,
@@ -57,7 +57,7 @@ impl InfractionRow {
             user_id: as_i64(user_id.get()),
             username: username.into(),
             guild_id: as_i64(guild_id.get()),
-            infraction_type: infraction_kind.to_string(),
+            infraction_type: infraction_kind,
             moderator_id: as_i64(moderator.id.get()),
             moderator_username: moderator.name.clone(),
             points,
@@ -104,7 +104,8 @@ impl InfractionRow {
     }
 }
 
-#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "infraction_kind")]
 enum InfractionKind {
     Warn,
     Mute,

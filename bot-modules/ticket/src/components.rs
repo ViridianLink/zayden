@@ -12,10 +12,10 @@ use serenity::all::{
     EditThread,
     Http,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::CoreError as ZaydenError;
 
-use crate::{Result, TicketError, TicketGuildManager};
+use crate::{Result, TicketError, TicketGuildRow};
 
 pub struct TicketComponent;
 
@@ -67,10 +67,10 @@ impl TicketComponent {
         Ok(())
     }
 
-    pub async fn support_faq<Db: Database, GuildManager: TicketGuildManager<Db>>(
+    pub async fn support_faq(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
@@ -92,7 +92,7 @@ impl TicketComponent {
         let index =
             raw.parse::<usize>().map_err(|_e| TicketError::SupportNotFound)?;
 
-        let faq_channel_id = GuildManager::get(pool, guild_id)
+        let faq_channel_id = TicketGuildRow::get(pool, guild_id)
             .await?
             .ok_or(ZaydenError::MissingGuildId)?
             .faq_channel_id()

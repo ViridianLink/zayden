@@ -3,15 +3,15 @@ use sqlx::PgPool;
 use crate::config::SettingsRow;
 
 #[derive(Debug, Clone, sqlx::FromRow)]
-pub struct GuildChannelsRow {
+pub struct ChannelsSettingsRow {
     pub guild_id: i64,
     pub rules_channel_id: Option<i64>,
     pub general_channel_id: Option<i64>,
     pub spoiler_channel_id: Option<i64>,
 }
 
-impl SettingsRow for GuildChannelsRow {
-    const TABLE: &'static str = "guild_channels";
+impl SettingsRow for ChannelsSettingsRow {
+    const TABLE: &'static str = "channels_settings";
 
     fn empty(guild_id: i64) -> Self {
         Self {
@@ -30,7 +30,7 @@ impl SettingsRow for GuildChannelsRow {
             Self,
             r#"
             SELECT guild_id, rules_channel_id, general_channel_id, spoiler_channel_id
-            FROM guild_channels
+            FROM channels_settings
             WHERE guild_id = $1
             "#,
             guild_id
@@ -43,7 +43,7 @@ impl SettingsRow for GuildChannelsRow {
         sqlx::query_as!(
             Self,
             r#"
-            INSERT INTO guild_channels (guild_id, rules_channel_id, general_channel_id, spoiler_channel_id)
+            INSERT INTO channels_settings (guild_id, rules_channel_id, general_channel_id, spoiler_channel_id)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (guild_id) DO UPDATE SET
                 rules_channel_id = EXCLUDED.rules_channel_id,

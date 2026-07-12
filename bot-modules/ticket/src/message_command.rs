@@ -10,14 +10,14 @@ use serenity::all::{
     Mentionable,
     Message,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tracing::debug;
 use zayden_core::CoreError;
 
 use crate::{
     Result,
     TicketError,
-    TicketGuildManager,
+    TicketGuildRow,
     send_support_message,
     thread_name,
 };
@@ -25,16 +25,12 @@ use crate::{
 pub struct SupportMessageCommand;
 
 impl SupportMessageCommand {
-    pub async fn run<Db: Database, GuildManager: TicketGuildManager<Db>>(
-        http: &Http,
-        message: &Message,
-        pool: &Pool<Db>,
-    ) -> Result<()> {
+    pub async fn run(http: &Http, message: &Message, pool: &PgPool) -> Result<()> {
         let Some(guild_id) = message.guild_id else {
             return Err(TicketError::ZaydenCore(CoreError::MissingGuildId));
         };
 
-        let row = match GuildManager::get(pool, guild_id).await {
+        let row = match TicketGuildRow::get(pool, guild_id).await {
             Ok(Some(row)) => row,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
                 debug!(%guild_id, "no ticket configuration found for guild; ignoring support message");
@@ -73,7 +69,7 @@ impl SupportMessageCommand {
             )
             .await?;
 
-        GuildManager::update_thread_id(pool, guild_id).await?;
+        TicketGuildRow::increment_thread_id(pool, guild_id).await?;
 
         let issue = CreateEmbed::new().title("Issue").description(&message.content);
 

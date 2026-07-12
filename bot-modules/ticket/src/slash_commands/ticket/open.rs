@@ -6,18 +6,18 @@ use serenity::all::{
     GuildId,
     Http,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::{Result, Ticket, TicketError, TicketGuildManager};
+use crate::{Result, Ticket, TicketError, TicketGuildRow};
 
 impl Ticket {
-    pub(super) async fn open<Db: Database, GuildManager: TicketGuildManager<Db>>(
+    pub(super) async fn open(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         guild_id: GuildId,
     ) -> Result<()> {
-        let support_channel_id = GuildManager::get(pool, guild_id)
+        let support_channel_id = TicketGuildRow::get(pool, guild_id)
             .await?
             .ok_or(TicketError::NotInSupportChannel)?
             .channel_id()
