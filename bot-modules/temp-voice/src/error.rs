@@ -20,6 +20,7 @@ pub enum TempVoiceError {
     InvalidPassword,
     UserIsOwner,
     MaxChannels,
+    InvalidNumber,
     MissingPermissions(PermissionError),
     ChannelNotFound(ChannelId),
     AdministratorRequired,
@@ -55,6 +56,7 @@ impl std::fmt::Display for TempVoiceError {
                 f,
                 "You have reached the maximum number of persistent channels."
             ),
+            Self::InvalidNumber => write!(f, "Please enter a valid number."),
             Self::MissingPermissions(PermissionError::NotOwner) => {
                 write!(f, "Only the channel owner can use this command.")
             },
@@ -90,6 +92,7 @@ impl std::error::Error for TempVoiceError {
             | Self::InvalidPassword
             | Self::UserIsOwner
             | Self::MaxChannels
+            | Self::InvalidNumber
             | Self::MissingPermissions(_)
             | Self::ChannelNotFound(_)
             | Self::AdministratorRequired
@@ -109,6 +112,7 @@ impl Respond for TempVoiceError {
             | Self::InvalidPassword
             | Self::UserIsOwner
             | Self::MaxChannels
+            | Self::InvalidNumber
             | Self::MissingPermissions(_)
             | Self::ChannelNotFound(_)
             | Self::AdministratorRequired

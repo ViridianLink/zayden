@@ -1,5 +1,6 @@
 pub mod actions;
 pub mod commands;
+pub mod components;
 pub mod error;
 pub mod events;
 pub mod guild_manager;

@@ -1,6 +1,7 @@
 use serenity::all::{
     ChannelType,
     CreateChannel,
+    CreateComponent,
     CreateMessage,
     DiscordJsonError,
     ErrorResponse,
@@ -12,6 +13,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use tracing::debug;
 
+use crate::components::build_panel;
 use crate::{
     Result,
     TempVoiceError,
@@ -138,6 +140,23 @@ pub async fn channel_creator<
 
     let row = VoiceChannelRow::new(vc.id, new.user_id);
     row.save::<Db, ChannelManager>(pool).await?;
+
+    let components = build_panel()
+        .into_iter()
+        .map(CreateComponent::ActionRow)
+        .collect::<Vec<_>>();
+
+    vc.id
+        .widen()
+        .send_message(
+            http,
+            CreateMessage::new()
+                .content(
+                    "**Voice channel controls** — use these buttons to manage your channel.",
+                )
+                .components(components),
+        )
+        .await?;
 
     Ok(())
 }

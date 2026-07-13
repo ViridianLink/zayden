@@ -8,6 +8,7 @@ mod join;
 mod kick;
 mod limit;
 mod name;
+mod panel;
 mod password;
 mod persist;
 mod privacy;
@@ -29,6 +30,7 @@ use join::join;
 use kick::kick;
 use limit::limit;
 use name::name;
+use panel::panel;
 use password::password;
 use persist::persist;
 use privacy::privacy;
@@ -108,6 +110,11 @@ impl VoiceCommand {
 
                 return Ok(());
             },
+            "panel" => {
+                panel(&ctx.http, interaction, options).await?;
+
+                return Ok(());
+            },
             _ => {},
         }
 
@@ -180,9 +187,6 @@ impl VoiceCommand {
                     row,
                 )
                 .await?;
-            },
-            "waiting" | "info" => {
-                // TODO: Not yet implemented
             },
             "trust" => {
                 trust::<Db, ChannelManager>(
@@ -384,11 +388,21 @@ impl VoiceCommand {
                     .required(true),
                 ),
             )
-            // .add_option(CreateCommandOption::new(
-            //     CommandOptionType::SubCommand,
-            //     "waiting",
-            //     "Create a waiting room for the voice channel.",
-            // ))
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::SubCommand,
+                    "panel",
+                    "Post a voice control panel in a channel of your choice.",
+                )
+                .add_sub_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::Channel,
+                        "channel",
+                        "The channel to post the control panel in.",
+                    )
+                    .required(true),
+                ),
+            )
             .add_option(
                 CreateCommandOption::new(
                     CommandOptionType::SubCommand,
@@ -535,11 +549,6 @@ impl VoiceCommand {
                     .required(true),
                 ),
             )
-            // .add_option(CreateCommandOption::new(
-            //     CommandOptionType::SubCommand,
-            //     "info",
-            //     "Get information about the voice channel.",
-            // ))
             .add_option(
                 CreateCommandOption::new(
                     CommandOptionType::SubCommand,

@@ -40,7 +40,7 @@ pub fn build_registry(
     ticket::register(&mut builder)?;
     verify::register(&mut builder)?;
     suggestions::register(&mut builder)?;
-    temp_voice::register(&mut builder);
+    temp_voice::register(&mut builder)?;
     reaction_roles::register(&mut builder);
 
     Ok(builder.build())
