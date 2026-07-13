@@ -19,8 +19,10 @@ use serenity::all::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     EmojiId,
+    GuildId,
     Http,
     MessageFlags,
+    Permissions,
     ResolvedOption,
 };
 use sqlx::PgPool;
@@ -30,13 +32,12 @@ use zayden_core::{
     EmojiCache,
     EmojiCacheData,
     EmojiResult,
-    SubCommandOptions,
     parse_subcommand,
     sole_option,
 };
 
-use crate::Result;
 use crate::db::loadouts as loadout_db;
+use crate::{DestinyError, Result};
 
 const DUPLICATE: EmojiId = EmojiId::new(1_395_743_560_388_706_374);
 
@@ -92,19 +93,28 @@ impl Loadout {
         .add_sub_option(class_sub("warlock", "Warlock Builds"))
         .add_sub_option(class_sub("titan", "Titan Builds"))
         .add_sub_option(class_sub("hunter", "Hunter Builds"))
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "refresh",
+            "Reload loadouts from the database (Manage Server only)",
+        ))
     }
 
     pub async fn run<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        mut options: Vec<ResolvedOption<'_>>,
+        options: Vec<ResolvedOption<'_>>,
         pool: &PgPool,
         parent_token: &str,
+        home_guild: GuildId,
     ) -> Result<()> {
-        let value: &str = {
-            let options: SubCommandOptions<'_> = sole_option(&mut options)?;
-            sole_option(&mut options.into_vec())?
-        };
+        let (name, sub_options) = parse_subcommand(options)?;
+
+        if name == "refresh" {
+            return Self::refresh(ctx, interaction, pool, home_guild).await;
+        }
+
+        let value: &str = sole_option(&mut sub_options.into_vec())?;
 
         let id: i32 =
             value.parse().map_err(|_err| CoreError::invalid_option("build"))?;
@@ -131,13 +141,48 @@ impl Loadout {
         Ok(())
     }
 
+    async fn refresh(
+        ctx: &Context,
+        interaction: &CommandInteraction,
+        pool: &PgPool,
+        home_guild: GuildId,
+    ) -> Result<()> {
+        if interaction.guild_id != Some(home_guild) {
+            return Err(DestinyError::NotHomeGuild);
+        }
+
+        let permissions =
+            interaction.member.as_ref().and_then(|member| member.permissions);
+        if !is_privileged(permissions) {
+            return Err(DestinyError::NotPrivileged);
+        }
+
+        invalidate_cache().await;
+        let records = cached(pool).await?;
+
+        interaction
+            .create_response(
+                &ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .flags(MessageFlags::EPHEMERAL)
+                        .content(format!(
+                            "Reloaded {} loadouts from the database.",
+                            records.len()
+                        )),
+                ),
+            )
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn autocomplete(
         http: &Http,
         interaction: &CommandInteraction,
         option: AutocompleteOption<'_>,
         pool: &PgPool,
     ) -> Result<()> {
-        // Path is `builds` (group) -> `<class>` (subcommand) -> `build`.
         let (_, group) = parse_subcommand(interaction.data.options())?;
         let (class_name, _) = parse_subcommand(group)?;
         let Ok(class) = class_name.parse::<Class>() else {
@@ -169,8 +214,6 @@ impl Loadout {
     }
 }
 
-/// Retry-with-upload wrapper around an emoji-cache lookup: if the closure
-/// reports a missing emoji, upload it and retry (bounded).
 async fn resolve_emoji<T>(
     emoji_cache: &mut EmojiCache,
     ctx: &Context,
@@ -193,4 +236,9 @@ async fn resolve_emoji<T>(
         "emoji unavailable after {MAX_ATTEMPTS} upload attempts"
     ))
     .into())
+}
+
+#[must_use]
+pub fn is_privileged(permissions: Option<Permissions>) -> bool {
+    permissions.is_some_and(Permissions::manage_guild)
 }

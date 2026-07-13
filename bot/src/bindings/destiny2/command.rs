@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use destiny2::commands::Command as Destiny2Command;
-use serenity::all::CreateCommand;
+use serenity::all::{CreateCommand, GuildId};
 use tokio::sync::RwLock;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
@@ -41,6 +41,7 @@ impl ModuleCommand for Destiny2 {
             &client,
             &cx.app.google_api_key,
             parent_token,
+            GuildId::new(cx.app.zayden_guild),
         )
         .await?;
 

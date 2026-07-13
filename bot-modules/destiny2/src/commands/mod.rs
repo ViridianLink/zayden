@@ -4,6 +4,7 @@ use serenity::all::{
     CommandInteraction,
     Context,
     CreateCommand,
+    GuildId,
 };
 use sqlx::PgPool;
 use zayden_core::error::HandlerError;
@@ -37,6 +38,7 @@ impl Command {
         client: &BungieClient,
         api_key: &str,
         parent_token: &str,
+        home_guild: GuildId,
     ) -> Result<(), HandlerError> {
         let (name, sub_options) = parse_subcommand(interaction.data.options())?;
 
@@ -85,6 +87,7 @@ impl Command {
                     sub_options.into_vec(),
                     pool,
                     parent_token,
+                    home_guild,
                 )
                 .await?;
             },
