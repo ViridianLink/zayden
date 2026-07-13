@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT loadout_id, tag\n        FROM destiny2_loadout_tags\n        ORDER BY loadout_id, ordinal",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "loadout_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_tags",
+            "name": "loadout_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "tag",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_tags",
+            "name": "tag"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "f1993a5ff12562f5e95c0305d178bb0d9c73de381530e466c9681424983fbfa2"
+}

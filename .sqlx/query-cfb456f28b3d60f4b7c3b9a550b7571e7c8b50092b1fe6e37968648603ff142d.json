@@ -1,0 +1,128 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            lw.id,\n            lw.loadout_id,\n            w.name,\n            w.affinity AS \"affinity!: Affinity\",\n            w.archetype AS \"archetype!: Archetype\",\n            w.icon_url\n        FROM destiny2_loadout_weapons lw\n        JOIN destiny2_weapons w ON w.id = lw.weapon_id\n        ORDER BY lw.loadout_id, lw.slot_ordinal",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_weapons",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "loadout_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_weapons",
+            "name": "loadout_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_weapons",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "affinity!: Affinity",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_affinity",
+            "kind": {
+              "Enum": [
+                "kinetic",
+                "arc",
+                "void",
+                "solar",
+                "stasis",
+                "strand"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_weapons",
+            "name": "affinity"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "archetype!: Archetype",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_archetype",
+            "kind": {
+              "Enum": [
+                "auto_rifle",
+                "bow",
+                "fusion_rifle",
+                "glaive",
+                "breech_grenade_launcher",
+                "grenade_launcher",
+                "hand_cannon",
+                "linear_fusion_rifle",
+                "machine_gun",
+                "rocket_pulse_rifle",
+                "pulse_rifle",
+                "rocket_launcher",
+                "scout_rifle",
+                "shotgun",
+                "rocket_sidearm",
+                "sidearm",
+                "smg",
+                "sniper_rifle",
+                "sword",
+                "trace_rifle"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_weapons",
+            "name": "archetype"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "icon_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_weapons",
+            "name": "icon_url"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cfb456f28b3d60f4b7c3b9a550b7571e7c8b50092b1fe6e37968648603ff142d"
+}

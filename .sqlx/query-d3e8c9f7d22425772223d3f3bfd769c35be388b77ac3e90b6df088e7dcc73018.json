@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT loadout_id, perk_emoji\n        FROM destiny2_loadout_artifact_perks\n        ORDER BY loadout_id, ordinal",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "loadout_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_artifact_perks",
+            "name": "loadout_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "perk_emoji",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_artifact_perks",
+            "name": "perk_emoji"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "d3e8c9f7d22425772223d3f3bfd769c35be388b77ac3e90b6df088e7dcc73018"
+}

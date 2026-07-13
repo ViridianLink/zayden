@@ -1,0 +1,242 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            id,\n            name,\n            class AS \"class!: Class\",\n            element AS \"element!: Element\",\n            mode AS \"mode!: Mode\",\n            super_name,\n            super_emoji,\n            class_ability,\n            jump,\n            melee,\n            grenade,\n            artifact_name,\n            author,\n            dim_link,\n            video_url,\n            how_it_works\n        FROM destiny2_loadouts\n        ORDER BY class, element, name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "class!: Class",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_class",
+            "kind": {
+              "Enum": [
+                "hunter",
+                "titan",
+                "warlock"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "class"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "element!: Element",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_element",
+            "kind": {
+              "Enum": [
+                "arc",
+                "solar",
+                "void",
+                "strand",
+                "stasis",
+                "prismatic"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "element"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "mode!: Mode",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_mode",
+            "kind": {
+              "Enum": [
+                "all",
+                "pve",
+                "pvp"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "mode"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "super_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "super_name"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "super_emoji",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "super_emoji"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "class_ability",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "class_ability"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "jump",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "jump"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "melee",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "melee"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "grenade",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "grenade"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "artifact_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "artifact_name"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "author",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "author"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "dim_link",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "dim_link"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "video_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "video_url"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "how_it_works",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "how_it_works"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c2999d07b1f284a4c9f83f59d29f60c83d864c1917711c61b63a59a86f2fded6"
+}

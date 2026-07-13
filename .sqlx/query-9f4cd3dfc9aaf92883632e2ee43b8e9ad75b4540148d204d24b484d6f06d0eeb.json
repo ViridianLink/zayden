@@ -1,0 +1,87 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n            id,\n            loadout_id,\n            slot AS \"slot!: ArmourSlot\",\n            name,\n            icon_url\n        FROM destiny2_loadout_armour\n        ORDER BY loadout_id, slot",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "loadout_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "loadout_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "slot!: ArmourSlot",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_armour_slot",
+            "kind": {
+              "Enum": [
+                "helmet",
+                "arms",
+                "chest",
+                "legs",
+                "class_item"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "slot"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "icon_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "icon_url"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9f4cd3dfc9aaf92883632e2ee43b8e9ad75b4540148d204d24b484d6f06d0eeb"
+}

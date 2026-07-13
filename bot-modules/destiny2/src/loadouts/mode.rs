@@ -1,9 +1,8 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-use serenity::all::{ButtonStyle, CreateButton};
-
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[sqlx(type_name = "destiny2_mode", rename_all = "lowercase")]
 pub enum Mode {
     All,
     PvE,
@@ -17,13 +16,5 @@ impl Display for Mode {
             Self::PvE => write!(f, "PvE"),
             Self::PvP => write!(f, "PvP"),
         }
-    }
-}
-
-impl From<Mode> for CreateButton<'_> {
-    fn from(value: Mode) -> Self {
-        CreateButton::new(format!("{value}"))
-            .label(format!("{value}"))
-            .style(ButtonStyle::Secondary)
     }
 }

@@ -83,6 +83,7 @@ impl Command {
                     ctx,
                     interaction,
                     sub_options.into_vec(),
+                    pool,
                     parent_token,
                 )
                 .await?;
@@ -136,6 +137,9 @@ impl Command {
                     api_key,
                 )
                 .await?;
+            },
+            "builds" => {
+                Loadout::autocomplete(&ctx.http, interaction, option, pool).await?;
             },
             _ => {},
         }
