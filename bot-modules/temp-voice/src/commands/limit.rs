@@ -3,15 +3,12 @@ use std::collections::HashMap;
 use serenity::all::{
     ChannelId,
     CommandInteraction,
-    EditChannel,
     EditInteractionResponse,
     Http,
     ResolvedValue,
 };
-use serenity::nonmax::NonMaxU16;
 
-use crate::error::PermissionError;
-use crate::{TempVoiceError, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow, actions};
 
 pub(super) async fn limit(
     http: &Http,
@@ -22,31 +19,16 @@ pub(super) async fn limit(
 ) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
-    if !row.is_trusted(interaction.user.id) {
-        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
-    }
-
     let limit = match options.remove("user_limit") {
-        Some(ResolvedValue::Integer(limit)) => {
-            u16::try_from(limit.clamp(0, 99)).unwrap_or(0)
-        },
+        Some(ResolvedValue::Integer(limit)) => limit,
         _ => 0,
     };
 
-    channel_id
-        .edit(
-            http,
-            EditChannel::new()
-                .user_limit(NonMaxU16::new(limit).unwrap_or(NonMaxU16::ZERO)),
-        )
-        .await?;
+    let msg =
+        actions::limit(http, channel_id, row, interaction.user.id, limit).await?;
 
     interaction
-        .edit_response(
-            http,
-            EditInteractionResponse::new()
-                .content(format!("User limit set to {limit}")),
-        )
+        .edit_response(http, EditInteractionResponse::new().content(msg))
         .await?;
 
     Ok(())

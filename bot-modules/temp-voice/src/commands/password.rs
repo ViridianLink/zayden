@@ -3,25 +3,14 @@ use std::collections::HashMap;
 use serenity::all::{
     ChannelId,
     CommandInteraction,
-    EditChannel,
     EditInteractionResponse,
     GuildId,
     Http,
-    PermissionOverwrite,
-    PermissionOverwriteType,
-    Permissions,
     ResolvedValue,
 };
 use sqlx::{Database, Pool};
 
-use crate::error::PermissionError;
-use crate::{
-    Result,
-    TempVoiceError,
-    VoiceChannelManager,
-    VoiceChannelRow,
-    owner_perms,
-};
+use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow, actions};
 
 pub(super) async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -30,31 +19,27 @@ pub(super) async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
     mut options: HashMap<&str, ResolvedValue<'_>>,
     guild_id: GuildId,
     channel_id: ChannelId,
-    mut row: VoiceChannelRow,
+    row: VoiceChannelRow,
 ) -> Result<()> {
     interaction.defer_ephemeral(http).await?;
 
-    if !row.is_owner(interaction.user.id) {
-        return Err(TempVoiceError::MissingPermissions(PermissionError::NotOwner));
-    }
-
-    let Some(ResolvedValue::String(pass)) = options.remove("pass") else {
+    let Some(ResolvedValue::String(pass)) = options.remove("password") else {
         return Err(TempVoiceError::IneligibleChannel);
     };
 
-    row.password = Some(pass.to_string());
-    row.save::<Db, Manager>(pool).await?;
-
-    let perms = vec![owner_perms(interaction.user.id), PermissionOverwrite {
-        allow: Permissions::empty(),
-        deny: Permissions::CONNECT,
-        kind: PermissionOverwriteType::Role(guild_id.everyone_role()),
-    }];
-
-    channel_id.edit(http, EditChannel::new().permissions(perms)).await?;
+    let msg = actions::password::<Db, Manager>(
+        http,
+        pool,
+        guild_id,
+        channel_id,
+        row,
+        interaction.user.id,
+        pass.to_string(),
+    )
+    .await?;
 
     interaction
-        .edit_response(http, EditInteractionResponse::new().content("Password set."))
+        .edit_response(http, EditInteractionResponse::new().content(msg))
         .await?;
 
     Ok(())

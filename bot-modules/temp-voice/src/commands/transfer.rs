@@ -9,14 +9,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::error::PermissionError;
-use crate::{
-    Result,
-    TempVoiceError,
-    VoiceChannelManager,
-    VoiceChannelRow,
-    owner_perms,
-};
+use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow, actions};
 
 pub(super) async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
     http: &Http,
@@ -24,30 +17,26 @@ pub(super) async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
     pool: &Pool<Db>,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
-    mut row: VoiceChannelRow,
+    row: VoiceChannelRow,
 ) -> Result<()> {
     interaction.defer_ephemeral(http).await?;
-
-    if !row.is_owner(interaction.user.id) {
-        return Err(TempVoiceError::MissingPermissions(PermissionError::NotOwner));
-    }
 
     let Some(ResolvedValue::User(user, _)) = options.remove("user") else {
         return Err(TempVoiceError::IneligibleChannel);
     };
 
-    row.set_owner(user.id);
-    row.save::<Db, Manager>(pool).await?;
-
-    channel_id
-        .create_permission(http, owner_perms(user.id), Some("Channel transfered"))
-        .await?;
+    let msg = actions::transfer::<Db, Manager>(
+        http,
+        pool,
+        channel_id,
+        row,
+        interaction.user.id,
+        user.id,
+    )
+    .await?;
 
     interaction
-        .edit_response(
-            http,
-            EditInteractionResponse::new().content("Transferred channel."),
-        )
+        .edit_response(http, EditInteractionResponse::new().content(msg))
         .await?;
 
     Ok(())

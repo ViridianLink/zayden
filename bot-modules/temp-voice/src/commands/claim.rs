@@ -11,7 +11,7 @@ use crate::{
     VoiceChannelManager,
     VoiceChannelRow,
     VoiceStateCache,
-    owner_perms,
+    actions,
 };
 
 pub(super) async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
@@ -20,43 +20,23 @@ pub(super) async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
     pool: &Pool<Db>,
     voice_states: &VoiceStateCache,
     channel_id: ChannelId,
-    mut row: VoiceChannelRow,
+    row: VoiceChannelRow,
 ) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(&ctx.http).await?;
 
-    if row.is_owner(interaction.user.id) {
-        return Err(TempVoiceError::UserIsOwner);
-    }
-
-    if !row.is_persistent() && is_claimable(voice_states, &row) {
-        return Err(TempVoiceError::OwnerInChannel);
-    }
-
-    row.set_owner(interaction.user.id);
-    row.save::<Db, Manager>(pool).await?;
-
-    channel_id
-        .create_permission(
-            &ctx.http,
-            owner_perms(interaction.user.id),
-            Some("Channel claimed"),
-        )
-        .await?;
+    let msg = actions::claim::<Db, Manager>(
+        &ctx.http,
+        pool,
+        voice_states,
+        channel_id,
+        row,
+        interaction.user.id,
+    )
+    .await?;
 
     interaction
-        .edit_response(
-            &ctx.http,
-            EditInteractionResponse::new().content("Claimed channel."),
-        )
+        .edit_response(&ctx.http, EditInteractionResponse::new().content(msg))
         .await?;
 
     Ok(())
-}
-
-fn is_claimable(
-    voice_states: &VoiceStateCache,
-    channel_data: &VoiceChannelRow,
-) -> bool {
-    voice_states.current_channel(channel_data.owner_id())
-        == Some(channel_data.channel_id())
 }

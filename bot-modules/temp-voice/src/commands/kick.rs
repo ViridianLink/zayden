@@ -8,8 +8,7 @@ use serenity::all::{
     ResolvedValue,
 };
 
-use crate::error::PermissionError;
-use crate::{TempVoiceError, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow, actions};
 
 pub(super) async fn kick(
     http: &Http,
@@ -20,21 +19,15 @@ pub(super) async fn kick(
 ) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
-    if !row.is_trusted(interaction.user.id) {
-        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
-    }
-
     let Some(ResolvedValue::User(user, _)) = options.remove("member") else {
         return Err(TempVoiceError::IneligibleChannel);
     };
 
-    guild_id.disconnect_member(http, user.id).await?;
+    let msg =
+        actions::kick(http, guild_id, row, interaction.user.id, user.id).await?;
 
     interaction
-        .edit_response(
-            http,
-            EditInteractionResponse::new().content("User kicked from channel."),
-        )
+        .edit_response(http, EditInteractionResponse::new().content(msg))
         .await?;
 
     Ok(())

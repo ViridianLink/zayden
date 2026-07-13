@@ -3,14 +3,12 @@ use std::collections::HashMap;
 use serenity::all::{
     ChannelId,
     CommandInteraction,
-    EditChannel,
     EditInteractionResponse,
     Http,
     ResolvedValue,
 };
 
-use crate::error::PermissionError;
-use crate::{TempVoiceError, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow, actions};
 
 pub(super) async fn bitrate(
     http: &Http,
@@ -21,23 +19,15 @@ pub(super) async fn bitrate(
 ) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
-    if !row.is_trusted(interaction.user.id) {
-        return Err(TempVoiceError::MissingPermissions(PermissionError::NotTrusted));
-    }
-
     let Some(ResolvedValue::Integer(kbps)) = options.remove("kbps") else {
         return Err(TempVoiceError::IneligibleChannel);
     };
-    let kbps = u32::try_from(kbps)
-        .map_err(|_kbps_err| TempVoiceError::IneligibleChannel)?;
 
-    channel_id.edit(http, EditChannel::new().bitrate(kbps * 1000)).await?;
+    let msg =
+        actions::bitrate(http, channel_id, row, interaction.user.id, kbps).await?;
 
     interaction
-        .edit_response(
-            http,
-            EditInteractionResponse::new().content("Channel bitrate updated."),
-        )
+        .edit_response(http, EditInteractionResponse::new().content(msg))
         .await?;
 
     Ok(())
