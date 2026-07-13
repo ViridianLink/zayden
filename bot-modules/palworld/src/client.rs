@@ -9,7 +9,7 @@ use crate::breeding::BreedingIndex;
 use crate::error::{PalworldError, Result};
 use crate::model::{Item, Pal, PassiveSkill};
 use crate::source::SourceId;
-use crate::transport::{Fandom, PalDb, Paldex, PalworldGg};
+use crate::transport::{Fandom, PalCalc, PalDb, Paldex, PalworldGg};
 use crate::{merge, parse};
 
 const LONG_TTL: Duration = Duration::from_hours(8);
@@ -23,6 +23,7 @@ where
 }
 
 pub struct PalworldClient {
+    palcalc: PalCalc,
     paldex: Paldex,
     paldb: PalDb,
     palworldgg: PalworldGg,
@@ -41,8 +42,10 @@ impl PalworldClient {
         client: Client,
         flaresolverr_url: Option<String>,
         paldex_base: Option<String>,
+        palcalc_base: Option<String>,
     ) -> Self {
         Self {
+            palcalc: PalCalc::new(client.clone(), palcalc_base),
             paldex: Paldex::new(client.clone(), paldex_base),
             paldb: PalDb::new(client.clone(), flaresolverr_url.clone()),
             palworldgg: PalworldGg::new(client.clone(), flaresolverr_url),
@@ -59,8 +62,22 @@ impl PalworldClient {
         if let Some(cached) = self.pal_list_cache.get(&()).await {
             return Ok(cached);
         }
-        let raw = self.paldex.pals().await?;
-        let pals: Arc<[Pal]> = raw.into_iter().map(parse::pal_from_raw).collect();
+        let raw = self.palcalc.pals().await?;
+        let mut pals: Vec<Pal> =
+            raw.into_iter().map(parse::pal_from_palcalc).collect();
+
+        // Back-fill elements (PalCalc has none) from one cached palworld.gg
+        // index fetch, joined by URL slug. Best-effort: on failure the roster
+        // is still returned, just without elements.
+        if let Some(index) = self.palworldgg.elements_index().await {
+            for pal in &mut pals {
+                if let Some(elements) = index.get(&parse::gg_slug(&pal.name)) {
+                    pal.elements.clone_from(elements);
+                }
+            }
+        }
+
+        let pals: Arc<[Pal]> = pals.into();
         self.pal_list_cache.insert((), Arc::clone(&pals)).await;
         Ok(pals)
     }
@@ -83,19 +100,25 @@ impl PalworldClient {
     async fn enrich_pal(&self, base: Pal) -> Pal {
         let name = base.name.clone();
         let key = base.key.clone();
+        let slug = parse::gg_slug(&name);
 
         let (fandom, paldb, palworldgg) = tokio::join!(
             self.fandom.description(&name),
-            self.paldb.pal_description(&name),
-            self.palworldgg.pal_description(&key),
+            self.paldb.pal_details(&name),
+            self.palworldgg.pal_description(&slug),
         );
 
-        let mut candidates = vec![(SourceId::Paldex, base)];
-        for (source, desc) in [
-            (SourceId::Fandom, fandom),
-            (SourceId::PalDb, paldb),
-            (SourceId::PalworldGg, palworldgg),
-        ] {
+        let mut candidates = vec![(SourceId::PalCalc, base)];
+        candidates.push((SourceId::PalDb, Pal {
+            key: key.clone(),
+            name: name.clone(),
+            description: paldb.description,
+            image_url: paldb.image_url,
+            ..Pal::default()
+        }));
+        for (source, desc) in
+            [(SourceId::Fandom, fandom), (SourceId::PalworldGg, palworldgg)]
+        {
             if let Some(description) = desc {
                 candidates.push((source, Pal {
                     key: key.clone(),
@@ -168,7 +191,7 @@ impl PalworldClient {
         if let Some(cached) = self.breeding_cache.get(&()).await {
             return Ok(cached);
         }
-        let map = self.paldex.breeding().await?;
+        let map = self.palcalc.breeding().await?;
         let index = Arc::new(BreedingIndex::from_map(map));
         self.breeding_cache.insert((), Arc::clone(&index)).await;
         Ok(index)

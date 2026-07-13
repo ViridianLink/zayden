@@ -82,6 +82,9 @@ pub fn pal_from_raw(raw: RawPal) -> Pal {
         breeding_order: breeding.order,
         child_eligible: breeding.child_eligible,
         male_probability: breeding.male_probability,
+        min_wild_level: None,
+        max_wild_level: None,
+        nocturnal: false,
         image_url: nonempty(raw.image_wiki)
             .map(|u| u.trim_end_matches('/').to_string()),
         wiki_url: nonempty(raw.wiki),

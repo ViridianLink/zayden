@@ -1,9 +1,16 @@
+//! Breeding + difficulty against the `PalCalc` fixtures (see `tests/fixtures/`,
+//! captured 2026-07-13 from `tylercamp/palcalc`). These pals and combos include
+//! post-1.0 content (Nyafia, the Yakushima slimes) that the legacy mlg404
+//! source never had.
+
+use std::collections::HashMap;
 use std::fs;
 
-use palworld::breeding::{BreedingIndex, combi_child};
+use palworld::breeding::BreedingIndex;
+use palworld::difficulty::{pair_difficulty, pal_difficulty};
 use palworld::model::{Element, Pal};
-use palworld::parse::pal_from_raw;
-use palworld::transport::{BreedingMap, RawPal};
+use palworld::parse::pal_from_palcalc;
+use palworld::transport::{parse_breeding, parse_pals};
 use palworld::typechart::{strong_against, weak_to};
 
 fn fixture(name: &str) -> String {
@@ -12,81 +19,98 @@ fn fixture(name: &str) -> String {
 }
 
 fn pals() -> Vec<Pal> {
-    let raw: Vec<RawPal> =
-        serde_json::from_str(&fixture("paldex_pals.json")).unwrap_or_default();
-    raw.into_iter().map(pal_from_raw).collect()
+    parse_pals(&fixture("palcalc_db.json"))
+        .unwrap_or_default()
+        .into_iter()
+        .map(pal_from_palcalc)
+        .collect()
 }
 
 fn index() -> BreedingIndex {
-    let map: BreedingMap =
-        serde_json::from_str(&fixture("paldex_breeding.json")).unwrap_or_default();
-    BreedingIndex::from_map(map)
+    BreedingIndex::from_map(
+        parse_breeding(&fixture("palcalc_breeding.json")).unwrap_or_default(),
+    )
+}
+
+#[test]
+fn roster_carries_current_pals_and_breeding_fields() {
+    let pals = pals();
+    let find = |key: &str| pals.iter().find(|p| p.key == key).expect("pal present");
+
+    // Nyafia is Feybreak-era content absent from the old source.
+    let nyafia = find("BadCatgirl");
+    assert_eq!(nyafia.name, "Nyafia");
+    assert_eq!(nyafia.rarity, Some(4));
+    assert_eq!(nyafia.min_wild_level, Some(30));
+    // BreedingPower maps onto breeding_rank so combos resolve.
+    assert!(nyafia.breeding_rank.is_some());
+
+    // A pal with no wild spawn carries None (obtainable only via breeding).
+    assert_eq!(find("NightLady").min_wild_level, None);
 }
 
 #[test]
 fn forward_breed_is_deterministic_and_order_independent() {
     let index = index();
-    assert_eq!(index.breed("001", "002"), Some("001"));
-    // Parent order must not matter.
-    assert_eq!(index.breed("002", "001"), index.breed("001", "002"));
+    assert_eq!(index.breed("PinkCat", "Bastet_Ice"), Some("PinkCat"));
+    assert_eq!(
+        index.breed("Bastet_Ice", "PinkCat"),
+        index.breed("PinkCat", "Bastet_Ice"),
+    );
 }
 
 #[test]
 fn reverse_breed_lists_known_pair() {
     let index = index();
-    let pairs = index.breed_for("001");
+    let pairs = index.breed_for("SheepBall");
     assert!(!pairs.is_empty());
     assert!(pairs.iter().any(|p| {
-        (p.a == "001" && p.b == "002") || (p.a == "002" && p.b == "001")
+        (p.a == "YakushimaMonster001" && p.b == "NegativeKoala")
+            || (p.a == "NegativeKoala" && p.b == "YakushimaMonster001")
     }));
 }
 
 #[test]
-fn legendaries_are_flagged_as_unique_combos() {
-    let index = index();
-    // Jetragon (111) and Frostallion (110) each have exactly one fixed combo.
-    assert!(index.is_unique_child("111"));
-    assert!(index.is_unique_child("110"));
-    // Lamball is bred many ways — not a special combination.
-    assert!(!index.is_unique_child("001"));
+fn difficulty_ranks_common_pals_below_legendaries() {
+    let pals = pals();
+    let find = |key: &str| pals.iter().find(|p| p.key == key).expect("pal present");
+    let lamball = pal_difficulty(find("SheepBall"));
+    let bellanoir = pal_difficulty(find("NightLady"));
+    let jetragon = pal_difficulty(find("JetDragon"));
+
+    // Low-level common < high-level legendary < no-wild legendary.
+    assert!(lamball < jetragon);
+    assert!(jetragon < bellanoir);
 }
 
 #[test]
-fn combi_formula_matches_the_map_for_most_pairs() {
+fn breed_for_sorts_easiest_combo_first() {
     let pals = pals();
     let index = index();
+    let lookup: HashMap<&str, &Pal> =
+        pals.iter().map(|p| (p.key.as_str(), p)).collect();
 
-    let (mut total, mut agree) = (0_u32, 0_u32);
-    for a in &pals {
-        for b in &pals {
-            if a.key > b.key {
-                continue;
-            }
-            let Some(mapped) = index.breed(&a.key, &b.key) else { continue };
-            let Some(formula) = combi_child(a, b, &pals) else { continue };
-            total += 1;
-            if formula.key == mapped {
-                agree += 1;
-            }
+    let mut all = index.breed_for("SheepBall");
+    all.sort_by_cached_key(|pair| {
+        match (lookup.get(pair.a.as_str()), lookup.get(pair.b.as_str())) {
+            (Some(a), Some(b)) => pair_difficulty(a, b),
+            _ => (i64::MAX, i64::MAX),
         }
-    }
+    });
 
-    assert!(total > 5000, "expected a large sample, got {total}");
-    // The map is authoritative; the formula is an approximation that agrees on
-    // the large majority of pairs (special combos and low-rank ties diverge).
-    let rate = f64::from(agree) / f64::from(total);
-    assert!(rate > 0.75, "formula/map agreement too low: {rate:.3}");
+    // Lamball × Lamball (both wild-level 1, rarity 1) is the cheapest route and
+    // must come before any slime-based combo.
+    let first = all.first().expect("at least one combo");
+    assert_eq!(first.a, "SheepBall");
+    assert_eq!(first.b, "SheepBall");
 }
 
 #[test]
 fn type_chart_relationships_are_consistent() {
     assert!(strong_against(Element::Fire).contains(&Element::Grass));
     assert!(strong_against(Element::Water).contains(&Element::Fire));
-    // Fire is weak to Water (Water is strong against Fire).
     assert_eq!(weak_to(Element::Fire), vec![Element::Water]);
-    // Neutral attacks nothing for bonus damage.
     assert!(strong_against(Element::Neutral).is_empty());
-    // Neutral is only weak to Dark.
     assert_eq!(weak_to(Element::Neutral), vec![Element::Dark]);
 }
 

@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use reqwest::Client;
 
 use super::cloudflare::fetch_html;
+use crate::model::Element;
 use crate::parse;
 
 pub struct PalworldGg {
@@ -20,5 +23,17 @@ impl PalworldGg {
             .await
             .ok()?;
         parse::og_description(&html)
+    }
+
+    pub async fn elements_index(&self) -> Option<HashMap<String, Vec<Element>>> {
+        let html = fetch_html(
+            &self.client,
+            self.flaresolverr_url.as_deref(),
+            "https://palworld.gg/pals",
+        )
+        .await
+        .ok()?;
+        let index = parse::pal_elements_index(&html);
+        (!index.is_empty()).then_some(index)
     }
 }

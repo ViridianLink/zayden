@@ -96,6 +96,19 @@ pub fn pal(candidates: &[(SourceId, Pal)]) -> Option<Pal> {
         base.description = Some(desc);
     }
 
+    if base.elements.is_empty() {
+        base.elements = union_by_precedence(
+            candidates,
+            Category::Stats,
+            |p| p.elements.clone(),
+            |e| *e,
+        );
+    }
+    if base.image_url.is_none() {
+        base.image_url =
+            text(candidates, "image", Category::Lore, |p| p.image_url.clone());
+    }
+
     base.drops = union_by_precedence(
         candidates,
         Category::Drops,

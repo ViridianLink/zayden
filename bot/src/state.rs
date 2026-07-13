@@ -62,6 +62,7 @@ impl BotState {
             app.http.clone(),
             config.flaresolverr_url.clone(),
             config.palworld_paldex_url.clone(),
+            config.palworld_palcalc_url.clone(),
         ));
 
         Ok(Self {

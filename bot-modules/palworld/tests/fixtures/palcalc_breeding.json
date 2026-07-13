@@ -1,0 +1,291 @@
+{
+  "Breeding": [
+    {
+      "Parent1InternalName": "BadCatgirl",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "BadCatgirl",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "BadCatgirl"
+    },
+    {
+      "Parent1InternalName": "PinkCat",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "Bastet_Ice",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "PinkCat"
+    },
+    {
+      "Parent1InternalName": "PinkCat",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "PinkCat",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "PinkCat"
+    },
+    {
+      "Parent1InternalName": "IceHorse",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "IceHorse",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "IceHorse"
+    },
+    {
+      "Parent1InternalName": "Anubis",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "Anubis",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "Anubis"
+    },
+    {
+      "Parent1InternalName": "NegativeKoala",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "NegativeKoala",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "NegativeKoala"
+    },
+    {
+      "Parent1InternalName": "NightLady",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "NightLady",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "NightLady"
+    },
+    {
+      "Parent1InternalName": "SheepBall",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "SheepBall",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "SheepBall"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "NegativeKoala",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "SheepBall"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Blue",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "NegativeKoala",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "SheepBall"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "NegativeKoala",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "SheepBall"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Purple",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "NegativeKoala",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "SheepBall"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Pink",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "NegativeKoala",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "SheepBall"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "SheepBall",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Blue",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "SheepBall",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "SheepBall",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Purple",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "SheepBall",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Pink",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "SheepBall",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "ChickenPal",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "ChickenPal",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "ChickenPal",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Blue",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "ChickenPal",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "ChickenPal",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Purple",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "ChickenPal",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Pink",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "ChickenPal",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "ChickenPal"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Blue",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Blue"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Blue",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Blue",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Blue"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Red"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Red",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Red"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Purple",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Purple"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Blue",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Purple"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Purple",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Blue",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Purple"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Purple",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Purple"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Purple",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Purple",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Purple"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Pink",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Pink"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Pink",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Blue",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Pink"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Red",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Pink",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Pink"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Purple",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Pink",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Pink"
+    },
+    {
+      "Parent1InternalName": "YakushimaMonster001_Pink",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "YakushimaMonster001_Pink",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "YakushimaMonster001_Pink"
+    },
+    {
+      "Parent1InternalName": "Bastet_Ice",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "Bastet_Ice",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "Bastet_Ice"
+    },
+    {
+      "Parent1InternalName": "JetDragon",
+      "Parent1Gender": "WILDCARD",
+      "Parent2InternalName": "JetDragon",
+      "Parent2Gender": "WILDCARD",
+      "ChildInternalName": "JetDragon"
+    }
+  ]
+}

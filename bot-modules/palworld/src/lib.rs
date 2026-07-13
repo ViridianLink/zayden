@@ -2,6 +2,7 @@ pub mod autocomplete;
 pub mod breeding;
 pub mod client;
 pub mod commands;
+pub mod difficulty;
 pub mod embeds;
 pub mod error;
 pub mod merge;

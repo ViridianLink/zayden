@@ -133,6 +133,9 @@ pub struct Pal {
     pub breeding_order: Option<i64>,
     pub child_eligible: bool,
     pub male_probability: Option<f64>,
+    pub min_wild_level: Option<i64>,
+    pub max_wild_level: Option<i64>,
+    pub nocturnal: bool,
     pub image_url: Option<String>,
     pub wiki_url: Option<String>,
 }

@@ -5,8 +5,8 @@ use zayden_core::{InvocationCtx, required_option};
 
 use super::{find_pal, respond};
 use crate::client::PalworldClient;
+use crate::embeds;
 use crate::error::{PalworldError, Result};
-use crate::{breeding, embeds};
 
 pub(super) async fn run(
     cx: &InvocationCtx<'_>,
@@ -32,15 +32,13 @@ pub(super) async fn run(
 
     let index = client.breeding_index().await?;
 
-    let child_key = match index.breed(&a.key, &b.key) {
-        Some(key) => key.to_string(),
-        None => breeding::combi_child(a, b, &pals)
-            .map(|p| p.key.clone())
-            .ok_or_else(|| PalworldError::NotFound {
+    let child_key =
+        index.breed(&a.key, &b.key).map(str::to_string).ok_or_else(|| {
+            PalworldError::NotFound {
                 entity: "breeding result",
                 query: format!("{} × {}", a.name, b.name),
-            })?,
-    };
+            }
+        })?;
     let unique = index.is_unique_child(&child_key);
 
     let child = find_pal(&pals, &child_key).ok_or_else(|| {

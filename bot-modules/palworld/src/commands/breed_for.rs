@@ -5,8 +5,9 @@ use zayden_core::{InvocationCtx, required_option};
 
 use super::{find_pal, respond};
 use crate::client::PalworldClient;
-use crate::embeds;
 use crate::error::{PalworldError, Result};
+use crate::model::Pal;
+use crate::{difficulty, embeds};
 
 const MAX_PAIRS: usize = 25;
 
@@ -27,8 +28,17 @@ pub(super) async fn run(
     })?;
 
     let index = client.breeding_index().await?;
-    let all = index.breed_for(&target.key);
+    let mut all = index.breed_for(&target.key);
     let total = all.len();
+
+    let lookup: HashMap<&str, &Pal> =
+        pals.iter().map(|p| (p.key.as_str(), p)).collect();
+    all.sort_by_cached_key(|pair| {
+        match (lookup.get(pair.a.as_str()), lookup.get(pair.b.as_str())) {
+            (Some(a), Some(b)) => difficulty::pair_difficulty(a, b),
+            _ => (i64::MAX, i64::MAX),
+        }
+    });
 
     let display = |key: &str| -> String {
         find_pal(&pals, key).map_or_else(|| key.to_string(), |p| p.name.clone())

@@ -51,6 +51,8 @@ pub struct BotConfig {
 
     pub palworld_paldex_url: Option<String>,
 
+    pub palworld_palcalc_url: Option<String>,
+
     pub frontend_url: String,
     pub redirect_uri: String,
     pub bind_addr: String,
@@ -124,6 +126,8 @@ impl BotConfig {
             flaresolverr_url: env::var("FLARESOLVERR_URL").ok(),
 
             palworld_paldex_url: env::var("PALWORLD_PALDEX_URL").ok(),
+
+            palworld_palcalc_url: env::var("PALWORLD_PALCALC_URL").ok(),
 
             frontend_url: toml_cfg
                 .dashboard

@@ -2,6 +2,8 @@ use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceId {
+    /// <https://github.com/tylercamp/palcalc>
+    PalCalc,
     /// <https://github.com/mlg404/palworld-paldex-api>
     Paldex,
     /// <https://paldb.cc>
@@ -16,6 +18,7 @@ impl SourceId {
     #[must_use]
     pub const fn label(self) -> &'static str {
         match self {
+            Self::PalCalc => "PalCalc",
             Self::Paldex => "Paldex",
             Self::PalDb => "PalDB",
             Self::PalworldGg => "Palworld.gg",
@@ -45,17 +48,28 @@ impl Category {
     #[must_use]
     pub const fn precedence(self) -> &'static [SourceId] {
         match self {
-            Self::Stats
-            | Self::Breeding
-            | Self::Suitability
-            | Self::Items
-            | Self::Passives => {
+            Self::Stats | Self::Breeding | Self::Suitability => &[
+                SourceId::PalCalc,
+                SourceId::Paldex,
+                SourceId::PalDb,
+                SourceId::PalworldGg,
+            ],
+            Self::Items | Self::Passives => {
                 &[SourceId::Paldex, SourceId::PalDb, SourceId::PalworldGg]
             },
-            Self::Drops => {
-                &[SourceId::PalDb, SourceId::Paldex, SourceId::PalworldGg]
-            },
-            Self::Lore => &[SourceId::Fandom, SourceId::Paldex, SourceId::PalDb],
+            Self::Drops => &[
+                SourceId::PalDb,
+                SourceId::PalworldGg,
+                SourceId::Paldex,
+                SourceId::PalCalc,
+            ],
+            Self::Lore => &[
+                SourceId::Fandom,
+                SourceId::PalDb,
+                SourceId::PalworldGg,
+                SourceId::Paldex,
+                SourceId::PalCalc,
+            ],
         }
     }
 

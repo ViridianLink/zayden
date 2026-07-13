@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::model::{Pal, ParentPair};
+use crate::model::ParentPair;
 use crate::transport::BreedingMap;
 
 fn norm(a: &str, b: &str) -> (String, String) {
@@ -57,26 +57,4 @@ impl BreedingIndex {
     pub fn is_empty(&self) -> bool {
         self.forward.is_empty()
     }
-}
-
-#[must_use]
-pub fn combi_child<'a>(a: &Pal, b: &Pal, pals: &'a [Pal]) -> Option<&'a Pal> {
-    let (ra, rb) = (a.breeding_rank?, b.breeding_rank?);
-    let target = (ra + rb + 1) / 2;
-
-    pals.iter().filter(|p| p.child_eligible && p.breeding_rank.is_some()).min_by(
-        |x, y| {
-            let rx = x.breeding_rank.unwrap_or(i64::MAX);
-            let ry = y.breeding_rank.unwrap_or(i64::MAX);
-            (rx - target)
-                .abs()
-                .cmp(&(ry - target).abs())
-                .then_with(|| rx.cmp(&ry))
-                .then_with(|| {
-                    x.breeding_order
-                        .unwrap_or(i64::MAX)
-                        .cmp(&y.breeding_order.unwrap_or(i64::MAX))
-                })
-        },
-    )
 }
