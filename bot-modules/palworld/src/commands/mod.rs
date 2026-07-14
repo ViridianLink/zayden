@@ -100,14 +100,16 @@ impl Command {
         let roster = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "roster",
-            "Show a player's parsed Pals and genders",
+            "Pals and genders from a loaded world save (shared world or your own \
+             /palworld upload)",
         )
         .add_sub_option(player_option());
 
         let breed_plan = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "breed-plan",
-            "Cheapest breeding path from a player's roster to a target Pal",
+            "Cheapest breeding path to a target Pal from a loaded world save or \
+             your /palworld upload",
         )
         .add_sub_option(name_option_named("target", "Target Pal"))
         .add_sub_option(player_option());
@@ -115,7 +117,8 @@ impl Command {
         let upload = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "upload",
-            "Upload your own Level.sav to use as your private world",
+            "Upload your Level.sav (from your world's save folder) to use as \
+             your private world",
         );
 
         CreateCommand::new("palworld")

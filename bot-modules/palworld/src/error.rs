@@ -13,7 +13,15 @@ pub enum PalworldError {
     #[error("`{0}` isn't a known Palworld element.")]
     UnknownElement(String),
     #[error(
-        "You haven't linked a player. Use `/palworld link` or pass a `player:`."
+        "No world save is loaded, so there are no rosters to read. Upload your \
+         own with `/palworld upload`, or — on a shared/multiplayer world — ask \
+         whoever hosts the world to upload its `Level.sav`. A co-op client's \
+         `LocalData.sav` does not contain Pal data and can't be used."
+    )]
+    NoWorld,
+    #[error(
+        "You haven't linked a player. Use `/palworld link <name>`, pass a \
+         `player:`, or `/palworld upload` your own `Level.sav`."
     )]
     NotLinked,
 
@@ -47,11 +55,13 @@ impl Respond for PalworldError {
             Self::SourceUnavailable
             | Self::NotFound { .. }
             | Self::UnknownElement(_)
+            | Self::NoWorld
             | Self::NotLinked
             | Self::Upload(_) => Some(Cow::Owned(self.to_string())),
-            Self::Save(_) | Self::Gvas(_) | Self::Io(_) => {
-                Some(Cow::Borrowed("Couldn't read the world save."))
-            },
+            Self::Save(_) | Self::Gvas(_) | Self::Io(_) => Some(Cow::Borrowed(
+                "Couldn't read the world save. If it's your upload, re-upload a \
+                 fresh `Level.sav` with `/palworld upload`.",
+            )),
             Self::Pelican(_) => Some(Cow::Borrowed(
                 "Couldn't reach the game server to refresh the world save.",
             )),

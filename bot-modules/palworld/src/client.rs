@@ -219,9 +219,7 @@ impl PalworldClient {
     }
 
     pub async fn roster(&self) -> Result<Arc<WorldRoster>> {
-        let save_dir = self.save_dir.clone().ok_or_else(|| {
-            PalworldError::Save("no save directory configured".to_string())
-        })?;
+        let save_dir = self.save_dir.clone().ok_or(PalworldError::NoWorld)?;
         self.refresh_shared_if_stale().await;
         self.roster_from(SourceKey::Shared, &save_dir).await
     }

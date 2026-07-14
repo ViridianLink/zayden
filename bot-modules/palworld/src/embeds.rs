@@ -277,6 +277,12 @@ pub fn roster_component(
         }
     }
 
+    components.push(text(
+        "-# From the loaded `Level.sav` (party, Palbox, and base Pals). A co-op \
+         client save (`LocalData.sav`) has no Pal data."
+            .to_string(),
+    ));
+
     container(components)
 }
 
@@ -321,7 +327,9 @@ pub fn breed_plan_unreachable_component(target: &Pal) -> CreateComponent<'static
     container(vec![body_component(
         format!(
             "# Breeding Plan\nNo breeding path to **{}** from this roster.\n-# It \
-             may be catch-only, or its parents are unreachable.",
+             may be catch-only, or its parents aren't in the loaded save. If your \
+             Pals aren't in a `Level.sav`, an online breeding calculator lets you \
+             enter them by hand.",
             target.name
         ),
         target.image_url.as_deref(),
