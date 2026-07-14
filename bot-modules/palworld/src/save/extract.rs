@@ -15,6 +15,13 @@ use crate::model::{Gender, OwnedPal};
 pub struct ExtractedWorld {
     pub player_names: HashMap<String, String>,
     pub pals: HashMap<String, Vec<OwnedPal>>,
+    pub base_pals: Vec<BasePal>,
+}
+
+#[derive(Debug, Clone)]
+pub struct BasePal {
+    pub last_owner: String,
+    pub pal: OwnedPal,
 }
 
 pub fn extract(level: &GvasFile) -> Result<ExtractedWorld> {
@@ -63,23 +70,24 @@ pub fn extract(level: &GvasFile) -> Result<ExtractedWorld> {
             continue;
         }
 
-        let (Some(species), Some(owner)) =
-            (character_id(save_param), owner_uid(save_param))
-        else {
-            continue;
-        };
-
-        out.pals.entry(owner).or_default().push(OwnedPal {
+        let Some(species) = character_id(save_param) else { continue };
+        let pal = OwnedPal {
             species,
             gender: gender(save_param),
             nickname: nickname(save_param),
-        });
+        };
+
+        if let Some(owner) = owner_uid(save_param) {
+            out.pals.entry(owner).or_default().push(pal);
+        } else if let Some(last_owner) = old_owner_last(save_param) {
+            out.base_pals.push(BasePal { last_owner, pal });
+        }
     }
 
     Ok(out)
 }
 
-const fn struct_fields(
+pub(crate) const fn struct_fields(
     prop: &Property,
 ) -> Option<&HashableIndexMap<String, Vec<Property>>> {
     let value = if let Property::StructProperty(s) = prop {
@@ -92,7 +100,7 @@ const fn struct_fields(
     if let StructPropertyValue::CustomStruct(m) = value { Some(m) } else { None }
 }
 
-fn custom_struct(
+pub(crate) fn custom_struct(
     prop: Option<&Property>,
 ) -> Option<&HashableIndexMap<String, Vec<Property>>> {
     struct_fields(prop?)
@@ -106,7 +114,7 @@ fn as_map(prop: &Property) -> Result<&MapProperty> {
     }
 }
 
-fn field<'a>(
+pub(crate) fn field<'a>(
     fields: &'a HashableIndexMap<String, Vec<Property>>,
     name: &str,
 ) -> Option<&'a Property> {
@@ -144,6 +152,20 @@ fn gender(fields: &HashableIndexMap<String, Vec<Property>>) -> Gender {
 fn owner_uid(fields: &HashableIndexMap<String, Vec<Property>>) -> Option<String> {
     let bytes = guid_bytes(field(fields, "OwnerPlayerUId")?)?;
     (bytes != [0u8; 16]).then(|| hex_upper(&bytes))
+}
+
+fn old_owner_last(
+    fields: &HashableIndexMap<String, Vec<Property>>,
+) -> Option<String> {
+    let Property::ArrayProperty(ArrayProperty::Structs { structs, .. }) =
+        field(fields, "OldOwnerPlayerUIds")?
+    else {
+        return None;
+    };
+    let StructPropertyValue::Guid(Guid(bytes)) = structs.last()? else {
+        return None;
+    };
+    (*bytes != [0u8; 16]).then(|| hex_upper(bytes))
 }
 
 fn key_player_uid(key: &Property) -> Option<String> {

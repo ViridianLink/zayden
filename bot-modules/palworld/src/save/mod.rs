@@ -1,19 +1,14 @@
-//! World-save parsing: decompress `Level.sav`, walk its Pal map, and merge
-//! with the `Players/` directory into a [`WorldRoster`].
-//!
-//! [`load_world`] is the only public entry point. It performs blocking file IO
-//! and CPU-heavy decompression/parsing, so callers must run it off the async
-//! runtime (see `client::PalworldClient::roster`).
-
 pub mod decompress;
 pub mod extract;
+pub mod guild;
 pub mod gvas;
 pub mod palmap;
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use crate::error::Result;
-use crate::model::{PlayerRoster, WorldRoster};
+use crate::model::{OwnedPal, PlayerRoster, WorldRoster};
 
 pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
     let level_path = save_dir.join("Level.sav");
@@ -21,13 +16,32 @@ pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
     let decompressed = decompress::decompress(&raw)?;
     let level = gvas::read_gvas(&decompressed)?;
     let extracted = extract::extract(&level)?;
+    let guilds = guild::decode_guilds(&level);
 
-    let mut uids: Vec<String> = extracted
-        .player_names
-        .keys()
-        .chain(extracted.pals.keys())
-        .cloned()
-        .collect();
+    let mut pals_by_uid: HashMap<String, Vec<OwnedPal>> = extracted.pals;
+
+    for base in &extracted.base_pals {
+        match guilds.guild_of(&base.last_owner) {
+            Some(gid) => {
+                for member in guilds.members(gid) {
+                    pals_by_uid
+                        .entry(member.clone())
+                        .or_default()
+                        .push(base.pal.clone());
+                }
+            },
+            None => {
+                pals_by_uid
+                    .entry(base.last_owner.clone())
+                    .or_default()
+                    .push(base.pal.clone());
+            },
+        }
+    }
+
+    let mut uids: Vec<String> = extracted.player_names.keys().cloned().collect();
+    uids.extend(pals_by_uid.keys().cloned());
+    uids.extend(guilds.all_members().cloned());
     uids.extend(player_dir_uids(save_dir));
     uids.sort_unstable();
     uids.dedup();
@@ -40,7 +54,7 @@ pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
                 .get(&uid)
                 .cloned()
                 .unwrap_or_else(|| uid.clone());
-            let pals = extracted.pals.get(&uid).cloned().unwrap_or_default();
+            let pals = pals_by_uid.get(&uid).cloned().unwrap_or_default();
             PlayerRoster { uid, name, pals }
         })
         .collect();
