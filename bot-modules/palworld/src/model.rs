@@ -171,3 +171,62 @@ pub struct ParentPair {
     pub a: String,
     pub b: String,
 }
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub enum Gender {
+    Male,
+    Female,
+    #[default]
+    Unknown,
+}
+
+impl Gender {
+    #[must_use]
+    pub fn parse(raw: &str) -> Self {
+        match raw.rsplit("::").next().unwrap_or(raw) {
+            "Male" => Self::Male,
+            "Female" => Self::Female,
+            _ => Self::Unknown,
+        }
+    }
+
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Male => "Male",
+            Self::Female => "Female",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OwnedPal {
+    pub species: String,
+    pub gender: Gender,
+    pub nickname: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayerRoster {
+    pub uid: String,
+    pub name: String,
+    pub pals: Vec<OwnedPal>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct WorldRoster {
+    pub players: Vec<PlayerRoster>,
+}
+
+impl WorldRoster {
+    #[must_use]
+    pub fn by_uid(&self, uid: &str) -> Option<&PlayerRoster> {
+        self.players.iter().find(|p| p.uid == uid)
+    }
+
+    #[must_use]
+    pub fn by_name(&self, name: &str) -> Option<&PlayerRoster> {
+        self.players.iter().find(|p| p.name.eq_ignore_ascii_case(name))
+    }
+}

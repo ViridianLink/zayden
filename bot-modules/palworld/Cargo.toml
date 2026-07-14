@@ -7,13 +7,11 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-# These crates are added here so the milestone that introduces them lands in one
-# place, but they are only *used* in later milestones of the save-parsing feature
-# (oozextract/gvas/flate2 in the `save/` submodule, sqlx in `link.rs`). Until then
-# `cargo machete` would flag them as unused; ignore them here and prune this list
-# as each dep is wired up.
+# `sqlx` is added ahead of use (link persistence, M5) so the dependency lands in
+# one place; `cargo machete` would otherwise flag it as unused until then. Prune
+# this list once each dep is wired up.
 [package.metadata.cargo-machete]
-ignored = ["oozextract", "gvas", "flate2", "sqlx"]
+ignored = ["sqlx"]
 
 [dependencies]
 zayden-core = { workspace = true }
