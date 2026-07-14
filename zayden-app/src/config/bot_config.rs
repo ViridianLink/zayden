@@ -1,5 +1,5 @@
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -18,6 +18,8 @@ const DEFAULT_AI_MODEL: &str = "google/gemma-4-31b-it:free";
 const DEFAULT_FRONTEND_URL: &str = "http://localhost:5173";
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
+
+const DEFAULT_PALWORLD_SAVE_DIR: &str = "056C426C55974CFCA115EB695A224F67";
 
 #[derive(Debug, Clone)]
 pub struct SpotifyCredentials {
@@ -52,6 +54,8 @@ pub struct BotConfig {
     pub palworld_paldex_url: Option<String>,
 
     pub palworld_palcalc_url: Option<String>,
+
+    pub palworld_save_dir: Option<PathBuf>,
 
     pub frontend_url: String,
     pub redirect_uri: String,
@@ -128,6 +132,11 @@ impl BotConfig {
             palworld_paldex_url: env::var("PALWORLD_PALDEX_URL").ok(),
 
             palworld_palcalc_url: env::var("PALWORLD_PALCALC_URL").ok(),
+
+            palworld_save_dir: Some(env::var("PALWORLD_SAVE_DIR").map_or_else(
+                |_| PathBuf::from(DEFAULT_PALWORLD_SAVE_DIR),
+                PathBuf::from,
+            )),
 
             frontend_url: toml_cfg
                 .dashboard

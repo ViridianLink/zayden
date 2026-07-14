@@ -1,4 +1,5 @@
 use std::hash::Hash;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -43,6 +44,7 @@ impl PalworldClient {
         flaresolverr_url: Option<String>,
         paldex_base: Option<String>,
         palcalc_base: Option<String>,
+        _save_dir: Option<PathBuf>,
     ) -> Self {
         Self {
             palcalc: PalCalc::new(client.clone(), palcalc_base),

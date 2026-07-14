@@ -18,6 +18,13 @@ pub enum PalworldError {
     #[error("failed to parse source content: {0}")]
     Parse(String),
 
+    #[error("failed to read world save: {0}")]
+    Save(String),
+    #[error("failed to parse GVAS save data: {0}")]
+    Gvas(String),
+
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
     #[error("network error: {0}")]
     Reqwest(#[from] reqwest::Error),
     #[error("discord error: {0}")]
@@ -30,6 +37,9 @@ impl Respond for PalworldError {
             Self::SourceUnavailable
             | Self::NotFound { .. }
             | Self::UnknownElement(_) => Some(Cow::Owned(self.to_string())),
+            Self::Save(_) | Self::Gvas(_) | Self::Io(_) => {
+                Some(Cow::Borrowed("Couldn't read the world save."))
+            },
             Self::FlareSolverr(_)
             | Self::Parse(_)
             | Self::Reqwest(_)
