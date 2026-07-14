@@ -208,6 +208,21 @@ pub struct OwnedPal {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BreedStep {
+    pub pair: ParentPair,
+    pub child: String,
+    pub ready: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct BreedPlan {
+    pub target: String,
+    pub steps: Vec<BreedStep>,
+    pub total_cost: i64,
+    pub leaves_to_obtain: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlayerRoster {
     pub uid: String,
     pub name: String,
