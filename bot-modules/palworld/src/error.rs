@@ -12,6 +12,10 @@ pub enum PalworldError {
     NotFound { entity: &'static str, query: String },
     #[error("`{0}` isn't a known Palworld element.")]
     UnknownElement(String),
+    #[error(
+        "You haven't linked a player. Use `/palworld link` or pass a `player:`."
+    )]
+    NotLinked,
 
     #[error("FlareSolverr error: {0}")]
     FlareSolverr(String),
@@ -38,7 +42,8 @@ impl Respond for PalworldError {
         match self {
             Self::SourceUnavailable
             | Self::NotFound { .. }
-            | Self::UnknownElement(_) => Some(Cow::Owned(self.to_string())),
+            | Self::UnknownElement(_)
+            | Self::NotLinked => Some(Cow::Owned(self.to_string())),
             Self::Save(_) | Self::Gvas(_) | Self::Io(_) => {
                 Some(Cow::Borrowed("Couldn't read the world save."))
             },

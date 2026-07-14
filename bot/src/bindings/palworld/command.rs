@@ -29,7 +29,7 @@ impl ModuleCommand for Palworld {
         let client = Arc::clone(&guard.palworld);
         drop(guard);
 
-        PalworldCommand::run(cx, &client).await?;
+        PalworldCommand::run(cx, &client, &cx.app.db).await?;
         Ok(())
     }
 }

@@ -16,6 +16,8 @@ use serenity::all::{
 
 use crate::model::{Element, Item, Pal, PassiveSkill};
 
+const MAX_LEAVES: usize = 25;
+
 const ACCENT: Colour = Colour::from_rgb(0x35, 0xc7, 0x59);
 
 fn separator() -> CreateContainerComponent<'static> {
@@ -226,6 +228,107 @@ pub fn passive_component(skill: &PassiveSkill) -> CreateComponent<'static> {
     }
 
     container(vec![text(body)])
+}
+
+pub fn link_component(name: &str, owned: usize) -> CreateComponent<'static> {
+    container(vec![text(format!(
+        "# 🔗 Linked\nYour Discord account is now linked to **{name}** \
+         ({owned} breedable Pals).\n-# `/palworld breed-plan` and `/palworld \
+         roster` now default to this player."
+    ))])
+}
+
+pub fn unlink_component() -> CreateComponent<'static> {
+    container(vec![text(
+        "# Unlinked\nRemoved your in-game player link.".to_string(),
+    )])
+}
+
+pub fn link_error_component(
+    query: &str,
+    names: &[&str],
+) -> CreateComponent<'static> {
+    let mut body = format!("# Player not found\nNo player named **{query}** in the loaded world.");
+    if names.is_empty() {
+        let _ = write!(body, "\n-# No players are loaded from the save.");
+    } else {
+        let _ = write!(body, "\n**Available:** {}", names.join(", "));
+    }
+    container(vec![text(body)])
+}
+
+pub fn roster_component(
+    player: &str,
+    total: usize,
+    lines: &[String],
+    hidden: usize,
+) -> CreateComponent<'static> {
+    let body = format!("# {player}\n-# {total} breedable Pals");
+    let mut components = vec![text(body), separator()];
+
+    if lines.is_empty() {
+        components.push(text("*No recognised Pals in this roster.*".to_string()));
+    } else {
+        components.push(labelled_list("Species", lines));
+        if hidden > 0 {
+            components.push(text(format!("-# +{hidden} more species not shown.")));
+        }
+    }
+
+    container(components)
+}
+
+pub fn breed_plan_component(
+    target: &Pal,
+    steps: &[String],
+    leaves: &[String],
+    total_cost: i64,
+) -> CreateComponent<'static> {
+    let body = format!(
+        "# Breeding Plan\nCheapest path to **{}**\n-# Cost score {total_cost} • \
+         ✅ ready now · ⏳ still needs a pair",
+        target.name
+    );
+
+    let mut components =
+        vec![body_component(body, target.image_url.as_deref()), separator()];
+
+    if steps.is_empty() {
+        components.push(text(format!(
+            "**{}** is already in the roster — no breeding needed.",
+            target.name
+        )));
+    } else {
+        components.push(labelled_list("Steps (parents → child)", steps));
+    }
+
+    if !leaves.is_empty() {
+        let shown: Vec<String> = leaves
+            .iter()
+            .take(MAX_LEAVES)
+            .map(|name| format!("- {name}"))
+            .collect();
+        components.push(labelled_list("Still to obtain", &shown));
+        if leaves.len() > shown.len() {
+            components.push(text(format!(
+                "-# +{} more.",
+                leaves.len() - shown.len()
+            )));
+        }
+    }
+
+    container(components)
+}
+
+pub fn breed_plan_unreachable_component(target: &Pal) -> CreateComponent<'static> {
+    container(vec![body_component(
+        format!(
+            "# Breeding Plan\nNo breeding path to **{}** from this roster.\n-# It \
+             may be catch-only, or its parents are unreachable.",
+            target.name
+        ),
+        target.image_url.as_deref(),
+    )])
 }
 
 pub fn type_component(

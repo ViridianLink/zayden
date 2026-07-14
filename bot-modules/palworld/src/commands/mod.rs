@@ -1,8 +1,11 @@
 mod breed_for;
+mod breed_plan;
 mod breeding;
 mod item;
+mod link;
 mod pal;
 mod passive;
+mod roster;
 mod type_chart;
 
 use serenity::all::{
@@ -13,11 +16,13 @@ use serenity::all::{
     EditInteractionResponse,
     MessageFlags,
 };
-use zayden_core::{InvocationCtx, parse_options, parse_subcommand};
+use sqlx::PgPool;
+use zayden_core::{InvocationCtx, as_i64, parse_options, parse_subcommand};
 
 use crate::client::PalworldClient;
 use crate::error::{PalworldError, Result};
-use crate::model::{Element, Pal};
+use crate::link::PlayerLink;
+use crate::model::{Element, Pal, PlayerRoster};
 
 pub struct Command;
 
@@ -76,6 +81,34 @@ impl Command {
         )
         .add_sub_option(element_option);
 
+        let link = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "link",
+            "Link your Discord account to your in-game player",
+        )
+        .add_sub_option(name_option_named("name", "Your in-game player name"));
+
+        let unlink = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "unlink",
+            "Remove your in-game player link",
+        );
+
+        let roster = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "roster",
+            "Show a player's parsed Pals and genders",
+        )
+        .add_sub_option(player_option());
+
+        let breed_plan = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "breed-plan",
+            "Cheapest breeding path from a player's roster to a target Pal",
+        )
+        .add_sub_option(name_option_named("target", "Target Pal"))
+        .add_sub_option(player_option());
+
         CreateCommand::new("palworld")
             .description(
                 "Palworld guide: Pals, breeding, items, passives, and types",
@@ -86,9 +119,17 @@ impl Command {
             .add_option(item)
             .add_option(passive)
             .add_option(type_chart)
+            .add_option(link)
+            .add_option(unlink)
+            .add_option(roster)
+            .add_option(breed_plan)
     }
 
-    pub async fn run(cx: &InvocationCtx<'_>, client: &PalworldClient) -> Result<()> {
+    pub async fn run(
+        cx: &InvocationCtx<'_>,
+        client: &PalworldClient,
+        pool: &PgPool,
+    ) -> Result<()> {
         let (name, sub_options) = parse_subcommand(cx.interaction.data.options())
             .map_err(PalworldError::from)?;
 
@@ -103,11 +144,51 @@ impl Command {
             "item" => item::run(cx, client, parse_options(sub_options)).await,
             "passive" => passive::run(cx, client, parse_options(sub_options)).await,
             "type" => type_chart::run(cx, client, parse_options(sub_options)).await,
+            "link" => link::link(cx, client, pool, parse_options(sub_options)).await,
+            "unlink" => link::unlink(cx, pool).await,
+            "roster" => {
+                roster::run(cx, client, pool, parse_options(sub_options)).await
+            },
+            "breed-plan" => {
+                breed_plan::run(cx, client, pool, parse_options(sub_options)).await
+            },
             _ => Err(PalworldError::NotFound {
                 entity: "subcommand",
                 query: name.to_string(),
             }),
         }
+    }
+}
+
+fn player_option() -> CreateCommandOption<'static> {
+    CreateCommandOption::new(
+        CommandOptionType::String,
+        "player",
+        "In-game player (defaults to your linked player)",
+    )
+    .set_autocomplete(true)
+}
+
+pub(crate) async fn resolve_player(
+    cx: &InvocationCtx<'_>,
+    client: &PalworldClient,
+    pool: &PgPool,
+    player: Option<&str>,
+) -> Result<PlayerRoster> {
+    let roster = client.roster().await?;
+
+    if let Some(name) = player {
+        return roster.by_name(name).cloned().ok_or_else(|| {
+            PalworldError::NotFound { entity: "player", query: name.to_string() }
+        });
+    }
+
+    let discord_id = as_i64(cx.interaction.user.id.get());
+    match PlayerLink::select(pool, discord_id).await? {
+        Some(link) => roster.by_uid(&link.player_uid).cloned().ok_or_else(|| {
+            PalworldError::NotFound { entity: "player", query: link.in_game_name }
+        }),
+        None => Err(PalworldError::NotLinked),
     }
 }
 
