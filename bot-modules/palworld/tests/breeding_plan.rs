@@ -137,14 +137,56 @@ fn returns_none_when_target_unreachable() {
 }
 
 #[test]
-fn owned_target_costs_nothing() {
-    let index = index(&[("C", &[("A", "B")])]);
-    let owned = vec![pal("C", Gender::Male)];
+fn owned_target_both_genders_breeds_from_itself() {
+    // Self-pair recipe present and both genders owned → just pair them up.
+    let index = index(&[("C", &[("C", "C"), ("A", "B")])]);
+    let owned = vec![pal("C", Gender::Male), pal("C", Gender::Female)];
     let base = base_costs(&[("A", 5), ("B", 5), ("C", 50)]);
 
     let plan = index.plan(&owned, "C", &base).expect("owned");
 
-    assert_eq!(plan.total_cost, 0);
-    assert!(plan.steps.is_empty(), "already own it — nothing to breed");
+    assert_eq!(plan.total_cost, 1);
+    let step = plan.steps.first().expect("one step");
+    assert_eq!(step.child, "C");
+    assert_eq!([step.pair.a.as_str(), step.pair.b.as_str()], ["C", "C"]);
+    assert!(step.ready, "own both genders — the self-pair is ready");
+    assert!(plan.leaves_to_obtain.is_empty());
+}
+
+#[test]
+fn owned_target_single_gender_uses_another_combination() {
+    // Only a male C owned, so C × C can't fire — fall back to the A × B route.
+    let index = index(&[("C", &[("C", "C"), ("A", "B")])]);
+    let owned = vec![
+        pal("C", Gender::Male),
+        pal("A", Gender::Male),
+        pal("B", Gender::Female),
+    ];
+    let base = base_costs(&[("A", 5), ("B", 5), ("C", 50)]);
+
+    let plan = index.plan(&owned, "C", &base).expect("owned");
+
+    assert_eq!(plan.total_cost, 1, "owned A + B are free, one breed step");
+    let step = plan.steps.last().expect("final step");
+    assert_eq!(step.child, "C");
+    let got = [step.pair.a.as_str(), step.pair.b.as_str()];
+    assert!(got == ["A", "B"] || got == ["B", "A"], "chose {got:?}");
+    assert!(step.ready, "opposite-gender A + B are ready");
+    assert!(plan.leaves_to_obtain.is_empty());
+}
+
+#[test]
+fn owned_target_single_gender_self_pair_only_is_pending() {
+    // No alternative recipe: show the self-pair, flagged not-ready.
+    let index = index(&[("C", &[("C", "C")])]);
+    let owned = vec![pal("C", Gender::Male)];
+    let base = base_costs(&[("C", 50)]);
+
+    let plan = index.plan(&owned, "C", &base).expect("owned");
+
+    assert_eq!(plan.total_cost, 1);
+    let step = plan.steps.first().expect("one step");
+    assert_eq!([step.pair.a.as_str(), step.pair.b.as_str()], ["C", "C"]);
+    assert!(!step.ready, "single gender can't self-breed yet");
     assert!(plan.leaves_to_obtain.is_empty());
 }

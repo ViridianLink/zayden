@@ -297,7 +297,7 @@ pub fn breed_plan_component(
 
     if steps.is_empty() {
         components.push(text(format!(
-            "**{}** is already in the roster — no breeding needed.",
+            "**{}** is cheapest caught directly — no breeding required.",
             target.name
         )));
     } else {

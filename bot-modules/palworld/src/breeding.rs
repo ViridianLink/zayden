@@ -144,66 +144,150 @@ impl BreedingIndex {
             }
         }
 
-        let &total_cost = finalized.get(target)?;
-
-        let mut order: Vec<&str> = Vec::new();
-        let mut leaves: Vec<&str> = Vec::new();
-        let mut visited: HashSet<&str> = HashSet::new();
-        let mut stack: Vec<(&str, bool)> = vec![(target, false)];
-        let mut ops = 0usize;
-        while let Some((node, expanded)) = stack.pop() {
-            ops += 1;
-            if ops > MAX_RECONSTRUCT_OPS {
-                return None;
-            }
-            if expanded {
-                order.push(node);
-                continue;
-            }
-            if !visited.insert(node) {
-                continue;
-            }
-            match via.get(node) {
-                Some(&Some((a, b))) => {
-                    stack.push((node, true));
-                    stack.push((a, false));
-                    if b != a {
-                        stack.push((b, false));
-                    }
-                },
-                _ => {
-                    if !owned_species.contains(node) {
-                        leaves.push(node);
-                    }
-                },
-            }
-        }
-
         let ready = |a: &str, b: &str| -> bool {
             let ga = genders.get(a).copied().unwrap_or((false, false));
             let gb = genders.get(b).copied().unwrap_or((false, false));
             if a == b { ga.0 && ga.1 } else { (ga.0 && gb.1) || (ga.1 && gb.0) }
         };
 
-        let steps = order
-            .iter()
-            .filter_map(|&node| {
-                let Some(&Some((a, b))) = via.get(node) else {
-                    return None;
-                };
-                Some(BreedStep {
-                    pair: ParentPair { a: a.to_string(), b: b.to_string() },
-                    child: node.to_string(),
-                    ready: ready(a, b),
-                })
-            })
-            .collect();
+        if owned_species.contains(target) {
+            return self.plan_extra_copy(
+                target,
+                genders.get(target).copied().unwrap_or((false, false)),
+                &finalized,
+                &via,
+                &owned_species,
+                &ready,
+            );
+        }
+
+        let &total_cost = finalized.get(target)?;
+        let (order, leaves) = reconstruct(&via, &owned_species, &[target])?;
 
         Some(BreedPlan {
             target: target.to_string(),
-            steps,
+            steps: build_steps(&order, &via, &ready),
             total_cost,
             leaves_to_obtain: leaves.iter().map(|s| (*s).to_string()).collect(),
         })
     }
+
+    fn plan_extra_copy<'a>(
+        &'a self,
+        target: &'a str,
+        owned_genders: (bool, bool),
+        finalized: &HashMap<&'a str, i64>,
+        via: &HashMap<&'a str, Option<(&'a str, &'a str)>>,
+        owned_species: &HashSet<&'a str>,
+        ready: &impl Fn(&str, &str) -> bool,
+    ) -> Option<BreedPlan> {
+        let (has_male, has_female) = owned_genders;
+        let has_self = self.breed(target, target) == Some(target);
+
+        let self_step = |ready: bool| BreedPlan {
+            target: target.to_string(),
+            steps: vec![BreedStep {
+                pair: ParentPair { a: target.to_string(), b: target.to_string() },
+                child: target.to_string(),
+                ready,
+            }],
+            total_cost: BREED_STEP,
+            leaves_to_obtain: Vec::new(),
+        };
+
+        if has_self && has_male && has_female {
+            return Some(self_step(true));
+        }
+
+        let best = self
+            .reverse
+            .get(target)?
+            .iter()
+            .filter(|pair| !(pair[0] == target && pair[1] == target))
+            .filter_map(|pair| {
+                let (a, b) = (pair[0].as_str(), pair[1].as_str());
+                let cost = finalized.get(a)? + finalized.get(b)? + BREED_STEP;
+                Some((cost, a, b))
+            })
+            .min();
+
+        if let Some((total_cost, a, b)) = best {
+            let (order, leaves) = reconstruct(via, owned_species, &[a, b])?;
+            let mut steps = build_steps(&order, via, ready);
+            steps.push(BreedStep {
+                pair: ParentPair { a: a.to_string(), b: b.to_string() },
+                child: target.to_string(),
+                ready: ready(a, b),
+            });
+            return Some(BreedPlan {
+                target: target.to_string(),
+                steps,
+                total_cost,
+                leaves_to_obtain: leaves.iter().map(|s| (*s).to_string()).collect(),
+            });
+        }
+
+        has_self.then(|| self_step(false))
+    }
+}
+
+fn reconstruct<'a>(
+    via: &HashMap<&'a str, Option<(&'a str, &'a str)>>,
+    owned_species: &HashSet<&'a str>,
+    roots: &[&'a str],
+) -> Option<(Vec<&'a str>, Vec<&'a str>)> {
+    let mut order: Vec<&str> = Vec::new();
+    let mut leaves: Vec<&str> = Vec::new();
+    let mut visited: HashSet<&str> = HashSet::new();
+    let mut stack: Vec<(&str, bool)> =
+        roots.iter().rev().map(|&r| (r, false)).collect();
+    let mut ops = 0usize;
+    while let Some((node, expanded)) = stack.pop() {
+        ops += 1;
+        if ops > MAX_RECONSTRUCT_OPS {
+            return None;
+        }
+        if expanded {
+            order.push(node);
+            continue;
+        }
+        if !visited.insert(node) {
+            continue;
+        }
+        match via.get(node) {
+            Some(&Some((a, b))) => {
+                stack.push((node, true));
+                stack.push((a, false));
+                if b != a {
+                    stack.push((b, false));
+                }
+            },
+            _ => {
+                if !owned_species.contains(node) {
+                    leaves.push(node);
+                }
+            },
+        }
+    }
+    Some((order, leaves))
+}
+
+fn build_steps<'a>(
+    order: &[&'a str],
+    via: &HashMap<&'a str, Option<(&'a str, &'a str)>>,
+    ready: &impl Fn(&str, &str) -> bool,
+) -> Vec<BreedStep> {
+    order
+        .iter()
+        .filter_map(|&node| {
+            let Some(&Some((a, b))) = via.get(node) else {
+                return None;
+            };
+            Some(BreedStep {
+                pair: ParentPair { a: a.to_string(), b: b.to_string() },
+                child: node.to_string(),
+                ready: ready(a, b),
+            })
+        })
+        .collect()
 }
