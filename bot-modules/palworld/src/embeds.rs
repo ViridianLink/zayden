@@ -248,7 +248,9 @@ pub fn link_error_component(
     query: &str,
     names: &[&str],
 ) -> CreateComponent<'static> {
-    let mut body = format!("# Player not found\nNo player named **{query}** in the loaded world.");
+    let mut body = format!(
+        "# Player not found\nNo player named **{query}** in the loaded world."
+    );
     if names.is_empty() {
         let _ = write!(body, "\n-# No players are loaded from the save.");
     } else {
@@ -286,7 +288,7 @@ pub fn breed_plan_component(
 ) -> CreateComponent<'static> {
     let body = format!(
         "# Breeding Plan\nCheapest path to **{}**\n-# Cost score {total_cost} • \
-         ✅ ready now · ⏳ still needs a pair",
+         ✅ ready now · ⏳ still needs a pair · 📥 not owned — obtain",
         target.name
     );
 
@@ -303,17 +305,12 @@ pub fn breed_plan_component(
     }
 
     if !leaves.is_empty() {
-        let shown: Vec<String> = leaves
-            .iter()
-            .take(MAX_LEAVES)
-            .map(|name| format!("- {name}"))
-            .collect();
+        let shown: Vec<String> =
+            leaves.iter().take(MAX_LEAVES).map(|name| format!("- {name}")).collect();
         components.push(labelled_list("Still to obtain", &shown));
         if leaves.len() > shown.len() {
-            components.push(text(format!(
-                "-# +{} more.",
-                leaves.len() - shown.len()
-            )));
+            components
+                .push(text(format!("-# +{} more.", leaves.len() - shown.len())));
         }
     }
 

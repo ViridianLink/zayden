@@ -246,12 +246,20 @@ impl PalworldClient {
             return Ok(cached);
         }
 
-        let dir = dir.to_path_buf();
-        let roster = tokio::task::spawn_blocking(move || save::load_world(&dir))
-            .await
-            .map_err(|e| {
-                PalworldError::Save(format!("save parse task failed: {e}"))
-            })??;
+        let load_dir = dir.to_path_buf();
+        let roster =
+            tokio::task::spawn_blocking(move || save::load_world(&load_dir))
+                .await
+                .map_err(|e| {
+                    PalworldError::Save(format!("save parse task failed: {e}"))
+                })?
+                .inspect_err(|e| {
+                    tracing::error!(
+                        error = %e,
+                        dir = %dir.display(),
+                        "failed to read world save",
+                    );
+                })?;
 
         let roster = Arc::new(roster);
         self.roster_cache.insert((key, mtime), Arc::clone(&roster)).await;
@@ -300,11 +308,18 @@ impl PalworldClient {
         let bytes = pelican.download_level().await?;
 
         let save_dir = save_dir.to_path_buf();
-        tokio::task::spawn_blocking(move || write_level_atomic(&save_dir, &bytes))
-            .await
-            .map_err(|e| {
-                PalworldError::Pelican(format!("save write task failed: {e}"))
-            })??;
+        tokio::task::spawn_blocking(move || {
+            save::validate_level(&bytes).map_err(|e| {
+                PalworldError::Pelican(format!(
+                    "downloaded save failed validation, keeping last local save: {e}"
+                ))
+            })?;
+            write_level_atomic(&save_dir, &bytes)
+        })
+        .await
+        .map_err(|e| {
+            PalworldError::Pelican(format!("save write task failed: {e}"))
+        })??;
 
         Ok(())
     }
@@ -319,6 +334,7 @@ fn local_mtime_secs(level_path: &Path) -> i64 {
 }
 
 fn write_level_atomic(save_dir: &Path, bytes: &[u8]) -> Result<()> {
+    std::fs::create_dir_all(save_dir)?;
     let tmp = save_dir.join("Level.sav.tmp");
     let final_path = save_dir.join("Level.sav");
     std::fs::write(&tmp, bytes)?;

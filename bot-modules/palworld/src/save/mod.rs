@@ -10,6 +10,12 @@ use std::path::Path;
 use crate::error::Result;
 use crate::model::{OwnedPal, PlayerRoster, WorldRoster};
 
+pub fn validate_level(raw: &[u8]) -> Result<()> {
+    let decompressed = decompress::decompress(raw)?;
+    gvas::read_gvas(&decompressed)?;
+    Ok(())
+}
+
 pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
     let level_path = save_dir.join("Level.sav");
     let raw = std::fs::read(&level_path)?;

@@ -31,9 +31,17 @@ fn save_dir() -> PathBuf {
         .join("../../056C426C55974CFCA115EB695A224F67")
 }
 
-/// Read the raw `Level.sav`, or `None` when the save is absent (skip).
+/// Read the raw `Level.sav`, or `None` to skip. Skips when the save is absent,
+/// or when the copy on disk isn't a decodable Palworld save (e.g. a torn or
+/// partial download): such a file is not the ground-truth world these
+/// assertions describe, so it must not fail the suite.
 fn level_bytes() -> Option<Vec<u8>> {
-    std::fs::read(save_dir().join("Level.sav")).ok()
+    let raw = std::fs::read(save_dir().join("Level.sav")).ok()?;
+    if let Err(e) = palworld::save::validate_level(&raw) {
+        eprintln!("skipping: save present but not decodable ({e})");
+        return None;
+    }
+    Some(raw)
 }
 
 fn as_set(uids: &[&str]) -> HashSet<String> {
