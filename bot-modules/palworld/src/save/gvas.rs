@@ -155,6 +155,22 @@ pub fn hints() -> HashMap<String, String> {
             "worldSaveData.StructProperty.InLockerCharacterInstanceIDArray.SetProperty.StructProperty",
             S,
         ),
+        (
+            "worldSaveData.StructProperty.DungeonSaveData.ArrayProperty.RewardSaveDataMap.MapProperty.Key.StructProperty",
+            G,
+        ),
+        (
+            "worldSaveData.StructProperty.DungeonSaveData.ArrayProperty.RewardSaveDataMap.MapProperty.Value.StructProperty",
+            S,
+        ),
+        (
+            "worldSaveData.StructProperty.FishingSpotSaveData.MapProperty.Key.StructProperty",
+            G,
+        ),
+        (
+            "worldSaveData.StructProperty.FishingSpotSaveData.MapProperty.Value.StructProperty",
+            S,
+        ),
     ];
 
     pairs.iter().map(|(k, v)| ((*k).to_string(), (*v).to_string())).collect()
