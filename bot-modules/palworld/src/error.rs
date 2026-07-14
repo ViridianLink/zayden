@@ -26,6 +26,8 @@ pub enum PalworldError {
     Save(String),
     #[error("failed to parse GVAS save data: {0}")]
     Gvas(String),
+    #[error("failed to refresh world save from the game server: {0}")]
+    Pelican(String),
 
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
@@ -47,6 +49,9 @@ impl Respond for PalworldError {
             Self::Save(_) | Self::Gvas(_) | Self::Io(_) => {
                 Some(Cow::Borrowed("Couldn't read the world save."))
             },
+            Self::Pelican(_) => Some(Cow::Borrowed(
+                "Couldn't reach the game server to refresh the world save.",
+            )),
             Self::FlareSolverr(_)
             | Self::Parse(_)
             | Self::Reqwest(_)

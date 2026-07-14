@@ -10,6 +10,7 @@ workspace = true
 [dependencies]
 zayden-core = { workspace = true }
 
+jiff = { workspace = true, features = ["std"] }
 moka = { workspace = true, features = ["future"] }
 reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
 scraper = { workspace = true }
@@ -22,7 +23,7 @@ serenity = { workspace = true, features = [
 ] }
 sqlx = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 
 flate2 = "1"

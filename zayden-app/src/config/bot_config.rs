@@ -20,11 +20,20 @@ const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
 
 const DEFAULT_PALWORLD_SAVE_DIR: &str = "056C426C55974CFCA115EB695A224F67";
+const DEFAULT_PALWORLD_UPLOADS_DIR: &str = "palworld_uploads";
 
 #[derive(Debug, Clone)]
 pub struct SpotifyCredentials {
     pub client_id: String,
     pub client_secret: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PelicanConfig {
+    pub base_url: String,
+    pub api_key: String,
+    pub server_id: String,
+    pub save_path: String,
 }
 
 #[derive(Debug, Clone)]
@@ -56,6 +65,8 @@ pub struct BotConfig {
     pub palworld_palcalc_url: Option<String>,
 
     pub palworld_save_dir: Option<PathBuf>,
+    pub palworld_uploads_dir: PathBuf,
+    pub pelican: Option<PelicanConfig>,
 
     pub frontend_url: String,
     pub redirect_uri: String,
@@ -92,6 +103,8 @@ impl BotConfig {
 
         let db = load_db_row(pool).await?;
 
+        let pelican = load_pelican_config(&toml_cfg);
+
         Ok(Self {
             discord_token,
             bungie_api_key,
@@ -117,7 +130,6 @@ impl BotConfig {
                 .unwrap_or(DEFAULT_LLAMAD2_GUILD),
             zayden_id: toml_cfg.ids.zayden_id.unwrap_or(DEFAULT_ZAYDEN_ID),
 
-            // DB row overrides config.toml; config.toml overrides None.
             error_log_webhook: db
                 .as_ref()
                 .and_then(|r| r.error_log_webhook.clone())
@@ -129,14 +141,20 @@ impl BotConfig {
 
             flaresolverr_url: env::var("FLARESOLVERR_URL").ok(),
 
-            palworld_paldex_url: env::var("PALWORLD_PALDEX_URL").ok(),
-
-            palworld_palcalc_url: env::var("PALWORLD_PALCALC_URL").ok(),
-
-            palworld_save_dir: Some(env::var("PALWORLD_SAVE_DIR").map_or_else(
-                |_| PathBuf::from(DEFAULT_PALWORLD_SAVE_DIR),
+            palworld_save_dir: Some(
+                toml_cfg.pelican.save_path.as_deref().map_or_else(
+                    || PathBuf::from(DEFAULT_PALWORLD_SAVE_DIR),
+                    save_dir_from_path,
+                ),
+            ),
+            palworld_uploads_dir: toml_cfg.palworld.uploads_dir.map_or_else(
+                || PathBuf::from(DEFAULT_PALWORLD_UPLOADS_DIR),
                 PathBuf::from,
-            )),
+            ),
+            pelican,
+
+            palworld_paldex_url: toml_cfg.palworld.paldex_url,
+            palworld_palcalc_url: toml_cfg.palworld.palcalc_url,
 
             frontend_url: toml_cfg
                 .dashboard
@@ -158,6 +176,35 @@ impl BotConfig {
 
 fn require_env(var: &str) -> Result<String> {
     env::var(var).map_err(|_e| Error::MissingEnvVar(var.to_owned()))
+}
+
+fn load_pelican_config(toml_cfg: &TomlConfig) -> Option<PelicanConfig> {
+    match (
+        env::var("PELICAN_BASE_URL").ok(),
+        env::var("PELICAN_API_KEY").ok(),
+        toml_cfg.pelican.server_id.clone(),
+        toml_cfg.pelican.save_path.clone(),
+    ) {
+        (Some(base_url), Some(api_key), Some(server_id), Some(save_path)) => {
+            Some(PelicanConfig { base_url, api_key, server_id, save_path })
+        },
+        (None, None, None, None) => None,
+        _ => {
+            warn!(
+                "Pelican config is incomplete; near-live save refresh disabled \
+                 until PELICAN_BASE_URL and PELICAN_API_KEY (env) plus \
+                 [pelican].server_id and [pelican].save_path (config.toml) are \
+                 all set"
+            );
+            None
+        },
+    }
+}
+
+fn save_dir_from_path(save_path: &str) -> PathBuf {
+    let name =
+        save_path.trim_end_matches('/').rsplit('/').next().unwrap_or(save_path);
+    PathBuf::from(name)
 }
 
 fn load_toml_config() -> Result<TomlConfig> {
@@ -194,6 +241,23 @@ struct TomlConfig {
     webhooks: TomlWebhooks,
     #[serde(default)]
     dashboard: TomlDashboard,
+    #[serde(default)]
+    palworld: TomlPalworld,
+    #[serde(default)]
+    pelican: TomlPelican,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlPalworld {
+    paldex_url: Option<String>,
+    palcalc_url: Option<String>,
+    uploads_dir: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlPelican {
+    server_id: Option<String>,
+    save_path: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]

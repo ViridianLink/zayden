@@ -9,6 +9,7 @@ use marathon::client::MarathonClient;
 use marathon::cron::{MarathonAnnounceCron, MarathonNewsCron};
 use music::{MusicManager, TrackResolver};
 use palworld::client::PalworldClient;
+use palworld::transport::Pelican;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::{PgPool, Postgres};
@@ -58,12 +59,24 @@ impl BotState {
             config.flaresolverr_url.clone(),
         ));
 
+        let pelican = config.pelican.clone().map(|p| {
+            Pelican::new(
+                app.http.clone(),
+                p.base_url,
+                p.api_key,
+                p.server_id,
+                p.save_path,
+            )
+        });
+
         let palworld = Arc::new(PalworldClient::new(
             app.http.clone(),
             config.flaresolverr_url.clone(),
             config.palworld_paldex_url.clone(),
             config.palworld_palcalc_url.clone(),
             config.palworld_save_dir.clone(),
+            config.palworld_uploads_dir.clone(),
+            pelican,
         ));
 
         Ok(Self {

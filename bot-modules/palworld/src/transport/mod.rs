@@ -4,6 +4,7 @@ mod palcalc;
 mod paldb;
 mod paldex;
 mod palworldgg;
+mod pelican;
 
 pub use fandom::Fandom;
 pub use palcalc::{
@@ -16,3 +17,4 @@ pub use palcalc::{
 pub use paldb::{PalDb, PalDetails};
 pub use paldex::{BreedingMap, DEFAULT_BASE, Paldex, RawItem, RawPal, RawPassive};
 pub use palworldgg::PalworldGg;
+pub use pelican::Pelican;

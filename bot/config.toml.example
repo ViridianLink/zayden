@@ -18,3 +18,12 @@ redirect_uri = "http://localhost:3000/auth/callback"
 bind_addr = "0.0.0.0:3000"
 invite_url = "https://discord.com/oauth2/authorize?client_id=<id>&permissions=8&integration_type=0&scope=bot+applications.commands"
 upgrade_url = "https://ko-fi.com/your-page"
+
+[palworld]
+paldex_url = "https://raw.githubusercontent.com/mlg404/palworld-paldex-api/main/src"
+palcalc_url = "https://raw.githubusercontent.com/tylercamp/palcalc/main/PalCalc.Model"
+uploads_dir = "palworld_uploads"
+
+[pelican]
+server_id = "your-server-id"
+save_path = "/Pal/Saved/SaveGames/0/123abc"

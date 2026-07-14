@@ -4158,6 +4158,7 @@ version = "1.0.0"
 dependencies = [
  "flate2",
  "gvas",
+ "jiff",
  "moka",
  "oozextract",
  "reqwest 0.13.4",

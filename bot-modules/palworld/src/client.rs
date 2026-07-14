@@ -1,19 +1,28 @@
 use std::hash::Hash;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, UNIX_EPOCH};
+use std::time::{Duration, Instant, UNIX_EPOCH};
 
 use moka::future::Cache;
 use reqwest::Client;
+use tokio::sync::Mutex;
 
 use crate::breeding::BreedingIndex;
 use crate::error::{PalworldError, Result};
 use crate::model::{Item, Pal, PassiveSkill, WorldRoster};
 use crate::source::SourceId;
-use crate::transport::{Fandom, PalCalc, PalDb, Paldex, PalworldGg};
+use crate::transport::{Fandom, PalCalc, PalDb, Paldex, PalworldGg, Pelican};
 use crate::{merge, parse, save};
 
 const LONG_TTL: Duration = Duration::from_hours(8);
+
+const SAVE_FRESHNESS: Duration = Duration::from_mins(5);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SourceKey {
+    Shared,
+    User(i64),
+}
 
 fn ttl_cache<K, V>() -> Cache<K, V>
 where
@@ -31,13 +40,16 @@ pub struct PalworldClient {
     fandom: Fandom,
 
     save_dir: Option<PathBuf>,
+    uploads_dir: PathBuf,
+    pelican: Option<Pelican>,
+    refresh_lock: Mutex<Option<Instant>>,
 
     pal_list_cache: Cache<(), Arc<[Pal]>>,
     pal_cache: Cache<String, Arc<Pal>>,
     item_list_cache: Cache<(), Arc<[Item]>>,
     passive_list_cache: Cache<(), Arc<[PassiveSkill]>>,
     breeding_cache: Cache<(), Arc<BreedingIndex>>,
-    roster_cache: Cache<u64, Arc<WorldRoster>>,
+    roster_cache: Cache<(SourceKey, u64), Arc<WorldRoster>>,
 }
 
 impl PalworldClient {
@@ -48,6 +60,8 @@ impl PalworldClient {
         paldex_base: Option<String>,
         palcalc_base: Option<String>,
         save_dir: Option<PathBuf>,
+        uploads_dir: PathBuf,
+        pelican: Option<Pelican>,
     ) -> Self {
         Self {
             palcalc: PalCalc::new(client.clone(), palcalc_base),
@@ -56,6 +70,9 @@ impl PalworldClient {
             palworldgg: PalworldGg::new(client.clone(), flaresolverr_url),
             fandom: Fandom::new(client),
             save_dir,
+            uploads_dir,
+            pelican,
+            refresh_lock: Mutex::new(None),
             pal_list_cache: ttl_cache(),
             pal_cache: ttl_cache(),
             item_list_cache: ttl_cache(),
@@ -73,9 +90,6 @@ impl PalworldClient {
         let mut pals: Vec<Pal> =
             raw.into_iter().map(parse::pal_from_palcalc).collect();
 
-        // Back-fill elements (PalCalc has none) from one cached palworld.gg
-        // index fetch, joined by URL slug. Best-effort: on failure the roster
-        // is still returned, just without elements.
         if let Some(index) = self.palworldgg.elements_index().await {
             for pal in &mut pals {
                 if let Some(elements) = index.get(&parse::gg_slug(&pal.name)) {
@@ -208,26 +222,106 @@ impl PalworldClient {
         let save_dir = self.save_dir.clone().ok_or_else(|| {
             PalworldError::Save("no save directory configured".to_string())
         })?;
+        self.refresh_shared_if_stale().await;
+        self.roster_from(SourceKey::Shared, &save_dir).await
+    }
 
-        let mtime = std::fs::metadata(save_dir.join("Level.sav"))?
+    pub async fn user_roster(&self, discord_id: i64) -> Result<Arc<WorldRoster>> {
+        let dir = self.uploads_dir.join(discord_id.to_string());
+        self.roster_from(SourceKey::User(discord_id), &dir).await
+    }
+
+    async fn roster_from(
+        &self,
+        key: SourceKey,
+        dir: &Path,
+    ) -> Result<Arc<WorldRoster>> {
+        let mtime = std::fs::metadata(dir.join("Level.sav"))?
             .modified()?
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos())
             .map_or(0, |n| u64::try_from(n).unwrap_or(u64::MAX));
 
-        if let Some(cached) = self.roster_cache.get(&mtime).await {
+        if let Some(cached) = self.roster_cache.get(&(key, mtime)).await {
             return Ok(cached);
         }
 
-        let roster =
-            tokio::task::spawn_blocking(move || save::load_world(&save_dir))
-                .await
-                .map_err(|e| {
-                    PalworldError::Save(format!("save parse task failed: {e}"))
-                })??;
+        let dir = dir.to_path_buf();
+        let roster = tokio::task::spawn_blocking(move || save::load_world(&dir))
+            .await
+            .map_err(|e| {
+                PalworldError::Save(format!("save parse task failed: {e}"))
+            })??;
 
         let roster = Arc::new(roster);
-        self.roster_cache.insert(mtime, Arc::clone(&roster)).await;
+        self.roster_cache.insert((key, mtime), Arc::clone(&roster)).await;
         Ok(roster)
     }
+
+    async fn refresh_shared_if_stale(&self) {
+        let (Some(save_dir), Some(pelican)) =
+            (self.save_dir.clone(), self.pelican.clone())
+        else {
+            return;
+        };
+
+        let mut last = self.refresh_lock.lock().await;
+        if last.is_some_and(|t| t.elapsed() < SAVE_FRESHNESS) {
+            return;
+        }
+
+        if let Err(e) = Self::refresh_shared(&pelican, &save_dir).await {
+            tracing::warn!(
+                error = %e,
+                "palworld shared save refresh failed; using last local save"
+            );
+        }
+
+        *last = Some(Instant::now());
+    }
+
+    async fn refresh_shared(pelican: &Pelican, save_dir: &Path) -> Result<()> {
+        let remote_modified = pelican.level_modified().await?;
+
+        let level_path = save_dir.join("Level.sav");
+        let local_modified = {
+            let level_path = level_path.clone();
+            tokio::task::spawn_blocking(move || local_mtime_secs(&level_path))
+                .await
+                .map_err(|e| {
+                    PalworldError::Pelican(format!("mtime task failed: {e}"))
+                })?
+        };
+
+        if remote_modified <= local_modified {
+            return Ok(());
+        }
+
+        let bytes = pelican.download_level().await?;
+
+        let save_dir = save_dir.to_path_buf();
+        tokio::task::spawn_blocking(move || write_level_atomic(&save_dir, &bytes))
+            .await
+            .map_err(|e| {
+                PalworldError::Pelican(format!("save write task failed: {e}"))
+            })??;
+
+        Ok(())
+    }
+}
+
+fn local_mtime_secs(level_path: &Path) -> i64 {
+    std::fs::metadata(level_path)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+}
+
+fn write_level_atomic(save_dir: &Path, bytes: &[u8]) -> Result<()> {
+    let tmp = save_dir.join("Level.sav.tmp");
+    let final_path = save_dir.join("Level.sav");
+    std::fs::write(&tmp, bytes)?;
+    std::fs::rename(&tmp, &final_path)?;
+    Ok(())
 }
