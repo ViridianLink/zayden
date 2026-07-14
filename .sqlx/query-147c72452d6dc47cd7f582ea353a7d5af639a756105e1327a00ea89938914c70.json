@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT discord_id, player_uid, in_game_name FROM palworld_player_links WHERE discord_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "discord_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "palworld_player_links",
+            "name": "discord_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "player_uid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "palworld_player_links",
+            "name": "player_uid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "in_game_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "palworld_player_links",
+            "name": "in_game_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "147c72452d6dc47cd7f582ea353a7d5af639a756105e1327a00ea89938914c70"
+}

@@ -5,6 +5,7 @@ pub mod commands;
 pub mod difficulty;
 pub mod embeds;
 pub mod error;
+pub mod link;
 pub mod merge;
 pub mod model;
 pub mod parse;

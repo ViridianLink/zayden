@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO palworld_player_links (discord_id, player_uid, in_game_name)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (discord_id) DO UPDATE\n                SET player_uid = EXCLUDED.player_uid,\n                    in_game_name = EXCLUDED.in_game_name,\n                    linked_at = now()\n            RETURNING discord_id, player_uid, in_game_name\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "discord_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "palworld_player_links",
+            "name": "discord_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "player_uid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "palworld_player_links",
+            "name": "player_uid"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "in_game_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "palworld_player_links",
+            "name": "in_game_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c365cb857443618d5e28b913732ab7affa3e72c4c2ea3732f6d6f5c6cd75dce8"
+}

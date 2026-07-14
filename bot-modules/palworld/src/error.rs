@@ -29,6 +29,8 @@ pub enum PalworldError {
     Reqwest(#[from] reqwest::Error),
     #[error("discord error: {0}")]
     Serenity(#[from] serenity::Error),
+    #[error("database error: {0}")]
+    Sqlx(#[from] sqlx::Error),
 }
 
 impl Respond for PalworldError {
@@ -43,7 +45,8 @@ impl Respond for PalworldError {
             Self::FlareSolverr(_)
             | Self::Parse(_)
             | Self::Reqwest(_)
-            | Self::Serenity(_) => None,
+            | Self::Serenity(_)
+            | Self::Sqlx(_) => None,
         }
     }
 }
@@ -58,7 +61,7 @@ impl From<HandlerError> for PalworldError {
     fn from(e: HandlerError) -> Self {
         match e {
             HandlerError::Discord(e) => Self::Serenity(e),
-            HandlerError::Database(_) => Self::SourceUnavailable,
+            HandlerError::Database(e) => Self::Sqlx(e),
             HandlerError::Module { source, .. } => Self::Parse(source.to_string()),
         }
     }
