@@ -42,6 +42,16 @@ fn matching_is_case_insensitive() {
 }
 
 #[test]
+fn mixed_case_boss_prefix_is_stripped() {
+    // The real save emits both `BOSS_` and `Boss_`; the prefix match is
+    // case-insensitive so alpha bosses like `Boss_Anubis` still resolve.
+    assert_eq!(
+        resolve_species("Boss_SheepBall", &pals()).as_deref(),
+        Some("SheepBall")
+    );
+}
+
+#[test]
 fn variant_suffix_is_preserved() {
     // Element/variant suffixes are part of the PalCalc key, so they must not be
     // stripped along with the BOSS_ prefix.

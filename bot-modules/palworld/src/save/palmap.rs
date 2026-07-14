@@ -7,7 +7,11 @@ const OVERRIDES: &[(&str, &str)] = &[];
 
 fn strip_prefix(codename: &str) -> &str {
     for prefix in PREFIXES {
-        if let Some(rest) = codename.strip_prefix(prefix) {
+        if codename
+            .get(..prefix.len())
+            .is_some_and(|head| head.eq_ignore_ascii_case(prefix))
+            && let Some(rest) = codename.get(prefix.len()..)
+        {
             return rest;
         }
     }
