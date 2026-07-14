@@ -117,8 +117,11 @@ fn parse_label(component: &LabelComponent) -> (Cow<'_, str>, Vec<Cow<'_, str>>) 
             Cow::Borrowed(&input_text.custom_id),
             vec![Cow::Borrowed(&input_text.value)],
         ),
-        LabelComponent::FileUpload(_)
-        | LabelComponent::RadioGroup(_)
+        LabelComponent::FileUpload(file_upload) => (
+            Cow::Borrowed(&file_upload.custom_id),
+            file_upload.values.iter().map(|id| Cow::Owned(id.to_string())).collect(),
+        ),
+        LabelComponent::RadioGroup(_)
         | LabelComponent::CheckboxGroup(_)
         | LabelComponent::Checkbox(_) => {
             warn!("parse_label: component uses a non-text format; skipping",);
