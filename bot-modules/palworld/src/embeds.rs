@@ -328,6 +328,28 @@ pub fn breed_plan_unreachable_component(target: &Pal) -> CreateComponent<'static
     )])
 }
 
+pub fn upload_confirm_component(expires: &str) -> CreateComponent<'static> {
+    container(vec![text(format!(
+        "# ✅ Save uploaded\nYour `Level.sav` is now your private world for \
+         `/palworld roster` and `/palworld breed-plan`.\n-# Expires {expires}. \
+         Re-upload any time to refresh it."
+    ))])
+}
+
+pub fn upload_cooldown_component(remaining: &str) -> CreateComponent<'static> {
+    container(vec![text(format!(
+        "# ⏳ Slow down\nYou can only upload one save per hour.\n-# Try again in \
+         {remaining}."
+    ))])
+}
+
+pub fn upload_invalid_component(reason: &str) -> CreateComponent<'static> {
+    container(vec![text(format!(
+        "# Upload rejected\n{reason}\n-# Upload the `Level.sav` from your world's \
+         save folder."
+    ))])
+}
+
 pub fn type_component(
     element: Element,
     strong: &[Element],

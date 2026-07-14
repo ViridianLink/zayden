@@ -11,6 +11,8 @@ workspace = true
 zayden-core = { workspace = true }
 
 jiff = { workspace = true, features = ["std"] }
+jiff-cron = { workspace = true }
+jiff-sqlx = { workspace = true }
 moka = { workspace = true, features = ["future"] }
 reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
 scraper = { workspace = true }

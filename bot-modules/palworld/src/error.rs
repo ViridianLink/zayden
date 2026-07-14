@@ -28,6 +28,8 @@ pub enum PalworldError {
     Gvas(String),
     #[error("failed to refresh world save from the game server: {0}")]
     Pelican(String),
+    #[error("save upload rejected: {0}")]
+    Upload(String),
 
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
@@ -45,7 +47,8 @@ impl Respond for PalworldError {
             Self::SourceUnavailable
             | Self::NotFound { .. }
             | Self::UnknownElement(_)
-            | Self::NotLinked => Some(Cow::Owned(self.to_string())),
+            | Self::NotLinked
+            | Self::Upload(_) => Some(Cow::Owned(self.to_string())),
             Self::Save(_) | Self::Gvas(_) | Self::Io(_) => {
                 Some(Cow::Borrowed("Couldn't read the world save."))
             },

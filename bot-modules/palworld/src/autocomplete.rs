@@ -1,13 +1,17 @@
+use std::sync::Arc;
+
 use serenity::all::{
     AutocompleteChoice,
     CreateAutocompleteResponse,
     CreateInteractionResponse,
     ResolvedValue,
 };
-use zayden_core::{AutocompleteCtx, parse_subcommand};
+use zayden_core::{AutocompleteCtx, as_i64, parse_subcommand};
 
 use crate::client::PalworldClient;
 use crate::error::{PalworldError, Result};
+use crate::model::WorldRoster;
+use crate::upload::SaveUpload;
 
 pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()> {
     let (name, sub_options) = parse_subcommand(cx.interaction.data.options())
@@ -37,8 +41,8 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
     );
 
     let choices: Vec<AutocompleteChoice<'static>> = if is_player_field {
-        client
-            .roster()
+        let discord_id = as_i64(cx.interaction.user.id.get());
+        player_roster(client, &cx.app.db, discord_id)
             .await
             .map(|roster| {
                 roster
@@ -87,6 +91,19 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
         .await?;
 
     Ok(())
+}
+
+async fn player_roster(
+    client: &PalworldClient,
+    pool: &sqlx::PgPool,
+    discord_id: i64,
+) -> Result<Arc<WorldRoster>> {
+    if let Some(upload) = SaveUpload::select(pool, discord_id).await?
+        && !upload.is_expired()
+    {
+        return client.user_roster(discord_id).await;
+    }
+    client.roster().await
 }
 
 fn filter_choices<'a, T: 'a>(

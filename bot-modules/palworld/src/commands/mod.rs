@@ -7,6 +7,7 @@ mod pal;
 mod passive;
 mod roster;
 mod type_chart;
+mod upload;
 
 use serenity::all::{
     CommandOptionType,
@@ -17,12 +18,14 @@ use serenity::all::{
     MessageFlags,
 };
 use sqlx::PgPool;
+use zayden_core::ctx::ModalCtx;
 use zayden_core::{InvocationCtx, as_i64, parse_options, parse_subcommand};
 
 use crate::client::PalworldClient;
 use crate::error::{PalworldError, Result};
 use crate::link::PlayerLink;
-use crate::model::{Element, Pal, PlayerRoster};
+use crate::model::{Element, Pal, PlayerRoster, WorldRoster};
+use crate::upload::SaveUpload;
 
 pub struct Command;
 
@@ -109,6 +112,12 @@ impl Command {
         .add_sub_option(name_option_named("target", "Target Pal"))
         .add_sub_option(player_option());
 
+        let upload = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "upload",
+            "Upload your own Level.sav to use as your private world",
+        );
+
         CreateCommand::new("palworld")
             .description(
                 "Palworld guide: Pals, breeding, items, passives, and types",
@@ -123,6 +132,7 @@ impl Command {
             .add_option(unlink)
             .add_option(roster)
             .add_option(breed_plan)
+            .add_option(upload)
     }
 
     pub async fn run(
@@ -152,11 +162,20 @@ impl Command {
             "breed-plan" => {
                 breed_plan::run(cx, client, pool, parse_options(sub_options)).await
             },
+            "upload" => upload::open_modal(cx, pool).await,
             _ => Err(PalworldError::NotFound {
                 entity: "subcommand",
                 query: name.to_string(),
             }),
         }
+    }
+
+    pub async fn upload_submit(
+        cx: &ModalCtx<'_>,
+        client: &PalworldClient,
+        pool: &PgPool,
+    ) -> Result<()> {
+        upload::submit(cx, client, pool).await
     }
 }
 
@@ -175,6 +194,26 @@ pub(crate) async fn resolve_player(
     pool: &PgPool,
     player: Option<&str>,
 ) -> Result<PlayerRoster> {
+    let discord_id = as_i64(cx.interaction.user.id.get());
+
+    if let Some(upload) = SaveUpload::select(pool, discord_id).await?
+        && !upload.is_expired()
+    {
+        let roster = client.user_roster(discord_id).await?;
+
+        return player.map_or_else(
+            || most_populated_player(&roster),
+            |name| {
+                roster.by_name(name).cloned().ok_or_else(|| {
+                    PalworldError::NotFound {
+                        entity: "player",
+                        query: name.to_string(),
+                    }
+                })
+            },
+        );
+    }
+
     let roster = client.roster().await?;
 
     if let Some(name) = player {
@@ -183,13 +222,21 @@ pub(crate) async fn resolve_player(
         });
     }
 
-    let discord_id = as_i64(cx.interaction.user.id.get());
     match PlayerLink::select(pool, discord_id).await? {
         Some(link) => roster.by_uid(&link.player_uid).cloned().ok_or_else(|| {
             PalworldError::NotFound { entity: "player", query: link.in_game_name }
         }),
         None => Err(PalworldError::NotLinked),
     }
+}
+
+fn most_populated_player(roster: &WorldRoster) -> Result<PlayerRoster> {
+    roster.players.iter().max_by_key(|p| p.pals.len()).cloned().ok_or_else(|| {
+        PalworldError::NotFound {
+            entity: "player",
+            query: "uploaded world".to_string(),
+        }
+    })
 }
 
 fn name_option(description: &'static str) -> CreateCommandOption<'static> {

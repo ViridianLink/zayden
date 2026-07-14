@@ -231,6 +231,11 @@ impl PalworldClient {
         self.roster_from(SourceKey::User(discord_id), &dir).await
     }
 
+    #[must_use]
+    pub fn uploads_dir(&self) -> &Path {
+        &self.uploads_dir
+    }
+
     async fn roster_from(
         &self,
         key: SourceKey,
@@ -314,7 +319,7 @@ impl PalworldClient {
                     "downloaded save failed validation, keeping last local save: {e}"
                 ))
             })?;
-            write_level_atomic(&save_dir, &bytes)
+            save::write_level_atomic(&save_dir, &bytes)
         })
         .await
         .map_err(|e| {
@@ -331,13 +336,4 @@ fn local_mtime_secs(level_path: &Path) -> i64 {
         .ok()
         .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
-}
-
-fn write_level_atomic(save_dir: &Path, bytes: &[u8]) -> Result<()> {
-    std::fs::create_dir_all(save_dir)?;
-    let tmp = save_dir.join("Level.sav.tmp");
-    let final_path = save_dir.join("Level.sav");
-    std::fs::write(&tmp, bytes)?;
-    std::fs::rename(&tmp, &final_path)?;
-    Ok(())
 }

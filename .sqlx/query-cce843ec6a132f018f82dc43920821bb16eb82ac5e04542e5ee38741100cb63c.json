@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM palworld_save_uploads WHERE discord_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cce843ec6a132f018f82dc43920821bb16eb82ac5e04542e5ee38741100cb63c"
+}

@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                discord_id,\n                file_path,\n                uploaded_at AS \"uploaded_at: SqlxTimestamp\",\n                expires_at AS \"expires_at: SqlxTimestamp\"\n            FROM palworld_save_uploads\n            WHERE discord_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "discord_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "palworld_save_uploads",
+            "name": "discord_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "file_path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "palworld_save_uploads",
+            "name": "file_path"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "uploaded_at: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "palworld_save_uploads",
+            "name": "uploaded_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "expires_at: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "palworld_save_uploads",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "750d34433b75443b61726e8eda241f2cedf09cba91c5656fcd60f029baaeae8a"
+}

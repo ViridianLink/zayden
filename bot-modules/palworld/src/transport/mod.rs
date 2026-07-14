@@ -17,4 +17,4 @@ pub use palcalc::{
 pub use paldb::{PalDb, PalDetails};
 pub use paldex::{BreedingMap, DEFAULT_BASE, Paldex, RawItem, RawPal, RawPassive};
 pub use palworldgg::PalworldGg;
-pub use pelican::Pelican;
+pub use pelican::{Pelican, parse_modified_at};

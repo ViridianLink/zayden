@@ -16,6 +16,15 @@ pub fn validate_level(raw: &[u8]) -> Result<()> {
     Ok(())
 }
 
+pub fn write_level_atomic(dir: &Path, bytes: &[u8]) -> Result<()> {
+    std::fs::create_dir_all(dir)?;
+    let tmp = dir.join("Level.sav.tmp");
+    let final_path = dir.join("Level.sav");
+    std::fs::write(&tmp, bytes)?;
+    std::fs::rename(&tmp, &final_path)?;
+    Ok(())
+}
+
 pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
     let level_path = save_dir.join("Level.sav");
     let raw = std::fs::read(&level_path)?;

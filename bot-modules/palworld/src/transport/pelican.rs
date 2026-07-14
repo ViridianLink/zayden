@@ -41,6 +41,13 @@ struct SignedUrlAttributes {
     url: String,
 }
 
+pub fn parse_modified_at(raw: &str) -> Result<i64> {
+    let ts: jiff::Timestamp = raw.parse().map_err(|e| {
+        PalworldError::Pelican(format!("bad modified_at timestamp: {e}"))
+    })?;
+    Ok(ts.as_second())
+}
+
 impl Pelican {
     #[must_use]
     pub fn new(
@@ -85,10 +92,7 @@ impl Pelican {
                 )
             })?;
 
-        let ts: jiff::Timestamp = modified.parse().map_err(|e| {
-            PalworldError::Pelican(format!("bad modified_at timestamp: {e}"))
-        })?;
-        Ok(ts.as_second())
+        parse_modified_at(modified)
     }
 
     pub async fn download_level(&self) -> Result<Vec<u8>> {

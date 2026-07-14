@@ -4159,6 +4159,8 @@ dependencies = [
  "flate2",
  "gvas",
  "jiff",
+ "jiff-cron",
+ "jiff-sqlx",
  "moka",
  "oozextract",
  "reqwest 0.13.4",
