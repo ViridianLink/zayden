@@ -22,12 +22,18 @@ fn direct_key_match() {
 
 #[test]
 fn boss_prefix_is_stripped() {
-    assert_eq!(resolve_species("BOSS_SheepBall", &pals()).as_deref(), Some("SheepBall"));
+    assert_eq!(
+        resolve_species("BOSS_SheepBall", &pals()).as_deref(),
+        Some("SheepBall")
+    );
 }
 
 #[test]
 fn gym_prefix_is_stripped() {
-    assert_eq!(resolve_species("GYM_SheepBall", &pals()).as_deref(), Some("SheepBall"));
+    assert_eq!(
+        resolve_species("GYM_SheepBall", &pals()).as_deref(),
+        Some("SheepBall")
+    );
 }
 
 #[test]
@@ -39,7 +45,10 @@ fn matching_is_case_insensitive() {
 fn variant_suffix_is_preserved() {
     // Element/variant suffixes are part of the PalCalc key, so they must not be
     // stripped along with the BOSS_ prefix.
-    assert_eq!(resolve_species("BOSS_Bastet_Ice", &pals()).as_deref(), Some("Bastet_Ice"));
+    assert_eq!(
+        resolve_species("BOSS_Bastet_Ice", &pals()).as_deref(),
+        Some("Bastet_Ice")
+    );
 }
 
 #[test]

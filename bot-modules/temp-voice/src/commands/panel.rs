@@ -53,10 +53,7 @@ pub(super) async fn panel(
         .await?;
 
     interaction
-        .edit_response(
-            http,
-            EditInteractionResponse::new().content("Panel posted."),
-        )
+        .edit_response(http, EditInteractionResponse::new().content("Panel posted."))
         .await?;
 
     Ok(())

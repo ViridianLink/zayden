@@ -1,17 +1,17 @@
 use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, UNIX_EPOCH};
 
 use moka::future::Cache;
 use reqwest::Client;
 
 use crate::breeding::BreedingIndex;
 use crate::error::{PalworldError, Result};
-use crate::model::{Item, Pal, PassiveSkill};
+use crate::model::{Item, Pal, PassiveSkill, WorldRoster};
 use crate::source::SourceId;
 use crate::transport::{Fandom, PalCalc, PalDb, Paldex, PalworldGg};
-use crate::{merge, parse};
+use crate::{merge, parse, save};
 
 const LONG_TTL: Duration = Duration::from_hours(8);
 
@@ -30,11 +30,14 @@ pub struct PalworldClient {
     palworldgg: PalworldGg,
     fandom: Fandom,
 
+    save_dir: Option<PathBuf>,
+
     pal_list_cache: Cache<(), Arc<[Pal]>>,
     pal_cache: Cache<String, Arc<Pal>>,
     item_list_cache: Cache<(), Arc<[Item]>>,
     passive_list_cache: Cache<(), Arc<[PassiveSkill]>>,
     breeding_cache: Cache<(), Arc<BreedingIndex>>,
+    roster_cache: Cache<u64, Arc<WorldRoster>>,
 }
 
 impl PalworldClient {
@@ -44,7 +47,7 @@ impl PalworldClient {
         flaresolverr_url: Option<String>,
         paldex_base: Option<String>,
         palcalc_base: Option<String>,
-        _save_dir: Option<PathBuf>,
+        save_dir: Option<PathBuf>,
     ) -> Self {
         Self {
             palcalc: PalCalc::new(client.clone(), palcalc_base),
@@ -52,11 +55,13 @@ impl PalworldClient {
             paldb: PalDb::new(client.clone(), flaresolverr_url.clone()),
             palworldgg: PalworldGg::new(client.clone(), flaresolverr_url),
             fandom: Fandom::new(client),
+            save_dir,
             pal_list_cache: ttl_cache(),
             pal_cache: ttl_cache(),
             item_list_cache: ttl_cache(),
             passive_list_cache: ttl_cache(),
             breeding_cache: ttl_cache(),
+            roster_cache: ttl_cache(),
         }
     }
 
@@ -197,5 +202,32 @@ impl PalworldClient {
         let index = Arc::new(BreedingIndex::from_map(map));
         self.breeding_cache.insert((), Arc::clone(&index)).await;
         Ok(index)
+    }
+
+    pub async fn roster(&self) -> Result<Arc<WorldRoster>> {
+        let save_dir = self.save_dir.clone().ok_or_else(|| {
+            PalworldError::Save("no save directory configured".to_string())
+        })?;
+
+        let mtime = std::fs::metadata(save_dir.join("Level.sav"))?
+            .modified()?
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .map_or(0, |n| u64::try_from(n).unwrap_or(u64::MAX));
+
+        if let Some(cached) = self.roster_cache.get(&mtime).await {
+            return Ok(cached);
+        }
+
+        let roster =
+            tokio::task::spawn_blocking(move || save::load_world(&save_dir))
+                .await
+                .map_err(|e| {
+                    PalworldError::Save(format!("save parse task failed: {e}"))
+                })??;
+
+        let roster = Arc::new(roster);
+        self.roster_cache.insert(mtime, Arc::clone(&roster)).await;
+        Ok(roster)
     }
 }

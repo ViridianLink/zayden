@@ -1,8 +1,8 @@
 //! Behaviour locked by the normalized loadout DB layer (POST.md #3/#4):
-//! - The loadout render pipeline stores emoji-cache *key* strings and enum
-//!   domain values; these enums map onto the `destiny2_*` Postgres enum types,
-//!   so their `Display`/`FromStr` surfaces must stay stable for the round trip
-//!   through the database to be lossless.
+//! - The loadout render pipeline stores emoji-cache *key* strings and enum domain
+//!   values; these enums map onto the `destiny2_*` Postgres enum types, so their
+//!   `Display`/`FromStr` surfaces must stay stable for the round trip through the
+//!   database to be lossless.
 //! - `Element::key` is the subclass emoji-cache key and the subclass button id.
 //! - `ArmourSlot::render_order` is the fixed order armour is stored/rendered in.
 

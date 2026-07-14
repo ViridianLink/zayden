@@ -52,9 +52,7 @@ impl TryFrom<CellData> for Tier {
     }
 }
 
-#[derive(
-    Debug, Default, PartialEq, Eq, Hash, Clone, Copy, sqlx::Type,
-)]
+#[derive(Debug, Default, PartialEq, Eq, Hash, Clone, Copy, sqlx::Type)]
 #[sqlx(type_name = "destiny2_tier", rename_all = "lowercase")]
 pub enum TierLabel {
     S,

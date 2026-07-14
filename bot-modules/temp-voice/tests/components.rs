@@ -7,12 +7,7 @@
 //! routing constants stay unique and correctly namespaced.
 
 use serde_json::Value;
-use temp_voice::components::{
-    self,
-    build_panel,
-    PRIVACIES,
-    REGIONS,
-};
+use temp_voice::components::{self, PRIVACIES, REGIONS, build_panel};
 
 /// Every button custom id the panel is expected to expose, across all rows.
 const EXPECTED_BUTTONS: &[&str] = &[

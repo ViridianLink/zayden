@@ -546,11 +546,8 @@ impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
         let frame =
             value.frame.as_ref().map(|f| format!("{f} ")).unwrap_or_default();
 
-        let affinity = value
-            .affinity
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_default();
+        let affinity =
+            value.affinity.as_ref().map(ToString::to_string).unwrap_or_default();
 
         let mut description =
             format!("Tier: {} (#{})", value.tier.tier(), value.rank);

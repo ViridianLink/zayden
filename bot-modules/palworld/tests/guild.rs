@@ -70,13 +70,21 @@ fn decodes_three_ground_truth_guilds() {
     // Guild A: all four share one guild whose membership is exactly A.
     let gid_a = guilds.guild_of(OSCAR).expect("Oscar Six has a guild").to_string();
     for uid in GUILD_A {
-        assert_eq!(guilds.guild_of(uid), Some(gid_a.as_str()), "member {uid} in guild A");
+        assert_eq!(
+            guilds.guild_of(uid),
+            Some(gid_a.as_str()),
+            "member {uid} in guild A"
+        );
     }
     assert_eq!(members_set(&guilds, &gid_a), as_set(&GUILD_A));
 
     // Guild B: Devil + Zylbas share, distinct from A.
     let gid_b = guilds.guild_of(DEVIL).expect("Devil has a guild").to_string();
-    assert_eq!(guilds.guild_of(ZYLBAS), Some(gid_b.as_str()), "Zylbas shares Devil's guild");
+    assert_eq!(
+        guilds.guild_of(ZYLBAS),
+        Some(gid_b.as_str()),
+        "Zylbas shares Devil's guild"
+    );
     assert_ne!(gid_a, gid_b);
     assert_eq!(members_set(&guilds, &gid_b), as_set(&GUILD_B));
 
@@ -101,12 +109,20 @@ fn base_pals_pool_across_guild_members_only() {
     let pool_a = pooled_count(OSCAR, &extracted, &guilds);
     assert!(pool_a > 0, "guild A has base pals to pool");
     for uid in GUILD_A {
-        assert_eq!(pooled_count(uid, &extracted, &guilds), pool_a, "member {uid} shares pool A");
+        assert_eq!(
+            pooled_count(uid, &extracted, &guilds),
+            pool_a,
+            "member {uid} shares pool A"
+        );
     }
 
     // Devil and Zylbas share their own pool.
     let pool_b = pooled_count(DEVIL, &extracted, &guilds);
-    assert_eq!(pooled_count(ZYLBAS, &extracted, &guilds), pool_b, "Devil/Zylbas share");
+    assert_eq!(
+        pooled_count(ZYLBAS, &extracted, &guilds),
+        pool_b,
+        "Devil/Zylbas share"
+    );
 
     // cutathanyou (solo) receives only pals last-owned by cutathanyou — no
     // Guild A leakage.
