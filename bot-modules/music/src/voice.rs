@@ -6,6 +6,7 @@ use songbird::id::ChannelId as SongbirdChannelId;
 use songbird::tracks::TrackHandle;
 use songbird::{Call, Event, Songbird, TrackEvent};
 use tokio::sync::Mutex;
+use zayden_app::entitlement::EntitlementService;
 
 use crate::error::{MusicError, Result};
 use crate::events::{InactivityCheck, TrackEndNotifier, TrackErrorNotifier};
@@ -48,6 +49,7 @@ pub struct SessionRequest {
     pub default_volume: u8,
     pub auto_disconnect_secs: u64,
     pub stay_connected: bool,
+    pub entitlements: Arc<EntitlementService>,
 }
 
 pub async fn ensure_session(
@@ -76,8 +78,10 @@ pub async fn ensure_session(
                 guild_id: request.guild_id,
                 channel_id,
                 bot_id: request.bot_id,
+                user_id: request.user_id,
                 music: Arc::clone(music),
                 songbird: Arc::clone(songbird),
+                entitlements: Arc::clone(&request.entitlements),
                 auto_disconnect_secs: request.auto_disconnect_secs,
                 stay_connected: request.stay_connected,
             },

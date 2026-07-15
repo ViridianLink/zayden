@@ -1,4 +1,4 @@
-//! Unit coverage for the Pelican transport's `modified_at` parsing — the field
+//! Unit coverage for the Pelican transport's `modified_at` parsing - the field
 //! `refresh_shared_if_stale` compares against the local save's mtime. No live
 //! panel is involved; this pins the timestamp-format contract.
 

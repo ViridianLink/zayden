@@ -101,7 +101,7 @@ pub(super) async fn run(
                 if seen_gender.insert((a.to_string(), b.to_string())) {
                     to_obtain.push(need);
                 }
-                line.push_str(" — wrong gender");
+                line.push_str(" - wrong gender");
             }
 
             line

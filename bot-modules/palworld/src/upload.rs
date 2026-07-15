@@ -1,10 +1,39 @@
 use jiff::{SignedDuration, Timestamp};
 use jiff_sqlx::Timestamp as SqlxTimestamp;
 use sqlx::PgPool;
+use zayden_app::entitlement::Tier;
 
 use crate::error::Result;
 
-pub const UPLOAD_COOLDOWN: SignedDuration = SignedDuration::from_hours(1);
+#[derive(Debug, Clone, Copy)]
+pub struct UploadQuota {
+    pub cooldown: SignedDuration,
+    pub max_bytes: u64,
+}
+
+impl UploadQuota {
+    pub const FREE: Self = Self {
+        cooldown: SignedDuration::from_mins(60),
+        max_bytes: 30 * 1024 * 1024,
+    };
+    pub const PRO: Self = Self {
+        cooldown: SignedDuration::from_mins(30),
+        max_bytes: 100 * 1024 * 1024,
+    };
+
+    #[must_use]
+    pub const fn for_tier(tier: Tier) -> Self {
+        match tier {
+            Tier::Free => Self::FREE,
+            Tier::Pro | Tier::Enterprise => Self::PRO,
+        }
+    }
+
+    #[must_use]
+    pub const fn max_megabytes(&self) -> u64 {
+        self.max_bytes / (1024 * 1024)
+    }
+}
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct SaveUpload {
@@ -16,9 +45,11 @@ pub struct SaveUpload {
 
 impl SaveUpload {
     #[must_use]
-    pub fn cooldown_remaining(&self) -> Option<SignedDuration> {
-        let deadline =
-            self.uploaded_at.to_jiff().checked_add(UPLOAD_COOLDOWN).ok()?;
+    pub fn cooldown_remaining(
+        &self,
+        cooldown: SignedDuration,
+    ) -> Option<SignedDuration> {
+        let deadline = self.uploaded_at.to_jiff().checked_add(cooldown).ok()?;
         let now = Timestamp::now();
         (deadline > now).then(|| deadline.duration_since(now))
     }

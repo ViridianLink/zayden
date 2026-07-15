@@ -263,7 +263,7 @@ impl EntitlementService {
             return Ok(tier_str.parse().unwrap_or(Tier::Free));
         }
 
-        // No cache row — compute from entitlements table.
+        // No cache row - compute from entitlements table.
         self.aggregate_tier_from_db(scope).await
     }
 

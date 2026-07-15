@@ -293,7 +293,7 @@ impl Commands {
 
         if prestige_row.miners < prestige_row.req_miners() {
             return Err(GamblingError::internal(
-                "not enough miners — component state is stale",
+                "not enough miners - component state is stale",
             ));
         }
 

@@ -5,11 +5,11 @@
 //! real `Level.sav` at `056C426C…/`, then confirms the two things the temporary
 //! `/palworld roster` harness existed to eyeball:
 //!   1. at least one player has a non-empty, gendered roster, and
-//!   2. every owned `CharacterID` codename resolves to a `Pal.key` — proving the
+//!   2. every owned `CharacterID` codename resolves to a `Pal.key` - proving the
 //!      `palmap` override table is complete for this save.
 //!
 //! The Pal list is fetched live from `PalCalc` (keys are internal names, which
-//! match the save's `CharacterID` base spelling) — the full ~300-pal dex the 15-
+//! match the save's `CharacterID` base spelling) - the full ~300-pal dex the 15-
 //! pal breeding fixture can't cover. Network is acceptable behind the opt-in gate.
 
 use std::collections::BTreeSet;
@@ -68,7 +68,7 @@ fn load_world_yields_gendered_rosters() {
     assert!(!world.players.is_empty(), "world decodes at least one player");
 
     // At least one player owns pals, and across the world at least one owned pal
-    // carries a known (Male/Female) gender — the field the breeding-readiness
+    // carries a known (Male/Female) gender - the field the breeding-readiness
     // logic depends on.
     let with_pals = world.players.iter().filter(|p| !p.pals.is_empty()).count();
     assert!(with_pals >= 1, "at least one player has a non-empty roster");
@@ -133,7 +133,7 @@ async fn every_owned_codename_resolves_to_a_pal() {
 
     assert!(
         unexpected.is_empty(),
-        "unresolved owned CharacterID(s): {unexpected:?} — extend \
+        "unresolved owned CharacterID(s): {unexpected:?} - extend \
          save::palmap (prefix or OVERRIDES) or the NON_PAL_CODENAMES allowlist",
     );
 }

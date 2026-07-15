@@ -72,6 +72,7 @@ impl<'a> MusicCtx<'a> {
                 settings.auto_disconnect_secs,
             )),
             stay_connected: settings.stay_connected,
+            entitlements: Arc::clone(&self.entitlements),
         }
     }
 

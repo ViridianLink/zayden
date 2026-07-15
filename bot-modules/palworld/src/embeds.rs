@@ -181,7 +181,7 @@ pub fn breed_for_component(
 
     if pairs.is_empty() {
         components.push(text(
-            "*No known breeding combinations — this Pal may be catch-only.*",
+            "*No known breeding combinations - this Pal may be catch-only.*",
         ));
     } else {
         let lines: Vec<String> =
@@ -301,7 +301,7 @@ pub fn breed_plan_component(
 ) -> CreateComponent<'static> {
     let body = format!(
         "# Breeding Plan\nCheapest path to **{}**\n-# Cost score {total_cost} • \
-         ✅ ready now · ⏳ still needs a pair · 📥 not owned — obtain",
+         ✅ ready now · ⏳ still needs a pair · 📥 not owned - obtain",
         target.name
     );
 
@@ -310,7 +310,7 @@ pub fn breed_plan_component(
 
     if steps.is_empty() {
         components.push(text(format!(
-            "**{}** is cheapest caught directly — no breeding required.",
+            "**{}** is cheapest caught directly - no breeding required.",
             target.name
         )));
     } else {
@@ -318,7 +318,7 @@ pub fn breed_plan_component(
         if let Some(catch) = catch_cost {
             components.push(text(format!(
                 "-# 💡 **{}** is cheaper to *catch* (score {catch}) than to breed \
-                 (score {total_cost}) — the plan above breeds it anyway.",
+                 (score {total_cost}) - the plan above breeds it anyway.",
                 target.name
             )));
         }
@@ -358,11 +358,23 @@ pub fn upload_confirm_component(expires: &str) -> CreateComponent<'static> {
     ))])
 }
 
-pub fn upload_cooldown_component(remaining: &str) -> CreateComponent<'static> {
-    container(vec![text(format!(
-        "# ⏳ Slow down\nYou can only upload one save per hour.\n-# Try again in \
+pub fn upload_cooldown_component(
+    remaining: &str,
+    upsell_url: Option<&str>,
+) -> CreateComponent<'static> {
+    let mut body = format!(
+        "# ⏳ Slow down\nYou've recently uploaded a save.\n-# Try again in \
          {remaining}."
-    ))])
+    );
+    if let Some(url) = upsell_url {
+        let _ = write!(
+            body,
+            "\n-# 💎 [Zayden Pro]({url}) shortens the upload cooldown and raises \
+             the size limit."
+        );
+    }
+
+    container(vec![text(body)])
 }
 
 pub fn upload_invalid_component(reason: &str) -> CreateComponent<'static> {
@@ -382,7 +394,7 @@ pub fn type_component(
 
     let join = |els: &[Element]| -> String {
         if els.is_empty() {
-            "—".to_string()
+            "-".to_string()
         } else {
             els.iter().map(|e| e.label()).collect::<Vec<_>>().join(", ")
         }

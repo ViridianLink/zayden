@@ -1,4 +1,4 @@
-//! `save::guild` — guild membership decode + base-pal pooling.
+//! `save::guild` - guild membership decode + base-pal pooling.
 //!
 //! Runs against the real save when present (mirroring `save_decompress`'s
 //! real-save case) and otherwise skips, so `cargo test` stays green offline.
@@ -74,7 +74,7 @@ fn decodes_guilds_with_consistent_membership() {
 
     // Every guild reachable from a member is well-formed: its roster is
     // non-empty, duplicate-free, and every listed member maps back to exactly
-    // this guild (a clean partition — nobody belongs to two guilds).
+    // this guild (a clean partition - nobody belongs to two guilds).
     let guild_ids: HashSet<&str> =
         members.iter().filter_map(|m| guilds.guild_of(m)).collect();
     for gid in guild_ids {
@@ -103,7 +103,7 @@ fn base_pals_pool_across_guild_members_only() {
     let extracted = extract(&level).expect("extract");
     let guilds = decode_guilds(&level);
 
-    // Every Guild A member receives the identical, non-empty base-pal pool —
+    // Every Guild A member receives the identical, non-empty base-pal pool -
     // including KingJosh / That Guy, who own no base pals themselves.
     let pool_a = pooled_count(OSCAR, &extracted, &guilds);
     assert!(pool_a > 0, "guild A has base pals to pool");
@@ -123,7 +123,7 @@ fn base_pals_pool_across_guild_members_only() {
         "Devil/Zylbas share"
     );
 
-    // cutathanyou (solo) receives only pals last-owned by cutathanyou — no
+    // cutathanyou (solo) receives only pals last-owned by cutathanyou - no
     // Guild A leakage.
     let cuta_pool = pooled_count(CUTA, &extracted, &guilds);
     let cuta_own_base =

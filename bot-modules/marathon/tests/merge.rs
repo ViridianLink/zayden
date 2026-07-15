@@ -1,5 +1,5 @@
 //! Cross-referencing consensus tests: majority vote, precedence tiebreak, and
-//! whole-entity merges. No network — pure `merge`/`source` logic.
+//! whole-entity merges. No network - pure `merge`/`source` logic.
 
 use marathon::merge::{self, consensus};
 use marathon::model::{Stat, Weapon};

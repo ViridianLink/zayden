@@ -1,4 +1,4 @@
-//! `save::palmap::resolve_species` — internal `CharacterID` → `Pal.key`.
+//! `save::palmap::resolve_species` - internal `CharacterID` → `Pal.key`.
 
 use palworld::model::Pal;
 use palworld::save::palmap::resolve_species;

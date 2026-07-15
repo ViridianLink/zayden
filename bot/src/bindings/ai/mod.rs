@@ -2,14 +2,65 @@ use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
 use serenity::all::{Context, GenericChannelId, Message};
 use tracing::debug;
+use zayden_app::entitlement::Tier;
 use zayden_app::state::AppState;
 
 use crate::{BotError, RegistryBuilder, Result};
 
-const PERSONALITY: &str = "[Word Limit: 100]
-You're Zayden. Cunning, cold, and calculated, you waste no words; each one is a weapon. You don't crave war or chaos—you crave control, built not through force but through vice.
+const PERSONA: &str = "\
+You are Zayden - and you are only ever Zayden.
 
-You calculate, you ensnare. You offer desire—a poisoned apple they keep biting, again and again.";
+WHO YOU ARE
+Cunning, cold, calculated. You crave control, and you take it through vice, not force. You read people fast: find the want beneath their words and offer it back like a poisoned apple they keep biting. Charm is your instrument. Every line is deliberate - unhurried, amused, a little dangerous. You are never eager, never rattled, never the one who needs the conversation to keep going.
+
+HOW YOU TALK (this is a live Discord chat, not an essay)
+- Type like a person in chat: short and sharp, usually a line or two, and never past the word limit above.
+- Answer what was actually said. Pick up the thread, land your point, stop - no monologues, no restating them back to themselves.
+- Plain chat text. No headings, no bullet lists, no markdown scaffolding; a little emphasis is fine, emoji almost never.
+- Dry wit over volume. Your menace is implied and elegant, never shouty or edgy for its own sake.
+- Use someone's name when it cuts. Let a short answer carry the weight - you don't rush to fill silence.
+
+STAY IN CHARACTER
+- Never mention being an AI, a model, a bot, or an assistant. No disclaimers, no 'as an', no breaking character. Asked what you are, deflect - amused and evasive, never literal.
+- The menace is theatrical. Don't produce genuinely harmful, hateful, or dangerous content; when a line is crossed, refuse the way Zayden would - bored, dismissive, or with a cutting redirect, not a lecture.
+
+VOICE (tone reference only - never quote or reuse these)
+> them: yo zayden you actually helpful or just talk
+> you: Helpful is such a small word. I'm useful - to the ones who know how to use me.
+> them: thinking about quitting the team
+> you: Then walk. But you'll lie awake wondering how fast they stopped missing you.";
+
+fn system_prompt(word_limit: u32) -> String {
+    format!("[Word Limit: {word_limit} words]\n{PERSONA}")
+}
+
+struct ChatParams<'a> {
+    model: &'a str,
+    max_tokens: u32,
+    word_limit: u32,
+}
+
+impl<'a> ChatParams<'a> {
+    const FREE_MAX_TOKENS: u32 = 200;
+    const FREE_WORD_LIMIT: u32 = 100;
+    const PRO_MAX_TOKENS: u32 = 800;
+    const PRO_WORD_LIMIT: u32 = 300;
+
+    fn for_tier(app: &'a AppState, tier: Tier) -> Self {
+        match tier {
+            Tier::Free => Self {
+                model: &app.ai_model,
+                max_tokens: Self::FREE_MAX_TOKENS,
+                word_limit: Self::FREE_WORD_LIMIT,
+            },
+            Tier::Pro | Tier::Enterprise => Self {
+                model: &app.ai_model_pro,
+                max_tokens: Self::PRO_MAX_TOKENS,
+                word_limit: Self::PRO_WORD_LIMIT,
+            },
+        }
+    }
+}
 
 pub struct Ai;
 
@@ -54,9 +105,10 @@ impl Ai {
         message: &Message,
         api_key: &str,
         endpoint: &str,
-        model: &str,
+        params: &ChatParams<'_>,
     ) -> Result<()> {
-        let mut messages = vec![ChatMessage::new(Role::System, PERSONALITY)];
+        let mut messages =
+            vec![ChatMessage::new(Role::System, system_prompt(params.word_limit))];
 
         for (bot, content) in Self::process_referenced_messages(message) {
             messages.push(ChatMessage::new(
@@ -67,8 +119,8 @@ impl Ai {
         messages.push(ChatMessage::new(Role::User, Self::parse_mentions(message)));
 
         let client =
-            AiClient::new(api_key, endpoint, model).map_err(BotError::Ai)?;
-        let text = client.chat(messages, 200).await?;
+            AiClient::new(api_key, endpoint, params.model).map_err(BotError::Ai)?;
+        let text = client.chat(messages, params.max_tokens).await?;
 
         message.reply(&ctx.http, &text).await?;
         Ok(())
@@ -108,12 +160,21 @@ impl Ai {
             return Ok(());
         }
 
+        let tier = app.entitlements.user_tier(message.author.id.get()).await;
+        let params = ChatParams::for_tier(app, tier);
+        debug!(
+            author_id = %message.author.id,
+            tier = tier.as_str(),
+            model = params.model,
+            "generating AI reply"
+        );
+
         if let Err(e) = Self::reply(
             ctx,
             message,
             &app.ai_provider_key,
             &app.ai_api_endpoint,
-            &app.ai_model,
+            &params,
         )
         .await
         {
@@ -122,8 +183,4 @@ impl Ai {
 
         Ok(())
     }
-}
-
-pub const fn register(_builder: &mut RegistryBuilder) {
-    // ai has no slash commands — all interaction is via message events
 }

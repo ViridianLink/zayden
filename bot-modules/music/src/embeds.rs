@@ -127,7 +127,7 @@ pub fn queue_embed(
         {
             let _ = writeln!(
                 description,
-                "**{}.** [{}]({}) — {}",
+                "**{}.** [{}]({}) - {}",
                 i + 1,
                 track.title,
                 track.url,

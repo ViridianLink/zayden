@@ -31,7 +31,7 @@ pub(super) fn identity(doc: &scraper::Html, slug: &str) -> Identity {
         };
     };
 
-    let (head, description) = match raw.split_once(" — ") {
+    let (head, description) = match raw.split_once(" - ") {
         Some((head, tail)) => (head.trim(), non_empty(tail)),
         None => (raw.trim(), None),
     };

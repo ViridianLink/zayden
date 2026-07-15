@@ -13,7 +13,8 @@ const DEFAULT_LLAMAD2_GUILD: u64 = 1_133_034_263_579_734_037;
 const DEFAULT_ZAYDEN_ID: u64 = 787_490_197_943_091_211;
 
 const DEFAULT_AI_ENDPOINT: &str = "https://openrouter.ai/api/v1";
-const DEFAULT_AI_MODEL: &str = "google/gemma-4-31b-it:free";
+const DEFAULT_AI_MODEL: &str = "openrouter/free";
+const DEFAULT_AI_MODEL_PRO: &str = "google/gemini-2.5-flash";
 
 const DEFAULT_FRONTEND_URL: &str = "http://localhost:5173";
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
@@ -48,6 +49,7 @@ pub struct BotConfig {
 
     pub ai_api_endpoint: String,
     pub ai_model: String,
+    pub ai_model_pro: String,
 
     pub bot_owner: u64,
     pub zayden_guild: u64,
@@ -123,6 +125,10 @@ impl BotConfig {
                 .ai
                 .model
                 .unwrap_or_else(|| DEFAULT_AI_MODEL.to_owned()),
+            ai_model_pro: toml_cfg
+                .ai
+                .model_pro
+                .unwrap_or_else(|| DEFAULT_AI_MODEL_PRO.to_owned()),
 
             bot_owner: toml_cfg.ids.oscar_six.unwrap_or(DEFAULT_OSCAR_SIX),
             zayden_guild: toml_cfg.ids.zayden_guild.unwrap_or(DEFAULT_ZAYDEN_GUILD),
@@ -267,6 +273,7 @@ struct TomlPelican {
 struct TomlAi {
     endpoint: Option<String>,
     model: Option<String>,
+    model_pro: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]

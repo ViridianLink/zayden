@@ -1,4 +1,4 @@
-//! `save::decompress` — the `.sav` outer-wrapper codec.
+//! `save::decompress` - the `.sav` outer-wrapper codec.
 //!
 //! The real `PlM`/Oodle `Level.sav` decompress is asserted when the save
 //! folder is present (mirroring the gated live tests); the synthetic `PlZ`

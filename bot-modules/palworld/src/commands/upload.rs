@@ -15,24 +15,25 @@ use serenity::all::{
     ModalInteraction,
 };
 use sqlx::PgPool;
+use zayden_app::entitlement::Tier;
 use zayden_core::ctx::ModalCtx;
 use zayden_core::{InvocationCtx, as_i64};
 
 use crate::client::PalworldClient;
 use crate::error::{PalworldError, Result};
-use crate::upload::SaveUpload;
+use crate::upload::{SaveUpload, UploadQuota};
 use crate::{embeds, save};
-
-const MAX_UPLOAD_BYTES: u64 = 30 * 1024 * 1024;
 
 pub(super) const MODAL_ID: &str = "palworld_save_upload";
 const FILE_ID: &str = "save";
 
 pub(super) async fn open_modal(cx: &InvocationCtx<'_>, pool: &PgPool) -> Result<()> {
     let discord_id = as_i64(cx.interaction.user.id.get());
+    let tier = cx.app.entitlements.user_tier(cx.interaction.user.id.get()).await;
+    let quota = UploadQuota::for_tier(tier);
 
     if let Some(upload) = SaveUpload::select(pool, discord_id).await?
-        && let Some(remaining) = upload.cooldown_remaining()
+        && let Some(remaining) = upload.cooldown_remaining(quota.cooldown)
     {
         cx.interaction
             .create_response(
@@ -44,6 +45,7 @@ pub(super) async fn open_modal(cx: &InvocationCtx<'_>, pool: &PgPool) -> Result<
                         )
                         .components(vec![embeds::upload_cooldown_component(
                             &cooldown_label(remaining),
+                            upsell_url(cx.app.as_ref(), tier),
                         )]),
                 ),
             )
@@ -73,13 +75,18 @@ pub(super) async fn submit(
 ) -> Result<()> {
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
     let discord_id = as_i64(cx.interaction.user.id.get());
+    let tier = cx.app.entitlements.user_tier(cx.interaction.user.id.get()).await;
+    let quota = UploadQuota::for_tier(tier);
 
     if let Some(upload) = SaveUpload::select(pool, discord_id).await?
-        && let Some(remaining) = upload.cooldown_remaining()
+        && let Some(remaining) = upload.cooldown_remaining(quota.cooldown)
     {
         return respond(
             cx,
-            embeds::upload_cooldown_component(&cooldown_label(remaining)),
+            embeds::upload_cooldown_component(
+                &cooldown_label(remaining),
+                upsell_url(cx.app.as_ref(), tier),
+            ),
         )
         .await;
     }
@@ -99,15 +106,19 @@ pub(super) async fn submit(
         )
         .await;
     }
-    if u64::from(attachment.size) > MAX_UPLOAD_BYTES {
+    if u64::from(attachment.size) > quota.max_bytes {
         return respond(
             cx,
-            embeds::upload_invalid_component("That save is larger than 30 MB."),
+            embeds::upload_invalid_component(&format!(
+                "That save is larger than {} MB.",
+                quota.max_megabytes()
+            )),
         )
         .await;
     }
 
-    let bytes = download(&cx.app.http, attachment.url.as_str()).await?;
+    let bytes =
+        download(&cx.app.http, attachment.url.as_str(), quota.max_bytes).await?;
 
     let dir = client.uploads_dir().join(discord_id.to_string());
     let file_path = dir.join("Level.sav").to_string_lossy().into_owned();
@@ -150,24 +161,34 @@ fn find_attachment(interaction: &ModalInteraction) -> Option<&Attachment> {
     })
 }
 
-async fn download(http: &reqwest::Client, url: &str) -> Result<Vec<u8>> {
+async fn download(
+    http: &reqwest::Client,
+    url: &str,
+    max_bytes: u64,
+) -> Result<Vec<u8>> {
     let resp = http.get(url).send().await?.error_for_status()?;
+    let too_large = || {
+        PalworldError::Upload(format!(
+            "That save is larger than {} MB.",
+            max_bytes / (1024 * 1024)
+        ))
+    };
 
     if let Some(len) = resp.content_length()
-        && len > MAX_UPLOAD_BYTES
+        && len > max_bytes
     {
-        return Err(PalworldError::Upload(
-            "That save is larger than 30 MB.".to_string(),
-        ));
+        return Err(too_large());
     }
 
     let bytes = resp.bytes().await?;
-    if bytes.len() as u64 > MAX_UPLOAD_BYTES {
-        return Err(PalworldError::Upload(
-            "That save is larger than 30 MB.".to_string(),
-        ));
+    if bytes.len() as u64 > max_bytes {
+        return Err(too_large());
     }
     Ok(bytes.to_vec())
+}
+
+fn upsell_url(app: &zayden_app::state::AppState, tier: Tier) -> Option<&str> {
+    (tier == Tier::Free).then_some(app.upgrade_url.as_deref()).flatten()
 }
 
 fn cooldown_label(remaining: SignedDuration) -> String {

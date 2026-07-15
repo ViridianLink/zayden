@@ -46,7 +46,7 @@ pub(super) async fn panel(
             http,
             CreateMessage::new()
                 .content(
-                    "**Voice channel controls** — use these buttons to manage the voice channel you're connected to.",
+                    "**Voice channel controls** - use these buttons to manage the voice channel you're connected to.",
                 )
                 .components(components),
         )

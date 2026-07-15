@@ -90,7 +90,7 @@ async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
 
     let jobs: Vec<(Zoned, ActionFn<Postgres>)> = {
         let mut data = data.write().await;
-        // TODO(M9-correctness): verify retain predicate — `upcoming().next()`
+        // TODO(M9-correctness): verify retain predicate - `upcoming().next()`
         // already returns a future time, so `t > now` may be redundant, and
         // `includes(t)` on the same schedule's own upcoming result should
         // always be true.

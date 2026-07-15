@@ -5,7 +5,7 @@ const RARITY_WEIGHT: i64 = 4;
 const NOCTURNAL_PENALTY: i64 = 5;
 
 const OBTAIN_OVERRIDES: &[(&str, i64)] = &[
-    // (No overrides yet — the wild-level/rarity signal covers the common cases,
+    // (No overrides yet - the wild-level/rarity signal covers the common cases,
     //  including boss/breeding-only pals via NO_WILD_PENALTY. Add entries here
     //  only for pals the data misrepresents, e.g. raid-boss-only spawns.)
 ];

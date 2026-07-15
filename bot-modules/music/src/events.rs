@@ -6,6 +6,7 @@ use serenity::all::{ChannelId, GuildId, UserId};
 use songbird::tracks::PlayMode;
 use songbird::{Event, EventContext, EventHandler, Songbird};
 use tracing::{error, warn};
+use zayden_app::entitlement::{EntitlementScope, EntitlementService, Tier};
 
 use crate::manager::MusicManager;
 use crate::resolve::TrackResolver;
@@ -80,8 +81,10 @@ pub struct InactivityCheck {
     pub guild_id: GuildId,
     pub channel_id: ChannelId,
     pub bot_id: UserId,
+    pub user_id: UserId,
     pub music: Arc<MusicManager>,
     pub songbird: Arc<Songbird>,
+    pub entitlements: Arc<EntitlementService>,
     pub auto_disconnect_secs: u64,
     pub stay_connected: bool,
 }
@@ -90,7 +93,14 @@ pub struct InactivityCheck {
 impl EventHandler for InactivityCheck {
     async fn act(&self, _ctx: &EventContext<'_>) -> Option<Event> {
         if self.stay_connected {
-            return None;
+            let scope = EntitlementScope::UserInGuild(
+                self.user_id.get(),
+                self.guild_id.get(),
+            );
+
+            if self.entitlements.allows(scope, Tier::Pro).await {
+                return None;
+            }
         }
 
         let player = self.music.get(self.guild_id)?;

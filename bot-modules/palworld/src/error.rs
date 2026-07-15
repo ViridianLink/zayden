@@ -14,7 +14,7 @@ pub enum PalworldError {
     UnknownElement(String),
     #[error(
         "No world save is loaded, so there are no rosters to read. Upload your \
-         own with `/palworld upload`, or — on a shared/multiplayer world — ask \
+         own with `/palworld upload`, or - on a shared/multiplayer world - ask \
          whoever hosts the world to upload its `Level.sav`. A co-op client's \
          `LocalData.sav` does not contain Pal data and can't be used."
     )]

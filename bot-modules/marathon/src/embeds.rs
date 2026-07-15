@@ -72,7 +72,7 @@ fn labelled_list(
 fn named_line(name: &str, detail: Option<&str>) -> String {
     detail.map_or_else(
         || format!("**{name}**"),
-        |detail| format!("**{name}** — {detail}"),
+        |detail| format!("**{name}** - {detail}"),
     )
 }
 
@@ -129,7 +129,7 @@ pub fn weapon_component(weapon: &Weapon) -> CreateComponent<'static> {
             .iter()
             .map(|slot| {
                 slot.attachment.as_ref().map_or_else(
-                    || format!("**{}** — *unavailable*", slot.slot),
+                    || format!("**{}** - *unavailable*", slot.slot),
                     |attachment| {
                         named_line(
                             &format!("{}: {}", slot.slot, attachment.name),
@@ -200,7 +200,7 @@ pub fn runner_component(runner: &Runner) -> CreateComponent<'static> {
                     let _ = write!(line, " ({ability_type})");
                 }
                 if let Some(cooldown) = ability.cooldown_seconds {
-                    let _ = write!(line, " — {cooldown}s cooldown");
+                    let _ = write!(line, " - {cooldown}s cooldown");
                 }
                 if let Some(description) = &ability.description {
                     let _ = write!(line, "\n{description}");
@@ -296,7 +296,7 @@ pub fn map_component(map: &MarathonMap) -> CreateComponent<'static> {
         ));
         components.push(text(
             "-# Marker counts below come from the source wiki's legend and \
-             may be stale — the map above is the more reliable reference."
+             may be stale - the map above is the more reliable reference."
                 .to_string(),
         ));
         components.push(separator());
@@ -366,7 +366,7 @@ pub fn faction_component(faction: &Faction) -> CreateComponent<'static> {
         .map(|upgrade| {
             let mut line = format!("**{}**", upgrade.name);
             if let Some(cost) = &upgrade.cost {
-                let _ = write!(line, " — {cost}");
+                let _ = write!(line, " - {cost}");
             }
             if let Some(requirements) = &upgrade.requirements {
                 let _ = write!(line, "\n{requirements}");
@@ -389,7 +389,7 @@ pub fn meta_component(entries: &[MetaEntry]) -> CreateComponent<'static> {
         .map(|entry| {
             let mut line = format!("**{}**", entry.item);
             if let Some(tier) = &entry.tier {
-                let _ = write!(line, " — {tier}");
+                let _ = write!(line, " - {tier}");
             }
             if let Some(note) = &entry.note {
                 let _ = write!(line, "\n{note}");
@@ -426,7 +426,7 @@ pub fn news_item_component(item: &NewsItem) -> CreateComponent<'static> {
 fn window_line(label: &str, window: RotationWindow) -> String {
     let status = if window.active { "🟢 Active now" } else { "⚪ Not active" };
     format!(
-        "**{label}:** {} {:02}:00 PT → {} {:02}:00 PT — {status}",
+        "**{label}:** {} {:02}:00 PT → {} {:02}:00 PT - {status}",
         weekday_name(window.start_weekday),
         window.start_hour_pt,
         weekday_name(window.end_weekday),

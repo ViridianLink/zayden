@@ -152,7 +152,7 @@ pub async fn channel_creator<
             http,
             CreateMessage::new()
                 .content(
-                    "**Voice channel controls** — use these buttons to manage your channel.",
+                    "**Voice channel controls** - use these buttons to manage your channel.",
                 )
                 .components(components),
         )

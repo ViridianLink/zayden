@@ -27,7 +27,7 @@ impl std::error::Error for OverlapError {}
 /// Exact registrations always win over prefix registrations.
 /// Among prefix registrations, the sorted-longest-first ordering ensures
 /// the most-specific match wins (though the overlap invariant makes this
-/// a safety measure rather than a tiebreaker — two prefixes may never be
+/// a safety measure rather than a tiebreaker - two prefixes may never be
 /// a prefix of each other).
 pub struct DispatchMap<T: ?Sized> {
     exact: HashMap<Cow<'static, str>, Arc<T>>,
@@ -53,7 +53,7 @@ impl<T: ?Sized> DispatchMap<T> {
     /// overwritten.  For `Prefix` keys, registering the same prefix again also
     /// overwrites, but registering a prefix that is a prefix-of or
     /// has-as-prefix an *already-registered different* prefix returns
-    /// [`OverlapError`] — this is a programmer error caught at startup.
+    /// [`OverlapError`] - this is a programmer error caught at startup.
     pub fn insert(
         &mut self,
         id_match: IdMatch,

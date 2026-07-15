@@ -1,4 +1,4 @@
-//! `BreedingIndex::plan` — the pure AND/OR breeding-path search (Milestone 4).
+//! `BreedingIndex::plan` - the pure AND/OR breeding-path search (Milestone 4).
 //! No save file needed: the index, owned roster, and base costs are all
 //! hand-built, so these assert the algorithm in isolation.
 
@@ -72,7 +72,7 @@ fn still_breeds_target_when_catching_is_cheaper() {
 
 #[test]
 fn catch_only_target_has_no_breeding_step() {
-    // C has no recipe at all — genuinely catch-only, so no step can be shown.
+    // C has no recipe at all - genuinely catch-only, so no step can be shown.
     let index = index(&[("D", &[("A", "B")])]);
     let base = base_costs(&[("A", 5), ("B", 5), ("C", 3), ("D", 9)]);
 
@@ -111,7 +111,7 @@ fn builds_multi_hop_tree_in_dependency_order() {
 #[test]
 fn ranks_cheapest_parent_pair_first() {
     // Two routes to C; the expensive (E,F) pair is listed first to prove the
-    // search — not input order — picks the cheaper owned (A,B) pair.
+    // search - not input order - picks the cheaper owned (A,B) pair.
     let index = index(&[("C", &[("E", "F"), ("A", "B")])]);
     let owned = vec![pal("A", Gender::Female), pal("B", Gender::Male)];
     let base = base_costs(&[("A", 5), ("B", 5), ("E", 5), ("F", 5), ("C", 99)]);
@@ -137,8 +137,8 @@ fn same_species_pair_ready_needs_both_genders() {
         "one male + one female A is ready",
     );
 
-    // Two males still yield the same (free) tree — extras can be gender-flipped
-    // by breeding — but the step is not ready to run as-is.
+    // Two males still yield the same (free) tree - extras can be gender-flipped
+    // by breeding - but the step is not ready to run as-is.
     let same_gender = vec![pal("A", Gender::Male), pal("A", Gender::Male)];
     let plan = index.plan(&same_gender, "C", &base).expect("reachable");
     assert_eq!(plan.total_cost, 1);
@@ -172,13 +172,13 @@ fn owned_target_both_genders_breeds_from_itself() {
     let step = plan.steps.first().expect("one step");
     assert_eq!(step.child, "C");
     assert_eq!([step.pair.a.as_str(), step.pair.b.as_str()], ["C", "C"]);
-    assert!(step.ready, "own both genders — the self-pair is ready");
+    assert!(step.ready, "own both genders - the self-pair is ready");
     assert!(plan.leaves_to_obtain.is_empty());
 }
 
 #[test]
 fn owned_target_single_gender_uses_another_combination() {
-    // Only a male C owned, so C × C can't fire — fall back to the A × B route.
+    // Only a male C owned, so C × C can't fire - fall back to the A × B route.
     let index = index(&[("C", &[("C", "C"), ("A", "B")])]);
     let owned = vec![
         pal("C", Gender::Male),

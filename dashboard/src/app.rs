@@ -834,7 +834,7 @@ fn LoginPage() -> impl IntoView {
     let session = Resource::new_blocking(|| (), |()| check_session());
 
     view! {
-        <Title text="Sign In — Zayden Dashboard"/>
+        <Title text="Sign In - Zayden Dashboard"/>
         // When the resource resolves as logged-in, render <Redirect> which fires
         // the 302 on SSR (via ServerRedirectFunction) and navigates client-side.
         <Suspense fallback=|| ()>
@@ -860,7 +860,7 @@ fn GuildListPage() -> impl IntoView {
     let guilds = Resource::new_blocking(|| (), |()| list_manageable_guilds());
 
     view! {
-        <Title text="Servers — Zayden Dashboard"/>
+        <Title text="Servers - Zayden Dashboard"/>
         <div class="page">
             <h1>"Your Servers"</h1>
             <Suspense fallback=|| view! { <p class="loading">"Loading servers\u{2026}"</p> }>
@@ -916,7 +916,7 @@ fn GuildSettingsPage() -> impl IntoView {
     let save_lfg = ServerAction::<SaveLfgSettings>::new();
 
     view! {
-        <Title text="Settings — Zayden Dashboard"/>
+        <Title text="Settings - Zayden Dashboard"/>
         <div class="page">
             <h1>"Server Settings"</h1>
             <Suspense fallback=|| view! { <p class="loading">"Loading settings\u{2026}"</p> }>

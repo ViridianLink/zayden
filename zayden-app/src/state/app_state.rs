@@ -18,6 +18,7 @@ pub struct AppState {
     pub ai_provider_key: String,
     pub ai_api_endpoint: String,
     pub ai_model: String,
+    pub ai_model_pro: String,
     /// Google Sheets API key for the destiny2 endgame-analysis sheet and
     /// compendium.
     pub google_api_key: String,
@@ -26,6 +27,7 @@ pub struct AppState {
     /// Discord user/application ID of the bot itself.
     pub zayden_id: u64,
     pub zayden_guild: u64,
+    pub upgrade_url: Option<String>,
 }
 
 impl AppState {
@@ -51,6 +53,7 @@ impl AppState {
             ai_provider_key: config.ai_provider_key.clone(),
             ai_api_endpoint: config.ai_api_endpoint.clone(),
             ai_model: config.ai_model.clone(),
+            ai_model_pro: config.ai_model_pro.clone(),
             google_api_key: config.google_api_key.clone(),
             error_log_webhook: config.error_log_webhook.clone().unwrap_or_default(),
             normal_log_webhook: config
@@ -59,6 +62,7 @@ impl AppState {
                 .unwrap_or_default(),
             zayden_id: config.zayden_id,
             zayden_guild: config.zayden_guild,
+            upgrade_url: config.upgrade_url.clone(),
         }
     }
 
