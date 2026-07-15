@@ -45,10 +45,15 @@ pub(super) async fn discord_auth_callback_handler(
     State(state): State<WebState>,
 ) -> impl IntoResponse {
     let cookie_state = cookies.get(OAUTH_STATE_COOKIE).map(|c| c.value().to_owned());
-    cookies.remove(Cookie::from(OAUTH_STATE_COOKIE));
-    match cookie_state {
-        Some(s) if s == query.state && !s.is_empty() => {},
-        _ => return error_redirect(),
+    let mut removal = Cookie::from(OAUTH_STATE_COOKIE);
+    removal.set_path("/");
+    cookies.remove(removal);
+    if !matches!(&cookie_state, Some(s) if *s == query.state && !s.is_empty()) {
+        tracing::warn!(
+            has_cookie = cookie_state.is_some(),
+            "OAuth callback rejected: state cookie missing or does not match the returned state"
+        );
+        return error_redirect();
     }
 
     let token_result = state
@@ -59,7 +64,10 @@ pub(super) async fn discord_auth_callback_handler(
 
     let discord_access_token = match token_result {
         Ok(t) => t.access_token().secret().clone(),
-        Err(_) => return error_redirect(),
+        Err(e) => {
+            tracing::warn!(error = ?e, "OAuth token exchange with Discord failed (check DISCORD_CLIENT_SECRET and that redirect_uri matches the portal registration exactly)");
+            return error_redirect();
+        },
     };
 
     let user_resp = state
@@ -73,9 +81,19 @@ pub(super) async fn discord_auth_callback_handler(
     let discord_user: DiscordUser = match user_resp {
         Ok(r) if r.status().is_success() => match r.json().await {
             Ok(u) => u,
-            Err(_) => return error_redirect(),
+            Err(e) => {
+                tracing::warn!(error = ?e, "failed to parse Discord /users/@me response");
+                return error_redirect();
+            },
         },
-        _ => return error_redirect(),
+        Ok(r) => {
+            tracing::warn!(status = %r.status(), "Discord /users/@me returned a non-success status");
+            return error_redirect();
+        },
+        Err(e) => {
+            tracing::warn!(error = ?e, "request to Discord /users/@me failed");
+            return error_redirect();
+        },
     };
 
     let discord_user_id: i64 = discord_user.id.get().cast_signed();
@@ -108,7 +126,8 @@ pub(super) async fn discord_auth_callback_handler(
     .execute(&state.app.db)
     .await;
 
-    if insert_result.is_err() {
+    if let Err(e) = insert_result {
+        tracing::warn!(error = ?e, "failed to insert web_sessions row on login");
         return error_redirect();
     }
 
