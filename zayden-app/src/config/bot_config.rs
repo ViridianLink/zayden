@@ -73,6 +73,8 @@ pub struct BotConfig {
     pub bind_addr: String,
     pub invite_url: Option<String>,
     pub upgrade_url: Option<String>,
+
+    pub kofi_verification_token: Option<String>,
 }
 
 impl BotConfig {
@@ -170,6 +172,7 @@ impl BotConfig {
                 .unwrap_or_else(|| DEFAULT_BIND_ADDR.to_owned()),
             invite_url: toml_cfg.dashboard.invite_url,
             upgrade_url: toml_cfg.dashboard.upgrade_url,
+            kofi_verification_token: env::var("KOFI_VERIFICATION_TOKEN").ok(),
         })
     }
 }

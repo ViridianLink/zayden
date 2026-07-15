@@ -27,6 +27,7 @@ use crate::bindings::gambling::{
     LottoTable,
     StaminaTable,
 };
+use crate::cron::EntitlementSweepCron;
 use crate::{Result, ZAYDEN_TOKEN, zayden_token};
 
 pub struct BotState {
@@ -113,6 +114,7 @@ impl BotState {
                 Some(self.marathon_bungie_api_key.clone()),
             ),
             PalworldUploadSweepCron::cron_job(),
+            EntitlementSweepCron::cron_job(),
         ];
         for job in jobs {
             match job {

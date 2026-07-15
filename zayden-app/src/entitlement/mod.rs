@@ -8,6 +8,7 @@ pub use provider::{
     GrantData,
     KoFiPayload,
     KoFiProvider,
+    KoFiType,
 };
 pub use service::EntitlementService;
 pub use types::{EntitlementScope, Tier};

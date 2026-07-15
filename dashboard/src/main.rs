@@ -56,6 +56,7 @@ pub(crate) struct WebState {
     pub(crate) invite_url: Option<String>,
     pub(crate) bot_owner: u64,
     pub(crate) upgrade_url: Option<String>,
+    pub(crate) kofi_verification_token: Option<String>,
     pub(crate) session_cache: Cache<String, (String, i64)>,
     pub(crate) guild_cache:
         Cache<String, Arc<[middleware::guild_permission::PartialGuild]>>,
@@ -76,6 +77,7 @@ impl WebState {
             oauth_states: Arc::new(DashMap::new()),
             bot_owner: config.bot_owner,
             upgrade_url: config.upgrade_url.clone(),
+            kofi_verification_token: config.kofi_verification_token.clone(),
             frontend_url: config.frontend_url.clone(),
             invite_url: config.invite_url.clone(),
             session_cache: Cache::builder()

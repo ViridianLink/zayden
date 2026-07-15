@@ -2,6 +2,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Form, Json};
+use jiff::{SignedDuration, Timestamp};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tracing::warn;
@@ -11,23 +12,18 @@ use zayden_app::entitlement::{
     GrantData,
     KoFiPayload,
     KoFiProvider,
+    KoFiType,
     Tier,
 };
 
 use crate::WebState;
 use crate::middleware::auth::AuthUser;
 
-/// Ko-fi sends a `application/x-www-form-urlencoded` body with a single `data`
-/// field that is a URL-encoded JSON string.
 #[derive(Deserialize)]
 pub(super) struct KoFiForm {
     data: String,
 }
 
-/// POST /webhooks/kofi
-///
-/// Handles Ko-fi donation and subscription webhook notifications.
-/// The endpoint always returns 200 so Ko-fi doesn't retry on transient DB errors.
 pub(super) async fn kofi_webhook_handler(
     State(state): State<WebState>,
     Form(form): Form<KoFiForm>,
@@ -40,8 +36,18 @@ pub(super) async fn kofi_webhook_handler(
         },
     };
 
-    // Only handle subscription events; Ignore one-off donations and shop orders
-    if payload.kind != "Subscription" {
+    match state.kofi_verification_token.as_deref() {
+        Some(expected) if payload.verification_token == expected => {},
+        _ => {
+            warn!(
+                transaction_id = %payload.kofi_transaction_id,
+                "Ko-fi webhook rejected: verification_token missing, unconfigured, or mismatched"
+            );
+            return StatusCode::OK;
+        },
+    }
+
+    if payload.kind != KoFiType::Subscription {
         return StatusCode::OK;
     }
 
@@ -78,20 +84,19 @@ pub(super) async fn kofi_webhook_handler(
     let scope = EntitlementScope::User(discord_user_id);
 
     if payload.is_subscription_payment {
+        let expires_at =
+            Timestamp::now().checked_add(SignedDuration::from_hours(32 * 24)).ok();
         let grant_data = GrantData {
             external_id: payload.kofi_transaction_id.clone(),
             scope,
             tier: Tier::Pro,
-            expires_at: None,
+            expires_at,
         };
         if let Err(e) = KoFiProvider.grant(&state.app.entitlements, grant_data).await
         {
             warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to record Ko-fi entitlement");
         }
     } else {
-        // Subscription cancelled or expired — revoke all Ko-fi entitlements for this
-        // user. Cancellation webhooks do not carry the original grant
-        // transaction ID, only the email.
         if let Err(e) =
             state.app.entitlements.revoke_all_by_scope("kofi", &scope).await
         {
@@ -107,10 +112,6 @@ pub(super) struct KoFiLinkBody {
     email: String,
 }
 
-/// POST /kofi/link
-///
-/// Links the authenticated Discord user's account to a Ko-fi email address.
-/// Stores `sha256(lowercase(email))` so plain-text addresses are never persisted.
 pub(super) async fn kofi_link_handler(
     Extension(user): Extension<AuthUser>,
     State(state): State<WebState>,

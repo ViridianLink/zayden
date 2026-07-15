@@ -179,6 +179,49 @@ impl EntitlementService {
         });
     }
 
+    pub async fn refresh_expired_cache_rows(&self) -> Result<u64, sqlx::Error> {
+        let stale = sqlx::query_as::<_, (String, i64, i64)>(
+            r"
+            SELECT c.scope_type, c.scope_id, c.scope_secondary_id
+            FROM entitlement_cache c
+            WHERE c.tier <> 'free'
+              AND c.tier <> COALESCE((
+                  SELECT CASE MAX(
+                              CASE e.tier
+                                  WHEN 'enterprise' THEN 2
+                                  WHEN 'pro'        THEN 1
+                                  ELSE                   0
+                              END)
+                          WHEN 2 THEN 'enterprise'
+                          WHEN 1 THEN 'pro'
+                          ELSE        'free'
+                      END
+                  FROM entitlements e
+                  WHERE e.scope_type = c.scope_type
+                    AND e.scope_id = c.scope_id
+                    AND e.scope_secondary_id = c.scope_secondary_id
+                    AND (e.expires_at IS NULL OR e.expires_at > now())
+              ), 'free')
+            ",
+        )
+        .fetch_all(&self.db)
+        .await?;
+
+        let mut demoted: u64 = 0;
+        for (scope_type, scope_id, scope_secondary_id) in stale {
+            let scope = row_to_scope(&scope_type, scope_id, scope_secondary_id);
+            self.refresh_cache_row_from_db(&scope).await?;
+            self.cache.invalidate(&scope).await;
+            let _ = self.events.send(AppEvent::EntitlementChanged(scope));
+            demoted += 1;
+        }
+
+        if demoted > 0 {
+            info!(demoted, "entitlement expiry sweep demoted lapsed scopes");
+        }
+        Ok(demoted)
+    }
+
     // ── private helpers ──────────────────────────────────────────────────────
 
     async fn tier_for_scope(&self, scope: EntitlementScope) -> Tier {
