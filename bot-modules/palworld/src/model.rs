@@ -220,6 +220,7 @@ pub struct BreedPlan {
     pub steps: Vec<BreedStep>,
     pub total_cost: i64,
     pub leaves_to_obtain: Vec<String>,
+    pub catch_cost: Option<i64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

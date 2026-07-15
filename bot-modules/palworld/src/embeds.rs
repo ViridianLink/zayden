@@ -297,6 +297,7 @@ pub fn breed_plan_component(
     steps: &[String],
     leaves: &[String],
     total_cost: i64,
+    catch_cost: Option<i64>,
 ) -> CreateComponent<'static> {
     let body = format!(
         "# Breeding Plan\nCheapest path to **{}**\n-# Cost score {total_cost} • \
@@ -314,6 +315,13 @@ pub fn breed_plan_component(
         )));
     } else {
         components.push(labelled_list("Steps (parents → child)", steps));
+        if let Some(catch) = catch_cost {
+            components.push(text(format!(
+                "-# 💡 **{}** is cheaper to *catch* (score {catch}) than to breed \
+                 (score {total_cost}) — the plan above breeds it anyway.",
+                target.name
+            )));
+        }
     }
 
     if !leaves.is_empty() {

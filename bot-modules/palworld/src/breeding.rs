@@ -162,6 +162,20 @@ impl BreedingIndex {
         }
 
         let &total_cost = finalized.get(target)?;
+
+        if via.get(target) == Some(&None)
+            && let Some(plan) = self.forced_breed_plan(
+                target,
+                total_cost,
+                &finalized,
+                &via,
+                &owned_species,
+                &ready,
+            )
+        {
+            return Some(plan);
+        }
+
         let (order, leaves) = reconstruct(&via, &owned_species, &[target])?;
 
         Some(BreedPlan {
@@ -169,6 +183,45 @@ impl BreedingIndex {
             steps: build_steps(&order, &via, &ready),
             total_cost,
             leaves_to_obtain: leaves.iter().map(|s| (*s).to_string()).collect(),
+            catch_cost: None,
+        })
+    }
+
+    fn forced_breed_plan<'a>(
+        &'a self,
+        target: &'a str,
+        catch_cost: i64,
+        finalized: &HashMap<&'a str, i64>,
+        via: &HashMap<&'a str, Option<(&'a str, &'a str)>>,
+        owned_species: &HashSet<&'a str>,
+        ready: &impl Fn(&str, &str) -> bool,
+    ) -> Option<BreedPlan> {
+        let (total_cost, a, b) = self
+            .reverse
+            .get(target)?
+            .iter()
+            .filter(|pair| pair[0] != target && pair[1] != target)
+            .filter_map(|pair| {
+                let (a, b) = (pair[0].as_str(), pair[1].as_str());
+                let cost = finalized.get(a)? + finalized.get(b)? + BREED_STEP;
+                Some((cost, a, b))
+            })
+            .min()?;
+
+        let (order, leaves) = reconstruct(via, owned_species, &[a, b])?;
+        let mut steps = build_steps(&order, via, ready);
+        steps.push(BreedStep {
+            pair: ParentPair { a: a.to_string(), b: b.to_string() },
+            child: target.to_string(),
+            ready: ready(a, b),
+        });
+
+        Some(BreedPlan {
+            target: target.to_string(),
+            steps,
+            total_cost,
+            leaves_to_obtain: leaves.iter().map(|s| (*s).to_string()).collect(),
+            catch_cost: Some(catch_cost),
         })
     }
 
@@ -193,6 +246,7 @@ impl BreedingIndex {
             }],
             total_cost: BREED_STEP,
             leaves_to_obtain: Vec::new(),
+            catch_cost: None,
         };
 
         if has_self && has_male && has_female {
@@ -224,6 +278,7 @@ impl BreedingIndex {
                 steps,
                 total_cost,
                 leaves_to_obtain: leaves.iter().map(|s| (*s).to_string()).collect(),
+                catch_cost: None,
             });
         }
 

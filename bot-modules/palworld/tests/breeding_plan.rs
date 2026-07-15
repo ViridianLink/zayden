@@ -49,15 +49,38 @@ fn breeds_target_from_owned_parents_for_free() {
 }
 
 #[test]
-fn prefers_catching_when_cheaper_than_breeding() {
+fn still_breeds_target_when_catching_is_cheaper() {
     let index = index(&[("C", &[("A", "B")])]);
     let base = base_costs(&[("A", 5), ("B", 5), ("C", 3)]);
 
     let plan = index.plan(&[], "C", &base).expect("catchable");
 
-    // Catching C (3) beats breeding it (5 + 5 + 1) — no steps, C is a leaf.
+    // Catching C (3) beats breeding it (5 + 5 + 1 = 11), but a breed-plan must
+    // still show the breeding path: one step producing C, with the cheaper
+    // catch cost recorded so the embed can note it.
+    assert_eq!(plan.total_cost, 11);
+    assert_eq!(plan.catch_cost, Some(3));
+    let step = plan.steps.last().expect("a breeding step");
+    assert_eq!(step.child, "C");
+    let p = &step.pair;
+    assert!((p.a == "A" && p.b == "B") || (p.a == "B" && p.b == "A"));
+    // Both parents are unowned and must be obtained.
+    let mut leaves = plan.leaves_to_obtain.clone();
+    leaves.sort();
+    assert_eq!(leaves, vec!["A".to_string(), "B".to_string()]);
+}
+
+#[test]
+fn catch_only_target_has_no_breeding_step() {
+    // C has no recipe at all — genuinely catch-only, so no step can be shown.
+    let index = index(&[("D", &[("A", "B")])]);
+    let base = base_costs(&[("A", 5), ("B", 5), ("C", 3), ("D", 9)]);
+
+    let plan = index.plan(&[], "C", &base).expect("catchable");
+
     assert_eq!(plan.total_cost, 3);
     assert!(plan.steps.is_empty());
+    assert_eq!(plan.catch_cost, None);
     assert_eq!(plan.leaves_to_obtain, vec!["C".to_string()]);
 }
 

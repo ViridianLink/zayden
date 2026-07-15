@@ -110,7 +110,13 @@ pub(super) async fn run(
 
     respond(
         cx,
-        embeds::breed_plan_component(target, &steps, &to_obtain, plan.total_cost),
+        embeds::breed_plan_component(
+            target,
+            &steps,
+            &to_obtain,
+            plan.total_cost,
+            plan.catch_cost,
+        ),
     )
     .await
 }
