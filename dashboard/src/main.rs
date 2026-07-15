@@ -98,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config = BotConfig::load(&pool).await?;
 
-    let leptos_options = get_configuration(Some("Cargo.toml"))?.leptos_options;
+    let leptos_options = get_configuration(Some("dashboard/Cargo.toml"))?.leptos_options;
 
     let app_state = Arc::new(ZaydenAppState::new(pool, &config));
     EventListener::spawn(app_state.db.clone(), app_state.events.clone());
