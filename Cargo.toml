@@ -166,9 +166,7 @@ moka = { version = "*", default-features = false }
 rand = { version = "*", default-features = false }
 rand_distr = { version = "*", default-features = false }
 regex = { version = "*", default-features = false }
-reqwest = { version = "0.13", default-features = false, features = [
-  "default-tls",
-] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 rspotify = { version = "*", default-features = false }
 rustls = { version = "*", default-features = false }
 scraper = { version = "*", default-features = false }

@@ -216,10 +216,19 @@ pub async fn set_module_enabled(
     use std::sync::Arc;
 
     use reqwest::Client;
+    use twilight_model::application::command::permissions::{
+        CommandPermission,
+        CommandPermissionType,
+    };
     use zayden_app::state::AppState;
 
     use crate::app::DiscordBotToken;
     use crate::server::auth::{guild_admin_context, server_err};
+
+    #[derive(serde::Serialize)]
+    struct PermissionsBody {
+        permissions: Vec<CommandPermission>,
+    }
 
     let (guild_id_i64, _user_id, access_token) = guild_admin_context(&guild).await?;
     let guild_id_u64 = guild_id_i64.cast_unsigned();
@@ -239,16 +248,6 @@ pub async fn set_module_enabled(
     let app_id = app.zayden_id;
 
     let name_to_id = fetch_command_ids(&http, app_id, &bot_token).await;
-
-    use twilight_model::application::command::permissions::{
-        CommandPermission,
-        CommandPermissionType,
-    };
-
-    #[derive(serde::Serialize)]
-    struct PermissionsBody {
-        permissions: Vec<CommandPermission>,
-    }
 
     let body = if enabled {
         PermissionsBody { permissions: Vec::new() }

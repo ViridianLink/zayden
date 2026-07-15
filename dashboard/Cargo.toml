@@ -71,6 +71,7 @@ jiff-sqlx = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"], optional = true }
 oauth2 = { version = "*", default-features = false, features = [
   "reqwest",
+  "rustls-tls",
 ], optional = true }
 rand = { workspace = true, features = ["thread_rng"], optional = true }
 reqwest = { workspace = true, optional = true }

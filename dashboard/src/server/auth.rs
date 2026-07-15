@@ -123,8 +123,5 @@ pub async fn check_session() -> Result<bool, ServerFnError> {
     .map_err(server_err)?
     .is_some();
 
-    if logged_in {
-        leptos_axum::redirect("/guilds");
-    }
     Ok(logged_in)
 }

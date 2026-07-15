@@ -3,7 +3,10 @@
 //! Runs against the real save when present (mirroring `save_decompress`'s
 //! real-save case) and otherwise skips, so `cargo test` stays green offline.
 //! Ground-truth guilds in this save (per the plan's oracle):
-//!   A = Oscar/J./KingJosh/ThatGuy, B = Devil/Zylbas, C = cutathanyou (solo).
+//!   A = Oscar/J./ThatGuy (+others), B = Devil/Zylbas, C = cutathanyou (solo).
+//! Membership drifts as players join or leave (`KingJosh`, e.g., has since left
+//! Guild A and now runs a solo guild), so the pooling test derives Guild A's
+//! roster from the decode rather than hard-coding it.
 
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -18,12 +21,7 @@ use palworld::save::load_world;
 const CUTA: &str = "59F0C9D9000000000000000000000000";
 const DEVIL: &str = "5742CA5A000000000000000000000000";
 const ZYLBAS: &str = "CC912A1C000000000000000000000000";
-const J: &str = "3454079E000000000000000000000000";
-const THAT_GUY: &str = "A64A5035000000000000000000000000";
 const OSCAR: &str = "286C72B0000000000000000000000000";
-const KINGJOSH: &str = "5CF598C9000000000000000000000000";
-
-const GUILD_A: [&str; 4] = [OSCAR, J, KINGJOSH, THAT_GUY];
 
 fn save_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -103,11 +101,16 @@ fn base_pals_pool_across_guild_members_only() {
     let extracted = extract(&level).expect("extract");
     let guilds = decode_guilds(&level);
 
-    // Every Guild A member receives the identical, non-empty base-pal pool -
-    // including KingJosh / That Guy, who own no base pals themselves.
+    // Every member of Oscar's guild receives the identical, non-empty base-pal
+    // pool - including members who own no base pals themselves. The roster is
+    // read from the decode so this holds as membership drifts over time.
+    let guild_a = guilds.guild_of(OSCAR).expect("Oscar belongs to a guild");
+    let roster = guilds.members(guild_a);
+    assert!(roster.len() > 1, "Oscar's guild has multiple members to pool across");
+
     let pool_a = pooled_count(OSCAR, &extracted, &guilds);
     assert!(pool_a > 0, "guild A has base pals to pool");
-    for uid in GUILD_A {
+    for uid in roster {
         assert_eq!(
             pooled_count(uid, &extracted, &guilds),
             pool_a,

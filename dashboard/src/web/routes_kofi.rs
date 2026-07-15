@@ -92,12 +92,10 @@ pub(super) async fn kofi_webhook_handler(
         {
             warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to record Ko-fi entitlement");
         }
-    } else {
-        if let Err(e) =
-            state.app.entitlements.revoke_all_by_scope("kofi", &scope).await
-        {
-            warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to revoke Ko-fi entitlement");
-        }
+    } else if let Err(e) =
+        state.app.entitlements.revoke_all_by_scope("kofi", &scope).await
+    {
+        warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to revoke Ko-fi entitlement");
     }
 
     StatusCode::OK

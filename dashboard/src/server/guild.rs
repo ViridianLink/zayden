@@ -88,12 +88,19 @@ pub async fn get_guild_settings(
     use std::sync::Arc;
 
     use reqwest::Client;
-    use sqlx::PgPool;
+    use sqlx::{PgPool, Row as _};
     use tower_cookies::Cookies;
     use twilight_model::guild::Permissions;
     use twilight_model::user::CurrentUserGuild;
     use zayden_app::entitlement::types::{EntitlementScope, Tier};
     use zayden_app::state::AppState;
+
+    fn opt_str(v: Option<i64>) -> Option<String> {
+        v.map(|n| n.to_string())
+    }
+    fn app_err(e: &sqlx::Error) -> ServerFnError {
+        ServerFnError::ServerError(e.to_string())
+    }
 
     let Ok(guild_id_i64) = guild_id.parse::<i64>() else {
         return Err(ServerFnError::ServerError("invalid guild id".to_string()));
@@ -134,7 +141,6 @@ pub async fn get_guild_settings(
         leptos_axum::redirect("/login");
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
-    use sqlx::Row as _;
     let access_token: String = row.get("discord_access_token");
     let discord_user_id: i64 = row.get("discord_user_id");
     let discord_user_id_u64 = discord_user_id.cast_unsigned();
@@ -166,21 +172,17 @@ pub async fn get_guild_settings(
         return Err(ServerFnError::ServerError("forbidden".to_string()));
     }
 
-    fn opt_str(v: Option<i64>) -> Option<String> {
-        v.map(|n| n.to_string())
-    }
-    fn app_err(e: sqlx::Error) -> ServerFnError {
-        ServerFnError::ServerError(e.to_string())
-    }
-
-    let support = app.settings.support.get(guild_id_i64).await.map_err(app_err)?;
+    let support =
+        app.settings.support.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
     let suggestions =
-        app.settings.suggestions.get(guild_id_i64).await.map_err(app_err)?;
-    let channels = app.settings.channels.get(guild_id_i64).await.map_err(app_err)?;
-    let roles = app.settings.roles.get(guild_id_i64).await.map_err(app_err)?;
+        app.settings.suggestions.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
+    let channels =
+        app.settings.channels.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
+    let roles =
+        app.settings.roles.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
     let temp_voice =
-        app.settings.temp_voice.get(guild_id_i64).await.map_err(app_err)?;
-    let lfg = app.settings.lfg.get(guild_id_i64).await.map_err(app_err)?;
+        app.settings.temp_voice.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
+    let lfg = app.settings.lfg.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
 
     let scope = EntitlementScope::UserInGuild(discord_user_id_u64, guild_id_u64);
     let is_pro = app.entitlements.allows(scope, Tier::Pro).await;
@@ -210,7 +212,7 @@ async fn guild_write_guard(guild_id_str: &str) -> Result<(i64, u64), ServerFnErr
     use std::sync::Arc;
 
     use reqwest::Client;
-    use sqlx::PgPool;
+    use sqlx::{PgPool, Row as _};
     use tower_cookies::Cookies;
     use twilight_model::guild::Permissions;
     use twilight_model::user::CurrentUserGuild;
@@ -254,7 +256,6 @@ async fn guild_write_guard(guild_id_str: &str) -> Result<(i64, u64), ServerFnErr
     let Some(row) = row else {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
-    use sqlx::Row as _;
     let access_token: String = row.get("discord_access_token");
     let discord_user_id: i64 = row.get("discord_user_id");
     let discord_user_id_u64 = discord_user_id.cast_unsigned();
