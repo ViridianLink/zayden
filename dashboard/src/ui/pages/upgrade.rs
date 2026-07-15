@@ -53,7 +53,7 @@ pub(crate) fn UpgradePage() -> impl IntoView {
                                         rel="noopener noreferrer"
                                     >"Subscribe on Ko-fi"</a>
                                 })}
-                                <a href="/invite" class="btn btn-secondary">
+                                <a href="/invite" rel="external" class="btn btn-secondary">
                                     "Subscribe via Discord"
                                 </a>
                             </div>
