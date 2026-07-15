@@ -24,6 +24,21 @@ pub enum PalworldError {
          `player:`, or `/palworld upload` your own `Level.sav`."
     )]
     NotLinked,
+    #[error(
+        "You can only link to a host you share a server with. Run `/palworld \
+         link` from a server you're both in."
+    )]
+    LinkNotSameGuild,
+    #[error(
+        "That member hasn't uploaded a world yet. Ask them to run `/palworld \
+         upload`, then link again."
+    )]
+    LinkHostNoWorld,
+    #[error(
+        "The world you linked to is no longer available (the host's upload \
+         expired). Ask them to re-upload, or `/palworld unlink`."
+    )]
+    LinkedWorldGone,
 
     #[error("FlareSolverr error: {0}")]
     FlareSolverr(String),
@@ -57,6 +72,9 @@ impl Respond for PalworldError {
             | Self::UnknownElement(_)
             | Self::NoWorld
             | Self::NotLinked
+            | Self::LinkNotSameGuild
+            | Self::LinkHostNoWorld
+            | Self::LinkedWorldGone
             | Self::Upload(_) => Some(Cow::Owned(self.to_string())),
             Self::Save(_) | Self::Gvas(_) | Self::Io(_) => Some(Cow::Borrowed(
                 "Couldn't read the world save. If it's your upload, re-upload a \

@@ -230,11 +230,17 @@ pub fn passive_component(skill: &PassiveSkill) -> CreateComponent<'static> {
     container(vec![text(body)])
 }
 
-pub fn link_component(name: &str, owned: usize) -> CreateComponent<'static> {
+pub fn link_component(
+    name: &str,
+    owned: usize,
+    host: Option<&str>,
+) -> CreateComponent<'static> {
+    let world =
+        host.map_or_else(String::new, |host| format!(" in {host}'s uploaded world"));
     container(vec![text(format!(
         "# 🔗 Linked\nYour Discord account is now linked to **{name}** \
-         ({owned} breedable Pals).\n-# `/palworld breed-plan` and `/palworld \
-         roster` now default to this player."
+         ({owned} breedable Pals){world}.\n-# `/palworld breed-plan` and \
+         `/palworld roster` now default to this player."
     ))])
 }
 

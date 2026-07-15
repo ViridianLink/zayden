@@ -40,9 +40,24 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
         ("roster" | "breed-plan", "player") | ("link", "name")
     );
 
+    let host = (name == "link")
+        .then(|| {
+            sub_options.iter().find_map(|option| {
+                if option.name != "host" {
+                    return None;
+                }
+                if let ResolvedValue::User(user, _) = option.value {
+                    Some(as_i64(user.id.get()))
+                } else {
+                    None
+                }
+            })
+        })
+        .flatten();
+
     let choices: Vec<AutocompleteChoice<'static>> = if is_player_field {
         let discord_id = as_i64(cx.interaction.user.id.get());
-        player_roster(client, &cx.app.db, discord_id)
+        player_roster(client, &cx.app.db, discord_id, host)
             .await
             .map(|roster| {
                 roster
@@ -97,7 +112,14 @@ async fn player_roster(
     client: &PalworldClient,
     pool: &sqlx::PgPool,
     discord_id: i64,
+    host: Option<i64>,
 ) -> Result<Arc<WorldRoster>> {
+    if let Some(host) = host
+        && let Some(upload) = SaveUpload::select(pool, host).await?
+        && !upload.is_expired()
+    {
+        return client.user_roster(host).await;
+    }
     if let Some(upload) = SaveUpload::select(pool, discord_id).await?
         && !upload.is_expired()
     {

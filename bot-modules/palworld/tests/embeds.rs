@@ -57,6 +57,22 @@ fn type_component_lists_effectiveness() {
 }
 
 #[test]
+fn link_component_shared_world_omits_host() {
+    let json = render(&embeds::link_component("Bob", 12, None));
+    assert!(json.contains("Bob"));
+    assert!(json.contains("12 breedable Pals"));
+    assert!(!json.contains("uploaded world"));
+}
+
+#[test]
+fn link_component_names_host_world() {
+    let json = render(&embeds::link_component("Bob", 12, Some("<@42>")));
+    assert!(json.contains("Bob"));
+    assert!(json.contains("<@42>"));
+    assert!(json.contains("uploaded world"));
+}
+
+#[test]
 fn item_component_renders() {
     let item = Item {
         key: "gold_coin".to_string(),

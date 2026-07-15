@@ -87,9 +87,19 @@ impl Command {
         let link = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "link",
-            "Link your Discord account to your in-game player",
+            "Link your in-game player, in the shared world or a host's uploaded \
+             world",
         )
-        .add_sub_option(name_option_named("name", "Your in-game player name"));
+        .add_sub_option(name_option_named("name", "Your in-game player name"))
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::User,
+                "host",
+                "Server member whose uploaded world to link into (defaults to \
+                 the shared world)",
+            )
+            .required(false),
+        );
 
         let unlink = CreateCommandOption::new(
             CommandOptionType::SubCommand,
@@ -203,34 +213,48 @@ pub(crate) async fn resolve_player(
         && !upload.is_expired()
     {
         let roster = client.user_roster(discord_id).await?;
-
         return player.map_or_else(
             || most_populated_player(&roster),
-            |name| {
-                roster.by_name(name).cloned().ok_or_else(|| {
-                    PalworldError::NotFound {
-                        entity: "player",
-                        query: name.to_string(),
-                    }
-                })
+            |name| player_by_name(&roster, name),
+        );
+    }
+
+    if let Some(link) = PlayerLink::select(pool, discord_id).await? {
+        let roster = match link.host_discord_id {
+            Some(host) => {
+                match SaveUpload::select(pool, host).await? {
+                    Some(upload) if !upload.is_expired() => {},
+                    _ => return Err(PalworldError::LinkedWorldGone),
+                }
+                client.user_roster(host).await?
             },
+            None => client.roster().await?,
+        };
+        return player.map_or_else(
+            || player_by_uid(&roster, &link),
+            |name| player_by_name(&roster, name),
         );
     }
 
     let roster = client.roster().await?;
+    player.map_or_else(
+        || Err(PalworldError::NotLinked),
+        |name| player_by_name(&roster, name),
+    )
+}
 
-    if let Some(name) = player {
-        return roster.by_name(name).cloned().ok_or_else(|| {
-            PalworldError::NotFound { entity: "player", query: name.to_string() }
-        });
-    }
+fn player_by_name(roster: &WorldRoster, name: &str) -> Result<PlayerRoster> {
+    roster.by_name(name).cloned().ok_or_else(|| PalworldError::NotFound {
+        entity: "player",
+        query: name.to_string(),
+    })
+}
 
-    match PlayerLink::select(pool, discord_id).await? {
-        Some(link) => roster.by_uid(&link.player_uid).cloned().ok_or_else(|| {
-            PalworldError::NotFound { entity: "player", query: link.in_game_name }
-        }),
-        None => Err(PalworldError::NotLinked),
-    }
+fn player_by_uid(roster: &WorldRoster, link: &PlayerLink) -> Result<PlayerRoster> {
+    roster.by_uid(&link.player_uid).cloned().ok_or_else(|| PalworldError::NotFound {
+        entity: "player",
+        query: link.in_game_name.clone(),
+    })
 }
 
 fn most_populated_player(roster: &WorldRoster) -> Result<PlayerRoster> {

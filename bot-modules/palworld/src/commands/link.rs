@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serenity::all::ResolvedValue;
+use serenity::all::{ResolvedValue, UserId};
 use sqlx::PgPool;
 use zayden_core::{InvocationCtx, as_i64, required_option};
 
@@ -8,6 +8,7 @@ use super::respond;
 use crate::client::PalworldClient;
 use crate::error::{PalworldError, Result};
 use crate::link::PlayerLink;
+use crate::upload::SaveUpload;
 use crate::{embeds, save};
 
 pub(super) async fn link(
@@ -19,9 +20,23 @@ pub(super) async fn link(
     let name: &str =
         required_option(&mut options, "name").map_err(PalworldError::from)?;
 
+    let host = match options.remove("host") {
+        Some(ResolvedValue::User(user, _)) => Some(user.id),
+        _ => None,
+    };
+
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
 
-    let roster = client.roster().await?;
+    let host_id = match host {
+        Some(host) => Some(verify_host(cx, pool, host).await?),
+        None => None,
+    };
+
+    let roster = match host_id {
+        Some(host_id) => client.user_roster(host_id).await?,
+        None => client.roster().await?,
+    };
+
     let Some(player) = roster.by_name(name) else {
         let mut names: Vec<&str> =
             roster.players.iter().map(|p| p.name.as_str()).collect();
@@ -31,7 +46,8 @@ pub(super) async fn link(
 
     let discord_id = as_i64(cx.interaction.user.id.get());
     let stored =
-        PlayerLink::upsert(pool, discord_id, &player.uid, &player.name).await?;
+        PlayerLink::upsert(pool, discord_id, &player.uid, &player.name, host_id)
+            .await?;
 
     let pals = client.pals().await?;
     let owned = player
@@ -40,7 +56,33 @@ pub(super) async fn link(
         .filter(|p| save::palmap::resolve_species(&p.species, &pals).is_some())
         .count();
 
-    respond(cx, embeds::link_component(&stored.in_game_name, owned)).await
+    let host_mention = host.map(|id| format!("<@{id}>"));
+    respond(
+        cx,
+        embeds::link_component(&stored.in_game_name, owned, host_mention.as_deref()),
+    )
+    .await
+}
+
+async fn verify_host(
+    cx: &InvocationCtx<'_>,
+    pool: &PgPool,
+    host: UserId,
+) -> Result<i64> {
+    let Some(guild_id) = cx.interaction.guild_id else {
+        return Err(PalworldError::LinkNotSameGuild);
+    };
+
+    if guild_id.member(&cx.ctx.http, host).await.is_err() {
+        return Err(PalworldError::LinkNotSameGuild);
+    }
+
+    let host_id = as_i64(host.get());
+
+    match SaveUpload::select(pool, host_id).await? {
+        Some(upload) if !upload.is_expired() => Ok(host_id),
+        _ => Err(PalworldError::LinkHostNoWorld),
+    }
 }
 
 pub(super) async fn unlink(cx: &InvocationCtx<'_>, pool: &PgPool) -> Result<()> {
