@@ -1,10 +1,23 @@
 use async_trait::async_trait;
+use jiff::{SignedDuration, Timestamp};
 use serde::Deserialize;
 
 use super::{EntitlementProvider, GrantData};
 use crate::entitlement::service::EntitlementService;
 
 pub struct KoFiProvider;
+
+impl KoFiProvider {
+    pub const SUBSCRIPTION_GRACE_DAYS: i64 = 32;
+
+    #[must_use]
+    pub fn subscription_expiry(now: Timestamp) -> Option<Timestamp> {
+        now.checked_add(SignedDuration::from_hours(
+            Self::SUBSCRIPTION_GRACE_DAYS * 24,
+        ))
+        .ok()
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub enum KoFiType {
@@ -27,6 +40,13 @@ pub struct KoFiPayload {
     pub is_first_subscription_payment: bool,
     pub timestamp: String,
     pub message_id: Option<String>,
+}
+
+impl KoFiPayload {
+    #[must_use]
+    pub fn verification_ok(&self, expected: Option<&str>) -> bool {
+        matches!(expected, Some(secret) if self.verification_token == secret)
+    }
 }
 
 #[async_trait]

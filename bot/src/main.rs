@@ -92,6 +92,12 @@ async fn main() -> Result<()> {
 
     let pool = new_pool_with_retry().await?;
 
+    sqlx::migrate!("../migrations")
+        .run(&pool)
+        .await
+        .map_err(|e| BotError::Other(format!("failed to run migrations: {e}")))?;
+    info!("Database migrations applied");
+
     let bot_config = BotConfig::load(&pool).await?;
     info!("BotConfig loaded successfully");
 

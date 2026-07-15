@@ -54,6 +54,7 @@ songbird = { workspace = true, features = [
 ] }
 sqlx = { workspace = true, features = [
   "macros",
+  "migrate",
   "bigdecimal",
   "postgres",
   "tls-rustls-aws-lc-rs",

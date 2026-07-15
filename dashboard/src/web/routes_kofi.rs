@@ -2,7 +2,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Form, Json};
-use jiff::{SignedDuration, Timestamp};
+use jiff::Timestamp;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use tracing::warn;
@@ -36,15 +36,12 @@ pub(super) async fn kofi_webhook_handler(
         },
     };
 
-    match state.kofi_verification_token.as_deref() {
-        Some(expected) if payload.verification_token == expected => {},
-        _ => {
-            warn!(
-                transaction_id = %payload.kofi_transaction_id,
-                "Ko-fi webhook rejected: verification_token missing, unconfigured, or mismatched"
-            );
-            return StatusCode::OK;
-        },
+    if !payload.verification_ok(state.kofi_verification_token.as_deref()) {
+        warn!(
+            transaction_id = %payload.kofi_transaction_id,
+            "Ko-fi webhook rejected: verification_token missing, unconfigured, or mismatched"
+        );
+        return StatusCode::OK;
     }
 
     if payload.kind != KoFiType::Subscription {
@@ -84,8 +81,7 @@ pub(super) async fn kofi_webhook_handler(
     let scope = EntitlementScope::User(discord_user_id);
 
     if payload.is_subscription_payment {
-        let expires_at =
-            Timestamp::now().checked_add(SignedDuration::from_hours(32 * 24)).ok();
+        let expires_at = KoFiProvider::subscription_expiry(Timestamp::now());
         let grant_data = GrantData {
             external_id: payload.kofi_transaction_id.clone(),
             scope,
