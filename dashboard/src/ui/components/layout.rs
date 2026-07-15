@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::{A, Outlet};
 
+use crate::server::auth::check_session;
 use super::tier_badge::TierBadge;
 
 #[component]
@@ -23,6 +24,8 @@ pub(crate) fn Layout() -> impl IntoView {
 
 #[component]
 fn NavBar() -> impl IntoView {
+    let session = Resource::new_blocking(|| (), |()| check_session());
+
     view! {
         <nav class="navbar">
             <A href="/" attr:class="navbar-brand">"Zayden"</A>
@@ -30,7 +33,14 @@ fn NavBar() -> impl IntoView {
                 <A href="/guilds">"Servers"</A>
                 <A href="/upgrade">"Upgrade"</A>
                 <TierBadge/>
-                <a href="/logout" class="btn btn-ghost">"Log out"</a>
+                <Suspense fallback=|| ()>
+                    {move || {
+                        session.get()
+                            .and_then(Result::ok)
+                            .filter(|&logged_in| logged_in)
+                            .map(|_| view! { <a href="/logout" class="btn btn-ghost">"Log out"</a> })
+                    }}
+                </Suspense>
             </div>
         </nav>
     }
