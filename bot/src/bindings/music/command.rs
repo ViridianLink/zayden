@@ -19,6 +19,10 @@ impl ModuleCommand for Music {
         Cow::Borrowed("music")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("music")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         MusicCommand::register()
     }

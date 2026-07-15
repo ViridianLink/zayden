@@ -25,7 +25,6 @@ pub fn build_registry(
     llamad2_guild: u64,
 ) -> Result<Arc<CommandRegistry>, OverlapError> {
     let mut builder = RegistryBuilder::new();
-    ai::register(&mut builder);
     destiny2::register(&mut builder);
     family::register(&mut builder)?;
     gambling::register(&mut builder)?;
@@ -43,5 +42,12 @@ pub fn build_registry(
     temp_voice::register(&mut builder)?;
     reaction_roles::register(&mut builder);
 
-    Ok(builder.build())
+    let registry = builder.build();
+
+    let by_module = registry.commands_by_module();
+    if !by_module.is_empty() {
+        tracing::info!(modules = ?by_module, "registered command modules");
+    }
+
+    Ok(registry)
 }

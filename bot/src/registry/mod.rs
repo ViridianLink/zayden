@@ -1,6 +1,6 @@
 pub mod dispatch_map;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use dispatch_map::DispatchMap;
@@ -125,6 +125,22 @@ impl CommandRegistry {
             })
             .map(|cmd| cmd.definition())
             .collect()
+    }
+
+    #[must_use]
+    pub fn commands_by_module(
+        &self,
+    ) -> BTreeMap<&'static str, Vec<Cow<'static, str>>> {
+        let mut map: BTreeMap<&'static str, Vec<Cow<'static, str>>> =
+            BTreeMap::new();
+
+        for cmd in self.commands.values() {
+            if let Some(module) = cmd.module() {
+                map.entry(module).or_default().push(cmd.name());
+            }
+        }
+
+        map
     }
 
     pub async fn run_command(

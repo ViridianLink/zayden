@@ -2,23 +2,94 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design tokens ────────────────────────────────────────────────────────── */
+/* ── Design system: cinematic-intimate dark UI ────────────────────────────────
+ *
+ * The neutral shell is bot-agnostic and identical across all four sibling bots
+ * (Zayden, Viktor, Enzo, Maria).  Only the small block of accent tokens changes
+ * per bot, driven entirely by CSS custom properties, so a future bot reskins by
+ * swapping the `:root[data-bot="…"]` override block — no component rewrites.
+ */
 
 :root {
-  --color-bg-base: #1a1a2e;
-  --color-bg-surface: #16213e;
-  --color-bg-card: #0f3460;
-  --color-text: #e0e7ff;
-  --color-text-muted: #94a3b8;
-  --color-accent: #5865f2;
-  --color-accent-hover: #4752c4;
-  --color-border: #2d3561;
-  --color-success: #22c55e;
-  --color-error: #ef4444;
-  --color-warning: #fee75c;
-  --radius: 6px;
-  --sidebar-width: 220px;
-  --navbar-height: 56px;
+  /* Warm near-blacks, layered by elevation (not cool blue-blacks). */
+  --bg-base: #0a0908;
+  --bg-card: #13100f;
+  --bg-surface: #15110f;
+  --bg-modal: #1c1c1e;
+
+  /* Relative elevation is expressed with white-alpha overlays. */
+  --overlay-1: rgb(255 255 255 / 0.03);
+  --overlay-2: rgb(255 255 255 / 0.06);
+  --overlay-3: rgb(255 255 255 / 0.1);
+  --border: rgb(255 255 255 / 0.08);
+  --border-strong: rgb(255 255 255 / 0.14);
+
+  /* Text: off-white, never pure white. */
+  --text-primary: #f0f0f0;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #6f6f6f;
+
+  /* Status. */
+  --success: #4ade80;
+  --error: #f87171;
+  --warning: #fbbf24;
+
+  /* Radii: buttons/inputs 12px, cards/panels 16px. */
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 999px;
+
+  /* Spring easing — panels slide, cards fade-up, sidebar collapses. */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Layout. */
+  --sidebar-width: 232px;
+  --navbar-height: 60px;
+
+  /* ── Accent tokens (the only per-bot variation) ────────────────────────────
+   * Default block = Zayden: calm azure / steel-blue.  Siblings override via
+   * `:root[data-bot="…"]` below.
+   */
+  --accent: #5b8def;
+  --accent-strong: #3e6ad4;
+  --accent-weak: rgb(91 141 239 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #5b8def, #3e6ad4);
+  --watermark-letter: "Z";
+}
+
+/* Zayden — calm azure/steel-blue (finalised for 1.0). */
+:root[data-bot="zayden"] {
+  --accent: #5b8def;
+  --accent-strong: #3e6ad4;
+  --accent-weak: rgb(91 141 239 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #5b8def, #3e6ad4);
+  --watermark-letter: "Z";
+}
+
+/* Sibling accents — token slots defined now, values are placeholders for later
+ * builds (only Zayden is finalised for 1.0). */
+:root[data-bot="viktor"] {
+  --accent: #e0384a;
+  --accent-strong: #b71f30;
+  --accent-weak: rgb(224 56 74 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #e0384a, #b71f30);
+  --watermark-letter: "V";
+}
+
+:root[data-bot="enzo"] {
+  --accent: #f5a623;
+  --accent-strong: #d4820e;
+  --accent-weak: rgb(245 166 35 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #f5a623, #d4820e);
+  --watermark-letter: "E";
+}
+
+:root[data-bot="maria"] {
+  --accent: #ec4899;
+  --accent-strong: #c81e78;
+  --accent-weak: rgb(236 72 153 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #ec4899, #c81e78);
+  --watermark-letter: "M";
 }
 
 /* ── Base ─────────────────────────────────────────────────────────────────── */
@@ -29,10 +100,33 @@
   box-sizing: border-box;
 }
 
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 body {
   margin: 0;
-  background-color: var(--color-bg-base);
-  color: var(--color-text);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 14px;
   font-family:
     -apple-system,
     BlinkMacSystemFont,
@@ -41,17 +135,114 @@ body {
     "Helvetica Neue",
     Arial,
     sans-serif;
-  line-height: 1.5;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--accent);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--color-accent-hover);
-  text-decoration: underline;
+  color: var(--accent-strong);
+}
+
+/* 10–12px uppercase tracked labels. */
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ── Buttons, three tiers ─────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    transform 0.2s var(--ease-spring),
+    background-color 0.2s var(--ease-spring),
+    border-color 0.2s var(--ease-spring),
+    opacity 0.2s var(--ease-spring);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: var(--accent-gradient);
+  color: #fff;
+  box-shadow: 0 4px 16px rgb(62 106 212 / 0.25);
+}
+
+.btn-primary:hover {
+  color: #fff;
+}
+
+.btn-secondary {
+  background: var(--overlay-2);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--overlay-3);
+  color: var(--text-primary);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--overlay-1);
+  color: var(--text-primary);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Letter watermark ─────────────────────────────────────────────────────── */
+
+.watermark {
+  position: fixed;
+  right: -0.08em;
+  bottom: -0.28em;
+  font-size: 46vh;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.035;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+
+.watermark::after {
+  content: var(--watermark-letter);
 }
 
 /* ── Layout ───────────────────────────────────────────────────────────────── */
@@ -60,6 +251,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
 }
 
 .layout-body {
@@ -70,8 +262,10 @@ a:hover {
 
 .layout-main {
   flex: 1;
-  padding: 1.5rem 2rem;
+  padding: 2rem 2.5rem;
   overflow-y: auto;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Nav bar ──────────────────────────────────────────────────────────────── */
@@ -85,40 +279,38 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.5rem;
-  background-color: var(--color-bg-surface);
-  border-bottom: 1px solid var(--color-border);
+  padding: 0 2rem;
+  background-color: rgb(21 17 15 / 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
   z-index: 100;
 }
 
 .navbar-brand {
-  font-size: 1.25rem;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--color-text);
-  text-decoration: none;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
 }
 
 .navbar-brand:hover {
-  color: var(--color-accent);
-  text-decoration: none;
+  color: var(--accent);
 }
 
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .navbar-links a {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  text-decoration: none;
-  transition: color 0.15s ease;
+  color: var(--text-secondary);
+  font-size: 14px;
+  transition: color 0.2s var(--ease-spring);
 }
 
 .navbar-links a:hover {
-  color: var(--color-text);
-  text-decoration: none;
+  color: var(--text-primary);
 }
 
 /* ── Sidebar ──────────────────────────────────────────────────────────────── */
@@ -126,62 +318,72 @@ a:hover {
 .sidebar {
   width: var(--sidebar-width);
   min-height: 100%;
-  background-color: var(--color-bg-surface);
-  border-right: 1px solid var(--color-border);
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   padding: 0.75rem 0;
   flex-shrink: 0;
+  transition: width 0.3s var(--ease-spring);
+}
+
+.sidebar-collapsed {
+  width: 52px;
 }
 
 .sidebar-toggle {
   background: none;
   border: none;
-  color: var(--color-text-muted);
+  color: var(--text-tertiary);
   cursor: pointer;
   padding: 0.5rem 1rem;
-  font-size: 1rem;
+  font-size: 15px;
   text-align: left;
-  transition: color 0.15s ease;
+  transition: color 0.2s var(--ease-spring);
 }
 
 .sidebar-toggle:hover {
-  color: var(--color-text);
+  color: var(--text-primary);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
   padding: 0.5rem 0;
+  animation: slide-in 0.3s var(--ease-spring);
 }
 
 .sidebar-nav a {
-  padding: 0.5rem 1rem;
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  text-decoration: none;
+  padding: 0.55rem 1.25rem;
+  color: var(--text-secondary);
+  font-size: 14px;
   transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
+    background-color 0.2s var(--ease-spring),
+    color 0.2s var(--ease-spring);
 }
 
 .sidebar-nav a:hover {
-  background-color: var(--color-bg-card);
-  color: var(--color-text);
-  text-decoration: none;
+  background-color: var(--overlay-2);
+  color: var(--text-primary);
 }
 
 /* ── Pages ────────────────────────────────────────────────────────────────── */
 
 .page {
   max-width: 900px;
+  animation: fade-up 0.4s var(--ease-spring);
 }
 
 .page h1 {
-  font-size: 1.5rem;
+  font-size: 22px;
   font-weight: 700;
+  margin: 0 0 1.75rem;
+  color: var(--text-primary);
+}
+
+.page-lead {
+  color: var(--text-secondary);
   margin: 0 0 1.5rem;
-  color: var(--color-text);
 }
 
 /* ── Login page ───────────────────────────────────────────────────────────── */
@@ -195,62 +397,48 @@ a:hover {
   gap: 1rem;
   padding: 2rem;
   text-align: center;
+  position: relative;
+  z-index: 1;
 }
 
 .login-page h1 {
-  font-size: 1.75rem;
+  font-size: 24px;
   font-weight: 700;
   margin: 0;
 }
 
 .login-page p {
-  color: var(--color-text-muted);
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .login-page a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background-color: var(--color-accent);
-  color: #fff;
-  border-radius: var(--radius);
-  font-weight: 600;
-  text-decoration: none;
-  transition: background-color 0.15s ease;
-  margin-top: 0.5rem;
-}
-
-.login-page a:hover {
-  background-color: var(--color-accent-hover);
-  text-decoration: none;
-  color: #fff;
+  margin-top: 0.75rem;
 }
 
 /* ── State messages ───────────────────────────────────────────────────────── */
 
 .loading {
-  color: var(--color-text-muted);
+  color: var(--text-secondary);
   font-style: italic;
 }
 
 .error {
-  color: var(--color-error);
-  padding: 0.5rem;
-  border-radius: var(--radius);
-  background-color: rgb(239 68 68 / 0.1);
+  color: var(--error);
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-xl);
+  background-color: rgb(248 113 113 / 0.1);
 }
 
 .success {
-  color: var(--color-success);
-  padding: 0.5rem;
-  border-radius: var(--radius);
-  background-color: rgb(34 197 94 / 0.1);
+  color: var(--success);
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-xl);
+  background-color: rgb(74 222 128 / 0.1);
 }
 
 .empty {
-  color: var(--color-text-muted);
+  color: var(--text-secondary);
 }
 
 /* ── Guild list ───────────────────────────────────────────────────────────── */
@@ -267,29 +455,29 @@ a:hover {
 .guild-item a {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
-  background-color: var(--color-bg-surface);
-  border: 1px solid var(--color-border);
-  text-decoration: none;
-  color: var(--color-text);
+  gap: 0.85rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease;
+    background-color 0.2s var(--ease-spring),
+    border-color 0.2s var(--ease-spring),
+    transform 0.2s var(--ease-spring);
 }
 
 .guild-item a:hover {
-  background-color: var(--color-bg-card);
-  border-color: var(--color-accent);
-  text-decoration: none;
-  color: var(--color-text);
+  background-color: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 .guild-icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   object-fit: cover;
 }
 
@@ -300,138 +488,262 @@ a:hover {
 /* ── Tier badge ───────────────────────────────────────────────────────────── */
 
 .tier-badge {
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 600;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--radius-full);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .tier-free {
-  background-color: rgb(94 101 110 / 0.3);
-  color: #b0b0b8;
+  background-color: var(--overlay-3);
+  color: var(--text-secondary);
 }
 
 .tier-pro {
-  background-color: rgb(88 101 242 / 0.25);
-  color: #7c8ef0;
+  background-color: var(--accent-weak);
+  color: var(--accent);
 }
 
 .tier-enterprise {
-  background-color: rgb(255 215 0 / 0.2);
-  color: #ffd700;
+  background-color: rgb(251 191 36 / 0.16);
+  color: var(--warning);
 }
 
 .btn-upgrade {
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 600;
-  padding: 0.25rem 0.75rem;
-  border-radius: 999px;
-  background-color: var(--color-accent);
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
   color: #fff;
-  text-decoration: none;
-  transition: background-color 0.15s ease;
+  transition: transform 0.2s var(--ease-spring);
 }
 
 .btn-upgrade:hover {
-  background-color: var(--color-accent-hover);
   color: #fff;
-  text-decoration: none;
+  transform: translateY(-1px);
 }
 
 /* ── Pro banner ───────────────────────────────────────────────────────────── */
 
 .banner-pro {
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.75rem;
+  background-color: var(--accent-weak);
+  border: 1px solid rgb(91 141 239 / 0.24);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+}
+
+/* ── Cards / panels ───────────────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: 1.4rem 1.5rem;
   margin-bottom: 1.5rem;
-  background-color: rgb(254 231 92 / 0.1);
-  border: 1px solid rgb(254 231 92 / 0.3);
-  border-radius: var(--radius);
-  color: var(--color-warning);
-  font-size: 0.875rem;
+  background-color: var(--bg-card);
 }
 
 /* ── Settings form ────────────────────────────────────────────────────────── */
 
 .settings-section {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: 1.4rem 1.5rem;
   margin-bottom: 1.5rem;
-  background-color: var(--color-bg-surface);
+  background-color: var(--bg-card);
 }
 
 .settings-section legend {
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-muted);
+  letter-spacing: 0.09em;
+  color: var(--text-secondary);
   padding: 0 0.5rem;
 }
 
 .setting-field {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
+  gap: 0.3rem;
+  margin-bottom: 0.9rem;
 }
 
 .setting-field label {
-  font-size: 0.875rem;
-  color: var(--color-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
 }
 
 .setting-field input {
-  padding: 0.5rem 0.75rem;
-  background-color: var(--color-bg-base);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  color: var(--color-text);
-  font-size: 0.875rem;
+  padding: 0.55rem 0.8rem;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  font-size: 14px;
   font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.2s var(--ease-spring);
 }
 
 .setting-field input:focus {
   outline: none;
-  border-color: var(--color-accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
 }
 
 .setting-field input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.6;
+  color: var(--text-tertiary);
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 0.75rem;
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
+  padding-top: 0.9rem;
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
 }
 
-.btn-save {
-  padding: 0.5rem 1.25rem;
-  background-color: var(--color-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius);
+/* ── Upgrade (Pro) page ───────────────────────────────────────────────────── */
+
+.pro-features {
+  list-style: none;
+  margin: 0 0 1.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.pro-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+}
+
+.pro-feature strong {
+  color: var(--text-primary);
   font-weight: 600;
-  font-size: 0.875rem;
+}
+
+.pro-feature span {
+  color: var(--text-secondary);
+}
+
+.upgrade-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.kofi-link-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.kofi-link-form input {
+  flex: 1;
+  min-width: 220px;
+  padding: 0.55rem 0.8rem;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.kofi-link-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+/* ── Modules page ─────────────────────────────────────────────────────────── */
+
+.module-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.module-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+}
+
+.module-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.module-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.module-commands {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+}
+
+/* Toggle switch. */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: none;
+  background-color: var(--overlay-3);
   cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    opacity 0.15s ease;
+  transition: background-color 0.2s var(--ease-spring);
+  flex-shrink: 0;
 }
 
-.btn-save:hover:not(:disabled) {
-  background-color: var(--color-accent-hover);
+.toggle-on {
+  background: var(--accent-gradient);
 }
 
-.btn-save:disabled {
+.toggle::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background-color: #fff;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.toggle-on::after {
+  transform: translateX(20px);
+}
+
+.toggle:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: var(--color-text-muted);
 }

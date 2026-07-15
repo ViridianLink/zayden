@@ -5,7 +5,7 @@ use tracing::debug;
 use zayden_app::entitlement::Tier;
 use zayden_app::state::AppState;
 
-use crate::{BotError, RegistryBuilder, Result};
+use crate::{BotError, Result};
 
 const PERSONA: &str = "\
 You are Zayden - and you are only ever Zayden.

@@ -29,6 +29,10 @@ pub trait ModuleCommand: Send + Sync {
 
     fn definition(&self) -> CreateCommand<'static>;
 
+    fn module(&self) -> Option<&'static str> {
+        None
+    }
+
     fn scope(&self) -> CommandScope {
         CommandScope::Global
     }

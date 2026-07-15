@@ -15,6 +15,10 @@ impl ModuleCommand for TicketCommand {
         Cow::Borrowed("ticket")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("ticket")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Ticket::register()
     }
@@ -37,6 +41,10 @@ pub struct SupportCommand;
 impl ModuleCommand for SupportCommand {
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed("support")
+    }
+
+    fn module(&self) -> Option<&'static str> {
+        Some("ticket")
     }
 
     fn definition(&self) -> CreateCommand<'static> {

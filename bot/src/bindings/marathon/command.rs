@@ -19,6 +19,10 @@ impl ModuleCommand for Marathon {
         Cow::Borrowed("marathon")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("marathon")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         MarathonCommand::register()
     }

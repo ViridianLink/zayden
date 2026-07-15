@@ -23,6 +23,10 @@ impl ModuleCommand for Random {
         Cow::Borrowed("random")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("misc")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         CreateCommand::new("random")
             .description(

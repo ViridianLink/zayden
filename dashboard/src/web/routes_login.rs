@@ -1,5 +1,4 @@
 use std::fmt::Write;
-use std::time::Duration;
 
 use axum::body::Body;
 use axum::extract::{Query, State};
@@ -10,15 +9,16 @@ use oauth2::{AuthorizationCode, TokenResponse};
 use rand::RngExt;
 use reqwest::StatusCode;
 use serde::Deserialize;
-use tower_cookies::Cookie;
 use tower_cookies::cookie::SameSite;
+use tower_cookies::{Cookie, Cookies};
+use twilight_model::id::Id;
+use twilight_model::id::marker::UserMarker;
 
-use super::SESSION_COOKIE;
+use super::{OAUTH_STATE_COOKIE, SESSION_COOKIE};
 use crate::WebState;
 
 const DISCORD_API: &str = "https://discord.com/api/v10";
 const SESSION_TTL_HOURS: i64 = 24 * 7;
-const STATE_TTL: Duration = Duration::from_mins(10);
 
 #[derive(Deserialize)]
 pub(super) struct DiscordAuthCallback {
@@ -28,26 +28,27 @@ pub(super) struct DiscordAuthCallback {
 
 #[derive(Deserialize)]
 struct DiscordUser {
-    id: String,
+    id: Id<UserMarker>,
 }
 
-fn error_redirect(frontend_url: &str) -> Response {
+fn error_redirect() -> Response {
     Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header(header::LOCATION, format!("{frontend_url}/?error=auth_failed"))
+        .header(header::LOCATION, "/login?error=auth_failed")
         .body(Body::empty())
         .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
 }
 
 pub(super) async fn discord_auth_callback_handler(
     Query(query): Query<DiscordAuthCallback>,
+    cookies: Cookies,
     State(state): State<WebState>,
 ) -> impl IntoResponse {
-    let frontend_url = state.frontend_url.as_str();
-
-    match state.oauth_states.remove(&query.state) {
-        Some((_, created_at)) if created_at.elapsed() <= STATE_TTL => {},
-        _ => return error_redirect(frontend_url),
+    let cookie_state = cookies.get(OAUTH_STATE_COOKIE).map(|c| c.value().to_owned());
+    cookies.remove(Cookie::from(OAUTH_STATE_COOKIE));
+    match cookie_state {
+        Some(s) if s == query.state && !s.is_empty() => {},
+        _ => return error_redirect(),
     }
 
     let token_result = state
@@ -58,7 +59,7 @@ pub(super) async fn discord_auth_callback_handler(
 
     let discord_access_token = match token_result {
         Ok(t) => t.access_token().secret().clone(),
-        Err(_) => return error_redirect(frontend_url),
+        Err(_) => return error_redirect(),
     };
 
     let user_resp = state
@@ -72,18 +73,13 @@ pub(super) async fn discord_auth_callback_handler(
     let discord_user: DiscordUser = match user_resp {
         Ok(r) if r.status().is_success() => match r.json().await {
             Ok(u) => u,
-            Err(_) => return error_redirect(frontend_url),
+            Err(_) => return error_redirect(),
         },
-        _ => return error_redirect(frontend_url),
+        _ => return error_redirect(),
     };
 
-    let discord_user_id: i64 = match discord_user.id.parse() {
-        Ok(id) => id,
-        Err(_) => return error_redirect(frontend_url),
-    };
+    let discord_user_id: i64 = discord_user.id.get().cast_signed();
 
-    // Generate a 32-byte cryptographically random session token encoded as 64 hex
-    // chars.
     let mut bytes = [0u8; 32];
     rand::rng().fill(&mut bytes[..]);
     let session_token = bytes.iter().fold(String::with_capacity(64), |mut s, b| {
@@ -113,7 +109,7 @@ pub(super) async fn discord_auth_callback_handler(
     .await;
 
     if insert_result.is_err() {
-        return error_redirect(frontend_url);
+        return error_redirect();
     }
 
     let cookie = Cookie::build((SESSION_COOKIE, session_token))
@@ -124,8 +120,38 @@ pub(super) async fn discord_auth_callback_handler(
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header(header::LOCATION, format!("{frontend_url}/dashboard"))
+        .header(header::LOCATION, "/guilds")
         .header(header::SET_COOKIE, cookie.to_string())
+        .body(Body::empty())
+        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+}
+
+pub(super) async fn logout_handler(
+    cookies: Cookies,
+    State(state): State<WebState>,
+) -> impl IntoResponse {
+    if let Some(token) = cookies.get(SESSION_COOKIE).map(|c| c.value().to_owned()) {
+        if let Err(e) =
+            sqlx::query!("DELETE FROM web_sessions WHERE token = $1", token)
+                .execute(&state.app.db)
+                .await
+        {
+            tracing::warn!(?e, "failed to delete session row on logout");
+        }
+        state.session_cache.invalidate(&token).await;
+    }
+
+    let cleared = Cookie::build((SESSION_COOKIE, ""))
+        .path("/")
+        .http_only(true)
+        .secure(!cfg!(debug_assertions))
+        .same_site(SameSite::Lax)
+        .max_age(tower_cookies::cookie::time::Duration::ZERO);
+
+    Response::builder()
+        .status(StatusCode::SEE_OTHER)
+        .header(header::LOCATION, "/login")
+        .header(header::SET_COOKIE, cleared.to_string())
         .body(Body::empty())
         .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
 }

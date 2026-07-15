@@ -43,6 +43,10 @@ impl ModuleCommand for CustomMsg {
         Cow::Borrowed("custom_msg")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("misc")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         CreateCommand::new("custom_msg")
             .description("Custom Messages")

@@ -30,7 +30,6 @@ ssr = [
   "leptos_meta/ssr",
   "leptos_router/ssr",
   "dep:axum",
-  "dep:dashmap",
   "dep:dotenvy",
   "dep:jiff",
   "dep:jiff-sqlx",
@@ -42,21 +41,22 @@ ssr = [
   "dep:sqlx",
   "dep:tokio",
   "dep:tower-cookies",
-  "dep:tower-http",
   "dep:tracing-subscriber",
+  "dep:twilight-model",
   "dep:zayden-app",
 ]
 
 [dependencies]
-leptos = { version = "*", default-features = false }
-leptos_meta = { version = "*", default-features = false }
-leptos_router = { version = "*", default-features = false }
+# Leptos versions are pinned (not "*") for a reproducible 1.0 build.
+leptos = { version = "=0.8.20", default-features = false }
+leptos_meta = { version = "=0.8.6", default-features = false }
+leptos_router = { version = "=0.8.14", default-features = false }
 
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 
-leptos_axum = { version = "*", optional = true }
+leptos_axum = { version = "=0.8.10", optional = true }
 
 axum = { version = "*", optional = true, default-features = true, features = [
   "query",
@@ -65,7 +65,6 @@ axum = { version = "*", optional = true, default-features = true, features = [
   "json",
   "macros",
 ] }
-dashmap = { workspace = true, optional = true }
 dotenvy = { workspace = true, optional = true }
 jiff = { workspace = true, optional = true }
 jiff-sqlx = { workspace = true, optional = true }
@@ -86,14 +85,11 @@ tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
 tower-cookies = { version = "*", default-features = false, features = [
   "axum-core",
 ], optional = true }
-tower-http = { version = "*", default-features = false, features = [
-  "cors",
-  "fs",
-], optional = true }
 tracing-subscriber = { workspace = true, features = [
   "ansi",
   "fmt",
 ], optional = true }
+twilight-model = { version = "=0.17.1", optional = true }
 zayden-app = { workspace = true, optional = true }
 
 # ── Hydrate-only ─────────────────────────────────────────────────────────────

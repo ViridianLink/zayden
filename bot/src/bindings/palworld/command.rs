@@ -19,6 +19,10 @@ impl ModuleCommand for Palworld {
         Cow::Borrowed("palworld")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("palworld")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         PalworldCommand::register()
     }
