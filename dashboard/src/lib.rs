@@ -14,6 +14,8 @@ pub mod app;
 pub mod dto;
 pub mod server;
 pub mod ui;
+#[cfg(feature = "ssr")]
+pub mod util;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen(start)]

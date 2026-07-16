@@ -1,5 +1,3 @@
-use std::fmt::Write;
-
 use axum::body::Body;
 use axum::extract::{Query, State};
 use axum::http::{StatusCode, header};
@@ -85,10 +83,7 @@ pub(super) async fn discord_auth_callback_handler(
 
     let mut bytes = [0u8; 32];
     rand::rng().fill(&mut bytes[..]);
-    let session_token = bytes.iter().fold(String::with_capacity(64), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    });
+    let session_token = dashboard::util::hex_encode(&bytes);
 
     let expires_at = Timestamp::now()
         .saturating_add(SignedDuration::from_hours(SESSION_TTL_HOURS))

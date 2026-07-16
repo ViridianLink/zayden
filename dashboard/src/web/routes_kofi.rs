@@ -4,7 +4,6 @@ use axum::response::{IntoResponse, Response};
 use axum::{Extension, Form, Json};
 use jiff::Timestamp;
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use tracing::warn;
 use zayden_app::entitlement::{
     EntitlementProvider,
@@ -48,14 +47,7 @@ pub(super) async fn kofi_webhook_handler(
         return StatusCode::OK;
     }
 
-    let email_hash = {
-        let digest = Sha256::digest(payload.email.to_lowercase());
-        digest.iter().fold(String::with_capacity(64), |mut s, b| {
-            use std::fmt::Write as _;
-            let _ = write!(s, "{b:02x}");
-            s
-        })
-    };
+    let email_hash = dashboard::util::email_hash(&payload.email);
 
     let discord_user_id = match sqlx::query_scalar::<_, i64>(
         "SELECT discord_user_id FROM kofi_links WHERE email_hash = $1",
@@ -111,14 +103,7 @@ pub(super) async fn kofi_link_handler(
     State(state): State<WebState>,
     Json(body): Json<KoFiLinkBody>,
 ) -> Response {
-    let email_hash = {
-        let digest = Sha256::digest(body.email.to_lowercase());
-        digest.iter().fold(String::with_capacity(64), |mut s, b| {
-            use std::fmt::Write as _;
-            let _ = write!(s, "{b:02x}");
-            s
-        })
-    };
+    let email_hash = dashboard::util::email_hash(&body.email);
 
     let Ok(discord_user_id) = user.id.parse::<i64>() else {
         return StatusCode::BAD_REQUEST.into_response();

@@ -1,13 +1,9 @@
 use leptos::prelude::*;
+#[cfg(feature = "ssr")]
+use {crate::server::auth::current_user_id, crate::util::email_hash, sqlx::PgPool};
 
 #[server]
 pub async fn link_kofi_email(email: String) -> Result<(), ServerFnError> {
-    use std::fmt::Write as _;
-
-    use sqlx::PgPool;
-
-    use crate::server::auth::current_user_id;
-
     let trimmed = email.trim().to_lowercase();
     if trimmed.is_empty() || !trimmed.contains('@') {
         return Err(ServerFnError::ServerError("invalid email".to_string()));
@@ -19,14 +15,7 @@ pub async fn link_kofi_email(email: String) -> Result<(), ServerFnError> {
         return Err(ServerFnError::ServerError("missing database pool".to_string()));
     };
 
-    let email_hash = {
-        use sha2::{Digest, Sha256};
-        let digest = Sha256::digest(trimmed.as_bytes());
-        digest.iter().fold(String::with_capacity(64), |mut s, b| {
-            let _ = write!(s, "{b:02x}");
-            s
-        })
-    };
+    let email_hash = email_hash(&email);
 
     match sqlx::query!(
         "INSERT INTO kofi_links (email_hash, discord_user_id) VALUES ($1, $2)",
