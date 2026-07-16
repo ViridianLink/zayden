@@ -191,12 +191,9 @@ tracing = { version = "*", default-features = false }
 tracing-subscriber = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 
-# [profile.release]
-# opt-level = 3
-# panic = "abort"
-# strip = true
-# codegen-units = 1
-# lto = "fat"
+[profile.release]
+panic = "abort"
+strip = true
 
 [profile.wasm-release]
 inherits = "release"

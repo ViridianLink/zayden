@@ -14,7 +14,7 @@ FROM chef AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake clang libclang-dev nasm perl \
-    pkg-config git ca-certificates \
+    pkg-config libssl-dev git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cargo install cargo-leptos --locked
@@ -36,7 +36,7 @@ FROM debian:trixie-slim AS runtime
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
+    ca-certificates libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --system zayden && useradd --system --gid zayden zayden
