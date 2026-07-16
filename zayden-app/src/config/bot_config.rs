@@ -141,11 +141,11 @@ impl BotConfig {
             error_log_webhook: db
                 .as_ref()
                 .and_then(|r| r.error_log_webhook.clone())
-                .or(toml_cfg.webhooks.error_log),
+                .or_else(|| env::var("ERROR_LOG_WEBHOOK").ok()),
             normal_log_webhook: db
                 .as_ref()
                 .and_then(|r| r.normal_log_webhook.clone())
-                .or(toml_cfg.webhooks.normal_log),
+                .or_else(|| env::var("NORMAL_LOG_WEBHOOK").ok()),
 
             flaresolverr_url: env::var("FLARESOLVERR_URL").ok(),
 
@@ -247,8 +247,6 @@ struct TomlConfig {
     #[serde(default)]
     ids: TomlIds,
     #[serde(default)]
-    webhooks: TomlWebhooks,
-    #[serde(default)]
     dashboard: TomlDashboard,
     #[serde(default)]
     palworld: TomlPalworld,
@@ -282,12 +280,6 @@ struct TomlIds {
     zayden_guild: Option<u64>,
     llamad2_guild: Option<u64>,
     zayden_id: Option<u64>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-struct TomlWebhooks {
-    error_log: Option<String>,
-    normal_log: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]

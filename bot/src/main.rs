@@ -84,11 +84,8 @@ async fn main() -> Result<()> {
         warn!("Rustls CryptoProvider was already installed");
     }
 
-    if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv()
-        && dotenvy::from_path(Path::new("bot/.env")).is_err()
-    {
-        warn!(".env file not found. Please make sure enviroment variables are set.");
-    }
+    let _ = dotenvy::dotenv();
+    let _ = dotenvy::from_path(Path::new("bot/.env"));
 
     let pool = new_pool_with_retry().await?;
 

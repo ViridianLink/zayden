@@ -30,9 +30,6 @@ services:
 
   bot:
     image: *bot-image
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.bot
     restart: unless-stopped
     # depends_on:
     #   postgres:
@@ -45,19 +42,13 @@ services:
       - ./bot/config.toml:/app/config.toml:ro
       - palworld_uploads:/app/palworld_uploads
     mem_reservation: 1g
-    mem_limit: 4g
     deploy:
       resources:
-        limits:
-          memory: 4g
         reservations:
           memory: 1g
 
   dashboard:
     image: *dashboard-image
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.dashboard
     restart: unless-stopped
     # depends_on:
     #   postgres:

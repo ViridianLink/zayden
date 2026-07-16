@@ -89,9 +89,11 @@ impl FromRef<WebState> for LeptosOptions {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     logging();
 
-    if let Err(dotenvy::Error::Io(_)) = dotenvy::dotenv() {
-        warn!(".env file not found. Please make sure enviroment variables are set.");
+    if rustls::crypto::aws_lc_rs::default_provider().install_default().is_err() {
+        warn!("Rustls CryptoProvider was already installed");
     }
+
+    let _ = dotenvy::dotenv();
 
     let database_url = std::env::var("DATABASE_URL")?;
     let pool = PgPool::connect(&database_url).await?;
