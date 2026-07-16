@@ -75,6 +75,9 @@ pub struct BotConfig {
     pub upgrade_url: Option<String>,
 
     pub kofi_verification_token: Option<String>,
+
+    pub discord_sku_pro: Option<u64>,
+    pub discord_sku_ultra: Option<u64>,
 }
 
 impl BotConfig {
@@ -173,6 +176,9 @@ impl BotConfig {
             invite_url: toml_cfg.dashboard.invite_url,
             upgrade_url: toml_cfg.dashboard.upgrade_url,
             kofi_verification_token: env::var("KOFI_VERIFICATION_TOKEN").ok(),
+
+            discord_sku_pro: toml_cfg.entitlements.discord.skus.pro,
+            discord_sku_ultra: toml_cfg.entitlements.discord.skus.ultra,
         })
     }
 }
@@ -246,6 +252,26 @@ struct TomlConfig {
     palworld: TomlPalworld,
     #[serde(default)]
     pelican: TomlPelican,
+    #[serde(default)]
+    entitlements: TomlEntitlements,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlEntitlements {
+    #[serde(default)]
+    discord: TomlDiscordEntitlements,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlDiscordEntitlements {
+    #[serde(default)]
+    skus: TomlDiscordSkus,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlDiscordSkus {
+    pro: Option<u64>,
+    ultra: Option<u64>,
 }
 
 #[derive(Debug, Default, Deserialize)]

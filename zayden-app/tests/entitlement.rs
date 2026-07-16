@@ -9,6 +9,8 @@
 //! The end-to-end sweep/grant round-trip is DB-bound and is covered by the
 //! spec's manual "Done when" checks against a live Postgres.
 
+use std::collections::HashMap;
+
 use jiff::{SignedDuration, Timestamp};
 use zayden_app::entitlement::{
     DiscordProvider,
@@ -134,9 +136,11 @@ fn subscription_expiry_is_thirty_two_days_out() {
 
 #[test]
 fn discord_user_entitlement_maps_to_per_user_pro() {
-    let grant = DiscordProvider::build_grant(555, Some(42), None, None)
+    let skus = HashMap::new();
+    let grant = DiscordProvider::build_grant(555, Some(42), None, None, None, &skus)
         .expect("user-scoped grant");
     assert_eq!(grant.scope, EntitlementScope::User(42));
+    // No SKU mapping configured -> falls back to Pro.
     assert_eq!(grant.tier, Tier::Pro);
     assert_eq!(grant.external_id, "555");
     assert!(grant.expires_at.is_none());
@@ -144,20 +148,47 @@ fn discord_user_entitlement_maps_to_per_user_pro() {
 
 #[test]
 fn discord_grant_maps_remaining_scopes() {
-    let guild = DiscordProvider::build_grant(1, None, Some(7), None).unwrap();
+    let skus = HashMap::new();
+    let guild =
+        DiscordProvider::build_grant(1, None, Some(7), None, None, &skus).unwrap();
     assert_eq!(guild.scope, EntitlementScope::Guild(7));
 
-    let both = DiscordProvider::build_grant(2, Some(3), Some(9), None).unwrap();
+    let both =
+        DiscordProvider::build_grant(2, Some(3), Some(9), None, None, &skus).unwrap();
     assert_eq!(both.scope, EntitlementScope::UserInGuild(3, 9));
 
     // Neither user nor guild -> nothing to grant.
-    assert!(DiscordProvider::build_grant(3, None, None, None).is_none());
+    assert!(
+        DiscordProvider::build_grant(3, None, None, None, None, &skus).is_none()
+    );
 }
 
 #[test]
 fn discord_grant_converts_ends_at_to_expiry() {
+    let skus = HashMap::new();
     let ends_at = 1_800_000_000; // fixed unix second
-    let grant = DiscordProvider::build_grant(4, Some(1), None, Some(ends_at))
-        .expect("grant");
+    let grant =
+        DiscordProvider::build_grant(4, Some(1), None, Some(ends_at), None, &skus)
+            .expect("grant");
     assert_eq!(grant.expires_at, Timestamp::from_second(ends_at).ok());
+}
+
+#[test]
+fn discord_sku_selects_tier() {
+    let skus = HashMap::from([(1001, Tier::Pro), (2002, Tier::Ultra)]);
+
+    let pro = DiscordProvider::build_grant(10, Some(1), None, None, Some(1001), &skus)
+        .expect("grant");
+    assert_eq!(pro.tier, Tier::Pro);
+
+    let ultra =
+        DiscordProvider::build_grant(11, Some(1), None, None, Some(2002), &skus)
+            .expect("grant");
+    assert_eq!(ultra.tier, Tier::Ultra);
+
+    // An unknown SKU defaults to Pro rather than granting nothing.
+    let unknown =
+        DiscordProvider::build_grant(12, Some(1), None, None, Some(9999), &skus)
+            .expect("grant");
+    assert_eq!(unknown.tier, Tier::Pro);
 }

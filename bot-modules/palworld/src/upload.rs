@@ -14,10 +14,14 @@ pub struct UploadQuota {
 impl UploadQuota {
     pub const FREE: Self = Self {
         cooldown: SignedDuration::from_mins(60),
-        max_bytes: 30 * 1024 * 1024,
+        max_bytes: 10 * 1024 * 1024,
     };
     pub const PRO: Self = Self {
         cooldown: SignedDuration::from_mins(30),
+        max_bytes: 50 * 1024 * 1024,
+    };
+    pub const ULTRA: Self = Self {
+        cooldown: SignedDuration::from_mins(10),
         max_bytes: 100 * 1024 * 1024,
     };
 
@@ -25,7 +29,8 @@ impl UploadQuota {
     pub const fn for_tier(tier: Tier) -> Self {
         match tier {
             Tier::Free => Self::FREE,
-            Tier::Pro | Tier::Ultra => Self::PRO,
+            Tier::Pro => Self::PRO,
+            Tier::Ultra => Self::ULTRA,
         }
     }
 

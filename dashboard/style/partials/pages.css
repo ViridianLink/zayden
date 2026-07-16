@@ -188,7 +188,7 @@
   color: var(--accent);
 }
 
-.tier-enterprise {
+.tier-ultra {
   background-color: rgb(251 191 36 / 0.16);
   color: var(--warning);
 }

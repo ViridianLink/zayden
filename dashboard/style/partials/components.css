@@ -237,6 +237,90 @@
   margin-bottom: 2rem;
 }
 
+
+.plan-ladder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.plan-ladder:has(> .plan-card:only-child) {
+  grid-template-columns: minmax(240px, 360px);
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+}
+
+.plan-card.plan-ultra {
+  border-color: rgb(251 191 36 / 0.35);
+}
+
+.plan-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.plan-price {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.plan-price small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.plan-specs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+}
+
+.plan-specs li {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+}
+
+.plan-specs strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.plan-current,
+.plan-included {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.5rem 0;
+  border-radius: var(--radius-xl);
+}
+
+.plan-current {
+  background-color: var(--accent-weak);
+  color: var(--accent);
+}
+
+.plan-included {
+  background-color: var(--overlay-3);
+  color: var(--text-secondary);
+}
+
 .kofi-link-form {
   display: flex;
   flex-wrap: wrap;

@@ -16,6 +16,7 @@ use serenity::all::{
 };
 use sqlx::PgPool;
 use zayden_app::entitlement::Tier;
+use zayden_app::state::AppState;
 use zayden_core::ctx::ModalCtx;
 use zayden_core::{InvocationCtx, as_i64};
 
@@ -187,8 +188,12 @@ async fn download(
     Ok(bytes.to_vec())
 }
 
-fn upsell_url(app: &zayden_app::state::AppState, tier: Tier) -> Option<&str> {
-    (tier == Tier::Free).then_some(app.upgrade_url.as_deref()).flatten()
+// Only upsell Free users toward Pro. Ultra is temporarily unlisted on the
+// upgrade page (it doesn't yet justify its price), so a Pro user sent there
+// would find nothing to buy — don't upsell them. Widen back to `Tier::Ultra`
+// when Ultra is re-listed (see `Tier::PAID_LADDER` in the dashboard).
+fn upsell_url(app: &AppState, tier: Tier) -> Option<&str> {
+    (tier < Tier::Pro).then_some(app.upgrade_url.as_deref()).flatten()
 }
 
 fn cooldown_label(remaining: SignedDuration) -> String {

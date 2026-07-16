@@ -23,3 +23,7 @@ uploads_dir = "palworld_uploads"
 [pelican]
 server_id = "14da478e"
 save_path = "/Pal/Saved/SaveGames/0/056C426C55974CFCA115EB695A224F67"
+
+[entitlements.discord.skus]
+pro = 1234567890
+ultra = 9876543210

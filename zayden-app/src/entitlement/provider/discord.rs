@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use async_trait::async_trait;
 use jiff::Timestamp;
 use tracing::warn;
@@ -41,6 +43,8 @@ impl DiscordProvider {
         user_id: Option<u64>,
         guild_id: Option<u64>,
         ends_at_unix: Option<i64>,
+        sku_id: Option<u64>,
+        sku_tiers: &HashMap<u64, Tier>,
     ) -> Option<GrantData> {
         let scope = match (user_id, guild_id) {
             (Some(uid), Some(gid)) => EntitlementScope::UserInGuild(uid, gid),
@@ -61,10 +65,21 @@ impl DiscordProvider {
                 .ok()
         });
 
+        let tier = sku_id
+            .and_then(|sku| sku_tiers.get(&sku).copied())
+            .unwrap_or_else(|| {
+                warn!(
+                    entitlement_id,
+                    ?sku_id,
+                    "Discord entitlement SKU not mapped to a tier; defaulting to Pro"
+                );
+                Tier::Pro
+            });
+
         Some(GrantData {
             external_id: entitlement_id.to_string(),
             scope,
-            tier: Tier::Pro,
+            tier,
             expires_at,
         })
     }

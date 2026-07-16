@@ -24,19 +24,31 @@ fn upload(uploaded: Timestamp, expires: Timestamp) -> SaveUpload {
 
 #[test]
 fn quota_is_tier_aware() {
+    const MB: u64 = 1024 * 1024;
+
     let free = UploadQuota::for_tier(Tier::Free);
     let pro = UploadQuota::for_tier(Tier::Pro);
+    let ultra = UploadQuota::for_tier(Tier::Ultra);
 
-    // Pro is a cost-recovery perk: shorter cooldown, larger size cap.
-    assert!(pro.cooldown < free.cooldown, "Pro cooldown is shorter");
-    assert!(pro.max_bytes > free.max_bytes, "Pro size cap is larger");
+    // Each paid tier is a strict step up: larger size cap, shorter cooldown.
+    // Ultra is now a real tier, not a Pro alias.
+    assert!(
+        ultra.max_bytes > pro.max_bytes && pro.max_bytes > free.max_bytes,
+        "size caps climb free < pro < ultra"
+    );
+    assert!(
+        ultra.cooldown < pro.cooldown && pro.cooldown < free.cooldown,
+        "cooldowns shorten free > pro > ultra"
+    );
     assert_eq!(free.cooldown, SignedDuration::from_mins(60));
     assert_eq!(pro.cooldown, SignedDuration::from_mins(30));
+    assert_eq!(ultra.cooldown, SignedDuration::from_mins(10));
 
-    // Ultra inherits the Pro quota.
-    let ent = UploadQuota::for_tier(Tier::Ultra);
-    assert_eq!(ent.cooldown, pro.cooldown);
-    assert_eq!(ent.max_bytes, pro.max_bytes);
+    // Every quota must stay at or below its Discord per-file upload ceiling,
+    // otherwise the attachment is rejected before the bot ever sees it.
+    assert!(free.max_bytes <= 10 * MB, "Free ≤ 10 MB ceiling");
+    assert!(pro.max_bytes <= 50 * MB, "Pro ≤ 50 MB ceiling");
+    assert!(ultra.max_bytes <= 500 * MB, "Ultra ≤ 500 MB ceiling");
 }
 
 #[test]

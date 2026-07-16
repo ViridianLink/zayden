@@ -2,6 +2,7 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 use leptos_meta::Title;
 
+use crate::dto::Tier;
 use crate::server::kofi::LinkKofiEmail;
 use crate::server::tier::get_user_tier;
 use crate::ui::components::icons::Icon;
@@ -13,14 +14,14 @@ pub(crate) fn UpgradePage() -> impl IntoView {
     let link = ServerAction::<LinkKofiEmail>::new();
 
     view! {
-        <Title text="Upgrade to Pro - Zayden Dashboard"/>
+        <Title text="Upgrade - Zayden Dashboard"/>
         <AppShell>
             <div class="page">
                 <div class="page-header">
                     <div>
-                        <h1>"Upgrade to Pro"</h1>
+                        <h1>"Upgrade your plan"</h1>
                         <p class="page-lead">
-                            "Pro is a cost-recovery tier: it unlocks the features that cost "
+                            "Paid tiers are cost-recovery: they unlock the features that cost "
                             "real money to run. Everything else stays free."
                         </p>
                     </div>
@@ -46,39 +47,68 @@ pub(crate) fn UpgradePage() -> impl IntoView {
 
                 <Suspense fallback=|| ()>
                     {move || tier_info.get().and_then(Result::ok).map(|info| {
-                        if info.tier.is_some_and(crate::dto::Tier::is_pro) {
-                            view! {
-                                <div class="banner-pro">
-                                    <Icon name="check"/>
-                                    <span>
-                                        "You already have Pro. Thank you for supporting Zayden!"
-                                    </span>
-                                </div>
-                            }.into_any()
-                        } else {
-                            view! {
-                                <div class="upgrade-actions">
-                                    {info.upgrade_url.map(|url| view! {
+                        let current = info.tier.unwrap_or(Tier::Free);
+                        let upgrade_url = info.upgrade_url;
+                        let cards = Tier::PAID_LADDER.into_iter().map(|plan| {
+                            let cta = match current.cmp(&plan) {
+                                std::cmp::Ordering::Equal => {
+                                    view! { <span class="plan-current">"Your plan"</span> }
+                                        .into_any()
+                                },
+                                std::cmp::Ordering::Greater => {
+                                    view! { <span class="plan-included">"Included"</span> }
+                                        .into_any()
+                                },
+                                std::cmp::Ordering::Less => {
+                                    upgrade_url.clone().map(|url| view! {
                                         <a
                                             href=url
                                             class="btn btn-primary"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                        >"Subscribe on Ko-fi"</a>
-                                    })}
-                                    <a href="/invite" rel="external" class="btn btn-secondary">
-                                        "Subscribe via Discord"
-                                    </a>
+                                        >{format!("Get {}", plan.label())}</a>
+                                    }).into_any()
+                                },
+                            };
+                            view! {
+                                <div class=format!("plan-card plan-{}", plan.css_suffix())>
+                                    <div class="plan-head">
+                                        <span class=format!(
+                                            "tier-badge tier-{}", plan.css_suffix(),
+                                        )>{plan.label()}</span>
+                                        <span class="plan-price">
+                                            {plan.price()}<small>"/mo"</small>
+                                        </span>
+                                    </div>
+                                    <ul class="plan-specs">
+                                        <li>
+                                            <strong>{plan.upload_limit_mb()}" MB"</strong>
+                                            " Palworld save uploads"
+                                        </li>
+                                        <li>
+                                            <strong>{plan.upload_cooldown()}</strong>
+                                            " upload cooldown"
+                                        </li>
+                                    </ul>
+                                    {cta}
                                 </div>
-                            }.into_any()
-                        }
+                            }
+                        }).collect_view();
+                        view! {
+                            <div class="plan-ladder">{cards}</div>
+                            <div class="upgrade-actions">
+                                <a href="/invite" rel="external" class="btn btn-secondary">
+                                    "Subscribe via Discord"
+                                </a>
+                            </div>
+                        }.into_any()
                     })}
                 </Suspense>
 
                 <div class="card">
                     <p class="label">"Link your Ko-fi email"</p>
                     <p class="page-lead">
-                        "Connect the email you subscribe with on Ko-fi so your Pro "
+                        "Connect the email you subscribe with on Ko-fi so your paid "
                         "membership follows your Discord account."
                     </p>
                     <ActionForm action=link>

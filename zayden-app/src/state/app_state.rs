@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use sqlx::PgPool;
@@ -5,7 +6,7 @@ use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 
 use crate::config::{BotConfig, SettingsRegistry};
-use crate::entitlement::EntitlementService;
+use crate::entitlement::{EntitlementService, Tier};
 use crate::events::AppEvent;
 
 pub struct AppState {
@@ -28,6 +29,8 @@ pub struct AppState {
     pub zayden_id: u64,
     pub zayden_guild: u64,
     pub upgrade_url: Option<String>,
+
+    pub sku_tiers: HashMap<u64, Tier>,
 }
 
 impl AppState {
@@ -43,6 +46,14 @@ impl AppState {
             Arc::clone(&entitlements),
             events.subscribe(),
         );
+
+        let mut sku_tiers = HashMap::new();
+        if let Some(sku) = config.discord_sku_pro {
+            sku_tiers.insert(sku, Tier::Pro);
+        }
+        if let Some(sku) = config.discord_sku_ultra {
+            sku_tiers.insert(sku, Tier::Ultra);
+        }
 
         Self {
             db: pool,
@@ -63,6 +74,7 @@ impl AppState {
             zayden_id: config.zayden_id,
             zayden_guild: config.zayden_guild,
             upgrade_url: config.upgrade_url.clone(),
+            sku_tiers,
         }
     }
 

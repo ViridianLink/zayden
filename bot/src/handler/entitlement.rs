@@ -15,6 +15,8 @@ pub(super) async fn entitlement_create(
         entitlement.user_id.map(UserId::get),
         entitlement.guild_id.map(GuildId::get),
         entitlement.ends_at.map(|t| t.unix_timestamp()),
+        Some(entitlement.sku_id.get()),
+        &app.sku_tiers,
     ) else {
         debug!(
             entitlement_id = entitlement.id.get(),
