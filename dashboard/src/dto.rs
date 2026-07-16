@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use twilight_model::channel::ChannelType;
 
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -70,7 +71,20 @@ pub struct GuildSettings {
     pub(crate) lfg_channel_id: Option<String>,
     pub(crate) lfg_role_id: Option<String>,
     pub(crate) lfg_scheduled_thread_id: Option<String>,
-    pub(crate) is_pro: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ChannelInfo {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) kind: ChannelType,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct RoleInfo {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) color: u32,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

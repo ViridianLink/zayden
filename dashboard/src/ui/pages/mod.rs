@@ -1,6 +1,6 @@
 pub mod guild_settings;
 pub mod guilds;
-pub mod home;
+pub mod landing;
 pub mod login;
 pub mod modules;
 pub mod not_found;

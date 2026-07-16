@@ -1,0 +1,228 @@
+/* Pages */
+
+.page {
+  max-width: 960px;
+  animation: fade-up 0.4s var(--ease-spring);
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.page h1 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.page-lead {
+  color: var(--text-secondary);
+  margin: 0.4rem 0 0;
+}
+
+/* Login page */
+
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  padding: 2.5rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-pop);
+  animation: fade-up 0.4s var(--ease-spring);
+}
+
+.login-card .brand {
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  font-size: 20px;
+}
+
+.login-card h1 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.login-card p {
+  color: var(--text-secondary);
+  margin: 0 0 1.75rem;
+}
+
+.login-card .btn {
+  width: 100%;
+}
+
+/* State messages */
+
+.loading {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.error {
+  color: var(--error);
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-xl);
+  background-color: rgb(248 113 113 / 0.1);
+}
+
+.success {
+  color: var(--success);
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-xl);
+  background-color: rgb(74 222 128 / 0.1);
+}
+
+.empty {
+  color: var(--text-secondary);
+  padding: 3rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-2xl);
+}
+
+/* Guild picker (card grid) */
+
+.guild-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.guild-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  transition:
+    background-color 0.2s var(--ease-spring),
+    border-color 0.2s var(--ease-spring),
+    transform 0.2s var(--ease-spring);
+}
+
+.guild-card:hover {
+  background-color: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.guild-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-xl);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.guild-icon.placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.guild-card-body {
+  min-width: 0;
+}
+
+.guild-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.guild-card-hint {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* Tier badge */
+
+.tier-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tier-free {
+  background-color: var(--overlay-3);
+  color: var(--text-secondary);
+}
+
+.tier-pro {
+  background-color: var(--accent-weak);
+  color: var(--accent);
+}
+
+.tier-enterprise {
+  background-color: rgb(251 191 36 / 0.16);
+  color: var(--warning);
+}
+
+.btn-upgrade {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0.3rem 0.85rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-gradient);
+  color: #fff;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.btn-upgrade:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* Pro banner */
+
+.banner-pro {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.75rem;
+  background-color: var(--accent-weak);
+  border: 1px solid rgb(91 141 239 / 0.24);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+}
+
+.banner-pro .icon {
+  color: var(--accent);
+  font-size: 18px;
+}

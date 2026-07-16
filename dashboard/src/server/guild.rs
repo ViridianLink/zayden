@@ -4,17 +4,14 @@ use crate::dto::{GuildInfo, GuildSettings};
 
 #[server]
 pub async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
-    use reqwest::Client;
     use sqlx::{PgPool, Row};
     use tower_cookies::Cookies;
     use twilight_model::guild::Permissions;
-    use twilight_model::user::CurrentUserGuild;
+
+    use crate::server::auth::{bearer_client, server_err};
 
     let Some(pool) = use_context::<PgPool>() else {
         return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
-    let Some(http) = use_context::<Client>() else {
-        return Err(ServerFnError::ServerError("missing HTTP client".to_string()));
     };
 
     let cookies: Cookies = match leptos_axum::extract().await {
@@ -43,27 +40,13 @@ pub async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
         Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
     };
 
-    let resp = match http
-        .get("https://discord.com/api/v10/users/@me/guilds")
-        .header("Authorization", format!("Bearer {access_token}"))
-        .send()
+    let all_guilds = bearer_client(&access_token)
+        .current_user_guilds()
         .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-
-    if !resp.status().is_success() {
-        return Err(ServerFnError::ServerError(format!(
-            "Discord API returned {}",
-            resp.status()
-        )));
-    }
-
-    let all_guilds: Vec<CurrentUserGuild> = match resp.json().await {
-        Ok(v) => v,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
+        .map_err(server_err)?
+        .model()
+        .await
+        .map_err(server_err)?;
 
     let guilds = all_guilds
         .into_iter()
@@ -87,105 +70,31 @@ pub async fn get_guild_settings(
 ) -> Result<GuildSettings, ServerFnError> {
     use std::sync::Arc;
 
-    use reqwest::Client;
-    use sqlx::{PgPool, Row as _};
-    use tower_cookies::Cookies;
-    use twilight_model::guild::Permissions;
-    use twilight_model::user::CurrentUserGuild;
-    use zayden_app::entitlement::types::{EntitlementScope, Tier};
     use zayden_app::state::AppState;
+
+    use crate::server::auth::{guild_admin_context, server_err};
 
     fn opt_str(v: Option<i64>) -> Option<String> {
         v.map(|n| n.to_string())
     }
-    fn app_err(e: &sqlx::Error) -> ServerFnError {
-        ServerFnError::ServerError(e.to_string())
-    }
 
-    let Ok(guild_id_i64) = guild_id.parse::<i64>() else {
-        return Err(ServerFnError::ServerError("invalid guild id".to_string()));
-    };
-    let guild_id_u64 = guild_id_i64.cast_unsigned();
+    let (guild_id_i64, _user_id, _access_token) =
+        guild_admin_context(&guild_id).await?;
 
-    let Some(pool) = use_context::<PgPool>() else {
-        return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
-    let Some(http) = use_context::<Client>() else {
-        return Err(ServerFnError::ServerError("missing HTTP client".to_string()));
-    };
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
 
-    let cookies: Cookies = match leptos_axum::extract().await {
-        Ok(c) => c,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
-        leptos_axum::redirect("/login");
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-
-    let row = match sqlx::query(
-        "SELECT discord_access_token, discord_user_id FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-    )
-    .bind(&token)
-    .fetch_optional(&pool)
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    let Some(row) = row else {
-        leptos_axum::redirect("/login");
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-    let access_token: String = row.get("discord_access_token");
-    let discord_user_id: i64 = row.get("discord_user_id");
-    let discord_user_id_u64 = discord_user_id.cast_unsigned();
-
-    let guilds_resp = match http
-        .get("https://discord.com/api/v10/users/@me/guilds")
-        .header("Authorization", format!("Bearer {access_token}"))
-        .send()
-        .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    if !guilds_resp.status().is_success() {
-        return Err(ServerFnError::ServerError(
-            "failed to fetch guild list from Discord".to_string(),
-        ));
-    }
-    let all_guilds: Vec<CurrentUserGuild> = match guilds_resp.json().await {
-        Ok(v) => v,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    let has_access = all_guilds.iter().any(|g| {
-        g.id.get() == guild_id_u64
-            && g.permissions
-                .intersects(Permissions::ADMINISTRATOR | Permissions::MANAGE_GUILD)
-    });
-    if !has_access {
-        return Err(ServerFnError::ServerError("forbidden".to_string()));
-    }
-
     let support =
-        app.settings.support.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
+        app.settings.support.get(guild_id_i64).await.map_err(server_err)?;
     let suggestions =
-        app.settings.suggestions.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
+        app.settings.suggestions.get(guild_id_i64).await.map_err(server_err)?;
     let channels =
-        app.settings.channels.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
-    let roles =
-        app.settings.roles.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
+        app.settings.channels.get(guild_id_i64).await.map_err(server_err)?;
+    let roles = app.settings.roles.get(guild_id_i64).await.map_err(server_err)?;
     let temp_voice =
-        app.settings.temp_voice.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
-    let lfg = app.settings.lfg.get(guild_id_i64).await.map_err(|e| app_err(&e))?;
-
-    let scope = EntitlementScope::UserInGuild(discord_user_id_u64, guild_id_u64);
-    let is_pro = app.entitlements.allows(scope, Tier::Pro).await;
+        app.settings.temp_voice.get(guild_id_i64).await.map_err(server_err)?;
+    let lfg = app.settings.lfg.get(guild_id_i64).await.map_err(server_err)?;
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
@@ -203,96 +112,7 @@ pub async fn get_guild_settings(
         lfg_channel_id: opt_str(lfg.lfg_channel_id),
         lfg_role_id: opt_str(lfg.lfg_role_id),
         lfg_scheduled_thread_id: opt_str(lfg.lfg_scheduled_thread_id),
-        is_pro,
     })
-}
-
-#[cfg(feature = "ssr")]
-async fn guild_write_guard(guild_id_str: &str) -> Result<(i64, u64), ServerFnError> {
-    use std::sync::Arc;
-
-    use reqwest::Client;
-    use sqlx::{PgPool, Row as _};
-    use tower_cookies::Cookies;
-    use twilight_model::guild::Permissions;
-    use twilight_model::user::CurrentUserGuild;
-    use zayden_app::entitlement::types::{EntitlementScope, Tier};
-    use zayden_app::state::AppState;
-
-    let Ok(guild_id_i64) = guild_id_str.parse::<i64>() else {
-        return Err(ServerFnError::ServerError("invalid guild id".to_string()));
-    };
-    let guild_id_u64 = guild_id_i64.cast_unsigned();
-
-    let Some(pool) = use_context::<PgPool>() else {
-        return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
-    let Some(http) = use_context::<Client>() else {
-        return Err(ServerFnError::ServerError("missing HTTP client".to_string()));
-    };
-    let Some(app) = use_context::<Arc<AppState>>() else {
-        return Err(ServerFnError::ServerError("missing app state".to_string()));
-    };
-
-    let cookies: Cookies = match leptos_axum::extract().await {
-        Ok(c) => c,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-
-    let row = match sqlx::query(
-        "SELECT discord_access_token, discord_user_id FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-    )
-    .bind(&token)
-    .fetch_optional(&pool)
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    let Some(row) = row else {
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-    let access_token: String = row.get("discord_access_token");
-    let discord_user_id: i64 = row.get("discord_user_id");
-    let discord_user_id_u64 = discord_user_id.cast_unsigned();
-
-    let guilds_resp = match http
-        .get("https://discord.com/api/v10/users/@me/guilds")
-        .header("Authorization", format!("Bearer {access_token}"))
-        .send()
-        .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    if !guilds_resp.status().is_success() {
-        return Err(ServerFnError::ServerError(
-            "failed to fetch guild list from Discord".to_string(),
-        ));
-    }
-    let all_guilds: Vec<CurrentUserGuild> = match guilds_resp.json().await {
-        Ok(v) => v,
-        Err(e) => return Err(ServerFnError::ServerError(e.to_string())),
-    };
-    let has_access = all_guilds.iter().any(|g| {
-        g.id.get() == guild_id_u64
-            && g.permissions
-                .intersects(Permissions::ADMINISTRATOR | Permissions::MANAGE_GUILD)
-    });
-    if !has_access {
-        return Err(ServerFnError::ServerError("forbidden".to_string()));
-    }
-
-    let scope = EntitlementScope::UserInGuild(discord_user_id_u64, guild_id_u64);
-    if !app.entitlements.allows(scope, Tier::Pro).await {
-        return Err(ServerFnError::ServerError("pro_required".to_string()));
-    }
-
-    Ok((guild_id_i64, discord_user_id_u64))
 }
 
 #[cfg(feature = "ssr")]
@@ -314,9 +134,10 @@ pub async fn save_support_settings(
 
     use zayden_app::state::AppState;
 
-    use crate::server::auth::server_err;
+    use crate::server::auth::{guild_admin_context, server_err};
 
-    let (guild_id_i64, _) = guild_write_guard(&guild).await?;
+    let (guild_id_i64, _user_id, _access_token) =
+        guild_admin_context(&guild).await?;
 
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
@@ -354,9 +175,10 @@ pub async fn save_channel_settings(
 
     use zayden_app::state::AppState;
 
-    use crate::server::auth::server_err;
+    use crate::server::auth::{guild_admin_context, server_err};
 
-    let (guild_id_i64, _) = guild_write_guard(&guild).await?;
+    let (guild_id_i64, _user_id, _access_token) =
+        guild_admin_context(&guild).await?;
 
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
@@ -384,9 +206,10 @@ pub async fn save_role_settings(
 
     use zayden_app::state::AppState;
 
-    use crate::server::auth::server_err;
+    use crate::server::auth::{guild_admin_context, server_err};
 
-    let (guild_id_i64, _) = guild_write_guard(&guild).await?;
+    let (guild_id_i64, _user_id, _access_token) =
+        guild_admin_context(&guild).await?;
 
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
@@ -413,9 +236,10 @@ pub async fn save_temp_voice_settings(
 
     use zayden_app::state::AppState;
 
-    use crate::server::auth::server_err;
+    use crate::server::auth::{guild_admin_context, server_err};
 
-    let (guild_id_i64, _) = guild_write_guard(&guild).await?;
+    let (guild_id_i64, _user_id, _access_token) =
+        guild_admin_context(&guild).await?;
 
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
@@ -443,9 +267,10 @@ pub async fn save_lfg_settings(
 
     use zayden_app::state::AppState;
 
-    use crate::server::auth::server_err;
+    use crate::server::auth::{guild_admin_context, server_err};
 
-    let (guild_id_i64, _) = guild_write_guard(&guild).await?;
+    let (guild_id_i64, _user_id, _access_token) =
+        guild_admin_context(&guild).await?;
 
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));

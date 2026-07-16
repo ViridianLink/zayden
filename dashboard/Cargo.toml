@@ -36,13 +36,12 @@ ssr = [
   "dep:moka",
   "dep:oauth2",
   "dep:rand",
-  "dep:reqwest",
   "dep:sha2",
   "dep:sqlx",
   "dep:tokio",
   "dep:tower-cookies",
   "dep:tracing-subscriber",
-  "dep:twilight-model",
+  "dep:twilight-http",
   "dep:zayden-app",
 ]
 
@@ -74,7 +73,6 @@ oauth2 = { version = "*", default-features = false, features = [
   "rustls-tls",
 ], optional = true }
 rand = { workspace = true, features = ["thread_rng"], optional = true }
-reqwest = { workspace = true, optional = true }
 sha2 = { version = "*", default-features = false, optional = true }
 sqlx = { workspace = true, features = [
   "postgres",
@@ -90,7 +88,11 @@ tracing-subscriber = { workspace = true, features = [
   "ansi",
   "fmt",
 ], optional = true }
-twilight-model = { version = "=0.17.1", optional = true }
+twilight-http = { version = "=0.17.1", default-features = false, features = [
+  "decompression",
+  "rustls-webpki-roots",
+], optional = true }
+twilight-model = { version = "=0.17.1" }
 zayden-app = { workspace = true, optional = true }
 
 # ── Hydrate-only ─────────────────────────────────────────────────────────────
@@ -105,7 +107,6 @@ site-root = "target/site"
 site-pkg-dir = "pkg"
 assets-dir = "public"
 tailwind-input-file = "style/input.css"
-tailwind-config-file = "tailwind.config.js"
 site-addr = "0.0.0.0:3000"
 reload-port = 3001
 env = "DEV"

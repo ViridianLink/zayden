@@ -20,9 +20,18 @@ pub(crate) fn LoginPage() -> impl IntoView {
             }}
         </Suspense>
         <div class="login-page">
-            <h1>"Sign in to Zayden Dashboard"</h1>
-            <p>"Connect your Discord account to manage server settings."</p>
-            <a href="/auth/discord" rel="external" class="btn btn-primary">"Sign in with Discord"</a>
+            <div class="hero-glow"></div>
+            <div class="login-card">
+                <span class="brand">
+                    <span class="brand-mark">"Z"</span>
+                    "Zayden"
+                </span>
+                <h1>"Welcome back"</h1>
+                <p>"Connect your Discord account to manage your server settings."</p>
+                <a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">
+                    "Sign in with Discord"
+                </a>
+            </div>
         </div>
     }
 }

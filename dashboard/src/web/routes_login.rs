@@ -2,33 +2,24 @@ use std::fmt::Write;
 
 use axum::body::Body;
 use axum::extract::{Query, State};
-use axum::http::header;
+use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use jiff::{SignedDuration, Timestamp};
 use oauth2::{AuthorizationCode, TokenResponse};
 use rand::RngExt;
-use reqwest::StatusCode;
 use serde::Deserialize;
 use tower_cookies::cookie::SameSite;
 use tower_cookies::{Cookie, Cookies};
-use twilight_model::id::Id;
-use twilight_model::id::marker::UserMarker;
 
 use super::{OAUTH_STATE_COOKIE, SESSION_COOKIE};
 use crate::WebState;
 
-const DISCORD_API: &str = "https://discord.com/api/v10";
 const SESSION_TTL_HOURS: i64 = 24 * 7;
 
 #[derive(Deserialize)]
 pub(super) struct DiscordAuthCallback {
     code: String,
     state: String,
-}
-
-#[derive(Deserialize)]
-struct DiscordUser {
-    id: Id<UserMarker>,
 }
 
 fn error_redirect() -> Response {
@@ -70,25 +61,19 @@ pub(super) async fn discord_auth_callback_handler(
         },
     };
 
-    let user_resp = state
-        .app
-        .http
-        .get(format!("{DISCORD_API}/users/@me"))
-        .header("Authorization", format!("Bearer {discord_access_token}"))
-        .send()
+    let discord_user = twilight_http::Client::builder()
+        .token(format!("Bearer {discord_access_token}"))
+        .build()
+        .current_user()
         .await;
 
-    let discord_user: DiscordUser = match user_resp {
-        Ok(r) if r.status().is_success() => match r.json().await {
+    let discord_user = match discord_user {
+        Ok(r) => match r.model().await {
             Ok(u) => u,
             Err(e) => {
                 tracing::warn!(error = ?e, "failed to parse Discord /users/@me response");
                 return error_redirect();
             },
-        },
-        Ok(r) => {
-            tracing::warn!(status = %r.status(), "Discord /users/@me returned a non-success status");
-            return error_redirect();
         },
         Err(e) => {
             tracing::warn!(error = ?e, "request to Discord /users/@me failed");

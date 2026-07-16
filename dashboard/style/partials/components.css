@@ -1,0 +1,303 @@
+/*  Cards / panels */
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: 1.4rem 1.5rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--bg-card);
+}
+
+/* Module grid (guild overview) */
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.module-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+  transition:
+    border-color 0.2s var(--ease-spring),
+    background-color 0.2s var(--ease-spring);
+}
+
+.module-card:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface);
+}
+
+.module-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.module-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-xl);
+  font-size: 21px;
+  color: var(--tint, var(--accent));
+  background: color-mix(in srgb, var(--tint, var(--accent)) 14%, transparent);
+}
+
+.module-name {
+  font-weight: 600;
+  font-size: 15.5px;
+  color: var(--text-primary);
+}
+
+.module-desc {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  flex: 1;
+  margin: 0 0 1rem;
+}
+
+.module-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.module-status {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.module-status.on {
+  color: var(--success);
+}
+
+/* Settings form */
+
+.settings-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: 1.4rem 1.5rem;
+  margin-bottom: 1.5rem;
+  background-color: var(--bg-card);
+}
+
+.settings-section legend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-secondary);
+  padding: 0 0.5rem;
+}
+
+.settings-section legend .icon {
+  color: var(--accent);
+  font-size: 15px;
+}
+
+.setting-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.setting-field label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.setting-field input {
+  padding: 0.6rem 0.8rem;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+  transition: border-color 0.2s var(--ease-spring);
+}
+
+.setting-field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.setting-field input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Styled native select (channel/role picker). */
+.select {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.select select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  padding: 0.6rem 2.2rem 0.6rem 0.8rem;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease-spring);
+}
+
+.select select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.select-chevron {
+  position: absolute;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  color: var(--text-tertiary);
+  font-size: 16px;
+  pointer-events: none;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.9rem;
+  margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+/* Upgrade (Pro) page */
+
+.pro-features {
+  list-style: none;
+  margin: 0 0 1.75rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.pro-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+}
+
+.pro-feature .icon {
+  color: var(--accent);
+  font-size: 22px;
+  margin-bottom: 0.35rem;
+}
+
+.pro-feature strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.pro-feature span {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+}
+
+.upgrade-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.kofi-link-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.kofi-link-form input {
+  flex: 1;
+  min-width: 220px;
+  padding: 0.6rem 0.8rem;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.kofi-link-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+/* Toggle switch */
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: none;
+  background-color: var(--overlay-3);
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-spring);
+  flex-shrink: 0;
+}
+
+.toggle-on {
+  background: var(--accent-gradient);
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background-color: #fff;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.toggle-on::after {
+  transform: translateX(20px);
+}
+
+.toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

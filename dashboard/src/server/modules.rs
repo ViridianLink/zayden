@@ -1,3 +1,6 @@
+#[cfg(feature = "ssr")]
+use std::collections::HashMap;
+
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use twilight_model::id::{Id, marker::CommandMarker};
@@ -94,31 +97,18 @@ const MODULES: &[ModuleDef] = &[
 
 #[cfg(feature = "ssr")]
 async fn fetch_command_ids(
-    http: &reqwest::Client,
+    http: &twilight_http::Client,
     app_id: u64,
-    bot_token: &str,
-) -> std::collections::HashMap<String, Id<CommandMarker>> {
-    use std::collections::HashMap;
-
-    use twilight_model::application::command::Command;
-
-    let resp = http
-        .get(format!("https://discord.com/api/v10/applications/{app_id}/commands"))
-        .header("Authorization", format!("Bot {bot_token}"))
-        .send()
-        .await;
-    match resp {
-        Ok(r) if r.status().is_success() => r
-            .json::<Vec<Command>>()
-            .await
-            .map(|cmds| {
-                cmds.into_iter()
-                    .filter_map(|c| c.id.map(|id| (c.name, id)))
-                    .collect()
-            })
-            .unwrap_or_default(),
-        _ => HashMap::new(),
-    }
+) -> HashMap<String, Id<CommandMarker>> {
+    let Ok(resp) = http.interaction(Id::new(app_id)).global_commands().await else {
+        return HashMap::new();
+    };
+    resp.models()
+        .await
+        .map(|cmds| {
+            cmds.into_iter().filter_map(|c| c.id.map(|id| (c.name, id))).collect()
+        })
+        .unwrap_or_default()
 }
 
 #[server]
@@ -128,44 +118,35 @@ pub async fn list_guild_modules(
     use std::collections::HashSet;
     use std::sync::Arc;
 
-    use reqwest::Client;
     use zayden_app::state::AppState;
 
-    use crate::app::DiscordBotToken;
-    use crate::server::auth::guild_admin_context;
+    use crate::server::auth::{bearer_client, guild_admin_context};
 
     let (guild_id_i64, _user_id, access_token) = guild_admin_context(&guild).await?;
     let guild_id_u64 = guild_id_i64.cast_unsigned();
 
-    let Some(http) = use_context::<Client>() else {
-        return Err(ServerFnError::ServerError("missing HTTP client".to_string()));
+    let Some(http) = use_context::<Arc<twilight_http::Client>>() else {
+        return Err(ServerFnError::ServerError(
+            "missing Discord client".to_string(),
+        ));
     };
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
-    let bot_token =
-        use_context::<DiscordBotToken>().map(|t| t.0).unwrap_or_default();
     let app_id = app.zayden_id;
 
-    let name_to_id = fetch_command_ids(&http, app_id, &bot_token).await;
+    let name_to_id = fetch_command_ids(&http, app_id).await;
 
     let denied: HashSet<Id<CommandMarker>> = {
-        use twilight_model::application::command::permissions::{
-            CommandPermissionType,
-            GuildCommandPermissions,
-        };
+        use twilight_model::application::command::permissions::CommandPermissionType;
 
-        let url = format!(
-            "https://discord.com/api/v10/applications/{app_id}/guilds/{guild_id_u64}/commands/permissions"
-        );
-        let resp = http
-            .get(url)
-            .header("Authorization", format!("Bearer {access_token}"))
-            .send()
+        let resp = bearer_client(&access_token)
+            .interaction(Id::new(app_id))
+            .guild_command_permissions(Id::new(guild_id_u64))
             .await;
         match resp {
-            Ok(r) if r.status().is_success() => r
-                .json::<Vec<GuildCommandPermissions>>()
+            Ok(r) => r
+                .models()
                 .await
                 .map(|list| {
                     list.into_iter()
@@ -215,20 +196,13 @@ pub async fn set_module_enabled(
 ) -> Result<(), ServerFnError> {
     use std::sync::Arc;
 
-    use reqwest::Client;
     use twilight_model::application::command::permissions::{
         CommandPermission,
         CommandPermissionType,
     };
     use zayden_app::state::AppState;
 
-    use crate::app::DiscordBotToken;
-    use crate::server::auth::{guild_admin_context, server_err};
-
-    #[derive(serde::Serialize)]
-    struct PermissionsBody {
-        permissions: Vec<CommandPermission>,
-    }
+    use crate::server::auth::{bearer_client, guild_admin_context};
 
     let (guild_id_i64, _user_id, access_token) = guild_admin_context(&guild).await?;
     let guild_id_u64 = guild_id_i64.cast_unsigned();
@@ -237,47 +211,39 @@ pub async fn set_module_enabled(
         return Err(ServerFnError::ServerError("unknown module".to_string()));
     };
 
-    let Some(http) = use_context::<Client>() else {
-        return Err(ServerFnError::ServerError("missing HTTP client".to_string()));
+    let Some(http) = use_context::<Arc<twilight_http::Client>>() else {
+        return Err(ServerFnError::ServerError(
+            "missing Discord client".to_string(),
+        ));
     };
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
-    let bot_token =
-        use_context::<DiscordBotToken>().map(|t| t.0).unwrap_or_default();
     let app_id = app.zayden_id;
 
-    let name_to_id = fetch_command_ids(&http, app_id, &bot_token).await;
+    let name_to_id = fetch_command_ids(&http, app_id).await;
 
-    let body = if enabled {
-        PermissionsBody { permissions: Vec::new() }
+    let permissions: Vec<CommandPermission> = if enabled {
+        Vec::new()
     } else {
-        PermissionsBody {
-            permissions: vec![CommandPermission {
-                id: CommandPermissionType::Role(Id::new(guild_id_u64)),
-                permission: false,
-            }],
-        }
+        vec![CommandPermission {
+            id: CommandPermissionType::Role(Id::new(guild_id_u64)),
+            permission: false,
+        }]
     };
 
+    let bearer = bearer_client(&access_token);
+    let interaction = bearer.interaction(Id::new(app_id));
     for name in module.commands {
         let Some(cmd_id) = name_to_id.get(*name) else {
             continue;
         };
-        let url = format!(
-            "https://discord.com/api/v10/applications/{app_id}/guilds/{guild_id_u64}/commands/{cmd_id}/permissions"
-        );
-        let resp = http
-            .put(url)
-            .header("Authorization", format!("Bearer {access_token}"))
-            .json(&body)
-            .send()
+        if let Err(e) = interaction
+            .update_command_permissions(Id::new(guild_id_u64), *cmd_id, &permissions)
             .await
-            .map_err(server_err)?;
-        if !resp.status().is_success() {
-            let status = resp.status();
+        {
             return Err(ServerFnError::ServerError(format!(
-                "Discord rejected the permission update for /{name} ({status})"
+                "Discord rejected the permission update for /{name}: {e}"
             )));
         }
     }

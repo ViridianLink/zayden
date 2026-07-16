@@ -3,22 +3,16 @@ use leptos::prelude::*;
 pub(crate) fn save_feedback(r: Result<(), ServerFnError>) -> AnyView {
     match r {
         Ok(()) => view! { <p class="success">"Saved."</p> }.into_any(),
-        Err(ref e) if e.to_string().contains("pro_required") => view! {
-            <p class="error">"A Pro subscription is required to save settings."</p>
-        }
-        .into_any(),
         Err(e) => view! { <p class="error">"Failed to save: " {e.to_string()}</p> }
             .into_any(),
     }
 }
 
 #[component]
-pub(crate) fn SaveButton(is_pro: bool) -> impl IntoView {
+pub(crate) fn SaveButton() -> impl IntoView {
     view! {
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary" disabled=move || !is_pro>
-                {if is_pro { "Save" } else { "Pro Required" }}
-            </button>
+            <button type="submit" class="btn btn-primary">"Save"</button>
         </div>
     }
 }

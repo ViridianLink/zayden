@@ -11,7 +11,7 @@ use axum::extract::{FromRef, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
-use dashboard::app::{App, DiscordBotToken, UpgradeUrl, shell};
+use dashboard::app::{App, UpgradeUrl, shell};
 use leptos::config::{LeptosOptions, get_configuration};
 use leptos::prelude::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list};
@@ -116,6 +116,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    let discord_http =
+        Arc::new(twilight_http::Client::new(web_state.discord_token.clone()));
+
     let routes = generate_route_list(App);
 
     let app: Router = Router::new()
@@ -125,16 +128,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .merge(web::routes(web_state.clone()))
         .leptos_routes_with_context(&web_state, routes, {
             let db = web_state.app.db.clone();
-            let http = web_state.app.http.clone();
             let app = Arc::clone(&web_state.app);
             let upgrade_url = web_state.upgrade_url.clone();
-            let bot_token = web_state.discord_token.clone();
+            let discord_http = Arc::clone(&discord_http);
             move || {
                 provide_context(db.clone());
-                provide_context(http.clone());
                 provide_context(Arc::clone(&app));
                 provide_context(UpgradeUrl(upgrade_url.clone()));
-                provide_context(DiscordBotToken(bot_token.clone()));
+                provide_context(Arc::clone(&discord_http));
             }
         }, {
             let lo = web_state.leptos_options.clone();

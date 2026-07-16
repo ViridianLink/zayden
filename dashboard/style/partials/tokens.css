@@ -1,0 +1,73 @@
+:root {
+  --bg-base: #0a0908;
+  --bg-card: #141110;
+  --bg-surface: #1a1614;
+  --bg-elevated: #221d19;
+  --bg-modal: #1c1c1e;
+
+  --overlay-1: rgb(255 255 255 / 0.03);
+  --overlay-2: rgb(255 255 255 / 0.06);
+  --overlay-3: rgb(255 255 255 / 0.1);
+  --border: rgb(255 255 255 / 0.08);
+  --border-strong: rgb(255 255 255 / 0.14);
+
+  --text-primary: #f2f1ef;
+  --text-secondary: #a5a19c;
+  --text-tertiary: #6f6a65;
+
+  --success: #4ade80;
+  --error: #f87171;
+  --warning: #fbbf24;
+
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 999px;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45);
+
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --sidebar-width: 248px;
+  --navbar-height: 62px;
+  --content-max: 1080px;
+
+  --accent: #5b8def;
+  --accent-strong: #3e6ad4;
+  --accent-weak: rgb(91 141 239 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #5b8def, #3e6ad4);
+  --watermark-letter: "Z";
+}
+
+:root[data-bot="zayden"] {
+  --accent: #5b8def;
+  --accent-strong: #3e6ad4;
+  --accent-weak: rgb(91 141 239 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #5b8def, #3e6ad4);
+  --watermark-letter: "Z";
+}
+
+:root[data-bot="viktor"] {
+  --accent: #e0384a;
+  --accent-strong: #b71f30;
+  --accent-weak: rgb(224 56 74 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #e0384a, #b71f30);
+  --watermark-letter: "V";
+}
+
+:root[data-bot="enzo"] {
+  --accent: #f5a623;
+  --accent-strong: #d4820e;
+  --accent-weak: rgb(245 166 35 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #f5a623, #d4820e);
+  --watermark-letter: "E";
+}
+
+:root[data-bot="maria"] {
+  --accent: #ec4899;
+  --accent-strong: #c81e78;
+  --accent-weak: rgb(236 72 153 / 0.12);
+  --accent-gradient: linear-gradient(135deg, #ec4899, #c81e78);
+  --watermark-letter: "M";
+}

@@ -6,6 +6,11 @@ pub(crate) fn server_err<E: std::fmt::Display>(e: E) -> ServerFnError {
 }
 
 #[cfg(feature = "ssr")]
+pub(crate) fn bearer_client(access_token: &str) -> twilight_http::Client {
+    twilight_http::Client::builder().token(format!("Bearer {access_token}")).build()
+}
+
+#[cfg(feature = "ssr")]
 pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
     use leptos_axum::extract;
     use sqlx::{PgPool, Row};
@@ -37,11 +42,9 @@ pub(crate) async fn guild_admin_context(
     guild_id_str: &str,
 ) -> Result<(i64, i64, String), ServerFnError> {
     use leptos_axum::extract;
-    use reqwest::Client;
     use sqlx::{PgPool, Row};
     use tower_cookies::Cookies;
     use twilight_model::guild::Permissions;
-    use twilight_model::user::CurrentUserGuild;
 
     let Ok(guild_id_i64) = guild_id_str.parse::<i64>() else {
         return Err(ServerFnError::ServerError("invalid guild id".to_string()));
@@ -50,9 +53,6 @@ pub(crate) async fn guild_admin_context(
 
     let Some(pool) = use_context::<PgPool>() else {
         return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
-    let Some(http) = use_context::<Client>() else {
-        return Err(ServerFnError::ServerError("missing HTTP client".to_string()));
     };
 
     let cookies: Cookies = extract().await.map_err(server_err)?;
@@ -74,19 +74,13 @@ pub(crate) async fn guild_admin_context(
     let access_token: String = row.get("discord_access_token");
     let user_id: i64 = row.get("discord_user_id");
 
-    let guilds_resp = http
-        .get("https://discord.com/api/v10/users/@me/guilds")
-        .header("Authorization", format!("Bearer {access_token}"))
-        .send()
+    let all_guilds = bearer_client(&access_token)
+        .current_user_guilds()
+        .await
+        .map_err(server_err)?
+        .model()
         .await
         .map_err(server_err)?;
-    if !guilds_resp.status().is_success() {
-        return Err(ServerFnError::ServerError(
-            "failed to fetch guild list from Discord".to_string(),
-        ));
-    }
-    let all_guilds: Vec<CurrentUserGuild> =
-        guilds_resp.json().await.map_err(server_err)?;
     let has_access = all_guilds.iter().any(|g| {
         g.id.get() == guild_id_u64
             && g.permissions

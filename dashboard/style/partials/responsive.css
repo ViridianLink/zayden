@@ -1,0 +1,29 @@
+@media (max-width: 860px) {
+  .app-body {
+    flex-direction: column;
+  }
+
+  .app-sidebar {
+    width: 100%;
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .app-sidebar-spacer,
+  .app-sidebar-heading {
+    display: none;
+  }
+
+  .server-switcher {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .app-main {
+    padding: 1.5rem 1.25rem;
+  }
+}
