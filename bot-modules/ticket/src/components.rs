@@ -15,7 +15,7 @@ use serenity::all::{
 use sqlx::PgPool;
 use zayden_core::CoreError as ZaydenError;
 
-use crate::{Result, TicketError, TicketGuildRow};
+use crate::{Result, TicketError, TicketGuildRow, TicketStores};
 
 pub struct TicketComponent;
 
@@ -70,6 +70,7 @@ impl TicketComponent {
     pub async fn support_faq(
         http: &Http,
         interaction: &ComponentInteraction,
+        stores: TicketStores<'_>,
         pool: &PgPool,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
@@ -92,7 +93,7 @@ impl TicketComponent {
         let index =
             raw.parse::<usize>().map_err(|_e| TicketError::SupportNotFound)?;
 
-        let faq_channel_id = TicketGuildRow::get(pool, guild_id)
+        let faq_channel_id = TicketGuildRow::get(stores, pool, guild_id)
             .await?
             .ok_or(ZaydenError::MissingGuildId)?
             .faq_channel_id()

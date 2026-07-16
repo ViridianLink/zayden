@@ -6679,6 +6679,7 @@ dependencies = [
  "serenity",
  "sqlx",
  "tracing",
+ "zayden-app",
  "zayden-core",
 ]
 

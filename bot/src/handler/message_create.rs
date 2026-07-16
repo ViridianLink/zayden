@@ -4,6 +4,7 @@ use futures::{FutureExt, TryFutureExt};
 use gambling::GamblingManager;
 use serenity::all::{Context, Message};
 use sqlx::{PgPool, Postgres};
+use ticket::TicketStores;
 use tracing::debug;
 use zayden_app::state::AppState;
 
@@ -26,13 +27,18 @@ impl Handler {
             return Ok(());
         }
 
+        let stores = TicketStores {
+            support: &app.settings.support,
+            ticket: &app.settings.ticket,
+        };
+
         let (new_level, ..) = tokio::try_join!(
             levels::message_create::<Postgres, LevelsTable>(msg, pool)
                 .map_err(BotError::from),
             llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
             llamad2::CountingFail::run(ctx, msg).map(Result::Ok),
-            Box::pin(support(&ctx.http, msg, pool)),
+            Box::pin(support(&ctx.http, msg, stores, pool)),
             Box::pin(Ai::run(ctx, msg, &app)),
         )?;
 

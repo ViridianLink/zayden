@@ -13,12 +13,13 @@ use serenity::all::{
 use sqlx::PgPool;
 use zayden_core::{CoreError as ZaydenError, parse_options, parse_subcommand};
 
-use crate::{Result, Support, TicketError};
+use crate::{Result, Support, TicketError, TicketStores};
 
 impl Support {
     pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
+        stores: TicketStores<'_>,
         pool: &PgPool,
         options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
@@ -29,10 +30,11 @@ impl Support {
 
         match name {
             "get" => {
-                Self::get(http, interaction, pool, options, guild_id).await?;
+                Self::get(http, interaction, stores, pool, options, guild_id)
+                    .await?;
             },
             "list" => {
-                Self::list(http, interaction, pool, guild_id).await?;
+                Self::list(http, interaction, stores, pool, guild_id).await?;
             },
             _ => {
                 return Err(TicketError::Internal(format!(

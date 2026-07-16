@@ -10,16 +10,17 @@ use serenity::all::{
 };
 use sqlx::PgPool;
 
-use crate::{Result, Support, TicketError, TicketGuildRow};
+use crate::{Result, Support, TicketError, TicketGuildRow, TicketStores};
 
 impl Support {
     pub(super) async fn list(
         http: &Http,
         interaction: &CommandInteraction,
+        stores: TicketStores<'_>,
         pool: &PgPool,
         guild_id: GuildId,
     ) -> Result<()> {
-        let faq_channel_id = TicketGuildRow::get(pool, guild_id)
+        let faq_channel_id = TicketGuildRow::get(stores, pool, guild_id)
             .await?
             .ok_or(TicketError::SupportNotFound)?
             .faq_channel_id()

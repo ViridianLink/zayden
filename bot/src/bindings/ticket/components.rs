@@ -10,7 +10,7 @@ use serenity::all::{
     CreateSelectMenuOption,
     InputTextStyle,
 };
-use ticket::{TicketComponent, TicketModal};
+use ticket::{TicketComponent, TicketModal, TicketStores};
 use zayden_core::ctx::{ComponentCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
@@ -104,8 +104,18 @@ impl ModuleComponent for SupportFaq {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TicketComponent::support_faq(&cx.ctx.http, cx.interaction, &cx.app.db)
-            .await?;
+        let stores = TicketStores {
+            support: &cx.app.settings.support,
+            ticket: &cx.app.settings.ticket,
+        };
+
+        TicketComponent::support_faq(
+            &cx.ctx.http,
+            cx.interaction,
+            stores,
+            &cx.app.db,
+        )
+        .await?;
         Ok(())
     }
 }
@@ -119,7 +129,12 @@ impl ModuleModal for CreateTicketModal {
     }
 
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
-        TicketModal::run(&cx.ctx.http, cx.interaction, &cx.app.db).await?;
+        let stores = TicketStores {
+            support: &cx.app.settings.support,
+            ticket: &cx.app.settings.ticket,
+        };
+
+        TicketModal::run(&cx.ctx.http, cx.interaction, stores, &cx.app.db).await?;
         Ok(())
     }
 }

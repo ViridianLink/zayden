@@ -18,6 +18,7 @@ use crate::{
     Result,
     TicketError,
     TicketGuildRow,
+    TicketStores,
     send_support_message,
     thread_name,
 };
@@ -25,12 +26,17 @@ use crate::{
 pub struct SupportMessageCommand;
 
 impl SupportMessageCommand {
-    pub async fn run(http: &Http, message: &Message, pool: &PgPool) -> Result<()> {
+    pub async fn run(
+        http: &Http,
+        message: &Message,
+        stores: TicketStores<'_>,
+        pool: &PgPool,
+    ) -> Result<()> {
         let Some(guild_id) = message.guild_id else {
             return Err(TicketError::ZaydenCore(CoreError::MissingGuildId));
         };
 
-        let row = match TicketGuildRow::get(pool, guild_id).await {
+        let row = match TicketGuildRow::get(stores, pool, guild_id).await {
             Ok(Some(row)) => row,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
                 debug!(%guild_id, "no ticket configuration found for guild; ignoring support message");
@@ -69,7 +75,7 @@ impl SupportMessageCommand {
             )
             .await?;
 
-        TicketGuildRow::increment_thread_id(pool, guild_id).await?;
+        TicketGuildRow::increment_thread_id(stores.ticket, guild_id).await?;
 
         let issue = CreateEmbed::new().title("Issue").description(&message.content);
 

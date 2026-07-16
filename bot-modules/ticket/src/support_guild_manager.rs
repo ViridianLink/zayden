@@ -1,8 +1,15 @@
 use serenity::all::{ChannelId, GuildId, RoleId};
-use sqlx::{FromRow, PgPool};
+use sqlx::PgPool;
+use zayden_app::config::{SettingsStore, SupportSettingsRow, TicketSettingsRow};
 use zayden_core::{as_i64, as_u64};
 
-#[derive(FromRow)]
+#[derive(Clone, Copy)]
+pub struct TicketStores<'a> {
+    pub support: &'a SettingsStore<SupportSettingsRow>,
+    pub ticket: &'a SettingsStore<TicketSettingsRow>,
+}
+
+#[derive(Debug)]
 pub struct TicketGuildRow {
     pub id: i64,
     pub thread_id: i32,
@@ -28,29 +35,17 @@ impl TicketGuildRow {
     }
 
     pub async fn get(
+        stores: TicketStores<'_>,
         pool: &PgPool,
         id: impl Into<GuildId> + Send,
     ) -> sqlx::Result<Option<Self>> {
         let id = as_i64(id.into().get());
 
-        let Some(row) = sqlx::query!(
-            r#"
-            SELECT
-                s.guild_id AS id,
-                COALESCE(t.thread_id, 0) AS "thread_id!",
-                s.support_channel_id,
-                s.faq_channel_id
-            FROM support_settings s
-            LEFT JOIN ticket_settings t ON t.guild_id = s.guild_id
-            WHERE s.guild_id = $1
-            "#,
-            id
-        )
-        .fetch_optional(pool)
-        .await?
-        else {
+        let Some(support) = stores.support.try_get(id).await? else {
             return Ok(None);
         };
+
+        let thread_id = stores.ticket.get(id).await?.thread_id;
 
         let support_role_ids: Vec<i64> = sqlx::query_scalar!(
             "SELECT role_id FROM guild_support_roles WHERE guild_id = $1",
@@ -60,30 +55,19 @@ impl TicketGuildRow {
         .await?;
 
         Ok(Some(Self {
-            id: row.id,
-            thread_id: row.thread_id,
-            support_channel_id: row.support_channel_id,
+            id,
+            thread_id,
+            support_channel_id: support.support_channel_id,
             support_role_ids,
-            faq_channel_id: row.faq_channel_id,
+            faq_channel_id: support.faq_channel_id,
         }))
     }
 
     pub async fn increment_thread_id(
-        pool: &PgPool,
+        store: &SettingsStore<TicketSettingsRow>,
         id: impl Into<GuildId> + Send,
     ) -> sqlx::Result<()> {
-        sqlx::query!(
-            r#"
-            INSERT INTO ticket_settings (guild_id, thread_id)
-            VALUES ($1, 1)
-            ON CONFLICT (guild_id) DO UPDATE SET
-                thread_id = ticket_settings.thread_id + 1,
-                updated_at = now()
-            "#,
-            as_i64(id.into().get())
-        )
-        .execute(pool)
-        .await?;
+        store.update(as_i64(id.into().get()), |row| row.thread_id += 1).await?;
 
         Ok(())
     }

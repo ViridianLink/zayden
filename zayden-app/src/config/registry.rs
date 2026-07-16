@@ -12,6 +12,7 @@ use super::tables::{
     SuggestionsSettingsRow,
     SupportSettingsRow,
     TempVoiceSettingsRow,
+    TicketSettingsRow,
 };
 use crate::events::AppEvent;
 
@@ -23,6 +24,7 @@ pub struct SettingsRegistry {
     pub temp_voice: Arc<SettingsStore<TempVoiceSettingsRow>>,
     pub lfg: Arc<SettingsStore<LfgSettingsRow>>,
     pub music: Arc<SettingsStore<MusicSettingsRow>>,
+    pub ticket: Arc<SettingsStore<TicketSettingsRow>>,
 }
 
 impl SettingsRegistry {
@@ -34,7 +36,8 @@ impl SettingsRegistry {
         let roles = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let temp_voice = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let lfg = Arc::new(SettingsStore::new(db.clone(), events.clone()));
-        let music = Arc::new(SettingsStore::new(db, events.clone()));
+        let music = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let ticket = Arc::new(SettingsStore::new(db, events.clone()));
 
         SettingsStore::spawn_invalidator(Arc::clone(&support), events.subscribe());
         SettingsStore::spawn_invalidator(
@@ -49,7 +52,17 @@ impl SettingsRegistry {
         );
         SettingsStore::spawn_invalidator(Arc::clone(&lfg), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&music), events.subscribe());
+        SettingsStore::spawn_invalidator(Arc::clone(&ticket), events.subscribe());
 
-        Self { support, suggestions, channels, roles, temp_voice, lfg, music }
+        Self {
+            support,
+            suggestions,
+            channels,
+            roles,
+            temp_voice,
+            lfg,
+            music,
+            ticket,
+        }
     }
 }

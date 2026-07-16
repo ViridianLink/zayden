@@ -19,6 +19,7 @@ use crate::{
     Result,
     TicketError,
     TicketGuildRow,
+    TicketStores,
     send_support_message,
     thread_name,
     to_title_case,
@@ -30,11 +31,12 @@ impl TicketModal {
     pub async fn run(
         http: &Http,
         interaction: &ModalInteraction,
+        stores: TicketStores<'_>,
         pool: &PgPool,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(CoreError::MissingGuildId)?;
 
-        let guild_row = TicketGuildRow::get(pool, guild_id)
+        let guild_row = TicketGuildRow::get(stores, pool, guild_id)
             .await?
             .ok_or(TicketError::SupportNotFound)?;
 
@@ -103,7 +105,7 @@ impl TicketModal {
             )
             .await?;
 
-        TicketGuildRow::increment_thread_id(pool, guild_id).await?;
+        TicketGuildRow::increment_thread_id(stores.ticket, guild_id).await?;
 
         let mentions = if role_ids.is_empty() {
             let owner_id = guild_id.to_partial_guild(http).await?.owner_id;

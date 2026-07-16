@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
-use ticket::{Support, Ticket};
+use ticket::{Support, Ticket, TicketStores};
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -24,9 +24,15 @@ impl ModuleCommand for TicketCommand {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let stores = TicketStores {
+            support: &cx.app.settings.support,
+            ticket: &cx.app.settings.ticket,
+        };
+
         Ticket::run(
             &cx.ctx.http,
             cx.interaction,
+            stores,
             &cx.app.db,
             cx.interaction.data.options(),
         )
@@ -52,9 +58,15 @@ impl ModuleCommand for SupportCommand {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
+        let stores = TicketStores {
+            support: &cx.app.settings.support,
+            ticket: &cx.app.settings.ticket,
+        };
+
         Support::run(
             &cx.ctx.http,
             cx.interaction,
+            stores,
             &cx.app.db,
             cx.interaction.data.options(),
         )

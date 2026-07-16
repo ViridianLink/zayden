@@ -16,12 +16,13 @@ use serenity::all::{
 use sqlx::PgPool;
 use zayden_core::{CoreError as ZaydenError, parse_options, parse_subcommand};
 
-use crate::{Result, Ticket, TicketError};
+use crate::{Result, Ticket, TicketError, TicketStores};
 
 impl Ticket {
     pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
+        stores: TicketStores<'_>,
         pool: &PgPool,
         options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
@@ -32,14 +33,16 @@ impl Ticket {
 
         match name {
             "close" => {
-                Self::close(http, interaction, pool, options, guild_id).await?;
+                Self::close(http, interaction, stores, pool, options, guild_id)
+                    .await?;
             },
             "create" => Self::create(http, interaction, options).await?,
             "fixed" => {
-                Self::fixed(http, interaction, pool, options, guild_id).await?;
+                Self::fixed(http, interaction, stores, pool, options, guild_id)
+                    .await?;
             },
             "open" => {
-                Self::open(http, interaction, pool, guild_id).await?;
+                Self::open(http, interaction, stores, pool, guild_id).await?;
             },
             "remove" => {
                 Self::remove(http, interaction, pool, options).await?;
