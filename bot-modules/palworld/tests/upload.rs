@@ -33,8 +33,8 @@ fn quota_is_tier_aware() {
     assert_eq!(free.cooldown, SignedDuration::from_mins(60));
     assert_eq!(pro.cooldown, SignedDuration::from_mins(30));
 
-    // Enterprise inherits the Pro quota.
-    let ent = UploadQuota::for_tier(Tier::Enterprise);
+    // Ultra inherits the Pro quota.
+    let ent = UploadQuota::for_tier(Tier::Ultra);
     assert_eq!(ent.cooldown, pro.cooldown);
     assert_eq!(ent.max_bytes, pro.max_bytes);
 }

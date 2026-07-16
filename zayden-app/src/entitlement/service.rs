@@ -188,11 +188,11 @@ impl EntitlementService {
               AND c.tier <> COALESCE((
                   SELECT CASE MAX(
                               CASE e.tier
-                                  WHEN 'enterprise' THEN 2
-                                  WHEN 'pro'        THEN 1
-                                  ELSE                   0
+                                  WHEN 'ultra' THEN 2
+                                  WHEN 'pro'   THEN 1
+                                  ELSE              0
                               END)
-                          WHEN 2 THEN 'enterprise'
+                          WHEN 2 THEN 'ultra'
                           WHEN 1 THEN 'pro'
                           ELSE        'free'
                       END
@@ -275,9 +275,9 @@ impl EntitlementService {
             r"
             SELECT MAX(
                 CASE tier
-                    WHEN 'enterprise' THEN 2
-                    WHEN 'pro'        THEN 1
-                    ELSE                   0
+                    WHEN 'ultra' THEN 2
+                    WHEN 'pro'   THEN 1
+                    ELSE              0
                 END
             ) AS max_tier
             FROM entitlements
@@ -294,7 +294,7 @@ impl EntitlementService {
         .await?;
 
         let tier = match row.0 {
-            Some(2) => Tier::Enterprise,
+            Some(2) => Tier::Ultra,
             Some(1) => Tier::Pro,
             _ => Tier::Free,
         };

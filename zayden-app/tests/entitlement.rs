@@ -37,24 +37,24 @@ fn subscription_payload(verification_token: &str) -> String {
 // ── Tier ordering & round-trip ────────────────────────────────────────────────
 
 #[test]
-fn tier_is_ordered_free_pro_enterprise() {
+fn tier_is_ordered_free_pro_ultra() {
     assert!(Tier::Free < Tier::Pro);
-    assert!(Tier::Pro < Tier::Enterprise);
+    assert!(Tier::Pro < Tier::Ultra);
     // The runtime gate is `effective >= required`: Pro clears a Pro gate,
-    // Enterprise clears it too, Free does not.
+    // Ultra clears it too, Free does not.
     assert!(Tier::Pro >= Tier::Pro);
-    assert!(Tier::Enterprise >= Tier::Pro);
+    assert!(Tier::Ultra >= Tier::Pro);
     assert!(Tier::Free < Tier::Pro);
 }
 
 #[test]
 fn tier_round_trips_through_str() {
-    for tier in [Tier::Free, Tier::Pro, Tier::Enterprise] {
+    for tier in [Tier::Free, Tier::Pro, Tier::Ultra] {
         assert_eq!(tier.as_str().parse(), Ok(tier));
     }
     assert_eq!("free".parse(), Ok(Tier::Free));
     assert_eq!("pro".parse(), Ok(Tier::Pro));
-    assert_eq!("enterprise".parse(), Ok(Tier::Enterprise));
+    assert_eq!("ultra".parse(), Ok(Tier::Ultra));
     assert!("platinum".parse::<Tier>().is_err());
 }
 

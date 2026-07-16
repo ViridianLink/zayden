@@ -191,6 +191,12 @@ tracing = { version = "*", default-features = false }
 tracing-subscriber = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 panic = "abort"
 strip = true

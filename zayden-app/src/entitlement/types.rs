@@ -21,7 +21,7 @@ impl Error for ParseError {}
 pub enum Tier {
     Free,
     Pro,
-    Enterprise,
+    Ultra,
 }
 
 impl Tier {
@@ -30,7 +30,7 @@ impl Tier {
         match self {
             Self::Free => "free",
             Self::Pro => "pro",
-            Self::Enterprise => "enterprise",
+            Self::Ultra => "ultra",
         }
     }
 }
@@ -42,7 +42,7 @@ impl std::str::FromStr for Tier {
         match s {
             "free" => Ok(Self::Free),
             "pro" => Ok(Self::Pro),
-            "enterprise" => Ok(Self::Enterprise),
+            "ultra" => Ok(Self::Ultra),
             _ => Err(()),
         }
     }

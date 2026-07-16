@@ -1,7 +1,12 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::{app_state, bearer_client, discord_client, guild_admin_context},
+    crate::server::auth::{
+        app_state,
+        bearer_client,
+        discord_client,
+        guild_admin_context,
+    },
     std::collections::{HashMap, HashSet},
     std::sync::Arc,
     twilight_http::response::marker::ListBody,

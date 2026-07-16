@@ -25,7 +25,7 @@ impl UploadQuota {
     pub const fn for_tier(tier: Tier) -> Self {
         match tier {
             Tier::Free => Self::FREE,
-            Tier::Pro | Tier::Enterprise => Self::PRO,
+            Tier::Pro | Tier::Ultra => Self::PRO,
         }
     }
 

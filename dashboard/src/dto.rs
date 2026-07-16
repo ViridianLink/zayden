@@ -6,7 +6,7 @@ use twilight_model::channel::ChannelType;
 pub enum Tier {
     Free,
     Pro,
-    Enterprise,
+    Ultra,
 }
 
 impl Tier {
@@ -14,7 +14,7 @@ impl Tier {
         match self {
             Self::Free => "Free",
             Self::Pro => "Pro",
-            Self::Enterprise => "Enterprise",
+            Self::Ultra => "Ultra",
         }
     }
 
@@ -22,12 +22,12 @@ impl Tier {
         match self {
             Self::Free => "free",
             Self::Pro => "pro",
-            Self::Enterprise => "enterprise",
+            Self::Ultra => "ultra",
         }
     }
 
     pub(crate) const fn is_pro(self) -> bool {
-        matches!(self, Self::Pro | Self::Enterprise)
+        matches!(self, Self::Pro | Self::Ultra)
     }
 
     #[cfg(feature = "ssr")]
@@ -35,7 +35,7 @@ impl Tier {
         match key {
             "free" => Some(Self::Free),
             "pro" => Some(Self::Pro),
-            "enterprise" => Some(Self::Enterprise),
+            "ultra" => Some(Self::Ultra),
             _ => None,
         }
     }

@@ -53,7 +53,7 @@ impl<'a> ChatParams<'a> {
                 max_tokens: Self::FREE_MAX_TOKENS,
                 word_limit: Self::FREE_WORD_LIMIT,
             },
-            Tier::Pro | Tier::Enterprise => Self {
+            Tier::Pro | Tier::Ultra => Self {
                 model: &app.ai_model_pro,
                 max_tokens: Self::PRO_MAX_TOKENS,
                 word_limit: Self::PRO_WORD_LIMIT,
