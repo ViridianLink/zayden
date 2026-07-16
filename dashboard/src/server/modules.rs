@@ -1,9 +1,20 @@
-#[cfg(feature = "ssr")]
-use std::collections::HashMap;
-
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
-use twilight_model::id::{Id, marker::CommandMarker};
+use {
+    crate::server::auth::{bearer_client, guild_admin_context},
+    std::collections::{HashMap, HashSet},
+    std::sync::Arc,
+    twilight_http::response::marker::ListBody,
+    twilight_http::{Error, Response},
+    twilight_model::application::command::Command,
+    twilight_model::application::command::permissions::{
+        CommandPermission,
+        CommandPermissionType,
+    },
+    twilight_model::id::Id,
+    twilight_model::id::marker::CommandMarker,
+    zayden_app::state::AppState,
+};
 
 use crate::dto::ModuleView;
 
@@ -96,11 +107,32 @@ const MODULES: &[ModuleDef] = &[
 ];
 
 #[cfg(feature = "ssr")]
-async fn fetch_command_ids(
-    http: &twilight_http::Client,
-    app_id: u64,
+impl ModuleDef {
+    fn view(
+        &self,
+        name_to_id: &HashMap<String, Id<CommandMarker>>,
+        denied: &HashSet<Id<CommandMarker>>,
+    ) -> ModuleView {
+        let known: Vec<_> =
+            self.commands.iter().filter_map(|c| name_to_id.get(*c)).collect();
+        let enabled =
+            known.is_empty() || known.iter().any(|id| !denied.contains(*id));
+
+        ModuleView {
+            id: self.id.to_string(),
+            label: self.label.to_string(),
+            description: self.description.to_string(),
+            commands: self.commands.iter().map(|c| (*c).to_string()).collect(),
+            enabled,
+        }
+    }
+}
+
+#[cfg(feature = "ssr")]
+async fn command_ids(
+    list: Result<Response<ListBody<Command>>, Error>,
 ) -> HashMap<String, Id<CommandMarker>> {
-    let Ok(resp) = http.interaction(Id::new(app_id)).global_commands().await else {
+    let Ok(resp) = list else {
         return HashMap::new();
     };
     resp.models()
@@ -111,19 +143,34 @@ async fn fetch_command_ids(
         .unwrap_or_default()
 }
 
-#[server]
-pub async fn list_guild_modules(
-    guild: String,
-) -> Result<Vec<ModuleView>, ServerFnError> {
-    use std::collections::HashSet;
-    use std::sync::Arc;
+#[cfg(feature = "ssr")]
+async fn fetch_command_ids(
+    http: &twilight_http::Client,
+    app_id: u64,
+    guild_id: u64,
+) -> HashMap<String, Id<CommandMarker>> {
+    let interaction = http.interaction(Id::new(app_id));
+    let (global, guild) = tokio::join!(
+        interaction.global_commands(),
+        interaction.guild_commands(Id::new(guild_id)),
+    );
 
-    use zayden_app::state::AppState;
+    let mut merged = command_ids(global).await;
+    merged.extend(command_ids(guild).await);
+    merged
+}
 
-    use crate::server::auth::{bearer_client, guild_admin_context};
+#[cfg(feature = "ssr")]
+struct GuildContext {
+    guild_id: u64,
+    access_token: String,
+    http: Arc<twilight_http::Client>,
+    app_id: u64,
+}
 
-    let (guild_id_i64, _user_id, access_token) = guild_admin_context(&guild).await?;
-    let guild_id_u64 = guild_id_i64.cast_unsigned();
+#[cfg(feature = "ssr")]
+async fn guild_context(guild: &str) -> Result<GuildContext, ServerFnError> {
+    let (guild_id_i64, _user_id, access_token) = guild_admin_context(guild).await?;
 
     let Some(http) = use_context::<Arc<twilight_http::Client>>() else {
         return Err(ServerFnError::ServerError(
@@ -133,59 +180,59 @@ pub async fn list_guild_modules(
     let Some(app) = use_context::<Arc<AppState>>() else {
         return Err(ServerFnError::ServerError("missing app state".to_string()));
     };
-    let app_id = app.zayden_id;
 
-    let name_to_id = fetch_command_ids(&http, app_id).await;
+    Ok(GuildContext {
+        guild_id: guild_id_i64.cast_unsigned(),
+        access_token,
+        http,
+        app_id: app.zayden_id,
+    })
+}
 
-    let denied: HashSet<Id<CommandMarker>> = {
-        use twilight_model::application::command::permissions::CommandPermissionType;
-
-        let resp = bearer_client(&access_token)
-            .interaction(Id::new(app_id))
-            .guild_command_permissions(Id::new(guild_id_u64))
-            .await;
-        match resp {
-            Ok(r) => r
-                .models()
-                .await
-                .map(|list| {
-                    list.into_iter()
-                        .filter(|cp| {
-                            cp.permissions.iter().any(|p| {
-                                !p.permission
-                                    && matches!(
-                                        &p.id,
-                                        CommandPermissionType::Role(role_id)
-                                            if role_id.get() == guild_id_u64
-                                    )
-                            })
-                        })
-                        .map(|cp| cp.id)
-                        .collect()
-                })
-                .unwrap_or_default(),
-            _ => HashSet::new(),
-        }
+#[cfg(feature = "ssr")]
+async fn denied_commands(
+    access_token: &str,
+    app_id: u64,
+    guild_id: u64,
+) -> HashSet<Id<CommandMarker>> {
+    let resp = bearer_client(access_token)
+        .interaction(Id::new(app_id))
+        .guild_command_permissions(Id::new(guild_id))
+        .await;
+    let Ok(resp) = resp else {
+        return HashSet::new();
     };
 
-    let views = MODULES
-        .iter()
-        .map(|m| {
-            let known: Vec<&Id<CommandMarker>> =
-                m.commands.iter().filter_map(|c| name_to_id.get(*c)).collect();
-            let enabled =
-                known.is_empty() || known.iter().any(|id| !denied.contains(*id));
-            ModuleView {
-                id: m.id.to_string(),
-                label: m.label.to_string(),
-                description: m.description.to_string(),
-                commands: m.commands.iter().map(|c| (*c).to_string()).collect(),
-                enabled,
-            }
+    resp.models()
+        .await
+        .map(|list| {
+            list.into_iter()
+                .filter(|cp| {
+                    cp.permissions.iter().any(|p| {
+                        !p.permission
+                            && matches!(
+                                &p.id,
+                                CommandPermissionType::Role(role_id)
+                                    if role_id.get() == guild_id
+                            )
+                    })
+                })
+                .map(|cp| cp.id)
+                .collect()
         })
-        .collect();
+        .unwrap_or_default()
+}
 
-    Ok(views)
+#[server]
+pub async fn list_guild_modules(
+    guild: String,
+) -> Result<Vec<ModuleView>, ServerFnError> {
+    let ctx = guild_context(&guild).await?;
+
+    let name_to_id = fetch_command_ids(&ctx.http, ctx.app_id, ctx.guild_id).await;
+    let denied = denied_commands(&ctx.access_token, ctx.app_id, ctx.guild_id).await;
+
+    Ok(MODULES.iter().map(|m| m.view(&name_to_id, &denied)).collect())
 }
 
 #[server]
@@ -194,52 +241,30 @@ pub async fn set_module_enabled(
     module_id: String,
     enabled: bool,
 ) -> Result<(), ServerFnError> {
-    use std::sync::Arc;
-
-    use twilight_model::application::command::permissions::{
-        CommandPermission,
-        CommandPermissionType,
-    };
-    use zayden_app::state::AppState;
-
-    use crate::server::auth::{bearer_client, guild_admin_context};
-
-    let (guild_id_i64, _user_id, access_token) = guild_admin_context(&guild).await?;
-    let guild_id_u64 = guild_id_i64.cast_unsigned();
-
     let Some(module) = MODULES.iter().find(|m| m.id == module_id) else {
         return Err(ServerFnError::ServerError("unknown module".to_string()));
     };
 
-    let Some(http) = use_context::<Arc<twilight_http::Client>>() else {
-        return Err(ServerFnError::ServerError(
-            "missing Discord client".to_string(),
-        ));
-    };
-    let Some(app) = use_context::<Arc<AppState>>() else {
-        return Err(ServerFnError::ServerError("missing app state".to_string()));
-    };
-    let app_id = app.zayden_id;
-
-    let name_to_id = fetch_command_ids(&http, app_id).await;
+    let ctx = guild_context(&guild).await?;
+    let name_to_id = fetch_command_ids(&ctx.http, ctx.app_id, ctx.guild_id).await;
 
     let permissions: Vec<CommandPermission> = if enabled {
         Vec::new()
     } else {
         vec![CommandPermission {
-            id: CommandPermissionType::Role(Id::new(guild_id_u64)),
+            id: CommandPermissionType::Role(Id::new(ctx.guild_id)),
             permission: false,
         }]
     };
 
-    let bearer = bearer_client(&access_token);
-    let interaction = bearer.interaction(Id::new(app_id));
+    let bearer = bearer_client(&ctx.access_token);
+    let interaction = bearer.interaction(Id::new(ctx.app_id));
     for name in module.commands {
         let Some(cmd_id) = name_to_id.get(*name) else {
             continue;
         };
         if let Err(e) = interaction
-            .update_command_permissions(Id::new(guild_id_u64), *cmd_id, &permissions)
+            .update_command_permissions(Id::new(ctx.guild_id), *cmd_id, &permissions)
             .await
         {
             return Err(ServerFnError::ServerError(format!(
