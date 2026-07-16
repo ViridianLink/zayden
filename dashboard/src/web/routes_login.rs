@@ -7,6 +7,7 @@ use oauth2::{AuthorizationCode, TokenResponse};
 use rand::RngExt;
 use serde::Deserialize;
 use tower_cookies::cookie::SameSite;
+use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
 
 use super::{OAUTH_STATE_COOKIE, SESSION_COOKIE};
@@ -145,7 +146,7 @@ pub(super) async fn logout_handler(
         .http_only(true)
         .secure(!cfg!(debug_assertions))
         .same_site(SameSite::Lax)
-        .max_age(tower_cookies::cookie::time::Duration::ZERO);
+        .max_age(Duration::ZERO);
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
