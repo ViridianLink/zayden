@@ -10,12 +10,10 @@ llamad2_guild = 1133034263579734037
 zayden_id = 787490197943091211
 
 [dashboard]
-frontend_url = "http://localhost:5173"
 redirect_uri = "http://localhost:3000/auth/callback"
 bind_addr = "0.0.0.0:3000"
 invite_url = "https://discord.com/oauth2/authorize?client_id=787490197943091211&permissions=8&integration_type=0&scope=bot+applications.commands"
 upgrade_url = "https://ko-fi.com/viridianlink"
-
 
 [palworld]
 paldex_url = "https://raw.githubusercontent.com/mlg404/palworld-paldex-api/main/src"

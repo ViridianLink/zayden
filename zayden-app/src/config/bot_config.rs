@@ -16,7 +16,6 @@ const DEFAULT_AI_ENDPOINT: &str = "https://openrouter.ai/api/v1";
 const DEFAULT_AI_MODEL: &str = "openrouter/free";
 const DEFAULT_AI_MODEL_PRO: &str = "google/gemini-2.5-flash";
 
-const DEFAULT_FRONTEND_URL: &str = "http://localhost:5173";
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
 
@@ -70,7 +69,6 @@ pub struct BotConfig {
     pub palworld_uploads_dir: PathBuf,
     pub pelican: Option<PelicanConfig>,
 
-    pub frontend_url: String,
     pub redirect_uri: String,
     pub bind_addr: String,
     pub invite_url: Option<String>,
@@ -164,10 +162,6 @@ impl BotConfig {
             palworld_paldex_url: toml_cfg.palworld.paldex_url,
             palworld_palcalc_url: toml_cfg.palworld.palcalc_url,
 
-            frontend_url: toml_cfg
-                .dashboard
-                .frontend_url
-                .unwrap_or_else(|| DEFAULT_FRONTEND_URL.to_owned()),
             redirect_uri: toml_cfg
                 .dashboard
                 .redirect_uri
@@ -284,7 +278,6 @@ struct TomlIds {
 
 #[derive(Debug, Default, Deserialize)]
 struct TomlDashboard {
-    frontend_url: Option<String>,
     redirect_uri: Option<String>,
     bind_addr: Option<String>,
     invite_url: Option<String>,
