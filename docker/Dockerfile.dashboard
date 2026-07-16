@@ -1,4 +1,4 @@
-FROM rust:1-bookworm-slim AS chef
+FROM rust:1-slim-trixie AS chef
 ENV RUSTUP_TOOLCHAIN=stable
 WORKDIR /app
 RUN rustup target add wasm32-unknown-unknown
@@ -32,7 +32,7 @@ COPY . .
 RUN cargo leptos build --release
 
 # Stage 3: runtime
-FROM debian:bookworm-slim AS runtime
+FROM debian:trixie-slim AS runtime
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
