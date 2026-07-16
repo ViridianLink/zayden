@@ -1,4 +1,14 @@
 use leptos::prelude::*;
+#[cfg(feature = "ssr")]
+use {
+    leptos_axum::extract,
+    sqlx::{PgPool, Row},
+    std::sync::Arc,
+    tower_cookies::Cookies,
+    twilight_http::Client,
+    twilight_model::guild::Permissions,
+    zayden_app::state::AppState,
+};
 
 #[cfg(feature = "ssr")]
 pub(crate) fn server_err<E: std::fmt::Display>(e: E) -> ServerFnError {
@@ -6,19 +16,33 @@ pub(crate) fn server_err<E: std::fmt::Display>(e: E) -> ServerFnError {
 }
 
 #[cfg(feature = "ssr")]
-pub(crate) fn bearer_client(access_token: &str) -> twilight_http::Client {
-    twilight_http::Client::builder().token(format!("Bearer {access_token}")).build()
+pub(crate) fn bearer_client(access_token: &str) -> Client {
+    Client::builder().token(format!("Bearer {access_token}")).build()
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) fn db_pool() -> Result<PgPool, ServerFnError> {
+    use_context::<PgPool>().ok_or_else(|| {
+        ServerFnError::ServerError("missing database pool".to_string())
+    })
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) fn app_state() -> Result<Arc<AppState>, ServerFnError> {
+    use_context::<Arc<AppState>>()
+        .ok_or_else(|| ServerFnError::ServerError("missing app state".to_string()))
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) fn discord_client() -> Result<Arc<Client>, ServerFnError> {
+    use_context::<Arc<Client>>().ok_or_else(|| {
+        ServerFnError::ServerError("missing Discord client".to_string())
+    })
 }
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
-    use leptos_axum::extract;
-    use sqlx::{PgPool, Row};
-    use tower_cookies::Cookies;
-
-    let Some(pool) = use_context::<PgPool>() else {
-        return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
+    let pool = db_pool()?;
     let cookies: Cookies = extract().await.map_err(server_err)?;
     let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
@@ -41,19 +65,12 @@ pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
 pub(crate) async fn guild_admin_context(
     guild_id_str: &str,
 ) -> Result<(i64, i64, String), ServerFnError> {
-    use leptos_axum::extract;
-    use sqlx::{PgPool, Row};
-    use tower_cookies::Cookies;
-    use twilight_model::guild::Permissions;
-
     let Ok(guild_id_i64) = guild_id_str.parse::<i64>() else {
         return Err(ServerFnError::ServerError("invalid guild id".to_string()));
     };
     let guild_id_u64 = guild_id_i64.cast_unsigned();
 
-    let Some(pool) = use_context::<PgPool>() else {
-        return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
+    let pool = db_pool()?;
 
     let cookies: Cookies = extract().await.map_err(server_err)?;
     let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
@@ -95,14 +112,9 @@ pub(crate) async fn guild_admin_context(
 
 #[server]
 pub async fn check_session() -> Result<bool, ServerFnError> {
-    use sqlx::PgPool;
-    use tower_cookies::Cookies;
+    let pool = db_pool()?;
 
-    let Some(pool) = use_context::<PgPool>() else {
-        return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
-
-    let cookies: Cookies = leptos_axum::extract().await.map_err(server_err)?;
+    let cookies: Cookies = extract().await.map_err(server_err)?;
 
     let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
         return Ok(false);

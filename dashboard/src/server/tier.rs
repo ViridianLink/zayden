@@ -1,25 +1,19 @@
 use leptos::prelude::*;
+#[cfg(feature = "ssr")]
+use {
+    crate::app::UpgradeUrl,
+    crate::dto::Tier,
+    crate::server::auth::{app_state, db_pool, server_err},
+    sqlx::Row,
+    tower_cookies::Cookies,
+};
 
 use crate::dto::UserTierInfo;
 
 #[server]
 pub async fn get_user_tier() -> Result<UserTierInfo, ServerFnError> {
-    use std::sync::Arc;
-
-    use sqlx::{PgPool, Row};
-    use tower_cookies::Cookies;
-    use zayden_app::state::AppState;
-
-    use crate::app::UpgradeUrl;
-    use crate::dto::Tier;
-    use crate::server::auth::server_err;
-
-    let Some(pool) = use_context::<PgPool>() else {
-        return Err(ServerFnError::ServerError("missing database pool".to_string()));
-    };
-    let Some(app) = use_context::<Arc<AppState>>() else {
-        return Err(ServerFnError::ServerError("missing app state".to_string()));
-    };
+    let pool = db_pool()?;
+    let app = app_state()?;
     let upgrade_url = use_context::<UpgradeUrl>().and_then(|u| u.0);
 
     let cookies: Cookies = leptos_axum::extract().await.map_err(server_err)?;

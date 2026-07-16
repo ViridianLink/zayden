@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::{bearer_client, guild_admin_context},
+    crate::server::auth::{app_state, bearer_client, discord_client, guild_admin_context},
     std::collections::{HashMap, HashSet},
     std::sync::Arc,
     twilight_http::response::marker::ListBody,
@@ -13,7 +13,6 @@ use {
     },
     twilight_model::id::Id,
     twilight_model::id::marker::CommandMarker,
-    zayden_app::state::AppState,
 };
 
 use crate::dto::ModuleView;
@@ -170,22 +169,13 @@ struct GuildContext {
 
 #[cfg(feature = "ssr")]
 async fn guild_context(guild: &str) -> Result<GuildContext, ServerFnError> {
-    let (guild_id_i64, _user_id, access_token) = guild_admin_context(guild).await?;
-
-    let Some(http) = use_context::<Arc<twilight_http::Client>>() else {
-        return Err(ServerFnError::ServerError(
-            "missing Discord client".to_string(),
-        ));
-    };
-    let Some(app) = use_context::<Arc<AppState>>() else {
-        return Err(ServerFnError::ServerError("missing app state".to_string()));
-    };
+    let (guild_id, _user, access_token) = guild_admin_context(guild).await?;
 
     Ok(GuildContext {
-        guild_id: guild_id_i64.cast_unsigned(),
+        guild_id: guild_id.cast_unsigned(),
         access_token,
-        http,
-        app_id: app.zayden_id,
+        http: discord_client()?,
+        app_id: app_state()?.zayden_id,
     })
 }
 

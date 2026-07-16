@@ -1,28 +1,28 @@
 use leptos::prelude::*;
+#[cfg(feature = "ssr")]
+use {
+    crate::server::auth::{discord_client, guild_admin_context, server_err},
+    std::sync::Arc,
+    twilight_http::Client,
+    twilight_model::id::Id,
+};
 
 use crate::dto::{ChannelInfo, RoleInfo};
+
+#[cfg(feature = "ssr")]
+async fn admin_discord(guild: &str) -> Result<(u64, Arc<Client>), ServerFnError> {
+    let (guild_id, _user, _token) = guild_admin_context(guild).await?;
+    Ok((guild_id.cast_unsigned(), discord_client()?))
+}
 
 #[server]
 pub async fn list_guild_channels(
     guild: String,
 ) -> Result<Vec<ChannelInfo>, ServerFnError> {
-    use std::sync::Arc;
-
-    use twilight_model::id::Id;
-
-    use crate::server::auth::{guild_admin_context, server_err};
-
-    let (guild_id_i64, _user_id, _access_token) =
-        guild_admin_context(&guild).await?;
-
-    let Some(http) = use_context::<Arc<twilight_http::Client>>() else {
-        return Err(ServerFnError::ServerError(
-            "missing Discord client".to_string(),
-        ));
-    };
+    let (guild_id, http) = admin_discord(&guild).await?;
 
     let mut channels = http
-        .guild_channels(Id::new(guild_id_i64.cast_unsigned()))
+        .guild_channels(Id::new(guild_id))
         .await
         .map_err(server_err)?
         .model()
@@ -44,24 +44,10 @@ pub async fn list_guild_channels(
 pub async fn list_guild_roles(
     guild: String,
 ) -> Result<Vec<RoleInfo>, ServerFnError> {
-    use std::sync::Arc;
-
-    use twilight_model::id::Id;
-
-    use crate::server::auth::{guild_admin_context, server_err};
-
-    let (guild_id_i64, _user_id, _access_token) =
-        guild_admin_context(&guild).await?;
-    let guild_id_u64 = guild_id_i64.cast_unsigned();
-
-    let Some(http) = use_context::<Arc<twilight_http::Client>>() else {
-        return Err(ServerFnError::ServerError(
-            "missing Discord client".to_string(),
-        ));
-    };
+    let (guild_id, http) = admin_discord(&guild).await?;
 
     let mut roles = http
-        .roles(Id::new(guild_id_u64))
+        .roles(Id::new(guild_id))
         .await
         .map_err(server_err)?
         .model()
@@ -71,7 +57,7 @@ pub async fn list_guild_roles(
 
     Ok(roles
         .into_iter()
-        .filter(|r| r.id.get() != guild_id_u64)
+        .filter(|r| r.id.get() != guild_id)
         .map(|r| RoleInfo {
             id: r.id.to_string(),
             name: r.name,
