@@ -4,7 +4,7 @@ use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 use twilight_model::channel::ChannelType;
 
-use crate::dto::{ChannelInfo, RoleInfo};
+use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
 use crate::server::discord::{list_guild_channels, list_guild_roles};
 use crate::server::guild::{
     SaveChannelSettings,
@@ -19,12 +19,15 @@ use crate::ui::components::layout::AppShell;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 
-/// Text-like channel kinds (text, announcement, forum).
 const TEXT_KINDS: &[ChannelType] = &[
     ChannelType::GuildText,
     ChannelType::GuildAnnouncement,
     ChannelType::GuildForum,
 ];
+
+fn sel(value: Option<&str>) -> String {
+    value.unwrap_or_default().to_owned()
+}
 
 #[component]
 pub(crate) fn GuildSettingsPage() -> impl IntoView {
@@ -35,10 +38,9 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
         let settings = get_guild_settings(gid.clone()).await?;
         let channels = list_guild_channels(gid.clone()).await.unwrap_or_default();
         let roles = list_guild_roles(gid).await.unwrap_or_default();
-        Ok::<
-            (crate::dto::GuildSettings, Vec<ChannelInfo>, Vec<RoleInfo>),
-            ServerFnError,
-        >((settings, channels, roles))
+        Ok::<(GuildSettings, Vec<ChannelInfo>, Vec<RoleInfo>), ServerFnError>((
+            settings, channels, roles,
+        ))
     });
 
     let save_support = ServerAction::<SaveSupportSettings>::new();
@@ -81,34 +83,34 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             <ChannelSelect
                                                 label="Support Channel"
                                                 name="support_channel_id"
-                                                selected=s.support_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.support_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
                                             <RoleSelect
                                                 label="Support Role"
                                                 name="support_role_id"
-                                                selected=s.support_role_id.clone().unwrap_or_default()
+                                                selected=sel(s.support_role_id.as_deref())
                                                 roles=roles.clone()
                                             />
                                             <ChannelSelect
                                                 label="FAQ Channel"
                                                 name="faq_channel_id"
-                                                selected=s.faq_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.faq_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
                                             <ChannelSelect
                                                 label="Suggestions Channel"
                                                 name="suggestions_channel_id"
-                                                selected=s.suggestions_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.suggestions_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
                                             <ChannelSelect
                                                 label="Review Channel"
                                                 name="review_channel_id"
-                                                selected=s.review_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.review_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
@@ -129,21 +131,21 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             <ChannelSelect
                                                 label="Rules Channel"
                                                 name="rules_channel_id"
-                                                selected=s.rules_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.rules_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
                                             <ChannelSelect
                                                 label="General Channel"
                                                 name="general_channel_id"
-                                                selected=s.general_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.general_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
                                             <ChannelSelect
                                                 label="Spoiler Channel"
                                                 name="spoiler_channel_id"
-                                                selected=s.spoiler_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.spoiler_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
@@ -164,13 +166,13 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             <RoleSelect
                                                 label="Artist Role"
                                                 name="artist_role_id"
-                                                selected=s.artist_role_id.clone().unwrap_or_default()
+                                                selected=sel(s.artist_role_id.as_deref())
                                                 roles=roles.clone()
                                             />
                                             <RoleSelect
                                                 label="Sleep Role"
                                                 name="sleep_role_id"
-                                                selected=s.sleep_role_id.clone().unwrap_or_default()
+                                                selected=sel(s.sleep_role_id.as_deref())
                                                 roles=roles.clone()
                                             />
                                             <SaveButton/>
@@ -190,14 +192,14 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             <ChannelSelect
                                                 label="Category"
                                                 name="temp_voice_category"
-                                                selected=s.temp_voice_category.clone().unwrap_or_default()
+                                                selected=sel(s.temp_voice_category.as_deref())
                                                 channels=channels.clone()
                                                 kinds=&[ChannelType::GuildCategory]
                                             />
                                             <ChannelSelect
                                                 label="Creator Channel"
                                                 name="temp_voice_creator_channel"
-                                                selected=s.temp_voice_creator_channel.clone().unwrap_or_default()
+                                                selected=sel(s.temp_voice_creator_channel.as_deref())
                                                 channels=channels.clone()
                                                 kinds=&[ChannelType::GuildVoice]
                                             />
@@ -217,20 +219,20 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             <ChannelSelect
                                                 label="LFG Channel"
                                                 name="lfg_channel_id"
-                                                selected=s.lfg_channel_id.clone().unwrap_or_default()
+                                                selected=sel(s.lfg_channel_id.as_deref())
                                                 channels=channels
                                                 kinds=TEXT_KINDS
                                             />
                                             <RoleSelect
                                                 label="LFG Role"
                                                 name="lfg_role_id"
-                                                selected=s.lfg_role_id.clone().unwrap_or_default()
+                                                selected=sel(s.lfg_role_id.as_deref())
                                                 roles=roles
                                             />
                                             <SettingField
                                                 label="LFG Scheduled Thread ID"
                                                 name="lfg_scheduled_thread_id"
-                                                value=s.lfg_scheduled_thread_id.unwrap_or_default()
+                                                value=sel(s.lfg_scheduled_thread_id.as_deref())
                                             />
                                             <SaveButton/>
                                         </ActionForm>

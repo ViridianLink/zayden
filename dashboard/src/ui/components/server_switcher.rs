@@ -33,17 +33,12 @@ pub(crate) fn ServerSwitcher(guild_id: String) -> impl IntoView {
             {move || {
                 let current = guild_id.clone();
                 guilds.get().and_then(Result::ok).map(|list| {
-                    let active_name = list
-                        .iter()
-                        .find(|g| g.id == current)
-                        .map_or_else(
-                            || "Select a server".to_string(),
-                            |g| g.name.clone(),
-                        );
-                    let active_avatar = list
-                        .iter()
-                        .find(|g| g.id == current)
-                        .map(guild_avatar);
+                    let active = list.iter().find(|g| g.id == current);
+                    let active_name = active.map_or_else(
+                        || "Select a server".to_string(),
+                        |g| g.name.clone(),
+                    );
+                    let active_avatar = active.map(guild_avatar);
 
                     view! {
                         <details class="server-switcher">
