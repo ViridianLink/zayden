@@ -1,0 +1,56 @@
+FROM rust:1-bookworm-slim AS chef
+ENV RUSTUP_TOOLCHAIN=stable
+WORKDIR /app
+RUN rustup target add wasm32-unknown-unknown
+RUN cargo install cargo-chef --locked
+
+# Stage 1: plan
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Stage 2: build
+FROM chef AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake clang libclang-dev nasm perl \
+    pkg-config git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN cargo install cargo-leptos --locked
+
+ENV SQLX_OFFLINE=true
+
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json \
+    -p dashboard --no-default-features --features ssr \
+    && cargo chef cook --profile wasm-release --recipe-path recipe.json \
+    --target wasm32-unknown-unknown \
+    -p dashboard --no-default-features --features hydrate
+
+COPY . .
+RUN cargo leptos build --release
+
+# Stage 3: runtime
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system zayden && useradd --system --gid zayden zayden
+
+COPY --from=builder /app/target/release/dashboard /usr/local/bin/dashboard
+COPY --from=builder /app/target/site              /app/target/site
+COPY --from=builder /app/dashboard/Cargo.toml     /app/dashboard/Cargo.toml
+
+ENV LEPTOS_ENV=PROD \
+    LEPTOS_OUTPUT_NAME=dashboard \
+    LEPTOS_SITE_ROOT=target/site \
+    LEPTOS_SITE_PKG_DIR=pkg \
+    LEPTOS_SITE_ADDR=0.0.0.0:3000
+
+EXPOSE 3000
+USER zayden
+ENTRYPOINT ["dashboard"]

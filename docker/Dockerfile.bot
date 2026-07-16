@@ -1,0 +1,45 @@
+FROM rust:1-bookworm-slim AS chef
+ENV RUSTUP_TOOLCHAIN=stable
+WORKDIR /app
+RUN cargo install cargo-chef --locked
+
+# Stage 1: plan
+FROM chef AS planner
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Stage 2: build
+FROM chef AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential cmake clang libclang-dev nasm perl \
+    pkg-config git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV SQLX_OFFLINE=true
+
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json --bin bot
+
+COPY . .
+RUN cargo build --release --bin bot
+
+# Stage 3: runtime
+FROM debian:bookworm-slim AS runtime
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
+    /usr/local/bin/yt-dlp
+RUN chmod a+rx /usr/local/bin/yt-dlp
+
+RUN groupadd --system zayden && useradd --system --gid zayden zayden \
+    && mkdir -p /app/palworld_uploads \
+    && chown -R zayden:zayden /app
+
+COPY --from=builder /app/target/release/bot /usr/local/bin/zayden-bot
+
+USER zayden
+ENTRYPOINT ["zayden-bot"]

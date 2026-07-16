@@ -1,0 +1,77 @@
+name: zayden
+
+x-images:
+  bot: &bot-image "ghcr.io/viridianlink/zayden-bot:${IMAGE_TAG:-latest}"
+  dashboard: &dashboard-image "ghcr.io/viridianlink/zayden-dashboard:${IMAGE_TAG:-latest}"
+
+services:
+  # postgres:
+  #   image: postgres:18-bookworm
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: ${POSTGRES_USER:-zayden}
+  #     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.docker}
+  #     POSTGRES_DB: ${POSTGRES_DB:-zayden}
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   # Postgres uses shared memory for parallel queries / large sorts.
+  #   shm_size: 256mb
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zayden} -d ${POSTGRES_DB:-zayden}"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 1g
+  #       reservations:
+  #         memory: 256m
+
+  bot:
+    image: *bot-image
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.bot
+    restart: unless-stopped
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RUST_LOG: ${RUST_LOG:-info}
+      # Check env.example for the other env vars
+    volumes:
+      - ./bot/config.toml:/app/config.toml:ro
+      - palworld_uploads:/app/palworld_uploads
+    mem_reservation: 1g
+    mem_limit: 4g
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+        reservations:
+          memory: 1g
+
+  dashboard:
+    image: *dashboard-image
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    restart: unless-stopped
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RUST_LOG: ${RUST_LOG:-info}
+      LEPTOS_SITE_ADDR: 0.0.0.0:3000
+      # Check env.example for the other env vars
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./dashboard/config.toml:/app/config.toml:ro
+
+volumes:
+  palworld_uploads:
+  # pgdata:

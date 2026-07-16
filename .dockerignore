@@ -1,0 +1,32 @@
+# Build artifacts
+target/
+**/target/
+
+# VCS & CI
+.git/
+.github/
+.vscode/
+
+# Docs / logs / scratch 
+*.md
+!README.md
+*.log
+log.txt
+logs/
+
+# Local runtime data that must not leak into images
+palworld_uploads/
+multipler-client-files/
+056C426C55974CFCA115EB695A224F67/
+*.sav
+*.ps1
+
+# Secrets
+.env
+.env.*
+!.env.example
+!.env.docker.example
+
+# Docker meta
+docker-compose*.yml
+docker/
