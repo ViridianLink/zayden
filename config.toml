@@ -1,0 +1,27 @@
+[ai]
+endpoint = "https://openrouter.ai/api/v1"
+model = "openrouter/free"
+model_pro = "google/gemini-3.5-flash"
+
+[ids]
+oscar_six = 211486447369322506
+zayden_guild = 1222360995700150443
+llamad2_guild = 1133034263579734037
+zayden_id = 787490197943091211
+
+[dashboard]
+frontend_url = "http://localhost:5173"
+redirect_uri = "http://localhost:3000/auth/callback"
+bind_addr = "0.0.0.0:3000"
+invite_url = "https://discord.com/oauth2/authorize?client_id=787490197943091211&permissions=8&integration_type=0&scope=bot+applications.commands"
+upgrade_url = "https://ko-fi.com/viridianlink"
+
+
+[palworld]
+paldex_url = "https://raw.githubusercontent.com/mlg404/palworld-paldex-api/main/src"
+palcalc_url = "https://raw.githubusercontent.com/tylercamp/palcalc/main/PalCalc.Model"
+uploads_dir = "palworld_uploads"
+
+[pelican]
+server_id = "14da478e"
+save_path = "/Pal/Saved/SaveGames/0/056C426C55974CFCA115EB695A224F67"

@@ -14,7 +14,6 @@ target/
 .env.dev
 *.ps1
 *.md
-config.toml
 *.sav
 
 # Test fixtures must be committed despite the blanket *.json/*.md ignores above.
