@@ -1,0 +1,71 @@
+# Audit: gold-star
+
+_Audited: 2026-07-17 · Commit: `2833ce8`_
+
+## Summary
+
+Small (~344 LOC) star-giving feature. Concentrates two CC themes in one place:
+the DB-generic `async_trait` manager (CC-1) **and** the runtime `sqlx::query(...)`
+bypass (CC-5) in its `bot/` binding. No `tests/`. Because it is small and hits
+both the abstraction and the SQL-style issues, it is the ideal **pilot** for the
+concrete-`PgPool` + compile-time-macro migration.
+
+## Findings
+
+### 1. Runtime `sqlx::query(...)` bypassing macros  ·  #1  ·  med
+- **Where:** `bot/src/bindings/gold_star.rs:83` (INSERT…ON CONFLICT) and the
+  `SELECT` above it — hand-written `sqlx::query("…").bind(…)`.
+- **What / Why / Fix:** See [CC-5](_cross-cutting.md#cc-5). Convert to `query!`
+  and regenerate `.sqlx/`.
+
+### 2. DB-generic `async_trait` manager  ·  #1  ·  med
+- **Where:** `src/manager.rs`, `src/commands/{give_star,stars}.rs`.
+- **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1). Migrate together with
+  finding #1 in a single small PR — this crate is the recommended pilot.
+
+### 3. No integration tests  ·  #6  ·  low
+- **Where:** no `tests/` directory.
+- **Suggested fix:** Add coverage for the free-star cooldown / star-count logic.
+  See [CC-6](_cross-cutting.md#cc-6).
+
+## Deep-sweep findings
+
+_Deep sweep: 2026-07-17 · lens: concurrency/atomicity. Instance of
+[CC-9](_cross-cutting.md#cc-9); both directions of the race are present because
+**both** the author and target rows are persisted with an absolute
+`save_row` upsert (`bot/src/bindings/gold_star.rs:82-100`)._
+
+### DS-1. `/give_star` read-modify-write races → star mint, loss, and free-star cap bypass  ·  Pass 2  ·  med
+- **Where:** `bot-modules/gold-star/src/commands/give_star.rs:40-66`;
+  `GoldStarRow::give_star`/`give_free_star`
+  (`bot-modules/gold-star/src/manager.rs:35-49`); absolute upsert in
+  `bot/src/bindings/gold_star.rs:82-100`.
+- **What:** The command reads `author_row` and `target_row`, mutates both in
+  memory (`-1`/`+1`), then writes each back with an absolute upsert
+  (`number_of_stars = EXCLUDED.number_of_stars`). No transaction, no row lock, no
+  conditional write. Three distinct failures fall out:
+  - **Mint (author):** author has `number_of_stars = 1`. Two `/give_star` to
+    different targets X and Y in the same tick. Both read author = 1, both pass
+    `number_of_stars < 1 && !free_star`, both `give_star` → author = 0, X += 1,
+    Y += 1. Both save author = 0. Author spent 1 star but handed out **2** → one
+    star created.
+  - **Loss (target):** the same target receives stars from authors A and B
+    concurrently. Both read target = 5, both set 6, both absolute-save target = 6.
+    Target should have 7 → **one received star silently lost**.
+  - **Free-star cap bypass:** author has 0 stars and the 24h cooldown has
+    elapsed. Two `/give_star` to two targets (or alts) in the same tick both read
+    `last_free_star = old`, both compute `free_star = true`, both `give_free_star`
+    → **2 free stars given in one day**, `last_free_star` recorded once.
+- **Suggested fix:** wrap the whole operation in one transaction and use
+  conditional/atomic writes: debit the author with
+  `UPDATE gold_stars SET number_of_stars = number_of_stars - 1 WHERE id = $1 AND
+  number_of_stars >= 1` (assert `rows_affected == 1`), credit the target with
+  `... received_stars = received_stars + 1, number_of_stars = number_of_stars +
+  1`, and gate the free star with a conditional `last_free_star` write. Fold into
+  the CC-1/CC-5 concrete-`PgPool` migration for this crate. **Confidence:
+  confirmed.**
+
+## Clean
+- #1 Architecture: simple manager + commands split.
+- #2 Dead code: none found.
+- #3 Async: no blocking I/O; no locks across `.await`.
