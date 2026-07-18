@@ -61,10 +61,6 @@ impl EntitlementService {
         effective >= required
     }
 
-    /// Write an entitlement row (or upsert if `external_id` already exists) and
-    /// refresh the denormalised cache row.  Emits
-    /// `AppEvent::EntitlementChanged` so other processes can evict their
-    /// caches.
     pub async fn grant(
         &self,
         scope: EntitlementScope,
@@ -97,7 +93,7 @@ impl EntitlementService {
         .execute(&self.db)
         .await?;
 
-        self.refresh_cache_row(&scope, tier).await?;
+        self.refresh_cache_row_from_db(&scope).await?;
         self.cache.invalidate(&scope).await;
         let _ = self.events.send(AppEvent::EntitlementChanged(scope));
         Ok(())
@@ -334,7 +330,7 @@ impl EntitlementService {
             scope_type = scope.scope_type(),
             scope_id = scope.scope_id(),
             tier = tier.as_str(),
-            "entitlement cache refreshed after revoke",
+            "entitlement cache refreshed from aggregate",
         );
         Ok(())
     }
