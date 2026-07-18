@@ -19,7 +19,7 @@
    works at a time, and the human reviews each task's diff **before it is
    committed**, so no branch/PR ceremony is needed.
 2. **Stop after each task.** Every task ends at a **HUMAN REVIEW PAUSE** with the
-   change staged but **uncommitted**. Do not commit, and do not start the next
+   change **uncommitted**. Do not commit, and do not start the next
    finding, until the human has reviewed and explicitly said go.
 3. **The audit doc is the source of truth for status.** Task state lives inline
    next to each finding (see [Status convention](#status-convention)), so a fresh
@@ -73,13 +73,8 @@ Before touching code, load the audit into context in this order:
    often records *why* a naive fix is wrong (e.g. CC-9's absolute-overwrite vs.
    atomic-increment distinction).
 3. The per-module `<module>.md` for the finding you intend to work.
-4. Confirm you are on `main` with a clean working tree (`git status`) — no
-   leftover changes from a prior task — then confirm which finding is next per
+4. Confirm you are on `main` then confirm which finding is next per
    the [priority queue](#priority-queue).
-
-Do **not** re-run the audit or hunt for new findings during a remediation
-session. New defects discovered incidentally get **recorded** (append to the
-relevant audit doc), not fixed inline — same discipline the audit itself used.
 
 ---
 
@@ -109,7 +104,7 @@ audit doc. Work proceeds on `main`; no branch is cut.
    file, **never** inline `#[cfg(test)]` in `src/` (project convention; see
    [`README.md:66-70`](README.md) checklist item #6). It must fail for the reason
    the finding describes.
-3. **Apply the smallest fix** that neutralises the scenario and honours the
+3. **Apply the proper fix** that neutralises the scenario and honours the
    cross-cutting guidance. Prefer scoped iteration — `cargo +nightly clippy -p
    <crate>` and `cargo +nightly check -p <crate>` while working — not the full
    workspace gate on every edit ([`CLAUDE.md` disk-hygiene §3](../../CLAUDE.md)).
@@ -149,22 +144,12 @@ do not narrate green over red.
 
 ---
 
-## Step 4 — Record & stage (do **not** commit)
+## Step 4 — Record (do **not** commit)
 
 1. Update the finding's status to `in-review` in its audit doc.
-2. Leave the change **on `main`, uncommitted**. Optionally `git add -A` to stage
-   it so the human reviews a clean `git diff --staged`, but **do not run `git
+2. Leave the change **on `main`, uncommitted**. **Do not run `git
    commit`** — the human reviews the working-tree diff first and commits
-   themselves (or tells you to). Draft the commit message now so it's ready to
-   hand over, e.g.:
-   ```
-   fix(gambling): scope stamina regen UPDATE with WHERE stamina < max (DS-8)
-
-   Eliminates the full-table rewrite that deadlocked (40P01) against
-   concurrent gameplay writes every 10 min. Adds regression test …
-
-   Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
-   ```
+   themselves.
 3. Prepare a short **review packet** for the human (see Step 5).
 
 ---
@@ -250,32 +235,3 @@ hygiene), then **structural enablers** that unblock later fixes. The three
 - [ ] Finding status updated to `in-review` in its audit doc.
 - [ ] Change left **on `main`, uncommitted**, with a drafted commit message.
 - [ ] **HUMAN REVIEW PAUSE reached; waiting for go.**
-
----
-
-## Initiating prompt
-
-Paste this into a fresh Claude Code session (from the repo root) to start or
-resume the workflow:
-
-> Run the audit remediation workflow in
-> `design-docs/audits/FIX_WORKFLOW.md`. Do the **intake** (Step 0): read the
-> workflow doc, `README.md`, and `_cross-cutting.md`, then scan the per-module
-> audit files for finding statuses.
->
-> Work on **`main`** — a single agent, no branches. Handle exactly **one**
-> finding: the top `open` item in the priority queue (or the one I name).
->
-> **Stop at the two pause points.** First, at **task selection** (Step 1): tell
-> me the finding, its failure scenario, and your one-line fix direction, then
-> **wait for my go before writing any code.** Second, at **task completion**
-> (Step 5): leave the change staged but **uncommitted** on `main`, present the
-> review packet (root cause, diff surface, fails-before/passes-after test, the
-> Step 3 gate results, residual risk, and a drafted commit message), and
-> **wait** — I review the diff and commit myself.
->
-> Enforce the `CLAUDE.md` gates before you call a task done: `cargo +nightly
-> clippy --workspace --all-targets -- -D warnings`, `cargo test`, plus
-> `cargo sqlx prepare --workspace -- --all-features` if SQL changed and
-> `cargo machete` if a `Cargo.toml` dep list changed. No new
-> `#[allow]`/`#[expect]`. Do not fix a second finding in the same run.

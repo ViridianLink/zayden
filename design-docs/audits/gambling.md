@@ -97,6 +97,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   and only then fire non-critical Dispatch/embeds. **Confidence: confirmed.**
 
 ### DS-2. `/gift` daily limit bypassed by double-submit → double free mint  ·  Pass 2  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | fixed | wontfix -->
 - **Where:** `bot-modules/gambling/src/commands/gift.rs:166-198`.
 - **What:** Gift mints `GIFT_AMOUNT * (prestige+1)` free coins to the recipient
   via atomic `add_coins` (committed, line 178-182); the once-per-day guard is a

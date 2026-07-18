@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::gift::{GiftManager, SenderRow};
 use serenity::all::{CreateCommand, UserId};
-use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
@@ -46,40 +45,40 @@ impl GiftManager<Postgres> for GiftTable {
         .await
     }
 
-    async fn save_sender(
+    async fn claim(
         pool: &PgPool,
-        row: SenderRow,
-    ) -> sqlx::Result<PgQueryResult> {
+        sender: UserId,
+        recipient: UserId,
+        amount: i64,
+    ) -> sqlx::Result<bool> {
         let mut tx = pool.begin().await?;
 
-        let mut result = sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, gems, gift)
-            VALUES ($1, $2, $3, now())
-            ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems, gift = EXCLUDED.gift;",
-            row.user_id,
-            row.coins,
-            row.gems,
+        let claim = sqlx::query!(
+            "INSERT INTO gambling (user_id, gift)
+            VALUES ($1, CURRENT_DATE)
+            ON CONFLICT (user_id) DO UPDATE SET gift = CURRENT_DATE
+            WHERE gambling.gift < CURRENT_DATE",
+            as_i64(sender.get())
         )
         .execute(&mut *tx)
         .await?;
 
-        let result2 = sqlx::query!(
-            "INSERT INTO levels (user_id, level)
-            VALUES ($1, $2)
-            ON CONFLICT (user_id) DO UPDATE SET
-            level = EXCLUDED.level;",
-            row.user_id,
-            row.level,
+        if claim.rows_affected() == 0 {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+
+        sqlx::query_file!(
+            "./sql/gambling/GamblingManager/add_coins.sql",
+            as_i64(recipient.get()),
+            amount
         )
         .execute(&mut *tx)
         .await?;
-
-        result.extend([result2]);
 
         tx.commit().await?;
 
-        Ok(result)
+        Ok(true)
     }
 }
 

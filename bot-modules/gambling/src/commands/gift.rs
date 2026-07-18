@@ -50,10 +50,12 @@ pub trait GiftManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<SenderRow>>;
 
-    async fn save_sender(
+    async fn claim(
         pool: &Pool<Db>,
-        row: SenderRow,
-    ) -> sqlx::Result<Db::QueryResult>;
+        sender: UserId,
+        recipient: UserId,
+        amount: i64,
+    ) -> sqlx::Result<bool>;
 }
 
 #[derive(FromRow)]
@@ -175,17 +177,20 @@ impl Commands {
 
         let amount = GIFT_AMOUNT * (user_row.prestige() + 1);
 
-        let mut tx = pool.begin().await?;
-
-        GamblingHandler::add_coins(&mut *tx, recipient.id, amount).await?;
-
-        tx.commit().await?;
+        if !GiftHandler::claim(pool, interaction.user.id, recipient.id, amount)
+            .await?
+        {
+            return Err(GamblingError::GiftUsed(tomorrow(Some(now.timestamp()))?));
+        }
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
             data.emojis()
         };
+
+        let coins_before = user_row.coins();
+        let gems_before = user_row.gems();
 
         Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
             .fire(
@@ -195,7 +200,24 @@ impl Commands {
             )
             .await?;
 
-        GiftHandler::save_sender(pool, user_row).await?;
+        let coin_reward = user_row.coins() - coins_before;
+        let gem_reward = user_row.gems() - gems_before;
+        if coin_reward != 0 || gem_reward != 0 {
+            let mut tx = pool.begin().await?;
+            if coin_reward != 0 {
+                GamblingHandler::add_coins(
+                    &mut *tx,
+                    interaction.user.id,
+                    coin_reward,
+                )
+                .await?;
+            }
+            if gem_reward != 0 {
+                GamblingHandler::add_gems(&mut *tx, interaction.user.id, gem_reward)
+                    .await?;
+            }
+            tx.commit().await?;
+        }
 
         let embed = CreateEmbed::new()
             .description(format!(
