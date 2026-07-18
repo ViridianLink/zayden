@@ -105,7 +105,12 @@ pub trait SendManager<Db: Database> {
         id: impl Into<UserId> + Send,
     ) -> sqlx::Result<Option<SendRow>>;
 
-    async fn save(pool: &Pool<Db>, row: SendRow) -> sqlx::Result<Db::QueryResult>;
+    async fn transfer(
+        pool: &Pool<Db>,
+        sender: UserId,
+        recipient: UserId,
+        amount: i64,
+    ) -> sqlx::Result<bool>;
 }
 
 impl Commands {
@@ -161,14 +166,16 @@ impl Commands {
             return Err(GamblingError::MaximumSendAmount(max_send));
         }
 
+        if !SendHandler::transfer(pool, interaction.user.id, recipient.id, amount)
+            .await?
+        {
+            return Err(GamblingError::InsufficientFunds {
+                required: amount,
+                currency: ShopCurrency::Coins,
+            });
+        }
+
         *row.coins_mut() -= amount;
-
-        let mut tx = pool.begin().await?;
-
-        GamblingHandler::add_coins(&mut *tx, recipient.id, amount).await?;
-
-        tx.commit().await?;
-
         row.done_work();
 
         let stamina = row.stamina_str();
@@ -179,6 +186,9 @@ impl Commands {
             data.emojis()
         };
 
+        let coins_before = row.coins();
+        let gems_before = row.gems();
+
         Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
@@ -187,7 +197,24 @@ impl Commands {
             )
             .await?;
 
-        SendHandler::save(pool, row).await?;
+        let coin_reward = row.coins() - coins_before;
+        let gem_reward = row.gems() - gems_before;
+        if coin_reward != 0 || gem_reward != 0 {
+            let mut tx = pool.begin().await?;
+            if coin_reward != 0 {
+                GamblingHandler::add_coins(
+                    &mut *tx,
+                    interaction.user.id,
+                    coin_reward,
+                )
+                .await?;
+            }
+            if gem_reward != 0 {
+                GamblingHandler::add_gems(&mut *tx, interaction.user.id, gem_reward)
+                    .await?;
+            }
+            tx.commit().await?;
+        }
 
         let coin = emojis.emoji("heads").map_err(|n| {
             GamblingError::Internal(format!("emoji '{n}' not in cache"))

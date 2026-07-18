@@ -4,7 +4,6 @@ use async_trait::async_trait;
 use gambling::Commands;
 use gambling::commands::send::{SendManager, SendRow};
 use serenity::all::{CreateCommand, UserId};
-use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
@@ -44,19 +43,40 @@ impl SendManager<Postgres> for SendTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: SendRow) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, gems, stamina)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
-            row.user_id,
-            row.coins,
-            row.gems,
-            row.stamina
+    async fn transfer(
+        pool: &PgPool,
+        sender: UserId,
+        recipient: UserId,
+        amount: i64,
+    ) -> sqlx::Result<bool> {
+        let mut tx = pool.begin().await?;
+
+        let debit = sqlx::query!(
+            "UPDATE gambling
+            SET coins = coins - $2, stamina = GREATEST(stamina - 1, 0)
+            WHERE user_id = $1 AND coins >= $2",
+            as_i64(sender.get()),
+            amount
         )
-        .execute(pool)
-        .await
+        .execute(&mut *tx)
+        .await?;
+
+        if debit.rows_affected() == 0 {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+
+        sqlx::query_file!(
+            "./sql/gambling/GamblingManager/add_coins.sql",
+            as_i64(recipient.get()),
+            amount
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(true)
     }
 }
 

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling\n            SET coins = coins - $2, stamina = GREATEST(stamina - 1, 0)\n            WHERE user_id = $1 AND coins >= $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "84e1277d697eb12c3ccd36398b6c2b587ecea772f075f1136fa35234b1b4f88f"
+}

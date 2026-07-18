@@ -70,6 +70,7 @@ integrity, drift. See [CC-9](_cross-cutting.md#cc-9) for the workspace-wide
 read-modify-write race class this drills beneath (CC-1 enables it)._
 
 ### DS-1. `/send` is a non-atomic, racy transfer → coins minted from nothing  ·  Pass 1+2  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | fixed | wontfix -->
 - **Where:** `bot-modules/gambling/src/commands/send.rs:146-190`; SQL semantics in
   `bot/src/bindings/gambling/models.rs:70-84` (`add_coins` = atomic
   `coins = gambling.coins + $2`) vs. `send.rs:47-60` (`save` = absolute
