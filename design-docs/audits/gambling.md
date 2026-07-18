@@ -243,6 +243,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   assert `rows_affected == 1`.
 
 ### DS-8. Stamina cron `UPDATE` has no `WHERE` → full-table rewrite every 10 min → deadlocks with gameplay writes (+ slow statement, bloat)  ·  Pass 2 (concurrency) + Pass 6 (resource)  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | fixed | wontfix -->
 - **Where:** `bot/src/bindings/gambling/stamina.rs:12-19`
   (`UPDATE gambling SET stamina = LEAST(stamina + 1, $1)` — **no `WHERE`**),
   scheduled `0 */10 * * * * *` (every 10 min) at

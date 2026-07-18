@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE gambling SET stamina = LEAST(stamina + 1, $1)",
+  "query": "UPDATE gambling SET stamina = stamina + 1 WHERE stamina < $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "92420449133c896807d462e1dde11729dd2b61bbd5bf0d4b97f97fe264e07b46"
+  "hash": "713db13f359f7bba7ce5927036c9b9efe76011b1f8c17b997a18b259b75b4d9c"
 }

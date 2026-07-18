@@ -11,7 +11,7 @@ pub struct StaminaTable;
 impl StaminaManager<Postgres> for StaminaTable {
     async fn update(pool: &PgPool) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "UPDATE gambling SET stamina = LEAST(stamina + 1, $1)",
+            "UPDATE gambling SET stamina = stamina + 1 WHERE stamina < $1",
             MAX_STAMINA
         )
         .execute(pool)
