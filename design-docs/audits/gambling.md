@@ -182,6 +182,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   confirmed** for the missing guard; **plausible** for the specific interleave.
 
 ### DS-6. Lotto cron rebuilds `WeightedIndex` after the *final* pick → whole draw rolls back at exactly 3 participants  ·  Pass 5  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/gambling/src/games/lotto.rs:110-125` (winner loop),
   error/rollback path at `:189-193`.
 - **What:** The winner loop iterates over the 3 prize shares

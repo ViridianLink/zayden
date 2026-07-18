@@ -35,7 +35,14 @@ pub use common::{
 pub use ctx_data::GamblingData;
 pub use error::{GamblingError, Result};
 pub use game_cache::GameCache;
-pub use games::{HigherLower, Lotto, LottoManager, LottoRow, jackpot};
+pub use games::{
+    HigherLower,
+    Lotto,
+    LottoManager,
+    LottoRow,
+    jackpot,
+    select_winners,
+};
 pub use goals::GoalHandler;
 pub use models::{
     AppliedEffect,

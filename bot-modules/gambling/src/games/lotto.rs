@@ -69,6 +69,44 @@ pub fn jackpot(tickets: i64) -> i64 {
     tickets.saturating_mul(LOTTO_TICKET.coin_cost().unwrap_or(0)).max(1_000_000)
 }
 
+pub fn select_winners(
+    mut rows: Vec<LottoRow>,
+    prize_share: &[f64],
+    jackpot: i64,
+) -> Result<Vec<(UserId, i64)>, GamblingError> {
+    let mut dist =
+        WeightedIndex::new(rows.iter().map(LottoRow::quantity)).map_err(|e| {
+            GamblingError::Internal(format!("WeightedIndex creation failed: {e}"))
+        })?;
+
+    let mut rng = rng();
+    let mut winners = Vec::with_capacity(prize_share.len());
+    for (i, &share) in prize_share.iter().enumerate() {
+        let index = dist.sample(&mut rng);
+        let winner = rows.remove(index);
+
+        if i + 1 < prize_share.len() {
+            dist = WeightedIndex::new(rows.iter().map(LottoRow::quantity)).map_err(
+                |e| {
+                    GamblingError::Internal(format!(
+                        "WeightedIndex update failed: {e}"
+                    ))
+                },
+            )?;
+        }
+
+        #[expect(
+            clippy::cast_possible_truncation,
+            clippy::cast_precision_loss,
+            reason = "lottery payout: precision/truncation acceptable"
+        )]
+        let payout = (jackpot as f64 * share) as i64;
+        winners.push((winner.user_id(), payout));
+    }
+
+    Ok(winners)
+}
+
 pub struct Lotto;
 
 impl Lotto {
@@ -100,29 +138,9 @@ impl Lotto {
                     return Ok(());
                 }
 
-                let mut dist =
-                    WeightedIndex::new(rows.iter().map(LottoRow::quantity)).map_err(|e| {
-                        GamblingError::Internal(format!("WeightedIndex creation failed: {e}"))
-                    })?;
-
                 let jackpot = jackpot(total_tickets);
 
-                let mut winners = Vec::with_capacity(expected_winners);
-                for share in prize_share {
-                    let index = dist.sample(&mut rng());
-                    let winner = rows.remove(index);
-                    dist =
-                        WeightedIndex::new(rows.iter().map(LottoRow::quantity)).map_err(|e| {
-                            GamblingError::Internal(format!("WeightedIndex update failed: {e}"))
-                        })?;
-                    #[expect(
-                        clippy::cast_possible_truncation,
-                        clippy::cast_precision_loss,
-                        reason = "lottery payout: precision/truncation acceptable"
-                    )]
-                    let payout = (jackpot as f64 * share) as i64;
-                    winners.push((winner.user_id(), payout));
-                }
+                let winners = select_winners(rows, &prize_share, jackpot)?;
 
                 LottoHandler::delete_tickets(&mut *tx).await?;
 
