@@ -30,8 +30,8 @@ pub enum Frame {
     HighImpactLongBow,
     SpreadShot,
     RocketAssisted,
-    BalancedHeat(u16),
-    DynamicHeat(u16),
+    Balanced,
+    Dynamic,
     Disruption,
     ShotPackage,
 }
@@ -66,14 +66,10 @@ impl FromStr for Frame {
             "High-Impact Longbow" => Ok(Self::HighImpactLongBow),
             "Spread Shot" => Ok(Self::SpreadShot),
             "Rocket-Assisted" => Ok(Self::RocketAssisted),
-            "Balanced (260RPM)" => Ok(Self::BalancedHeat(260)),
-            "Balanced (450RPM)" => Ok(Self::BalancedHeat(450)),
-            "Balanced (540RPM)" => Ok(Self::BalancedHeat(540)),
-            "Balanced (900RPM)" => Ok(Self::BalancedHeat(900)),
-            "Dynamic (140RPM)" => Ok(Self::DynamicHeat(140)),
-            "Dynamic (180RPM)" => Ok(Self::DynamicHeat(180)),
-            "Dynamic (360RPM)" => Ok(Self::DynamicHeat(360)),
-            "Dynamic (540RPM)" => Ok(Self::DynamicHeat(540)),
+            "Balanced" | "Balanced (260RPM)" | "Balanced (450RPM)"
+            | "Balanced (540RPM)" | "Balanced (900RPM)" => Ok(Self::Balanced),
+            "Dynamic" | "Dynamic (140RPM)" | "Dynamic (180RPM)"
+            | "Dynamic (360RPM)" | "Dynamic (540RPM)" => Ok(Self::Dynamic),
             "Disruption" => Ok(Self::Disruption),
             "Shot Package" => Ok(Self::ShotPackage),
             _ => {
@@ -112,8 +108,8 @@ impl fmt::Display for Frame {
             Self::HighImpactLongBow => write!(f, "High-Impact Longbow"),
             Self::SpreadShot => write!(f, "Spread Shot"),
             Self::RocketAssisted => write!(f, "Rocket-Assisted"),
-            Self::BalancedHeat(rpm) => write!(f, "Balanced Heat ({rpm}RPM)"),
-            Self::DynamicHeat(rpm) => write!(f, "Dynamic Heat ({rpm}RPM)"),
+            Self::Balanced => write!(f, "Balanced"),
+            Self::Dynamic => write!(f, "Dynamic"),
             Self::Disruption => write!(f, "Disruption"),
             Self::ShotPackage => write!(f, "Shot Package"),
         }

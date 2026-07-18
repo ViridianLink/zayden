@@ -88,6 +88,23 @@ pub async fn is_empty(pool: &PgPool) -> sqlx::Result<bool> {
     Ok(!exists.unwrap_or(false))
 }
 
+pub async fn count(pool: &PgPool) -> sqlx::Result<i64> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM destiny2_endgame_weapons"#
+    )
+    .fetch_one(pool)
+    .await
+}
+
+#[must_use]
+pub const fn is_safe_replace(existing: usize, incoming: usize) -> bool {
+    if existing == 0 {
+        return true;
+    }
+
+    incoming * 2 >= existing
+}
+
 pub async fn replace(pool: &PgPool, weapons: &[Weapon]) -> sqlx::Result<()> {
     let mut tx = pool.begin().await?;
 

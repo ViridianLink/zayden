@@ -107,6 +107,17 @@ impl EndgameAnalysisSheet {
             .flatten()
             .collect::<Vec<Weapon>>();
 
+        let existing = usize::try_from(endgame::count(pool).await?).unwrap_or(0);
+        if !endgame::is_safe_replace(existing, weapons.len()) {
+            error!(
+                "Refusing endgame refresh: parsed {} weapons vs {existing} \
+                 existing — keeping current catalog (likely upstream sheet or \
+                 parser drift)",
+                weapons.len()
+            );
+            return Ok(());
+        }
+
         endgame::replace(pool, &weapons).await?;
 
         Ok(())

@@ -156,6 +156,7 @@ first-pass structural findings._
 - #6 Tests: three integration files in `tests/`, real round-trip coverage.
 
 ### DS-3. Endgame sheet parse failures silently drop weapons, and `replace` (`TRUNCATE`) makes it destructive → tierlist/perk data erodes as the source sheet drifts  ·  Pass 1 (silent failure) + SQL integrity  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** parser `endgame_analysis/sheet/frame.rs:42-84` (`Frame::from_str`),
   `endgame_analysis/sheet/weapon.rs:238` (`perk 1 cell value`) and
   `weapon.rs:299-306` (`frame parse`); silent-skip at
