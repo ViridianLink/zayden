@@ -80,60 +80,85 @@ impl Suggestions {
 
         let mut messages = review_channel_id.widen().messages_iter(http).boxed();
 
-        if (pos_count - neg_count) >= 20 {
-            while let Some(mut msg) = messages.try_next().await? {
-                if let Some(embed) = msg.embeds.first()
-                    && embed.url.as_deref()
-                        == Some(message.link().to_string().as_str())
-                {
-                    let embed = create_embed(
-                        &channel,
-                        &message,
-                        msg.embeds.first().map_or(&[], |e| e.fields.as_slice()),
-                        pos_count,
-                        neg_count,
-                    );
+        match review_action(pos_count, neg_count) {
+            ReviewAction::Promote => {
+                while let Some(mut msg) = messages.try_next().await? {
+                    if let Some(embed) = msg.embeds.first()
+                        && embed.url.as_deref()
+                            == Some(message.link().to_string().as_str())
+                    {
+                        let embed = create_embed(
+                            &channel,
+                            &message,
+                            msg.embeds.first().map_or(&[], |e| e.fields.as_slice()),
+                            pos_count,
+                            neg_count,
+                        );
 
-                    msg.edit(
+                        msg.edit(
+                            http,
+                            EditMessage::new()
+                                .embed(embed)
+                                .components(vec![create_components()]),
+                        )
+                        .await?;
+
+                        return Ok(());
+                    }
+                }
+
+                review_channel_id
+                    .widen()
+                    .send_message(
                         http,
-                        EditMessage::new()
-                            .embed(embed)
+                        CreateMessage::new()
+                            .embed(create_embed(
+                                &channel,
+                                &message,
+                                &Vec::new(),
+                                pos_count,
+                                neg_count,
+                            ))
                             .components(vec![create_components()]),
                     )
                     .await?;
+            },
+            ReviewAction::Demote => {
+                while let Some(msg) = messages.try_next().await? {
+                    if msg.embeds.first().and_then(|e| e.url.as_deref())
+                        == Some(message.link().to_string().as_str())
+                    {
+                        msg.delete(http, Some("Positive delta fell to or below 15"))
+                            .await?;
 
-                    return Ok(());
+                        return Ok(());
+                    }
                 }
-            }
-
-            review_channel_id
-                .widen()
-                .send_message(
-                    http,
-                    CreateMessage::new()
-                        .embed(create_embed(
-                            &channel,
-                            &message,
-                            &Vec::new(),
-                            pos_count,
-                            neg_count,
-                        ))
-                        .components(vec![create_components()]),
-                )
-                .await?;
-        } else if (neg_count - pos_count) <= 15 {
-            while let Some(msg) = messages.try_next().await? {
-                if msg.embeds.first().and_then(|e| e.url.as_deref())
-                    == Some(message.link().to_string().as_str())
-                {
-                    msg.delete(http, Some("Positive delta fell below 15")).await?;
-
-                    return Ok(());
-                }
-            }
+            },
+            ReviewAction::Unchanged => {},
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReviewAction {
+    Promote,
+    Demote,
+    Unchanged,
+}
+
+#[must_use]
+pub const fn review_action(pos_count: i32, neg_count: i32) -> ReviewAction {
+    let delta = pos_count - neg_count;
+
+    if delta >= 20 {
+        ReviewAction::Promote
+    } else if delta <= 15 {
+        ReviewAction::Demote
+    } else {
+        ReviewAction::Unchanged
     }
 }
 
