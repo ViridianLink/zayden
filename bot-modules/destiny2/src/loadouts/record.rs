@@ -86,18 +86,18 @@ impl LoadoutRecord {
         format!("{} | {}", self.element, self.name)
     }
 
-    #[expect(
-        clippy::significant_drop_tightening,
-        reason = "emoji_cache borrows from the write guard; dropping it early would dangle"
-    )]
     pub async fn into_component<Data: EmojiCacheData>(
         self,
         ctx: &Context,
         parent_token: &str,
     ) -> Result<CreateComponent<'static>> {
         let data_lock = ctx.data::<tokio::sync::RwLock<Data>>();
-        let mut data = data_lock.write().await;
-        let emoji_cache = data.emojis_mut();
+
+        let mut owned_cache = {
+            let data = data_lock.read().await;
+            (*data.emojis()).clone()
+        };
+        let emoji_cache = &mut owned_cache;
 
         let mut components = Vec::with_capacity(21);
 
@@ -271,6 +271,8 @@ impl LoadoutRecord {
         }
         components.extend(armour);
         components.push(misc);
+
+        data_lock.write().await.emojis_mut().merge_from(&owned_cache);
 
         Ok(CreateComponent::Container(CreateContainer::new(components)))
     }

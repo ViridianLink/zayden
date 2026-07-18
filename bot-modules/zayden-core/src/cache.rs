@@ -231,6 +231,12 @@ impl EmojiCache {
     pub fn emoji_str(&self, name: &str) -> EmojiResult<String> {
         self.emoji(name).map(|id| format!("<:{name}:{id}>"))
     }
+
+    pub fn merge_from(&mut self, other: &Self) {
+        for (name, &id) in other.iter() {
+            self.0.entry(name.clone()).or_insert(id);
+        }
+    }
 }
 
 impl Deref for EmojiCache {

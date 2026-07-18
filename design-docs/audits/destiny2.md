@@ -66,6 +66,7 @@ loadout render path). Two confirmed/plausible latent defects underneath the
 first-pass structural findings._
 
 ### DS-1. `/destiny2 builds` holds the `RwLock<BotState>` **write** guard across emoji upload + `sleep` (≤50 s) and never defers  ·  #3 (async) + Discord-ack  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `src/loadouts/record.rs:93-99` (write guard `let mut data =
   data_lock.write().await;` acquired, held to end of `into_component`) plus the
   ~14 `resolve_emoji(...).await` calls at `record.rs:104-238`; the retry loop
@@ -142,10 +143,12 @@ first-pass structural findings._
 - #1 Architecture: `db/{mod,endgame,compendium,loadouts}.rs` cleanly separated;
   concrete `PgPool`; no DB-generic trait (not subject to CC-1).
 - #1 DB access: compile-time `query!`/`query_as!` only; transactional `replace`.
-- #3 Async: no blocking I/O (moved off `fs::` in 3a). ~~no locks across
-  `.await`~~ — **superseded by DS-1**: `loadouts/record.rs` holds a
-  `tokio::sync::RwLock<BotState>` write guard across `resolve_emoji`'s network +
-  `sleep` (the `await_holding_lock` lint doesn't catch tokio locks).
+- #3 Async: no blocking I/O (moved off `fs::` in 3a). No locks held across
+  `.await` — **DS-1 fixed (in-review)**: `loadouts/record.rs` now renders against
+  an owned `EmojiCache` snapshot (cloned under a brief read guard, merged back
+  under a brief write guard), so the `tokio::sync::RwLock<BotState>` guard is no
+  longer held across `resolve_emoji`'s upload/network. (The `await_holding_lock`
+  lint does not catch tokio locks, so this class must be guarded by review.)
 - #4 Stringly typing: `Affinity`/`TierLabel`/`Frame`/`Class`/`Element`/`Mode`/
   `StatKind`/`Archetype` are all typed enums with round-trip tests.
 - #5 Data placement: catalog + loadouts + endgame/compendium all DB-backed

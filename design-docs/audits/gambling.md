@@ -70,7 +70,7 @@ integrity, drift. See [CC-9](_cross-cutting.md#cc-9) for the workspace-wide
 read-modify-write race class this drills beneath (CC-1 enables it)._
 
 ### DS-1. `/send` is a non-atomic, racy transfer → coins minted from nothing  ·  Pass 1+2  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | fixed | wontfix -->
+- **Status:** `complete — d2108103`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/gambling/src/commands/send.rs:146-190`; SQL semantics in
   `bot/src/bindings/gambling/models.rs:70-84` (`add_coins` = atomic
   `coins = gambling.coins + $2`) vs. `send.rs:47-60` (`save` = absolute
@@ -97,7 +97,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   and only then fire non-critical Dispatch/embeds. **Confidence: confirmed.**
 
 ### DS-2. `/gift` daily limit bypassed by double-submit → double free mint  ·  Pass 2  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | fixed | wontfix -->
+- **Status:** `complete — fb5b9c7c`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/gambling/src/commands/gift.rs:166-198`.
 - **What:** Gift mints `GIFT_AMOUNT * (prestige+1)` free coins to the recipient
   via atomic `add_coins` (committed, line 178-182); the once-per-day guard is a
@@ -245,7 +245,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   assert `rows_affected == 1`.
 
 ### DS-8. Stamina cron `UPDATE` has no `WHERE` → full-table rewrite every 10 min → deadlocks with gameplay writes (+ slow statement, bloat)  ·  Pass 2 (concurrency) + Pass 6 (resource)  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | fixed | wontfix -->
+- **Status:** `complete — 37bcf343`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot/src/bindings/gambling/stamina.rs:12-19`
   (`UPDATE gambling SET stamina = LEAST(stamina + 1, $1)` — **no `WHERE`**),
   scheduled `0 */10 * * * * *` (every 10 min) at

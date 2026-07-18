@@ -2,8 +2,8 @@ pub(crate) mod domain;
 pub(crate) mod mode;
 pub(crate) mod record;
 
+use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
-use std::time::Duration;
 
 pub use domain::{Archetype, ArmourSlot, Class, Element, StatKind};
 pub use mode::Mode;
@@ -18,6 +18,7 @@ use serenity::all::{
     CreateCommandOption,
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
+    EditInteractionResponse,
     EmojiId,
     GuildId,
     Http,
@@ -123,18 +124,18 @@ impl Loadout {
         let Some(record) = records.iter().find(|r| r.id == id) else {
             return Err(CoreError::missing_data("matching build").into());
         };
+        let record = record.clone();
 
-        let component =
-            record.clone().into_component::<Data>(ctx, parent_token).await?;
+        interaction.defer(&ctx.http).await?;
+
+        let component = record.into_component::<Data>(ctx, parent_token).await?;
 
         interaction
-            .create_response(
+            .edit_response(
                 &ctx.http,
-                CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new()
-                        .flags(MessageFlags::IS_COMPONENTS_V2)
-                        .components(vec![component]),
-                ),
+                EditInteractionResponse::new()
+                    .flags(MessageFlags::IS_COMPONENTS_V2)
+                    .components(vec![component]),
             )
             .await?;
 
@@ -220,22 +221,22 @@ async fn resolve_emoji<T>(
     parent_token: &str,
     mut f: impl FnMut(&EmojiCache) -> EmojiResult<T>,
 ) -> Result<T> {
-    const MAX_ATTEMPTS: u8 = 10;
+    let mut attempted: HashSet<String> = HashSet::new();
 
-    for _ in 0..MAX_ATTEMPTS {
+    loop {
         match f(emoji_cache) {
             Ok(value) => return Ok(value),
             Err(name) => {
+                if !attempted.insert(name.clone()) {
+                    return Err(CoreError::missing_data(format!(
+                        "emoji unavailable: {name}"
+                    ))
+                    .into());
+                }
                 emoji_cache.upload(ctx, parent_token, &name).await;
-                tokio::time::sleep(Duration::from_secs(5)).await;
             },
         }
     }
-
-    Err(CoreError::missing_data(format!(
-        "emoji unavailable after {MAX_ATTEMPTS} upload attempts"
-    ))
-    .into())
 }
 
 #[must_use]

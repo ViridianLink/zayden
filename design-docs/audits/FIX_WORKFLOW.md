@@ -19,8 +19,15 @@
    works at a time, and the human reviews each task's diff **before it is
    committed**, so no branch/PR ceremony is needed.
 2. **Stop after each task.** Every task ends at a **HUMAN REVIEW PAUSE** with the
-   change **uncommitted**. Do not commit, and do not start the next
-   finding, until the human has reviewed and explicitly said go.
+   change **uncommitted**. Do not commit it yourself, and do not start the next
+   finding, until the human has reviewed and explicitly said go. The review does
+   not have to happen at the pause: the human may review a completed task **while
+   the next task's agent is already running**. When they approve during that
+   window they **stage** the approved files (`git add`) as the go-ahead signal and
+   commit manually once the running agent finishes — so a task's files may be
+   left *staged-and-approved* rather than committed. Never unstage or clobber
+   changes a prior approved task left staged; treat them as belonging to that
+   already-approved task, not the one you are working.
 3. **The audit doc is the source of truth for status.** Task state lives inline
    next to each finding (see [Status convention](#status-convention)), so a fresh
    session can resume with zero external context.
@@ -44,7 +51,7 @@ progress is visible in the audit docs themselves:
 
 ```markdown
 ### DS-8. Stamina cron `UPDATE` has no `WHERE` ...
-- **Status:** `open`            <!-- open | in-progress | in-review | fixed | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 ```
 
 State meanings:
@@ -53,8 +60,8 @@ State meanings:
 |---------------|---------|
 | `open`        | Not started. Eligible to be picked up. |
 | `in-progress` | Work is underway on `main`. |
-| `in-review`   | Fix complete, validation green, awaiting the human pause. |
-| `fixed`       | Committed. Append the commit: `fixed — <sha>`. |
+| `in-review`   | Fix complete, validation green, awaiting the human's review. The review may land later — during a subsequent task's agent phase — not only at the pause. |
+| `complete`    | Reviewed and approved. The human has committed it, or approved-and-**staged** it pending the current agent run's completion. Append the commit once it exists: `complete — <sha>`. |
 | `wontfix`     | Deliberately declined. Append a one-line reason. |
 
 Only **one** finding may be `in-progress` at a time.
@@ -147,9 +154,10 @@ do not narrate green over red.
 ## Step 4 — Record (do **not** commit)
 
 1. Update the finding's status to `in-review` in its audit doc.
-2. Leave the change **on `main`, uncommitted**. **Do not run `git
-   commit`** — the human reviews the working-tree diff first and commits
-   themselves.
+2. Leave the change **on `main`, uncommitted**. **Do not run `git commit`** — the
+   human reviews the working-tree diff and either commits, or (if reviewing while
+   a later task's agent is already running) stages the approved files and commits
+   once that agent run finishes.
 3. Prepare a short **review packet** for the human (see Step 5).
 
 ---
@@ -167,18 +175,22 @@ next finding.** Present:
 - **Residual risk / follow-ups:** anything the fix deliberately left (e.g. "DS-8
   scoped the WHERE clause but the 40P01 retry wrapper is a separate follow-up"),
   recorded as a new finding if warranted.
-- **Proposed commit message** (from Step 4).
 - **Suggested next task** from the queue — as a *proposal*, not an action.
 
 Then wait. On the human's go:
-- **approved** → the human commits (or tells you to `git commit` with the drafted
-  message). Once committed, update the finding to `fixed — <sha>` and confirm
-  the tree is clean before Step 1.
+- **approved** → the human commits themselves, or — if they are reviewing while a
+  later task's agent is still running — **stages** the approved files and commits
+  once that run completes. Update the finding to `complete — <sha>` once the
+  commit exists. A resuming agent may find a prior task already committed (or
+  approved-and-staged) with its status still `in-review`; reconcile that stale
+  marker to `complete` rather than treating the finding as unfinished. Confirm
+  the working tree is clean of *your* task's changes before Step 1.
 - **changes requested** → back to Step 2 with their notes.
 - **declined** → set the finding to `wontfix — <reason>` and `git restore` the
   working tree.
 
-Only after the tree is clean again, return to **Step 1** for the next finding.
+Only after the tree is clean of the current task, return to **Step 1** for the
+next finding.
 
 ---
 
@@ -233,5 +245,5 @@ hygiene), then **structural enablers** that unblock later fixes. The three
 - [ ] `.sqlx/` regenerated (`--all-features`) **iff** SQL changed.
 - [ ] `cargo machete` clean **iff** a dependency list changed.
 - [ ] Finding status updated to `in-review` in its audit doc.
-- [ ] Change left **on `main`, uncommitted**, with a drafted commit message.
+- [ ] Change left **on `main`, uncommitted**.
 - [ ] **HUMAN REVIEW PAUSE reached; waiting for go.**
