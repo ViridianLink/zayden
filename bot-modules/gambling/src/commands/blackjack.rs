@@ -41,6 +41,7 @@ use crate::{
     GameManager,
     GoalsManager,
     Result,
+    ShopCurrency,
     card_deck,
 };
 
@@ -80,7 +81,12 @@ impl Commands {
             coins,
         )
         .await?;
-        GamblingHandler::bet(pool, interaction.user.id, bet).await?;
+        if !GamblingHandler::bet(pool, interaction.user.id, bet).await? {
+            return Err(GamblingError::InsufficientFunds {
+                required: bet,
+                currency: ShopCurrency::Coins,
+            });
+        }
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();

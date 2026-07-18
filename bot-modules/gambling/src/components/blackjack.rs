@@ -42,6 +42,7 @@ use crate::{
     GameRow,
     GoalsManager,
     Result,
+    ShopCurrency,
 };
 
 pub struct Blackjack;
@@ -164,7 +165,12 @@ impl Blackjack {
         let mut game =
             GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
 
-        GamblingHandler::bet(pool, interaction.user.id, game.bet()).await?;
+        if !GamblingHandler::bet(pool, interaction.user.id, game.bet()).await? {
+            return Err(GamblingError::InsufficientFunds {
+                required: game.bet(),
+                currency: ShopCurrency::Coins,
+            });
+        }
 
         game.double_bet();
         game.add_card()?;

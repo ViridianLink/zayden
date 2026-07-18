@@ -55,16 +55,18 @@ impl GamblingManager<Postgres> for GamblingTable {
         pool: &PgPool,
         id: impl Into<UserId> + Send,
         bet: i64,
-    ) -> sqlx::Result<PgQueryResult> {
+    ) -> sqlx::Result<bool> {
         let id = id.into();
 
-        sqlx::query_file!(
+        let result = sqlx::query_file!(
             "./sql/gambling/GamblingManager/bet.sql",
             as_i64(id.get()),
             bet
         )
         .execute(pool)
-        .await
+        .await?;
+
+        Ok(result.rows_affected() > 0)
     }
 
     async fn add_coins(

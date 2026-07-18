@@ -158,6 +158,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   (requires holding lotto tickets *and* a same-tick double click).
 
 ### DS-5. `bet` decrement has no `WHERE coins >= bet` guard → overdraft via cross-command race  ·  Pass 2+4  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot/sql/gambling/GamblingManager/bet.sql`
   (`UPDATE gambling SET coins = coins - $2 WHERE user_id = $1` — no balance
   floor); called from the wager games, e.g.
