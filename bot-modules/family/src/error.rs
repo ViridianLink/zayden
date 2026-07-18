@@ -31,6 +31,7 @@ pub enum FamilyError {
 
     // region block
     UserSelfBlock,
+    Blocked(UserId),
     // endregion
 
     // region children
@@ -118,6 +119,11 @@ impl Display for FamilyError {
             },
             Self::AdoptCancelled => write!(f, "Adoption request was cancelled."),
             Self::UserSelfBlock => write!(f, "You can't block yourself!"),
+            Self::Blocked(user_id) => write!(
+                f,
+                "A block is in place between you and {}.",
+                user_id.mention()
+            ),
             Self::SelfNoChildren => write!(f, "You have no children."),
             Self::NoChildren(user_id) => {
                 write!(f, "{} has no children.", user_id.mention())
@@ -164,6 +170,7 @@ impl Respond for FamilyError {
             | Self::NoData(_)
             | Self::AdoptCancelled
             | Self::UserSelfBlock
+            | Self::Blocked(_)
             | Self::SelfNoChildren
             | Self::NoChildren(_)
             | Self::MarryCancelled
@@ -210,6 +217,7 @@ impl std::error::Error for FamilyError {
             | Self::AlreadyAdopted(_)
             | Self::AdoptCancelled
             | Self::UserSelfBlock
+            | Self::Blocked(_)
             | Self::SelfNoChildren
             | Self::NoChildren(_)
             | Self::MarryCancelled

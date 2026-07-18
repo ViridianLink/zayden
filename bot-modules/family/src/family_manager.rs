@@ -33,6 +33,12 @@ pub trait FamilyManager<Db: Database> {
         user_id: UserId,
         partner_id: UserId,
     ) -> sqlx::Result<()>;
+
+    async fn remove_block(
+        pool: &Pool<Db>,
+        user_id: UserId,
+        blocked_id: UserId,
+    ) -> sqlx::Result<()>;
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, FromRow)]
@@ -55,8 +61,9 @@ impl FamilyRow {
         self.blocked_ids.push(as_i64(user_id.get()));
     }
 
-    pub fn remove_blocked(&mut self, user_id: UserId) {
-        self.blocked_ids.retain(|id| *id != as_i64(user_id.get()));
+    #[must_use]
+    pub fn is_blocked(&self, user_id: UserId) -> bool {
+        self.blocked_ids.contains(&as_i64(user_id.get()))
     }
 
     pub fn add_child(&mut self, child: &Self) {

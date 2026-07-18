@@ -43,11 +43,19 @@ impl Adopt {
             .await?
             .unwrap_or_else(|| (&interaction.user).into());
 
-        // Is already adopted?
-        if let Some(target_row) = Manager::row(pool, target_user.id).await?
-            && !target_row.parent_ids.is_empty()
-        {
-            return Err(FamilyError::AlreadyAdopted(target_user.id));
+        if adopter_row.is_blocked(target_user.id) {
+            return Err(FamilyError::Blocked(target_user.id));
+        }
+
+        if let Some(target_row) = Manager::row(pool, target_user.id).await? {
+            // Is already adopted?
+            if !target_row.parent_ids.is_empty() {
+                return Err(FamilyError::AlreadyAdopted(target_user.id));
+            }
+
+            if target_row.is_blocked(interaction.user.id) {
+                return Err(FamilyError::Blocked(interaction.user.id));
+            }
         }
 
         // Are the adopter and target are already related?

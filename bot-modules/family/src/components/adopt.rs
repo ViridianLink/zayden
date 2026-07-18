@@ -27,6 +27,13 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
         .await?
         .unwrap_or_else(|| child_user.into());
 
+    if row.is_blocked(child_user.id) {
+        return Err(FamilyError::Blocked(child_user.id));
+    }
+    if child_row.is_blocked(parent_user.id) {
+        return Err(FamilyError::Blocked(parent_user.id));
+    }
+
     row.add_child(&child_row);
     child_row.add_parent(&row);
 

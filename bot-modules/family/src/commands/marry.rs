@@ -54,12 +54,20 @@ impl Marry {
             if row.partner_ids.len() >= MAX_PARTNERS {
                 return Err(FamilyError::MaxPartners);
             }
+
+            if row.is_blocked(target_user.id) {
+                return Err(FamilyError::Blocked(target_user.id));
+            }
         }
 
-        if let Some(row) = Manager::row(pool, target_user.id).await?
-            && row.partner_ids.len() >= MAX_PARTNERS
-        {
-            return Err(FamilyError::MaxPartners);
+        if let Some(row) = Manager::row(pool, target_user.id).await? {
+            if row.partner_ids.len() >= MAX_PARTNERS {
+                return Err(FamilyError::MaxPartners);
+            }
+
+            if row.is_blocked(interaction.user.id) {
+                return Err(FamilyError::Blocked(interaction.user.id));
+            }
         }
 
         Ok(target_user.id)

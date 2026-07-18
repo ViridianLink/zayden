@@ -295,6 +295,25 @@ impl FamilyManager<Postgres> for FamilyTable {
 
         Ok(())
     }
+
+    async fn remove_block(
+        pool: &PgPool,
+        user_id: UserId,
+        blocked_id: UserId,
+    ) -> sqlx::Result<()> {
+        let uid: i64 = as_i64(user_id.get());
+        let bid: i64 = as_i64(blocked_id.get());
+
+        sqlx::query!(
+            "DELETE FROM family_blocks WHERE user_id = $1 AND blocked_id = $2",
+            uid,
+            bid
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 async fn ensure_family_user(pool: &PgPool, id: i64) -> sqlx::Result<()> {

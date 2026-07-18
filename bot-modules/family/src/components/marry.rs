@@ -23,6 +23,13 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     let mut partner_row =
         Manager::row(pool, partner.id).await?.unwrap_or_else(|| partner.into());
 
+    if row.is_blocked(partner.id) {
+        return Err(FamilyError::Blocked(partner.id));
+    }
+    if partner_row.is_blocked(author.id) {
+        return Err(FamilyError::Blocked(author.id));
+    }
+
     row.add_partner(&partner_row);
     partner_row.add_partner(&row);
 

@@ -68,12 +68,7 @@ impl Unblock {
             return Err(FamilyError::UserSelfBlock);
         }
 
-        let mut row = Manager::row(pool, interaction.user.id)
-            .await?
-            .unwrap_or_else(|| (&interaction.user).into());
-
-        row.remove_blocked(user.id);
-        row.save::<Db, Manager>(pool).await?;
+        Manager::remove_block(pool, interaction.user.id, user.id).await?;
 
         Ok(())
     }
