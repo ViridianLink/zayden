@@ -41,6 +41,10 @@ DB-generic `async_trait` pattern (CC-1) and no `tests/`. Otherwise unremarkable.
 _Deep sweep (sixth pass): 2026-07-17 · lenses: silent-failure, state/orphan._
 
 ### DS-1. Reaction handler never skips the bot's own reaction → bot is granted every reaction-role  ·  Pass 7 (state) / #8  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19):** `reaction_add`/`reaction_remove` now early-return when the
+  reactor is a bot (`reaction.member.user.bot`) before any DB lookup, so the
+  seed-reaction from `/reaction-roles add` no longer grants the role to the bot.
 - **Where:** `src/reaction/mod.rs:9-36` (`reaction_add`); seeded by
   `src/command/add.rs:66` (`message.react(http, reaction)`).
 - **What:** After `/reaction-roles add` writes the mapping, the bot reacts to the

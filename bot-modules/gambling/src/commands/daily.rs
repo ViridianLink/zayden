@@ -39,7 +39,12 @@ pub trait DailyManager<Db: Database> {
         pool: &Pool<Db>,
         id: UserId,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>>;
-    async fn save(pool: &Pool<Db>, row: &DailyRow) -> sqlx::Result<Db::QueryResult>;
+
+    async fn claim_daily(
+        pool: &Pool<Db>,
+        id: UserId,
+        amount: i64,
+    ) -> sqlx::Result<bool>;
 }
 
 #[derive(FromRow)]
@@ -124,9 +129,14 @@ impl Commands {
 
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);
 
-        *row.coins_mut() += amount;
+        let claimed =
+            Manager::claim_daily(pool, interaction.user.id, amount).await?;
+        if !claimed {
+            return Err(GamblingError::DailyClaimed(tomorrow(Some(now))?));
+        }
 
-        Manager::save(pool, &row).await?;
+        *row.coins_mut() += amount;
+        row.daily = today.to_sqlx();
 
         let mut goals = Manager::goal_rows(pool, interaction.user.id).await?;
         if goals.is_empty() || !goals.first().is_some_and(GamblingGoalsRow::is_today)

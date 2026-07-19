@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling (user_id, coins, daily)\n            VALUES ($1, $2, (now() AT TIME ZONE 'UTC')::date)\n            ON CONFLICT (user_id) DO UPDATE SET\n                coins = gambling.coins + $2,\n                daily = (now() AT TIME ZONE 'UTC')::date\n            WHERE gambling.daily <> (now() AT TIME ZONE 'UTC')::date",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6078e3fc98d7f217f4965a4804ebdfd53000381b41a19718a0712bbba38f60e7"
+}

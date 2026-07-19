@@ -65,10 +65,68 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: PrestigeRow) -> sqlx::Result<PgQueryResult> {
+    async fn save(
+        pool: &PgPool,
+        row: PrestigeRow,
+        expected_prestige: i64,
+    ) -> sqlx::Result<bool> {
         let mut tx = pool.begin().await?;
 
-        let mut result = sqlx::query!(
+        let mine = sqlx::query!(
+            "UPDATE gambling_mine SET
+                miners = $2,
+                mines = $3,
+                land = $4,
+                countries = $5,
+                continents = $6,
+                planets = $7,
+                solar_systems = $8,
+                galaxies = $9,
+                universes = $10,
+                prestige = $11,
+                coal = $12,
+                iron = $13,
+                gold = $14,
+                redstone = $15,
+                lapis = $16,
+                diamonds = $17,
+                emeralds = $18,
+                tech = $19,
+                utility = $20,
+                production = $21
+            WHERE user_id = $1 AND prestige = $22;",
+            row.user_id,
+            row.miners,
+            row.mines,
+            row.land,
+            row.countries,
+            row.continents,
+            row.planets,
+            row.solar_systems,
+            row.galaxies,
+            row.universes,
+            row.prestige,
+            row.coal,
+            row.iron,
+            row.gold,
+            row.redstone,
+            row.lapis,
+            row.diamonds,
+            row.emeralds,
+            row.tech,
+            row.utility,
+            row.production,
+            expected_prestige,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        if mine.rows_affected() != 1 {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+
+        sqlx::query!(
             "INSERT INTO gambling (user_id, coins, gems, stamina)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (user_id) DO UPDATE SET
@@ -81,7 +139,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         .execute(&mut *tx)
         .await?;
 
-        let result2 = sqlx::query!(
+        sqlx::query!(
             "DELETE FROM gambling_inventory
             WHERE user_id = $1;",
             row.user_id,
@@ -89,59 +147,9 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         .execute(&mut *tx)
         .await?;
 
-        let result3 = sqlx::query!(
-            "INSERT INTO gambling_mine (user_id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
-            ON CONFLICT (user_id) DO UPDATE SET
-                miners = EXCLUDED.miners,
-                mines = EXCLUDED.mines,
-                land = EXCLUDED.land,
-                countries = EXCLUDED.countries,
-                continents = EXCLUDED.continents,
-                planets = EXCLUDED.planets,
-                solar_systems = EXCLUDED.solar_systems,
-                galaxies = EXCLUDED.galaxies,
-                universes = EXCLUDED.universes,
-                prestige = EXCLUDED.prestige,
-                coal = EXCLUDED.coal,
-                iron = EXCLUDED.iron,
-                gold = EXCLUDED.gold,
-                redstone = EXCLUDED.redstone,
-                lapis = EXCLUDED.lapis,
-                diamonds = EXCLUDED.diamonds,
-                emeralds = EXCLUDED.emeralds,
-                tech = EXCLUDED.tech,
-                utility = EXCLUDED.utility,
-                production = EXCLUDED.production;",
-                row.user_id,
-                row.miners,
-                row.mines,
-                row.land,
-                row.countries,
-                row.continents,
-                row.planets,
-                row.solar_systems,
-                row.galaxies,
-                row.universes,
-                row.prestige,
-                row.coal,
-                row.iron,
-                row.gold,
-                row.redstone,
-                row.lapis,
-                row.diamonds,
-                row.emeralds,
-                row.tech,
-                row.utility,
-                row.production
-            ).execute(&mut *tx)
-        .await?;
-
         tx.commit().await?;
 
-        result.extend([result2, result3]);
-
-        Ok(result)
+        Ok(true)
     }
 }
 

@@ -66,7 +66,7 @@ loadout render path). Two confirmed/plausible latent defects underneath the
 first-pass structural findings._
 
 ### DS-1. `/destiny2 builds` holds the `RwLock<BotState>` **write** guard across emoji upload + `sleep` (≤50 s) and never defers  ·  #3 (async) + Discord-ack  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 095edd7b`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `src/loadouts/record.rs:93-99` (write guard `let mut data =
   data_lock.write().await;` acquired, held to end of `into_component`) plus the
   ~14 `resolve_emoji(...).await` calls at `record.rs:104-238`; the retry loop
@@ -156,7 +156,7 @@ first-pass structural findings._
 - #6 Tests: three integration files in `tests/`, real round-trip coverage.
 
 ### DS-3. Endgame sheet parse failures silently drop weapons, and `replace` (`TRUNCATE`) makes it destructive → tierlist/perk data erodes as the source sheet drifts  ·  Pass 1 (silent failure) + SQL integrity  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 6514f6fc`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** parser `endgame_analysis/sheet/frame.rs:42-84` (`Frame::from_str`),
   `endgame_analysis/sheet/weapon.rs:238` (`perk 1 cell value`) and
   `weapon.rs:299-306` (`frame parse`); silent-skip at

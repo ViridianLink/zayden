@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use futures::{FutureExt, TryFutureExt};
+use futures::FutureExt;
 use gambling::GamblingManager;
 use serenity::all::{Context, Message};
 use sqlx::{PgPool, Postgres};
@@ -13,7 +13,7 @@ use crate::bindings::gambling::GamblingTable;
 use crate::bindings::levels::LevelsTable;
 use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
-use crate::{BotError, BotState, Result};
+use crate::{BotState, Result};
 
 impl Handler {
     pub async fn message_create(
@@ -32,17 +32,9 @@ impl Handler {
             ticket: &app.settings.ticket,
         };
 
-        let (new_level, ..) = tokio::try_join!(
-            levels::message_create::<Postgres, LevelsTable>(msg, pool)
-                .map_err(BotError::from),
-            llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
-            llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
-            llamad2::CountingFail::run(ctx, msg).map(Result::Ok),
-            Box::pin(support(&ctx.http, msg, stores, pool)),
-            Box::pin(Ai::run(ctx, msg, &app)),
-        )?;
-
-        if let Some(level) = new_level {
+        if let Some(level) =
+            levels::message_create::<Postgres, LevelsTable>(msg, pool).await?
+        {
             let mut tx = pool.begin().await?;
 
             GamblingTable::add_coins(
@@ -54,6 +46,14 @@ impl Handler {
 
             tx.commit().await?;
         }
+
+        let (..) = tokio::try_join!(
+            llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
+            llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
+            llamad2::CountingFail::run(ctx, msg).map(Result::Ok),
+            Box::pin(support(&ctx.http, msg, stores, pool)),
+            Box::pin(Ai::run(ctx, msg, &app)),
+        )?;
 
         Ok(())
     }

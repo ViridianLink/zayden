@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gold_stars (id, number_of_stars, received_stars, last_free_star)\n               VALUES ($1, 1, 1, to_timestamp(0))\n               ON CONFLICT (id) DO UPDATE SET\n                   number_of_stars = gold_stars.number_of_stars + 1,\n                   received_stars = gold_stars.received_stars + 1\n               RETURNING number_of_stars",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "number_of_stars",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "gold_stars",
+            "name": "number_of_stars"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "549e560c33eeb12f0dda262d016681dd38433c8ff1265a26f86430bd5be56765"
+}

@@ -50,7 +50,8 @@ pub trait PrestigeManager<Db: Database> {
     async fn save(
         pool: &Pool<Db>,
         row: PrestigeRow,
-    ) -> sqlx::Result<Db::QueryResult>;
+        expected_prestige: i64,
+    ) -> sqlx::Result<bool>;
 }
 
 #[derive(FromRow, Default)]
@@ -297,25 +298,28 @@ impl Commands {
             ));
         }
 
-        let mut inventory_row =
+        let inventory_row =
             Manager::inventory_items(pool, interaction.user.id).await?;
 
-        Manager::lotto(
-            pool,
-            inventory_row
-                .0
-                .iter()
-                .find(|item| item.item_id == LOTTO_TICKET.id)
-                .map(|item| item.quantity)
-                .unwrap_or_default()
-                .min(100_000),
-            zayden_id,
-        )
-        .await?;
-        prestige_row.do_prestige();
-        inventory_row.do_prestige();
+        let lotto_tickets = inventory_row
+            .0
+            .iter()
+            .find(|item| item.item_id == LOTTO_TICKET.id)
+            .map(|item| item.quantity)
+            .unwrap_or_default()
+            .min(100_000);
 
-        Manager::save(pool, prestige_row).await?;
+        let expected_prestige = prestige_row.prestige;
+        prestige_row.do_prestige();
+
+        let applied = Manager::save(pool, prestige_row, expected_prestige).await?;
+        if !applied {
+            return Err(GamblingError::internal(
+                "prestige already completed - duplicate confirmation ignored",
+            ));
+        }
+
+        Manager::lotto(pool, lotto_tickets, zayden_id).await?;
 
         interaction
             .create_response(

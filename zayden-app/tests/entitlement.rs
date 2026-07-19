@@ -153,8 +153,8 @@ fn discord_grant_maps_remaining_scopes() {
         DiscordProvider::build_grant(1, None, Some(7), None, None, &skus).unwrap();
     assert_eq!(guild.scope, EntitlementScope::Guild(7));
 
-    let both =
-        DiscordProvider::build_grant(2, Some(3), Some(9), None, None, &skus).unwrap();
+    let both = DiscordProvider::build_grant(2, Some(3), Some(9), None, None, &skus)
+        .unwrap();
     assert_eq!(both.scope, EntitlementScope::UserInGuild(3, 9));
 
     // Neither user nor guild -> nothing to grant.
@@ -177,8 +177,9 @@ fn discord_grant_converts_ends_at_to_expiry() {
 fn discord_sku_selects_tier() {
     let skus = HashMap::from([(1001, Tier::Pro), (2002, Tier::Ultra)]);
 
-    let pro = DiscordProvider::build_grant(10, Some(1), None, None, Some(1001), &skus)
-        .expect("grant");
+    let pro =
+        DiscordProvider::build_grant(10, Some(1), None, None, Some(1001), &skus)
+            .expect("grant");
     assert_eq!(pro.tier, Tier::Pro);
 
     let ultra =

@@ -37,8 +37,21 @@ impl Support {
                     id.get(2..id.len().saturating_sub(2)).unwrap_or(&id).to_string();
                 Some(CreateSelectMenuOption::new(label, index.to_string()))
             })
+            .take(25)
             .collect::<Vec<_>>()
             .await;
+
+        if menu_options.is_empty() {
+            interaction
+                .edit_response(
+                    http,
+                    EditInteractionResponse::new()
+                        .content("There are no FAQ entries to list yet."),
+                )
+                .await?;
+
+            return Ok(());
+        }
 
         interaction
             .edit_response(

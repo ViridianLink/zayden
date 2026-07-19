@@ -6,7 +6,6 @@ use gambling::commands::goals::GoalsRow;
 use gambling::{Commands, GamblingGoalsRow, GoalsManager};
 use jiff_sqlx::Date;
 use serenity::all::{CreateCommand, UserId};
-use sqlx::postgres::PgQueryResult;
 use sqlx::{PgPool, Postgres};
 use zayden_core::as_i64;
 use zayden_core::ctx::InvocationCtx;
@@ -47,18 +46,25 @@ impl DailyManager<Postgres> for DailyTable {
         .await
     }
 
-    async fn save(pool: &PgPool, row: &DailyRow) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, gems, daily)
-            VALUES ($1, $2, $3, now())
+    async fn claim_daily(
+        pool: &PgPool,
+        id: UserId,
+        amount: i64,
+    ) -> sqlx::Result<bool> {
+        let result = sqlx::query!(
+            "INSERT INTO gambling (user_id, coins, daily)
+            VALUES ($1, $2, (now() AT TIME ZONE 'UTC')::date)
             ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems, daily = EXCLUDED.daily;",
-            row.user_id,
-            row.coins,
-            row.gems,
+                coins = gambling.coins + $2,
+                daily = (now() AT TIME ZONE 'UTC')::date
+            WHERE gambling.daily <> (now() AT TIME ZONE 'UTC')::date",
+            as_i64(id.get()),
+            amount,
         )
         .execute(pool)
-        .await
+        .await?;
+
+        Ok(result.rows_affected() == 1)
     }
 }
 

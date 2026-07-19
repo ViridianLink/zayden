@@ -36,6 +36,19 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity. Instance of
 `save_row` upsert (`bot/src/bindings/gold_star.rs:82-100`)._
 
 ### DS-1. `/give_star` read-modify-write races → star mint, loss, and free-star cap bypass  ·  Pass 2  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19):** Replaced the read-mutate-two-absolute-saves flow with a
+  single transactional `GoldStarManager::give_star` (`bot/src/bindings/gold_star.rs`).
+  It ensures the author row exists, takes a `FOR UPDATE` lock on it, decides
+  free-vs-paid in SQL (`last_free_star + INTERVAL '24 hours' <= now()`), spends the
+  star with a guarded atomic write (`number_of_stars = number_of_stars - 1 WHERE
+  number_of_stars >= 1`, `rows_affected == 1` asserted) or sets `last_free_star =
+  now()` for a free star, then credits the target with an atomic `+ 1` upsert,
+  returning the target's new total. This closes all three sub-races (author mint,
+  target lost-update, free-star cap bypass). The command no longer reads/mutates
+  rows in memory; the unused absolute `save_row`/in-memory mutators were removed.
+  (New `query!` macros also retire the CC-5 runtime SQL in `save_row`; the `get_row`
+  `SELECT` remains runtime-SQL under finding #1/CC-5.)
 - **Where:** `bot-modules/gold-star/src/commands/give_star.rs:40-66`;
   `GoldStarRow::give_star`/`give_free_star`
   (`bot-modules/gold-star/src/manager.rs:35-49`); absolute upsert in

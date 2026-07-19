@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gold_stars SET number_of_stars = number_of_stars - 1, given_stars = given_stars + 1 WHERE id = $1 AND number_of_stars >= 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d0ec95a61a5e0a3ff8a02f3e78656a2d30113c05f283189672369e959e6a75a2"
+}

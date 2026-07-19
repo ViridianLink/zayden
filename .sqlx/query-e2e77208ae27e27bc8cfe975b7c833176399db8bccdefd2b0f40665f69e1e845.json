@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gold_stars (id, last_free_star) VALUES ($1, to_timestamp(0)) ON CONFLICT (id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e2e77208ae27e27bc8cfe975b7c833176399db8bccdefd2b0f40665f69e1e845"
+}

@@ -67,9 +67,7 @@ pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
         .await?;
 
     if let Some(kind) = revoke_previous_owner(previous_owner, target) {
-        channel_id
-            .delete_permission(http, kind, Some("Channel transfered"))
-            .await?;
+        channel_id.delete_permission(http, kind, Some("Channel transfered")).await?;
     }
 
     Ok("Transferred channel.".to_string())

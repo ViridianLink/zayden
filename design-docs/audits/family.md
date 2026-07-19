@@ -40,7 +40,7 @@ modules (CC-2), which is both a convention violation and effectively no
 _Deep sweep: 2026-07-17 · lenses: silent-failure, state-machine/invariant, concurrency._
 
 ### DS-1. `/block` is never enforced and `/unblock` never persists → entire block feature is inert  ·  Pass 1+7  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — d2d05898`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot/src/bindings/family.rs:206-277` (`FamilyTable::save` — additive
   `INSERT … ON CONFLICT DO NOTHING`, no `DELETE` for blocks);
   `bot-modules/family/src/commands/block.rs:53-79` (`Unblock::run` →

@@ -39,6 +39,8 @@ fn revoke_targets_the_previous_owner_not_the_new_one() {
 
     match revoke_previous_owner(previous, new) {
         Some(PermissionOverwriteType::Member(id)) => assert_eq!(id, previous),
-        other => panic!("expected the previous owner's member overwrite, got {other:?}"),
+        other => {
+            panic!("expected the previous owner's member overwrite, got {other:?}")
+        },
     }
 }

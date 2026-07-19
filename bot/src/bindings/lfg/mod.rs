@@ -97,6 +97,10 @@ impl PostManager<Postgres> for PostTable {
 
         let mut tx = pool.begin().await?;
 
+        sqlx::query_file!("sql/lfg/PostManager/lock_post.sql", as_i64(id.get()))
+            .fetch_optional(&mut *tx)
+            .await?;
+
         sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/join.sql",

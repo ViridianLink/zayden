@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling_mine SET\n                miners = $2,\n                mines = $3,\n                land = $4,\n                countries = $5,\n                continents = $6,\n                planets = $7,\n                solar_systems = $8,\n                galaxies = $9,\n                universes = $10,\n                prestige = $11,\n                coal = $12,\n                iron = $13,\n                gold = $14,\n                redstone = $15,\n                lapis = $16,\n                diamonds = $17,\n                emeralds = $18,\n                tech = $19,\n                utility = $20,\n                production = $21\n            WHERE user_id = $1 AND prestige = $22;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "278ea5210eb173a5e436bec42f9878846d64c9f96708b3d792038a1d70588554"
+}

@@ -72,6 +72,16 @@ that no per-crate audit could see, because both live in the glue between a modul
 crate and its binding — exactly the blind spot CC-1/CC-9 describe._
 
 ### DS-1. Level-up coin reward is a second transaction after XP is already committed → reward silently lost  ·  Pass 1 (silent failure) / SQL atomicity  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19):** Pulled `levels::message_create` out of the `try_join!` and
+  run it (plus the `add_coins` reward) **before** the fallible siblings
+  (`Ai`/`support`/`llamad2`). Since the level is committed inside
+  `message_create`, running it first makes the reward happen-before any sibling
+  that can error, so a sibling failure can no longer short-circuit and drop an
+  earned level-up reward. **Residual (documented in code):** the XP save and the
+  reward are still two transactions, so a failure of the reward's own `commit`
+  after XP is saved still drops it — closing that needs folding the reward into
+  `message_create`'s transaction (a levels/gambling refactor, cf. CC-1).
 - **Where:** `bot/src/handler/message_create.rs:35-56`.
 - **What:** `levels::message_create` (inside the `tokio::try_join!` at :35)
   persists the new XP **and the incremented level** to its own row via

@@ -115,6 +115,11 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   `rows_affected == 1`, all in one tx. **Confidence: confirmed.**
 
 ### DS-3. Prestige→lotto `ON CONFLICT` computes `2×tickets` and discards the pool  ·  Pass 4+9  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19):** `lotto.sql` upsert now reads the existing pool row —
+  `SET quantity = gambling_inventory.quantity + $3` (mirrors `add_coins.sql`'s
+  `coins = gambling.coins + $2`) instead of `EXCLUDED.quantity + $3` (= `$3 + $3`,
+  which ignored the accumulated pool and wiped/doubled it).
 - **Where:** `bot/sql/gambling/PrestigeManager/lotto.sql` (used by
   `bot/src/bindings/gambling/prestige.rs:53-66`, called from
   `bot-modules/gambling/src/commands/prestige.rs:303-314`).
@@ -138,6 +143,24 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   upsert).
 
 ### DS-4. `confirm_prestige` button has no double-submit idempotency  ·  Pass 2  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19):** Took the finding's second suggested fix (optimistic
+  concurrency), which is race-safe where "ack-first" is not. `PrestigeManager::
+  save` now takes the pre-increment `expected_prestige` and its `gambling_mine`
+  write is a guarded `UPDATE ... SET prestige = N+1, … WHERE user_id = $1 AND
+  prestige = $expected` (plain UPDATE, not an upsert — reaching confirm requires
+  an existing mine row, so a 0-row result is a lost race, not a missing row). It
+  returns `bool`; on `rows_affected != 1` the transaction is rolled back (so the
+  coins/inventory writes never land) and `false` is returned. `confirm_prestige`
+  now (a) captures the lotto-ticket count *before* the write clears the inventory,
+  (b) calls `save` first, and (c) only calls `Manager::lotto(...)` when `save`
+  returned `true`. A same-tick double-click: both pass the stale miner check, both
+  compute `prestige = N+1`, but only the first `UPDATE` matches (`prestige = N`);
+  the second matches 0 rows → rolls back → returns a stale-confirmation error and
+  **never contributes to the lotto pool a second time**. **Residual:** `lotto` and
+  `save` remain separate transactions (a `lotto` failure after a committed `save`
+  loses that one contribution) — folding both into one tx is CC-1 work. No
+  regression test (concurrency + DB, no lib target — see gold-star/lfg DS-1).
 - **Where:** `bot-modules/gambling/src/commands/prestige.rs:269-333`;
   routing at `bot/src/bindings/gambling/prestige.rs:214-223`.
 - **What:** The confirm handler re-reads the row and re-checks `miners >=
@@ -158,7 +181,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   (requires holding lotto tickets *and* a same-tick double click).
 
 ### DS-5. `bet` decrement has no `WHERE coins >= bet` guard → overdraft via cross-command race  ·  Pass 2+4  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 3a58df90`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot/sql/gambling/GamblingManager/bet.sql`
   (`UPDATE gambling SET coins = coins - $2 WHERE user_id = $1` — no balance
   floor); called from the wager games, e.g.
@@ -183,7 +206,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   confirmed** for the missing guard; **plausible** for the specific interleave.
 
 ### DS-6. Lotto cron rebuilds `WeightedIndex` after the *final* pick → whole draw rolls back at exactly 3 participants  ·  Pass 5  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — a6b211ca`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/gambling/src/games/lotto.rs:110-125` (winner loop),
   error/rollback path at `:189-193`.
 - **What:** The winner loop iterates over the 3 prize shares
@@ -231,6 +254,21 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   atomic `add_coins` (DS-1, DS-2) or a shared pool (DS-3/DS-4).
 
 ### DS-7. `daily` / `work` are further CC-9 whole-row absolute-overwrite sites (lost concurrent update)  ·  Pass 2  ·  low-med
+- **Status:** `in-review` (partial — `daily` fixed, `work` deferred)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19, `daily`):** `DailyManager::save` (whole-row absolute upsert)
+  replaced with `DailyManager::claim_daily`, a single guarded atomic upsert —
+  `INSERT … ON CONFLICT DO UPDATE SET coins = gambling.coins + $2, daily = today
+  WHERE gambling.daily <> today`. `rows_affected == 0` ⇒ already claimed today, so
+  the command now also rejects a same-tick double-submit (previously only the
+  in-memory date read guarded it). Closes both the lost-update and the residual
+  double-credit window for `daily`.
+- **`work` deferred:** the `work` path interleaves `Dispatch::fire` (which mutates
+  the row mid-flow), stamina bookkeeping (`verify_work`/`done_work`), gem rolls, and
+  `mine_activity` before a single absolute `save`. A correct atomic conversion needs
+  per-field deltas **and** a guarded stamina decrement (its own floor race, cf.
+  DS-5) — i.e. the [CC-1](_cross-cutting.md#cc-1) concrete-`PgPool` refactor of the
+  module, not a surgical patch. Left as-is to avoid a subtle regression in the most
+  complex module; fold it in with the CC-1 migration.
 - **Where:** `bot-modules/gambling/src/commands/daily.rs:114-129` and
   `commands/work.rs:~160-176` — `row = *_row()` → mutate `coins`/`gems` in memory →
   `Manager::save(pool, &row)` (whole-row absolute upsert).

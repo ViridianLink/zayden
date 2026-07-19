@@ -51,6 +51,13 @@ state transitions.
 _Deep sweep: 2026-07-17 · lens: Discord-API correctness (component limits)._
 
 ### DS-1. `/support list` builds a select menu from **every** FAQ message → breaks past 25 options  ·  Pass 3  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19):** `.take(25)` the filtered option stream (also stops the
+  full-channel pagination early) and short-circuit with a friendly notice when the
+  option set is empty (a 0-option menu is likewise rejected). The `enumerate`
+  index used as the option `value` is unchanged, so the follow-up handler's
+  index→message mapping still holds. The value-stability fragility (Secondary)
+  is left as-is per CC-8's move-to-dashboard direction.
 - **Where:** `bot-modules/ticket/src/slash_commands/support/list.rs:29-51`.
 - **What:** `menu_options` is built by paginating the whole FAQ channel
   (`faq_channel_id.widen().messages_iter(http)`) and mapping **every** message to a

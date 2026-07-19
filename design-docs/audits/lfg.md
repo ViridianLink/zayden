@@ -48,6 +48,21 @@ best migration reference alongside temp-voice.
 _Deep sweep: 2026-07-17 · lens: concurrency/atomicity._
 
 ### DS-1. Fireteam capacity race → post overfills past `fireteam_size`  ·  Pass 2  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-19):** `join` now takes a `SELECT id FROM lfg_posts WHERE id = $1
+  FOR UPDATE` row lock (`sql/lfg/PostManager/lock_post.sql`) as the first
+  statement of its transaction, before the fireteam `INSERT` and the aggregate
+  re-read (`bot/src/bindings/lfg/mod.rs:100-102`). Same-tick joins on one post now
+  serialise on that row lock: the second waiter blocks until the first commits,
+  then its `post_row` re-read sees the peer's committed insert and the existing
+  `fireteam_len() > fireteam_size()` guard correctly rejects the overfill.
+- **Test note:** No fails-before/passes-after regression test was added — it is not
+  feasible in-workspace. The fix is a pure transaction-serialisation change with no
+  new pure-logic surface (the capacity predicate was already correct and is
+  unchanged), so it can only be exercised by two concurrent live transactions. The
+  `join` impl lives in the `bot` binary (no lib target — see CC-2), unreachable from
+  an integration test, and the workspace has no DB test harness (CC-6). Verified
+  instead by live compile-time SQL validation + workspace clippy/test gate.
 - **Where:** `bot/src/bindings/lfg/mod.rs:89-125` (`join`), SQL
   `sql/lfg/PostManager/join.sql` + `post_row.sql`; command path
   `bot-modules/lfg/src/actions/join.rs:68`,

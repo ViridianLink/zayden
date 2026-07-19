@@ -15,6 +15,10 @@ impl ReactionRoleReaction {
         Db: sqlx::Database,
         Manager: ReactionRolesManager<Db>,
     {
+        if reaction.member.as_ref().is_some_and(|member| member.user.bot()) {
+            return Ok(());
+        }
+
         let emoji_string = reaction.emoji.to_string();
         let reaction_role =
             Manager::row(pool, reaction.message_id, &emoji_string).await?;
@@ -44,6 +48,10 @@ impl ReactionRoleReaction {
         Db: sqlx::Database,
         Manager: ReactionRolesManager<Db>,
     {
+        if reaction.member.as_ref().is_some_and(|member| member.user.bot()) {
+            return Ok(());
+        }
+
         let reaction_role =
             Manager::row(pool, reaction.message_id, &reaction.emoji.to_string())
                 .await?;

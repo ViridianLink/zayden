@@ -51,7 +51,7 @@ test module.
 _Deep sweep: 2026-07-17 · lens: cache-invalidation / state integrity._
 
 ### DS-1. `grant` writes the granted tier to the cache row, not the scope's aggregate max → silent downgrade  ·  Pass 7  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 0150d39d`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `src/entitlement/service.rs:100` (`grant` →
   `refresh_cache_row(&scope, tier)`) vs. `:124`,`:149`,`:331` (`revoke` /
   expiry sweep → `refresh_cache_row_from_db`, which recomputes the aggregate

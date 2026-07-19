@@ -60,7 +60,7 @@ no coverage of the `actions` layer where the M4 permission re-checks live.
 _Deep sweep: 2026-07-17 · lenses: state-machine/authz, concurrency._
 
 ### DS-1. `claim`/`transfer` never revoke the previous owner's permission overwrite  ·  Pass 7/8  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 08ffb320`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/temp-voice/src/actions/ownership.rs:33-38` (`claim`),
   `:53-58` (`transfer`). Both call `create_permission(.., owner_perms(new))` but
   there is **no** matching `delete_permission` for the old owner (grep confirms
