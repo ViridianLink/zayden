@@ -175,3 +175,11 @@ pub fn owner_perms(user: UserId) -> PermissionOverwrite {
         kind: PermissionOverwriteType::Member(user),
     }
 }
+
+#[must_use]
+pub fn revoke_previous_owner(
+    previous: UserId,
+    new: UserId,
+) -> Option<PermissionOverwriteType> {
+    (previous != new).then_some(PermissionOverwriteType::Member(previous))
+}

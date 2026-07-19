@@ -9,6 +9,7 @@ use crate::{
     VoiceChannelRow,
     VoiceStateCache,
     owner_perms,
+    revoke_previous_owner,
 };
 
 pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
@@ -30,12 +31,18 @@ pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
         return Err(TempVoiceError::OwnerInChannel);
     }
 
+    let previous_owner = row.owner_id();
+
     row.set_owner(user_id);
     row.save::<Db, Manager>(pool).await?;
 
     channel_id
         .create_permission(http, owner_perms(user_id), Some("Channel claimed"))
         .await?;
+
+    if let Some(kind) = revoke_previous_owner(previous_owner, user_id) {
+        channel_id.delete_permission(http, kind, Some("Channel claimed")).await?;
+    }
 
     Ok("Claimed channel.".to_string())
 }
@@ -50,12 +57,20 @@ pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
 ) -> Result<String> {
     require_owner(&row, user_id)?;
 
+    let previous_owner = row.owner_id();
+
     row.set_owner(target);
     row.save::<Db, Manager>(pool).await?;
 
     channel_id
         .create_permission(http, owner_perms(target), Some("Channel transfered"))
         .await?;
+
+    if let Some(kind) = revoke_previous_owner(previous_owner, target) {
+        channel_id
+            .delete_permission(http, kind, Some("Channel transfered"))
+            .await?;
+    }
 
     Ok("Transferred channel.".to_string())
 }
