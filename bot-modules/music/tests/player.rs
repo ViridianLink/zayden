@@ -41,6 +41,35 @@ fn untouched_generation_is_not_stale() {
 }
 
 #[test]
+fn try_begin_start_reserves_the_idle_transition_exactly_once() {
+    // DS-2 regression: two concurrent first-`/play` interactions on an idle
+    // player both observed `current.is_none() == true` and both started a track
+    // (overlapping audio + orphaned handle + double queue-advance). The atomic
+    // reservation must let only the first caller start.
+    let mut player = GuildPlayer::new(GenericChannelId::new(1), 100);
+
+    assert!(player.try_begin_start(), "first idle caller should start playback");
+    assert!(
+        !player.try_begin_start(),
+        "second concurrent caller must enqueue only while a start is reserved"
+    );
+}
+
+#[test]
+fn finish_start_releases_the_reservation_for_a_later_idle_start() {
+    // A start that fails (e.g. a resolve/stream error) must release the
+    // reservation so a subsequent `/play` on the still-idle player can start.
+    let mut player = GuildPlayer::new(GenericChannelId::new(1), 100);
+
+    assert!(player.try_begin_start());
+    player.finish_start();
+    assert!(
+        player.try_begin_start(),
+        "reservation should be reusable after finish_start"
+    );
+}
+
+#[test]
 fn advance_queue_loop_off_pops_next_and_drops_finished() {
     let mut player = GuildPlayer::new(GenericChannelId::new(1), 100);
     player.queue.push(track("b"));

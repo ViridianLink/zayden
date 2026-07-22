@@ -74,7 +74,7 @@ pub(super) async fn enqueue(
 
     let (should_start, generation, position) = {
         let mut guard = player.lock().await;
-        let should_start = guard.current.is_none();
+        let should_start = guard.try_begin_start();
         if at_top {
             guard.queue.insert_top(track.clone());
         } else {
@@ -92,7 +92,7 @@ pub(super) async fn enqueue(
         let mut guard = player.lock().await;
         guard.queue.pop_front()
     };
-    if let Some(next) = next {
+    let start_result = if let Some(next) = next {
         voice::start_playback(
             &ctx.songbird,
             &ctx.music,
@@ -101,8 +101,16 @@ pub(super) async fn enqueue(
             generation,
             next,
         )
-        .await?;
+        .await
+    } else {
+        Ok(())
+    };
+
+    {
+        let mut guard = player.lock().await;
+        guard.finish_start();
     }
+    start_result?;
 
     let guard = player.lock().await;
     let embed = guard.current.as_ref().map_or_else(

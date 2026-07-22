@@ -26,6 +26,7 @@ pub struct GuildPlayer {
     pub generation: u64,
     pub idle_since: Option<Instant>,
     pub periodic_registered: bool,
+    pub starting: bool,
 }
 
 impl GuildPlayer {
@@ -42,7 +43,20 @@ impl GuildPlayer {
             generation: 0,
             idle_since: None,
             periodic_registered: false,
+            starting: false,
         }
+    }
+
+    pub const fn try_begin_start(&mut self) -> bool {
+        if self.current.is_some() || self.starting {
+            return false;
+        }
+        self.starting = true;
+        true
+    }
+
+    pub const fn finish_start(&mut self) {
+        self.starting = false;
     }
 
     pub fn advance(&mut self) -> Option<ResolvedTrack> {
