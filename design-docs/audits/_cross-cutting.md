@@ -73,11 +73,13 @@ served by the website — and two `setup` commands already duplicate its writes.
 
 ### CC-3. `#[expect(...)]` lint escape-hatches  ·  #7 / #2  ·  low–med
 
-- **Where (23 sites):** `bot/src/handler/mod.rs:121`,
+- **Where (22 sites):** `bot/src/handler/mod.rs:121`,
   `bot/src/bindings/gambling/{goals,daily,dig,work}.rs`,
   `bot/src/bindings/lfg/mod.rs:159,189`, `bot/src/bindings/levels/mod.rs:105`,
   `bot/src/bindings/temp_voice/mod.rs:132`,
-  `bot/src/bindings/moderation/infraction.rs:210` (`#[allow(clippy::too_many_arguments)]`),
+  (~~`bot/src/bindings/moderation/infraction.rs:210`~~ `#[allow(clippy::too_many_arguments)]`
+  **removed** in the bot DS-2 revival — the args were bundled into a `Case`
+  struct; this was also uncompiled dead code at the time it was inventoried),
   `bot-modules/music/src/embeds.rs:50`, `bot-modules/gambling/src/utils.rs:85`,
   `bot-modules/gambling/src/models/mod.rs:74`,
   `bot-modules/gambling/src/commands/tictactoe.rs:136,151,175,182`,

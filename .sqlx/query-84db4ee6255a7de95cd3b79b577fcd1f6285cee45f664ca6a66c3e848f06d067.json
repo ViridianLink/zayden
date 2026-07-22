@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO infractions\n                (user_id, username, guild_id, infraction_type,\n                 moderator_id, moderator_username, points, reason)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Varchar",
+        "Int8",
+        {
+          "Custom": {
+            "name": "infraction_kind",
+            "kind": {
+              "Enum": [
+                "Warn",
+                "Mute",
+                "Kick",
+                "SoftBan",
+                "Ban"
+              ]
+            }
+          }
+        },
+        "Int8",
+        "Varchar",
+        "Int4",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "84db4ee6255a7de95cd3b79b577fcd1f6285cee45f664ca6a66c3e848f06d067"
+}

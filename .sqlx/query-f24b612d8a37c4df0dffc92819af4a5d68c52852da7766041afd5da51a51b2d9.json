@@ -1,0 +1,125 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                    id,\n                    user_id,\n                    username,\n                    infraction_type AS \"infraction_type: InfractionKind\",\n                    moderator_id,\n                    moderator_username,\n                    points,\n                    reason\n                FROM infractions\n                WHERE user_id = $1\n                    AND created_at > now() - INTERVAL '6 months'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "username",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "username"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "infraction_type: InfractionKind",
+        "type_info": {
+          "Custom": {
+            "name": "infraction_kind",
+            "kind": {
+              "Enum": [
+                "Warn",
+                "Mute",
+                "Kick",
+                "SoftBan",
+                "Ban"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "infraction_type"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "moderator_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "moderator_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "moderator_username",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "moderator_username"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "points",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "points"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "reason",
+        "type_info": "Varchar",
+        "origin": {
+          "Table": {
+            "table": "infractions",
+            "name": "reason"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f24b612d8a37c4df0dffc92819af4a5d68c52852da7766041afd5da51a51b2d9"
+}

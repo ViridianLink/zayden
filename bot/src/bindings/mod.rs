@@ -13,6 +13,7 @@ pub mod lfg;
 pub mod llamad2;
 pub mod marathon;
 pub mod misc;
+pub mod moderation;
 pub mod music;
 pub mod palworld;
 pub mod reaction_roles;
@@ -34,6 +35,7 @@ pub fn build_registry(
     llamad2::register(&mut builder, llamad2_guild);
     marathon::register(&mut builder);
     misc::register(&mut builder);
+    moderation::register(&mut builder);
     palworld::register(&mut builder)?;
     music::register(&mut builder)?;
     ticket::register(&mut builder)?;

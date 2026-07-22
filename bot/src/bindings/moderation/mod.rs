@@ -1,114 +1,28 @@
-use core::SlashCommand;
 use std::fmt::Display;
 
-use chrono::NaiveDateTime;
-pub use infraction::Infraction;
-pub use logs::Logs;
-pub use rules::RulesCommand;
-use serenity::all::{Context, CreateCommand, GuildId, Ready, User, UserId};
-use sqlx::postgres::PgQueryResult;
-use sqlx::{FromRow, PgPool};
+use serenity::all::UserId;
+use sqlx::PgPool;
 use zayden_core::as_i64;
 
-use crate::Result;
+use crate::RegistryBuilder;
 
 mod infraction;
-mod infraction_kind;
-mod infraction_row;
 mod logs;
 mod rules;
 
+use infraction::Infraction;
+use logs::Logs;
+use rules::RulesCommand;
+
 pub(crate) const NO_REASON: &str = "No reason provided.";
 
-pub fn register(ctx: &Context, ready: &Ready) -> Result<Vec<CreateCommand>> {
-    let commands = vec![
-        Infraction::register(ctx, ready)?,
-        Logs::register(ctx, ready)?,
-        RulesCommand::register(ctx, ready)?,
-    ];
-
-    Ok(commands)
-}
-
-#[derive(FromRow)]
-pub struct InfractionRow {
-    pub id: i32,
-    pub user_id: i64,
-    pub username: String,
-    pub guild_id: i64,
-    pub infraction_type: InfractionKind,
-    pub moderator_id: i64,
-    pub moderator_username: String,
-    pub points: i32,
-    pub reason: String,
-    pub created_at: NaiveDateTime,
-}
-
-impl InfractionRow {
-    fn new(
-        user_id: UserId,
-        username: impl Into<String>,
-        guild_id: GuildId,
-        infraction_kind: InfractionKind,
-        moderator: &User,
-        points: i32,
-        reason: impl Into<String>,
-    ) -> Result<Self> {
-        Ok(Self {
-            id: 0,
-            user_id: as_i64(user_id.get()),
-            username: username.into(),
-            guild_id: as_i64(guild_id.get()),
-            infraction_type: infraction_kind,
-            moderator_id: as_i64(moderator.id.get()),
-            moderator_username: moderator.name.clone(),
-            points,
-            reason: reason.into(),
-            created_at: chrono::Utc::now().naive_utc(),
-        })
-    }
-
-    async fn user_infractions(
-        pool: &PgPool,
-        user_id: UserId,
-        recent: bool,
-    ) -> Result<Vec<InfractionRow>> {
-        let user_id = as_i64(user_id.get());
-
-        let infractions = if recent {
-            sqlx::query_as!(
-                InfractionRow,
-                "SELECT * FROM infractions WHERE user_id = $1 AND created_at > CURRENT_DATE - INTERVAL '6 months'",
-                user_id
-            ).fetch_all(pool).await?
-        } else {
-            sqlx::query_as!(
-                InfractionRow,
-                "SELECT * FROM infractions WHERE user_id = $1",
-                user_id
-            )
-            .fetch_all(pool)
-            .await?
-        };
-
-        Ok(infractions)
-    }
-
-    async fn create(&self, pool: &PgPool) -> Result<PgQueryResult> {
-        let result = sqlx::query!(
-            "INSERT INTO infractions (user_id, username, guild_id, infraction_type, moderator_id, moderator_username, points, reason) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            self.user_id, self.username, self.guild_id, self.infraction_type, self.moderator_id, self.moderator_username, self.points, self.reason
-        )
-            .execute(pool)
-            .await?;
-
-        Ok(result)
-    }
+pub fn register(builder: &mut RegistryBuilder) {
+    builder.add_command(Infraction).add_command(Logs).add_command(RulesCommand);
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "infraction_kind")]
-enum InfractionKind {
+pub(crate) enum InfractionKind {
     Warn,
     Mute,
     Kick,
@@ -118,13 +32,73 @@ enum InfractionKind {
 
 impl Display for InfractionKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let str = match self {
-            InfractionKind::Warn => "Warn",
-            InfractionKind::Mute => "Mute",
-            InfractionKind::Kick => "Kick",
-            InfractionKind::SoftBan => "SoftBan",
-            InfractionKind::Ban => "Ban",
+        let s = match self {
+            Self::Warn => "Warn",
+            Self::Mute => "Mute",
+            Self::Kick => "Kick",
+            Self::SoftBan => "SoftBan",
+            Self::Ban => "Ban",
         };
-        write!(f, "{}", str)
+        f.write_str(s)
+    }
+}
+
+pub(crate) struct InfractionRow {
+    pub id: i32,
+    pub user_id: i64,
+    pub username: String,
+    pub infraction_type: InfractionKind,
+    pub moderator_id: i64,
+    pub moderator_username: String,
+    pub points: i32,
+    pub reason: String,
+}
+
+impl InfractionRow {
+    pub(crate) async fn user_infractions(
+        pool: &PgPool,
+        user_id: UserId,
+        recent: bool,
+    ) -> sqlx::Result<Vec<Self>> {
+        let user_id = as_i64(user_id.get());
+
+        if recent {
+            sqlx::query_as!(
+                InfractionRow,
+                r#"SELECT
+                    id,
+                    user_id,
+                    username,
+                    infraction_type AS "infraction_type: InfractionKind",
+                    moderator_id,
+                    moderator_username,
+                    points,
+                    reason
+                FROM infractions
+                WHERE user_id = $1
+                    AND created_at > now() - INTERVAL '6 months'"#,
+                user_id
+            )
+            .fetch_all(pool)
+            .await
+        } else {
+            sqlx::query_as!(
+                InfractionRow,
+                r#"SELECT
+                    id,
+                    user_id,
+                    username,
+                    infraction_type AS "infraction_type: InfractionKind",
+                    moderator_id,
+                    moderator_username,
+                    points,
+                    reason
+                FROM infractions
+                WHERE user_id = $1"#,
+                user_id
+            )
+            .fetch_all(pool)
+            .await
+        }
     }
 }

@@ -19,12 +19,14 @@ tests (no lib target).
 - **Where:** `src/handler/mod.rs:121`,
   `src/bindings/gambling/{goals,daily,dig,work}.rs`,
   `src/bindings/lfg/mod.rs:159,189`, `src/bindings/levels/mod.rs:105`,
-  `src/bindings/temp_voice/mod.rs:132`,
-  `src/bindings/moderation/infraction.rs:210`
-  (`#[allow(clippy::too_many_arguments)]`).
+  `src/bindings/temp_voice/mod.rs:132`.
+  (The former `src/bindings/moderation/infraction.rs:210`
+  `#[allow(clippy::too_many_arguments)]` is **gone** as of the DS-2 revival —
+  the infraction fields were bundled into a `Case` struct, exactly the refactor
+  suggested below.)
 - **What / Why / Fix:** See [CC-3](_cross-cutting.md#cc-3). The
-  `too_many_arguments` on the infraction writer is the clearest refactor target
-  (bundle the infraction fields into a struct).
+  `too_many_arguments` on the infraction writer was the clearest refactor target
+  (bundle the infraction fields into a struct) — now done.
 
 ### 2. Inline `#[cfg(test)]` module  ·  #6  ·  med
 - **Where:** `src/registry/dispatch_map.rs:103`.
@@ -60,8 +62,9 @@ tests (no lib target).
 - #1 Architecture: `bindings/` per-module, `handler/`, `registry/`, `cron.rs`
   cleanly separated; `ModuleComponent`/`ModuleModal` routing consistent.
 - #1 DB access: bindings use compile-time macros (except `gold_star.rs`, CC-5).
-- #2 Dead code (moderation): M2 landed `InfractionKind` (`sqlx::Type`),
-  `NO_REASON` const, and the `LogFilter` enum — the magic-string cleanup is done.
+- #2 Moderation (`InfractionKind` `sqlx::Type`, `NO_REASON`, `LogFilter`) — the
+  magic-string cleanup is done, and as of the DS-2 revival the tree is **live**
+  (registered via `moderation::register`), no longer dead code.
 - #4 Stringly typing: mostly typed; residual `custom_id.as_str()` routing in
   `bindings/gambling/{prestige,blackjack}.rs` (CC-7).
 
@@ -109,6 +112,46 @@ crate and its binding — exactly the blind spot CC-1/CC-9 describe._
   the reward *before* the fallible siblings, or make it idempotent/retryable.
 
 ### DS-2. Entire `bindings/moderation/` tree is orphaned → moderation is a dead feature (and 3 latent bugs hide in it)  ·  Pass 9 (drift) / #2  ·  med
+- **Status:** `in-review` (revived)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Decision (2026-07-20):** **Revive**, not delete (owner's call). The tree is
+  now a live feature on the current convention.
+- **Fix (2026-07-20):** Rewrote the whole tree against the current API and wired
+  it in. Specifically:
+  - **Migrated** `Infraction`/`Logs`/`RulesCommand` from the obsolete
+    `core::SlashCommand<Error, Postgres>` trait (which no longer exists — the
+    cause of the "cannot compile" note) to `ModuleCommand` + `InvocationCtx` +
+    `HandlerError`, using concrete `PgPool` (`cx.app.db`) — no DB-generic
+    manager, so it sidesteps CC-1 entirely.
+  - **Registered** it: added `pub mod moderation;` and
+    `moderation::register(&mut builder);` to `bot/src/bindings/mod.rs`, and
+    changed `register` to the `builder.add_command(..)` form. `/infraction`,
+    `/logs`, `/rules` now dispatch (no command-name collision — verified).
+  - **Dropped `chrono`:** the six-month recency window is now a SQL predicate
+    (`created_at > now() - INTERVAL '6 months'`) instead of in-Rust `NaiveDateTime`
+    math; timeouts use serenity's `Timestamp` (no new dep, so `cargo machete`
+    N/A). Deleted the two empty placeholder files (`infraction_kind.rs`,
+    `infraction_row.rs`).
+  - **Fixed the 3 latent bugs:** (1) `mute()` now records `InfractionKind::Mute`
+    (was `Ban`); (2) the reachable `unreachable!()` is gone — the escalation
+    count is `clamp(1, 5)` and the `points` option has `min_int_value(1)`, and
+    the match uses `..=1`/`_` arms so no panic path exists; (3) `ban()` applies
+    the ban regardless of DMs — the notify DM is now best-effort (`let _ =`)
+    instead of `?`-propagated, so a user who blocks server-member DMs can still
+    be banned (all three actions now DM best-effort, resolving the ordering
+    inconsistency).
+  - **Removed the CC-3 `#[allow(too_many_arguments)]`:** the action helpers take
+    a single `Case<'_>` struct (bundling ctx/pool/guild/target/moderator/points/
+    reason). Also corrected this file's Finding #1 and Clean §#2, and CC-3's
+    inventory, which described the tree as live/dead-code.
+  - **New `.sqlx` entries:** the 2 `user_infractions` SELECTs + the `record`
+    INSERT (plain queries, no LEFT JOIN → no nullability drift).
+  - **Verification:** compiles live + offline; workspace clippy `-D warnings`
+    clean (the `Case` bundling means **no new `#[allow]`**); 257 tests pass.
+    No new tests — the commands are thin Discord-action wrappers with no
+    pure-logic surface, and `bot` has no lib target to host integration tests
+    (CC-2). **Residual:** the hardcoded College-Kings `CHANNEL_ID`/`MESSAGE_ID`
+    in `/rules` are pre-existing magic values (own finding, not DS-2); `Kick`/
+    `SoftBan` remain defined-but-unused enum variants (no command emits them).
 - **Where:** `bot/src/bindings/moderation/*` — never `mod`-declared in
   `bot/src/bindings/mod.rs:6-22` (which lists every *other* binding). Nothing in
   `bot/src` references `moderation` outside that directory, and its
