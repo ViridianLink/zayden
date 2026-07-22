@@ -125,3 +125,42 @@ fn weapon_merge_cross_references_stats_and_unions_lists() {
 fn weapon_merge_empty_is_none() {
     assert!(merge::weapon(&[]).is_none());
 }
+
+#[test]
+fn equal_rank_tie_is_deterministic_across_runs() {
+    // Category::Lore lists only Fandom, TauCeti, MarathonDb, so both of these
+    // sources are unlisted and collapse to the same `rank == precedence().len()`.
+    // With one vote each they tie on (count, best_rank); the only thing left to
+    // separate them is a stable key. Before the fix, the winner was whichever
+    // entry `max_by` visited last in randomized `HashMap` iteration order, so
+    // the merged description flipped between runs with no upstream change.
+    let candidates = [
+        vote(SourceId::Mobalytics, "A rapid-fire assault rifle."),
+        vote(SourceId::MarathonGuide, "Standard-issue automatic."),
+    ];
+
+    // Test premise: both sources are genuinely unlisted in Lore → equal rank.
+    assert_eq!(
+        Category::Lore.rank(SourceId::Mobalytics),
+        Category::Lore.rank(SourceId::MarathonGuide),
+        "premise broken: a source under test is listed in Lore precedence"
+    );
+
+    // Deterministic winner: the earlier candidate (Mobalytics, index 0) wins.
+    let expected = Some("A rapid-fire assault rifle.");
+    assert_eq!(
+        consensus("description", Category::Lore, &candidates).as_deref(),
+        expected
+    );
+
+    // A fresh `HashMap` (new random seed) is built on every call, so a
+    // HashMap-order-dependent result would vary across these iterations. 256
+    // runs makes an order-dependent tiebreak astronomically unlikely to survive.
+    for _ in 0..256 {
+        assert_eq!(
+            consensus("description", Category::Lore, &candidates).as_deref(),
+            expected,
+            "consensus must be deterministic for equal-rank ties"
+        );
+    }
+}

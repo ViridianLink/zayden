@@ -31,7 +31,24 @@ clean"). Drilled the `merge.rs` consensus layer against the actual per-entity
 source fan-out in `client/`._
 
 ### DS-1. `consensus` tiebreak is a `HashMap`-order coin flip when ≥2 sources collapse to the same rank → nondeterministic weapon/runner `description`  ·  Pass 2/9  ·  low-med  ·  confirmed
-
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-22):** Took the finding's option (a). `consensus`'s per-value
+  tally now carries a third field — the value's first-appearance index in
+  `candidates` (`merge.rs:73-80`) — used as the final `max_by` tiebreaker after
+  (count, best_rank) (`merge.rs:86-94`). Because each `candidates` slot holds one
+  value, first-appearance indexes are unique across distinct values, so the
+  comparator is a total order and `max_by`'s result no longer depends on
+  randomized `HashMap` iteration order. Ties now resolve to the earlier-listed
+  source (a stable, source-order-derived key), so a description provided only by
+  two unlisted-in-`Lore` sources stops flipping across restarts/refreshes.
+  Regression test `equal_rank_tie_is_deterministic_across_runs`
+  (`tests/merge.rs`) constructs a two-way `Lore` tie (Mobalytics vs.
+  MarathonGuide, both unlisted) and asserts the winner is invariant over 256
+  fresh-seed calls — it failed before the fix (winner flipped) and passes after.
+  **Residual:** unchanged option (b) alternative (making `Category::rank` order
+  unlisted sources by a global source order) was not taken — option (a) is
+  smaller and also covers the latent duplicate-listed-source tie the finding
+  notes.
 - **Where:** `bot-modules/marathon/src/merge.rs:86-89` (the `max_by`) combined with
   `bot-modules/marathon/src/source.rs:97-100` (`Category::rank`), reached via
   `merge.rs:149` / `merge.rs:177` (weapon/runner `description` → `Category::Lore`).

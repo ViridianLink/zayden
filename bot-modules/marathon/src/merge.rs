@@ -70,11 +70,11 @@ pub fn consensus<T>(
 where
     T: Eq + Hash + Clone,
 {
-    let mut tally: HashMap<&T, (usize, usize)> = HashMap::new();
-    for (source, value) in candidates {
+    let mut tally: HashMap<&T, (usize, usize, usize)> = HashMap::new();
+    for (index, (source, value)) in candidates.iter().enumerate() {
         let Some(value) = value else { continue };
         let rank = category.rank(*source);
-        let entry = tally.entry(value).or_insert((0, usize::MAX));
+        let entry = tally.entry(value).or_insert((0, usize::MAX, index));
         entry.0 += 1;
         entry.1 = entry.1.min(rank);
     }
@@ -85,7 +85,12 @@ where
 
     let winner = tally
         .iter()
-        .max_by(|a, b| a.1.0.cmp(&b.1.0).then_with(|| b.1.1.cmp(&a.1.1)))
+        .max_by(|a, b| {
+            a.1.0
+                .cmp(&b.1.0) // higher vote count wins
+                .then_with(|| b.1.1.cmp(&a.1.1)) // then lower precedence rank
+                .then_with(|| b.1.2.cmp(&a.1.2)) // then earlier appearance (stable)
+        })
         .map(|(value, _)| (*value).clone())?;
 
     if tally.len() > 1
