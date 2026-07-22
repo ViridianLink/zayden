@@ -10,7 +10,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use zayden_core::parse_options;
 
-use crate::family_manager::FamilyManager;
+use crate::family_manager::{FamilyManager, FamilyRow};
 use crate::relationships::Relationships;
 use crate::{FamilyError, Result};
 
@@ -47,8 +47,11 @@ impl Relationship {
             return Err(FamilyError::SameUser(user.id));
         }
 
-        let user_info =
-            Manager::row(pool, user.id).await?.unwrap_or_else(|| user.into());
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let user_info = Manager::row(pool, guild_id, user.id)
+            .await?
+            .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
 
         let relationship = user_info.relationship(other.id);
 

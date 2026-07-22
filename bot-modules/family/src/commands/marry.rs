@@ -13,8 +13,6 @@ use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
 use crate::{FamilyError, Result};
 
-const MAX_PARTNERS: usize = 1;
-
 pub struct Marry;
 
 impl Marry {
@@ -41,7 +39,11 @@ impl Marry {
             return Err(FamilyError::Bot);
         }
 
-        if let Some(row) = Manager::row(pool, interaction.user.id).await? {
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let max_partners = Manager::settings(pool, guild_id).await?.max_partners();
+
+        if let Some(row) = Manager::row(pool, guild_id, interaction.user.id).await? {
             let relationship = row.relationship(target_user.id);
 
             if relationship != Relationships::None {
@@ -51,7 +53,7 @@ impl Marry {
                 });
             }
 
-            if row.partner_ids.len() >= MAX_PARTNERS {
+            if row.at_partner_limit(max_partners) {
                 return Err(FamilyError::MaxPartners);
             }
 
@@ -60,8 +62,8 @@ impl Marry {
             }
         }
 
-        if let Some(row) = Manager::row(pool, target_user.id).await? {
-            if row.partner_ids.len() >= MAX_PARTNERS {
+        if let Some(row) = Manager::row(pool, guild_id, target_user.id).await? {
+            if row.at_partner_limit(max_partners) {
                 return Err(FamilyError::MaxPartners);
             }
 

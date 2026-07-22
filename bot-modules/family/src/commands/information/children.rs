@@ -13,7 +13,7 @@ use serenity::all::{
 use sqlx::{Database, Pool};
 use zayden_core::as_u64;
 
-use crate::family_manager::FamilyManager;
+use crate::family_manager::{FamilyManager, FamilyRow};
 use crate::{FamilyError, Result};
 
 pub struct Children;
@@ -31,9 +31,11 @@ impl Children {
             _ => &interaction.user,
         };
 
-        let row = Manager::row(pool, user.id)
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let row = Manager::row(pool, guild_id, user.id)
             .await?
-            .unwrap_or_else(|| (&interaction.user).into());
+            .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
 
         if row.children_ids.is_empty() {
             if user == &interaction.user {

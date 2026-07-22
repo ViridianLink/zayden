@@ -2,7 +2,8 @@ use serenity::all::{ComponentInteraction, UserId};
 use sqlx::{Database, Pool};
 use zayden_core::message_metadata;
 
-use crate::family_manager::FamilyManager;
+use crate::family_manager::{FamilyManager, FamilyRow};
+use crate::relationships::Relationships;
 use crate::{FamilyError, Result};
 
 pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
@@ -19,19 +20,32 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
         return Err(FamilyError::UnauthorisedUser);
     }
 
-    let mut row = Manager::row(pool, parent_user.id)
-        .await?
-        .unwrap_or_else(|| parent_user.into());
+    let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-    let mut child_row = Manager::row(pool, child_user.id)
+    let mut row = Manager::row(pool, guild_id, parent_user.id)
         .await?
-        .unwrap_or_else(|| child_user.into());
+        .unwrap_or_else(|| FamilyRow::from_user(guild_id, parent_user));
+
+    let mut child_row = Manager::row(pool, guild_id, child_user.id)
+        .await?
+        .unwrap_or_else(|| FamilyRow::from_user(guild_id, child_user));
 
     if row.is_blocked(child_user.id) {
         return Err(FamilyError::Blocked(child_user.id));
     }
     if child_row.is_blocked(parent_user.id) {
         return Err(FamilyError::Blocked(parent_user.id));
+    }
+
+    if child_row.is_adopted() {
+        return Err(FamilyError::AlreadyAdopted(child_user.id));
+    }
+    let relationship = row.relationship(child_user.id);
+    if relationship != Relationships::None {
+        return Err(FamilyError::AlreadyRelated {
+            target: child_user.id,
+            relationship,
+        });
     }
 
     row.add_child(&child_row);

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM family_partners WHERE guild_id = $1 AND user_id = $2 AND partner_id = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6201af8e7e1e030fc6fb46aa88a338031add513119523a63f789ff83a23a8fc"
+}

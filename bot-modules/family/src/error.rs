@@ -15,6 +15,7 @@ pub enum FamilyError {
     Bot,
     InvalidUserId,
     AlreadyRelated { target: UserId, relationship: Relationships },
+    MissingGuildId,
     UnauthorisedUser,
     NoMentionedUser,
     NoInteraction,
@@ -96,6 +97,9 @@ impl Display for FamilyError {
             Self::NotPartners(user_id) => {
                 write!(f, "You are not married to {}.", user_id.mention())
             },
+            Self::MissingGuildId => {
+                write!(f, "This command can only be used in a server.")
+            },
             Self::UnauthorisedUser => {
                 write!(f, "You can't respond to this interaction.")
             },
@@ -160,6 +164,7 @@ impl Respond for FamilyError {
             | Self::Zayden
             | Self::AlreadyRelated { .. }
             | Self::MaxPartners
+            | Self::MissingGuildId
             | Self::NotPartners(_)
             | Self::UnauthorisedUser
             | Self::SameUser(_)
@@ -207,6 +212,7 @@ impl std::error::Error for FamilyError {
             | Self::Bot
             | Self::InvalidUserId
             | Self::AlreadyRelated { .. }
+            | Self::MissingGuildId
             | Self::UnauthorisedUser
             | Self::NoMentionedUser
             | Self::Internal(_)

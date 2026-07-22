@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT max_partners FROM family_settings WHERE guild_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "max_partners",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "family_settings",
+            "name": "max_partners"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b8f2d012c57c957c874bd8b129a0c1e6459f19a3cfa1047d1ad64a872f44514b"
+}

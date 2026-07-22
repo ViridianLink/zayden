@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT u.username FROM family f JOIN users u ON u.id = f.user_id WHERE f.user_id = $1",
+  "query": "SELECT u.username FROM family f JOIN users u ON u.id = f.user_id WHERE f.guild_id = $1 AND f.user_id = $2",
   "describe": {
     "columns": [
       {
@@ -17,6 +17,7 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -24,5 +25,5 @@
       false
     ]
   },
-  "hash": "e61147eb6c7e8c01b4ba997c206882b9ee45b8cb00dc80756a820df4ad81c388"
+  "hash": "fb4a3b734566bd89b03901c1791ae6259adb834e35e5de37a7373c8e603e41ae"
 }

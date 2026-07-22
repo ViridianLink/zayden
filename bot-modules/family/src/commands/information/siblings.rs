@@ -30,9 +30,11 @@ impl Siblings {
             _ => &interaction.user,
         };
 
-        let row = Manager::row(pool, user.id)
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let row = Manager::row(pool, guild_id, user.id)
             .await?
-            .unwrap_or_else(|| (&interaction.user).into());
+            .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
 
         if row.parent_ids.is_empty() {
             if user == &interaction.user {
@@ -46,7 +48,9 @@ impl Siblings {
         let mut parent_rows = Vec::with_capacity(row.parent_ids.len());
         for parent_id in row.parent_ids {
             let parent_uid = UserId::new(as_u64(parent_id));
-            if let Some(parent_row) = Manager::row(pool, parent_uid).await? {
+            if let Some(parent_row) =
+                Manager::row(pool, guild_id, parent_uid).await?
+            {
                 parent_rows.push(parent_row);
             }
         }

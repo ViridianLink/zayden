@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO family (user_id) VALUES ($1) ON CONFLICT DO NOTHING",
+  "query": "DELETE FROM family WHERE guild_id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "f6e000e679e9bc194340ec5be2d70ae09111870d9ef0458fc9a7fef8a41fd481"
+  "hash": "8eeac549596f0366ac8e410f78182f372a78787da3e9c22331a54ffa03c6a0f7"
 }

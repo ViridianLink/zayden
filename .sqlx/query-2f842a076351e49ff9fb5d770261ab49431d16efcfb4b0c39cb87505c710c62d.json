@@ -1,22 +1,23 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT blocked_id FROM family_blocks WHERE user_id = $1",
+  "query": "SELECT parent_id FROM family_parent_child WHERE guild_id = $1 AND child_id = $2",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "blocked_id",
+        "name": "parent_id",
         "type_info": "Int8",
         "origin": {
           "Table": {
-            "table": "family_blocks",
-            "name": "blocked_id"
+            "table": "family_parent_child",
+            "name": "parent_id"
           }
         }
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -24,5 +25,5 @@
       false
     ]
   },
-  "hash": "9662d94dcd7cefddfa381f7d8a2ff7a4f092df48d238da233981755e1d0a9a27"
+  "hash": "2f842a076351e49ff9fb5d770261ab49431d16efcfb4b0c39cb87505c710c62d"
 }

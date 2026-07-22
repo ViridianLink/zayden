@@ -28,6 +28,24 @@ modules (CC-2), which is both a convention violation and effectively no
 - **Suggested fix:** Relocate both modules to `tests/`, exposing the minimum
   `pub(crate)` surface needed. See [CC-2](_cross-cutting.md#cc-2).
 
+### 3. `family_settings` (per-guild config) belongs on the dashboard  ·  #8  ·  low
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `family_settings` table (added in migration `0015_family_guild_scope`,
+  guild-scope design change 2026-07-22); currently read bot-side only, with **no**
+  editor surface.
+- **What:** The guild-scope change made family per-guild and introduced
+  `family_settings (guild_id, max_partners, …)`, but deliberately shipped
+  **bot-side only** (DB + enforcement read). There is no way for a guild admin to
+  change `max_partners` yet.
+- **Why it matters:** Per [CC-8](_cross-cutting.md#cc-8), per-guild config is the
+  dashboard's domain (mirrors `save_lfg_settings` / `save_temp_voice_settings`
+  etc.). A `save_family_settings` server fn + a settings-page section is the
+  intended editor; a bot slash-command editor is the weaker fit.
+- **Suggested fix:** Add a `FamilySettingsRow` (`SettingsRow`) in
+  `zayden-app/src/config/tables/family.rs`, register it, and build the dashboard
+  `save_family_settings` server fn + settings section. Follow-up to the
+  guild-scope change.
+
 ## Clean
 - #1 Architecture: clean command/component/manager/relationships split.
 - #1 DB access: concrete impl uses compile-time macros (no runtime SQL).
@@ -80,6 +98,28 @@ _Deep sweep: 2026-07-17 · lenses: silent-failure, state-machine/invariant, conc
   will silently no-op the same way.
 
 ### DS-2. `marry`/`adopt` accept handlers re-run no invariant checks → `MAX_PARTNERS`/already-adopted bypass  ·  Pass 7  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-22):** Both `accept` handlers now re-validate the invariants
+  against the *freshly-read* rows, before the write:
+  `components/marry.rs::accept` rejects with `AlreadyRelated` if the pair is
+  already related and `MaxPartners` if **either** party is `at_partner_limit()`;
+  `components/adopt.rs::accept` rejects with `AlreadyAdopted` if the child
+  `is_adopted()` and `AlreadyRelated` if the pair is already related. Two new
+  pure guards on `FamilyRow` — `at_partner_limit(max)` / `is_adopted()` —
+  encapsulate the checks. **Folded into the guild-scope design change
+  (2026-07-22):** the partner cap is no longer a `const`; it is the guild's
+  configured `family_settings.max_partners` (default 1), read via
+  `Manager::settings(pool, guild_id)` and passed to `at_partner_limit(max)` at
+  both propose and accept time. Regression test `tests/invariants.rs` pins the
+  guards against the configured cap (incl. a raised cap permitting another
+  partner, and negative-cap clamping); they didn't exist pre-fix, so the accept
+  handler had nothing to consult.
+  **Residual:** this closes the *sequential* accept-both scenario (the second
+  accept re-reads the updated row and is rejected). The *same-tick concurrent*
+  double-accept is still the [CC-9](_cross-cutting.md#cc-9) read-modify-write
+  race (both reads see the stale pre-image); a truly atomic guard needs the
+  conditional-write / [CC-1](_cross-cutting.md#cc-1) concrete-`PgPool` migration
+  of the additive `save`, out of scope for this low-sev surgical fix.
 - **Where:** `bot-modules/family/src/components/marry.rs:8-33` (`accept`),
   `bot-modules/family/src/components/adopt.rs:8-37` (`accept`). The guards
   (`MAX_PARTNERS`, "already adopted", "already related") live only in the

@@ -31,7 +31,9 @@ impl Divorce {
             return Err(FamilyError::UserSelfMarry);
         }
 
-        let row = Manager::row(pool, interaction.user.id)
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let row = Manager::row(pool, guild_id, interaction.user.id)
             .await?
             .ok_or(FamilyError::SelfNoPartners)?;
 
@@ -39,7 +41,8 @@ impl Divorce {
             return Err(FamilyError::NotPartners(target_user.id));
         }
 
-        Manager::remove_partner(pool, interaction.user.id, target_user.id).await?;
+        Manager::remove_partner(pool, guild_id, interaction.user.id, target_user.id)
+            .await?;
 
         Ok(target_user.id)
     }

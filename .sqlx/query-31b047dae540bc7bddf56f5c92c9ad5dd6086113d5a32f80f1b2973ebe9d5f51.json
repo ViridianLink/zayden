@@ -1,22 +1,23 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT parent_id FROM family_parent_child WHERE child_id = $1",
+  "query": "SELECT child_id FROM family_parent_child WHERE guild_id = $1 AND parent_id = $2",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "parent_id",
+        "name": "child_id",
         "type_info": "Int8",
         "origin": {
           "Table": {
             "table": "family_parent_child",
-            "name": "parent_id"
+            "name": "child_id"
           }
         }
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
         "Int8"
       ]
     },
@@ -24,5 +25,5 @@
       false
     ]
   },
-  "hash": "5c3557d04097a87731b8bafc2d3f0a808ce967f94e2ba19ef436d70bacef4295"
+  "hash": "31b047dae540bc7bddf56f5c92c9ad5dd6086113d5a32f80f1b2973ebe9d5f51"
 }

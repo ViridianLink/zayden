@@ -8,8 +8,8 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::Result;
-use crate::family_manager::FamilyManager;
+use crate::family_manager::{FamilyManager, FamilyRow};
+use crate::{FamilyError, Result};
 
 #[derive(Debug)]
 struct Node {
@@ -77,9 +77,11 @@ impl Tree {
         interaction: &CommandInteraction,
         pool: &Pool<Db>,
     ) -> Result<GraphData> {
-        let row = Manager::row(pool, interaction.user.id)
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let row = Manager::row(pool, guild_id, interaction.user.id)
             .await?
-            .unwrap_or_else(|| (&interaction.user).into());
+            .unwrap_or_else(|| FamilyRow::from_user(guild_id, &interaction.user));
 
         let tree = row.tree::<Db, Manager>(pool).await?;
 

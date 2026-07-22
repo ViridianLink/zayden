@@ -8,7 +8,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::family_manager::FamilyManager;
+use crate::family_manager::{FamilyManager, FamilyRow};
 use crate::{FamilyError, Result};
 
 pub struct Block;
@@ -29,9 +29,11 @@ impl Block {
             return Err(FamilyError::UserSelfBlock);
         }
 
-        let mut row = Manager::row(pool, interaction.user.id)
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let mut row = Manager::row(pool, guild_id, interaction.user.id)
             .await?
-            .unwrap_or_else(|| (&interaction.user).into());
+            .unwrap_or_else(|| FamilyRow::from_user(guild_id, &interaction.user));
 
         row.add_blocked(user.id);
         row.save::<Db, Manager>(pool).await?;
@@ -68,7 +70,9 @@ impl Unblock {
             return Err(FamilyError::UserSelfBlock);
         }
 
-        Manager::remove_block(pool, interaction.user.id, user.id).await?;
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        Manager::remove_block(pool, guild_id, interaction.user.id, user.id).await?;
 
         Ok(())
     }

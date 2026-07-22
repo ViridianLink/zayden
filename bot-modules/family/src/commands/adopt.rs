@@ -9,7 +9,7 @@ use serenity::all::{
 };
 use sqlx::{Database, Pool};
 
-use crate::family_manager::FamilyManager;
+use crate::family_manager::{FamilyManager, FamilyRow};
 use crate::relationships::Relationships;
 use crate::{FamilyError, Result};
 
@@ -39,15 +39,19 @@ impl Adopt {
             return Err(FamilyError::Bot);
         }
 
-        let adopter_row = Manager::row(pool, interaction.user.id)
+        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+        let adopter_row = Manager::row(pool, guild_id, interaction.user.id)
             .await?
-            .unwrap_or_else(|| (&interaction.user).into());
+            .unwrap_or_else(|| FamilyRow::from_user(guild_id, &interaction.user));
 
         if adopter_row.is_blocked(target_user.id) {
             return Err(FamilyError::Blocked(target_user.id));
         }
 
-        if let Some(target_row) = Manager::row(pool, target_user.id).await? {
+        if let Some(target_row) =
+            Manager::row(pool, guild_id, target_user.id).await?
+        {
             // Is already adopted?
             if !target_row.parent_ids.is_empty() {
                 return Err(FamilyError::AlreadyAdopted(target_user.id));
