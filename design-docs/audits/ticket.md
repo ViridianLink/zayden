@@ -82,6 +82,7 @@ _Deep sweep: 2026-07-17 · lens: Discord-API correctness (component limits)._
   option set too (a 0-option select menu is also rejected).
 
 ### DS-2. `/lfg tags` (add/remove) can emit an empty select menu → 400  ·  Pass 3  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/lfg/src/commands/tags.rs:60-83` (add) and `:91-113`
   (remove).
 - **What:** `options` is filtered from `forum_channel.available_tags`; when the

@@ -4,7 +4,7 @@ mod joined;
 mod kick;
 mod leave;
 mod setup;
-mod tags;
+pub mod tags;
 mod timezone;
 
 pub use joined::{JoinedManager, JoinedRow};

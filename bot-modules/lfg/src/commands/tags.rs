@@ -6,6 +6,7 @@ use serenity::all::{
     CreateSelectMenuKind,
     CreateSelectMenuOption,
     EditInteractionResponse,
+    ForumTagId,
     GuildChannel,
     GuildThread,
     Http,
@@ -43,72 +44,112 @@ impl Command {
             .await?;
 
         if options.contains_key("add") {
-            add_tags(http, interaction, forum_channel, thread_channel).await?;
+            edit_tags(
+                http,
+                interaction,
+                forum_channel,
+                thread_channel,
+                TagAction::Add,
+            )
+            .await?;
         } else if options.contains_key("remove") {
-            remove_tags(http, interaction, forum_channel, thread_channel).await?;
+            edit_tags(
+                http,
+                interaction,
+                forum_channel,
+                thread_channel,
+                TagAction::Remove,
+            )
+            .await?;
         }
 
         Ok(())
     }
 }
-async fn add_tags(
-    http: &Http,
-    interaction: &CommandInteraction,
-    forum_channel: GuildChannel,
-    thread: GuildThread,
-) -> Result<()> {
-    let options = forum_channel
-        .available_tags
-        .into_iter()
-        .filter(|tag| !thread.applied_tags.contains(&tag.id))
-        .map(|tag| CreateSelectMenuOption::new(tag.name, tag.id.to_string()))
-        .collect::<Vec<_>>();
 
-    let max_values = u8::try_from(options.len()).unwrap_or(u8::MAX);
-
-    interaction
-        .edit_response(
-            http,
-            EditInteractionResponse::new().select_menu(
-                CreateSelectMenu::new(
-                    "lfg_tags_add",
-                    CreateSelectMenuKind::String { options: options.into() },
-                )
-                .max_values(max_values),
-            ),
-        )
-        .await?;
-
-    Ok(())
+#[derive(Clone, Copy)]
+pub enum TagAction {
+    Add,
+    Remove,
 }
 
-async fn remove_tags(
+impl TagAction {
+    const fn custom_id(self) -> &'static str {
+        match self {
+            Self::Add => "lfg_tags_add",
+            Self::Remove => "lfg_tags_remove",
+        }
+    }
+
+    const fn includes(self, applied: bool) -> bool {
+        match self {
+            Self::Add => !applied,
+            Self::Remove => applied,
+        }
+    }
+
+    const fn empty_notice(self) -> &'static str {
+        match self {
+            Self::Add => "This post already has every available tag.",
+            Self::Remove => "This post has no tags to remove.",
+        }
+    }
+}
+
+pub enum TagResponse {
+    Notice(&'static str),
+    Menu(Vec<CreateSelectMenuOption<'static>>),
+}
+
+pub fn build_tag_response(
+    available_tags: impl IntoIterator<Item = (ForumTagId, String)>,
+    applied_tags: &[ForumTagId],
+    action: TagAction,
+) -> TagResponse {
+    let options = available_tags
+        .into_iter()
+        .filter(|(id, _)| action.includes(applied_tags.contains(id)))
+        .map(|(id, name)| CreateSelectMenuOption::new(name, id.to_string()))
+        .collect::<Vec<_>>();
+
+    if options.is_empty() {
+        TagResponse::Notice(action.empty_notice())
+    } else {
+        TagResponse::Menu(options)
+    }
+}
+
+async fn edit_tags(
     http: &Http,
     interaction: &CommandInteraction,
     forum_channel: GuildChannel,
     thread: GuildThread,
+    action: TagAction,
 ) -> Result<()> {
-    let options = forum_channel
+    let available = forum_channel
         .available_tags
         .into_iter()
-        .filter(|tag| thread.applied_tags.contains(&tag.id))
-        .map(|tag| CreateSelectMenuOption::new(tag.name, tag.id.to_string()))
-        .collect::<Vec<_>>();
+        .map(|tag| (tag.id, tag.name.to_string()));
 
-    let max_values = u8::try_from(options.len()).unwrap_or(u8::MAX);
+    let response = match build_tag_response(available, &thread.applied_tags, action)
+    {
+        TagResponse::Notice(notice) => {
+            EditInteractionResponse::new().content(notice)
+        },
+        TagResponse::Menu(options) => {
+            let max_values = u8::try_from(options.len()).unwrap_or(u8::MAX);
 
-    interaction
-        .edit_response(
-            http,
             EditInteractionResponse::new().select_menu(
                 CreateSelectMenu::new(
-                    "lfg_tags_remove",
+                    action.custom_id(),
                     CreateSelectMenuKind::String { options: options.into() },
                 )
                 .max_values(max_values),
-            ),
-        )
-        .await?;
+            )
+        },
+    };
+
+    interaction.edit_response(http, response).await?;
 
     Ok(())
 }
