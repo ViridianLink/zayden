@@ -72,7 +72,8 @@ tests (no lib target).
 
 _Deep sweep (sixth pass): 2026-07-17. Two new defects in the `bot` wiring layer
 that no per-crate audit could see, because both live in the glue between a module
-crate and its binding — exactly the blind spot CC-1/CC-9 describe._
+crate and its binding — exactly the blind spot CC-1/CC-9 describe. DS-3 was added
+2026-07-22, split out of the DS-2 revival's residual note._
 
 ### DS-1. Level-up coin reward is a second transaction after XP is already committed → reward silently lost  ·  Pass 1 (silent failure) / SQL atomicity  ·  med
 - **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
@@ -185,3 +186,43 @@ crate and its binding — exactly the blind spot CC-1/CC-9 describe._
   (a `moderation` crate using the `ModuleComponent`/`SlashCommand` convention, or
   wire the binding + fix the 3 bugs) and add it to `register`. If not: delete the
   tree and correct CC-3 and Clean §#2.
+
+### DS-3. `/rules` is hardcoded single-guild (magic IDs + on-disk `messages/rules.md`) → unusable by any other guild  ·  Pass 9 (drift) / #2  ·  med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `bot/src/bindings/moderation/rules.rs` — `CHANNEL_ID`
+  (`747430712617074718`) and `MESSAGE_ID` (`788539168980336701`) consts at
+  `:17-18`; the `messages/rules.md` file read at `:37-41`; the hardcoded
+  "College Kings Server Rules" title and Code-of-Conduct gist link at `:52-53`.
+  (Flagged as a residual in DS-2, recorded here as its own finding.)
+- **What:** The command has no per-guild state at all. It reads one fixed
+  markdown file off the bot's working directory, splits it on `\r\n\r\n` into
+  embed fields, and edits **one** hardcoded message in **one** hardcoded channel
+  of **one** guild. Invoking `/rules` in any other guild either edits the
+  College Kings message (if the bot is in that guild) or fails outright with a
+  `10003 Unknown Channel` / `10008 Unknown Message` — after the ephemeral defer,
+  so the moderator just sees an interaction error.
+- **Why it matters:** every other module in the bot is guild-scoped via the DB;
+  this one is a single-tenant leftover. It also makes the rules text
+  deployment-coupled (editing rules means editing a file and redeploying,
+  rather than a moderator command), and the `\r\n\r\n` split silently produces a
+  single field if the file is ever saved with LF-only line endings.
+- **Confidence:** confirmed by reading the file — no guild lookup, no DB access,
+  no fallback path.
+- **Suggested fix:** move rules to the database and make the command
+  guild-generic:
+  - New table (e.g. `guild_rules`): `guild_id` PK, `channel_id`, `message_id`
+    (nullable — set on first post), plus embed presentation fields (`title`,
+    `description`, `colour`), and a child `guild_rule` table
+    (`guild_id`, `position`, `title`, `body`) so rules are ordered rows rather
+    than a parsed blob.
+  - `/rules` becomes a command group: a mod-only subcommand set to
+    add/edit/remove/reorder rules and set the target channel + embed styling,
+    and a `post`/`refresh` subcommand that renders the rows into a
+    `CreateEmbed` and either edits the stored `message_id` or sends a new
+    message and persists the returned ID (self-healing when the stored message
+    is deleted — treat `10008` as "send fresh").
+  - Access via compile-time `sqlx::query!`/`query_as!` in the binding, matching
+    the rest of `bindings/moderation/` (concrete `PgPool` from `cx.app.db`, so
+    still outside CC-1).
+  - Delete `messages/rules.md` and the two magic-ID consts once the College
+    Kings guild's rows are seeded.
