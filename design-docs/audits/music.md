@@ -54,6 +54,20 @@ youtube). No CC-1 (in-memory manager, not DB-generic). Only minor lint debt.
 _Deep sweep: 2026-07-17 · lens: state/cache correctness (multi-guild aliasing)._
 
 ### DS-1. `VoiceOccupancy` keyed by `UserId` only → premature auto-disconnect when a listener is in two guilds' voice at once  ·  Pass 6+2  ·  low-med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-22):** Re-keyed the map to `DashMap<(UserId, GuildId), ChannelId>`
+  (`occupancy.rs`) so a user's presence is tracked independently per guild, and
+  scoped `update`'s `None`-branch removal to `remove(&(user_id, guild_id))` — a
+  disconnect in one guild no longer evicts the user from another. All consumers
+  (`non_bot_count`, `channel_of`, `members_in_channel`, `guild_create`) already
+  pass `guild_id`, so the public API is unchanged and no call sites moved;
+  `channel_of` is now a direct keyed `get`. Regression test added at
+  `bot-modules/music/tests/occupancy.rs` (fails-before / passes-after): it drives
+  `update` with deserialized `VoiceState`s to prove joining/leaving guild B leaves
+  guild A's count intact. **Residual (documented, not fixed):** the secondary
+  `guild_delete` sweep the finding suggests (evict stale members when the bot is
+  removed from a guild) is left as a follow-up — it is a separate leak, not part of
+  the cross-guild aliasing this task closed.
 - **Where:** `bot-modules/music/src/occupancy.rs:8` (`members: DashMap<UserId, (GuildId, ChannelId)>`),
   `:25-38` (`update`); consumed by `non_bot_count` (`:41-54`) which the
   auto-disconnect path reads (`bot-modules/music/src/events.rs:111-121`). Wired at

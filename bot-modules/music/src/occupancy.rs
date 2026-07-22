@@ -5,7 +5,7 @@ use serenity::all::{ChannelId, Guild, GuildId, UserId, VoiceState};
 
 #[derive(Default)]
 pub struct VoiceOccupancy {
-    members: DashMap<UserId, (GuildId, ChannelId)>,
+    members: DashMap<(UserId, GuildId), ChannelId>,
 }
 
 impl VoiceOccupancy {
@@ -17,7 +17,7 @@ impl VoiceOccupancy {
     pub fn guild_create(&self, guild: &Guild) {
         for state in &guild.voice_states {
             if let Some(channel_id) = state.channel_id {
-                self.members.insert(state.user_id, (guild.id, channel_id));
+                self.members.insert((state.user_id, guild.id), channel_id);
             }
         }
     }
@@ -29,10 +29,10 @@ impl VoiceOccupancy {
 
         match state.channel_id {
             Some(channel_id) => {
-                self.members.insert(state.user_id, (guild_id, channel_id));
+                self.members.insert((state.user_id, guild_id), channel_id);
             },
             None => {
-                self.members.remove(&state.user_id);
+                self.members.remove(&(state.user_id, guild_id));
             },
         }
     }
@@ -47,8 +47,8 @@ impl VoiceOccupancy {
         self.members
             .iter()
             .filter(|entry| {
-                let (g, c) = *entry.value();
-                g == guild_id && c == channel_id && *entry.key() != bot_id
+                let (user_id, g) = *entry.key();
+                g == guild_id && *entry.value() == channel_id && user_id != bot_id
             })
             .count()
     }
@@ -59,10 +59,7 @@ impl VoiceOccupancy {
         guild_id: GuildId,
         user_id: UserId,
     ) -> Option<ChannelId> {
-        self.members.get(&user_id).and_then(|entry| {
-            let (g, c) = *entry.value();
-            (g == guild_id).then_some(c)
-        })
+        self.members.get(&(user_id, guild_id)).map(|entry| *entry.value())
     }
 
     #[must_use]
@@ -74,8 +71,8 @@ impl VoiceOccupancy {
         self.members
             .iter()
             .filter_map(|entry| {
-                let (g, c) = *entry.value();
-                (g == guild_id && c == channel_id).then(|| *entry.key())
+                let (user_id, g) = *entry.key();
+                (g == guild_id && *entry.value() == channel_id).then_some(user_id)
             })
             .collect()
     }
