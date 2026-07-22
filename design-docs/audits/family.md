@@ -29,7 +29,7 @@ modules (CC-2), which is both a convention violation and effectively no
   `pub(crate)` surface needed. See [CC-2](_cross-cutting.md#cc-2).
 
 ### 3. `family_settings` (per-guild config) belongs on the dashboard  ·  #8  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 8bfa50fd`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** Added the dashboard editor surface. New
   `FamilySettingsRow` (`SettingsRow`) in
   `zayden-app/src/config/tables/family.rs` (mirrors lfg/temp-voice: `select`
@@ -109,7 +109,7 @@ _Deep sweep: 2026-07-17 · lenses: silent-failure, state-machine/invariant, conc
   will silently no-op the same way.
 
 ### DS-2. `marry`/`adopt` accept handlers re-run no invariant checks → `MAX_PARTNERS`/already-adopted bypass  ·  Pass 7  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 50f551d4`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** Both `accept` handlers now re-validate the invariants
   against the *freshly-read* rows, before the write:
   `components/marry.rs::accept` rejects with `AlreadyRelated` if the pair is

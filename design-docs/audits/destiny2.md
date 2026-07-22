@@ -120,7 +120,7 @@ first-pass structural findings._
   for an emoji absent on the parent app. Correct the "Clean · #3" line below.
 
 ### DS-2. `compendium::update` panics (`Vec::swap_remove(2)`) on any short "gear perks" row  ·  #2 / #3  ·  low-med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — b84e49da`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** The inline row-parse closure in `compendium::update`
   (`swap_remove(2)`/`swap_remove(0)` on `row.values`) was extracted into a pure
   `pub fn perk_entry(Vec<Option<String>>) -> Option<(String, PerkInfo)>` that

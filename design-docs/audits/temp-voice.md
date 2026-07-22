@@ -81,7 +81,7 @@ _Deep sweep: 2026-07-17 · lenses: state-machine/authz, concurrency._
   owner. **Confidence: confirmed** (no removal path exists).
 
 ### DS-2. `claim` is a racy read-modify-write → stray owner grants  ·  Pass 2  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 929a823d`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** `actions::claim`'s read-modify-write (`set_owner` +
   absolute `row.save`) was replaced with a guarded conditional write. New
   `VoiceChannelManager::claim` runs
