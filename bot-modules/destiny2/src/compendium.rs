@@ -7,6 +7,7 @@ use crate::db::compendium;
 
 const COMPENDIUM_ID: &str = "1WaxvbLx7UoSZaBqdFr1u32F2uWVLo-CJunJB4nlGUE4";
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct PerkInfo {
     pub name: String,
     pub description: String,
@@ -33,23 +34,27 @@ pub async fn update(pool: &PgPool, api_key: &str) -> Result<()> {
         .into_iter()
         .skip(5)
         .filter_map(|row| {
-            let mut values = row.values;
-
-            if let (Some(description), Some(name)) = (
-                values.swap_remove(2).formatted_value,
-                values.swap_remove(0).formatted_value,
-            ) {
-                let name =
-                    name.split("\n\n").next().unwrap_or(&name).replace('\n', " ");
-
-                Some((name.to_lowercase(), PerkInfo { name, description }))
-            } else {
-                None
-            }
+            perk_entry(
+                row.values.into_iter().map(|cell| cell.formatted_value).collect(),
+            )
         })
         .collect::<Vec<(String, PerkInfo)>>();
 
     compendium::replace(pool, &perks).await?;
 
     Ok(())
+}
+
+#[must_use]
+pub fn perk_entry(mut values: Vec<Option<String>>) -> Option<(String, PerkInfo)> {
+    if values.len() < 3 {
+        return None;
+    }
+
+    let description = values.swap_remove(2)?;
+    let name = values.swap_remove(0)?;
+
+    let name = name.split("\n\n").next().unwrap_or(&name).replace('\n', " ");
+
+    Some((name.to_lowercase(), PerkInfo { name, description }))
 }

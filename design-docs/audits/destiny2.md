@@ -120,6 +120,15 @@ first-pass structural findings._
   for an emoji absent on the parent app. Correct the "Clean · #3" line below.
 
 ### DS-2. `compendium::update` panics (`Vec::swap_remove(2)`) on any short "gear perks" row  ·  #2 / #3  ·  low-med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-22):** The inline row-parse closure in `compendium::update`
+  (`swap_remove(2)`/`swap_remove(0)` on `row.values`) was extracted into a pure
+  `pub fn perk_entry(Vec<Option<String>>) -> Option<(String, PerkInfo)>` that
+  guards `values.len() < 3` and returns `None` for short/blank rows instead of
+  indexing out of bounds. `update` now maps each cell to its `formatted_value`
+  and routes through `perk_entry`. Regression test
+  `tests/compendium_parse.rs` (fails-before: `swap_remove index (is 2) should be
+  < len (is 0)`; passes-after: short rows skipped, full rows parse).
 - **Where:** `src/compendium.rs:38-41` — `values.swap_remove(2).formatted_value`
   then `values.swap_remove(0).formatted_value`.
 - **What:** `Vec::swap_remove` panics on an out-of-bounds index. The Google Sheets
