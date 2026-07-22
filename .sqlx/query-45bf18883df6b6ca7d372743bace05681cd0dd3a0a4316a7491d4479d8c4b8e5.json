@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE guild_rule SET position = position - 1\n         WHERE guild_id = $1 AND position > $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "45bf18883df6b6ca7d372743bace05681cd0dd3a0a4316a7491d4479d8c4b8e5"
+}

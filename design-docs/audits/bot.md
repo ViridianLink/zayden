@@ -188,7 +188,27 @@ crate and its binding — exactly the blind spot CC-1/CC-9 describe. DS-3 was ad
   tree and correct CC-3 and Clean §#2.
 
 ### DS-3. `/rules` is hardcoded single-guild (magic IDs + on-disk `messages/rules.md`) → unusable by any other guild  ·  Pass 9 (drift) / #2  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-22):** `/rules` is now a guild-generic, DB-backed command group.
+  New migration `0014_guild_rules` adds `guild_rules` (per-guild config:
+  `channel_id`, nullable `message_id`, `title`/`description`/`colour` styling) and
+  a child `guild_rule` (ordered `position`, `title`, `body`) with
+  `ON DELETE CASCADE`. `rules.rs` was rewritten as subcommands
+  `config`/`add`/`edit`/`remove`/`reorder`/`list`/`post`, all keyed on the
+  invoking `guild_id`, using compile-time `query!`/`query_as!` on the concrete
+  `PgPool` from `cx.app.db` (outside CC-1). `post` renders the rows into a
+  `CreateEmbed` and edits the stored `message_id`, self-healing on
+  `UnknownMessage`/`UnknownChannel` by sending a fresh message and persisting the
+  new id. The hardcoded `CHANNEL_ID`/`MESSAGE_ID` consts, the
+  `"College Kings Server Rules"` title/gist link, and the `messages/rules.md`
+  read are all gone (that file was never tracked in-repo — runtime-only).
+  **Residual:** `post` caps at 25 rules (one embed = 25 fields max) and rejects
+  with a message rather than silently dropping — multi-embed paging is a
+  follow-up if a guild ever needs >25 rules. No regression test: `bot` has no
+  `[lib]` target, so integration tests against these bindings are structurally
+  infeasible (same constraint as CC-6 / prior bot DS-1). The College Kings guild
+  needs its rules rows seeded via the new command before its `/rules post` works
+  (old on-disk content is not auto-migrated).
 - **Where:** `bot/src/bindings/moderation/rules.rs` — `CHANNEL_ID`
   (`747430712617074718`) and `MESSAGE_ID` (`788539168980336701`) consts at
   `:17-18`; the `messages/rules.md` file read at `:37-41`; the hardcoded

@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_rules (guild_id, channel_id, title, description, colour)\n         VALUES ($1, $2, COALESCE($3, $6), $4, COALESCE($5::integer, $7::integer))\n         ON CONFLICT (guild_id) DO UPDATE SET\n             channel_id = $2,\n             title = COALESCE($3, guild_rules.title),\n             description = COALESCE($4, guild_rules.description),\n             colour = COALESCE($5, guild_rules.colour)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1cb0785d91f5e132214e34df14a22e251857fb36dd0ed2913f503791819e053c"
+}
