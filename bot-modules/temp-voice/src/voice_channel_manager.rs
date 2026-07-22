@@ -14,14 +14,24 @@ pub trait VoiceChannelManager<Db: Database> {
         pool: &Pool<Db>,
         id: ChannelId,
     ) -> sqlx::Result<Option<VoiceChannelRow>>;
+
     async fn count_persistent_channels(
         pool: &Pool<Db>,
         user_id: UserId,
     ) -> sqlx::Result<i64>;
+
     async fn save(
         pool: &Pool<Db>,
         row: VoiceChannelRow,
     ) -> sqlx::Result<Db::QueryResult>;
+
+    async fn claim(
+        pool: &Pool<Db>,
+        id: ChannelId,
+        expected_owner: UserId,
+        new_owner: UserId,
+    ) -> sqlx::Result<bool>;
+
     async fn delete(pool: &Pool<Db>, id: ChannelId)
     -> sqlx::Result<Db::QueryResult>;
 }

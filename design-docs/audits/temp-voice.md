@@ -81,6 +81,25 @@ _Deep sweep: 2026-07-17 · lenses: state-machine/authz, concurrency._
   owner. **Confidence: confirmed** (no removal path exists).
 
 ### DS-2. `claim` is a racy read-modify-write → stray owner grants  ·  Pass 2  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-22):** `actions::claim`'s read-modify-write (`set_owner` +
+  absolute `row.save`) was replaced with a guarded conditional write. New
+  `VoiceChannelManager::claim` runs
+  `UPDATE voice_channels SET owner_id = $new WHERE id = $c AND owner_id = $expected`
+  (concrete impl in `bot/src/bindings/temp_voice/mod.rs`) and returns
+  `rows_affected == 1`. The action now grants the new owner's `owner_perms` and
+  revokes the previous owner's overwrite **only when that write wins**; a
+  same-tick double-claim loses the guard (0 rows) and returns the new
+  `TempVoiceError::ClaimFailed` ("claimed by someone else, try again") *before*
+  touching Discord permissions — so no stray `owner_perms` overwrite is left on
+  the channel. This is the CC-9 pattern (guarded atomic write, not another
+  absolute overwrite). New `.sqlx/` entry for the UPDATE. **No regression test:**
+  the guard is the SQL `WHERE` clause; the crate has no live-`PgPool`/`Http`
+  harness (see [CC-6](_cross-cutting.md#cc-6)), same posture as gold-star/lfg
+  DS-1. The existing `tests/ownership.rs` still pins the revoke decision the
+  success path relies on. **Transfer note:** `actions::transfer` has the same
+  absolute-save shape but is owner-gated (`require_owner`), so it is a
+  lower-value residual left for the CC-1 concrete-`PgPool` migration.
 - **Where:** `bot-modules/temp-voice/src/actions/ownership.rs:14-41`.
 - **What:** `claim` checks `owner_present`, then `set_owner` + absolute `save` +
   `create_permission`. No lock/idempotency (an instance of

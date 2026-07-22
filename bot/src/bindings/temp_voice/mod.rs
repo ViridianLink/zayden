@@ -192,6 +192,24 @@ impl VoiceChannelManager<Postgres> for VoiceChannelTable {
         Ok(result)
     }
 
+    async fn claim(
+        pool: &PgPool,
+        id: ChannelId,
+        expected_owner: UserId,
+        new_owner: UserId,
+    ) -> sqlx::Result<bool> {
+        let result = sqlx::query!(
+            "UPDATE voice_channels SET owner_id = $2 WHERE id = $1 AND owner_id = $3",
+            as_i64(id.get()),
+            as_i64(new_owner.get()),
+            as_i64(expected_owner.get()),
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() == 1)
+    }
+
     async fn delete(pool: &PgPool, id: ChannelId) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(r#"DELETE FROM voice_channels WHERE id = $1"#, as_i64(id.get()))
             .execute(pool)

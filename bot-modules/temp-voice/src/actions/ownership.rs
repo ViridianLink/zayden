@@ -17,7 +17,7 @@ pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
     pool: &Pool<Db>,
     voice_states: &VoiceStateCache,
     channel_id: ChannelId,
-    mut row: VoiceChannelRow,
+    row: VoiceChannelRow,
     user_id: UserId,
 ) -> Result<String> {
     if row.is_owner(user_id) {
@@ -33,8 +33,9 @@ pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
 
     let previous_owner = row.owner_id();
 
-    row.set_owner(user_id);
-    row.save::<Db, Manager>(pool).await?;
+    if !Manager::claim(pool, channel_id, previous_owner, user_id).await? {
+        return Err(TempVoiceError::ClaimFailed);
+    }
 
     channel_id
         .create_permission(http, owner_perms(user_id), Some("Channel claimed"))
