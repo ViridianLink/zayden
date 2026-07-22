@@ -1,4 +1,5 @@
 pub mod channels_settings;
+pub mod family;
 pub mod lfg_settings;
 pub mod music;
 pub mod roles_settings;
@@ -8,6 +9,7 @@ pub mod temp_voice_settings;
 pub mod ticket;
 
 pub use channels_settings::ChannelsSettingsRow;
+pub use family::FamilySettingsRow;
 pub use lfg_settings::LfgSettingsRow;
 pub use music::MusicSettingsRow;
 pub use roles_settings::RolesSettingsRow;

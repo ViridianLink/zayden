@@ -6,6 +6,7 @@ use tokio::sync::broadcast;
 use super::SettingsStore;
 use super::tables::{
     ChannelsSettingsRow,
+    FamilySettingsRow,
     LfgSettingsRow,
     MusicSettingsRow,
     RolesSettingsRow,
@@ -25,6 +26,7 @@ pub struct SettingsRegistry {
     pub lfg: Arc<SettingsStore<LfgSettingsRow>>,
     pub music: Arc<SettingsStore<MusicSettingsRow>>,
     pub ticket: Arc<SettingsStore<TicketSettingsRow>>,
+    pub family: Arc<SettingsStore<FamilySettingsRow>>,
 }
 
 impl SettingsRegistry {
@@ -37,7 +39,8 @@ impl SettingsRegistry {
         let temp_voice = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let lfg = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let music = Arc::new(SettingsStore::new(db.clone(), events.clone()));
-        let ticket = Arc::new(SettingsStore::new(db, events.clone()));
+        let ticket = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let family = Arc::new(SettingsStore::new(db, events.clone()));
 
         SettingsStore::spawn_invalidator(Arc::clone(&support), events.subscribe());
         SettingsStore::spawn_invalidator(
@@ -53,6 +56,7 @@ impl SettingsRegistry {
         SettingsStore::spawn_invalidator(Arc::clone(&lfg), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&music), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&ticket), events.subscribe());
+        SettingsStore::spawn_invalidator(Arc::clone(&family), events.subscribe());
 
         Self {
             support,
@@ -63,6 +67,7 @@ impl SettingsRegistry {
             lfg,
             music,
             ticket,
+            family,
         }
     }
 }

@@ -8,6 +8,7 @@ use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
 use crate::server::discord::{list_guild_channels, list_guild_roles};
 use crate::server::guild::{
     SaveChannelSettings,
+    SaveFamilySettings,
     SaveLfgSettings,
     SaveRoleSettings,
     SaveSupportSettings,
@@ -47,6 +48,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let save_channels = ServerAction::<SaveChannelSettings>::new();
     let save_roles = ServerAction::<SaveRoleSettings>::new();
     let save_temp_voice = ServerAction::<SaveTempVoiceSettings>::new();
+    let save_family = ServerAction::<SaveFamilySettings>::new();
     let save_lfg = ServerAction::<SaveLfgSettings>::new();
 
     view! {
@@ -202,6 +204,24 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                                 selected=sel(s.temp_voice_creator_channel.as_deref())
                                                 channels=channels.clone()
                                                 kinds=&[ChannelType::GuildVoice]
+                                            />
+                                            <SaveButton/>
+                                        </ActionForm>
+                                    </fieldset>
+                                }}
+
+                                // Family
+                                {let r = save_family.value();
+                                view! {
+                                    <fieldset class="settings-section">
+                                        <legend><Icon name="heart"/>"Family"</legend>
+                                        {move || r.get().map(save_feedback)}
+                                        <ActionForm action=save_family>
+                                            <input type="hidden" name="guild" value=guild_id()/>
+                                            <SettingField
+                                                label="Max Partners"
+                                                name="max_partners"
+                                                value=s.family_max_partners.clone()
                                             />
                                             <SaveButton/>
                                         </ActionForm>

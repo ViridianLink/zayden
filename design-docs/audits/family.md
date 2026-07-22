@@ -29,7 +29,18 @@ modules (CC-2), which is both a convention violation and effectively no
   `pub(crate)` surface needed. See [CC-2](_cross-cutting.md#cc-2).
 
 ### 3. `family_settings` (per-guild config) belongs on the dashboard  ·  #8  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-22):** Added the dashboard editor surface. New
+  `FamilySettingsRow` (`SettingsRow`) in
+  `zayden-app/src/config/tables/family.rs` (mirrors lfg/temp-voice: `select`
+  + guarded `ON CONFLICT` `upsert` via compile-time `query_as!`), registered in
+  the `SettingsRegistry` (`family` store + cache invalidator). Dashboard now
+  reads it in `get_guild_settings` and writes it via a new `save_family_settings`
+  server fn (floors `max_partners` at 1), with a "Family" section on the settings
+  page. Bot-side enforcement (`bindings/family.rs`) is unchanged — the website is
+  now the single editor. **Residual:** the `family` slash-command has no editor to
+  remove (there never was one); the read-only `max_partners` was previously
+  un-editable at runtime and now is.
 - **Where:** `family_settings` table (added in migration `0015_family_guild_scope`,
   guild-scope design change 2026-07-22); currently read bot-side only, with **no**
   editor surface.

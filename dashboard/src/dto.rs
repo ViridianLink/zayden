@@ -93,6 +93,7 @@ pub struct GuildSettings {
     pub(crate) lfg_channel_id: Option<String>,
     pub(crate) lfg_role_id: Option<String>,
     pub(crate) lfg_scheduled_thread_id: Option<String>,
+    pub(crate) family_max_partners: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

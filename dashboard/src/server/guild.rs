@@ -93,6 +93,7 @@ pub async fn get_guild_settings(
     let roles = s.roles.get(guild_id).await.map_err(server_err)?;
     let temp_voice = s.temp_voice.get(guild_id).await.map_err(server_err)?;
     let lfg = s.lfg.get(guild_id).await.map_err(server_err)?;
+    let family = s.family.get(guild_id).await.map_err(server_err)?;
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
@@ -110,6 +111,7 @@ pub async fn get_guild_settings(
         lfg_channel_id: opt_str(lfg.lfg_channel_id),
         lfg_role_id: opt_str(lfg.lfg_role_id),
         lfg_scheduled_thread_id: opt_str(lfg.lfg_scheduled_thread_id),
+        family_max_partners: family.max_partners.to_string(),
     })
 }
 
@@ -198,6 +200,25 @@ pub async fn save_temp_voice_settings(
         .update(guild_id, |p| {
             p.temp_voice_category = parse_id(&temp_voice_category);
             p.temp_voice_creator_channel = parse_id(&temp_voice_creator_channel);
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_family_settings(
+    guild: String,
+    max_partners: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let max_partners = max_partners.trim().parse::<i32>().unwrap_or(1).max(1);
+
+    app.settings
+        .family
+        .update(guild_id, |p| {
+            p.max_partners = max_partners;
         })
         .await
         .map(|_| ())
