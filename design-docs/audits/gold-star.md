@@ -36,7 +36,7 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity. Instance of
 `save_row` upsert (`bot/src/bindings/gold_star.rs:82-100`)._
 
 ### DS-1. `/give_star` read-modify-write races → star mint, loss, and free-star cap bypass  ·  Pass 2  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** Replaced the read-mutate-two-absolute-saves flow with a
   single transactional `GoldStarManager::give_star` (`bot/src/bindings/gold_star.rs`).
   It ensures the author row exists, takes a `FOR UPDATE` lock on it, decides

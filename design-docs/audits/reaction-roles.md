@@ -41,7 +41,7 @@ DB-generic `async_trait` pattern (CC-1) and no `tests/`. Otherwise unremarkable.
 _Deep sweep (sixth pass): 2026-07-17 · lenses: silent-failure, state/orphan._
 
 ### DS-1. Reaction handler never skips the bot's own reaction → bot is granted every reaction-role  ·  Pass 7 (state) / #8  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** `reaction_add`/`reaction_remove` now early-return when the
   reactor is a bot (`reaction.member.user.bot`) before any DB lookup, so the
   seed-reaction from `/reaction-roles add` no longer grants the role to the bot.

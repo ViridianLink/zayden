@@ -51,7 +51,7 @@ state transitions.
 _Deep sweep: 2026-07-17 · lens: Discord-API correctness (component limits)._
 
 ### DS-1. `/support list` builds a select menu from **every** FAQ message → breaks past 25 options  ·  Pass 3  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** `.take(25)` the filtered option stream (also stops the
   full-channel pagination early) and short-circuit with a friendly notice when the
   option set is empty (a 0-option menu is likewise rejected). The `enumerate`

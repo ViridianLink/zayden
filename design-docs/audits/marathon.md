@@ -31,7 +31,7 @@ clean"). Drilled the `merge.rs` consensus layer against the actual per-entity
 source fan-out in `client/`._
 
 ### DS-1. `consensus` tiebreak is a `HashMap`-order coin flip when ≥2 sources collapse to the same rank → nondeterministic weapon/runner `description`  ·  Pass 2/9  ·  low-med  ·  confirmed
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — d6068291`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** Took the finding's option (a). `consensus`'s per-value
   tally now carries a third field — the value's first-appearance index in
   `candidates` (`merge.rs:73-80`) — used as the final `max_by` tiebreaker after

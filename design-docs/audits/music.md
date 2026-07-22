@@ -54,7 +54,7 @@ youtube). No CC-1 (in-memory manager, not DB-generic). Only minor lint debt.
 _Deep sweep: 2026-07-17 · lens: state/cache correctness (multi-guild aliasing)._
 
 ### DS-1. `VoiceOccupancy` keyed by `UserId` only → premature auto-disconnect when a listener is in two guilds' voice at once  ·  Pass 6+2  ·  low-med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 19ff2826`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** Re-keyed the map to `DashMap<(UserId, GuildId), ChannelId>`
   (`occupancy.rs`) so a user's presence is tracked independently per guild, and
   scoped `update`'s `None`-branch removal to `remove(&(user_id, guild_id))` — a
@@ -96,7 +96,7 @@ _Deep sweep: 2026-07-17 · lens: state/cache correctness (multi-guild aliasing).
   stale members when the bot is removed from a guild (secondary leak).
 
 ### DS-2. Concurrent first-play double-start: two `/play`-family calls when idle both `play_input` → overlapping audio + orphaned uncontrollable handle + double queue-advance  ·  Pass 2 (double-submit)  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 1e3a42c6`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/music/src/commands/play.rs:68-115` (`enqueue`) — the
   `should_start = guard.current.is_none()` check (`:77`) and the queue lock are
   **released** (`:85`) before the track is popped (`:91-94`) and

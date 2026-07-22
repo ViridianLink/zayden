@@ -48,7 +48,7 @@ best migration reference alongside temp-voice.
 _Deep sweep: 2026-07-17 · lens: concurrency/atomicity._
 
 ### DS-1. Fireteam capacity race → post overfills past `fireteam_size`  ·  Pass 2  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** `join` now takes a `SELECT id FROM lfg_posts WHERE id = $1
   FOR UPDATE` row lock (`sql/lfg/PostManager/lock_post.sql`) as the first
   statement of its transaction, before the fireteam `INSERT` and the aggregate

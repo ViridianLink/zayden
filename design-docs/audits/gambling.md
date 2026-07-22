@@ -115,7 +115,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   `rows_affected == 1`, all in one tx. **Confidence: confirmed.**
 
 ### DS-3. Prestige→lotto `ON CONFLICT` computes `2×tickets` and discards the pool  ·  Pass 4+9  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** `lotto.sql` upsert now reads the existing pool row —
   `SET quantity = gambling_inventory.quantity + $3` (mirrors `add_coins.sql`'s
   `coins = gambling.coins + $2`) instead of `EXCLUDED.quantity + $3` (= `$3 + $3`,
@@ -143,7 +143,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   upsert).
 
 ### DS-4. `confirm_prestige` button has no double-submit idempotency  ·  Pass 2  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** Took the finding's second suggested fix (optimistic
   concurrency), which is race-safe where "ack-first" is not. `PrestigeManager::
   save` now takes the pre-increment `expected_prestige` and its `gambling_mine`
@@ -254,7 +254,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   atomic `add_coins` (DS-1, DS-2) or a shared pool (DS-3/DS-4).
 
 ### DS-7. `daily` / `work` are further CC-9 whole-row absolute-overwrite sites (lost concurrent update)  ·  Pass 2  ·  low-med
-- **Status:** `in-review` (partial — `daily` fixed, `work` deferred)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2` (partial — `daily` fixed, `work` deferred)            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19, `daily`):** `DailyManager::save` (whole-row absolute upsert)
   replaced with `DailyManager::claim_daily`, a single guarded atomic upsert —
   `INSERT … ON CONFLICT DO UPDATE SET coins = gambling.coins + $2, daily = today

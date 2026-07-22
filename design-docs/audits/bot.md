@@ -76,7 +76,7 @@ crate and its binding — exactly the blind spot CC-1/CC-9 describe. DS-3 was ad
 2026-07-22, split out of the DS-2 revival's residual note._
 
 ### DS-1. Level-up coin reward is a second transaction after XP is already committed → reward silently lost  ·  Pass 1 (silent failure) / SQL atomicity  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** Pulled `levels::message_create` out of the `try_join!` and
   run it (plus the `add_coins` reward) **before** the fallible siblings
   (`Ai`/`support`/`llamad2`). Since the level is committed inside
@@ -113,7 +113,7 @@ crate and its binding — exactly the blind spot CC-1/CC-9 describe. DS-3 was ad
   the reward *before* the fallible siblings, or make it idempotent/retryable.
 
 ### DS-2. Entire `bindings/moderation/` tree is orphaned → moderation is a dead feature (and 3 latent bugs hide in it)  ·  Pass 9 (drift) / #2  ·  med
-- **Status:** `in-review` (revived)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — fef9f933` (revived)            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Decision (2026-07-20):** **Revive**, not delete (owner's call). The tree is
   now a live feature on the current convention.
 - **Fix (2026-07-20):** Rewrote the whole tree against the current API and wired
@@ -188,7 +188,7 @@ crate and its binding — exactly the blind spot CC-1/CC-9 describe. DS-3 was ad
   tree and correct CC-3 and Clean §#2.
 
 ### DS-3. `/rules` is hardcoded single-guild (magic IDs + on-disk `messages/rules.md`) → unusable by any other guild  ·  Pass 9 (drift) / #2  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 2138829c`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** `/rules` is now a guild-generic, DB-backed command group.
   New migration `0014_guild_rules` adds `guild_rules` (per-guild config:
   `channel_id`, nullable `message_id`, `title`/`description`/`colour` styling) and
