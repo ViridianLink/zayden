@@ -6,10 +6,9 @@ use serenity::all::{
     CreateCommand,
     CreateCommandOption,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::family_manager::{FamilyManager, FamilyRow};
-use crate::{FamilyError, Result};
+use crate::{FamilyError, FamilyRow, Result};
 
 #[derive(Debug)]
 struct Node {
@@ -72,18 +71,18 @@ impl Tree {
         clippy::cast_precision_loss,
         reason = "precision loss is acceptable for tree layout positioning"
     )]
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         _ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<GraphData> {
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        let row = Manager::row(pool, guild_id, interaction.user.id)
+        let row = FamilyRow::get(pool, guild_id, interaction.user.id)
             .await?
             .unwrap_or_else(|| FamilyRow::from_user(guild_id, &interaction.user));
 
-        let tree = row.tree::<Db, Manager>(pool).await?;
+        let tree = row.tree(pool).await?;
 
         let mut keys: Vec<i32> = tree.keys().copied().collect();
         keys.sort_unstable();

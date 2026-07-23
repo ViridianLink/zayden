@@ -1,14 +1,13 @@
 use serenity::all::{ComponentInteraction, UserId};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::message_metadata;
 
-use crate::family_manager::{FamilyManager, FamilyRow};
 use crate::relationships::Relationships;
-use crate::{FamilyError, Result};
+use crate::{FamilyError, FamilyRow, Result};
 
-pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
+pub async fn accept(
     interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
 ) -> Result<UserId> {
     let parent_user = &message_metadata(&interaction.message)?.user;
 
@@ -22,11 +21,11 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
 
     let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-    let mut row = Manager::row(pool, guild_id, parent_user.id)
+    let mut row = FamilyRow::get(pool, guild_id, parent_user.id)
         .await?
         .unwrap_or_else(|| FamilyRow::from_user(guild_id, parent_user));
 
-    let mut child_row = Manager::row(pool, guild_id, child_user.id)
+    let mut child_row = FamilyRow::get(pool, guild_id, child_user.id)
         .await?
         .unwrap_or_else(|| FamilyRow::from_user(guild_id, child_user));
 
@@ -51,8 +50,8 @@ pub async fn accept<Db: Database, Manager: FamilyManager<Db>>(
     row.add_child(&child_row);
     child_row.add_parent(&row);
 
-    row.save::<Db, Manager>(pool).await?;
-    child_row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
+    child_row.save(pool).await?;
 
     Ok(parent_user.id)
 }

@@ -13,6 +13,28 @@ modules (CC-2), which is both a convention violation and effectively no
 ## Findings
 
 ### 1. DB-generic `async_trait` manager  ·  #1  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-23):** CC-1 concrete-`PgPool` migration (fifth module after the
+  `gold-star`/`levels`/`reaction-roles`/`suggestions` pilots). Dropped the
+  `#[async_trait] trait FamilyManager<Db: Database>` and its lone
+  `impl … for FamilyTable` binding. The SQL now lives in the crate as concrete
+  `PgPool` associated functions (`family_manager.rs` renamed to `manager.rs`):
+  `FamilyRow::{get,save,tree,reset,remove_partner,remove_block}` (plus the
+  private `build_tree` recursion and the `ensure_family_member` helper, moved
+  from the binding) and `FamilySettings::get`. Every command/component `run`
+  lost its `<Db, Manager>` generics and now takes `&PgPool` directly; the
+  `bot/src/bindings/family.rs` shims drop their `::<Postgres, FamilyTable>`
+  turbofish and the `FamilyTable`/`Postgres`/`PgPool`/`FamilyManager` imports.
+  `bot/src/bindings/family` is reduced to `register` + the
+  `ModuleCommand`/`ModuleComponent` shims (`FamilyTable` deleted). Removed the
+  now-unused `async-trait` dependency (`cargo machete` clean; the crate has no
+  other `async_trait` use). **Behaviour-preserving:** every `query!` string was
+  moved byte-identically, so the existing `.sqlx` cache entries are reused
+  unchanged (`git status .sqlx` clean — no regeneration needed). Added
+  `tests/manager.rs` pinning the migrated types' pure logic (relationship
+  classification, block/partner-limit/adopted predicates, settings clamp).
+  Only the larger generic managers — `gambling`, `lfg`, `temp-voice`, plus the
+  `zayden-core` traits — now remain on CC-1.
 - **Where:** `src/family_manager.rs`, all `commands/*`, `components/*`.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1).
 

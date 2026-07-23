@@ -1,19 +1,19 @@
 use serenity::all::{CommandInteraction, Context, CreateCommand, Permissions};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::{FamilyError, FamilyManager, Result};
+use crate::{FamilyError, FamilyRow, Result};
 
 pub struct ResetFamily;
 
 impl ResetFamily {
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         _ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        Manager::reset(pool, guild_id).await?;
+        FamilyRow::reset(pool, guild_id).await?;
 
         Ok(())
     }

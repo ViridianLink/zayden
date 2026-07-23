@@ -7,12 +7,11 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::parse_options;
 
-use crate::family_manager::{FamilyManager, FamilyRow};
 use crate::relationships::Relationships;
-use crate::{FamilyError, Result};
+use crate::{FamilyError, FamilyRow, Result};
 
 pub struct RelationshipResponse {
     pub other_id: UserId,
@@ -23,10 +22,10 @@ pub struct RelationshipResponse {
 pub struct Relationship;
 
 impl Relationship {
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<RelationshipResponse> {
         interaction.defer(http).await?;
 
@@ -49,7 +48,7 @@ impl Relationship {
 
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        let user_info = Manager::row(pool, guild_id, user.id)
+        let user_info = FamilyRow::get(pool, guild_id, user.id)
             .await?
             .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
 

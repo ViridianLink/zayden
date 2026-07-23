@@ -10,19 +10,18 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::as_u64;
 
-use crate::family_manager::{FamilyManager, FamilyRow};
-use crate::{FamilyError, Result};
+use crate::{FamilyError, FamilyRow, Result};
 
 pub struct Children;
 
 impl Children {
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<(UserId, Vec<String>)> {
         let user = match interaction.data.options().first() {
             Some(ResolvedOption { value: ResolvedValue::User(user, _), .. }) => {
@@ -33,7 +32,7 @@ impl Children {
 
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        let row = Manager::row(pool, guild_id, user.id)
+        let row = FamilyRow::get(pool, guild_id, user.id)
             .await?
             .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
 

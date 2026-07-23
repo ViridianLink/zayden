@@ -15,8 +15,7 @@ use family::commands::{
     Siblings,
     Unblock,
 };
-use family::{FamilyError, FamilyManager, FamilyRow, FamilySettings};
-use futures::TryStreamExt;
+use family::{FamilyError, FamilyRow};
 use serenity::all::{
     ButtonStyle,
     CreateActionRow,
@@ -26,18 +25,16 @@ use serenity::all::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     EditInteractionResponse,
-    GuildId,
     Mentionable,
     ResolvedOption,
     ResolvedValue,
     UserId,
 };
-use sqlx::{PgPool, Postgres};
+use zayden_core::as_i64;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
-use zayden_core::{as_i64, as_u64};
 
 use crate::RegistryBuilder;
 use crate::registry::OverlapError;
@@ -60,333 +57,6 @@ pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
         .add_component(MarryDecline)?
         .add_component(AdoptAccept)?
         .add_component(AdoptDecline)?;
-
-    Ok(())
-}
-
-pub struct FamilyTable;
-
-#[async_trait]
-impl FamilyManager<Postgres> for FamilyTable {
-    async fn row(
-        pool: &PgPool,
-        guild_id: GuildId,
-        user_id: UserId,
-    ) -> sqlx::Result<Option<FamilyRow>> {
-        let gid = as_i64(guild_id.get());
-        let uid = as_i64(user_id.get());
-
-        let username: Option<String> = sqlx::query_scalar!(
-            "SELECT u.username FROM family f \
-             JOIN users u ON u.id = f.user_id \
-             WHERE f.guild_id = $1 AND f.user_id = $2",
-            gid,
-            uid
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        let Some(username) = username else {
-            return Ok(None);
-        };
-
-        // family_partners stores (LEAST, GREATEST) so we query both columns.
-        let partner_ids: Vec<i64> = sqlx::query_scalar!(
-            "SELECT partner_id FROM family_partners WHERE guild_id = $1 AND user_id = $2 \
-             UNION ALL \
-             SELECT user_id FROM family_partners WHERE guild_id = $1 AND partner_id = $2",
-            gid,
-            uid
-        )
-        .fetch(pool)
-        .try_filter_map(|x| std::future::ready(Ok(x)))
-        .try_collect()
-        .await?;
-
-        let parent_ids: Vec<i64> = sqlx::query_scalar!(
-            "SELECT parent_id FROM family_parent_child WHERE guild_id = $1 AND child_id = $2",
-            gid,
-            uid
-        )
-        .fetch_all(pool)
-        .await?;
-
-        let children_ids: Vec<i64> = sqlx::query_scalar!(
-            "SELECT child_id FROM family_parent_child WHERE guild_id = $1 AND parent_id = $2",
-            gid,
-            uid
-        )
-        .fetch_all(pool)
-        .await?;
-
-        let blocked_ids: Vec<i64> = sqlx::query_scalar!(
-            "SELECT blocked_id FROM family_blocks WHERE guild_id = $1 AND user_id = $2",
-            gid,
-            uid
-        )
-        .fetch_all(pool)
-        .await?;
-
-        Ok(Some(FamilyRow {
-            guild_id: gid,
-            id: uid,
-            username,
-            partner_ids,
-            parent_ids,
-            children_ids,
-            blocked_ids,
-        }))
-    }
-
-    async fn tree<'a>(
-        pool: &PgPool,
-        guild_id: GuildId,
-        user_id: UserId,
-        mut tree: HashMap<i32, Vec<FamilyRow>>,
-        depth: i32,
-        add_parents: bool,
-        add_partners: bool,
-    ) -> sqlx::Result<HashMap<i32, Vec<FamilyRow>>> {
-        let signed_id = as_i64(user_id.get());
-
-        // Cycle prevention: skip if already in tree.
-        if tree.values().flatten().any(|row| row.id == signed_id) {
-            return Ok(tree);
-        }
-
-        let Some(row) = Self::row(pool, guild_id, user_id).await? else {
-            return Ok(tree);
-        };
-
-        let partner_ids = row.partner_ids.clone();
-        let parent_ids = row.parent_ids.clone();
-        let children_ids = row.children_ids.clone();
-
-        tree.entry(depth).or_default().push(row);
-
-        if add_parents {
-            for parent_id in parent_ids {
-                let pid = UserId::new(as_u64(parent_id));
-                tree = Box::pin(Self::tree(
-                    pool,
-                    guild_id,
-                    pid,
-                    tree,
-                    depth - 1,
-                    true,
-                    add_partners,
-                ))
-                .await?;
-            }
-        }
-
-        if add_partners {
-            for partner_id in partner_ids {
-                let pid = UserId::new(as_u64(partner_id));
-                // Don't recurse into partners' partners to prevent runaway
-                // expansion.
-                tree = Box::pin(Self::tree(
-                    pool, guild_id, pid, tree, depth, false, false,
-                ))
-                .await?;
-            }
-        }
-
-        for child_id in children_ids {
-            let cid = UserId::new(as_u64(child_id));
-            tree = Box::pin(Self::tree(
-                pool,
-                guild_id,
-                cid,
-                tree,
-                depth + 1,
-                false,
-                add_partners,
-            ))
-            .await?;
-        }
-
-        Ok(tree)
-    }
-
-    async fn reset(pool: &PgPool, guild_id: GuildId) -> sqlx::Result<()> {
-        let gid = as_i64(guild_id.get());
-
-        sqlx::query!("DELETE FROM family WHERE guild_id = $1", gid)
-            .execute(pool)
-            .await?;
-        Ok(())
-    }
-
-    async fn save(pool: &PgPool, row: &FamilyRow) -> sqlx::Result<()> {
-        let gid = row.guild_id;
-
-        sqlx::query!(
-            "INSERT INTO users (id, username) VALUES ($1, $2) \
-             ON CONFLICT (id) DO UPDATE SET username = EXCLUDED.username",
-            row.id,
-            &row.username
-        )
-        .execute(pool)
-        .await?;
-
-        sqlx::query!(
-            "INSERT INTO family (guild_id, user_id) VALUES ($1, $2) \
-             ON CONFLICT DO NOTHING",
-            gid,
-            row.id
-        )
-        .execute(pool)
-        .await?;
-
-        // Sync partners. The schema enforces user_id < partner_id via CHECK.
-        for &partner_id in &row.partner_ids {
-            ensure_family_member(pool, gid, partner_id).await?;
-            let (uid, pid) = if row.id < partner_id {
-                (row.id, partner_id)
-            } else {
-                (partner_id, row.id)
-            };
-            sqlx::query!(
-                "INSERT INTO family_partners (guild_id, user_id, partner_id) \
-                 VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                gid,
-                uid,
-                pid
-            )
-            .execute(pool)
-            .await?;
-        }
-
-        // Sync children (this user is the parent).
-        for &child_id in &row.children_ids {
-            ensure_family_member(pool, gid, child_id).await?;
-            sqlx::query!(
-                "INSERT INTO family_parent_child (guild_id, parent_id, child_id) \
-                 VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                gid,
-                row.id,
-                child_id
-            )
-            .execute(pool)
-            .await?;
-        }
-
-        // Sync parents (this user is the child).
-        for &parent_id in &row.parent_ids {
-            ensure_family_member(pool, gid, parent_id).await?;
-            sqlx::query!(
-                "INSERT INTO family_parent_child (guild_id, parent_id, child_id) \
-                 VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                gid,
-                parent_id,
-                row.id
-            )
-            .execute(pool)
-            .await?;
-        }
-
-        // Sync blocked users.
-        for &blocked_id in &row.blocked_ids {
-            ensure_family_member(pool, gid, blocked_id).await?;
-            sqlx::query!(
-                "INSERT INTO family_blocks (guild_id, user_id, blocked_id) \
-                 VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
-                gid,
-                row.id,
-                blocked_id
-            )
-            .execute(pool)
-            .await?;
-        }
-
-        Ok(())
-    }
-
-    async fn remove_partner(
-        pool: &PgPool,
-        guild_id: GuildId,
-        user_id: UserId,
-        partner_id: UserId,
-    ) -> sqlx::Result<()> {
-        let gid: i64 = as_i64(guild_id.get());
-        let uid: i64 = as_i64(user_id.get());
-        let pid: i64 = as_i64(partner_id.get());
-        let (lo, hi) = if uid < pid { (uid, pid) } else { (pid, uid) };
-
-        sqlx::query!(
-            "DELETE FROM family_partners \
-             WHERE guild_id = $1 AND user_id = $2 AND partner_id = $3",
-            gid,
-            lo,
-            hi
-        )
-        .execute(pool)
-        .await?;
-
-        Ok(())
-    }
-
-    async fn remove_block(
-        pool: &PgPool,
-        guild_id: GuildId,
-        user_id: UserId,
-        blocked_id: UserId,
-    ) -> sqlx::Result<()> {
-        let gid: i64 = as_i64(guild_id.get());
-        let uid: i64 = as_i64(user_id.get());
-        let bid: i64 = as_i64(blocked_id.get());
-
-        sqlx::query!(
-            "DELETE FROM family_blocks \
-             WHERE guild_id = $1 AND user_id = $2 AND blocked_id = $3",
-            gid,
-            uid,
-            bid
-        )
-        .execute(pool)
-        .await?;
-
-        Ok(())
-    }
-
-    async fn settings(
-        pool: &PgPool,
-        guild_id: GuildId,
-    ) -> sqlx::Result<FamilySettings> {
-        let gid = as_i64(guild_id.get());
-
-        let max_partners: Option<i32> = sqlx::query_scalar!(
-            "SELECT max_partners FROM family_settings WHERE guild_id = $1",
-            gid
-        )
-        .fetch_optional(pool)
-        .await?;
-
-        Ok(max_partners.map_or_else(FamilySettings::default, FamilySettings::new))
-    }
-}
-
-async fn ensure_family_member(
-    pool: &PgPool,
-    guild_id: i64,
-    id: i64,
-) -> sqlx::Result<()> {
-    sqlx::query!(
-        "INSERT INTO users (id, username) VALUES ($1, 'Unknown') ON CONFLICT DO NOTHING",
-        id
-    )
-    .execute(pool)
-    .await?;
-
-    sqlx::query!(
-        "INSERT INTO family (guild_id, user_id) VALUES ($1, $2) \
-         ON CONFLICT DO NOTHING",
-        guild_id,
-        id
-    )
-    .execute(pool)
-    .await?;
 
     Ok(())
 }
@@ -415,7 +85,7 @@ impl ModuleCommand for MarryCmd {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let target_id =
-            Marry::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
+            Marry::run(cx.ctx, cx.interaction, &cx.app.db)
                 .await?;
 
         let content = format!(
@@ -454,7 +124,7 @@ impl ModuleCommand for DivorceCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        let partner_id = Divorce::run::<Postgres, FamilyTable>(
+        let partner_id = Divorce::run(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
@@ -491,7 +161,7 @@ impl ModuleCommand for AdoptCmd {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let target_id =
-            Adopt::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
+            Adopt::run(cx.ctx, cx.interaction, &cx.app.db)
                 .await?;
 
         let content = format!(
@@ -530,7 +200,7 @@ impl ModuleCommand for BlockCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Block::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
+        Block::run(cx.ctx, cx.interaction, &cx.app.db)
             .await?;
 
         cx.interaction
@@ -560,7 +230,7 @@ impl ModuleCommand for UnblockCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Unblock::run::<Postgres, FamilyTable>(cx.ctx, cx.interaction, &cx.app.db)
+        Unblock::run(cx.ctx, cx.interaction, &cx.app.db)
             .await?;
 
         cx.interaction
@@ -592,7 +262,7 @@ impl ModuleCommand for ChildrenCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Children::run::<Postgres, FamilyTable>(
+        let (user_id, names) = Children::run(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
@@ -628,7 +298,7 @@ impl ModuleCommand for ParentsCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Parents::run::<Postgres, FamilyTable>(
+        let (user_id, names) = Parents::run(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
@@ -664,7 +334,7 @@ impl ModuleCommand for PartnerCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Partner::run::<Postgres, FamilyTable>(
+        let (user_id, names) = Partner::run(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
@@ -700,7 +370,7 @@ impl ModuleCommand for SiblingsCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Siblings::run::<Postgres, FamilyTable>(
+        let (user_id, names) = Siblings::run(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
@@ -735,7 +405,7 @@ impl ModuleCommand for RelationshipCmd {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         // Relationship::run defers the interaction internally.
-        let resp = Relationship::run::<Postgres, FamilyTable>(
+        let resp = Relationship::run(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -773,7 +443,7 @@ impl ModuleCommand for ResetFamilyCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        ResetFamily::run::<Postgres, FamilyTable>(
+        ResetFamily::run(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
@@ -818,11 +488,11 @@ impl ModuleCommand for TreeCmd {
             _ => &cx.interaction.user,
         };
 
-        let row = FamilyTable::row(&cx.app.db, guild_id, user.id)
+        let row = FamilyRow::get(&cx.app.db, guild_id, user.id)
             .await?
             .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
 
-        let tree = row.tree::<Postgres, FamilyTable>(&cx.app.db).await?;
+        let tree = row.tree(&cx.app.db).await?;
 
         let content = format_tree(&tree, user.id);
 
@@ -891,7 +561,7 @@ impl ModuleComponent for MarryAccept {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        family::components::marry::accept::<Postgres, FamilyTable>(
+        family::components::marry::accept(
             cx.interaction,
             &cx.app.db,
         )
@@ -945,7 +615,7 @@ impl ModuleComponent for AdoptAccept {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        family::components::adopt::accept::<Postgres, FamilyTable>(
+        family::components::adopt::accept(
             cx.interaction,
             &cx.app.db,
         )

@@ -7,19 +7,18 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::family_manager::FamilyManager;
 use crate::relationships::Relationships;
-use crate::{FamilyError, Result};
+use crate::{FamilyError, FamilyRow, FamilySettings, Result};
 
 pub struct Marry;
 
 impl Marry {
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<UserId> {
         let options = interaction.data.options();
         let option = options.first().ok_or(FamilyError::InvalidUserId)?;
@@ -41,9 +40,9 @@ impl Marry {
 
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        let max_partners = Manager::settings(pool, guild_id).await?.max_partners();
+        let max_partners = FamilySettings::get(pool, guild_id).await?.max_partners();
 
-        if let Some(row) = Manager::row(pool, guild_id, interaction.user.id).await? {
+        if let Some(row) = FamilyRow::get(pool, guild_id, interaction.user.id).await? {
             let relationship = row.relationship(target_user.id);
 
             if relationship != Relationships::None {
@@ -62,7 +61,7 @@ impl Marry {
             }
         }
 
-        if let Some(row) = Manager::row(pool, guild_id, target_user.id).await? {
+        if let Some(row) = FamilyRow::get(pool, guild_id, target_user.id).await? {
             if row.at_partner_limit(max_partners) {
                 return Err(FamilyError::MaxPartners);
             }

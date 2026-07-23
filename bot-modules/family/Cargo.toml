@@ -10,7 +10,6 @@ workspace = true
 [dependencies]
 zayden-core = { workspace = true }
 
-async-trait = { workspace = true }
 sqlx = { workspace = true }
 futures = { workspace = true }
 charming = { workspace = true }

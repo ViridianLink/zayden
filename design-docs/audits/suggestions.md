@@ -11,7 +11,7 @@ no `tests/`. Otherwise clean.
 ## Findings
 
 ### 1. DB-generic `async_trait` manager  ·  #1  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — b4bb8582`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-23):** CC-1 concrete-`PgPool` migration (fourth module after the
   `gold-star`/`levels`/`reaction-roles` pilots). Dropped the `#[async_trait] trait
   SuggestionsGuildManager<Db: Database>` and its lone `impl … for GuildTable`

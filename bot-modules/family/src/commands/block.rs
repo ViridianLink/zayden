@@ -6,18 +6,17 @@ use serenity::all::{
     CreateCommandOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::family_manager::{FamilyManager, FamilyRow};
-use crate::{FamilyError, Result};
+use crate::{FamilyError, FamilyRow, Result};
 
 pub struct Block;
 
 impl Block {
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         _ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let options = interaction.data.options();
         let option = options.first().ok_or(FamilyError::InvalidUserId)?;
@@ -31,12 +30,12 @@ impl Block {
 
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        let mut row = Manager::row(pool, guild_id, interaction.user.id)
+        let mut row = FamilyRow::get(pool, guild_id, interaction.user.id)
             .await?
             .unwrap_or_else(|| FamilyRow::from_user(guild_id, &interaction.user));
 
         row.add_blocked(user.id);
-        row.save::<Db, Manager>(pool).await?;
+        row.save(pool).await?;
 
         Ok(())
     }
@@ -55,10 +54,10 @@ impl Block {
 pub struct Unblock;
 
 impl Unblock {
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         _ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let options = interaction.data.options();
         let option = options.first().ok_or(FamilyError::InvalidUserId)?;
@@ -72,7 +71,7 @@ impl Unblock {
 
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        Manager::remove_block(pool, guild_id, interaction.user.id, user.id).await?;
+        FamilyRow::remove_block(pool, guild_id, interaction.user.id, user.id).await?;
 
         Ok(())
     }

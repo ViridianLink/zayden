@@ -7,19 +7,18 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::family_manager::{FamilyManager, FamilyRow};
 use crate::relationships::Relationships;
-use crate::{FamilyError, Result};
+use crate::{FamilyError, FamilyRow, Result};
 
 pub struct Adopt;
 
 impl Adopt {
-    pub async fn run<Db: Database, Manager: FamilyManager<Db>>(
+    pub async fn run(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<UserId> {
         let options = interaction.data.options();
         let option = options.first().ok_or(FamilyError::InvalidUserId)?;
@@ -41,7 +40,7 @@ impl Adopt {
 
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        let adopter_row = Manager::row(pool, guild_id, interaction.user.id)
+        let adopter_row = FamilyRow::get(pool, guild_id, interaction.user.id)
             .await?
             .unwrap_or_else(|| FamilyRow::from_user(guild_id, &interaction.user));
 
@@ -50,7 +49,7 @@ impl Adopt {
         }
 
         if let Some(target_row) =
-            Manager::row(pool, guild_id, target_user.id).await?
+            FamilyRow::get(pool, guild_id, target_user.id).await?
         {
             // Is already adopted?
             if !target_row.parent_ids.is_empty() {
