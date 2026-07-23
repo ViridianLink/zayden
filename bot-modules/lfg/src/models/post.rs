@@ -25,14 +25,12 @@ pub struct PostBuilder {
 
 impl PostBuilder {
     pub fn new(
-        owner: impl Into<UserId>,
+        owner: UserId,
         activity: impl Into<String>,
         start: Zoned,
         desc: impl Into<String>,
         fireteam_size: i16,
     ) -> Self {
-        let owner = owner.into();
-
         Self {
             id: ThreadId::default(),
             owner,
@@ -177,39 +175,33 @@ impl From<PostRow> for PostBuilder {
 
 #[async_trait]
 pub trait PostManager<Db: Database> {
-    async fn exists(
-        pool: &Pool<Db>,
-        id: impl Into<GenericChannelId> + Send,
-    ) -> sqlx::Result<bool>;
+    async fn exists(pool: &Pool<Db>, id: GenericChannelId) -> sqlx::Result<bool>;
 
-    async fn owner(
-        pool: &Pool<Db>,
-        id: impl Into<GenericChannelId> + Send,
-    ) -> sqlx::Result<UserId>;
+    async fn owner(pool: &Pool<Db>, id: GenericChannelId) -> sqlx::Result<UserId>;
 
     async fn post_row(
         pool: &Pool<Db>,
-        id: impl Into<GenericChannelId> + Send,
+        id: GenericChannelId,
     ) -> sqlx::Result<PostRow>;
 
     async fn join(
         pool: &Pool<Db>,
-        id: impl Into<GenericChannelId> + Send,
-        user: impl Into<UserId> + Send,
+        id: GenericChannelId,
+        user: UserId,
         alternative: bool,
     ) -> Result<PostRow>;
 
     async fn leave(
         pool: &Pool<Db>,
-        id: impl Into<GenericChannelId> + Send,
-        user: impl Into<UserId> + Send,
+        id: GenericChannelId,
+        user: UserId,
     ) -> sqlx::Result<PostRow>;
 
     async fn edit(pool: &Pool<Db>, post: &PostRow) -> sqlx::Result<Db::QueryResult>;
 
     async fn delete(
         pool: &Pool<Db>,
-        id: impl Into<GenericChannelId> + Send,
+        id: GenericChannelId,
     ) -> sqlx::Result<Db::QueryResult>;
 }
 

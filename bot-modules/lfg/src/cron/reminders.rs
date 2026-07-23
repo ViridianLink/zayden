@@ -129,7 +129,7 @@ async fn reminder<Db: Database, Manager: PostManager<Db>>(
     pool: Pool<Db>,
     id: ThreadId,
 ) {
-    let post = match Manager::post_row(&pool, id).await {
+    let post = match Manager::post_row(&pool, id.widen()).await {
         Ok(post) => post,
         // Post deleted
         Err(sqlx::Error::RowNotFound) => return,

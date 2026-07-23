@@ -17,12 +17,7 @@ pub struct ProfileTable;
 
 #[async_trait]
 impl ProfileManager<Postgres> for ProfileTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<ProfileRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<ProfileRow>> {
         sqlx::query_as!(
             ProfileRow,
             r#"SELECT
@@ -73,7 +68,7 @@ impl InventoryManager<Postgres> for ProfileTable {
 
     async fn edit_item_quantity(
         _conn: &mut PgConnection,
-        _id: impl Into<UserId> + Send,
+        _id: UserId,
         _item_id: &str,
         _amount: i64,
     ) -> sqlx::Result<i64> {

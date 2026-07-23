@@ -55,9 +55,9 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         pool: &PgPool,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>> {
-        let user_id = id.into();
+        let user_id = id;
 
         sqlx::query_file_scalar!(
             "sql/gambling/LeaderboardManager/coins_row_number.sql",
@@ -96,9 +96,9 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         pool: &PgPool,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>> {
-        let user_id = id.into();
+        let user_id = id;
 
         sqlx::query_file_scalar!(
             "sql/gambling/LeaderboardManager/gems_row_number.sql",
@@ -138,10 +138,8 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         pool: &PgPool,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>> {
-        let id = id.into();
-
         sqlx::query_file_scalar!(
             "sql/gambling/LeaderboardManager/item_row_number.sql",
             global,
@@ -181,10 +179,8 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         pool: &PgPool,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>> {
-        let id = id.into();
-
         sqlx::query_file_scalar!(
             "sql/gambling/LeaderboardManager/item_row_number.sql",
             global,
@@ -223,10 +219,8 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         pool: &PgPool,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>> {
-        let id = id.into();
-
         sqlx::query_file_scalar!(
             "sql/gambling/LeaderboardManager/higherlower_row_number.sql",
             global,
@@ -264,10 +258,8 @@ impl LeaderboardManager<Postgres> for LeaderboardTable {
         pool: &PgPool,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>> {
-        let id = id.into();
-
         sqlx::query_file_scalar!(
             "sql/gambling/LeaderboardManager/weekly_higherlower_row_number.sql",
             global,

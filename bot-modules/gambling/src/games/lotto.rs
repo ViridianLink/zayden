@@ -17,7 +17,7 @@ const CHANNEL_ID: ChannelId = ChannelId::new(1_383_573_049_563_156_502);
 pub trait LottoManager<Db: Database> {
     async fn row(
         conn: &mut Db::Connection,
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<LottoRow>>;
 
     async fn rows(conn: &mut Db::Connection) -> sqlx::Result<Vec<LottoRow>>;
@@ -37,9 +37,8 @@ pub struct LottoRow {
 }
 
 impl LottoRow {
-    pub fn new(id: impl Into<UserId> + Send) -> Self {
-        let id: UserId = id.into();
-
+    #[must_use]
+    pub const fn new(id: UserId) -> Self {
         Self { user_id: as_i64(id.get()), coins: 0, quantity: Some(0) }
     }
 

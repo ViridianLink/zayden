@@ -23,9 +23,7 @@ pub struct SellRow {
 }
 
 impl SellRow {
-    fn new(id: impl Into<UserId> + Send) -> Self {
-        let id = id.into();
-
+    const fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             coins: 0,

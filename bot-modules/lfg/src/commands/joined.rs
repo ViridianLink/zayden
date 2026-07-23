@@ -18,10 +18,8 @@ use crate::Result;
 
 #[async_trait]
 pub trait JoinedManager<Db: Database> {
-    async fn upcoming(
-        pool: &Pool<Db>,
-        user: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Vec<JoinedRow>>;
+    async fn upcoming(pool: &Pool<Db>, user: UserId)
+    -> sqlx::Result<Vec<JoinedRow>>;
 }
 
 #[derive(FromRow)]

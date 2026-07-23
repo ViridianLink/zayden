@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use suggestions::GuildTable;
 use zayden_core::ctx::InvocationCtx;
 use zayden_core::error::HandlerError;
 use zayden_core::module::ModuleCommand;
@@ -19,7 +18,7 @@ impl ModuleCommand for FetchSuggestions {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        suggestions::FetchSuggestions::run::<sqlx::Postgres, GuildTable>(
+        suggestions::FetchSuggestions::run(
             &cx.ctx.http,
             cx.interaction,
             cx.interaction.data.options(),

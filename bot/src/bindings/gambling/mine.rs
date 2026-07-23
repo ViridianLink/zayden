@@ -16,12 +16,7 @@ pub struct MineTable;
 
 #[async_trait]
 impl MineManager<Postgres> for MineTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<MineRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<MineRow>> {
         sqlx::query_as!(
             MineRow,
             "SELECT miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige FROM gambling_mine WHERE user_id = $1",

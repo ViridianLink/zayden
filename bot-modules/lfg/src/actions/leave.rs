@@ -90,12 +90,11 @@ pub async fn leave<
     http: &'a Http,
     interaction: impl Into<LeaveInteraction>,
     pool: &Pool<Db>,
-    user: impl Into<UserId>,
+    user: UserId,
 ) -> Result<(ThreadId, CreateEmbed<'a>)> {
     let interaction = interaction.into();
-    let user = user.into();
 
-    let row = Manager::leave(pool, interaction.thread, user).await?;
+    let row = Manager::leave(pool, interaction.thread.widen(), user).await?;
 
     let owner = row.owner().to_user(http).await?;
 

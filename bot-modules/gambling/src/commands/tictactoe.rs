@@ -157,9 +157,7 @@ where
     Db: Database,
     Manager: GameManager<Db>,
 {
-    fn new(p1: impl Into<UserId>, size: usize, bet: i64) -> Self {
-        let p1 = p1.into();
-
+    const fn new(p1: UserId, size: usize, bet: i64) -> Self {
         Self {
             size,
             players: [p1, p1],

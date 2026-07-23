@@ -15,10 +15,7 @@ use crate::{GamblingError, MaxValues, MineHourly, Mining, Prestige, Result};
 
 #[async_trait]
 pub trait MineManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<MineRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<MineRow>>;
 }
 
 #[derive(Default, FromRow)]

@@ -42,9 +42,7 @@ pub struct SendRow {
 }
 
 impl SendRow {
-    fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    const fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             coins: 0,
@@ -100,10 +98,7 @@ impl Prestige for SendRow {
 
 #[async_trait]
 pub trait SendManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<SendRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<SendRow>>;
 
     async fn transfer(
         pool: &Pool<Db>,

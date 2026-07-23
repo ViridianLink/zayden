@@ -20,12 +20,7 @@ pub struct DigTable;
 
 #[async_trait]
 impl DigManager<Postgres> for DigTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<DigRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<DigRow>> {
         sqlx::query_as!(
             DigRow,
             r#"SELECT

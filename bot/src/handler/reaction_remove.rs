@@ -1,7 +1,7 @@
 use reaction_roles::ReactionRoleReaction;
 use serenity::all::{Context, Reaction};
-use sqlx::{PgPool, Postgres};
-use suggestions::{GuildTable, Suggestions};
+use sqlx::PgPool;
+use suggestions::Suggestions;
 
 use super::Handler;
 use crate::Result;
@@ -12,11 +12,9 @@ impl Handler {
         reaction: &Reaction,
         pool: &PgPool,
     ) -> Result<()> {
-        ReactionRoleReaction::reaction_remove(&ctx.http, reaction, pool)
-            .await?;
+        ReactionRoleReaction::reaction_remove(&ctx.http, reaction, pool).await?;
 
-        Suggestions::reaction::<Postgres, GuildTable>(&ctx.http, reaction, pool)
-            .await?;
+        Suggestions::reaction(&ctx.http, reaction, pool).await?;
 
         Ok(())
     }

@@ -19,12 +19,7 @@ pub struct ShopTable;
 
 #[async_trait]
 impl ShopManager<Postgres> for ShopTable {
-    async fn buy_row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<ShopRow>> {
-        let id = id.into();
-
+    async fn buy_row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<ShopRow>> {
         sqlx::query_as!(ShopRow,
             r#"SELECT
             g.user_id,
@@ -134,11 +129,9 @@ impl ShopManager<Postgres> for ShopTable {
 
     async fn sell_row(
         pool: &PgPool,
-        id: impl Into<UserId> + Send,
+        id: UserId,
         item_id: &str,
     ) -> sqlx::Result<Option<SellRow>> {
-        let id = id.into();
-
         sqlx::query_as!(
             SellRow,
             r#"
@@ -229,7 +222,7 @@ impl InventoryManager<Postgres> for ShopTable {
 
     async fn edit_item_quantity(
         _conn: &mut PgConnection,
-        _id: impl Into<UserId> + Send,
+        _id: UserId,
         _item_id: &str,
         _amount: i64,
     ) -> sqlx::Result<i64> {

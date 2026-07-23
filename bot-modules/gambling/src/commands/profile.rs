@@ -35,10 +35,7 @@ use crate::{
 
 #[async_trait]
 pub trait ProfileManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<ProfileRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<ProfileRow>>;
 }
 
 #[derive(Default)]

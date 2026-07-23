@@ -18,18 +18,18 @@ use crate::{GamblingError, Result, ShopCurrency};
 pub trait EffectsManager<Db: Database>: Send {
     async fn get_effects(
         conn: &mut Db::Connection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
     ) -> sqlx::Result<HashMap<String, i32>>;
 
     async fn get_effect(
         conn: &mut Db::Connection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         effect: &str,
     ) -> sqlx::Result<Option<EffectsRow>>;
 
     async fn add_effect(
         conn: &mut Db::Connection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         item: &ShopItem<'_>,
     ) -> sqlx::Result<Db::QueryResult>;
 
@@ -40,12 +40,12 @@ pub trait EffectsManager<Db: Database>: Send {
 
     async fn active_effects(
         conn: &mut Db::Connection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
     ) -> sqlx::Result<Vec<EffectsRow>>;
 
     async fn bet_limit<GamblingHandler: GamblingManager<Db>>(
         pool: &Pool<Db>,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         bet: i64,
         coins: i64,
     ) -> Result<()> {
@@ -61,8 +61,6 @@ pub trait EffectsManager<Db: Database>: Send {
                 currency: ShopCurrency::Coins,
             });
         }
-
-        let user_id = user_id.into();
 
         let mut conn = pool.acquire().await?;
 
@@ -87,7 +85,7 @@ pub trait EffectsManager<Db: Database>: Send {
 
     async fn payout(
         pool: &Pool<Db>,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         game: &str,
         bet: i64,
         payout: i64,
@@ -98,8 +96,6 @@ pub trait EffectsManager<Db: Database>: Send {
         let Some(win) = win else {
             return PayoutResult::base(base_payout);
         };
-
-        let user_id = user_id.into();
 
         let result: sqlx::Result<PayoutResult> = (async {
             let mut tx = pool.begin().await?;
@@ -186,10 +182,8 @@ pub struct EffectsTable;
 impl EffectsManager<Postgres> for EffectsTable {
     async fn get_effects(
         conn: &mut PgConnection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
     ) -> sqlx::Result<HashMap<String, i32>> {
-        let user_id = user_id.into();
-
         sqlx::query_as!(
             EffectsRow,
             r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1"#,
@@ -203,11 +197,9 @@ impl EffectsManager<Postgres> for EffectsTable {
 
     async fn get_effect(
         conn: &mut PgConnection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         effect: &str,
     ) -> sqlx::Result<Option<EffectsRow>> {
-        let user_id = user_id.into();
-
         sqlx::query_as!(
             EffectsRow,
             r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1 AND item_id = $2"#,
@@ -220,11 +212,9 @@ impl EffectsManager<Postgres> for EffectsTable {
 
     async fn add_effect(
         conn: &mut PgConnection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         item: &ShopItem<'_>,
     ) -> sqlx::Result<PgQueryResult> {
-        let user_id = user_id.into();
-
         let duration = item
             .effect_duration
             .map(|d| {
@@ -261,10 +251,8 @@ impl EffectsManager<Postgres> for EffectsTable {
 
     async fn active_effects(
         conn: &mut PgConnection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
     ) -> sqlx::Result<Vec<EffectsRow>> {
-        let user_id = user_id.into();
-
         sqlx::query_as!(
             EffectsRow,
             r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp"

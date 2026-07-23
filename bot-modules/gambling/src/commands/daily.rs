@@ -33,7 +33,7 @@ use crate::{
 pub trait DailyManager<Db: Database> {
     async fn daily_row(
         pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<DailyRow>>;
     async fn goal_rows(
         pool: &Pool<Db>,
@@ -58,9 +58,8 @@ pub struct DailyRow {
 }
 
 impl DailyRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    #[must_use]
+    pub fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             coins: 0,

@@ -19,7 +19,7 @@ pub trait LeaderboardManager<Db: Database> {
         pool: &Pool<Db>,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn gems(
@@ -33,7 +33,7 @@ pub trait LeaderboardManager<Db: Database> {
         pool: &Pool<Db>,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn eggplants(
@@ -47,7 +47,7 @@ pub trait LeaderboardManager<Db: Database> {
         pool: &Pool<Db>,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn lottotickets(
@@ -61,7 +61,7 @@ pub trait LeaderboardManager<Db: Database> {
         pool: &Pool<Db>,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn higherlower(
@@ -75,7 +75,7 @@ pub trait LeaderboardManager<Db: Database> {
         pool: &Pool<Db>,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>>;
 
     async fn weekly_higherlower(
@@ -89,7 +89,7 @@ pub trait LeaderboardManager<Db: Database> {
         pool: &Pool<Db>,
         global: bool,
         users: &[i64],
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<i64>>;
 }
 

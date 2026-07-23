@@ -81,12 +81,7 @@ pub struct RankRow {
 }
 
 impl RankRow {
-    pub async fn get(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<Self>> {
-        let id = id.into();
-
+    pub async fn get(pool: &PgPool, id: UserId) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             Self,
             "SELECT xp, level FROM levels WHERE user_id = $1",
@@ -98,9 +93,9 @@ impl RankRow {
 
     pub async fn user_rank(
         pool: &PgPool,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
     ) -> sqlx::Result<Option<i64>> {
-        let id = as_i64(user_id.into().get());
+        let id = as_i64(user_id.get());
 
         sqlx::query_scalar!(
     "SELECT row_number FROM (SELECT user_id, ROW_NUMBER() OVER (ORDER BY level DESC, xp DESC) FROM levels) AS ranked WHERE user_id = $1",
@@ -151,12 +146,7 @@ pub struct XpRow {
 }
 
 impl XpRow {
-    pub async fn get(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<Self>> {
-        let id = id.into();
-
+    pub async fn get(pool: &PgPool, id: UserId) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             Self,
             "SELECT xp, level, total_xp FROM levels WHERE user_id = $1",
@@ -210,9 +200,8 @@ pub struct FullLevelRow {
 }
 
 impl FullLevelRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    #[must_use]
+    pub fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             xp: 0,
@@ -240,12 +229,7 @@ impl FullLevelRow {
         None
     }
 
-    pub async fn get(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<Self>> {
-        let id = id.into();
-
+    pub async fn get(pool: &PgPool, id: UserId) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             Self,
             r#"SELECT user_id, xp, level, total_xp, message_count, last_xp as "last_xp: jiff_sqlx::Timestamp" FROM levels WHERE user_id = $1"#,

@@ -16,16 +16,16 @@ use serenity::all::{
     Reaction,
     ReactionType,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tracing::debug;
 
-use crate::{Result, Suggestions, SuggestionsError, SuggestionsGuildManager};
+use crate::{Result, Suggestions, SuggestionsError, SuggestionsGuildRow};
 
 impl Suggestions {
-    pub async fn reaction<Db: Database, Manager: SuggestionsGuildManager<Db>>(
+    pub async fn reaction(
         http: &Http,
         reaction: &Reaction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let Some(channel) = reaction.channel(http).await?.guild() else {
             debug!(channel_id = %reaction.channel_id, "reaction channel is not a guild channel; ignoring");
@@ -34,7 +34,7 @@ impl Suggestions {
 
         let guild_id = channel.base.guild_id;
 
-        let row = match Manager::get(pool, guild_id).await {
+        let row = match SuggestionsGuildRow::get(pool, guild_id).await {
             Ok(Some(row)) => row,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
                 debug!(%guild_id, "no suggestions configuration found for guild; ignoring reaction");

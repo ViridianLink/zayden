@@ -134,8 +134,8 @@ impl WeaponBuilder {
     }
 
     #[must_use]
-    pub fn tier(mut self, tier: impl Into<Tier>) -> Self {
-        self.tier = tier.into();
+    pub const fn tier(mut self, tier: Tier) -> Self {
+        self.tier = tier;
         self
     }
 

@@ -63,12 +63,10 @@ impl InventoryManager<Postgres> for InventoryTable {
 
     async fn edit_item_quantity(
         conn: &mut PgConnection,
-        id: impl Into<UserId> + Send,
+        id: UserId,
         item_id: &str,
         amount: i64,
     ) -> sqlx::Result<i64> {
-        let id = id.into();
-
         sqlx::query_scalar!(
             r#"
         WITH updated_row AS (

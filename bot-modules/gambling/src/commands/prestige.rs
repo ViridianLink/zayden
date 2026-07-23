@@ -31,15 +31,9 @@ use crate::{
 
 #[async_trait]
 pub trait PrestigeManager<Db: Database> {
-    async fn miners(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<i64>>;
+    async fn miners(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<i64>>;
 
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<PrestigeRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<PrestigeRow>>;
 
     async fn lotto(
         pool: &Pool<Db>,

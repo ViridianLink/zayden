@@ -22,11 +22,9 @@ pub struct GoalHandler;
 impl GoalHandler {
     pub async fn daily_reset<Db: Database, Manager: GoalsManager<Db>>(
         pool: &Pool<Db>,
-        id: impl Into<UserId>,
+        id: UserId,
         row: &dyn EventRow,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
-        let id = id.into();
-
         let selected_goal_definitions = GOAL_REGISTRY.select_daily_goal();
 
         let goals = selected_goal_definitions
@@ -45,11 +43,9 @@ impl GoalHandler {
 
     pub async fn get_user_progress<Db: Database, Manager: GoalsManager<Db>>(
         pool: &Pool<Db>,
-        user_id: impl Into<UserId>,
+        user_id: UserId,
         row: &dyn EventRow,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
-        let user_id = user_id.into();
-
         let mut goals = Manager::full_rows(pool, user_id).await?;
 
         if goals.is_empty() || !goals.first().is_some_and(GamblingGoalsRow::is_today)

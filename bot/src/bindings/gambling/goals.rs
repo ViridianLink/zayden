@@ -17,12 +17,7 @@ pub struct GoalsTable;
 
 #[async_trait]
 impl GoalsManager<Postgres> for GoalsTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<GoalsRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<GoalsRow>> {
         sqlx::query_as!(
             GoalsRow,
             "SELECT
@@ -45,10 +40,8 @@ impl GoalsManager<Postgres> for GoalsTable {
 
     async fn full_rows(
         pool: &PgPool,
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
-        let id = id.into();
-
         sqlx::query_as!(
             GamblingGoalsRow,
             r#"SELECT user_id, goal_id, day as "day: jiff_sqlx::Date", progress, target FROM gambling_goals WHERE user_id = $1"#,

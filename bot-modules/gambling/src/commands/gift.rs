@@ -45,10 +45,7 @@ use super::Commands;
 
 #[async_trait]
 pub trait GiftManager<Db: Database> {
-    async fn sender(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<SenderRow>>;
+    async fn sender(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<SenderRow>>;
 
     async fn claim(
         pool: &Pool<Db>,
@@ -69,9 +66,8 @@ pub struct SenderRow {
 }
 
 impl SenderRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    #[must_use]
+    pub fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             coins: 0,
@@ -122,9 +118,8 @@ pub struct RecipientRow {
 }
 
 impl RecipientRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    #[must_use]
+    pub const fn new(id: UserId) -> Self {
         Self { id: as_i64(id.get()), coins: 0 }
     }
 }

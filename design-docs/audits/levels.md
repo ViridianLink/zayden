@@ -13,7 +13,7 @@ pattern before the larger crates.
 ## Findings
 
 ### 1. `LevelsManager<Db>` generic trait in `sqlx_lib.rs`  ·  #1  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 04a8ab2b`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-23):** CC-1 concrete-`PgPool` migration (the second pilot after
   `gold-star`). Dropped the `#[async_trait] trait LevelsManager<Db: Database>`
   and its lone `impl … for LevelsTable` binding. The SQL now lives in the crate as
@@ -38,7 +38,7 @@ pattern before the larger crates.
   as part of the migration.
 
 ### 2. Component `custom_id` string routing  ·  #4  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 04a8ab2b`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-23):** Introduced a `LevelsCustomId` enum
   (`src/components/custom_id.rs`) with a `const as_str` and a `FromStr` whose
   error preserves the previous `"unrecognized levels component id: …"` message.
@@ -55,7 +55,7 @@ pattern before the larger crates.
 - **What / Why / Fix:** See [CC-7](_cross-cutting.md#cc-7).
 
 ### 3. No integration tests  ·  #6  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 04a8ab2b`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-23):** Added `tests/logic.rs` (integration file, per the
   `tests/`-only convention) covering the pure logic: the `level_up_xp` XP curve
   (exact values + strictly-increasing across levels 0–100) and the new

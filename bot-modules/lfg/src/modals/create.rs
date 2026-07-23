@@ -39,10 +39,7 @@ use crate::{
 
 #[async_trait]
 pub trait GuildManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<Option<GuildRow>>;
+    async fn row(pool: &Pool<Db>, id: GuildId) -> sqlx::Result<Option<GuildRow>>;
 }
 
 #[derive(FromRow)]

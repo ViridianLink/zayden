@@ -36,10 +36,7 @@ pub const SALES_RETURN: i64 = 90;
 
 #[async_trait]
 pub trait ShopManager<Db: Database> {
-    async fn buy_row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<ShopRow>>;
+    async fn buy_row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<ShopRow>>;
 
     async fn buy_save(
         pool: &Pool<Db>,
@@ -54,7 +51,7 @@ pub trait ShopManager<Db: Database> {
 
     async fn sell_row(
         pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
+        id: UserId,
         item_id: &str,
     ) -> sqlx::Result<Option<SellRow>>;
 
@@ -86,9 +83,8 @@ pub struct ShopRow {
 }
 
 impl ShopRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    #[must_use]
+    pub const fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             coins: 0,

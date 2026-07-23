@@ -78,7 +78,7 @@ pub trait InventoryManager<Db: Database> {
 
     async fn edit_item_quantity(
         conn: &mut Db::Connection,
-        id: impl Into<UserId> + Send,
+        id: UserId,
         item_id: &str,
         amount: i64,
     ) -> sqlx::Result<i64>;

@@ -191,14 +191,14 @@ async fn accept<
 
     EffectsHandler::bet_limit::<GamblingHandler>(
         pool,
-        as_u64(p1_row.user_id),
+        UserId::new(as_u64(p1_row.user_id)),
         state.bet,
         p1_row.coins(),
     )
     .await?;
     EffectsHandler::bet_limit::<GamblingHandler>(
         pool,
-        as_u64(p2_row.user_id),
+        UserId::new(as_u64(p2_row.user_id)),
         state.bet,
         p2_row.coins(),
     )

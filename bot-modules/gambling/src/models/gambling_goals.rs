@@ -16,13 +16,7 @@ pub struct GamblingGoalsRow {
 }
 
 impl GamblingGoalsRow {
-    pub fn new(
-        user_id: impl Into<UserId>,
-        goal_id: impl Into<String>,
-        target: i64,
-    ) -> Self {
-        let user_id = user_id.into();
-
+    pub fn new(user_id: UserId, goal_id: impl Into<String>, target: i64) -> Self {
         Self {
             user_id: as_i64(user_id.get()),
             goal_id: goal_id.into(),

@@ -65,8 +65,13 @@ pub async fn join<
 ) -> Result<(ThreadId, CreateEmbed<'a>)> {
     let interaction = interaction.into();
 
-    let row = Manager::join(pool, interaction.thread, interaction.user, alternative)
-        .await?;
+    let row = Manager::join(
+        pool,
+        interaction.thread.widen(),
+        interaction.user,
+        alternative,
+    )
+    .await?;
 
     let owner = row.owner().to_user(http).await?;
 

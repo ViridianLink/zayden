@@ -28,14 +28,11 @@ use crate::{
 
 #[async_trait]
 pub trait GoalsManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<GoalsRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<GoalsRow>>;
 
     async fn full_rows(
         pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>>;
 
     async fn update(

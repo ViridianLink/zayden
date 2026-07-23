@@ -18,12 +18,7 @@ pub struct DailyTable;
 
 #[async_trait]
 impl DailyManager<Postgres> for DailyTable {
-    async fn daily_row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<DailyRow>> {
-        let id = id.into();
-
+    async fn daily_row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<DailyRow>> {
         sqlx::query_file_as!(
             DailyRow,
             "sql/gambling/DailyManager/daily_row.sql",
@@ -70,16 +65,13 @@ impl DailyManager<Postgres> for DailyTable {
 
 #[async_trait]
 impl GoalsManager<Postgres> for DailyTable {
-    async fn row(
-        _pool: &PgPool,
-        _id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<GoalsRow>> {
+    async fn row(_pool: &PgPool, _id: UserId) -> sqlx::Result<Option<GoalsRow>> {
         Ok(None)
     }
 
     async fn full_rows(
         _pool: &PgPool,
-        _id: impl Into<UserId> + Send,
+        _id: UserId,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
         Ok(Vec::new())
     }

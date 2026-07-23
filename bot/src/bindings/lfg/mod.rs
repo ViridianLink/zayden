@@ -41,12 +41,7 @@ pub struct PostTable;
 
 #[async_trait]
 impl PostManager<Postgres> for PostTable {
-    async fn exists(
-        pool: &PgPool,
-        id: impl Into<GenericChannelId> + Send,
-    ) -> sqlx::Result<bool> {
-        let id = id.into();
-
+    async fn exists(pool: &PgPool, id: GenericChannelId) -> sqlx::Result<bool> {
         sqlx::query_scalar!(
             "SELECT EXISTS (SELECT 1 FROM lfg_posts WHERE id = $1)",
             as_i64(id.get())
@@ -56,12 +51,7 @@ impl PostManager<Postgres> for PostTable {
         .map(|exists| exists.unwrap_or(false))
     }
 
-    async fn owner(
-        pool: &PgPool,
-        id: impl Into<GenericChannelId> + Send,
-    ) -> sqlx::Result<UserId> {
-        let id = id.into();
-
+    async fn owner(pool: &PgPool, id: GenericChannelId) -> sqlx::Result<UserId> {
         sqlx::query_scalar!(
             "SELECT owner_id from lfg_posts WHERE id = $1",
             as_i64(id.get())
@@ -71,12 +61,7 @@ impl PostManager<Postgres> for PostTable {
         .map(|id| UserId::new(as_u64(id)))
     }
 
-    async fn post_row(
-        pool: &PgPool,
-        id: impl Into<GenericChannelId> + Send,
-    ) -> sqlx::Result<PostRow> {
-        let id = id.into();
-
+    async fn post_row(pool: &PgPool, id: GenericChannelId) -> sqlx::Result<PostRow> {
         sqlx::query_file_as!(
             PostRow,
             "sql/lfg/PostManager/post_row.sql",
@@ -88,13 +73,10 @@ impl PostManager<Postgres> for PostTable {
 
     async fn join(
         pool: &PgPool,
-        id: impl Into<GenericChannelId> + Send,
-        user: impl Into<UserId> + Send,
+        id: GenericChannelId,
+        user: UserId,
         alternative: bool,
     ) -> Result<PostRow, LfgError> {
-        let id = id.into();
-        let user = user.into();
-
         let mut tx = pool.begin().await?;
 
         sqlx::query_file!("sql/lfg/PostManager/lock_post.sql", as_i64(id.get()))
@@ -130,12 +112,9 @@ impl PostManager<Postgres> for PostTable {
 
     async fn leave(
         pool: &PgPool,
-        id: impl Into<GenericChannelId> + Send,
-        user: impl Into<UserId> + Send,
+        id: GenericChannelId,
+        user: UserId,
     ) -> sqlx::Result<PostRow> {
-        let id = id.into();
-        let user = user.into();
-
         let mut tx = pool.begin().await?;
 
         sqlx::query_file_as!(
@@ -180,10 +159,8 @@ impl PostManager<Postgres> for PostTable {
 
     async fn delete(
         pool: &PgPool,
-        id: impl Into<GenericChannelId> + Send,
+        id: GenericChannelId,
     ) -> sqlx::Result<PgQueryResult> {
-        let id = id.into();
-
         sqlx::query!("DELETE FROM lfg_posts WHERE id = $1", as_i64(id.get()))
             .execute(pool)
             .await
@@ -238,8 +215,8 @@ impl Savable<Postgres, PostRow> for PostTable {
 impl SetupManager<Postgres> for PostTable {
     async fn insert(
         pool: &PgPool,
-        id: impl Into<GuildId> + Send,
-        channel: impl Into<GenericChannelId> + Send,
+        id: GuildId,
+        channel: GenericChannelId,
         role: Option<RoleId>,
     ) -> sqlx::Result<PgQueryResult> {
         GuildTable::insert(pool, id, channel, role).await
@@ -248,12 +225,7 @@ impl SetupManager<Postgres> for PostTable {
 
 #[async_trait]
 impl JoinedManager<Postgres> for PostTable {
-    async fn upcoming(
-        pool: &PgPool,
-        user: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Vec<JoinedRow>> {
-        let user = user.into();
-
+    async fn upcoming(pool: &PgPool, user: UserId) -> sqlx::Result<Vec<JoinedRow>> {
         sqlx::query_as!(
             JoinedRow,
             r#"
@@ -335,11 +307,9 @@ impl TimezoneManager<Postgres> for UsersTable {
 
     async fn save(
         pool: &PgPool,
-        id: impl Into<UserId> + Send,
+        id: UserId,
         tz_name: &str,
     ) -> sqlx::Result<PgQueryResult> {
-        let id = id.into();
-
         sqlx::query!(
             "INSERT INTO lfg_user_settings (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
             as_i64(id.get()),

@@ -10,7 +10,7 @@ use crate::{ItemInventory, SHOP_ITEMS, ShopItem};
 pub trait InventoryManager<Db: Database> {
     async fn item(
         conn: &mut Db::Connection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         item_id: &str,
     ) -> sqlx::Result<Option<InventoryRow>>;
 }

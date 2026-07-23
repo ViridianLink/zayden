@@ -94,17 +94,17 @@ impl VoiceChannelRow {
         self.invites.iter().map(|id| UserId::new(as_u64(*id))).collect()
     }
 
-    pub fn is_owner(&self, user_id: impl Into<UserId>) -> bool {
-        self.owner_id() == user_id.into()
+    #[must_use]
+    pub fn is_owner(&self, user_id: UserId) -> bool {
+        self.owner_id() == user_id
     }
 
-    pub fn set_owner(&mut self, id: impl Into<UserId>) {
-        self.owner_id = as_i64(id.into().get());
+    pub const fn set_owner(&mut self, id: UserId) {
+        self.owner_id = as_i64(id.get());
     }
 
-    pub fn is_trusted(&self, user_id: impl Into<UserId>) -> bool {
-        let user_id = user_id.into();
-
+    #[must_use]
+    pub fn is_trusted(&self, user_id: UserId) -> bool {
         self.trusted_ids().contains(&user_id) || self.owner_id() == user_id
     }
 
@@ -122,22 +122,22 @@ impl VoiceChannelRow {
         self.persistent = !self.persistent;
     }
 
-    pub fn trust(&mut self, id: impl Into<UserId>) {
-        self.trusted_ids.push(as_i64(id.into().get()));
+    pub fn trust(&mut self, id: UserId) {
+        self.trusted_ids.push(as_i64(id.get()));
     }
 
-    pub fn untrust(&mut self, id: impl Into<UserId>) {
-        let id = as_i64(id.into().get());
+    pub fn untrust(&mut self, id: UserId) {
+        let id = as_i64(id.get());
 
         self.trusted_ids.retain(|trusted_id| *trusted_id != id);
     }
 
-    pub fn create_invite(&mut self, id: impl Into<UserId>) {
-        self.invites.push(as_i64(id.into().get()));
+    pub fn create_invite(&mut self, id: UserId) {
+        self.invites.push(as_i64(id.get()));
     }
 
-    pub fn block(&mut self, id: impl Into<UserId>) {
-        let id = as_i64(id.into().get());
+    pub fn block(&mut self, id: UserId) {
+        let id = as_i64(id.get());
 
         self.trusted_ids.retain(|trusted_id| *trusted_id != id);
         self.invites.retain(|invite| *invite != id);

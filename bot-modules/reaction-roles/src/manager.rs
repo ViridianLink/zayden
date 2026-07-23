@@ -58,10 +58,7 @@ VALUES
         .await
     }
 
-    pub async fn rows(
-        pool: &PgPool,
-        guild_id: GuildId,
-    ) -> sqlx::Result<Vec<Self>> {
+    pub async fn rows(pool: &PgPool, guild_id: GuildId) -> sqlx::Result<Vec<Self>> {
         sqlx::query_as!(
             Self,
             "SELECT * FROM reaction_roles WHERE guild_id = $1",

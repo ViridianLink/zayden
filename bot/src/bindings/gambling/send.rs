@@ -18,12 +18,7 @@ pub struct SendTable;
 
 #[async_trait]
 impl SendManager<Postgres> for SendTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<UserId> + std::marker::Send,
-    ) -> sqlx::Result<Option<SendRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<SendRow>> {
         sqlx::query_as!(
             SendRow,
             r#"SELECT

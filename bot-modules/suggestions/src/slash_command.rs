@@ -16,19 +16,19 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{CoreError as ZaydenError, parse_options};
 
-use crate::{Result, SuggestionsError, SuggestionsGuildManager};
+use crate::{Result, SuggestionsError, SuggestionsGuildRow};
 
 pub struct FetchSuggestions;
 
 impl FetchSuggestions {
-    pub async fn run<Db: Database, Manager: SuggestionsGuildManager<Db>>(
+    pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let start_time = time::Instant::now();
 
@@ -38,7 +38,7 @@ impl FetchSuggestions {
 
         let channel_id = match options.remove("channel") {
             Some(ResolvedValue::Channel(channel)) => channel.id().expect_channel(),
-            _ => Manager::get(pool, guild_id)
+            _ => SuggestionsGuildRow::get(pool, guild_id)
                 .await?
                 .ok_or(SuggestionsError::MissingSuggesionChannel)?
                 .channel_id()

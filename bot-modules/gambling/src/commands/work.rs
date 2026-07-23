@@ -43,9 +43,7 @@ pub struct WorkRow {
 }
 
 impl WorkRow {
-    fn new(id: impl Into<UserId>) -> Self {
-        let id: UserId = id.into();
-
+    fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             coins: 0,
@@ -115,10 +113,7 @@ impl Prestige for WorkRow {
 
 #[async_trait]
 pub trait WorkManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<WorkRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<WorkRow>>;
 
     async fn save(pool: &Pool<Db>, row: WorkRow) -> sqlx::Result<Db::QueryResult>;
 }

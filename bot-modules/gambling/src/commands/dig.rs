@@ -58,10 +58,7 @@ static CHANCES: LazyLock<HashMap<&str, f64>> = LazyLock::new(|| {
 
 #[async_trait]
 pub trait DigManager<Db: Database> {
-    async fn row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<DigRow>>;
+    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<DigRow>>;
 
     async fn save(pool: &Pool<Db>, row: &DigRow) -> sqlx::Result<Db::QueryResult>;
 }

@@ -20,12 +20,7 @@ pub struct WorkTable;
 
 #[async_trait]
 impl WorkManager<Postgres> for WorkTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<WorkRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<WorkRow>> {
         sqlx::query_as!(
             WorkRow,
             r#"SELECT

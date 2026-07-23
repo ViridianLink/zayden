@@ -24,7 +24,7 @@ pub async fn thread_delete<Db: Database, Manager: PostManager<Db>>(
     thread: &PartialGuildThread,
     pool: &Pool<Db>,
 ) -> Result<()> {
-    if Manager::exists(pool, thread.id).await? {
+    if Manager::exists(pool, thread.id.widen()).await? {
         actions::delete::<Db, Manager>(http, thread.id, pool).await?;
     }
 
@@ -130,7 +130,7 @@ pub async fn guild_create<
             }
         }
 
-        let Ok(post) = PostHandler::post_row(pool, thread.id).await else {
+        let Ok(post) = PostHandler::post_row(pool, thread.id.widen()).await else {
             continue;
         };
 

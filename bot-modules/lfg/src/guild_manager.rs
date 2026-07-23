@@ -10,12 +10,7 @@ pub struct GuildTable;
 
 #[async_trait]
 impl GuildManager<Postgres> for GuildTable {
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<Option<GuildRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: GuildId) -> sqlx::Result<Option<GuildRow>> {
         sqlx::query_as!(
             GuildRow,
             r#"
@@ -34,13 +29,10 @@ impl GuildManager<Postgres> for GuildTable {
 impl SetupManager<Postgres> for GuildTable {
     async fn insert(
         pool: &PgPool,
-        id: impl Into<GuildId> + Send,
-        channel: impl Into<GenericChannelId> + Send,
+        id: GuildId,
+        channel: GenericChannelId,
         role: Option<RoleId>,
     ) -> sqlx::Result<sqlx::postgres::PgQueryResult> {
-        let id = id.into();
-        let channel = channel.into();
-
         sqlx::query!(
             r#"
             INSERT INTO lfg_settings (guild_id, lfg_channel_id, lfg_role_id)

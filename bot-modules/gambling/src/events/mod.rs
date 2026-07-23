@@ -39,12 +39,12 @@ pub struct GameEvent {
 impl GameEvent {
     pub fn new(
         id: impl Into<String>,
-        user_id: impl Into<UserId>,
+        user_id: UserId,
         bet: i64,
         payout: i64,
         win: bool,
     ) -> Self {
-        Self { game_id: id.into(), user_id: user_id.into(), bet, payout, win }
+        Self { game_id: id.into(), user_id, bet, payout, win }
     }
 }
 
@@ -54,8 +54,8 @@ pub struct ShopPurchaseEvent {
 }
 
 impl ShopPurchaseEvent {
-    pub fn new(user_id: impl Into<UserId>, item_id: impl Into<String>) -> Self {
-        Self { user_id: user_id.into(), item_id: item_id.into() }
+    pub fn new(user_id: UserId, item_id: impl Into<String>) -> Self {
+        Self { user_id, item_id: item_id.into() }
     }
 }
 
@@ -65,7 +65,8 @@ pub struct SendEvent {
 }
 
 impl SendEvent {
-    pub fn new(amount: i64, sender: impl Into<UserId>) -> Self {
-        Self { amount, sender: sender.into() }
+    #[must_use]
+    pub const fn new(amount: i64, sender: UserId) -> Self {
+        Self { amount, sender }
     }
 }

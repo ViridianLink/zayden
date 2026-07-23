@@ -21,10 +21,8 @@ pub struct LottoTable;
 impl LottoManager<Postgres> for LottoTable {
     async fn row(
         conn: &mut PgConnection,
-        id: impl Into<UserId> + Send,
+        id: UserId,
     ) -> sqlx::Result<Option<LottoRow>> {
-        let id = id.into();
-
         sqlx::query_file_as!(
             LottoRow,
             "sql/gambling/LottoManager/row.sql",

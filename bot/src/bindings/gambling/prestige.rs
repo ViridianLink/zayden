@@ -21,12 +21,7 @@ pub struct PrestigeTable;
 
 #[async_trait]
 impl PrestigeManager<Postgres> for PrestigeTable {
-    async fn miners(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<i64>> {
-        let id = id.into();
-
+    async fn miners(pool: &PgPool, id: UserId) -> sqlx::Result<Option<i64>> {
         sqlx::query_scalar!(
             "SELECT miners FROM gambling_mine WHERE user_id = $1;",
             as_i64(id.get())
@@ -35,12 +30,7 @@ impl PrestigeManager<Postgres> for PrestigeTable {
         .await
     }
 
-    async fn row(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<PrestigeRow>> {
-        let id = id.into();
-
+    async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<PrestigeRow>> {
         sqlx::query_file_as!(
             PrestigeRow,
             "./sql/gambling/PrestigeManager/row.sql",
@@ -181,7 +171,7 @@ impl InventoryManager<Postgres> for PrestigeTable {
 
     async fn edit_item_quantity(
         _conn: &mut PgConnection,
-        _id: impl Into<UserId> + Send,
+        _id: UserId,
         _item_id: &str,
         _amount: i64,
     ) -> sqlx::Result<i64> {

@@ -51,9 +51,8 @@ pub struct CraftRow {
 }
 
 impl CraftRow {
-    pub fn new(id: impl Into<UserId>) -> Self {
-        let id = id.into();
-
+    #[must_use]
+    pub const fn new(id: UserId) -> Self {
         Self {
             user_id: as_i64(id.get()),
             coal: 0,

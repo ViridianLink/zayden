@@ -53,10 +53,8 @@ impl ReactionRoleCommand {
                     .await?;
             },
             "remove" => {
-                Self::remove(
-                    http, pool, channel_id, guild_id, reaction, options,
-                )
-                .await?;
+                Self::remove(http, pool, channel_id, guild_id, reaction, options)
+                    .await?;
             },
             _ => {
                 return Err(ReactionRoleError::Internal(format!(

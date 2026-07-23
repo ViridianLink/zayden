@@ -17,12 +17,7 @@ pub struct GiftTable;
 
 #[async_trait]
 impl GiftManager<Postgres> for GiftTable {
-    async fn sender(
-        pool: &PgPool,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<SenderRow>> {
-        let id = id.into();
-
+    async fn sender(pool: &PgPool, id: UserId) -> sqlx::Result<Option<SenderRow>> {
         sqlx::query_as!(
             SenderRow,
             r#"SELECT

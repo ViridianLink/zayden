@@ -11,6 +11,27 @@ no `tests/`. Otherwise clean.
 ## Findings
 
 ### 1. DB-generic `async_trait` manager  ·  #1  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-23):** CC-1 concrete-`PgPool` migration (fourth module after the
+  `gold-star`/`levels`/`reaction-roles` pilots). Dropped the `#[async_trait] trait
+  SuggestionsGuildManager<Db: Database>` and its lone `impl … for GuildTable`
+  binding. The single `get` query is now a concrete `PgPool` associated function
+  `SuggestionsGuildRow::get` with the `query_as!` body living in the crate
+  (`guild_manager.rs` renamed to `manager.rs`, matching the pilots).
+  `FetchSuggestions::run` and `Suggestions::reaction` lost their `<Db, Manager>`
+  generics and now take `&PgPool` directly; the three call sites
+  (`bot/src/bindings/suggestions/slash_command.rs` and the two
+  `bot/src/handler/reaction_{add,remove}.rs`) drop their turbofish and the
+  `GuildTable`/`Postgres` imports. `bot/src/bindings/suggestions` keeps only its
+  `ModuleCommand`/component/modal shims. **Behaviour-preserving:** the `get` query
+  string was moved byte-identically, so the `.sqlx` cache is reused unchanged
+  (`git status .sqlx` clean — no regeneration). Removed the now-unused
+  `async-trait` dependency (`cargo machete` clean; the crate has no other
+  `async_trait` use). Added `tests/manager.rs` pinning the `SuggestionsGuildRow`
+  snowflake accessors (the row type the migration moved); `review_action` was
+  already covered by `tests/review_threshold.rs` (DS-1). Only the larger generic
+  managers — `gambling`, `family`, `lfg`, `temp-voice`, plus the `zayden-core`
+  traits — now remain on CC-1.
 - **Where:** `src/guild_manager.rs`, `src/slash_command.rs`, `src/reaction.rs`.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1).
 

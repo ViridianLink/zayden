@@ -25,7 +25,7 @@ impl Command {
             http,
             interaction,
             pool,
-            &interaction.user,
+            interaction.user.id,
         )
         .await?;
 

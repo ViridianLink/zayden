@@ -37,9 +37,9 @@ impl TicketGuildRow {
     pub async fn get(
         stores: TicketStores<'_>,
         pool: &PgPool,
-        id: impl Into<GuildId> + Send,
+        id: GuildId,
     ) -> sqlx::Result<Option<Self>> {
-        let id = as_i64(id.into().get());
+        let id = as_i64(id.get());
 
         let Some(support) = stores.support.try_get(id).await? else {
             return Ok(None);
@@ -65,9 +65,9 @@ impl TicketGuildRow {
 
     pub async fn increment_thread_id(
         store: &SettingsStore<TicketSettingsRow>,
-        id: impl Into<GuildId> + Send,
+        id: GuildId,
     ) -> sqlx::Result<()> {
-        store.update(as_i64(id.into().get()), |row| row.thread_id += 1).await?;
+        store.update(as_i64(id.get()), |row| row.thread_id += 1).await?;
 
         Ok(())
     }

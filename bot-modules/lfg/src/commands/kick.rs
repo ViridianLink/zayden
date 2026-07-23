@@ -45,7 +45,7 @@ impl Command {
         let (user, _): (&User, _) = required_option(&mut options, "user")?;
 
         let (thread, embed) =
-            actions::leave::<Db, Manager>(http, interaction, pool, user).await?;
+            actions::leave::<Db, Manager>(http, interaction, pool, user.id).await?;
 
         thread
             .widen()

@@ -6,7 +6,7 @@ use sqlx::Database;
 pub trait StatsManager<Db: Database> {
     async fn higherlower(
         conn: &mut Db::Connection,
-        user_id: impl Into<UserId> + Send,
+        user_id: UserId,
         score: i32,
     ) -> sqlx::Result<Db::QueryResult>;
 }

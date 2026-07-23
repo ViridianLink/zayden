@@ -48,7 +48,7 @@ pub trait TimezoneManager<Db: Database> {
 
     async fn save(
         pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
+        id: UserId,
         tz_name: &str,
     ) -> sqlx::Result<Db::QueryResult>;
 }

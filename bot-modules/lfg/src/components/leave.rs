@@ -19,7 +19,7 @@ impl Components {
             http,
             interaction,
             pool,
-            &interaction.user,
+            interaction.user.id,
         )
         .await?;
 

@@ -22,8 +22,8 @@ use crate::{LfgError, Result};
 pub trait SetupManager<Db: Database> {
     async fn insert(
         pool: &Pool<Db>,
-        id: impl Into<GuildId> + Send,
-        channel: impl Into<GenericChannelId> + Send,
+        id: GuildId,
+        channel: GenericChannelId,
         role: Option<RoleId>,
     ) -> sqlx::Result<Db::QueryResult>;
 }

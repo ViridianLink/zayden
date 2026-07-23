@@ -1,15 +1,6 @@
-use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId};
-use sqlx::{Database, FromRow, PgPool, Pool, Postgres};
+use sqlx::{FromRow, PgPool};
 use zayden_core::{as_i64, as_u64};
-
-#[async_trait]
-pub trait SuggestionsGuildManager<Db: Database> {
-    async fn get(
-        pool: &Pool<Db>,
-        id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<Option<SuggestionsGuildRow>>;
-}
 
 #[derive(FromRow)]
 pub struct SuggestionsGuildRow {
@@ -28,20 +19,10 @@ impl SuggestionsGuildRow {
     pub fn review_channel_id(&self) -> Option<ChannelId> {
         self.review_channel_id.map(|id| ChannelId::new(as_u64(id)))
     }
-}
 
-pub struct GuildTable;
-
-#[async_trait]
-impl SuggestionsGuildManager<Postgres> for GuildTable {
-    async fn get(
-        pool: &PgPool,
-        id: impl Into<GuildId> + Send,
-    ) -> sqlx::Result<Option<SuggestionsGuildRow>> {
-        let id = id.into();
-
+    pub async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
-            SuggestionsGuildRow,
+            Self,
             r#"
             SELECT guild_id AS id, suggestions_channel_id, review_channel_id
             FROM suggestions_settings
