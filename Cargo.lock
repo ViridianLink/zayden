@@ -2141,7 +2141,6 @@ dependencies = [
 name = "gold-star"
 version = "1.0.0"
 dependencies = [
- "async-trait",
  "jiff",
  "jiff-sqlx",
  "serenity",

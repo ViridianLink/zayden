@@ -13,12 +13,34 @@ concrete-`PgPool` + compile-time-macro migration.
 ## Findings
 
 ### 1. Runtime `sqlx::query(...)` bypassing macros  ·  #1  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-23):** Folded into the CC-1 concrete-`PgPool` migration (finding
+  #2). The last runtime-SQL site — the `get_row` `SELECT` (formerly
+  `sqlx::query_as::<_, GoldStarRow>("…").bind(…)` in `bot/src/bindings/gold_star.rs`)
+  — is now a compile-time `sqlx::query_as!` in
+  `GoldStarRow::get_row` (`bot-modules/gold-star/src/manager.rs`), with an explicit
+  `last_free_star AS "last_free_star: Timestamp"` column type override for the
+  `jiff_sqlx::Timestamp` field. The `save_row` INSERT was already retired to
+  `query!` during DS-1. `.sqlx/` regenerated against an empty freshly-migrated
+  container (one new cache entry). No runtime `sqlx::query(...)` remains in this crate.
 - **Where:** `bot/src/bindings/gold_star.rs:83` (INSERT…ON CONFLICT) and the
   `SELECT` above it — hand-written `sqlx::query("…").bind(…)`.
 - **What / Why / Fix:** See [CC-5](_cross-cutting.md#cc-5). Convert to `query!`
   and regenerate `.sqlx/`.
 
 ### 2. DB-generic `async_trait` manager  ·  #1  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-23):** Dropped the `#[async_trait] trait GoldStarManager<Db:
+  Database>` and its lone `impl … for GoldStarTable` binding. The SQL now lives in
+  the crate as concrete `PgPool` associated functions on `GoldStarRow`
+  (`get_row`, `give_star`) using `query!`/`query_as!`, mirroring
+  `ticket::TicketRow` / `destiny2::db`. `GiveStar::run`/`Stars::run` lost their
+  `<Db, Manager>` generics and now take `&PgPool`, calling `GoldStarRow::…`
+  directly; `bot/src/bindings/gold_star.rs` is reduced to the two `ModuleCommand`
+  shims. Removed the now-unused `async-trait` dependency (`cargo machete` clean)
+  and the `GoldStarManager` export from `lib.rs`. Behaviour-preserving: the moved
+  `query!` bodies are byte-identical, so their existing `.sqlx` cache entries are
+  reused unchanged. This is the CC-1 pilot; `levels` is the next-smallest.
 - **Where:** `src/manager.rs`, `src/commands/{give_star,stars}.rs`.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1). Migrate together with
   finding #1 in a single small PR — this crate is the recommended pilot.

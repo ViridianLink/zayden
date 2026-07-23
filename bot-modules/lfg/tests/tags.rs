@@ -44,7 +44,11 @@ fn add_offers_only_unapplied_tags() {
     let applied = [ForumTagId::new(1)];
 
     let response = build_tag_response(available(), &applied, TagAction::Add);
-    assert_eq!(menu_len(response), Some(2), "add must offer the two not-yet-applied tags");
+    assert_eq!(
+        menu_len(response),
+        Some(2),
+        "add must offer the two not-yet-applied tags"
+    );
 }
 
 #[test]
@@ -62,5 +66,9 @@ fn remove_offers_only_applied_tags() {
     let applied = [ForumTagId::new(2), ForumTagId::new(3)];
 
     let response = build_tag_response(available(), &applied, TagAction::Remove);
-    assert_eq!(menu_len(response), Some(2), "remove must offer only the applied tags");
+    assert_eq!(
+        menu_len(response),
+        Some(2),
+        "remove must offer only the applied tags"
+    );
 }

@@ -15,7 +15,7 @@ use serenity::all::UserId;
 fn blocked_target_reports_proposer_as_blocked() {
     // Models the DS-1 scenario at the predicate level: A blocks B, then B
     // proposes to A. Enforcement reads A's row and must see B as blocked.
-    let mut blocker = FamilyRow::new(1.into(), 1.into(),"Alice".to_string());
+    let mut blocker = FamilyRow::new(1.into(), 1.into(), "Alice".to_string());
     blocker.add_blocked(UserId::new(2));
 
     assert!(blocker.is_blocked(UserId::new(2)));
@@ -23,14 +23,14 @@ fn blocked_target_reports_proposer_as_blocked() {
 
 #[test]
 fn unblocked_user_is_not_reported_blocked() {
-    let blocker = FamilyRow::new(1.into(), 1.into(),"Alice".to_string());
+    let blocker = FamilyRow::new(1.into(), 1.into(), "Alice".to_string());
 
     assert!(!blocker.is_blocked(UserId::new(2)));
 }
 
 #[test]
 fn block_targets_only_the_named_user() {
-    let mut blocker = FamilyRow::new(1.into(), 1.into(),"Alice".to_string());
+    let mut blocker = FamilyRow::new(1.into(), 1.into(), "Alice".to_string());
     blocker.add_blocked(UserId::new(2));
 
     assert!(blocker.is_blocked(UserId::new(2)));

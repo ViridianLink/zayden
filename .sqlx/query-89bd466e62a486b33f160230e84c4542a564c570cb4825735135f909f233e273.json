@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                id,\n                number_of_stars,\n                given_stars,\n                received_stars,\n                last_free_star AS \"last_free_star: Timestamp\"\n               FROM gold_stars\n               WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gold_stars",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "number_of_stars",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "gold_stars",
+            "name": "number_of_stars"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "given_stars",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "gold_stars",
+            "name": "given_stars"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "received_stars",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "gold_stars",
+            "name": "received_stars"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "last_free_star: Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "gold_stars",
+            "name": "last_free_star"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "89bd466e62a486b33f160230e84c4542a564c570cb4825735135f909f233e273"
+}

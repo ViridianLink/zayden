@@ -13,17 +13,17 @@ use serenity::all::{
     ResolvedValue,
     User,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{parse_options, required_option};
 
-use crate::{GiveStar, GoldStarError, GoldStarManager, Result};
+use crate::{GiveStar, GoldStarError, GoldStarRow, Result};
 
 impl GiveStar {
-    pub async fn run<Db: Database, Manager: GoldStarManager<Db>>(
+    pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(http).await?;
 
@@ -36,7 +36,8 @@ impl GiveStar {
         }
 
         let target_stars =
-            Manager::give_star(pool, interaction.user.id, target_user.id).await?;
+            GoldStarRow::give_star(pool, interaction.user.id, target_user.id)
+                .await?;
 
         let mut description = format!(
             "{} received a golden star from {} for a total of **{}** stars.",

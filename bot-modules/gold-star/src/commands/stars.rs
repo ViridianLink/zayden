@@ -9,17 +9,17 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::parse_options;
 
-use crate::{GoldStarManager, GoldStarRow, Result, Stars};
+use crate::{GoldStarRow, Result, Stars};
 
 impl Stars {
-    pub async fn run<Db: Database, Manager: GoldStarManager<Db>>(
+    pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(http).await?;
 
@@ -30,7 +30,7 @@ impl Stars {
             _ => &interaction.user,
         };
 
-        let row = Manager::get_row(pool, user.id)
+        let row = GoldStarRow::get_row(pool, user.id)
             .await?
             .unwrap_or_else(|| GoldStarRow::new(user.id));
 
