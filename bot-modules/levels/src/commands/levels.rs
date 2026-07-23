@@ -6,21 +6,17 @@ use serenity::all::{
     CreateCommand,
     EditInteractionResponse,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::cache::GuildMembersCache;
 
 use crate::common::levels::create_embed;
-use crate::{Levels, LevelsError, LevelsManager, Result};
+use crate::{Levels, LevelsCustomId, LevelsError, Result};
 
 impl Levels {
-    pub async fn run<
-        Data: GuildMembersCache,
-        Db: Database,
-        Manager: LevelsManager<Db>,
-    >(
+    pub async fn run<Data: GuildMembersCache>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -30,8 +26,7 @@ impl Levels {
             ));
         };
 
-        let embed =
-            create_embed::<Data, Db, Manager>(ctx, pool, guild_id, 1).await?;
+        let embed = create_embed::<Data>(ctx, pool, guild_id, 1).await?;
 
         interaction
             .edit_response(
@@ -39,17 +34,17 @@ impl Levels {
                 EditInteractionResponse::new()
                     .embed(embed)
                     .button(
-                        CreateButton::new("levels_previous")
+                        CreateButton::new(LevelsCustomId::Previous.as_str())
                             .label("<")
                             .style(ButtonStyle::Secondary),
                     )
                     .button(
-                        CreateButton::new("levels_user")
+                        CreateButton::new(LevelsCustomId::User.as_str())
                             .emoji('🎯')
                             .style(ButtonStyle::Secondary),
                     )
                     .button(
-                        CreateButton::new("levels_next")
+                        CreateButton::new(LevelsCustomId::Next.as_str())
                             .label(">")
                             .style(ButtonStyle::Secondary),
                     ),

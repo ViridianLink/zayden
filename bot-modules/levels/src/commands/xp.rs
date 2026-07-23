@@ -9,19 +9,19 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::parse_options;
 
-use crate::{LevelsManager, LevelsRow, Result};
+use crate::{LevelsRow, Result, XpRow};
 
 pub struct Xp;
 
 impl Xp {
-    pub async fn xp<Db: Database, Manager: LevelsManager<Db>>(
+    pub async fn xp(
         http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let mut options = parse_options(options);
 
@@ -32,8 +32,7 @@ impl Xp {
             _ => interaction.defer(http).await?,
         }
 
-        let row =
-            Manager::xp_row(pool, interaction.user.id).await?.unwrap_or_default();
+        let row = XpRow::get(pool, interaction.user.id).await?.unwrap_or_default();
 
         let embed = CreateEmbed::default().title("XP").description(format!(
             "Current XP: {}\nLevel: {}\nTotal XP: {}",

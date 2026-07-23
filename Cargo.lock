@@ -3233,7 +3233,6 @@ dependencies = [
 name = "levels"
 version = "1.0.0"
 dependencies = [
- "async-trait",
  "jiff",
  "jiff-sqlx",
  "rand 0.10.2",

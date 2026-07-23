@@ -13,7 +13,7 @@ concrete-`PgPool` + compile-time-macro migration.
 ## Findings
 
 ### 1. Runtime `sqlx::query(...)` bypassing macros  ·  #1  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — c2b4c4cf`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-23):** Folded into the CC-1 concrete-`PgPool` migration (finding
   #2). The last runtime-SQL site — the `get_row` `SELECT` (formerly
   `sqlx::query_as::<_, GoldStarRow>("…").bind(…)` in `bot/src/bindings/gold_star.rs`)
@@ -29,7 +29,7 @@ concrete-`PgPool` + compile-time-macro migration.
   and regenerate `.sqlx/`.
 
 ### 2. DB-generic `async_trait` manager  ·  #1  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — c2b4c4cf`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-23):** Dropped the `#[async_trait] trait GoldStarManager<Db:
   Database>` and its lone `impl … for GoldStarTable` binding. The SQL now lives in
   the crate as concrete `PgPool` associated functions on `GoldStarRow`

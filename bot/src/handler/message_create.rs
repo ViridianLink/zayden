@@ -3,14 +3,13 @@ use std::sync::Arc;
 use futures::FutureExt;
 use gambling::GamblingManager;
 use serenity::all::{Context, Message};
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use ticket::TicketStores;
 use tracing::debug;
 use zayden_app::state::AppState;
 
 use crate::bindings::ai::Ai;
 use crate::bindings::gambling::GamblingTable;
-use crate::bindings::levels::LevelsTable;
 use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
 use crate::{BotState, Result};
@@ -32,9 +31,7 @@ impl Handler {
             ticket: &app.settings.ticket,
         };
 
-        if let Some(level) =
-            levels::message_create::<Postgres, LevelsTable>(msg, pool).await?
-        {
+        if let Some(level) = levels::message_create(msg, pool).await? {
             let mut tx = pool.begin().await?;
 
             GamblingTable::add_coins(

@@ -9,19 +9,19 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::parse_options;
 
-use crate::{LevelsManager, LevelsRow, Result, level_up_xp};
+use crate::{LevelsRow, RankRow, Result, level_up_xp};
 
 pub struct Rank;
 
 impl Rank {
-    pub async fn rank<Db: Database, Manager: LevelsManager<Db>>(
+    pub async fn rank(
         http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let mut options = parse_options(options);
 
@@ -37,12 +37,12 @@ impl Rank {
             _ => &interaction.user,
         };
 
-        let row = Manager::rank_row(pool, user.id).await?.unwrap_or_default();
+        let row = RankRow::get(pool, user.id).await?.unwrap_or_default();
 
         let level = row.level();
         let xp_for_next_level = level_up_xp(level);
 
-        let user_rank = Manager::user_rank(pool, user.id)
+        let user_rank = RankRow::user_rank(pool, user.id)
             .await?
             .map_or_else(|| String::from("N/A"), |rank| format!("{rank}"));
 

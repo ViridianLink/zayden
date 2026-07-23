@@ -1,19 +1,19 @@
 use jiff::{Span, Timestamp};
 use serenity::all::Message;
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::LevelsRow;
-use crate::{FullLevelRow, LevelsManager};
+use crate::FullLevelRow;
 
-pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
+pub async fn message_create(
     message: &Message,
-    pool: &Pool<Db>,
+    pool: &PgPool,
 ) -> Result<Option<i32>, sqlx::Error> {
     let Some(_guild_id) = message.guild_id else {
         return Ok(None);
     };
 
-    let mut row = Manager::full_row(pool, message.author.id)
+    let mut row = FullLevelRow::get(pool, message.author.id)
         .await?
         .unwrap_or_else(|| FullLevelRow::new(message.author.id));
 
@@ -26,7 +26,7 @@ pub async fn message_create<Db: Database, Manager: LevelsManager<Db>>(
 
     let new_level = row.new_message();
 
-    Manager::save(pool, row).await?;
+    row.save(pool).await?;
 
     Ok(new_level)
 }

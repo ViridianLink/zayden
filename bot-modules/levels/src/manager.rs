@@ -1,45 +1,11 @@
-use async_trait::async_trait;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::UserId;
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use zayden_core::{as_i64, as_u64};
 
 use crate::level_up_xp;
-
-#[async_trait]
-pub trait LevelsManager<Db: Database> {
-    async fn leaderboard(
-        pool: &Pool<Db>,
-        users: &[i64],
-        page: i64,
-    ) -> sqlx::Result<Vec<LeaderboardRow>>;
-
-    async fn user_rank(
-        pool: &Pool<Db>,
-        user_id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<i64>>;
-
-    async fn rank_row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<RankRow>>;
-
-    async fn xp_row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<XpRow>>;
-
-    async fn full_row(
-        pool: &Pool<Db>,
-        id: impl Into<UserId> + Send,
-    ) -> sqlx::Result<Option<FullLevelRow>>;
-
-    async fn save(
-        pool: &Pool<Db>,
-        row: FullLevelRow,
-    ) -> sqlx::Result<Db::QueryResult>;
-}
 
 pub trait LevelsRow {
     fn user_id(&self) -> UserId;
@@ -61,6 +27,25 @@ pub struct LeaderboardRow {
     pub xp: i32,
     pub level: i32,
     pub message_count: i64,
+}
+
+impl LeaderboardRow {
+    pub async fn leaderboard(
+        pool: &PgPool,
+        users: &[i64],
+        page: i64,
+    ) -> sqlx::Result<Vec<Self>> {
+        let offset = (page - 1) * 10;
+
+        sqlx::query_as!(
+            Self,
+            "SELECT user_id, xp, level, message_count FROM levels WHERE user_id = ANY($1) ORDER BY level DESC, xp DESC LIMIT 10 OFFSET $2",
+            users,
+            offset
+        )
+        .fetch_all(pool)
+        .await
+    }
 }
 
 impl LevelsRow for LeaderboardRow {
@@ -93,6 +78,37 @@ impl LevelsRow for LeaderboardRow {
 pub struct RankRow {
     pub xp: i32,
     pub level: i32,
+}
+
+impl RankRow {
+    pub async fn get(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<Self>> {
+        let id = id.into();
+
+        sqlx::query_as!(
+            Self,
+            "SELECT xp, level FROM levels WHERE user_id = $1",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn user_rank(
+        pool: &PgPool,
+        user_id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<i64>> {
+        let id = as_i64(user_id.into().get());
+
+        sqlx::query_scalar!(
+    "SELECT row_number FROM (SELECT user_id, ROW_NUMBER() OVER (ORDER BY level DESC, xp DESC) FROM levels) AS ranked WHERE user_id = $1",
+    id
+)
+        .fetch_one(pool)
+        .await
+    }
 }
 
 impl Default for RankRow {
@@ -132,6 +148,23 @@ pub struct XpRow {
     pub xp: i32,
     pub level: i32,
     pub total_xp: i64,
+}
+
+impl XpRow {
+    pub async fn get(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<Self>> {
+        let id = id.into();
+
+        sqlx::query_as!(
+            Self,
+            "SELECT xp, level, total_xp FROM levels WHERE user_id = $1",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
 }
 
 impl Default for XpRow {
@@ -205,6 +238,52 @@ impl FullLevelRow {
         }
 
         None
+    }
+
+    pub async fn get(
+        pool: &PgPool,
+        id: impl Into<UserId> + Send,
+    ) -> sqlx::Result<Option<Self>> {
+        let id = id.into();
+
+        sqlx::query_as!(
+            Self,
+            r#"SELECT user_id, xp, level, total_xp, message_count, last_xp as "last_xp: jiff_sqlx::Timestamp" FROM levels WHERE user_id = $1"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "DB columns xp/message_count are INT4; values are bounded by gameplay"
+    )]
+    pub async fn save(self, pool: &PgPool) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
+            "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",
+            self.user_id
+        )
+        .execute(pool)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO levels (user_id, xp, total_xp, level, message_count, last_xp)
+            VALUES ($1, $2, $3, $4, $5, now())
+            ON CONFLICT (user_id) DO UPDATE
+            SET xp = EXCLUDED.xp,
+                total_xp = EXCLUDED.total_xp,
+                level = EXCLUDED.level,
+                message_count = EXCLUDED.message_count,
+                last_xp = now();",
+            self.user_id,
+            self.xp,
+            self.total_xp as i32,
+            self.level,
+            self.message_count as i32,
+        )
+        .execute(pool)
+        .await
     }
 }
 

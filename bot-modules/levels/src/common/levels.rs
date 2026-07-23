@@ -1,18 +1,13 @@
 use serenity::all::{Context, CreateEmbed, CreateEmbedFooter, GuildId, Mentionable};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{GuildMembersCache, as_i64};
 
-use crate::{LeaderboardRow, LevelsError, LevelsManager, LevelsRow, Result};
+use crate::{LeaderboardRow, LevelsError, LevelsRow, Result};
 
-pub async fn create_embed<
-    'a,
-    Data: GuildMembersCache,
-    Db: Database,
-    Manager: LevelsManager<Db>,
->(
+pub async fn create_embed<'a, Data: GuildMembersCache>(
     ctx: &Context,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     guild_id: GuildId,
     page_number: i64,
 ) -> Result<CreateEmbed<'a>> {
@@ -30,7 +25,7 @@ pub async fn create_embed<
             .collect::<Vec<_>>()
     };
 
-    let rows = Manager::leaderboard(pool, &users, page_number).await?;
+    let rows = LeaderboardRow::leaderboard(pool, &users, page_number).await?;
 
     let desc = rows
         .into_iter()

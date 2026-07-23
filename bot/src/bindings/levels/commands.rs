@@ -2,13 +2,11 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
-use sqlx::Postgres;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
-use super::LevelsTable;
 use crate::BotState;
 
 pub struct Levels;
@@ -24,12 +22,7 @@ impl ModuleCommand for Levels {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        levels::Levels::run::<BotState, Postgres, LevelsTable>(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        levels::Levels::run::<BotState>(cx.ctx, cx.interaction, &cx.app.db).await?;
         Ok(())
     }
 }
@@ -41,7 +34,7 @@ impl ModuleComponent for Levels {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        levels::Levels::run_components::<BotState, Postgres, LevelsTable>(
+        levels::Levels::run_components::<BotState>(
             cx.ctx,
             cx.interaction,
             &cx.app.db,
@@ -65,13 +58,8 @@ impl ModuleCommand for Rank {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        levels::Rank::rank::<Postgres, LevelsTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            options,
-            &cx.app.db,
-        )
-        .await?;
+        levels::Rank::rank(&cx.ctx.http, cx.interaction, options, &cx.app.db)
+            .await?;
         Ok(())
     }
 }
@@ -90,13 +78,7 @@ impl ModuleCommand for Xp {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        levels::Xp::xp::<Postgres, LevelsTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            options,
-            &cx.app.db,
-        )
-        .await?;
+        levels::Xp::xp(&cx.ctx.http, cx.interaction, options, &cx.app.db).await?;
         Ok(())
     }
 }
