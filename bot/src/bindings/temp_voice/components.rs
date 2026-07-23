@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serenity::all::Context;
-use sqlx::Postgres;
 use temp_voice::VoiceStateCache;
 use temp_voice::components::{self, Components};
 use tokio::sync::RwLock;
@@ -12,7 +11,6 @@ use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
 use zayden_core::scope::IdMatch;
 
-use super::VoiceChannelTable;
 use crate::BotState;
 
 async fn voice_states(ctx: &Context) -> Arc<VoiceStateCache> {
@@ -30,13 +28,8 @@ impl ModuleComponent for VoiceClaim {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::claim::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::claim(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -53,13 +46,8 @@ impl ModuleComponent for VoiceDelete {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::delete::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::delete(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -76,13 +64,8 @@ impl ModuleComponent for VoiceRename {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::rename::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::rename(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -99,13 +82,8 @@ impl ModuleComponent for VoiceLimit {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::limit::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::limit(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -122,13 +100,8 @@ impl ModuleComponent for VoiceBitrate {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::bitrate::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::bitrate(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -145,7 +118,7 @@ impl ModuleComponent for VoicePassword {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::password::<Postgres, VoiceChannelTable>(
+        Components::password(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -168,13 +141,8 @@ impl ModuleComponent for VoicePrivacy {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::privacy::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::privacy(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -191,13 +159,8 @@ impl ModuleComponent for VoiceRegion {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::region::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::region(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -214,7 +177,7 @@ impl ModuleComponent for VoiceTransfer {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::transfer::<Postgres, VoiceChannelTable>(
+        Components::transfer(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -237,13 +200,8 @@ impl ModuleComponent for VoiceTrust {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::trust::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::trust(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -260,13 +218,8 @@ impl ModuleComponent for VoiceKick {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::kick::<Postgres, VoiceChannelTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        Components::kick(&cx.ctx.http, cx.interaction, &cx.app.db, &voice_states)
+            .await?;
 
         Ok(())
     }
@@ -283,7 +236,7 @@ impl ModuleComponent for VoicePrivacyMenu {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::privacy_menu::<Postgres, VoiceChannelTable>(
+        Components::privacy_menu(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -306,7 +259,7 @@ impl ModuleComponent for VoiceRegionMenu {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::region_menu::<Postgres, VoiceChannelTable>(
+        Components::region_menu(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -329,7 +282,7 @@ impl ModuleComponent for VoiceTransferMenu {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::transfer_menu::<Postgres, VoiceChannelTable>(
+        Components::transfer_menu(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -352,7 +305,7 @@ impl ModuleComponent for VoiceTrustMenu {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::trust_menu::<Postgres, VoiceChannelTable>(
+        Components::trust_menu(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -375,7 +328,7 @@ impl ModuleComponent for VoiceKickMenu {
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::kick_menu::<Postgres, VoiceChannelTable>(
+        Components::kick_menu(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -398,7 +351,7 @@ impl ModuleModal for VoiceRenameModal {
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::rename_submit::<Postgres, VoiceChannelTable>(
+        Components::rename_submit(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -421,7 +374,7 @@ impl ModuleModal for VoiceLimitModal {
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::limit_submit::<Postgres, VoiceChannelTable>(
+        Components::limit_submit(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -444,7 +397,7 @@ impl ModuleModal for VoiceBitrateModal {
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::bitrate_submit::<Postgres, VoiceChannelTable>(
+        Components::bitrate_submit(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,
@@ -467,7 +420,7 @@ impl ModuleModal for VoicePasswordModal {
     async fn run(&self, cx: &ModalCtx<'_>) -> Result<(), HandlerError> {
         let voice_states = voice_states(cx.ctx).await;
 
-        Components::password_submit::<Postgres, VoiceChannelTable>(
+        Components::password_submit(
             &cx.ctx.http,
             cx.interaction,
             &cx.app.db,

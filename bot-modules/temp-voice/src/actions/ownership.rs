@@ -1,20 +1,19 @@
 use serenity::all::{ChannelId, Http, UserId};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::require_owner;
 use crate::{
     Result,
     TempVoiceError,
-    VoiceChannelManager,
     VoiceChannelRow,
     VoiceStateCache,
     owner_perms,
     revoke_previous_owner,
 };
 
-pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub async fn claim(
     http: &Http,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     voice_states: &VoiceStateCache,
     channel_id: ChannelId,
     row: VoiceChannelRow,
@@ -33,7 +32,7 @@ pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
 
     let previous_owner = row.owner_id();
 
-    if !Manager::claim(pool, channel_id, previous_owner, user_id).await? {
+    if !VoiceChannelRow::claim(pool, channel_id, previous_owner, user_id).await? {
         return Err(TempVoiceError::ClaimFailed);
     }
 
@@ -48,9 +47,9 @@ pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
     Ok("Claimed channel.".to_string())
 }
 
-pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub async fn transfer(
     http: &Http,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
     user_id: UserId,
@@ -61,7 +60,7 @@ pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
     let previous_owner = row.owner_id();
 
     row.set_owner(target);
-    row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
 
     channel_id
         .create_permission(http, owner_perms(target), Some("Channel transfered"))
@@ -74,16 +73,16 @@ pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
     Ok("Transferred channel.".to_string())
 }
 
-pub async fn delete<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub async fn delete(
     http: &Http,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     channel_id: ChannelId,
     row: VoiceChannelRow,
     user_id: UserId,
 ) -> Result<String> {
     require_owner(&row, user_id)?;
 
-    row.delete::<Db, Manager>(pool).await?;
+    row.delete(pool).await?;
 
     channel_id.widen().delete(http, Some("User deleted channel")).await?;
 

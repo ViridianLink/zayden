@@ -9,19 +9,19 @@ use serenity::all::{
     EditInteractionResponse,
     Http,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::{Components, REGION_MENU, REGIONS, resolve_target_channel};
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceStateCache, actions};
+use crate::{Result, TempVoiceError, VoiceStateCache, actions};
 
 impl Components {
-    pub async fn region<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn region(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        resolve_target_channel::<Db, Manager>(
+        resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -54,10 +54,10 @@ impl Components {
         Ok(())
     }
 
-    pub async fn region_menu<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn region_menu(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -75,7 +75,7 @@ impl Components {
             Some(region) => Some(region.to_string()),
         };
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,

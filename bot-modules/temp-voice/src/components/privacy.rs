@@ -9,19 +9,19 @@ use serenity::all::{
     EditInteractionResponse,
     Http,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::{Components, PRIVACIES, PRIVACY_MENU, resolve_target_channel};
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceStateCache, actions};
+use crate::{Result, TempVoiceError, VoiceStateCache, actions};
 
 impl Components {
-    pub async fn privacy<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn privacy(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        resolve_target_channel::<Db, Manager>(
+        resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -54,10 +54,10 @@ impl Components {
         Ok(())
     }
 
-    pub async fn privacy_menu<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn privacy_menu(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -76,7 +76,7 @@ impl Components {
 
         let guild_id = interaction.guild_id.ok_or(TempVoiceError::MissingGuildId)?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,

@@ -8,15 +8,15 @@ use serenity::all::{
     PermissionOverwriteType,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use crate::error::PermissionError;
-use crate::{TempVoiceError, VoiceChannelManager, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow};
 
-pub(super) async fn untrust<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn untrust(
     http: &Http,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
@@ -32,7 +32,7 @@ pub(super) async fn untrust<Db: Database, Manager: VoiceChannelManager<Db>>(
     };
 
     row.untrust(user.id);
-    row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
 
     channel_id
         .delete_permission(

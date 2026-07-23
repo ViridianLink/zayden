@@ -1,19 +1,19 @@
 use serenity::all::{ComponentInteraction, EditInteractionResponse, Http};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::{Components, resolve_target_channel};
-use crate::{Result, VoiceChannelManager, VoiceStateCache, actions};
+use crate::{Result, VoiceStateCache, actions};
 
 impl Components {
-    pub async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn claim(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -21,7 +21,7 @@ impl Components {
         )
         .await?;
 
-        let msg = actions::claim::<Db, Manager>(
+        let msg = actions::claim(
             http,
             pool,
             voice_states,
@@ -38,15 +38,15 @@ impl Components {
         Ok(())
     }
 
-    pub async fn delete<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn delete(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -54,14 +54,8 @@ impl Components {
         )
         .await?;
 
-        let msg = actions::delete::<Db, Manager>(
-            http,
-            pool,
-            channel_id,
-            row,
-            interaction.user.id,
-        )
-        .await?;
+        let msg = actions::delete(http, pool, channel_id, row, interaction.user.id)
+            .await?;
 
         interaction
             .edit_response(http, EditInteractionResponse::new().content(msg))

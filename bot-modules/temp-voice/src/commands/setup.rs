@@ -10,15 +10,15 @@ use serenity::all::{
     Permissions,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::guild_manager::TempVoiceGuildManager;
+use crate::guild_manager::TempVoiceRow;
 use crate::{Result, TempVoiceError};
 
-pub(super) async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
+pub(super) async fn setup(
     http: &Http,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<()> {
@@ -48,7 +48,7 @@ pub(super) async fn setup<Db: Database, Manager: TempVoiceGuildManager<Db>>(
         )
         .await?;
 
-    Manager::save(pool, guild_id, category, creator_channel.id).await?;
+    TempVoiceRow::save(pool, guild_id, category, creator_channel.id).await?;
 
     interaction
         .edit_response(

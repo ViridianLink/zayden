@@ -5,25 +5,21 @@ use serenity::all::{
     HttpError,
     JsonErrorCode,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tracing::debug;
 
 use crate::{
     CachedState,
     Result,
     TempVoiceError,
-    TempVoiceGuildManager,
-    VoiceChannelManager,
+    TempVoiceRow,
+    VoiceChannelRow,
     VoiceStateCache,
 };
 
-pub async fn channel_deleter<
-    Db: Database,
-    GuildManager: TempVoiceGuildManager<Db>,
-    ChannelManager: VoiceChannelManager<Db>,
->(
+pub async fn channel_deleter(
     ctx: &Context,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     voice_states: &VoiceStateCache,
     old: Option<&CachedState>,
 ) -> Result<()> {
@@ -32,7 +28,7 @@ pub async fn channel_deleter<
         return Ok(());
     };
 
-    let guild_data = match GuildManager::get(pool, old.guild_id).await {
+    let guild_data = match TempVoiceRow::get(pool, old.guild_id).await {
         Ok(row) => row,
         Err(sqlx::Error::RowNotFound) => {
             debug!(guild_id = %old.guild_id, "no temp-voice configuration found for guild");
@@ -63,7 +59,7 @@ pub async fn channel_deleter<
         },
     };
 
-    let Some(row) = ChannelManager::get(pool, channel_id).await? else {
+    let Some(row) = VoiceChannelRow::get(pool, channel_id).await? else {
         debug!(%channel_id, "channel not tracked as a temp-voice channel");
         return Ok(());
     };
@@ -108,7 +104,7 @@ pub async fn channel_deleter<
     let users = voice_states.occupants(channel_id).len();
 
     if users == 0 {
-        row.delete::<Db, ChannelManager>(pool).await?;
+        row.delete(pool).await?;
 
         match channel_id
             .widen()

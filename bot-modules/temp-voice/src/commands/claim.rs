@@ -4,27 +4,21 @@ use serenity::all::{
     Context,
     EditInteractionResponse,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::{
-    TempVoiceError,
-    VoiceChannelManager,
-    VoiceChannelRow,
-    VoiceStateCache,
-    actions,
-};
+use crate::{TempVoiceError, VoiceChannelRow, VoiceStateCache, actions};
 
-pub(super) async fn claim<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn claim(
     ctx: &Context,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     voice_states: &VoiceStateCache,
     channel_id: ChannelId,
     row: VoiceChannelRow,
 ) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(&ctx.http).await?;
 
-    let msg = actions::claim::<Db, Manager>(
+    let msg = actions::claim(
         &ctx.http,
         pool,
         voice_states,

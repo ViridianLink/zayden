@@ -3,13 +3,11 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
-use sqlx::Postgres;
-use temp_voice::{GuildTable, VoiceCommand};
+use temp_voice::VoiceCommand;
 use tokio::sync::RwLock;
 use zayden_core::error::HandlerError;
 use zayden_core::{InvocationCtx, ModuleCommand};
 
-use super::VoiceChannelTable;
 use crate::BotState;
 
 pub struct Voice;
@@ -28,13 +26,7 @@ impl ModuleCommand for Voice {
         let voice_states =
             Arc::clone(&cx.ctx.data::<RwLock<BotState>>().read().await.voice_states);
 
-        VoiceCommand::run::<Postgres, GuildTable, VoiceChannelTable>(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-            &voice_states,
-        )
-        .await?;
+        VoiceCommand::run(cx.ctx, cx.interaction, &cx.app.db, &voice_states).await?;
         Ok(())
     }
 }

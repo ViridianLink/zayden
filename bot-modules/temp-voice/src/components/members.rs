@@ -9,7 +9,7 @@ use serenity::all::{
     Http,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::{
     Components,
@@ -18,17 +18,17 @@ use super::{
     TRUST_MENU,
     resolve_target_channel,
 };
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceStateCache, actions};
+use crate::{Result, TempVoiceError, VoiceStateCache, actions};
 
-async fn open_user_select<Db: Database, Manager: VoiceChannelManager<Db>>(
+async fn open_user_select(
     http: &Http,
     interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     voice_states: &VoiceStateCache,
     menu_id: &'static str,
     prompt: &str,
 ) -> Result<()> {
-    resolve_target_channel::<Db, Manager>(
+    resolve_target_channel(
         pool,
         voice_states,
         interaction.channel_id,
@@ -70,13 +70,13 @@ fn selected_user(interaction: &ComponentInteraction) -> Result<UserId> {
 }
 
 impl Components {
-    pub async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn transfer(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        open_user_select::<Db, Manager>(
+        open_user_select(
             http,
             interaction,
             pool,
@@ -87,17 +87,17 @@ impl Components {
         .await
     }
 
-    pub async fn transfer_menu<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn transfer_menu(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
         let target = selected_user(interaction)?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -105,7 +105,7 @@ impl Components {
         )
         .await?;
 
-        let msg = actions::transfer::<Db, Manager>(
+        let msg = actions::transfer(
             http,
             pool,
             channel_id,
@@ -122,13 +122,13 @@ impl Components {
         Ok(())
     }
 
-    pub async fn trust<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn trust(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        open_user_select::<Db, Manager>(
+        open_user_select(
             http,
             interaction,
             pool,
@@ -139,17 +139,17 @@ impl Components {
         .await
     }
 
-    pub async fn trust_menu<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn trust_menu(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
         let target = selected_user(interaction)?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -157,15 +157,9 @@ impl Components {
         )
         .await?;
 
-        let msg = actions::trust::<Db, Manager>(
-            http,
-            pool,
-            channel_id,
-            row,
-            interaction.user.id,
-            target,
-        )
-        .await?;
+        let msg =
+            actions::trust(http, pool, channel_id, row, interaction.user.id, target)
+                .await?;
 
         interaction
             .edit_response(http, EditInteractionResponse::new().content(msg))
@@ -174,13 +168,13 @@ impl Components {
         Ok(())
     }
 
-    pub async fn kick<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn kick(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        open_user_select::<Db, Manager>(
+        open_user_select(
             http,
             interaction,
             pool,
@@ -191,10 +185,10 @@ impl Components {
         .await
     }
 
-    pub async fn kick_menu<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn kick_menu(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -203,7 +197,7 @@ impl Components {
 
         let guild_id = interaction.guild_id.ok_or(TempVoiceError::MissingGuildId)?;
 
-        let (_, row) = resolve_target_channel::<Db, Manager>(
+        let (_, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,

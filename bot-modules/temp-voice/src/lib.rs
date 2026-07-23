@@ -11,7 +11,7 @@ use std::time::Duration;
 pub use commands::VoiceCommand;
 use dashmap::DashMap;
 pub use error::{Result, TempVoiceError};
-pub use guild_manager::{GuildTable, TempVoiceGuildManager, TempVoiceRow};
+pub use guild_manager::TempVoiceRow;
 use serenity::all::{
     ChannelId,
     DiscordJsonError,
@@ -28,7 +28,7 @@ use serenity::all::{
     UserId,
     VoiceState,
 };
-pub use voice_channel_manager::{VoiceChannelManager, VoiceChannelRow};
+pub use voice_channel_manager::VoiceChannelRow;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CachedState {

@@ -1,13 +1,13 @@
 use serenity::all::{CommandInteraction, EditInteractionResponse, Http};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use crate::error::PermissionError;
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow};
+use crate::{Result, TempVoiceError, VoiceChannelRow};
 
-pub(super) async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn persist(
     http: &Http,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     mut row: VoiceChannelRow,
 ) -> Result<()> {
     interaction.defer_ephemeral(http).await?;
@@ -22,7 +22,8 @@ pub(super) async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
     }
 
     let persistent_count =
-        Manager::count_persistent_channels(pool, interaction.user.id).await?;
+        VoiceChannelRow::count_persistent_channels(pool, interaction.user.id)
+            .await?;
 
     if persistent_count == 1 && !is_moderator {
         return Err(TempVoiceError::MaxChannels);
@@ -31,7 +32,7 @@ pub(super) async fn persist<Db: Database, Manager: VoiceChannelManager<Db>>(
     row.toggle_persist();
     let state = if row.is_persistent() { "enabled" } else { "disabled" };
 
-    row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
 
     interaction
         .edit_response(

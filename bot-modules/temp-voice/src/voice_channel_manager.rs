@@ -1,40 +1,12 @@
 use std::collections::HashSet;
 
-use async_trait::async_trait;
 use serenity::all::{ChannelId, UserId};
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use zayden_core::{as_i64, as_u64};
 
 use crate::Result;
-
-#[async_trait]
-pub trait VoiceChannelManager<Db: Database> {
-    async fn get(
-        pool: &Pool<Db>,
-        id: ChannelId,
-    ) -> sqlx::Result<Option<VoiceChannelRow>>;
-
-    async fn count_persistent_channels(
-        pool: &Pool<Db>,
-        user_id: UserId,
-    ) -> sqlx::Result<i64>;
-
-    async fn save(
-        pool: &Pool<Db>,
-        row: VoiceChannelRow,
-    ) -> sqlx::Result<Db::QueryResult>;
-
-    async fn claim(
-        pool: &Pool<Db>,
-        id: ChannelId,
-        expected_owner: UserId,
-        new_owner: UserId,
-    ) -> sqlx::Result<bool>;
-
-    async fn delete(pool: &Pool<Db>, id: ChannelId)
-    -> sqlx::Result<Db::QueryResult>;
-}
 
 #[derive(FromRow, Clone)]
 pub struct VoiceChannelRow {
@@ -149,20 +121,132 @@ impl VoiceChannelRow {
         self.password = None;
     }
 
-    pub async fn save<Db: Database, Manager: VoiceChannelManager<Db>>(
-        self,
-        pool: &Pool<Db>,
-    ) -> Result<()> {
-        Manager::save(pool, self).await?;
-        Ok(())
+    pub async fn get(pool: &PgPool, id: ChannelId) -> sqlx::Result<Option<Self>> {
+        let row = sqlx::query_as!(
+            VoiceChannelRow,
+            r#"SELECT 
+                vc.id, 
+                vc.owner_id, 
+                COALESCE(
+                    (SELECT array_agg(user_id) FROM voice_channel_trusted_users WHERE channel_id = vc.id), 
+                    ARRAY[]::int[]
+                ) AS "trusted_ids!", 
+                COALESCE(
+                    (SELECT array_agg(user_id) FROM voice_channel_invites WHERE channel_id = vc.id), 
+                    ARRAY[]::int[]
+                ) AS "invites!", 
+                vc.password, 
+                vc.persistent, 
+                vc.mode AS "mode: TempVoiceMode" 
+            FROM voice_channels vc
+            WHERE vc.id = $1;"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(row)
     }
 
-    pub async fn delete<Db: Database, Manager: VoiceChannelManager<Db>>(
-        self,
-        pool: &Pool<Db>,
-    ) -> Result<()> {
-        Manager::delete(pool, self.channel_id()).await?;
-        Ok(())
+    pub async fn count_persistent_channels(
+        pool: &PgPool,
+        user_id: UserId,
+    ) -> sqlx::Result<i64> {
+        let count = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) FROM voice_channels WHERE owner_id = $1 AND persistent = true"#,
+            as_i64(user_id.get())
+        )
+        .fetch_one(pool)
+        .await?;
+
+        count.ok_or(sqlx::Error::RowNotFound)
+    }
+
+    pub async fn claim(
+        pool: &PgPool,
+        id: ChannelId,
+        expected_owner: UserId,
+        new_owner: UserId,
+    ) -> sqlx::Result<bool> {
+        let result = sqlx::query!(
+            "UPDATE voice_channels SET owner_id = $2 WHERE id = $1 AND owner_id = $3",
+            as_i64(id.get()),
+            as_i64(new_owner.get()),
+            as_i64(expected_owner.get()),
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() == 1)
+    }
+
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for custom temp_voice_mode pgtype"
+    )]
+    pub async fn save(self, pool: &PgPool) -> Result<PgQueryResult> {
+        let mode = TempVoiceMode::from(self.mode);
+
+        let mut tx = pool.begin().await?;
+
+        let mut result = sqlx::query!(
+            r#"
+            INSERT INTO voice_channels (id, owner_id, password, persistent, mode)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (id) DO UPDATE
+            SET owner_id = $2, password = $3, persistent = $4, mode = $5
+            "#,
+            self.id,
+            self.owner_id,
+            self.password,
+            self.persistent,
+            mode as TempVoiceMode
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let result2 = sqlx::query!(
+            r#"
+            WITH deleted AS (
+                DELETE FROM voice_channel_trusted_users WHERE channel_id = $1
+            )
+            INSERT INTO voice_channel_trusted_users (channel_id, user_id)
+            SELECT $1, * FROM UNNEST($2::bigint[])
+            "#,
+            self.id,
+            &self.trusted_ids
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let result3 = sqlx::query!(
+            r#"
+            WITH deleted AS (
+                DELETE FROM voice_channel_invites WHERE channel_id = $1
+            )
+            INSERT INTO voice_channel_invites (channel_id, user_id)
+            SELECT $1, * FROM UNNEST($2::bigint[])
+            "#,
+            self.id,
+            &self.invites
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        result.extend([result2, result3]);
+
+        Ok(result)
+    }
+
+    pub async fn delete(self, pool: &PgPool) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
+            r#"DELETE FROM voice_channels WHERE id = $1"#,
+            as_i64(self.channel_id().get())
+        )
+        .execute(pool)
+        .await
     }
 }
 
@@ -173,6 +257,22 @@ pub enum VoiceChannelMode {
     Spectator,
     Locked,
     Invisible,
+}
+
+#[derive(sqlx::Type)]
+#[sqlx(type_name = "temp_voice_mode")]
+struct TempVoiceMode(VoiceChannelMode);
+
+impl From<VoiceChannelMode> for TempVoiceMode {
+    fn from(mode: VoiceChannelMode) -> Self {
+        Self(mode)
+    }
+}
+
+impl From<TempVoiceMode> for VoiceChannelMode {
+    fn from(wrapper: TempVoiceMode) -> Self {
+        wrapper.0
+    }
 }
 
 #[cfg(test)]

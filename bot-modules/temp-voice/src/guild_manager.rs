@@ -1,27 +1,7 @@
-use async_trait::async_trait;
 use serenity::all::{ChannelId, GuildId};
 use sqlx::postgres::PgQueryResult;
-use sqlx::{Database, FromRow, PgPool, Pool, Postgres};
+use sqlx::{FromRow, PgPool};
 use zayden_core::{as_i64, as_u64};
-
-#[async_trait]
-pub trait TempVoiceGuildManager<Db: Database> {
-    async fn save(
-        pool: &Pool<Db>,
-        id: GuildId,
-        category: ChannelId,
-        creator_channel: ChannelId,
-    ) -> sqlx::Result<Db::QueryResult>;
-
-    async fn get(pool: &Pool<Db>, id: GuildId) -> sqlx::Result<TempVoiceRow>;
-
-    async fn get_category(pool: &Pool<Db>, id: GuildId) -> sqlx::Result<ChannelId>;
-
-    async fn get_creator_channel(
-        pool: &Pool<Db>,
-        id: GuildId,
-    ) -> sqlx::Result<Option<ChannelId>>;
-}
 
 #[derive(FromRow)]
 pub struct TempVoiceRow {
@@ -45,13 +25,8 @@ impl TempVoiceRow {
     pub fn creator_channel(&self) -> Option<ChannelId> {
         self.temp_voice_creator_channel.map(|id| ChannelId::from(as_u64(id)))
     }
-}
 
-pub struct GuildTable;
-
-#[async_trait]
-impl TempVoiceGuildManager<Postgres> for GuildTable {
-    async fn save(
+    pub async fn save(
         pool: &PgPool,
         id: GuildId,
         category: ChannelId,
@@ -74,7 +49,7 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
         .await
     }
 
-    async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<TempVoiceRow> {
+    pub async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<Self> {
         sqlx::query_as!(
             TempVoiceRow,
             r#"
@@ -88,7 +63,10 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
         .await
     }
 
-    async fn get_category(pool: &PgPool, id: GuildId) -> sqlx::Result<ChannelId> {
+    pub async fn get_category(
+        pool: &PgPool,
+        id: GuildId,
+    ) -> sqlx::Result<ChannelId> {
         let category = sqlx::query_scalar!(
             "SELECT temp_voice_category FROM temp_voice_settings WHERE guild_id = $1",
             as_i64(id.get())
@@ -99,7 +77,7 @@ impl TempVoiceGuildManager<Postgres> for GuildTable {
         Ok(ChannelId::new(as_u64(category.ok_or(sqlx::Error::RowNotFound)?)))
     }
 
-    async fn get_creator_channel(
+    pub async fn get_creator_channel(
         pool: &PgPool,
         id: GuildId,
     ) -> sqlx::Result<Option<ChannelId>> {

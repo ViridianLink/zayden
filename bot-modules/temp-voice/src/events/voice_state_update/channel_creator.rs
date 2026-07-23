@@ -10,27 +10,22 @@ use serenity::all::{
     JsonErrorCode,
     VoiceState,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tracing::debug;
 
 use crate::components::build_panel;
 use crate::{
     Result,
     TempVoiceError,
-    TempVoiceGuildManager,
-    VoiceChannelManager,
+    TempVoiceRow,
     VoiceChannelRow,
     delete_voice_channel_if_inactive,
     owner_perms,
 };
 
-pub async fn channel_creator<
-    Db: Database,
-    GuildManager: TempVoiceGuildManager<Db>,
-    ChannelManager: VoiceChannelManager<Db>,
->(
+pub async fn channel_creator(
     http: &Http,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     new: &VoiceState,
 ) -> Result<()> {
     let Some(guild_id) = new.guild_id else {
@@ -41,7 +36,7 @@ pub async fn channel_creator<
     };
 
     let creator_channel =
-        match GuildManager::get_creator_channel(pool, guild_id).await {
+        match TempVoiceRow::get_creator_channel(pool, guild_id).await {
             Ok(Some(channel)) => channel,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
                 debug!(%guild_id, "no creator channel configured for guild");
@@ -139,7 +134,7 @@ pub async fn channel_creator<
     }
 
     let row = VoiceChannelRow::new(vc.id, new.user_id);
-    row.save::<Db, ChannelManager>(pool).await?;
+    row.save(pool).await?;
 
     let components = build_panel()
         .into_iter()

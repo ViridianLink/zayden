@@ -8,14 +8,14 @@ use serenity::all::{
     Permissions,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::{require_owner, require_trusted};
-use crate::{Result, VoiceChannelManager, VoiceChannelRow, owner_perms};
+use crate::{Result, VoiceChannelRow, owner_perms};
 
-pub async fn trust<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub async fn trust(
     http: &Http,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
     user_id: UserId,
@@ -24,7 +24,7 @@ pub async fn trust<Db: Database, Manager: VoiceChannelManager<Db>>(
     require_owner(&row, user_id)?;
 
     row.trust(target);
-    row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
 
     channel_id
         .create_permission(
@@ -58,9 +58,9 @@ pub async fn kick(
     Ok("User kicked from channel.".to_string())
 }
 
-pub async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub async fn password(
     http: &Http,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     guild_id: GuildId,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
@@ -70,7 +70,7 @@ pub async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
     require_owner(&row, user_id)?;
 
     row.password = Some(pass);
-    row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
 
     let perms = vec![owner_perms(user_id), PermissionOverwrite {
         allow: Permissions::empty(),

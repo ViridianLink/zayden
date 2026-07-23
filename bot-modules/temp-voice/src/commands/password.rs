@@ -8,14 +8,14 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow, actions};
+use crate::{Result, TempVoiceError, VoiceChannelRow, actions};
 
-pub(super) async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn password(
     http: &Http,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     guild_id: GuildId,
     channel_id: ChannelId,
@@ -27,7 +27,7 @@ pub(super) async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
         return Err(TempVoiceError::IneligibleChannel);
     };
 
-    let msg = actions::password::<Db, Manager>(
+    let msg = actions::password(
         http,
         pool,
         guild_id,

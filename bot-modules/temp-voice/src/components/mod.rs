@@ -12,15 +12,9 @@ use serenity::all::{
     GenericChannelId,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::{
-    Result,
-    TempVoiceError,
-    VoiceChannelManager,
-    VoiceChannelRow,
-    VoiceStateCache,
-};
+use crate::{Result, TempVoiceError, VoiceChannelRow, VoiceStateCache};
 
 pub const CLAIM: &str = "voice_claim";
 pub const TRANSFER: &str = "voice_transfer";
@@ -98,23 +92,20 @@ pub fn build_panel() -> Vec<CreateActionRow<'static>> {
     ]
 }
 
-pub async fn resolve_target_channel<
-    Db: Database,
-    Manager: VoiceChannelManager<Db>,
->(
-    pool: &Pool<Db>,
+pub async fn resolve_target_channel(
+    pool: &PgPool,
     voice_states: &VoiceStateCache,
     channel_id: GenericChannelId,
     user_id: UserId,
 ) -> Result<(ChannelId, VoiceChannelRow)> {
     let channel_id = channel_id.expect_channel();
 
-    if let Some(row) = Manager::get(pool, channel_id).await? {
+    if let Some(row) = VoiceChannelRow::get(pool, channel_id).await? {
         return Ok((channel_id, row));
     }
 
     if let Some(current) = voice_states.current_channel(user_id)
-        && let Some(row) = Manager::get(pool, current).await?
+        && let Some(row) = VoiceChannelRow::get(pool, current).await?
     {
         return Ok((current, row));
     }

@@ -10,11 +10,11 @@ use serenity::all::{
     InputTextStyle,
     ModalInteraction,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::parse_modal_components;
 
 use super::{BITRATE, Components, LIMIT, PASSWORD, RENAME, resolve_target_channel};
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceStateCache, actions};
+use crate::{Result, TempVoiceError, VoiceStateCache, actions};
 
 struct ModalSpec {
     custom_id: &'static str,
@@ -24,14 +24,14 @@ struct ModalSpec {
     required: bool,
 }
 
-async fn open_modal<Db: Database, Manager: VoiceChannelManager<Db>>(
+async fn open_modal(
     http: &Http,
     interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     voice_states: &VoiceStateCache,
     spec: ModalSpec,
 ) -> Result<()> {
-    resolve_target_channel::<Db, Manager>(
+    resolve_target_channel(
         pool,
         voice_states,
         interaction.channel_id,
@@ -59,13 +59,13 @@ fn modal_field(interaction: &ModalInteraction, field: &str) -> Option<String> {
 }
 
 impl Components {
-    pub async fn rename<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn rename(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        open_modal::<Db, Manager>(http, interaction, pool, voice_states, ModalSpec {
+        open_modal(http, interaction, pool, voice_states, ModalSpec {
             custom_id: RENAME,
             title: "Rename Channel",
             label: "New name",
@@ -75,10 +75,10 @@ impl Components {
         .await
     }
 
-    pub async fn rename_submit<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn rename_submit(
         http: &Http,
         interaction: &ModalInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -87,7 +87,7 @@ impl Components {
             .filter(|n| !n.trim().is_empty())
             .unwrap_or_else(|| format!("{}'s Channel", interaction.user.name));
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -105,13 +105,13 @@ impl Components {
         Ok(())
     }
 
-    pub async fn limit<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn limit(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        open_modal::<Db, Manager>(http, interaction, pool, voice_states, ModalSpec {
+        open_modal(http, interaction, pool, voice_states, ModalSpec {
             custom_id: LIMIT,
             title: "User Limit",
             label: "User limit (0-99)",
@@ -121,10 +121,10 @@ impl Components {
         .await
     }
 
-    pub async fn limit_submit<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn limit_submit(
         http: &Http,
         interaction: &ModalInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -133,7 +133,7 @@ impl Components {
             .and_then(|v| v.trim().parse::<i64>().ok())
             .ok_or(TempVoiceError::InvalidNumber)?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -151,13 +151,13 @@ impl Components {
         Ok(())
     }
 
-    pub async fn bitrate<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn bitrate(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        open_modal::<Db, Manager>(http, interaction, pool, voice_states, ModalSpec {
+        open_modal(http, interaction, pool, voice_states, ModalSpec {
             custom_id: BITRATE,
             title: "Bitrate",
             label: "Bitrate (kbps)",
@@ -167,10 +167,10 @@ impl Components {
         .await
     }
 
-    pub async fn bitrate_submit<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn bitrate_submit(
         http: &Http,
         interaction: &ModalInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -179,7 +179,7 @@ impl Components {
             .and_then(|v| v.trim().parse::<i64>().ok())
             .ok_or(TempVoiceError::InvalidNumber)?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -198,13 +198,13 @@ impl Components {
         Ok(())
     }
 
-    pub async fn password<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn password(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
-        open_modal::<Db, Manager>(http, interaction, pool, voice_states, ModalSpec {
+        open_modal(http, interaction, pool, voice_states, ModalSpec {
             custom_id: PASSWORD,
             title: "Channel Password",
             label: "Password",
@@ -214,10 +214,10 @@ impl Components {
         .await
     }
 
-    pub async fn password_submit<Db: Database, Manager: VoiceChannelManager<Db>>(
+    pub async fn password_submit(
         http: &Http,
         interaction: &ModalInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         voice_states: &VoiceStateCache,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -228,7 +228,7 @@ impl Components {
 
         let guild_id = interaction.guild_id.ok_or(TempVoiceError::MissingGuildId)?;
 
-        let (channel_id, row) = resolve_target_channel::<Db, Manager>(
+        let (channel_id, row) = resolve_target_channel(
             pool,
             voice_states,
             interaction.channel_id,
@@ -236,7 +236,7 @@ impl Components {
         )
         .await?;
 
-        let msg = actions::password::<Db, Manager>(
+        let msg = actions::password(
             http,
             pool,
             guild_id,

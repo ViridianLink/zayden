@@ -16,26 +16,21 @@ use serenity::all::{
     ResolvedValue,
 };
 use serenity::nonmax::NonMaxU16;
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tracing::debug;
 
 use crate::{
     TempVoiceError,
-    TempVoiceGuildManager,
-    VoiceChannelManager,
+    TempVoiceRow,
     VoiceChannelRow,
     delete_voice_channel_if_inactive,
     owner_perms,
 };
 
-pub(super) async fn create<
-    Db: Database,
-    GuildManager: TempVoiceGuildManager<Db>,
-    ChannelManager: VoiceChannelManager<Db>,
->(
+pub(super) async fn create(
     http: &Http,
     interaction: &serenity::all::CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<(), TempVoiceError> {
@@ -84,7 +79,7 @@ pub(super) async fn create<
         _ => return Err(TempVoiceError::IneligibleChannel),
     }
 
-    let category = GuildManager::get_category(pool, guild_id).await?;
+    let category = TempVoiceRow::get_category(pool, guild_id).await?;
 
     let vc_builder = CreateChannel::new(name)
         .kind(ChannelType::Voice)
@@ -128,7 +123,7 @@ pub(super) async fn create<
     }
 
     let row = VoiceChannelRow::new(vc.id, interaction.user.id);
-    row.save::<Db, ChannelManager>(pool).await?;
+    row.save(pool).await?;
 
     Ok(())
 }

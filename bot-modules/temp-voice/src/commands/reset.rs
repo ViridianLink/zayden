@@ -8,15 +8,15 @@ use serenity::all::{
     PermissionOverwriteType,
 };
 use serenity::nonmax::NonMaxU16;
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use crate::error::PermissionError;
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow};
+use crate::{Result, TempVoiceError, VoiceChannelRow};
 
-pub(super) async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn reset(
     http: &Http,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     guild_id: GuildId,
     channel_id: ChannelId,
     mut row: VoiceChannelRow,
@@ -28,7 +28,7 @@ pub(super) async fn reset<Db: Database, Manager: VoiceChannelManager<Db>>(
     }
 
     row.reset();
-    row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
 
     let channel = guild_id
         .channels(http)

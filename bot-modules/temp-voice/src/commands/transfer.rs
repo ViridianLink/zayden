@@ -7,14 +7,14 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use crate::{Result, TempVoiceError, VoiceChannelManager, VoiceChannelRow, actions};
+use crate::{Result, TempVoiceError, VoiceChannelRow, actions};
 
-pub(super) async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn transfer(
     http: &Http,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     channel_id: ChannelId,
     row: VoiceChannelRow,
@@ -25,15 +25,9 @@ pub(super) async fn transfer<Db: Database, Manager: VoiceChannelManager<Db>>(
         return Err(TempVoiceError::IneligibleChannel);
     };
 
-    let msg = actions::transfer::<Db, Manager>(
-        http,
-        pool,
-        channel_id,
-        row,
-        interaction.user.id,
-        user.id,
-    )
-    .await?;
+    let msg =
+        actions::transfer(http, pool, channel_id, row, interaction.user.id, user.id)
+            .await?;
 
     interaction
         .edit_response(http, EditInteractionResponse::new().content(msg))

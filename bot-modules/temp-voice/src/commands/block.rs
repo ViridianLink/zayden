@@ -11,15 +11,15 @@ use serenity::all::{
     Permissions,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use crate::error::PermissionError;
-use crate::{TempVoiceError, VoiceChannelManager, VoiceChannelRow};
+use crate::{TempVoiceError, VoiceChannelRow};
 
-pub(super) async fn block<Db: Database, Manager: VoiceChannelManager<Db>>(
+pub(super) async fn block(
     http: &Http,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     mut options: HashMap<&str, ResolvedValue<'_>>,
     guild_id: GuildId,
     channel_id: ChannelId,
@@ -36,7 +36,7 @@ pub(super) async fn block<Db: Database, Manager: VoiceChannelManager<Db>>(
     };
 
     row.block(user.id);
-    row.save::<Db, Manager>(pool).await?;
+    row.save(pool).await?;
 
     channel_id
         .create_permission(

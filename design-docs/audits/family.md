@@ -13,7 +13,7 @@ modules (CC-2), which is both a convention violation and effectively no
 ## Findings
 
 ### 1. DB-generic `async_trait` manager  ·  #1  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 5ac30447`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-23):** CC-1 concrete-`PgPool` migration (fifth module after the
   `gold-star`/`levels`/`reaction-roles`/`suggestions` pilots). Dropped the
   `#[async_trait] trait FamilyManager<Db: Database>` and its lone

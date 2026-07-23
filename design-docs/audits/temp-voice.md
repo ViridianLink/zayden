@@ -14,6 +14,32 @@ no coverage of the `actions` layer where the M4 permission re-checks live.
 ## Findings
 
 ### 1. DB-generic `async_trait` managers  ·  #1  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24):** CC-1 concrete-`PgPool` migration (sixth module after the
+  `gold-star`/`levels`/`reaction-roles`/`suggestions`/`family` pilots). Dropped both
+  generic manager traits — `TempVoiceGuildManager<Db: Database>` and
+  `VoiceChannelManager<Db: Database>` — and the `#[async_trait]` on each. The SQL now
+  lives in the crate as concrete `PgPool` associated functions:
+  `TempVoiceRow::{save,get,get_category,get_creator_channel}` (guild settings) and
+  `VoiceChannelRow::{get,count_persistent_channels,claim,save,delete}`. The
+  `VoiceChannelManager` concrete impl (`VoiceChannelTable`) and the binding-only
+  `TempVoiceMode` newtype (custom `temp_voice_mode` pgtype wrapper) moved out of
+  `bot/src/bindings/temp_voice/mod.rs` into `voice_channel_manager.rs` alongside the
+  query that needs it; `GuildTable`'s impl already lived in-crate. Every
+  command/component/action/event `fn` lost its `<Db, Manager>` /
+  `<Db, GuildManager, ChannelManager>` generics and now takes `&PgPool`; the
+  `save`/`delete` row-wrappers became inherent `VoiceChannelRow` methods
+  (`row.save(pool)` / `row.delete(pool)`). `bot/src/bindings/temp_voice/{commands,
+  components,events,mod}.rs` drop their `::<Postgres, GuildTable, VoiceChannelTable>`
+  turbofish, and `mod.rs` is reduced to `register` + the component/modal `use` list
+  (the trait impl, `VoiceChannelTable`, and `TempVoiceMode` deleted). Removed the
+  now-unused `async-trait` dependency (`cargo machete` clean). **Behaviour-preserving:**
+  every `query!`/`query_as!`/`query_scalar!` string was moved byte-identically —
+  verified each against its `.sqlx` cache entry by SHA-256 — so the offline cache is
+  reused unchanged (`git status .sqlx` clean, no regeneration needed). The existing
+  DB-free `tests/{components,ownership}.rs` and the inline `voice_channel_manager.rs`
+  unit test are untouched and pass. Only `gambling`, `lfg`, and the `zayden-core`
+  traits now remain on CC-1.
 - **Where:** `src/voice_channel_manager.rs`, `src/guild_manager.rs`, and the
   `actions/*` + `components/*` that thread `<Db>` / `Pool<Db>`.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1). Along with `lfg`, the
