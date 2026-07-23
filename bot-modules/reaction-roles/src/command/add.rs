@@ -12,17 +12,16 @@ use serenity::all::{
     ResolvedValue,
     Role,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::required_option;
 
 use super::ReactionRoleCommand;
-use crate::reaction_roles_manager::ReactionRolesManager;
-use crate::{ReactionRoleError, Result};
+use crate::{ReactionRole, ReactionRoleError, Result};
 
 impl ReactionRoleCommand {
-    pub(super) async fn add<Db: Database, Manager: ReactionRolesManager<Db>>(
+    pub(super) async fn add(
         http: &Http,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         guild_id: GuildId,
         channel_id: GenericChannelId,
         reaction: ReactionType,
@@ -53,7 +52,7 @@ impl ReactionRoleCommand {
             },
         };
 
-        Manager::create(
+        ReactionRole::create(
             pool,
             guild_id,
             channel_id,

@@ -1,27 +1,23 @@
 use serenity::all::{Http, Reaction};
-use sqlx::Pool;
+use sqlx::PgPool;
 
-use crate::{ReactionRoleError, ReactionRolesManager, Result};
+use crate::{ReactionRole, ReactionRoleError, Result};
 
 pub struct ReactionRoleReaction;
 
 impl ReactionRoleReaction {
-    pub async fn reaction_add<Db, Manager>(
+    pub async fn reaction_add(
         http: &Http,
         reaction: &Reaction,
-        pool: &Pool<Db>,
-    ) -> Result<()>
-    where
-        Db: sqlx::Database,
-        Manager: ReactionRolesManager<Db>,
-    {
+        pool: &PgPool,
+    ) -> Result<()> {
         if reaction.member.as_ref().is_some_and(|member| member.user.bot()) {
             return Ok(());
         }
 
         let emoji_string = reaction.emoji.to_string();
         let reaction_role =
-            Manager::row(pool, reaction.message_id, &emoji_string).await?;
+            ReactionRole::row(pool, reaction.message_id, &emoji_string).await?;
 
         if let Some(reaction_role) = reaction_role {
             let member =
@@ -39,22 +35,21 @@ impl ReactionRoleReaction {
         Ok(())
     }
 
-    pub async fn reaction_remove<Db, Manager>(
+    pub async fn reaction_remove(
         http: &Http,
         reaction: &Reaction,
-        pool: &Pool<Db>,
-    ) -> Result<()>
-    where
-        Db: sqlx::Database,
-        Manager: ReactionRolesManager<Db>,
-    {
+        pool: &PgPool,
+    ) -> Result<()> {
         if reaction.member.as_ref().is_some_and(|member| member.user.bot()) {
             return Ok(());
         }
 
-        let reaction_role =
-            Manager::row(pool, reaction.message_id, &reaction.emoji.to_string())
-                .await?;
+        let reaction_role = ReactionRole::row(
+            pool,
+            reaction.message_id,
+            &reaction.emoji.to_string(),
+        )
+        .await?;
 
         if let Some(reaction_role) = reaction_role {
             let user_id =

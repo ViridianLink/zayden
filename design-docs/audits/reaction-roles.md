@@ -10,6 +10,27 @@ DB-generic `async_trait` pattern (CC-1) and no `tests/`. Otherwise unremarkable.
 ## Findings
 
 ### 1. DB-generic `async_trait` manager  ·  #1  ·  med
+- **Status:** `complete — 52bee6bc`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-23):** CC-1 concrete-`PgPool` migration (third module after the
+  `gold-star`/`levels` pilots). Dropped the `#[async_trait] trait
+  ReactionRolesManager<Db: Database>` and its lone `impl … for ReactionRolesTable`
+  binding. The four queries (`create`/`rows`/`row`/`delete`) are now concrete
+  `PgPool` associated functions on `ReactionRole`, with the `query!`/`query_as!`
+  bodies living in the crate (`reaction_roles_manager.rs` renamed to `manager.rs`,
+  matching the pilots). `ReactionRoleCommand::run`/`add`/`remove` and
+  `ReactionRoleReaction::reaction_add`/`reaction_remove` lost their
+  `<Db, Manager>` generics and now take `&PgPool` directly.
+  `bot/src/bindings/reaction_roles` is reduced to `register` + the `ModuleCommand`
+  shim (`ReactionRolesTable` deleted); the two `bot/src/handler/reaction_*`
+  call-sites drop their turbofish. **Behaviour-preserving:** every query string was
+  moved byte-identically (the `create` `query_file!` inlined verbatim, so
+  `bot/sql/reaction_roles/create.sql` was removed), so the `.sqlx` cache is reused
+  unchanged (`git status .sqlx` clean — no regeneration). No `Cargo.toml` dep
+  change (the crate used `serenity::async_trait`, not a direct `async-trait` dep;
+  `cargo machete` clean). Added `tests/manager.rs` pinning the snowflake accessor
+  column-mapping. `reaction-roles`/`suggestions` were the next-smallest; only
+  `suggestions` and the larger generic managers (`gambling`, `family`, `lfg`,
+  `temp-voice`, plus the `zayden-core` traits) now remain on CC-1.
 - **Where:** `src/reaction_roles_manager.rs`, `src/command/*`, `src/reaction/mod.rs`.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1). Small surface — a
   good early migration.

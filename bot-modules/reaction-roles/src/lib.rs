@@ -1,9 +1,9 @@
 mod command;
 pub mod error;
+pub mod manager;
 mod reaction;
-pub mod reaction_roles_manager;
 
 pub use command::ReactionRoleCommand;
 pub use error::{ReactionRoleError, Result};
+pub use manager::ReactionRole;
 pub use reaction::ReactionRoleReaction;
-pub use reaction_roles_manager::ReactionRolesManager;

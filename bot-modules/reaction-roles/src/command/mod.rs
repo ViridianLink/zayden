@@ -9,7 +9,7 @@ use serenity::all::{
     Permissions,
     ReactionType,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{
     optional_option,
     parse_options,
@@ -21,15 +21,14 @@ mod add;
 mod remove;
 
 use crate::error::{ReactionRoleError, Result};
-use crate::reaction_roles_manager::ReactionRolesManager;
 
 pub struct ReactionRoleCommand;
 
 impl ReactionRoleCommand {
-    pub async fn run<Db: Database, Manager: ReactionRolesManager<Db>>(
+    pub async fn run(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
@@ -50,13 +49,11 @@ impl ReactionRoleCommand {
 
         match name {
             "add" => {
-                Self::add::<Db, Manager>(
-                    http, pool, guild_id, channel_id, reaction, options,
-                )
-                .await?;
+                Self::add(http, pool, guild_id, channel_id, reaction, options)
+                    .await?;
             },
             "remove" => {
-                Self::remove::<Db, Manager>(
+                Self::remove(
                     http, pool, channel_id, guild_id, reaction, options,
                 )
                 .await?;

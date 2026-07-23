@@ -5,7 +5,6 @@ use suggestions::{GuildTable, Suggestions};
 
 use super::Handler;
 use crate::Result;
-use crate::bindings::reaction_roles::ReactionRolesTable;
 
 impl Handler {
     pub(super) async fn reaction_add(
@@ -13,10 +12,7 @@ impl Handler {
         reaction: &Reaction,
         pool: &PgPool,
     ) -> Result<()> {
-        ReactionRoleReaction::reaction_add::<Postgres, ReactionRolesTable>(
-            &ctx.http, reaction, pool,
-        )
-        .await?;
+        ReactionRoleReaction::reaction_add(&ctx.http, reaction, pool).await?;
 
         Suggestions::reaction::<Postgres, GuildTable>(&ctx.http, reaction, pool)
             .await?;

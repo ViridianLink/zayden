@@ -8,17 +8,16 @@ use serenity::all::{
     ReactionType,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::required_option;
 
 use super::ReactionRoleCommand;
-use crate::reaction_roles_manager::ReactionRolesManager;
-use crate::{ReactionRoleError, Result};
+use crate::{ReactionRole, ReactionRoleError, Result};
 
 impl ReactionRoleCommand {
-    pub(super) async fn remove<Db: Database, Manager: ReactionRolesManager<Db>>(
+    pub(super) async fn remove(
         http: &Http,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         channel_id: GenericChannelId,
         guild_id: GuildId,
         reaction: ReactionType,
@@ -30,7 +29,7 @@ impl ReactionRoleCommand {
                 ReactionRoleError::InvalidMessageId(id.to_string())
             })?);
 
-        Manager::delete(
+        ReactionRole::delete(
             pool,
             guild_id,
             channel_id,
