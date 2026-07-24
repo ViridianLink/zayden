@@ -1,4 +1,4 @@
-use levels::{LevelsCustomId, LevelsError, level_up_xp};
+use levels::{LeaderboardScope, LevelsCustomId, LevelsError, level_up_xp};
 
 #[test]
 fn level_up_xp_matches_curve() {
@@ -42,4 +42,31 @@ fn custom_id_rejects_unknown() {
         panic!("expected Internal error, got {err:?}");
     };
     assert!(msg.contains("levels_bogus"), "message was: {msg}");
+}
+
+#[test]
+fn leaderboard_scope_footer_tag_round_trips() {
+    for scope in [LeaderboardScope::Guild, LeaderboardScope::Global] {
+        assert_eq!(
+            LeaderboardScope::from_footer_tag(scope.footer_tag()),
+            scope,
+            "footer tag must round-trip so the pager recovers the right scope"
+        );
+    }
+}
+
+#[test]
+fn leaderboard_scope_from_global_flag() {
+    assert_eq!(LeaderboardScope::from_global_flag(true), LeaderboardScope::Global);
+    assert_eq!(LeaderboardScope::from_global_flag(false), LeaderboardScope::Guild);
+}
+
+#[test]
+fn leaderboard_scope_unknown_footer_defaults_to_guild() {
+    // Legacy leaderboards (pre-scope) carried a footer without a scope tag; the
+    // pager must treat those as the server board, never silently as global.
+    assert_eq!(
+        LeaderboardScope::from_footer_tag("nonsense"),
+        LeaderboardScope::Guild
+    );
 }

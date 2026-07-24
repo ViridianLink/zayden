@@ -37,19 +37,34 @@ impl Rank {
             _ => &interaction.user,
         };
 
-        let row = RankRow::get(pool, user.id).await?.unwrap_or_default();
+        let global =
+            matches!(options.remove("global"), Some(ResolvedValue::Boolean(true)));
+
+        let (row, user_rank, scope_label) = match interaction.guild_id {
+            Some(guild_id) if !global => {
+                let row = RankRow::guild_get(pool, guild_id, user.id)
+                    .await?
+                    .unwrap_or_default();
+                let rank = RankRow::guild_user_rank(pool, guild_id, user.id).await?;
+                (row, rank, "Server")
+            },
+            _ => {
+                let row = RankRow::get(pool, user.id).await?.unwrap_or_default();
+                let rank = RankRow::user_rank(pool, user.id).await?;
+                (row, rank, "Global")
+            },
+        };
 
         let level = row.level();
         let xp_for_next_level = level_up_xp(level);
 
-        let user_rank = RankRow::user_rank(pool, user.id)
-            .await?
-            .map_or_else(|| String::from("N/A"), |rank| format!("{rank}"));
+        let user_rank =
+            user_rank.map_or_else(|| String::from("N/A"), |rank| format!("{rank}"));
 
         let xp = row.xp();
 
         let embed = CreateEmbed::new()
-            .title(format!("XP stats for {}", user.name))
+            .title(format!("{scope_label} XP stats for {}", user.name))
             .description(format!(
                 "Rank: #{user_rank}\nLevel: {level}\nXP: {xp}/{xp_for_next_level} ({}%)",
                 (f64::from(xp) / f64::from(xp_for_next_level) * 100.0).round()
@@ -69,6 +84,11 @@ impl Rank {
                 CommandOptionType::User,
                 "user",
                 "The user to get the xp of",
+            ))
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::Boolean,
+                "global",
+                "Show global (cross-server) rank instead of this server",
             ))
             .add_option(CreateCommandOption::new(
                 CommandOptionType::Boolean,

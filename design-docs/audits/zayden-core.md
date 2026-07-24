@@ -13,7 +13,7 @@ crates originate (`cron.rs`, `events.rs`, `module.rs`), so it is both a CC-1
 ## Findings
 
 ### 1. Generic `<Db: Database>` trait bounds in core traits  ·  #1  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 9bf088a5`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** Final CC-1 piece — de-generalised the `zayden-core` core
   traits now that every module manager is concrete (`gambling` was the last,
   `83930148`). `cron.rs`: dropped `<Db: Database>` from `CronJob`, `CronJobData`

@@ -13,7 +13,7 @@ placement) problem.
 ## Findings
 
 ### 1. Blocking `std::fs` counter persistence on async path  ·  #3  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — f2cf893d`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24, folds in #2):** Both counters moved to the DB. New migration
   `0016_llamad2_counters` adds `llamad2_counters (name text PRIMARY KEY, count
   bigint NOT NULL DEFAULT 0)`; the two blocking read-modify-rewrite sites
@@ -48,7 +48,7 @@ placement) problem.
   placement problem at once. See also [CC-5](_cross-cutting.md#cc-5).
 
 ### 2. Counter state belongs in the DB  ·  #5  ·  med
-- **Status:** `in-review` (folded into finding #1)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — f2cf893d` (folded into finding #1)            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** same as #1 (`countingFails.json`, `dumbCount.json`).
 - **What / Why / Fix:** Persistent per-guild counters stored outside the DB.
   Fold into the fix for #1. **Resolved by finding #1's fix** — both counters now

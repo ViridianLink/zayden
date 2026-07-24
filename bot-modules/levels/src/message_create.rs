@@ -3,30 +3,42 @@ use serenity::all::Message;
 use sqlx::PgPool;
 
 use super::LevelsRow;
-use crate::FullLevelRow;
+use crate::{FullLevelRow, GuildLevelRow};
+
+fn on_cooldown(last_xp: Timestamp) -> bool {
+    let cooldown =
+        last_xp.checked_add(Span::new().minutes(1)).unwrap_or(Timestamp::MAX);
+    cooldown > Timestamp::now()
+}
 
 pub async fn message_create(
     message: &Message,
     pool: &PgPool,
 ) -> Result<Option<i32>, sqlx::Error> {
-    let Some(_guild_id) = message.guild_id else {
+    let Some(guild_id) = message.guild_id else {
         return Ok(None);
     };
 
-    let mut row = FullLevelRow::get(pool, message.author.id)
+    let mut global = FullLevelRow::get(pool, message.author.id)
         .await?
         .unwrap_or_else(|| FullLevelRow::new(message.author.id));
 
-    let xp_cooldown =
-        row.last_xp().checked_add(Span::new().minutes(1)).unwrap_or(Timestamp::MAX);
+    let global_level = if on_cooldown(global.last_xp()) {
+        None
+    } else {
+        let new_level = global.new_message();
+        global.save(pool).await?;
+        new_level
+    };
 
-    if xp_cooldown > Timestamp::now() {
-        return Ok(None);
+    let mut guild = GuildLevelRow::get(pool, guild_id, message.author.id)
+        .await?
+        .unwrap_or_else(|| GuildLevelRow::new(guild_id, message.author.id));
+
+    if !on_cooldown(guild.last_xp()) {
+        guild.new_message();
+        guild.save(pool).await?;
     }
 
-    let new_level = row.new_message();
-
-    row.save(pool).await?;
-
-    Ok(new_level)
+    Ok(global_level)
 }

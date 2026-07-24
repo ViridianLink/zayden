@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT xp, level FROM guild_levels WHERE guild_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "xp",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "guild_levels",
+            "name": "xp"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "guild_levels",
+            "name": "level"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "a2d49cb700abb23c31593e1b787880feda4d135b68711285b56f8e929f799022"
+}

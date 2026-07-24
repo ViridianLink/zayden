@@ -69,10 +69,21 @@ pattern before the larger crates.
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 4. Leaderboard / rank are better as dashboard read-views  ·  #8  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
-  (Direction finding, not a defect — building Leptos dashboard read-views is a
-  scoped [CC-8](_cross-cutting.md#cc-8) feature task, out of scope for the
-  levels-module fix pass. Left for deliberate scheduling.)
+- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Progress (2026-07-24, task 1 of 2 — levels dual-scope backend):** Reframed per
+  the guild+global scope decision. The global `levels` table is unchanged; a new
+  `guild_levels (guild_id, user_id PK)` table (migration `0017`) tracks per-guild
+  XP, dual-written on every guild message with an **independent** per-scope
+  cooldown and level curve (`accrue_message` shared helper). The level-up **coin
+  reward stays global-only** (unchanged economy). `/rank`, `/xp`, `/leaderboard`
+  gained an optional `global` param (guild default; auto-global outside a guild);
+  the leaderboard is now a real `WHERE guild_id` query
+  (`LeaderboardRow::guild_leaderboard`, with a `global_leaderboard` sibling) that
+  **drops the `GuildMembersCache` filtering hack** — which also removes the
+  member-list blocker for the dashboard view. New `guild_levels` starts empty, so
+  a server board is blank until members chat post-deploy. **Remaining (task 2):**
+  the actual dashboard read-view (`dashboard` server fns + `/guild/:id/levels`
+  page) — the original #8 subject.
 - **Where:** `src/commands/levels.rs` (leaderboard), `src/commands/rank.rs`,
   `src/components/levels.rs` (pager).
 - **What:** Paged, data-dense displays better suited to a web page than an embed

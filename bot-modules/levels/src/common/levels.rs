@@ -1,31 +1,59 @@
-use serenity::all::{Context, CreateEmbed, CreateEmbedFooter, GuildId, Mentionable};
+use serenity::all::{CreateEmbed, CreateEmbedFooter, GuildId, Mentionable};
 use sqlx::PgPool;
-use tokio::sync::RwLock;
-use zayden_core::{GuildMembersCache, as_i64};
 
-use crate::{LeaderboardRow, LevelsError, LevelsRow, Result};
+use crate::{LeaderboardRow, LevelsRow, Result};
 
-pub async fn create_embed<'a, Data: GuildMembersCache>(
-    ctx: &Context,
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LeaderboardScope {
+    Guild,
+    Global,
+}
+
+impl LeaderboardScope {
+    #[must_use]
+    pub const fn from_global_flag(global: bool) -> Self {
+        if global { Self::Global } else { Self::Guild }
+    }
+
+    #[must_use]
+    pub const fn title(self) -> &'static str {
+        match self {
+            Self::Guild => "Server Leaderboard",
+            Self::Global => "Global Leaderboard",
+        }
+    }
+
+    #[must_use]
+    pub const fn footer_tag(self) -> &'static str {
+        match self {
+            Self::Guild => "Server",
+            Self::Global => "Global",
+        }
+    }
+
+    #[must_use]
+    pub fn from_footer_tag(tag: &str) -> Self {
+        match tag {
+            "Global" => Self::Global,
+            _ => Self::Guild,
+        }
+    }
+}
+
+pub async fn create_embed<'a>(
     pool: &PgPool,
     guild_id: GuildId,
+    scope: LeaderboardScope,
     page_number: i64,
 ) -> Result<CreateEmbed<'a>> {
-    let users = {
-        let data = ctx.data::<RwLock<Data>>();
-        let data = data.read().await;
-
-        data.get()
-            .get(&guild_id)
-            .ok_or_else(|| {
-                LevelsError::Internal("guild not in member cache".to_string())
-            })?
-            .iter()
-            .map(|id| as_i64(id.get()))
-            .collect::<Vec<_>>()
+    let rows = match scope {
+        LeaderboardScope::Guild => {
+            LeaderboardRow::guild_leaderboard(pool, guild_id, page_number).await?
+        },
+        LeaderboardScope::Global => {
+            LeaderboardRow::global_leaderboard(pool, page_number).await?
+        },
     };
-
-    let rows = LeaderboardRow::leaderboard(pool, &users, page_number).await?;
 
     let desc = rows
         .into_iter()
@@ -40,10 +68,12 @@ pub async fn create_embed<'a, Data: GuildMembersCache>(
         .collect::<Vec<_>>()
         .join("\n\n");
 
-    let embed = CreateEmbed::new()
-        .title("Leaderboard")
-        .description(desc)
-        .footer(CreateEmbedFooter::new(format!("Page {page_number}")));
+    let embed = CreateEmbed::new().title(scope.title()).description(desc).footer(
+        CreateEmbedFooter::new(format!(
+            "Page {page_number} · {}",
+            scope.footer_tag()
+        )),
+    );
 
     Ok(embed)
 }

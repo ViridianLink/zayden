@@ -7,8 +7,6 @@ use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
-use crate::BotState;
-
 pub struct Levels;
 
 #[async_trait]
@@ -22,7 +20,8 @@ impl ModuleCommand for Levels {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        levels::Levels::run::<BotState>(cx.ctx, cx.interaction, &cx.app.db).await?;
+        let options = cx.interaction.data.options();
+        levels::Levels::run(cx.ctx, cx.interaction, options, &cx.app.db).await?;
         Ok(())
     }
 }
@@ -34,12 +33,7 @@ impl ModuleComponent for Levels {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        levels::Levels::run_components::<BotState>(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        levels::Levels::run_components(cx.ctx, cx.interaction, &cx.app.db).await?;
         Ok(())
     }
 }

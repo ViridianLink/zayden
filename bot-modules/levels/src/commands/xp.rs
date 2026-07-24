@@ -32,14 +32,30 @@ impl Xp {
             _ => interaction.defer(http).await?,
         }
 
-        let row = XpRow::get(pool, interaction.user.id).await?.unwrap_or_default();
+        let global =
+            matches!(options.remove("global"), Some(ResolvedValue::Boolean(true)));
 
-        let embed = CreateEmbed::default().title("XP").description(format!(
-            "Current XP: {}\nLevel: {}\nTotal XP: {}",
-            row.xp(),
-            row.level(),
-            row.total_xp()
-        ));
+        let (row, scope_label) = match interaction.guild_id {
+            Some(guild_id) if !global => (
+                XpRow::guild_get(pool, guild_id, interaction.user.id)
+                    .await?
+                    .unwrap_or_default(),
+                "Server",
+            ),
+            _ => (
+                XpRow::get(pool, interaction.user.id).await?.unwrap_or_default(),
+                "Global",
+            ),
+        };
+
+        let embed = CreateEmbed::default()
+            .title(format!("{scope_label} XP"))
+            .description(format!(
+                "Current XP: {}\nLevel: {}\nTotal XP: {}",
+                row.xp(),
+                row.level(),
+                row.total_xp()
+            ));
 
         interaction
             .edit_response(http, EditInteractionResponse::new().embed(embed))
@@ -49,12 +65,17 @@ impl Xp {
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("xp").description("Get your current xp").add_option(
-            CreateCommandOption::new(
+        CreateCommand::new("xp")
+            .description("Get your current xp")
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::Boolean,
+                "global",
+                "Show global (cross-server) xp instead of this server",
+            ))
+            .add_option(CreateCommandOption::new(
                 CommandOptionType::Boolean,
                 "ephemeral",
                 "Whether the response should be ephemeral",
-            ),
-        )
+            ))
     }
 }
