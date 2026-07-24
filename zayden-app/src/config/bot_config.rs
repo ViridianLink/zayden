@@ -231,7 +231,8 @@ fn load_toml_config() -> Result<TomlConfig> {
 }
 
 async fn load_db_row(pool: &PgPool) -> Result<Option<DbConfigRow>> {
-    let row = sqlx::query_as::<_, DbConfigRow>(
+    let row = sqlx::query_as!(
+        DbConfigRow,
         "SELECT error_log_webhook, normal_log_webhook FROM bot_config WHERE id = 1",
     )
     .fetch_optional(pool)
@@ -310,7 +311,6 @@ struct TomlDashboard {
     upgrade_url: Option<String>,
 }
 
-#[derive(sqlx::FromRow)]
 struct DbConfigRow {
     error_log_webhook: Option<String>,
     normal_log_webhook: Option<String>,

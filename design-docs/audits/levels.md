@@ -69,7 +69,7 @@ pattern before the larger crates.
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 4. Leaderboard / rank are better as dashboard read-views  ·  #8  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 0d2e0a0a`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24, task 2 of 2 — dashboard read-view):** Built the web
   leaderboard the backend (task 1) unblocked. New `dashboard/src/server/levels.rs`
   `get_leaderboard(guild, global, page)` server fn reads `guild_levels` (guild

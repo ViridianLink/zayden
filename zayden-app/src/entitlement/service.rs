@@ -104,14 +104,14 @@ impl EntitlementService {
         provider: &str,
         scope: &EntitlementScope,
     ) -> Result<(), sqlx::Error> {
-        let rows_deleted = sqlx::query(
+        let rows_deleted = sqlx::query!(
             "DELETE FROM entitlements \
              WHERE provider = $1 AND scope_type = $2 AND scope_id = $3 AND scope_secondary_id = $4",
+            provider,
+            scope.scope_type(),
+            scope.scope_id(),
+            scope.scope_secondary_id(),
         )
-        .bind(provider)
-        .bind(scope.scope_type())
-        .bind(scope.scope_id())
-        .bind(scope.scope_secondary_id())
         .execute(&self.db)
         .await?
         .rows_affected();
@@ -131,17 +131,18 @@ impl EntitlementService {
         provider: &str,
         external_id: &str,
     ) -> Result<(), sqlx::Error> {
-        let row = sqlx::query_as::<_, (String, i64, i64)>(
+        let row = sqlx::query!(
             "DELETE FROM entitlements WHERE provider = $1 AND external_id = $2
              RETURNING scope_type, scope_id, scope_secondary_id",
+            provider,
+            external_id,
         )
-        .bind(provider)
-        .bind(external_id)
         .fetch_optional(&self.db)
         .await?;
 
-        if let Some((scope_type, scope_id, scope_secondary_id)) = row {
-            let scope = row_to_scope(&scope_type, scope_id, scope_secondary_id);
+        if let Some(row) = row {
+            let scope =
+                row_to_scope(&row.scope_type, row.scope_id, row.scope_secondary_id);
             self.refresh_cache_row_from_db(&scope).await?;
             self.cache.invalidate(&scope).await;
             let _ = self.events.send(AppEvent::EntitlementChanged(scope));
@@ -176,7 +177,7 @@ impl EntitlementService {
     }
 
     pub async fn refresh_expired_cache_rows(&self) -> Result<u64, sqlx::Error> {
-        let stale = sqlx::query_as::<_, (String, i64, i64)>(
+        let stale = sqlx::query!(
             r"
             SELECT c.scope_type, c.scope_id, c.scope_secondary_id
             FROM entitlement_cache c
@@ -204,8 +205,9 @@ impl EntitlementService {
         .await?;
 
         let mut demoted: u64 = 0;
-        for (scope_type, scope_id, scope_secondary_id) in stale {
-            let scope = row_to_scope(&scope_type, scope_id, scope_secondary_id);
+        for row in stale {
+            let scope =
+                row_to_scope(&row.scope_type, row.scope_id, row.scope_secondary_id);
             self.refresh_cache_row_from_db(&scope).await?;
             self.cache.invalidate(&scope).await;
             let _ = self.events.send(AppEvent::EntitlementChanged(scope));
@@ -241,21 +243,21 @@ impl EntitlementService {
         scope: &EntitlementScope,
     ) -> Result<Tier, sqlx::Error> {
         // Check the denormalised cache row first.
-        let row = sqlx::query_as::<_, (String,)>(
+        let tier_str = sqlx::query_scalar!(
             r"
             SELECT tier FROM entitlement_cache
             WHERE scope_type = $1
               AND scope_id = $2
               AND scope_secondary_id = $3
             ",
+            scope.scope_type(),
+            scope.scope_id(),
+            scope.scope_secondary_id(),
         )
-        .bind(scope.scope_type())
-        .bind(scope.scope_id())
-        .bind(scope.scope_secondary_id())
         .fetch_optional(&self.db)
         .await?;
 
-        if let Some((tier_str,)) = row {
+        if let Some(tier_str) = tier_str {
             return Ok(tier_str.parse().unwrap_or(Tier::Free));
         }
 
@@ -267,7 +269,7 @@ impl EntitlementService {
         &self,
         scope: &EntitlementScope,
     ) -> Result<Tier, sqlx::Error> {
-        let row = sqlx::query_as::<_, (Option<i32>,)>(
+        let max_tier = sqlx::query_scalar!(
             r"
             SELECT MAX(
                 CASE tier
@@ -282,14 +284,14 @@ impl EntitlementService {
               AND scope_secondary_id = $3
               AND (expires_at IS NULL OR expires_at > now())
             ",
+            scope.scope_type(),
+            scope.scope_id(),
+            scope.scope_secondary_id(),
         )
-        .bind(scope.scope_type())
-        .bind(scope.scope_id())
-        .bind(scope.scope_secondary_id())
         .fetch_one(&self.db)
         .await?;
 
-        let tier = match row.0 {
+        let tier = match max_tier {
             Some(2) => Tier::Ultra,
             Some(1) => Tier::Pro,
             _ => Tier::Free,
@@ -302,7 +304,7 @@ impl EntitlementService {
         scope: &EntitlementScope,
         tier: Tier,
     ) -> Result<(), sqlx::Error> {
-        sqlx::query(
+        sqlx::query!(
             r"
             INSERT INTO entitlement_cache
                 (scope_type, scope_id, scope_secondary_id, tier, refreshed_at)
@@ -310,11 +312,11 @@ impl EntitlementService {
             ON CONFLICT (scope_type, scope_id, scope_secondary_id)
             DO UPDATE SET tier = EXCLUDED.tier, refreshed_at = now()
             ",
+            scope.scope_type(),
+            scope.scope_id(),
+            scope.scope_secondary_id(),
+            tier.as_str(),
         )
-        .bind(scope.scope_type())
-        .bind(scope.scope_id())
-        .bind(scope.scope_secondary_id())
-        .bind(tier.as_str())
         .execute(&self.db)
         .await?;
         Ok(())

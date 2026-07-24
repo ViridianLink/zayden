@@ -9,7 +9,6 @@ use {
         server_err,
     },
     leptos_axum::{extract, redirect},
-    sqlx::Row,
     std::sync::Arc,
     tower_cookies::Cookies,
     twilight_model::guild::Permissions,
@@ -40,19 +39,18 @@ pub async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
 
-    let row = sqlx::query(
+    let row = sqlx::query_scalar!(
         "SELECT discord_access_token FROM web_sessions \
          WHERE token = $1 AND expires_at > now()",
+        &token,
     )
-    .bind(&token)
     .fetch_optional(&pool)
     .await
     .map_err(server_err)?;
-    let Some(row) = row else {
+    let Some(access_token) = row else {
         redirect("/login");
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
-    let access_token: String = row.get("discord_access_token");
 
     let all_guilds = bearer_client(&access_token)
         .current_user_guilds()

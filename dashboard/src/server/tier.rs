@@ -4,7 +4,6 @@ use {
     crate::app::UpgradeUrl,
     crate::dto::Tier,
     crate::server::auth::{app_state, db_pool, server_err},
-    sqlx::Row,
     tower_cookies::Cookies,
 };
 
@@ -22,18 +21,18 @@ pub async fn get_user_tier() -> Result<UserTierInfo, ServerFnError> {
         return Ok(UserTierInfo { tier: None, upgrade_url });
     };
 
-    let row = sqlx::query(
+    let row = sqlx::query_scalar!(
         "SELECT discord_user_id FROM web_sessions WHERE token = $1 AND expires_at > now()",
+        &token,
     )
-    .bind(&token)
     .fetch_optional(&pool)
     .await
     .map_err(server_err)?;
 
-    let Some(row) = row else {
+    let Some(discord_user_id) = row else {
         return Ok(UserTierInfo { tier: None, upgrade_url });
     };
-    let user_id = row.get::<i64, _>("discord_user_id").cast_unsigned();
+    let user_id = discord_user_id.cast_unsigned();
 
     let tier = app.entitlements.user_tier(user_id).await;
     Ok(UserTierInfo { tier: Tier::from_key(tier.as_str()), upgrade_url })

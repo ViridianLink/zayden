@@ -49,10 +49,10 @@ pub(super) async fn kofi_webhook_handler(
 
     let email_hash = dashboard::util::email_hash(&payload.email);
 
-    let discord_user_id = match sqlx::query_scalar::<_, i64>(
+    let discord_user_id = match sqlx::query_scalar!(
         "SELECT discord_user_id FROM kofi_links WHERE email_hash = $1",
+        &email_hash,
     )
-    .bind(&email_hash)
     .fetch_optional(&state.app.db)
     .await
     {

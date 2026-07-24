@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO entitlement_cache\n                (scope_type, scope_id, scope_secondary_id, tier, refreshed_at)\n            VALUES ($1, $2, $3, $4, now())\n            ON CONFLICT (scope_type, scope_id, scope_secondary_id)\n            DO UPDATE SET tier = EXCLUDED.tier, refreshed_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "37098ec7b9ad94a61ebc23431d75afc948436bf0603079d96cd2758787be0319"
+}

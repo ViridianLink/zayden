@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM entitlements WHERE provider = $1 AND external_id = $2\n             RETURNING scope_type, scope_id, scope_secondary_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scope_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "entitlements",
+            "name": "scope_type"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "scope_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "entitlements",
+            "name": "scope_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "scope_secondary_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "entitlements",
+            "name": "scope_secondary_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "272085f5e7d4f618b1453542406a43937a1fb6f121d4b5e79245669ccae0a2bb"
+}

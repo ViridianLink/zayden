@@ -2,7 +2,7 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     leptos_axum::extract,
-    sqlx::{PgPool, Row},
+    sqlx::PgPool,
     std::sync::Arc,
     tower_cookies::Cookies,
     twilight_http::Client,
@@ -47,18 +47,18 @@ pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
     let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
-    let row = sqlx::query(
+    let row = sqlx::query_scalar!(
         "SELECT discord_user_id FROM web_sessions \
          WHERE token = $1 AND expires_at > now()",
+        &token,
     )
-    .bind(&token)
     .fetch_optional(&pool)
     .await
     .map_err(server_err)?;
-    let Some(row) = row else {
+    let Some(user_id) = row else {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
-    Ok(row.get::<i64, _>("discord_user_id"))
+    Ok(user_id)
 }
 
 #[cfg(feature = "ssr")]
@@ -77,19 +77,19 @@ pub(crate) async fn guild_admin_context(
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
 
-    let row = sqlx::query(
+    let row = sqlx::query!(
         "SELECT discord_access_token, discord_user_id FROM web_sessions \
          WHERE token = $1 AND expires_at > now()",
+        &token,
     )
-    .bind(&token)
     .fetch_optional(&pool)
     .await
     .map_err(server_err)?;
     let Some(row) = row else {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
-    let access_token: String = row.get("discord_access_token");
-    let user_id: i64 = row.get("discord_user_id");
+    let access_token: String = row.discord_access_token;
+    let user_id: i64 = row.discord_user_id;
 
     let all_guilds = bearer_client(&access_token)
         .current_user_guilds()
@@ -120,10 +120,10 @@ pub async fn check_session() -> Result<bool, ServerFnError> {
         return Ok(false);
     };
 
-    let logged_in = sqlx::query(
-        "SELECT 1 FROM web_sessions WHERE token = $1 AND expires_at > now()",
+    let logged_in = sqlx::query_scalar!(
+        "SELECT token FROM web_sessions WHERE token = $1 AND expires_at > now()",
+        &token,
     )
-    .bind(&token)
     .fetch_optional(&pool)
     .await
     .map_err(server_err)?

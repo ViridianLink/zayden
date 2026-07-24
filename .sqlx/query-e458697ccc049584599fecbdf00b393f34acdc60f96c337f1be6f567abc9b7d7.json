@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT c.scope_type, c.scope_id, c.scope_secondary_id\n            FROM entitlement_cache c\n            WHERE c.tier <> 'free'\n              AND c.tier <> COALESCE((\n                  SELECT CASE MAX(\n                              CASE e.tier\n                                  WHEN 'ultra' THEN 2\n                                  WHEN 'pro'   THEN 1\n                                  ELSE              0\n                              END)\n                          WHEN 2 THEN 'ultra'\n                          WHEN 1 THEN 'pro'\n                          ELSE        'free'\n                      END\n                  FROM entitlements e\n                  WHERE e.scope_type = c.scope_type\n                    AND e.scope_id = c.scope_id\n                    AND e.scope_secondary_id = c.scope_secondary_id\n                    AND (e.expires_at IS NULL OR e.expires_at > now())\n              ), 'free')\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "scope_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "entitlement_cache",
+            "name": "scope_type"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "scope_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "entitlement_cache",
+            "name": "scope_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "scope_secondary_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "entitlement_cache",
+            "name": "scope_secondary_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e458697ccc049584599fecbdf00b393f34acdc60f96c337f1be6f567abc9b7d7"
+}

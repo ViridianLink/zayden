@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT error_log_webhook, normal_log_webhook FROM bot_config WHERE id = 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "error_log_webhook",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "bot_config",
+            "name": "error_log_webhook"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "normal_log_webhook",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "bot_config",
+            "name": "normal_log_webhook"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "fcb11d89d932b1795161b82c0117ba56b84981bd01fd4642bcd70caf1cdd0208"
+}

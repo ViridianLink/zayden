@@ -123,7 +123,34 @@ served by the website — and two `setup` commands already duplicate its writes.
   feature is actually built.
 
 ### CC-5. Runtime `sqlx::query(...)` bypassing compile-time macros  ·  #1  ·  med
-
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24):** Converted every remaining runtime-SQL site to compile-time
+  macros. The audit's `gold_star.rs:83` site is already gone (folded into gold-star's
+  CC-1 migration), but a full re-grep found the theme had **grown to 14 sites in 6
+  files across 2 crates**, all now converted:
+  `zayden-app/src/entitlement/service.rs` (6: `revoke_all_by_scope` DELETE,
+  `revoke` DELETE…RETURNING, `refresh_expired_cache_rows` SELECT, `load_tier_from_db`,
+  `aggregate_tier_from_db` MAX, `refresh_cache_row` upsert),
+  `zayden-app/src/config/bot_config.rs:234` (`DbConfigRow` SELECT — dropped its now-dead
+  `#[derive(sqlx::FromRow)]`), and dashboard `middleware/auth.rs`, `server/auth.rs` (×3),
+  `server/tier.rs`, `server/guild.rs`, `web/routes_kofi.rs`. Single-column reads use
+  `query_scalar!`, multi-column use `query!`/`query_as!` — matching the pre-existing
+  `routes_kofi.rs` idiom; the untyped `.get::<T,_>("col")` / `sqlx::Row` accessors and
+  their imports were removed. **`.sqlx`:** regenerated with
+  `cargo sqlx prepare --workspace -- --all-features` against a throwaway **empty,
+  freshly-migrated** Postgres 18 (12 new entries — 14 sites dedup to 12 distinct
+  queries). Following the lfg #4 precedent, unrelated pre-existing drift the full
+  regen surfaced was reverted so the diff is CC-5-only (see **Residual** below).
+  Verified against that DB: `cargo +nightly clippy --workspace --all-targets -D warnings`
+  clean, `-p dashboard --features ssr` clean, `cargo test` green. No new
+  `#[allow]`/`#[expect]`. No test added — a runtime→compile-time-macro conversion has no
+  runtime-behaviour delta; the guarantee *is* the build-time schema check (a wrong column
+  now fails `cargo check` instead of at runtime).
+  **Residual (pre-existing, not CC-5):** `cargo sqlx prepare --check` fails on **clean
+  `main`** — the committed `.sqlx` is already drifted (missing/stale LEFT-JOIN entries:
+  gambling `895e6b8`/`fc6caa8e`, lfg_posts `905f7d2` nullability). This predates and is
+  independent of CC-5; worth its own finding (regenerate the whole cache against an empty
+  DB), left untouched here.
 - **Where:** `bot/src/bindings/gold_star.rs:83` (and the `SELECT` above it),
   `zayden-app/src/entitlement/service.rs:111,309`,
   `dashboard/src/middleware/auth.rs:35`.

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM entitlements WHERE provider = $1 AND scope_type = $2 AND scope_id = $3 AND scope_secondary_id = $4",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "010721d444e34ab382864e9583b6eb3c29d5ec7ee754e0daab31ad29080286e5"
+}

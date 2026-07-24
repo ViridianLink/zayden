@@ -58,7 +58,7 @@ best migration reference alongside temp-voice.
 - **What / Why / Fix:** See [CC-3](_cross-cutting.md#cc-3).
 
 ### 4. `setup` duplicates the dashboard; `tags` CRUD belongs on the web  ·  #8  ·  med
-- **Status:** `in-review` (setup duplication removed; `tags` web-page deferred)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 51d8412e` (setup duplication removed; `tags` web-page deferred)            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** Removed the duplicate editor. The dashboard's
   `save_lfg_settings` (`dashboard/src/server/guild.rs:229`) already writes a
   **superset** of the same `lfg_settings` row (channel + role + scheduled-thread),
