@@ -31,7 +31,7 @@ impl std::fmt::Display for LfgError {
             Self::MissingSetup => {
                 write!(
                     f,
-                    "Missing setup. If you are the owner, please run `/lfg setup` to set up the bot."
+                    "LFG isn't set up for this server yet. If you're an admin, configure the LFG channel and role in the web dashboard."
                 )
             },
             Self::FireteamFull => write!(f, "Unable to join. Fireteam is full."),

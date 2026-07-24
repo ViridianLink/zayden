@@ -1,6 +1,5 @@
-use serenity::all::{GenericChannelId, GuildId, RoleId};
+use serenity::all::GuildId;
 use sqlx::PgPool;
-use sqlx::postgres::PgQueryResult;
 use zayden_core::as_i64;
 
 use crate::modals::create::GuildRow;
@@ -17,29 +16,6 @@ impl GuildRow {
             as_i64(id.get())
         )
         .fetch_optional(pool)
-        .await
-    }
-
-    pub async fn insert(
-        pool: &PgPool,
-        id: GuildId,
-        channel: GenericChannelId,
-        role: Option<RoleId>,
-    ) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            r#"
-            INSERT INTO lfg_settings (guild_id, lfg_channel_id, lfg_role_id)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (guild_id) DO UPDATE SET
-                lfg_channel_id = EXCLUDED.lfg_channel_id,
-                lfg_role_id = EXCLUDED.lfg_role_id,
-                updated_at = now()
-            "#,
-            as_i64(id.get()),
-            as_i64(channel.get()),
-            role.map(|r| as_i64(r.get()))
-        )
-        .execute(pool)
         .await
     }
 }

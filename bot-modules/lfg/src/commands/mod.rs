@@ -3,7 +3,6 @@ mod join;
 mod joined;
 mod kick;
 mod leave;
-mod setup;
 pub mod tags;
 mod timezone;
 
@@ -38,9 +37,6 @@ impl Command {
         let options = parse_options(options);
 
         match name {
-            "setup" => {
-                Self::setup(http, interaction, pool, options).await?;
-            },
             "create" => {
                 Self::create(http, interaction, pool, options).await?;
             },
@@ -73,25 +69,6 @@ impl Command {
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {
-        let setup = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "setup",
-            "Setup the lfg plugin",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::Channel,
-                "channel",
-                "The channel to create the lfg threads in",
-            )
-            .required(true),
-        )
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::Role,
-            "role",
-            "The role to mention when a new lfg thread is created",
-        ));
-
         let create = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "create",
@@ -205,7 +182,6 @@ impl Command {
 
         CreateCommand::new("lfg")
             .description("Create a looking for group post")
-            .add_option(setup)
             .add_option(create)
             .add_option(tags)
             .add_option(join)

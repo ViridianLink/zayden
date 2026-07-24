@@ -58,6 +58,33 @@ best migration reference alongside temp-voice.
 - **What / Why / Fix:** See [CC-3](_cross-cutting.md#cc-3).
 
 ### 4. `setup` duplicates the dashboard; `tags` CRUD belongs on the web  ·  #8  ·  med
+- **Status:** `in-review` (setup duplication removed; `tags` web-page deferred)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24):** Removed the duplicate editor. The dashboard's
+  `save_lfg_settings` (`dashboard/src/server/guild.rs:229`) already writes a
+  **superset** of the same `lfg_settings` row (channel + role + scheduled-thread),
+  so `/lfg setup` was a second, weaker editor of one table — the CC-8 "two editors,
+  one table" divergence. Deleted `commands/setup.rs`, dropped the `setup`
+  subcommand from `Command::register()` + its match arm (`commands/mod.rs`), and
+  removed the now-dead `GuildRow::insert` (its only caller was `setup`) plus its
+  now-unused imports (`GenericChannelId`/`RoleId`/`PgQueryResult`) — `GuildRow::get`
+  (read by the create modal) is unchanged. Repointed the `MissingSetup` user
+  message (`error.rs`) from "run `/lfg setup`" to "configure … in the web
+  dashboard" so the guidance matches the single remaining editor. **`.sqlx`:** the
+  fix only *removes* one `query!` (the 3-col insert), adds/changes none, so the
+  offline cache was reconciled by deleting just that orphaned entry
+  (`query-a5658c9c…json`); `cargo sqlx prepare` was deliberately **not** run (this
+  dev DB is not the empty/freshly-migrated DB required for correct LEFT-JOIN
+  nullability inference — regenerating would risk drifting unrelated entries).
+  Dashboard `save_lfg_settings` remains the single write path; live post
+  create/join/leave/kick stay in-bot. **No test:** this is a structural
+  duplication removal with no pure-logic surface — the "regression" is that the
+  bot write path no longer exists (verified by the `setup` symbol and its SQL
+  being gone + a clean workspace build); a fails-before/passes-after test isn't
+  feasible (mirrors lfg DS-1 / family #3). No new `#[allow]`/`#[expect]`.
+  **Residual:** the finding's second half — moving `tags` reference-data CRUD to a
+  dashboard page — is a separate UX migration (not a duplication defect, since no
+  dashboard `tags` editor exists yet) and is left as a follow-up; spin into its own
+  finding if pursued.
 - **Where:** `src/commands/setup.rs` (writes `lfg_settings` via `Manager::insert`),
   `src/commands/tags.rs`.
 - **What:** `setup` writes the exact `lfg_settings` row the dashboard already
