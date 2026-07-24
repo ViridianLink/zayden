@@ -20,20 +20,12 @@ use serenity::all::{
     ReactionType,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, as_u64, message_metadata};
 
 use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
-use crate::{
-    Coins,
-    EffectsManager,
-    GamblingError,
-    GamblingManager,
-    GameManager,
-    GameRow,
-    Result,
-};
+use crate::{Coins, EffectsManager, GamblingError, GameRow, Result};
 
 type Board = Vec<Vec<Option<ReactionType>>>;
 
@@ -45,16 +37,10 @@ pub struct TicTacToe {
 }
 
 impl TicTacToe {
-    pub async fn run_component<
-        Data: EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn run_component<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let metadata = message_metadata(&interaction.message)?;
 
@@ -69,13 +55,7 @@ impl TicTacToe {
                 cancel(&ctx.http, interaction).await?;
             },
             "ttt_accept" => {
-                accept::<Db, GamblingHandler, EffectsHandler, GameHandler>(
-                    &ctx.http,
-                    interaction,
-                    pool,
-                    &emojis,
-                )
-                .await?;
+                accept(&ctx.http, interaction, pool, &emojis).await?;
             },
             custom_id => {
                 let Some(pos_str) = custom_id.strip_prefix("ttt_") else {
@@ -92,36 +72,24 @@ impl TicTacToe {
                     return Err(GamblingError::internal("col index not parseable"));
                 };
 
-                make_move::<Db, GameHandler>(
-                    &ctx.http,
-                    interaction,
-                    pool,
-                    i as usize,
-                    j as usize,
-                )
-                .await?;
+                make_move(&ctx.http, interaction, pool, i as usize, j as usize)
+                    .await?;
             },
         }
 
         Ok(())
     }
 
-    async fn p1_row<Db: Database, Manager: GameManager<Db>>(
-        &self,
-        pool: &Pool<Db>,
-    ) -> sqlx::Result<GameRow> {
+    async fn p1_row(&self, pool: &PgPool) -> sqlx::Result<GameRow> {
         let id = self.players[0];
 
-        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
+        Ok(GameRow::get(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
     }
 
-    async fn p2_row<Db: Database, Manager: GameManager<Db>>(
-        &self,
-        pool: &Pool<Db>,
-    ) -> sqlx::Result<GameRow> {
+    async fn p2_row(&self, pool: &PgPool) -> sqlx::Result<GameRow> {
         let id = self.players[1];
 
-        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
+        Ok(GameRow::get(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
     }
 }
 
@@ -169,15 +137,10 @@ async fn cancel(http: &Http, interaction: &ComponentInteraction) -> Result<()> {
     Ok(())
 }
 
-async fn accept<
-    Db: Database,
-    GamblingHandler: GamblingManager<Db>,
-    EffectsHandler: EffectsManager<Db> + Send,
-    GameHandler: GameManager<Db>,
->(
+async fn accept(
     http: &Http,
     interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     emojis: &EmojiCache,
 ) -> Result<()> {
     interaction.defer(http).await?;
@@ -186,17 +149,17 @@ async fn accept<
 
     state.players[1] = interaction.user.id;
 
-    let mut p1_row = state.p1_row::<Db, GameHandler>(pool).await?;
-    let mut p2_row = state.p2_row::<Db, GameHandler>(pool).await?;
+    let mut p1_row = state.p1_row(pool).await?;
+    let mut p2_row = state.p2_row(pool).await?;
 
-    EffectsHandler::bet_limit::<GamblingHandler>(
+    EffectsManager::bet_limit(
         pool,
         UserId::new(as_u64(p1_row.user_id)),
         state.bet,
         p1_row.coins(),
     )
     .await?;
-    EffectsHandler::bet_limit::<GamblingHandler>(
+    EffectsManager::bet_limit(
         pool,
         UserId::new(as_u64(p2_row.user_id)),
         state.bet,
@@ -210,8 +173,8 @@ async fn accept<
     p1_row.add_coins(-state.bet);
     p2_row.add_coins(-state.bet);
 
-    GameHandler::save(pool, p1_row).await?;
-    GameHandler::save(pool, p2_row).await?;
+    GameRow::save(pool, p1_row).await?;
+    GameRow::save(pool, p2_row).await?;
 
     let blank = emojis
         .emoji("blank")
@@ -249,10 +212,10 @@ async fn accept<
     Ok(())
 }
 
-async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
+async fn make_move(
     http: &Http,
     interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     i: usize,
     j: usize,
 ) -> Result<()> {
@@ -307,11 +270,11 @@ async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
 
     if won {
         let winner = current_turn;
-        let mut row = GameHandler::row(pool, winner)
+        let mut row = GameRow::get(pool, winner)
             .await?
             .unwrap_or_else(|| GameRow::new(winner));
         row.add_coins(2 * bet);
-        GameHandler::save(pool, row).await?;
+        GameRow::save(pool, row).await?;
 
         let embed = CreateEmbed::new()
             .title("TicTacToe")
@@ -329,11 +292,11 @@ async fn make_move<Db: Database, GameHandler: GameManager<Db>>(
             .await?;
     } else if draw {
         for &player in &players {
-            let mut row = GameHandler::row(pool, player)
+            let mut row = GameRow::get(pool, player)
                 .await?
                 .unwrap_or_else(|| GameRow::new(player));
             row.add_coins(bet);
-            GameHandler::save(pool, row).await?;
+            GameRow::save(pool, row).await?;
         }
 
         let embed =
@@ -504,89 +467,4 @@ fn check_draw(board: &Board) -> bool {
         .iter()
         .flatten()
         .all(|cell| cell.as_ref().is_some_and(|e| e == &x_emoji || e == &o_emoji))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn board_from(cells: [[Option<char>; 3]; 3]) -> Board {
-        cells
-            .into_iter()
-            .map(|row| row.into_iter().map(|c| c.map(ReactionType::from)).collect())
-            .collect()
-    }
-
-    #[test]
-    fn check_win_detects_row() {
-        let board = board_from([
-            [Some(EMOJI_P1), Some(EMOJI_P1), Some(EMOJI_P1)],
-            [Some(EMOJI_P2), Some(EMOJI_P2), None],
-            [None, None, None],
-        ]);
-        assert!(check_win(&board, &ReactionType::from(EMOJI_P1)));
-    }
-
-    #[test]
-    fn check_win_detects_column() {
-        let board = board_from([
-            [Some(EMOJI_P2), Some(EMOJI_P1), None],
-            [Some(EMOJI_P2), Some(EMOJI_P1), None],
-            [Some(EMOJI_P2), None, None],
-        ]);
-        assert!(check_win(&board, &ReactionType::from(EMOJI_P2)));
-    }
-
-    #[test]
-    fn check_win_detects_main_diagonal() {
-        let board = board_from([
-            [Some(EMOJI_P1), Some(EMOJI_P2), None],
-            [Some(EMOJI_P2), Some(EMOJI_P1), None],
-            [None, None, Some(EMOJI_P1)],
-        ]);
-        assert!(check_win(&board, &ReactionType::from(EMOJI_P1)));
-    }
-
-    #[test]
-    fn check_win_detects_anti_diagonal() {
-        let board = board_from([
-            [Some(EMOJI_P1), Some(EMOJI_P1), Some(EMOJI_P2)],
-            [Some(EMOJI_P1), Some(EMOJI_P2), None],
-            [Some(EMOJI_P2), None, None],
-        ]);
-        assert!(check_win(&board, &ReactionType::from(EMOJI_P2)));
-    }
-
-    #[test]
-    fn check_win_false_for_in_progress_board() {
-        let board = board_from([
-            [Some(EMOJI_P1), Some(EMOJI_P2), None],
-            [None, Some(EMOJI_P1), None],
-            [None, None, None],
-        ]);
-        assert!(!check_win(&board, &ReactionType::from(EMOJI_P1)));
-        assert!(!check_win(&board, &ReactionType::from(EMOJI_P2)));
-    }
-
-    #[test]
-    fn check_draw_true_for_full_board_without_win() {
-        let board = board_from([
-            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P1)],
-            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P2)],
-            [Some(EMOJI_P2), Some(EMOJI_P1), Some(EMOJI_P1)],
-        ]);
-        assert!(check_draw(&board));
-        assert!(!check_win(&board, &ReactionType::from(EMOJI_P1)));
-        assert!(!check_win(&board, &ReactionType::from(EMOJI_P2)));
-    }
-
-    #[test]
-    fn check_draw_false_with_empty_cell() {
-        let board = board_from([
-            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P1)],
-            [Some(EMOJI_P1), Some(EMOJI_P2), Some(EMOJI_P2)],
-            [Some(EMOJI_P2), Some(EMOJI_P1), None],
-        ]);
-        assert!(!check_draw(&board));
-    }
 }

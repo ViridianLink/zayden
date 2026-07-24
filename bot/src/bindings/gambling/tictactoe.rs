@@ -1,15 +1,13 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use gambling::{Commands, EffectsTable};
+use gambling::Commands;
 use serenity::all::CreateCommand;
-use sqlx::Postgres;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
-use super::{GamblingTable, GameTable, GoalsTable};
 use crate::BotState;
 
 pub struct TicTacToe;
@@ -26,15 +24,8 @@ impl ModuleCommand for TicTacToe {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        Commands::tictactoe::<
-            BotState,
-            Postgres,
-            GamblingTable,
-            GoalsTable,
-            EffectsTable,
-            GameTable,
-        >(cx.ctx, cx.interaction, options, &cx.app.db)
-        .await?;
+        Commands::tictactoe::<BotState>(cx.ctx, cx.interaction, options, &cx.app.db)
+            .await?;
         Ok(())
     }
 }
@@ -46,13 +37,11 @@ impl ModuleComponent for TicTacToe {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        gambling::components::TicTacToe::run_component::<
-            BotState,
-            Postgres,
-            GamblingTable,
-            EffectsTable,
-            GameTable,
-        >(cx.ctx, cx.interaction, &cx.app.db)
+        gambling::components::TicTacToe::run_component::<BotState>(
+            cx.ctx,
+            cx.interaction,
+            &cx.app.db,
+        )
         .await?;
         Ok(())
     }

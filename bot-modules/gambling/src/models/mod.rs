@@ -14,25 +14,18 @@ pub use gambling_effects::{
     AppliedEffect,
     EffectsManager,
     EffectsRow,
-    EffectsTable,
     PayoutResult,
 };
 pub use gambling_goals::GamblingGoalsRow;
-pub use gambling_inventory::{
-    GamblingItem,
-    GamblingItems,
-    InventoryManager,
-    InventoryRow,
-};
+pub use gambling_inventory::{GamblingItem, GamblingItems, InventoryRow};
 pub use gambling_stats::StatsManager;
-pub use game_row::{GameManager, GameRow};
+pub use game_row::GameRow;
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, Unit};
-use sqlx::Database;
 use zayden_core::{EmojiCache, FormatNum};
 
 use crate::shop::ShopCurrency;
-use crate::{GamblingError, Result, StaminaCron, StaminaManager};
+use crate::{GamblingError, Result, StaminaCron};
 
 pub trait Coins {
     fn coins(&self) -> i64;
@@ -86,9 +79,9 @@ pub trait Stamina {
         *self.stamina_mut() -= 1;
     }
 
-    fn verify_work<Db: Database, Manager: StaminaManager<Db>>(&self) -> Result<()> {
+    fn verify_work(&self) -> Result<()> {
         if self.stamina() <= 0 {
-            let next_timestamp = StaminaCron::cron_job::<Db, Manager>()
+            let next_timestamp = StaminaCron::cron_job()
                 .map_err(|e| {
                     GamblingError::Internal(format!(
                         "stamina cron schedule parse failed: {e}"

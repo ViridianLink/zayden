@@ -13,7 +13,7 @@ use serenity::all::{
     Http,
     parse_emoji,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
@@ -24,9 +24,7 @@ use crate::{
     Coins,
     GamblingError,
     GamblingManager,
-    GameManager,
     GameRow,
-    GoalsManager,
     Result,
     StatsManager,
     card_deck,
@@ -40,17 +38,10 @@ pub struct HigherLower {
 }
 
 impl HigherLower {
-    pub async fn run_components<
-        Data: EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        StatsHandler: StatsManager<Db>,
-    >(
+    pub async fn run_components<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -64,7 +55,7 @@ impl HigherLower {
             next
         } else {
             let mut tx = pool.begin().await?;
-            GamblingHandler::add_gems(&mut *tx, interaction.user.id, 1).await?;
+            GamblingManager::add_gems(&mut tx, interaction.user.id, 1).await?;
             tx.commit().await?;
 
             details.new_deck(&emojis)?;
@@ -75,7 +66,7 @@ impl HigherLower {
 
         match interaction.data.custom_id.as_str() {
             "hol_higher" => {
-                Self::higher::<Db, GameHandler, GoalsHandler, StatsHandler>(
+                Self::higher(
                     &ctx.http,
                     interaction,
                     pool,
@@ -87,7 +78,7 @@ impl HigherLower {
                 .await?;
             },
             "hol_lower" => {
-                Self::lower::<Db, GameHandler, GoalsHandler, StatsHandler>(
+                Self::lower(
                     &ctx.http,
                     interaction,
                     pool,
@@ -104,15 +95,10 @@ impl HigherLower {
         Ok(())
     }
 
-    async fn higher<
-        Db: Database,
-        GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        StatsHandler: StatsManager<Db>,
-    >(
+    async fn higher(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         emojis: &EmojiCache,
         mut details: Self,
         prev: u8,
@@ -133,14 +119,7 @@ impl HigherLower {
         details.seq.push(format!("<:{}:{}>", next.1, next.0));
 
         if !winner {
-            details
-                .game_end::<Db, GameHandler, GoalsHandler, StatsHandler>(
-                    http,
-                    interaction,
-                    pool,
-                    emojis,
-                )
-                .await?;
+            details.game_end(http, interaction, pool, emojis).await?;
 
             return Ok(());
         }
@@ -162,15 +141,10 @@ impl HigherLower {
         Ok(())
     }
 
-    async fn lower<
-        Db: Database,
-        GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        StatsHandler: StatsManager<Db>,
-    >(
+    async fn lower(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         emojis: &EmojiCache,
         mut details: Self,
         prev: u8,
@@ -191,14 +165,7 @@ impl HigherLower {
         details.seq.push(format!("<:{}:{}>", next.1, next.0));
 
         if !winner {
-            details
-                .game_end::<Db, GameHandler, GoalsHandler, StatsHandler>(
-                    http,
-                    interaction,
-                    pool,
-                    emojis,
-                )
-                .await?;
+            details.game_end(http, interaction, pool, emojis).await?;
 
             return Ok(());
         }
@@ -267,19 +234,14 @@ impl HigherLower {
         Ok(())
     }
 
-    async fn game_end<
-        Db: Database,
-        GameHandler: GameManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        StatsHandler: StatsManager<Db>,
-    >(
+    async fn game_end(
         self,
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         emojis: &EmojiCache,
     ) -> Result<()> {
-        let mut row = GameHandler::row(pool, interaction.user.id)
+        let mut row = GameRow::get(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
@@ -289,7 +251,7 @@ impl HigherLower {
 
         let coins = row.coins_str();
 
-        Dispatch::<Db, GoalsHandler>::new(http, pool, emojis)
+        Dispatch::new(http, pool, emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -303,12 +265,12 @@ impl HigherLower {
             )
             .await?;
 
-        GameHandler::save(pool, row).await?;
+        GameRow::save(pool, row).await?;
 
         let mut tx = pool.begin().await?;
 
-        StatsHandler::higherlower(
-            &mut *tx,
+        StatsManager::higherlower(
+            &mut tx,
             interaction.user.id,
             i32::try_from(self.payout / 1000).unwrap_or(i32::MAX),
         )

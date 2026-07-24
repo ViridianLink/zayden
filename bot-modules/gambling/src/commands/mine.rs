@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction,
     Context,
@@ -7,16 +6,11 @@ use serenity::all::{
     EditInteractionResponse,
     UserId,
 };
-use sqlx::{Database, FromRow, Pool};
+use sqlx::{FromRow, PgPool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCacheData, FormatNum};
+use zayden_core::{EmojiCacheData, FormatNum, as_i64};
 
 use crate::{GamblingError, MaxValues, MineHourly, Mining, Prestige, Result};
-
-#[async_trait]
-pub trait MineManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<MineRow>>;
-}
 
 #[derive(Default, FromRow)]
 pub struct MineRow {
@@ -110,6 +104,18 @@ impl Mining for MineRow {
     }
 }
 
+impl MineRow {
+    pub async fn get(pool: &PgPool, id: UserId) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as!(
+            Self,
+            "SELECT miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, prestige FROM gambling_mine WHERE user_id = $1",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+}
+
 impl Prestige for MineRow {
     fn prestige(&self) -> i64 {
         self.prestige
@@ -125,18 +131,14 @@ impl MineHourly for MineRow {
 use super::Commands;
 
 impl Commands {
-    pub async fn mine<
-        Data: EmojiCacheData,
-        Db: Database,
-        Manager: MineManager<Db>,
-    >(
+    pub async fn mine<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let row = Manager::row(pool, interaction.user.id).await?.unwrap_or_default();
+        let row = MineRow::get(pool, interaction.user.id).await?.unwrap_or_default();
 
         let coin = {
             let data_lock = ctx.data::<RwLock<Data>>();

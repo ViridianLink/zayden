@@ -1,17 +1,10 @@
-use async_trait::async_trait;
 use serenity::all::UserId;
-use sqlx::{Database, FromRow, Pool};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{FromRow, PgPool};
 use zayden_core::as_i64;
 
 use super::{Coins, Gems, MaxBet};
 use crate::{Prestige, START_AMOUNT};
-
-#[async_trait]
-pub trait GameManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<GameRow>>;
-
-    async fn save(pool: &Pool<Db>, row: GameRow) -> sqlx::Result<Db::QueryResult>;
-}
 
 #[derive(FromRow)]
 pub struct GameRow {
@@ -32,6 +25,26 @@ impl GameRow {
             level: Some(0),
             prestige: Some(0),
         }
+    }
+
+    pub async fn get(pool: &PgPool, id: UserId) -> sqlx::Result<Option<Self>> {
+        sqlx::query_file_as!(Self, "sql/GameManager/row.sql", as_i64(id.get()))
+            .fetch_optional(pool)
+            .await
+    }
+
+    pub async fn save(pool: &PgPool, row: Self) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
+            "INSERT INTO gambling (user_id, coins, gems)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE SET
+            coins = EXCLUDED.coins, gems = EXCLUDED.gems;",
+            row.user_id,
+            row.coins,
+            row.gems,
+        )
+        .execute(pool)
+        .await
     }
 }
 

@@ -1,6 +1,5 @@
 use std::fmt::Write as _;
 
-use async_trait::async_trait;
 use serenity::all::{
     ButtonStyle,
     CreateActionRow,
@@ -9,7 +8,8 @@ use serenity::all::{
     CreateEmbed,
     UserId,
 };
-use sqlx::{Database, FromRow, Pool};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{FromRow, PgPool};
 use zayden_core::{EmojiCache, FormatNum, as_i64};
 
 use crate::commands::shop::SellRow;
@@ -34,31 +34,191 @@ pub use pages::ShopPage;
 
 pub const SALES_RETURN: i64 = 90;
 
-#[async_trait]
-pub trait ShopManager<Db: Database> {
-    async fn buy_row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<ShopRow>>;
+pub struct ShopManager;
 
-    async fn buy_save(
-        pool: &Pool<Db>,
+impl ShopManager {
+    pub async fn buy_row(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<Option<ShopRow>> {
+        sqlx::query_as!(ShopRow,
+            r#"SELECT
+            g.user_id,
+            g.coins,
+            g.gems,
+            
+            COALESCE(l.level, 0) AS level,
+
+            COALESCE(m.miners, 0) AS "miners!",
+            COALESCE(m.mines, 0) AS "mines!",
+            COALESCE(m.land, 0) AS "land!",
+            COALESCE(m.countries, 0) AS "countries!",
+            COALESCE(m.continents, 0) AS "continents!",
+            COALESCE(m.planets, 0) AS "planets!",
+            COALESCE(m.solar_systems, 0) AS "solar_systems!",
+            COALESCE(m.galaxies, 0) AS "galaxies!",
+            COALESCE(m.universes, 0) AS "universes!",
+            COALESCE(m.prestige, 0) AS "prestige!",
+            COALESCE(m.tech, 0) AS "tech!",
+            COALESCE(m.utility, 0) AS "utility!",
+            COALESCE(m.production, 0) AS "production!"
+
+            FROM gambling g LEFT JOIN levels l ON g.user_id = l.user_id LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1;"#,
+            as_i64(id.get())
+        ).fetch_optional(pool).await
+    }
+
+    pub async fn buy_save(
+        pool: &PgPool,
         row: ShopRow,
-    ) -> sqlx::Result<Db::QueryResult>;
+    ) -> sqlx::Result<PgQueryResult> {
+        let mut tx = pool.begin().await?;
 
-    async fn save_inventory(
-        pool: &Pool<Db>,
+        let mut result = sqlx::query!(
+            "INSERT INTO gambling (user_id, coins, gems)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE SET
+            coins = EXCLUDED.coins, gems = EXCLUDED.gems;",
+            row.user_id,
+            row.coins,
+            row.gems,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let result3 = sqlx::query!(
+            "INSERT INTO gambling_mine (user_id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, tech, utility, production)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            ON CONFLICT (user_id) DO UPDATE
+            SET
+            miners = EXCLUDED.miners,
+            mines = EXCLUDED.mines,
+            land = EXCLUDED.land,
+            countries = EXCLUDED.countries,
+            continents = EXCLUDED.continents,
+            planets = EXCLUDED.planets,
+            solar_systems = EXCLUDED.solar_systems,
+            galaxies = EXCLUDED.galaxies,
+            universes = EXCLUDED.universes,
+            tech = EXCLUDED.tech,
+            utility = EXCLUDED.utility,
+            production = EXCLUDED.production;",
+            row.user_id,
+            row.miners,
+            row.mines,
+            row.land,
+            row.countries,
+            row.continents,
+            row.planets,
+            row.solar_systems,
+            row.galaxies,
+            row.universes,
+            row.tech,
+            row.utility,
+            row.production,
+        ).execute(&mut *tx).await?;
+
+        result.extend([result3]);
+
+        tx.commit().await?;
+
+        Ok(result)
+    }
+
+    pub async fn save_inventory(
+        pool: &PgPool,
         user_id: UserId,
-        row: GamblingItems,
-    ) -> sqlx::Result<Db::QueryResult>;
+        rows: GamblingItems,
+    ) -> sqlx::Result<PgQueryResult> {
+        let mut item_ids = Vec::with_capacity(rows.0.len());
+        let mut quantities = Vec::with_capacity(rows.0.len());
 
-    async fn sell_row(
-        pool: &Pool<Db>,
+        for item in rows.0 {
+            item_ids.push(item.item_id);
+            quantities.push(item.quantity);
+        }
+
+        sqlx::query!(
+            "INSERT INTO gambling_inventory (user_id, item_id, quantity)
+            SELECT $1, * FROM UNNEST($2::text[], $3::bigint[])
+            ON CONFLICT (user_id, item_id) DO UPDATE
+            SET quantity = EXCLUDED.quantity",
+            as_i64(user_id.get()),
+            &item_ids,
+            &quantities
+        )
+        .execute(pool)
+        .await
+    }
+
+    pub async fn sell_row(
+        pool: &PgPool,
         id: UserId,
         item_id: &str,
-    ) -> sqlx::Result<Option<SellRow>>;
+    ) -> sqlx::Result<Option<SellRow>> {
+        sqlx::query_as!(
+            SellRow,
+            r#"
+            SELECT
+                g.user_id,
+                g.coins,
 
-    async fn sell_save(
-        pool: &Pool<Db>,
+                i.id AS "item_row_id?",
+                i.quantity AS "item_quantity?"
+            FROM
+                gambling g
+            LEFT JOIN
+                gambling_inventory i ON g.user_id = i.user_id AND i.item_id = $2
+            WHERE
+                g.user_id = $1
+            "#,
+            as_i64(id.get()),
+            item_id
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn sell_save(
+        pool: &PgPool,
         row: SellRow,
-    ) -> sqlx::Result<Db::QueryResult>;
+    ) -> sqlx::Result<PgQueryResult> {
+        let mut tx = pool.begin().await?;
+
+        let mut result = sqlx::query!(
+            "INSERT INTO gambling (user_id, coins)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE SET
+            coins = EXCLUDED.coins;",
+            row.user_id,
+            row.coins,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let result2 = if row.item_quantity == Some(0) {
+            sqlx::query!(
+                "DELETE FROM gambling_inventory WHERE id = $1",
+                row.item_row_id
+            )
+            .execute(&mut *tx)
+            .await?
+        } else {
+            sqlx::query!(
+                "UPDATE gambling_inventory SET quantity = $1 WHERE id = $2",
+                row.item_quantity,
+                row.item_row_id
+            )
+            .execute(&mut *tx)
+            .await?
+        };
+
+        result.extend([result2]);
+
+        tx.commit().await?;
+
+        Ok(result)
+    }
 }
 
 #[derive(FromRow)]

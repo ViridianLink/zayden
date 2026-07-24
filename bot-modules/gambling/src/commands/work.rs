@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{
     Colour,
@@ -9,8 +8,9 @@ use serenity::all::{
     EditInteractionResponse,
     UserId,
 };
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64};
 
@@ -21,13 +21,11 @@ use crate::{
     Coins,
     GamblingError,
     Gems,
-    GoalsManager,
     MaxBet,
     MineHourly,
     Prestige,
     Result,
     Stamina,
-    StaminaManager,
 };
 
 #[derive(Debug, FromRow)]
@@ -111,32 +109,86 @@ impl Prestige for WorkRow {
     }
 }
 
-#[async_trait]
-pub trait WorkManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<WorkRow>>;
+pub struct WorkManager;
 
-    async fn save(pool: &Pool<Db>, row: WorkRow) -> sqlx::Result<Db::QueryResult>;
+impl WorkManager {
+    pub async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<WorkRow>> {
+        sqlx::query_as!(
+            WorkRow,
+            r#"SELECT
+                g.user_id,
+                g.coins,
+                g.gems,
+                g.stamina,
+
+                COALESCE(l.level, 0) AS level,
+                
+                COALESCE(m.miners, 0) AS miners,
+                COALESCE(m.prestige, 0) AS prestige,
+                COALESCE(m.mine_activity, now()::TIMESTAMP) AS "mine_activity: jiff_sqlx::Timestamp"
+
+                FROM gambling g
+                LEFT JOIN levels l ON g.user_id = l.user_id
+                LEFT JOIN gambling_mine m on g.user_id = m.user_id
+                WHERE g.user_id = $1;"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
+    pub async fn save(pool: &PgPool, row: WorkRow) -> sqlx::Result<PgQueryResult> {
+        let mut tx = pool.begin().await?;
+
+        let mut result = sqlx::query!(
+            "INSERT INTO gambling (user_id, coins, gems, stamina)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id) DO UPDATE SET
+            coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
+            row.user_id,
+            row.coins,
+            row.gems,
+            row.stamina
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let result2 = sqlx::query!(
+            "INSERT INTO gambling_mine (user_id, mine_activity)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE SET
+            mine_activity = EXCLUDED.mine_activity;",
+            row.user_id,
+            row.mine_activity as Option<Timestamp>,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        result.extend([result2]);
+
+        tx.commit().await?;
+
+        Ok(result)
+    }
 }
 
 impl Commands {
-    pub async fn work<
-        Data: EmojiCacheData,
-        Db: Database,
-        StaminaHandler: StaminaManager<Db>,
-        GoalHandler: GoalsManager<Db> + Send + Sync,
-        WorkHandler: WorkManager<Db>,
-    >(
+    pub async fn work<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let mut row = WorkHandler::row(pool, interaction.user.id)
+        let mut row = WorkManager::row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| WorkRow::new(interaction.user.id));
 
-        row.verify_work::<Db, StaminaHandler>()?;
+        row.verify_work()?;
 
         let base_amount = rand::random_range(100..=500);
         let mine_amount = row.mine_amount()?;
@@ -159,7 +211,7 @@ impl Commands {
             data.emojis()
         };
 
-        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
+        Dispatch::new(&ctx.http, pool, &emojis)
             .fire(interaction.channel_id, &mut row, Event::Work(interaction.user.id))
             .await?;
 
@@ -168,7 +220,7 @@ impl Commands {
 
         let stamina = row.stamina_str();
 
-        WorkHandler::save(pool, row).await?;
+        WorkManager::save(pool, row).await?;
 
         let coin = emojis.emoji("heads").map_err(|n| {
             GamblingError::Internal(format!("emoji '{n}' not in cache"))

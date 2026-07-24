@@ -5,7 +5,7 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
@@ -13,14 +13,10 @@ use crate::commands::inventory::InventoryManager;
 use crate::shop::shop_response;
 use crate::{Result, ShopManager, ShopPage, ShopRow};
 
-pub async fn list<
-    Data: EmojiCacheData,
-    Db: Database,
-    Manager: ShopManager<Db> + InventoryManager<Db>,
->(
+pub async fn list<Data: EmojiCacheData>(
     ctx: &Context,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     options: &[ResolvedOption<'_>],
 ) -> Result<()> {
     let page = match options.first().map(|opt| &opt.value) {
@@ -30,11 +26,12 @@ pub async fn list<
         _ => ShopPage::Item,
     };
 
-    let row = Manager::buy_row(pool, interaction.user.id)
+    let row = ShopManager::buy_row(pool, interaction.user.id)
         .await?
         .unwrap_or_else(|| ShopRow::new(interaction.user.id));
 
-    let inventory = Manager::inventory_items(pool, interaction.user.id).await?;
+    let inventory =
+        InventoryManager::inventory_items(pool, interaction.user.id).await?;
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();

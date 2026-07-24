@@ -13,7 +13,7 @@ best migration reference alongside temp-voice.
 ## Findings
 
 ### 1. DB-generic `async_trait` managers  ·  #1  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 240b47e5`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** CC-1 concrete-`PgPool` migration (seventh module, after the
   `gold-star`/`levels`/`reaction-roles`/`suggestions`/`family`/`temp-voice` pilots).
   Dropped every generic manager trait — `PostManager<Db>`, `Savable<Db, T>`,

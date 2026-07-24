@@ -10,7 +10,7 @@ use serenity::all::{
     JsonErrorCode,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::EmojiCache;
 
 use super::GOAL_REGISTRY;
@@ -20,8 +20,8 @@ use crate::{GEM, GamblingError, GamblingGoalsRow, GoalsManager, Result, tomorrow
 pub struct GoalHandler;
 
 impl GoalHandler {
-    pub async fn daily_reset<Db: Database, Manager: GoalsManager<Db>>(
-        pool: &Pool<Db>,
+    pub async fn daily_reset(
+        pool: &PgPool,
         id: UserId,
         row: &dyn EventRow,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
@@ -36,29 +36,29 @@ impl GoalHandler {
             .map(|(goal_id, target)| GamblingGoalsRow::new(id, goal_id, target))
             .collect::<Vec<_>>();
 
-        let rows = Manager::update(pool, &goals).await?;
+        let rows = GoalsManager::update(pool, &goals).await?;
 
         Ok(rows)
     }
 
-    pub async fn get_user_progress<Db: Database, Manager: GoalsManager<Db>>(
-        pool: &Pool<Db>,
+    pub async fn get_user_progress(
+        pool: &PgPool,
         user_id: UserId,
         row: &dyn EventRow,
     ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
-        let mut goals = Manager::full_rows(pool, user_id).await?;
+        let mut goals = GoalsManager::full_rows(pool, user_id).await?;
 
         if goals.is_empty() || !goals.first().is_some_and(GamblingGoalsRow::is_today)
         {
-            goals = Self::daily_reset::<Db, Manager>(pool, user_id, row).await?;
+            goals = Self::daily_reset(pool, user_id, row).await?;
         }
 
         Ok(goals)
     }
 
-    pub async fn process_goals<Db: Database, Manager: GoalsManager<Db>>(
+    pub async fn process_goals(
         http: &Http,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         emojis: &EmojiCache,
         channel: GenericChannelId,
         row: &mut dyn EventRow,
@@ -66,8 +66,7 @@ impl GoalHandler {
     ) -> Result<Event> {
         let user_id = event.user_id();
 
-        let mut all_goals =
-            Self::get_user_progress::<Db, Manager>(pool, user_id, row).await?;
+        let mut all_goals = Self::get_user_progress(pool, user_id, row).await?;
 
         let changed = all_goals
             .iter_mut()
@@ -136,7 +135,7 @@ impl GoalHandler {
                     .await?;
             }
 
-            Manager::update(pool, &all_goals).await?;
+            GoalsManager::update(pool, &all_goals).await?;
         }
 
         Ok(event)

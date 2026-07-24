@@ -15,7 +15,7 @@ use serenity::all::{
     CreateTextDisplay,
     MessageFlags,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
@@ -38,9 +38,7 @@ use crate::{
     GamblingData,
     GamblingError,
     GamblingManager,
-    GameManager,
     GameRow,
-    GoalsManager,
     Result,
     ShopCurrency,
 };
@@ -48,16 +46,10 @@ use crate::{
 pub struct Blackjack;
 
 impl Blackjack {
-    pub async fn hit<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn hit<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -71,14 +63,7 @@ impl Blackjack {
         game.add_card()?;
 
         if game.player_value(&emojis)? > 21 {
-            game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-                ctx,
-                interaction,
-                pool,
-                &emojis,
-                game,
-            )
-            .await?;
+            game_end(ctx, interaction, pool, &emojis, game).await?;
 
             return Ok(());
         }
@@ -115,16 +100,10 @@ impl Blackjack {
         Ok(())
     }
 
-    pub async fn stand<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn stand<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -132,7 +111,7 @@ impl Blackjack {
             data.emojis()
         };
 
-        game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
+        game_end(
             ctx,
             interaction,
             pool,
@@ -144,17 +123,10 @@ impl Blackjack {
         Ok(())
     }
 
-    pub async fn double<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn double<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -165,7 +137,7 @@ impl Blackjack {
         let mut game =
             GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
 
-        if !GamblingHandler::bet(pool, interaction.user.id, game.bet()).await? {
+        if !GamblingManager::bet(pool, interaction.user.id, game.bet()).await? {
             return Err(GamblingError::InsufficientFunds {
                 required: game.bet(),
                 currency: ShopCurrency::Coins,
@@ -175,29 +147,15 @@ impl Blackjack {
         game.double_bet();
         game.add_card()?;
 
-        game_end::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-            ctx,
-            interaction,
-            pool,
-            &emojis,
-            game,
-        )
-        .await?;
+        game_end(ctx, interaction, pool, &emojis, game).await?;
 
         Ok(())
     }
 
-    pub async fn split<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn split<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        _pool: &Pool<Db>,
+        _pool: &PgPool,
     ) -> Result<()> {
         interaction
             .create_response(
@@ -212,16 +170,10 @@ impl Blackjack {
         Ok(())
     }
 
-    pub async fn surrender<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn surrender<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -234,11 +186,11 @@ impl Blackjack {
 
         let player_value = game.player_value(&emojis)?;
 
-        let mut row = GameHandler::row(pool, interaction.user.id)
+        let mut row = GameRow::get(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
-        let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis);
+        let dispatch = Dispatch::new(&ctx.http, pool, &emojis);
 
         let mut payout = game.bet() / 2;
 
@@ -256,7 +208,7 @@ impl Blackjack {
             )
             .await?;
 
-        let payout_result = EffectsHandler::payout(
+        let payout_result = EffectsManager::payout(
             pool,
             interaction.user.id,
             "blackjack",
@@ -271,7 +223,7 @@ impl Blackjack {
 
         let coins = row.coins();
 
-        GameHandler::save(pool, row).await?;
+        GameRow::save(pool, row).await?;
 
         let coin = emojis.emoji("heads").map_err(|n| {
             GamblingError::Internal(format!("emoji '{n}' not in cache"))
@@ -335,37 +287,25 @@ fn text(interaction: &ComponentInteraction) -> Option<&str> {
     Some(text.content.as_str())
 }
 
-async fn game_end<
-    Db: Database,
-    GoalsHandler: GoalsManager<Db> + Send + Sync,
-    EffectsHandler: EffectsManager<Db>,
-    GameHandler: GameManager<Db>,
->(
+async fn game_end(
     ctx: &Context,
     interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     emojis: &EmojiCache,
     mut game: GameDetails,
 ) -> Result<()> {
     let player_value = game.player_value(emojis)?;
 
-    let mut row = GameHandler::row(pool, interaction.user.id)
+    let mut row = GameRow::get(pool, interaction.user.id)
         .await?
         .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
-    let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, emojis);
+    let dispatch = Dispatch::new(&ctx.http, pool, emojis);
 
     if player_value > 21 {
-        let desc = bust::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-            interaction,
-            pool,
-            emojis,
-            game,
-            player_value,
-            row,
-            dispatch,
-        )
-        .await?;
+        let desc =
+            bust(interaction, pool, emojis, game, player_value, row, dispatch)
+                .await?;
 
         interaction
             .create_response(
@@ -420,7 +360,7 @@ async fn game_end<
         )
         .await?;
 
-    let payout_result = EffectsHandler::payout(
+    let payout_result = EffectsManager::payout(
         pool,
         interaction.user.id,
         "blackjack",
@@ -435,7 +375,7 @@ async fn game_end<
 
     let coins = row.coins();
 
-    GameHandler::save(pool, row).await?;
+    GameRow::save(pool, row).await?;
 
     let card_to_num = card_values(emojis)?;
     let coin = emojis
@@ -487,19 +427,14 @@ async fn game_end<
     Ok(())
 }
 
-async fn bust<
-    Db: Database,
-    GoalsHandler: GoalsManager<Db> + Send + Sync,
-    EffectsHandler: EffectsManager<Db> + Send,
-    GameHandler: GameManager<Db>,
->(
+async fn bust(
     interaction: &ComponentInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     emojis: &EmojiCache,
     mut game: GameDetails,
     player_value: u8,
     mut row: GameRow,
-    dispatch: Dispatch<'_, Db, GoalsHandler>,
+    dispatch: Dispatch<'_>,
 ) -> Result<String> {
     dispatch
         .fire(
@@ -515,7 +450,7 @@ async fn bust<
         )
         .await?;
 
-    let payout_result = EffectsHandler::payout(
+    let payout_result = EffectsManager::payout(
         pool,
         interaction.user.id,
         "blackjack",
@@ -530,7 +465,7 @@ async fn bust<
 
     let coins = row.coins();
 
-    GameHandler::save(pool, row).await?;
+    GameRow::save(pool, row).await?;
 
     let mut dealer_hand = vec![game.dealer_card()];
     dealer_hand.push(game.next_card()?);

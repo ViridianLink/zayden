@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-use async_trait::async_trait;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use rand::rng;
 use rand_distr::{Binomial, Distribution};
@@ -14,8 +13,9 @@ use serenity::all::{
     EditInteractionResponse,
     UserId,
 };
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64, as_u64};
 
@@ -23,17 +23,7 @@ use super::Commands;
 use crate::events::{Dispatch, Event};
 use crate::models::{MineAmount, Prestige};
 use crate::shop::ShopCurrency;
-use crate::{
-    Coins,
-    GamblingError,
-    Gems,
-    GoalsManager,
-    MaxBet,
-    MineHourly,
-    Result,
-    Stamina,
-    StaminaManager,
-};
+use crate::{Coins, GamblingError, Gems, MaxBet, MineHourly, Result, Stamina};
 
 const CHUNK_BLOCKS: f64 = 16.0 * 16.0 * 62.0;
 const COAL_PER_CHUNK: f64 = 140.0;
@@ -56,11 +46,98 @@ static CHANCES: LazyLock<HashMap<&str, f64>> = LazyLock::new(|| {
     ])
 });
 
-#[async_trait]
-pub trait DigManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<DigRow>>;
+pub struct DigManager;
 
-    async fn save(pool: &Pool<Db>, row: &DigRow) -> sqlx::Result<Db::QueryResult>;
+impl DigManager {
+    pub async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<DigRow>> {
+        sqlx::query_as!(
+            DigRow,
+            r#"SELECT
+                g.user_id,
+                g.coins,
+                g.gems,
+                g.stamina,
+
+                COALESCE(l.level, 0) AS "level!",
+
+                COALESCE(m.miners, 0) AS "miners!",
+                COALESCE(m.coal, 0) AS "coal!",
+                COALESCE(m.iron, 0) AS "iron!",
+                COALESCE(m.gold, 0) AS "gold!",
+                COALESCE(m.redstone, 0) AS "redstone!",
+                COALESCE(m.lapis, 0) AS "lapis!",
+                COALESCE(m.diamonds, 0) AS "diamonds!",
+                COALESCE(m.emeralds, 0) AS "emeralds!",
+                COALESCE(m.prestige, 0) AS "prestige!",
+                COALESCE(m.mine_activity, now()::TIMESTAMP) AS "mine_activity!: jiff_sqlx::Timestamp"
+                
+            FROM gambling g
+            LEFT JOIN levels l ON g.user_id = l.user_id
+            LEFT JOIN gambling_mine m ON g.user_id = m.user_id
+            WHERE g.user_id = $1;"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
+    pub async fn save(pool: &PgPool, row: &DigRow) -> sqlx::Result<PgQueryResult> {
+        let mut tx = pool.begin().await?;
+
+        let mut result = sqlx::query!(
+            r#"INSERT INTO gambling (user_id, coins, gems, stamina)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (user_id) DO UPDATE SET
+            coins = EXCLUDED.coins,
+            gems = EXCLUDED.gems,
+            stamina = EXCLUDED.stamina"#,
+            row.user_id,
+            row.coins,
+            row.gems,
+            row.stamina,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let result2 = sqlx::query!(
+            r#"INSERT INTO gambling_mine (user_id, miners, coal, iron, gold, redstone, lapis, diamonds, emeralds, prestige, mine_activity)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (user_id) DO UPDATE SET
+                miners = EXCLUDED.miners,
+                coal = EXCLUDED.coal,
+                iron = EXCLUDED.iron,
+                gold = EXCLUDED.gold,
+                redstone = EXCLUDED.redstone,
+                lapis = EXCLUDED.lapis,
+                diamonds = EXCLUDED.diamonds,
+                emeralds = EXCLUDED.emeralds,
+                prestige = EXCLUDED.prestige,
+                mine_activity = EXCLUDED.mine_activity"#,
+            row.user_id,
+            row.miners,
+            row.coal,
+            row.iron,
+            row.gold,
+            row.redstone,
+            row.lapis,
+            row.diamonds,
+            row.emeralds,
+            row.prestige,
+            row.mine_activity as Timestamp,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        result.extend([result2]);
+
+        Ok(result)
+    }
 }
 
 #[derive(Debug, FromRow)]
@@ -160,24 +237,18 @@ impl MineAmount for DigRow {
 }
 
 impl Commands {
-    pub async fn dig<
-        Data: EmojiCacheData,
-        Db: Database,
-        StaminaHandler: StaminaManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        DigHandler: DigManager<Db>,
-    >(
+    pub async fn dig<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let mut row = DigHandler::row(pool, interaction.user.id)
+        let mut row = DigManager::row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| DigRow::new(interaction.user.id));
 
-        row.verify_work::<Db, StaminaHandler>()?;
+        row.verify_work()?;
 
         let mut resources = HashMap::from([
             ("coal", 0),
@@ -233,7 +304,7 @@ impl Commands {
             data.emojis()
         };
 
-        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
+        Dispatch::new(&ctx.http, pool, &emojis)
             .fire(interaction.channel_id, &mut row, Event::Work(interaction.user.id))
             .await?;
 
@@ -245,7 +316,7 @@ impl Commands {
 
         let stamina = row.stamina_str();
 
-        DigHandler::save(pool, &row).await?;
+        DigManager::save(pool, &row).await?;
 
         let found = resources
             .drain()

@@ -1,6 +1,6 @@
 use std::fmt::Write as _;
 
-use async_trait::async_trait;
+use jiff_sqlx::Date;
 use serenity::all::{
     CommandInteraction,
     Context,
@@ -9,9 +9,9 @@ use serenity::all::{
     EditInteractionResponse,
     UserId,
 };
-use sqlx::{Database, FromRow, Pool};
+use sqlx::{FromRow, PgPool};
 use tokio::sync::RwLock;
-use zayden_core::EmojiCacheData;
+use zayden_core::{EmojiCacheData, as_i64};
 
 use super::Commands;
 use crate::{
@@ -26,19 +26,95 @@ use crate::{
     tomorrow,
 };
 
-#[async_trait]
-pub trait GoalsManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<GoalsRow>>;
+pub struct GoalsManager;
 
-    async fn full_rows(
-        pool: &Pool<Db>,
+impl GoalsManager {
+    pub async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<GoalsRow>> {
+        sqlx::query_as!(
+            GoalsRow,
+            "SELECT
+                g.coins,
+                g.gems,
+
+                COALESCE(l.level, 0) AS level,
+                
+                COALESCE(m.prestige, 0) AS prestige
+
+                FROM gambling g
+                LEFT JOIN levels l ON g.user_id = l.user_id
+                LEFT JOIN gambling_mine m on g.user_id = m.user_id
+                WHERE g.user_id = $1;",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn full_rows(
+        pool: &PgPool,
         id: UserId,
-    ) -> sqlx::Result<Vec<GamblingGoalsRow>>;
+    ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
+        sqlx::query_as!(
+            GamblingGoalsRow,
+            r#"SELECT user_id, goal_id, day as "day: jiff_sqlx::Date", progress, target FROM gambling_goals WHERE user_id = $1"#,
+            as_i64(id.get())
+        )
+        .fetch_all(pool)
+        .await
+    }
 
-    async fn update(
-        pool: &Pool<Db>,
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx DATE[] mapping"
+    )]
+    pub async fn update(
+        pool: &PgPool,
         rows: &[GamblingGoalsRow],
-    ) -> sqlx::Result<Vec<GamblingGoalsRow>>;
+    ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
+        let user_id = match rows.first() {
+            Some(row) => row.user_id,
+            None => return Ok(Vec::new()),
+        };
+
+        let mut tx = pool.begin().await?;
+
+        sqlx::query!("DELETE FROM gambling_goals WHERE user_id = $1", user_id)
+            .execute(&mut *tx)
+            .await?;
+
+        let num_rows = rows.len();
+        let mut user_ids: Vec<i64> = Vec::with_capacity(num_rows);
+        let mut goal_ids: Vec<String> = Vec::with_capacity(num_rows);
+        let mut days: Vec<Date> = Vec::with_capacity(num_rows);
+        let mut progresses: Vec<i64> = Vec::with_capacity(num_rows);
+        let mut targets: Vec<i64> = Vec::with_capacity(num_rows);
+
+        for row in rows {
+            user_ids.push(row.user_id);
+            goal_ids.push(row.goal_id.clone());
+            days.push(row.day);
+            progresses.push(row.progress);
+            targets.push(row.target);
+        }
+
+        let rows = sqlx::query_as!(
+            GamblingGoalsRow,
+            r#"INSERT INTO gambling_goals (user_id, goal_id, day, progress, target)
+            SELECT * FROM UNNEST($1::bigint[], $2::text[], $3::date[], $4::bigint[], $5::bigint[])
+            RETURNING user_id, goal_id, day as "day: jiff_sqlx::Date", progress, target;"#,
+            &user_ids,
+            &goal_ids,
+            &days as &[Date],
+            &progresses,
+            &targets
+        )
+        .fetch_all(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(rows)
+    }
 }
 
 #[derive(FromRow, Default)]
@@ -82,30 +158,24 @@ impl MaxBet for GoalsRow {
 }
 
 impl Commands {
-    pub async fn goals<
-        Data: EmojiCacheData,
-        Db: Database,
-        Manager: GoalsManager<Db>,
-    >(
+    pub async fn goals<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let row = Manager::row(pool, interaction.user.id).await?.unwrap_or_default();
+        let row =
+            GoalsManager::row(pool, interaction.user.id).await?.unwrap_or_default();
 
-        let mut desc = GoalHandler::get_user_progress::<Db, Manager>(
-            pool,
-            interaction.user.id,
-            &row,
-        )
-        .await?
-        .into_iter()
-        .fold(String::new(), |mut acc, goal| {
-            let _ = write!(acc, "{}\n\n", goal.description());
-            acc
-        });
+        let mut desc =
+            GoalHandler::get_user_progress(pool, interaction.user.id, &row)
+                .await?
+                .into_iter()
+                .fold(String::new(), |mut acc, goal| {
+                    let _ = write!(acc, "{}\n\n", goal.description());
+                    acc
+                });
 
         let (coin, reset_ts) = {
             let data_lock = ctx.data::<RwLock<Data>>();

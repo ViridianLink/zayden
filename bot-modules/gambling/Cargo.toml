@@ -11,7 +11,7 @@ workspace = true
 zayden-core = { workspace = true }
 levels = { workspace = true }
 
-async-trait = { workspace = true }
+bigdecimal = { workspace = true }
 dashmap = { workspace = true }
 jiff = { workspace = true }
 jiff-cron = { workspace = true }
@@ -27,6 +27,6 @@ serenity = { workspace = true, features = [
   "gateway",
   "collector",
 ] }
-sqlx = { workspace = true, features = ["json"] }
+sqlx = { workspace = true, features = ["bigdecimal", "json"] }
 tokio = { workspace = true }
 tracing = { workspace = true }

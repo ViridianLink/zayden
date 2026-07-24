@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use futures::TryStreamExt;
 use jiff_sqlx::Timestamp;
 use serenity::all::UserId;
 use sqlx::postgres::PgQueryResult;
 use sqlx::postgres::types::PgInterval;
-use sqlx::{Database, PgConnection, Pool, Postgres};
+use sqlx::{PgConnection, PgPool};
 use zayden_core::as_i64;
 
 use crate::models::effects::get_effect;
@@ -14,37 +13,96 @@ use crate::models::gambling::GamblingManager;
 use crate::shop::{ALL_INS, ShopItem};
 use crate::{GamblingError, Result, ShopCurrency};
 
-#[async_trait]
-pub trait EffectsManager<Db: Database>: Send {
-    async fn get_effects(
-        conn: &mut Db::Connection,
-        user_id: UserId,
-    ) -> sqlx::Result<HashMap<String, i32>>;
+pub struct EffectsManager;
 
-    async fn get_effect(
-        conn: &mut Db::Connection,
+impl EffectsManager {
+    pub async fn get_effects(
+        conn: &mut PgConnection,
+        user_id: UserId,
+    ) -> sqlx::Result<HashMap<String, i32>> {
+        sqlx::query_as!(
+            EffectsRow,
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1"#,
+            as_i64(user_id.get()),
+        )
+        .fetch(conn)
+        .map_ok(|row| (row.item_id, row.id))
+        .try_collect()
+        .await
+    }
+
+    pub async fn get_effect(
+        conn: &mut PgConnection,
         user_id: UserId,
         effect: &str,
-    ) -> sqlx::Result<Option<EffectsRow>>;
+    ) -> sqlx::Result<Option<EffectsRow>> {
+        sqlx::query_as!(
+            EffectsRow,
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1 AND item_id = $2"#,
+            as_i64(user_id.get()),
+            effect
+        )
+        .fetch_optional(conn)
+        .await
+    }
 
-    async fn add_effect(
-        conn: &mut Db::Connection,
+    pub async fn add_effect(
+        conn: &mut PgConnection,
         user_id: UserId,
         item: &ShopItem<'_>,
-    ) -> sqlx::Result<Db::QueryResult>;
+    ) -> sqlx::Result<PgQueryResult> {
+        let duration = item
+            .effect_duration
+            .map(|d| {
+                PgInterval::try_from(d)
+                    .map_err(|e| sqlx::Error::Protocol(e.to_string()))
+            })
+            .transpose()?;
 
-    async fn remove_effect(
-        conn: &mut Db::Connection,
+        sqlx::query!(
+            "INSERT INTO gambling_effects (user_id, item_id, expiry)
+            VALUES ($1, $2, NOW() + $3)
+            ON CONFLICT (user_id, item_id)
+            DO UPDATE SET
+                expiry = GREATEST(gambling_effects.expiry + $3, EXCLUDED.expiry)",
+            as_i64(user_id.get()),
+            item.id,
+            duration
+        )
+        .execute(conn)
+        .await
+    }
+
+    pub async fn remove_effect(
+        conn: &mut PgConnection,
         id: i32,
-    ) -> sqlx::Result<Db::QueryResult>;
+    ) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
+            "DELETE FROM gambling_effects WHERE id = $1 AND (expiry <= NOW() OR expiry IS NULL)",
+            id
+        )
+        .execute(conn)
+        .await
+    }
 
-    async fn active_effects(
-        conn: &mut Db::Connection,
+    pub async fn active_effects(
+        conn: &mut PgConnection,
         user_id: UserId,
-    ) -> sqlx::Result<Vec<EffectsRow>>;
+    ) -> sqlx::Result<Vec<EffectsRow>> {
+        sqlx::query_as!(
+            EffectsRow,
+            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp"
+            FROM gambling_effects
+            WHERE user_id = $1 AND (expiry IS NULL OR expiry > NOW())
+            ORDER BY item_id, expiry DESC NULLS LAST"#,
+            as_i64(user_id.get()),
+        )
+        .fetch_all(conn)
+        .await
+    }
 
-    async fn bet_limit<GamblingHandler: GamblingManager<Db>>(
-        pool: &Pool<Db>,
+    pub async fn bet_limit(
+        pool: &PgPool,
         user_id: UserId,
         bet: i64,
         coins: i64,
@@ -64,13 +122,13 @@ pub trait EffectsManager<Db: Database>: Send {
 
         let mut conn = pool.acquire().await?;
 
-        let max = GamblingHandler::max_bet(&mut *conn, user_id).await?;
+        let max = GamblingManager::max_bet(&mut conn, user_id).await?;
 
         if bet > max {
             let all_in = bet == coins;
 
             let all_ins_active = all_in
-                && Self::get_effect(&mut *conn, user_id, ALL_INS.id)
+                && Self::get_effect(&mut conn, user_id, ALL_INS.id)
                     .await?
                     .and_then(|row| row.expiry)
                     .is_some_and(|expiry| expiry.to_jiff() > jiff::Timestamp::now());
@@ -83,8 +141,8 @@ pub trait EffectsManager<Db: Database>: Send {
         Ok(())
     }
 
-    async fn payout(
-        pool: &Pool<Db>,
+    pub async fn payout(
+        pool: &PgPool,
         user_id: UserId,
         game: &str,
         bet: i64,
@@ -99,13 +157,13 @@ pub trait EffectsManager<Db: Database>: Send {
 
         let result: sqlx::Result<PayoutResult> = (async {
             let mut tx = pool.begin().await?;
-            let effects = Self::get_effects(&mut *tx, user_id).await?;
+            let effects = Self::get_effects(&mut tx, user_id).await?;
 
             let mut contribution: i64 = 0;
             let mut applied: Vec<AppliedEffect> = Vec::new();
 
             for (item_id, id) in effects {
-                Self::remove_effect(&mut *tx, id).await?;
+                Self::remove_effect(&mut tx, id).await?;
 
                 let Some(effect) = get_effect(&item_id) else {
                     tracing::warn!(
@@ -174,94 +232,4 @@ pub struct EffectsRow {
     pub id: i32,
     pub item_id: String,
     pub expiry: Option<Timestamp>,
-}
-
-pub struct EffectsTable;
-
-#[async_trait]
-impl EffectsManager<Postgres> for EffectsTable {
-    async fn get_effects(
-        conn: &mut PgConnection,
-        user_id: UserId,
-    ) -> sqlx::Result<HashMap<String, i32>> {
-        sqlx::query_as!(
-            EffectsRow,
-            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1"#,
-            as_i64(user_id.get()),
-        )
-        .fetch(conn)
-        .map_ok(|row| (row.item_id, row.id))
-        .try_collect()
-        .await
-    }
-
-    async fn get_effect(
-        conn: &mut PgConnection,
-        user_id: UserId,
-        effect: &str,
-    ) -> sqlx::Result<Option<EffectsRow>> {
-        sqlx::query_as!(
-            EffectsRow,
-            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp" FROM gambling_effects WHERE user_id = $1 AND item_id = $2"#,
-            as_i64(user_id.get()),
-            effect
-        )
-        .fetch_optional(conn)
-        .await
-    }
-
-    async fn add_effect(
-        conn: &mut PgConnection,
-        user_id: UserId,
-        item: &ShopItem<'_>,
-    ) -> sqlx::Result<PgQueryResult> {
-        let duration = item
-            .effect_duration
-            .map(|d| {
-                PgInterval::try_from(d)
-                    .map_err(|e| sqlx::Error::Protocol(e.to_string()))
-            })
-            .transpose()?;
-
-        sqlx::query!(
-            "INSERT INTO gambling_effects (user_id, item_id, expiry)
-            VALUES ($1, $2, NOW() + $3)
-            ON CONFLICT (user_id, item_id)
-            DO UPDATE SET
-                expiry = GREATEST(gambling_effects.expiry + $3, EXCLUDED.expiry)",
-            as_i64(user_id.get()),
-            item.id,
-            duration
-        )
-        .execute(conn)
-        .await
-    }
-
-    async fn remove_effect(
-        conn: &mut PgConnection,
-        id: i32,
-    ) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            "DELETE FROM gambling_effects WHERE id = $1 AND (expiry <= NOW() OR expiry IS NULL)",
-            id
-        )
-        .execute(conn)
-        .await
-    }
-
-    async fn active_effects(
-        conn: &mut PgConnection,
-        user_id: UserId,
-    ) -> sqlx::Result<Vec<EffectsRow>> {
-        sqlx::query_as!(
-            EffectsRow,
-            r#"SELECT DISTINCT ON (item_id) id, item_id, expiry as "expiry: jiff_sqlx::Timestamp"
-            FROM gambling_effects
-            WHERE user_id = $1 AND (expiry IS NULL OR expiry > NOW())
-            ORDER BY item_id, expiry DESC NULLS LAST"#,
-            as_i64(user_id.get()),
-        )
-        .fetch_all(conn)
-        .await
-    }
 }

@@ -13,27 +13,22 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::cache::GuildMembersCache;
 use zayden_core::{EmojiCacheData, as_i64, parse_options};
 
 use super::Commands;
-use crate::common::LeaderboardManager;
 use crate::common::leaderboard::{get_row_number, get_rows};
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
 use crate::{GamblingError, Result};
 
 impl Commands {
-    pub async fn leaderboard<
-        Data: GuildMembersCache + EmojiCacheData,
-        Db: Database,
-        Manager: LeaderboardManager<Db>,
-    >(
+    pub async fn leaderboard<Data: GuildMembersCache + EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -74,8 +69,7 @@ impl Commands {
             Some(users)
         };
 
-        let rows =
-            get_rows::<Db, Manager>(leaderboard, pool, users.as_deref(), 1).await?;
+        let rows = get_rows(leaderboard, pool, users.as_deref(), 1).await?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
@@ -105,14 +99,9 @@ impl Commands {
                 .style(ButtonStyle::Secondary),
         );
 
-        if get_row_number::<Db, Manager>(
-            leaderboard,
-            pool,
-            users.as_deref(),
-            interaction.user.id,
-        )
-        .await?
-        .is_some()
+        if get_row_number(leaderboard, pool, users.as_deref(), interaction.user.id)
+            .await?
+            .is_some()
         {
             response = response.button(
                 CreateButton::new("leaderboard_user")

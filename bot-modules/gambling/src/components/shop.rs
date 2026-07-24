@@ -4,7 +4,7 @@ use serenity::all::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
@@ -15,14 +15,10 @@ use crate::common::shop::{ShopManager, ShopRow, shop_response};
 pub struct Shop;
 
 impl Shop {
-    pub async fn run_components<
-        Data: EmojiCacheData,
-        Db: Database,
-        Manager: ShopManager<Db> + InventoryManager<Db>,
-    >(
+    pub async fn run_components<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let title = interaction
             .message
@@ -36,11 +32,12 @@ impl Shop {
             data.emojis()
         };
 
-        let row = Manager::buy_row(pool, interaction.user.id)
+        let row = ShopManager::buy_row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| ShopRow::new(interaction.user.id));
 
-        let inventory = Manager::inventory_items(pool, interaction.user.id).await?;
+        let inventory =
+            InventoryManager::inventory_items(pool, interaction.user.id).await?;
 
         let (embed, components) = if interaction.data.custom_id == "shop_next" {
             shop_response(&emojis, &row, &inventory, title, 1)?

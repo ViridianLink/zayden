@@ -5,12 +5,12 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
 use crate::commands::inventory::InventoryManager;
-use crate::commands::shop::{ShopManager, ShopRow};
+use crate::common::shop::{ShopManager, ShopRow};
 use crate::events::{Dispatch, Event, ShopPurchaseEvent};
 use crate::models::GamblingItem;
 use crate::{
@@ -18,7 +18,6 @@ use crate::{
     GamblingError,
     GamblingItems,
     Gems,
-    GoalsManager,
     MaxValues,
     Result,
     SHOP_ITEMS,
@@ -27,15 +26,10 @@ use crate::{
     ShopPage,
 };
 
-pub async fn buy<
-    Data: EmojiCacheData,
-    Db: Database,
-    GoalsHandler: GoalsManager<Db> + Send + Sync,
-    BuyHandler: ShopManager<Db> + InventoryManager<Db>,
->(
+pub async fn buy<Data: EmojiCacheData>(
     ctx: &Context,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     options: &[ResolvedOption<'_>],
 ) -> Result<()> {
     let mut options = parse_options_ref(options);
@@ -52,7 +46,7 @@ pub async fn buy<
         return Err(GamblingError::InvalidAmount);
     };
 
-    let mut row = BuyHandler::buy_row(pool, interaction.user.id)
+    let mut row = ShopManager::buy_row(pool, interaction.user.id)
         .await?
         .unwrap_or_else(|| ShopRow::new(interaction.user.id));
 
@@ -128,11 +122,11 @@ pub async fn buy<
         edit_mine(&mut row, item, amount)?
     } else {
         let mut inventory =
-            BuyHandler::inventory_items(pool, interaction.user.id).await?;
+            InventoryManager::inventory_items(pool, interaction.user.id).await?;
 
         let quantity = edit_inv(&mut inventory, item, amount);
 
-        BuyHandler::save_inventory(pool, interaction.user.id, inventory).await?;
+        ShopManager::save_inventory(pool, interaction.user.id, inventory).await?;
 
         quantity
     };
@@ -143,7 +137,7 @@ pub async fn buy<
         data.emojis()
     };
 
-    Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
+    Dispatch::new(&ctx.http, pool, &emojis)
         .fire(
             interaction.channel_id,
             &mut row,
@@ -154,7 +148,7 @@ pub async fn buy<
         )
         .await?;
 
-    BuyHandler::buy_save(pool, row).await?;
+    ShopManager::buy_save(pool, row).await?;
 
     let cost = costs
         .into_iter()

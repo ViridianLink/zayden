@@ -6,7 +6,7 @@ use serenity::all::{
     CreateEmbed,
     EditInteractionResponse,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum};
 
@@ -14,7 +14,6 @@ use crate::shop::LOTTO_TICKET;
 use crate::{
     Commands,
     GamblingError,
-    GamblingManager,
     Lotto,
     LottoManager,
     LottoRow,
@@ -23,23 +22,18 @@ use crate::{
 };
 
 impl Commands {
-    pub async fn lotto<
-        Data: EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        LottoHandler: LottoManager<Db>,
-    >(
+    pub async fn lotto<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
         let mut tx = pool.begin().await?;
 
-        let total_tickets = LottoHandler::total_tickets(&mut tx).await?;
+        let total_tickets = LottoManager::total_tickets(&mut tx).await?;
 
-        let row = LottoHandler::row(&mut tx, interaction.user.id)
+        let row = LottoManager::row(&mut tx, interaction.user.id)
             .await?
             .unwrap_or_else(|| LottoRow::new(interaction.user.id));
 
@@ -52,7 +46,7 @@ impl Commands {
         let lotto_emoji = LOTTO_TICKET.emoji(&emojis)?;
 
         let timestamp = {
-            Lotto::cron_job::<Data, Db, GamblingHandler, LottoHandler>()
+            Lotto::cron_job::<Data>()
                 .map_err(|e| {
                     GamblingError::Internal(format!(
                         "lotto cron schedule invalid: {e}"

@@ -1,6 +1,5 @@
 use std::fmt::Write as _;
 
-use async_trait::async_trait;
 use jiff::Timestamp;
 use levels::{LevelsRow, level_up_xp};
 use serenity::all::{
@@ -16,9 +15,9 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
+use zayden_core::{EmojiCache, EmojiCacheData, FormatNum, as_i64};
 
 use super::Commands;
 use crate::commands::inventory::InventoryManager;
@@ -33,11 +32,6 @@ use crate::{
     ShopItem,
 };
 
-#[async_trait]
-pub trait ProfileManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<ProfileRow>>;
-}
-
 #[derive(Default)]
 pub struct ProfileRow {
     pub coins: i64,
@@ -48,6 +42,28 @@ pub struct ProfileRow {
 }
 
 impl ProfileRow {
+    pub async fn get(pool: &PgPool, id: UserId) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as!(
+            Self,
+            r#"SELECT
+            g.coins,
+            g.gems,
+
+            COALESCE(l.xp, 0) AS xp,
+            COALESCE(l.level, 0) AS level,
+
+            COALESCE(m.prestige, 0) as prestige
+            
+            FROM gambling g
+            LEFT JOIN levels l ON g.user_id = l.user_id
+            LEFT JOIN gambling_mine m on g.user_id = m.user_id
+            WHERE g.user_id = $1;"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
     pub fn into_embed<'a>(
         self,
         inventory: &GamblingItems,
@@ -161,15 +177,11 @@ impl MaxBet for ProfileRow {
 }
 
 impl Commands {
-    pub async fn profile<
-        Data: EmojiCacheData,
-        Db: Database,
-        Manager: ProfileManager<Db> + InventoryManager<Db>,
-    >(
+    pub async fn profile<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -183,8 +195,8 @@ impl Commands {
             None => &interaction.user,
         };
 
-        let row = Manager::row(pool, user.id).await?.unwrap_or_default();
-        let inventory_row = Manager::inventory_items(pool, user.id).await?;
+        let row = ProfileRow::get(pool, user.id).await?.unwrap_or_default();
+        let inventory_row = InventoryManager::inventory_items(pool, user.id).await?;
 
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();

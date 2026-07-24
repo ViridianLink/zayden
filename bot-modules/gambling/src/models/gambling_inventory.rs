@@ -1,19 +1,8 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use serenity::all::UserId;
-use sqlx::{Database, FromRow};
+use sqlx::FromRow;
 
 use crate::shop::LOTTO_TICKET;
 use crate::{ItemInventory, SHOP_ITEMS, ShopItem};
-
-#[async_trait]
-pub trait InventoryManager<Db: Database> {
-    async fn item(
-        conn: &mut Db::Connection,
-        user_id: UserId,
-        item_id: &str,
-    ) -> sqlx::Result<Option<InventoryRow>>;
-}
 
 #[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
 pub struct InventoryRow {

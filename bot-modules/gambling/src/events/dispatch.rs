@@ -1,31 +1,24 @@
-use std::marker::PhantomData;
-
 use serenity::all::{GenericChannelId, Http};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::EmojiCache;
 
 use super::{Event, EventRow};
+use crate::Result;
 use crate::goals::GoalHandler;
-use crate::{GoalsManager, Result};
 
-pub struct Dispatch<'a, Db: Database, Manager: GoalsManager<Db> + Send + Sync> {
+pub struct Dispatch<'a> {
     http: &'a Http,
-    pool: &'a Pool<Db>,
+    pool: &'a PgPool,
     emojis: &'a EmojiCache,
-    _manager: PhantomData<Manager>,
 }
 
-impl<'a, Db, Manager> Dispatch<'a, Db, Manager>
-where
-    Db: Database,
-    Manager: GoalsManager<Db> + Send + Sync,
-{
+impl<'a> Dispatch<'a> {
     pub const fn new(
         http: &'a Http,
-        pool: &'a Pool<Db>,
+        pool: &'a PgPool,
         emojis: &'a EmojiCache,
     ) -> Self {
-        Self { http, pool, emojis, _manager: PhantomData }
+        Self { http, pool, emojis }
     }
 
     pub async fn fire(
@@ -34,7 +27,7 @@ where
         row: &mut dyn EventRow,
         event: Event,
     ) -> Result<Event> {
-        GoalHandler::process_goals::<Db, Manager>(
+        GoalHandler::process_goals(
             self.http,
             self.pool,
             self.emojis,

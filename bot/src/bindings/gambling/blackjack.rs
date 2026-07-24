@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
 use async_trait::async_trait;
-use gambling::{Commands, EffectsTable};
+use gambling::Commands;
 use serenity::all::CreateCommand;
-use sqlx::Postgres;
 use tracing::debug;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
@@ -11,7 +10,6 @@ use zayden_core::message_metadata;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
 
-use super::{GamblingTable, GameTable, GoalsTable};
 use crate::BotState;
 
 pub struct Blackjack;
@@ -28,15 +26,8 @@ impl ModuleCommand for Blackjack {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        Commands::blackjack::<
-            BotState,
-            Postgres,
-            GamblingTable,
-            GoalsTable,
-            EffectsTable,
-            GameTable,
-        >(cx.ctx, cx.interaction, options, &cx.app.db)
-        .await?;
+        Commands::blackjack::<BotState>(cx.ctx, cx.interaction, options, &cx.app.db)
+            .await?;
         Ok(())
     }
 }
@@ -61,55 +52,43 @@ impl ModuleComponent for Blackjack {
 
         match cx.interaction.data.custom_id.as_str() {
             "blackjack_hit" => {
-                gambling::components::Blackjack::hit::<
-                    BotState,
-                    Postgres,
-                    GoalsTable,
-                    EffectsTable,
-                    GameTable,
-                >(cx.ctx, cx.interaction, &cx.app.db)
+                gambling::components::Blackjack::hit::<BotState>(
+                    cx.ctx,
+                    cx.interaction,
+                    &cx.app.db,
+                )
                 .await?;
             },
             "blackjack_stand" => {
-                gambling::components::Blackjack::stand::<
-                    BotState,
-                    Postgres,
-                    GoalsTable,
-                    EffectsTable,
-                    GameTable,
-                >(cx.ctx, cx.interaction, &cx.app.db)
+                gambling::components::Blackjack::stand::<BotState>(
+                    cx.ctx,
+                    cx.interaction,
+                    &cx.app.db,
+                )
                 .await?;
             },
             "blackjack_double" => {
-                gambling::components::Blackjack::double::<
-                    BotState,
-                    Postgres,
-                    GamblingTable,
-                    GoalsTable,
-                    EffectsTable,
-                    GameTable,
-                >(cx.ctx, cx.interaction, &cx.app.db)
+                gambling::components::Blackjack::double::<BotState>(
+                    cx.ctx,
+                    cx.interaction,
+                    &cx.app.db,
+                )
                 .await?;
             },
             "blackjack_split" => {
-                gambling::components::Blackjack::split::<
-                    BotState,
-                    Postgres,
-                    GamblingTable,
-                    GoalsTable,
-                    EffectsTable,
-                    GameTable,
-                >(cx.ctx, cx.interaction, &cx.app.db)
+                gambling::components::Blackjack::split::<BotState>(
+                    cx.ctx,
+                    cx.interaction,
+                    &cx.app.db,
+                )
                 .await?;
             },
             "blackjack_surrender" => {
-                gambling::components::Blackjack::surrender::<
-                    BotState,
-                    Postgres,
-                    GoalsTable,
-                    EffectsTable,
-                    GameTable,
-                >(cx.ctx, cx.interaction, &cx.app.db)
+                gambling::components::Blackjack::surrender::<BotState>(
+                    cx.ctx,
+                    cx.interaction,
+                    &cx.app.db,
+                )
                 .await?;
             },
             _ => (),

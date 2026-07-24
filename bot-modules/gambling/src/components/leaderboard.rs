@@ -6,23 +6,18 @@ use serenity::all::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, GuildMembersCache, as_i64};
 
-use crate::common::LeaderboardManager;
 use crate::common::leaderboard::{get_row_number, get_rows};
 use crate::{GamblingError, Leaderboard, Result};
 
 impl Leaderboard {
-    pub async fn run_component<
-        Data: GuildMembersCache + EmojiCacheData,
-        Db: Database,
-        Manager: LeaderboardManager<Db>,
-    >(
+    pub async fn run_component<Data: GuildMembersCache + EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let custom_id = interaction
             .data
@@ -115,7 +110,7 @@ impl Leaderboard {
                 page_number = (page_number - 1).max(1);
             },
             "user" => {
-                let row_num = get_row_number::<Db, Manager>(
+                let row_num = get_row_number(
                     leaderboard,
                     pool,
                     users.as_deref(),
@@ -131,13 +126,8 @@ impl Leaderboard {
             _ => {},
         }
 
-        let rows = get_rows::<Db, Manager>(
-            leaderboard,
-            pool,
-            users.as_deref(),
-            page_number,
-        )
-        .await?;
+        let rows =
+            get_rows(leaderboard, pool, users.as_deref(), page_number).await?;
 
         if rows.is_empty() {
             return Err(GamblingError::internal("No entries for this page"));

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     ButtonStyle,
     Colour,
@@ -13,12 +12,14 @@ use serenity::all::{
     EditInteractionResponse,
     UserId,
 };
-use sqlx::{Database, FromRow, Pool};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{FromRow, PgPool};
 use tracing::debug;
-use zayden_core::message_metadata;
+use zayden_core::{as_i64, message_metadata};
 
 use crate::commands::inventory::InventoryManager;
 use crate::common::shop::LOTTO_TICKET;
+use crate::stamina::MAX_STAMINA;
 use crate::{
     Commands,
     GamblingError,
@@ -29,23 +30,132 @@ use crate::{
     START_AMOUNT,
 };
 
-#[async_trait]
-pub trait PrestigeManager<Db: Database> {
-    async fn miners(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<i64>>;
+pub struct PrestigeManager;
 
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<PrestigeRow>>;
+impl PrestigeManager {
+    pub async fn miners(pool: &PgPool, id: UserId) -> sqlx::Result<Option<i64>> {
+        sqlx::query_scalar!(
+            "SELECT miners FROM gambling_mine WHERE user_id = $1;",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
 
-    async fn lotto(
-        pool: &Pool<Db>,
+    pub async fn row(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<Option<PrestigeRow>> {
+        sqlx::query_file_as!(
+            PrestigeRow,
+            "sql/PrestigeManager/row.sql",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn lotto(
+        pool: &PgPool,
         tickets: i64,
         zayden_id: u64,
-    ) -> sqlx::Result<Db::QueryResult>;
+    ) -> sqlx::Result<PgQueryResult> {
+        sqlx::query_file!(
+            "sql/PrestigeManager/lotto.sql",
+            as_i64(zayden_id),
+            LOTTO_TICKET.id,
+            tickets,
+        )
+        .execute(pool)
+        .await
+    }
 
-    async fn save(
-        pool: &Pool<Db>,
+    pub async fn save(
+        pool: &PgPool,
         row: PrestigeRow,
         expected_prestige: i64,
-    ) -> sqlx::Result<bool>;
+    ) -> sqlx::Result<bool> {
+        let mut tx = pool.begin().await?;
+
+        let mine = sqlx::query!(
+            "UPDATE gambling_mine SET
+                miners = $2,
+                mines = $3,
+                land = $4,
+                countries = $5,
+                continents = $6,
+                planets = $7,
+                solar_systems = $8,
+                galaxies = $9,
+                universes = $10,
+                prestige = $11,
+                coal = $12,
+                iron = $13,
+                gold = $14,
+                redstone = $15,
+                lapis = $16,
+                diamonds = $17,
+                emeralds = $18,
+                tech = $19,
+                utility = $20,
+                production = $21
+            WHERE user_id = $1 AND prestige = $22;",
+            row.user_id,
+            row.miners,
+            row.mines,
+            row.land,
+            row.countries,
+            row.continents,
+            row.planets,
+            row.solar_systems,
+            row.galaxies,
+            row.universes,
+            row.prestige,
+            row.coal,
+            row.iron,
+            row.gold,
+            row.redstone,
+            row.lapis,
+            row.diamonds,
+            row.emeralds,
+            row.tech,
+            row.utility,
+            row.production,
+            expected_prestige,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        if mine.rows_affected() != 1 {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+
+        sqlx::query!(
+            "INSERT INTO gambling (user_id, coins, gems, stamina)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id) DO UPDATE SET
+            coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
+            row.user_id,
+            row.coins,
+            row.gems,
+            MAX_STAMINA,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            "DELETE FROM gambling_inventory
+            WHERE user_id = $1;",
+            row.user_id,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(true)
+    }
 }
 
 #[derive(FromRow, Default)]
@@ -214,14 +324,16 @@ impl Prestige for PrestigeRow {
 }
 
 impl Commands {
-    pub async fn prestige<Db: Database, Manager: PrestigeManager<Db>>(
+    pub async fn prestige(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let row = Manager::row(pool, interaction.user.id).await?.unwrap_or_default();
+        let row = PrestigeManager::row(pool, interaction.user.id)
+            .await?
+            .unwrap_or_default();
 
         let req_miners = row.req_miners();
 
@@ -261,13 +373,10 @@ impl Commands {
             .description("Prestige your mine or casino to get unique rewards!")
     }
 
-    pub async fn confirm_prestige<
-        Db: Database,
-        Manager: PrestigeManager<Db> + InventoryManager<Db>,
-    >(
+    pub async fn confirm_prestige(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         zayden_id: u64,
     ) -> Result<()> {
         let metadata = message_metadata(&interaction.message)?;
@@ -281,7 +390,8 @@ impl Commands {
             return Ok(());
         }
 
-        let Some(mut prestige_row) = Manager::row(pool, interaction.user.id).await?
+        let Some(mut prestige_row) =
+            PrestigeManager::row(pool, interaction.user.id).await?
         else {
             return Err(GamblingError::internal("user has no prestige row"));
         };
@@ -293,7 +403,7 @@ impl Commands {
         }
 
         let inventory_row =
-            Manager::inventory_items(pool, interaction.user.id).await?;
+            InventoryManager::inventory_items(pool, interaction.user.id).await?;
 
         let lotto_tickets = inventory_row
             .0
@@ -306,14 +416,15 @@ impl Commands {
         let expected_prestige = prestige_row.prestige;
         prestige_row.do_prestige();
 
-        let applied = Manager::save(pool, prestige_row, expected_prestige).await?;
+        let applied =
+            PrestigeManager::save(pool, prestige_row, expected_prestige).await?;
         if !applied {
             return Err(GamblingError::internal(
                 "prestige already completed - duplicate confirmation ignored",
             ));
         }
 
-        Manager::lotto(pool, lotto_tickets, zayden_id).await?;
+        PrestigeManager::lotto(pool, lotto_tickets, zayden_id).await?;
 
         interaction
             .create_response(

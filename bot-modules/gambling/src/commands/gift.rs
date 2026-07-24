@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use jiff::tz::TimeZone;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{
@@ -15,8 +14,8 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
+use sqlx::PgPool;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64};
 
@@ -26,7 +25,6 @@ use crate::{
     GamblingError,
     GamblingManager,
     Gems,
-    GoalsManager,
     MaxBet,
     Prestige,
     Result,
@@ -43,16 +41,70 @@ const GIFT_AMOUNT: i64 = (START_AMOUNT as f64 * 2.5) as i64;
 
 use super::Commands;
 
-#[async_trait]
-pub trait GiftManager<Db: Database> {
-    async fn sender(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<SenderRow>>;
+pub struct GiftManager;
 
-    async fn claim(
-        pool: &Pool<Db>,
+impl GiftManager {
+    pub async fn sender(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<Option<SenderRow>> {
+        sqlx::query_as!(
+            SenderRow,
+            r#"SELECT
+                g.user_id,
+                g.coins,
+                g.gems,
+                g.gift as "gift: jiff_sqlx::Timestamp",
+
+                COALESCE(l.level, 0) AS "level!",
+                
+                m.prestige
+
+                FROM gambling g
+                LEFT JOIN levels l ON g.user_id = l.user_id
+                LEFT JOIN gambling_mine m on g.user_id = m.user_id
+                WHERE g.user_id = $1;"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn claim(
+        pool: &PgPool,
         sender: UserId,
         recipient: UserId,
         amount: i64,
-    ) -> sqlx::Result<bool>;
+    ) -> sqlx::Result<bool> {
+        let mut tx = pool.begin().await?;
+
+        let claim = sqlx::query!(
+            "INSERT INTO gambling (user_id, gift)
+            VALUES ($1, CURRENT_DATE)
+            ON CONFLICT (user_id) DO UPDATE SET gift = CURRENT_DATE
+            WHERE gambling.gift < CURRENT_DATE",
+            as_i64(sender.get())
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        if claim.rows_affected() == 0 {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+
+        sqlx::query_file!(
+            "sql/GamblingManager/add_coins.sql",
+            as_i64(recipient.get()),
+            amount
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(true)
+    }
 }
 
 #[derive(FromRow)]
@@ -135,17 +187,11 @@ impl Coins for RecipientRow {
 }
 
 impl Commands {
-    pub async fn gift<
-        Data: EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        GiftHandler: GiftManager<Db>,
-    >(
+    pub async fn gift<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -160,7 +206,7 @@ impl Commands {
             return Err(GamblingError::SelfGift);
         }
 
-        let mut user_row = GiftHandler::sender(pool, interaction.user.id)
+        let mut user_row = GiftManager::sender(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| SenderRow::new(interaction.user.id));
 
@@ -172,7 +218,7 @@ impl Commands {
 
         let amount = GIFT_AMOUNT * (user_row.prestige() + 1);
 
-        if !GiftHandler::claim(pool, interaction.user.id, recipient.id, amount)
+        if !GiftManager::claim(pool, interaction.user.id, recipient.id, amount)
             .await?
         {
             return Err(GamblingError::GiftUsed(tomorrow(Some(now.timestamp()))?));
@@ -187,7 +233,7 @@ impl Commands {
         let coins_before = user_row.coins();
         let gems_before = user_row.gems();
 
-        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
+        Dispatch::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut user_row,
@@ -200,15 +246,15 @@ impl Commands {
         if coin_reward != 0 || gem_reward != 0 {
             let mut tx = pool.begin().await?;
             if coin_reward != 0 {
-                GamblingHandler::add_coins(
-                    &mut *tx,
+                GamblingManager::add_coins(
+                    &mut tx,
                     interaction.user.id,
                     coin_reward,
                 )
                 .await?;
             }
             if gem_reward != 0 {
-                GamblingHandler::add_gems(&mut *tx, interaction.user.id, gem_reward)
+                GamblingManager::add_gems(&mut tx, interaction.user.id, gem_reward)
                     .await?;
             }
             tx.commit().await?;

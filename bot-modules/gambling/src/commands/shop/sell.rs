@@ -6,8 +6,8 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
+use sqlx::PgPool;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64, parse_options_ref};
 
@@ -43,10 +43,10 @@ impl Coins for SellRow {
     }
 }
 
-pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
+pub async fn sell<Data: EmojiCacheData>(
     ctx: &Context,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     options: &[ResolvedOption<'_>],
 ) -> Result<()> {
     let mut options = parse_options_ref(options);
@@ -71,7 +71,7 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
     let total_coin_cost = item.coin_cost().unwrap_or(0) * amount;
     let payment = total_coin_cost * SALES_RETURN / 100;
 
-    let mut row = Manager::sell_row(pool, interaction.user.id, item.id)
+    let mut row = ShopManager::sell_row(pool, interaction.user.id, item.id)
         .await?
         .unwrap_or_else(|| SellRow::new(interaction.user.id));
 
@@ -88,7 +88,7 @@ pub async fn sell<Data: EmojiCacheData, Db: Database, Manager: ShopManager<Db>>(
 
     row.add_coins(payment);
 
-    Manager::sell_save(pool, row).await?;
+    ShopManager::sell_save(pool, row).await?;
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction,
     CommandOptionType,
@@ -12,7 +11,7 @@ use serenity::all::{
     ResolvedValue,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64, parse_options};
 
@@ -23,13 +22,11 @@ use crate::{
     GamblingError,
     GamblingManager,
     Gems,
-    GoalsManager,
     MaxBet,
     Prestige,
     Result,
     ShopCurrency,
     Stamina,
-    StaminaManager,
 };
 
 pub struct SendRow {
@@ -96,31 +93,72 @@ impl Prestige for SendRow {
     }
 }
 
-#[async_trait]
-pub trait SendManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<SendRow>>;
+pub struct SendManager;
 
-    async fn transfer(
-        pool: &Pool<Db>,
+impl SendManager {
+    pub async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<SendRow>> {
+        sqlx::query_as!(
+            SendRow,
+            r#"SELECT
+                g.user_id,
+                g.coins,
+                g.gems,
+                g.stamina,
+                COALESCE(l.level, 0) AS "level!: i32",
+                COALESCE(m.prestige, 0) AS "prestige!: i64"
+                FROM gambling g
+                LEFT JOIN levels l ON g.user_id = l.user_id
+                LEFT JOIN gambling_mine m on g.user_id = m.user_id
+                WHERE g.user_id = $1"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn transfer(
+        pool: &PgPool,
         sender: UserId,
         recipient: UserId,
         amount: i64,
-    ) -> sqlx::Result<bool>;
+    ) -> sqlx::Result<bool> {
+        let mut tx = pool.begin().await?;
+
+        let debit = sqlx::query!(
+            "UPDATE gambling
+            SET coins = coins - $2, stamina = GREATEST(stamina - 1, 0)
+            WHERE user_id = $1 AND coins >= $2",
+            as_i64(sender.get()),
+            amount
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        if debit.rows_affected() == 0 {
+            tx.rollback().await?;
+            return Ok(false);
+        }
+
+        sqlx::query_file!(
+            "sql/GamblingManager/add_coins.sql",
+            as_i64(recipient.get()),
+            amount
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(true)
+    }
 }
 
 impl Commands {
-    pub async fn send<
-        Data: EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        StaminaHandler: StaminaManager<Db>,
-        GoalHandler: GoalsManager<Db> + Send + Sync,
-        SendHandler: SendManager<Db>,
-    >(
+    pub async fn send<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -143,11 +181,11 @@ impl Commands {
             return Err(GamblingError::NegativeAmount);
         }
 
-        let mut row = SendHandler::row(pool, interaction.user.id)
+        let mut row = SendManager::row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| SendRow::new(interaction.user.id));
 
-        row.verify_work::<Db, StaminaHandler>()?;
+        row.verify_work()?;
 
         if row.coins() < amount {
             return Err(GamblingError::InsufficientFunds {
@@ -161,7 +199,7 @@ impl Commands {
             return Err(GamblingError::MaximumSendAmount(max_send));
         }
 
-        if !SendHandler::transfer(pool, interaction.user.id, recipient.id, amount)
+        if !SendManager::transfer(pool, interaction.user.id, recipient.id, amount)
             .await?
         {
             return Err(GamblingError::InsufficientFunds {
@@ -184,7 +222,7 @@ impl Commands {
         let coins_before = row.coins();
         let gems_before = row.gems();
 
-        Dispatch::<Db, GoalHandler>::new(&ctx.http, pool, &emojis)
+        Dispatch::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -197,15 +235,15 @@ impl Commands {
         if coin_reward != 0 || gem_reward != 0 {
             let mut tx = pool.begin().await?;
             if coin_reward != 0 {
-                GamblingHandler::add_coins(
-                    &mut *tx,
+                GamblingManager::add_coins(
+                    &mut tx,
                     interaction.user.id,
                     coin_reward,
                 )
                 .await?;
             }
             if gem_reward != 0 {
-                GamblingHandler::add_gems(&mut *tx, interaction.user.id, gem_reward)
+                GamblingManager::add_gems(&mut tx, interaction.user.id, gem_reward)
                     .await?;
             }
             tx.commit().await?;

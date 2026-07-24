@@ -9,7 +9,6 @@ use tracing::debug;
 use zayden_app::state::AppState;
 
 use crate::bindings::ai::Ai;
-use crate::bindings::gambling::GamblingTable;
 use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
 use crate::{BotState, Result};
@@ -34,7 +33,7 @@ impl Handler {
         if let Some(level) = levels::message_create(msg, pool).await? {
             let mut tx = pool.begin().await?;
 
-            GamblingTable::add_coins(
+            GamblingManager::add_coins(
                 &mut tx,
                 msg.author.id,
                 i64::from(level) * 1000,

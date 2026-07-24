@@ -15,9 +15,34 @@ use compile-time macros.
 ## Findings
 
 ### 1. DB-generic `async_trait` managers (pervasive)  ·  #1  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24):** CC-1 concrete-`PgPool` migration — the final and largest
+  module (after `gold-star`/`levels`/`reaction-roles`/`suggestions`/`family`/
+  `temp-voice`/`lfg`). Removed all 21 generic manager traits + `#[async_trait]`
+  (`GamblingManager`, `GameManager`, `StatsManager`, `EffectsManager`,
+  `InventoryManager`, `Stamina/Lotto/Prestige/Daily/Goals/Work/Craft/Dig/Mine/
+  Gift/Send/Profile/Leaderboard/ShopManager`, `HigherLowerManager`) and their 23
+  `impl … for XxxTable` bindings. Each became a concrete unit-struct (or row-type)
+  with inherent `&PgPool`/`&mut PgConnection` methods living in the crate; the
+  `GameManager`/`ProfileManager`/`MineManager` row ops moved onto
+  `GameRow`/`ProfileRow`/`MineRow` (`::get`/`::save`). Every command/game/
+  component/event lost its `<Db, …Handler>` generics (keeping only `Data:` ctx
+  bounds); `Dispatch` de-generic'd; the `StaminaCron`/`Lotto`/`HigherLower` crons
+  pinned to `Postgres` (the zayden-core `CronJob<Db>` generic is its own CC-1
+  item, untouched). The 27 `PostManager`-style SQL files moved
+  `bot/sql/gambling/` → `bot-modules/gambling/sql/` (byte-identical → offline
+  cache reused; `git status .sqlx` clean, no regeneration). `bot/src/bindings/
+  gambling/*` collapsed to `ModuleCommand`/`ModuleComponent` wiring only —
+  `models.rs`/`stamina.rs` deleted (were table-only). Dropped `async-trait` +
+  added `bigdecimal` (for lotto `total_tickets` SUM) in the crate; removed
+  now-unused `bigdecimal`/`jiff-sqlx` from `bot`. Also deleted the dead
+  `tictactoe` `GameState<Db, Manager>` stub ([CC-4](_cross-cutting.md#cc-4)) — it
+  referenced the removed `GameManager` trait — clearing 3 `#[expect]`s. No new
+  `#[allow]`/`#[expect]`. Only the `zayden-core` generalising traits now remain
+  on CC-1.
 - **Where:** `src/models/*`, `src/commands/*`, `src/games/*`, `src/common/*`,
-  `src/components/*` — nearly every file threads `<Db: Database>` / `Pool<Db>`;
-  concrete impls live in `bot/src/bindings/gambling/*`.
+  `src/components/*` — nearly every file threaded `<Db: Database>` / `Pool<Db>`;
+  concrete impls lived in `bot/src/bindings/gambling/*`.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1). This is the biggest
   single instance and should be migrated last (largest surface); tackle it after
   the small crates prove the pattern.

@@ -1,4 +1,4 @@
-use async_trait::async_trait;
+use futures::TryStreamExt;
 use jiff_cron;
 use serenity::all::{
     ChannelId,
@@ -8,37 +8,46 @@ use serenity::all::{
     Mentionable,
     UserId,
 };
-use sqlx::{Database, Transaction};
-use zayden_core::{CronJob, FormatNum};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{PgConnection, Postgres, Transaction};
+use zayden_core::{CronJob, FormatNum, as_u64};
 
 use crate::{GEM, GamblingManager};
 
 const CHANNEL_ID: ChannelId = ChannelId::new(1_383_573_049_563_156_502);
 
-#[async_trait]
-pub trait HigherLowerManager<Db: Database> {
-    async fn winners(conn: &mut Db::Connection) -> sqlx::Result<Vec<UserId>>;
-    async fn reset(conn: &mut Db::Connection) -> sqlx::Result<Db::QueryResult>;
+pub struct HigherLowerManager;
+
+impl HigherLowerManager {
+    pub async fn winners(conn: &mut PgConnection) -> sqlx::Result<Vec<UserId>> {
+        sqlx::query_file_scalar!("sql/HigherLowerManager/winners.sql")
+            .fetch(conn)
+            .map_ok(|id| UserId::new(as_u64(id)))
+            .try_collect()
+            .await
+    }
+
+    pub async fn reset(conn: &mut PgConnection) -> sqlx::Result<PgQueryResult> {
+        sqlx::query_file_scalar!("sql/HigherLowerManager/reset.sql")
+            .execute(conn)
+            .await
+    }
 }
 
 pub struct HigherLower;
 
 impl HigherLower {
-    pub fn cron_job<
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        HigherLowerHandler: HigherLowerManager<Db>,
-    >() -> Result<CronJob<Db>, jiff_cron::error::Error> {
+    pub fn cron_job() -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
         Ok(CronJob::new("lotto", "0 0 17 * * Fri *")?.set_action(|ctx, pool| async move {
             if let Err(e) = (async {
-                let mut tx: Transaction<'_, Db> = pool.begin().await?;
+                let mut tx: Transaction<'_, Postgres> = pool.begin().await?;
 
-                let winners = HigherLowerHandler::winners(&mut *tx).await?;
-                HigherLowerHandler::reset(&mut *tx).await?;
+                let winners = HigherLowerManager::winners(&mut tx).await?;
+                HigherLowerManager::reset(&mut tx).await?;
 
                 let mut lines = Vec::with_capacity(3);
                 for (winner, payout) in winners.into_iter().zip([3, 2, 1]) {
-                    GamblingHandler::add_gems(&mut tx, winner, payout).await?;
+                    GamblingManager::add_gems(&mut tx, winner, payout).await?;
 
                     let user = winner.to_user(&ctx.http).await?;
 

@@ -21,12 +21,6 @@ use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;
 use zayden_core::{CronJob, CronJobData, EmojiCache, EmojiCacheData};
 
-use crate::bindings::gambling::{
-    GamblingTable,
-    HigherLowerTable,
-    LottoTable,
-    StaminaTable,
-};
 use crate::cron::EntitlementSweepCron;
 use crate::{Result, ZAYDEN_TOKEN, zayden_token};
 
@@ -101,9 +95,9 @@ impl BotState {
 
     pub fn setup_static_cron(&mut self) {
         let jobs = [
-            StaminaCron::cron_job::<Postgres, StaminaTable>(),
-            Lotto::cron_job::<Self, Postgres, GamblingTable, LottoTable>(),
-            HigherLower::cron_job::<Postgres, GamblingTable, HigherLowerTable>(),
+            StaminaCron::cron_job(),
+            Lotto::cron_job::<Self>(),
+            HigherLower::cron_job(),
             EndgameAnalysisSheetCron::cron_job(
                 Arc::clone(&self.bungie_client),
                 self.app.google_api_key.clone(),

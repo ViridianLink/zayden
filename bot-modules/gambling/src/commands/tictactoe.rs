@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use serenity::all::{
     ButtonStyle,
     CommandInteraction,
@@ -13,42 +11,24 @@ use serenity::all::{
     Mentionable,
     ResolvedOption,
     ResolvedValue,
-    UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, parse_options};
 
 use super::Commands;
-use crate::models::GamblingManager;
-use crate::{
-    Coins,
-    EffectsManager,
-    GamblingData,
-    GamblingError,
-    GameManager,
-    GameRow,
-    GoalsManager,
-    Result,
-};
+use crate::{Coins, EffectsManager, GamblingData, GamblingError, GameRow, Result};
 
 impl Commands {
-    pub async fn tictactoe<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        GoalHandler: GoalsManager<Db>,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn tictactoe<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let row = GameHandler::row(pool, interaction.user.id)
+        let row = GameRow::get(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
@@ -66,15 +46,10 @@ impl Commands {
             return Err(GamblingError::InvalidAmount);
         };
 
-        EffectsHandler::bet_limit::<GamblingHandler>(
-            pool,
-            interaction.user.id,
-            bet,
-            row.coins(),
-        )
-        .await?;
+        EffectsManager::bet_limit(pool, interaction.user.id, bet, row.coins())
+            .await?;
 
-        GameHandler::save(pool, row).await?;
+        GameRow::save(pool, row).await?;
 
         let coin = data_lock.read().await.emojis().emoji("heads").map_err(|n| {
             GamblingError::Internal(format!("emoji '{n}' not in cache"))
@@ -130,57 +105,5 @@ impl Commands {
                 )
                 .required(true),
             )
-    }
-}
-
-#[expect(
-    dead_code,
-    reason = "placeholder for future TicTacToe game state implementation"
-)]
-struct GameState<Db: Database, Manager: GameManager<Db>> {
-    size: usize,
-    players: [UserId; 2],
-    current_turn: UserId,
-    bet: i64,
-    winner: Option<UserId>,
-
-    _db: PhantomData<Db>,
-    _manager: PhantomData<Manager>,
-}
-
-#[expect(
-    dead_code,
-    reason = "placeholder for future TicTacToe game state implementation"
-)]
-impl<Db, Manager> GameState<Db, Manager>
-where
-    Db: Database,
-    Manager: GameManager<Db>,
-{
-    const fn new(p1: UserId, size: usize, bet: i64) -> Self {
-        Self {
-            size,
-            players: [p1, p1],
-            current_turn: p1,
-            bet,
-            winner: None,
-
-            _db: PhantomData,
-            _manager: PhantomData,
-        }
-    }
-
-    #[expect(clippy::future_not_send, reason = "dead code within GameState stub")]
-    async fn p1_row(&self, pool: &Pool<Db>) -> sqlx::Result<GameRow> {
-        let id = self.players[0];
-
-        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
-    }
-
-    #[expect(clippy::future_not_send, reason = "dead code within GameState stub")]
-    async fn p2_row(&self, pool: &Pool<Db>) -> sqlx::Result<GameRow> {
-        let id = self.players[1];
-
-        Ok(Manager::row(pool, id).await?.unwrap_or_else(|| GameRow::new(id)))
     }
 }

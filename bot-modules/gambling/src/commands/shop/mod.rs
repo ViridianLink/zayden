@@ -6,7 +6,7 @@ use serenity::all::{
     CreateCommandOption,
     ResolvedOption,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 pub mod buy;
 pub mod list;
@@ -18,28 +18,14 @@ pub use sell::{SellRow, sell};
 use zayden_core::{EmojiCacheData, parse_subcommand};
 
 use super::Commands;
-use crate::commands::inventory::InventoryManager;
-use crate::common::shop::ShopRow;
-use crate::{
-    GamblingError,
-    GoalsManager,
-    Result,
-    SHOP_ITEMS,
-    ShopManager,
-    ShopPage,
-};
+use crate::{GamblingError, Result, SHOP_ITEMS, ShopPage};
 
 impl Commands {
-    pub async fn shop<
-        Data: EmojiCacheData,
-        Db: Database,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        ShopHandler: ShopManager<Db> + InventoryManager<Db>,
-    >(
+    pub async fn shop<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -47,21 +33,13 @@ impl Commands {
 
         match name {
             "list" => {
-                list::<Data, Db, ShopHandler>(ctx, interaction, pool, &options)
-                    .await?;
+                list::<Data>(ctx, interaction, pool, &options).await?;
             },
             "buy" => {
-                buy::<Data, Db, GoalsHandler, ShopHandler>(
-                    ctx,
-                    interaction,
-                    pool,
-                    &options,
-                )
-                .await?;
+                buy::<Data>(ctx, interaction, pool, &options).await?;
             },
             "sell" => {
-                sell::<Data, Db, ShopHandler>(ctx, interaction, pool, &options)
-                    .await?;
+                sell::<Data>(ctx, interaction, pool, &options).await?;
             },
             _ => return Err(GamblingError::InvalidAmount),
         }

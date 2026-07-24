@@ -1,96 +1,257 @@
-use async_trait::async_trait;
+use futures::TryStreamExt;
 use serenity::all::{Mentionable, UserId};
-use sqlx::{Database, FromRow, Pool};
-use zayden_core::{EmojiCache, FormatNum, as_u64};
+use sqlx::{FromRow, PgPool};
+use zayden_core::{EmojiCache, FormatNum, as_i64, as_u64};
 
 use crate::shop::{EGGPLANT, LOTTO_TICKET};
 use crate::{Coins, Gems, Result};
 
-#[async_trait]
-pub trait LeaderboardManager<Db: Database> {
-    async fn coins(
-        pool: &Pool<Db>,
+const LIMIT: i64 = 10;
+
+pub struct LeaderboardManager;
+
+impl LeaderboardManager {
+    pub async fn coins(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         page_num: i64,
-    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
 
-    async fn coins_row_number(
-        pool: &Pool<Db>,
+        sqlx::query_file_as!(
+            CoinsRow,
+            "sql/LeaderboardManager/coins.sql",
+            global,
+            users,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::Coins)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    pub async fn coins_row_number(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         id: UserId,
-    ) -> sqlx::Result<Option<i64>>;
+    ) -> sqlx::Result<Option<i64>> {
+        let user_id = id;
 
-    async fn gems(
-        pool: &Pool<Db>,
+        sqlx::query_file_scalar!(
+            "sql/LeaderboardManager/coins_row_number.sql",
+            global,
+            users,
+            as_i64(user_id.get())
+        )
+        .fetch_optional(pool)
+        .await
+        .map(Option::flatten)
+    }
+
+    pub async fn gems(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         page_num: i64,
-    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
 
-    async fn gems_row_number(
-        pool: &Pool<Db>,
+        sqlx::query_file_as!(
+            GemsRow,
+            "sql/LeaderboardManager/gems.sql",
+            global,
+            users,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::Gems)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    pub async fn gems_row_number(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         id: UserId,
-    ) -> sqlx::Result<Option<i64>>;
+    ) -> sqlx::Result<Option<i64>> {
+        let user_id = id;
 
-    async fn eggplants(
-        pool: &Pool<Db>,
+        sqlx::query_file_scalar!(
+            "sql/LeaderboardManager/gems_row_number.sql",
+            global,
+            users,
+            as_i64(user_id.get())
+        )
+        .fetch_optional(pool)
+        .await
+        .map(Option::flatten)
+    }
+
+    pub async fn eggplants(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         page_num: i64,
-    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
 
-    async fn eggplants_row_number(
-        pool: &Pool<Db>,
+        sqlx::query_file_as!(
+            EggplantsRow,
+            "sql/LeaderboardManager/item.sql",
+            global,
+            users,
+            EGGPLANT.id,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::Eggplants)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    pub async fn eggplants_row_number(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         id: UserId,
-    ) -> sqlx::Result<Option<i64>>;
+    ) -> sqlx::Result<Option<i64>> {
+        sqlx::query_file_scalar!(
+            "sql/LeaderboardManager/item_row_number.sql",
+            global,
+            users,
+            EGGPLANT.id,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+        .map(Option::flatten)
+    }
 
-    async fn lottotickets(
-        pool: &Pool<Db>,
+    pub async fn lottotickets(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         page_num: i64,
-    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
 
-    async fn lottotickets_row_number(
-        pool: &Pool<Db>,
+        sqlx::query_file_as!(
+            LottoTicketRow,
+            "sql/LeaderboardManager/item.sql",
+            global,
+            users,
+            LOTTO_TICKET.id,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::LottoTickets)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    pub async fn lottotickets_row_number(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         id: UserId,
-    ) -> sqlx::Result<Option<i64>>;
+    ) -> sqlx::Result<Option<i64>> {
+        sqlx::query_file_scalar!(
+            "sql/LeaderboardManager/item_row_number.sql",
+            global,
+            users,
+            LOTTO_TICKET.id,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+        .map(Option::flatten)
+    }
 
-    async fn higherlower(
-        pool: &Pool<Db>,
+    pub async fn higherlower(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         page_num: i64,
-    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
 
-    async fn higherlower_row_number(
-        pool: &Pool<Db>,
+        sqlx::query_file_as!(
+            HigherLowerRow,
+            "sql/LeaderboardManager/higherlower.sql",
+            global,
+            users,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::HigherLower)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    pub async fn higherlower_row_number(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         id: UserId,
-    ) -> sqlx::Result<Option<i64>>;
+    ) -> sqlx::Result<Option<i64>> {
+        sqlx::query_file_scalar!(
+            "sql/LeaderboardManager/higherlower_row_number.sql",
+            global,
+            users,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+        .map(Option::flatten)
+    }
 
-    async fn weekly_higherlower(
-        pool: &Pool<Db>,
+    pub async fn weekly_higherlower(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         page_num: i64,
-    ) -> sqlx::Result<Vec<LeaderboardRow>>;
+    ) -> sqlx::Result<Vec<LeaderboardRow>> {
+        let offset = (page_num - 1) * LIMIT;
 
-    async fn weekly_higherlower_row_number(
-        pool: &Pool<Db>,
+        sqlx::query_file_as!(
+            WeeklyHigherLowerRow,
+            "sql/LeaderboardManager/weekly_higherlower.sql",
+            global,
+            users,
+            LIMIT,
+            offset
+        )
+        .fetch(pool)
+        .map_ok(LeaderboardRow::WeeklyHigherLower)
+        .try_collect::<Vec<_>>()
+        .await
+    }
+
+    pub async fn weekly_higherlower_row_number(
+        pool: &PgPool,
         global: bool,
         users: &[i64],
         id: UserId,
-    ) -> sqlx::Result<Option<i64>>;
+    ) -> sqlx::Result<Option<i64>> {
+        sqlx::query_file_scalar!(
+            "sql/LeaderboardManager/weekly_higherlower_row_number.sql",
+            global,
+            users,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+        .map(Option::flatten)
+    }
 }
 
 #[derive(FromRow)]
@@ -201,9 +362,9 @@ impl LeaderboardRow {
     }
 }
 
-pub async fn get_rows<Db: Database, Manager: LeaderboardManager<Db>>(
+pub async fn get_rows(
     leaderboard: &str,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     users: Option<&[i64]>,
     page_num: i64,
 ) -> sqlx::Result<Vec<LeaderboardRow>> {
@@ -211,21 +372,28 @@ pub async fn get_rows<Db: Database, Manager: LeaderboardManager<Db>>(
     let users = users.unwrap_or_default();
 
     match leaderboard {
-        "coins" => Manager::coins(pool, global, users, page_num).await,
-        "gems" => Manager::gems(pool, global, users, page_num).await,
-        "eggplants" => Manager::eggplants(pool, global, users, page_num).await,
-        "lottotickets" => Manager::lottotickets(pool, global, users, page_num).await,
-        "higherlower" => Manager::higherlower(pool, global, users, page_num).await,
+        "coins" => LeaderboardManager::coins(pool, global, users, page_num).await,
+        "gems" => LeaderboardManager::gems(pool, global, users, page_num).await,
+        "eggplants" => {
+            LeaderboardManager::eggplants(pool, global, users, page_num).await
+        },
+        "lottotickets" => {
+            LeaderboardManager::lottotickets(pool, global, users, page_num).await
+        },
+        "higherlower" => {
+            LeaderboardManager::higherlower(pool, global, users, page_num).await
+        },
         "weekly_higherlower" => {
-            Manager::weekly_higherlower(pool, global, users, page_num).await
+            LeaderboardManager::weekly_higherlower(pool, global, users, page_num)
+                .await
         },
         _ => Ok(Vec::new()),
     }
 }
 
-pub async fn get_row_number<Db: Database, Manager: LeaderboardManager<Db>>(
+pub async fn get_row_number(
     leaderboard: &str,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     users: Option<&[i64]>,
     user: UserId,
 ) -> sqlx::Result<Option<i64>> {
@@ -233,19 +401,28 @@ pub async fn get_row_number<Db: Database, Manager: LeaderboardManager<Db>>(
     let users = users.unwrap_or_default();
 
     match leaderboard {
-        "coins" => Manager::coins_row_number(pool, global, users, user).await,
-        "gems" => Manager::gems_row_number(pool, global, users, user).await,
+        "coins" => {
+            LeaderboardManager::coins_row_number(pool, global, users, user).await
+        },
+        "gems" => {
+            LeaderboardManager::gems_row_number(pool, global, users, user).await
+        },
         "eggplants" => {
-            Manager::eggplants_row_number(pool, global, users, user).await
+            LeaderboardManager::eggplants_row_number(pool, global, users, user).await
         },
         "lottotickets" => {
-            Manager::lottotickets_row_number(pool, global, users, user).await
+            LeaderboardManager::lottotickets_row_number(pool, global, users, user)
+                .await
         },
         "higherlower" => {
-            Manager::higherlower_row_number(pool, global, users, user).await
+            LeaderboardManager::higherlower_row_number(pool, global, users, user)
+                .await
         },
         "weekly_higherlower" => {
-            Manager::weekly_higherlower_row_number(pool, global, users, user).await
+            LeaderboardManager::weekly_higherlower_row_number(
+                pool, global, users, user,
+            )
+            .await
         },
         _ => Ok(None),
     }

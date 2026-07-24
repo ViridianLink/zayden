@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     Colour,
     CommandInteraction,
@@ -12,8 +11,9 @@ use serenity::all::{
     ResolvedOption,
     UserId,
 };
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use tokio::sync::RwLock;
 use zayden_core::{
     EmojiCache,
@@ -28,11 +28,49 @@ use super::Commands;
 use crate::shop::ShopCurrency;
 use crate::{GamblingError, Result};
 
-#[async_trait]
-pub trait CraftManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: UserId) -> sqlx::Result<Option<CraftRow>>;
+pub struct CraftManager;
 
-    async fn save(pool: &Pool<Db>, row: CraftRow) -> sqlx::Result<Db::QueryResult>;
+impl CraftManager {
+    pub async fn row(pool: &PgPool, id: UserId) -> sqlx::Result<Option<CraftRow>> {
+        sqlx::query_file_as!(
+            CraftRow,
+            "sql/CraftManager/craft-row.sql",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn save(pool: &PgPool, row: CraftRow) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
+            "INSERT INTO gambling_mine (user_id, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (user_id) DO UPDATE SET
+            coal = EXCLUDED.coal,
+            iron = EXCLUDED.iron,
+            gold = EXCLUDED.gold,
+            redstone = EXCLUDED.redstone,
+            lapis = EXCLUDED.lapis,
+            diamonds = EXCLUDED.diamonds,
+            emeralds = EXCLUDED.emeralds,
+            tech = EXCLUDED.tech,
+            utility = EXCLUDED.utility,
+            production = EXCLUDED.production;",
+            row.user_id,
+            row.coal,
+            row.iron,
+            row.gold,
+            row.redstone,
+            row.lapis,
+            row.diamonds,
+            row.emeralds,
+            row.tech,
+            row.utility,
+            row.production,
+        )
+        .execute(pool)
+        .await
+    }
 }
 
 #[derive(FromRow)]
@@ -70,15 +108,11 @@ impl CraftRow {
 }
 
 impl Commands {
-    pub async fn craft<
-        Data: EmojiCacheData,
-        Db: Database,
-        Manager: CraftManager<Db>,
-    >(
+    pub async fn craft<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -88,7 +122,7 @@ impl Commands {
             data.emojis()
         };
 
-        let mut row = Manager::row(pool, interaction.user.id)
+        let mut row = CraftManager::row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| CraftRow::new(interaction.user.id));
 
@@ -174,7 +208,7 @@ impl Commands {
             | ShopCurrency::Emeralds => return Err(GamblingError::InvalidAmount),
         };
 
-        Manager::save(pool, row).await?;
+        CraftManager::save(pool, row).await?;
 
         let embed = CreateEmbed::new()
             .description(format!(

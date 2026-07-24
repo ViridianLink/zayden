@@ -1,9 +1,10 @@
-use async_trait::async_trait;
+use bigdecimal::ToPrimitive;
 use rand::distr::weighted::WeightedIndex;
 use rand::rng;
 use rand_distr::Distribution;
 use serenity::all::{ChannelId, CreateEmbed, CreateMessage, Mentionable, UserId};
-use sqlx::{Database, FromRow};
+use sqlx::postgres::PgQueryResult;
+use sqlx::{FromRow, PgConnection, Postgres};
 use tokio::sync::RwLock;
 use tracing::{debug, error};
 use zayden_core::{CronJob, EmojiCacheData, FormatNum, as_i64, as_u64};
@@ -13,20 +14,47 @@ use crate::{Coins, GamblingError, GamblingManager, bot_id};
 
 const CHANNEL_ID: ChannelId = ChannelId::new(1_383_573_049_563_156_502);
 
-#[async_trait]
-pub trait LottoManager<Db: Database> {
-    async fn row(
-        conn: &mut Db::Connection,
+pub struct LottoManager;
+
+impl LottoManager {
+    pub async fn row(
+        conn: &mut PgConnection,
         id: UserId,
-    ) -> sqlx::Result<Option<LottoRow>>;
+    ) -> sqlx::Result<Option<LottoRow>> {
+        sqlx::query_file_as!(
+            LottoRow,
+            "sql/LottoManager/row.sql",
+            as_i64(id.get()),
+            LOTTO_TICKET.id
+        )
+        .fetch_optional(conn)
+        .await
+    }
 
-    async fn rows(conn: &mut Db::Connection) -> sqlx::Result<Vec<LottoRow>>;
+    pub async fn rows(conn: &mut PgConnection) -> sqlx::Result<Vec<LottoRow>> {
+        sqlx::query_file_as!(LottoRow, "sql/LottoManager/rows.sql", LOTTO_TICKET.id)
+            .fetch_all(conn)
+            .await
+    }
 
-    async fn total_tickets(conn: &mut Db::Connection) -> sqlx::Result<i64>;
+    pub async fn total_tickets(conn: &mut PgConnection) -> sqlx::Result<i64> {
+        sqlx::query_file_scalar!(
+            "sql/LottoManager/total_tickets.sql",
+            LOTTO_TICKET.id
+        )
+        .fetch_one(conn)
+        .await
+        .map(Option::unwrap_or_default)
+        .map(|x| x.to_i64().unwrap_or_default())
+    }
 
-    async fn delete_tickets(
-        conn: &mut Db::Connection,
-    ) -> sqlx::Result<Db::QueryResult>;
+    pub async fn delete_tickets(
+        conn: &mut PgConnection,
+    ) -> sqlx::Result<PgQueryResult> {
+        sqlx::query_file!("sql/LottoManager/delete_tickets.sql", LOTTO_TICKET.id)
+            .execute(conn)
+            .await
+    }
 }
 
 #[derive(FromRow)]
@@ -109,21 +137,17 @@ pub fn select_winners(
 pub struct Lotto;
 
 impl Lotto {
-    pub fn cron_job<
-        Data: EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        LottoHandler: LottoManager<Db>,
-    >() -> Result<CronJob<Db>, jiff_cron::error::Error> {
+    pub fn cron_job<Data: EmojiCacheData>()
+    -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
         Ok(CronJob::new("lotto", "0 0 17 * * Fri *")?.set_action(|ctx, pool| async move {
             if let Err(e) = (async {
                 let bot_id = bot_id(&ctx.http)
                     .await
                     .map_err(|e| GamblingError::Internal(format!("bot_id fetch failed: {e}")))?;
 
-                let mut tx: sqlx::Transaction<'static, Db> = pool.begin().await?;
+                let mut tx: sqlx::Transaction<'static, Postgres> = pool.begin().await?;
 
-                let mut rows = LottoHandler::rows(&mut *tx).await?;
+                let mut rows = LottoManager::rows(&mut tx).await?;
 
                 let total_tickets: i64 = rows.iter().map(LottoRow::quantity).sum();
 
@@ -141,7 +165,7 @@ impl Lotto {
 
                 let winners = select_winners(rows, &prize_share, jackpot)?;
 
-                LottoHandler::delete_tickets(&mut *tx).await?;
+                LottoManager::delete_tickets(&mut tx).await?;
 
                 let emojis = {
                     let data = ctx.data::<RwLock<Data>>();
@@ -156,7 +180,7 @@ impl Lotto {
                 let mut lines = Vec::with_capacity(expected_winners);
 
                 for (winner, payout) in winners {
-                    GamblingHandler::add_coins(&mut *tx, winner, payout).await?;
+                    GamblingManager::add_coins(&mut tx, winner, payout).await?;
 
                     let display_name = winner
                         .to_user(&ctx)

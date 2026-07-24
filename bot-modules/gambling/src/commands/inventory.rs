@@ -1,7 +1,6 @@
 use std::fmt::{Display, Write as _};
 use std::num::ParseIntError;
 
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction,
     CommandOptionType,
@@ -17,12 +16,18 @@ use serenity::all::{
 };
 use serenity::small_fixed_array::FixedArray;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
+use sqlx::{PgConnection, PgPool};
 use tokio::sync::RwLock;
-use zayden_core::{EmojiCache, EmojiCacheData, parse_options, parse_subcommand};
+use zayden_core::{
+    EmojiCache,
+    EmojiCacheData,
+    as_i64,
+    parse_options,
+    parse_subcommand,
+};
 
 use super::Commands;
-use crate::models::gambling_inventory::GamblingItems;
+use crate::models::gambling_inventory::{GamblingItem, GamblingItems};
 use crate::shop::{SHOP_ITEMS, ShopCurrency, ShopItem, ShopPage};
 use crate::{
     Coins,
@@ -64,24 +69,88 @@ impl Display for InventoryItem<'_> {
     }
 }
 
-#[async_trait]
-pub trait InventoryManager<Db: Database> {
-    async fn gambling_row(
-        pool: &Pool<Db>,
-        id: UserId,
-    ) -> sqlx::Result<Option<InventoryRow>>;
+pub struct InventoryManager;
 
-    async fn inventory_items(
-        pool: &Pool<Db>,
+impl InventoryManager {
+    pub async fn gambling_row(
+        pool: &PgPool,
         id: UserId,
-    ) -> sqlx::Result<GamblingItems>;
+    ) -> sqlx::Result<Option<InventoryRow>> {
+        sqlx::query_as!(
+            InventoryRow,
+            r#"SELECT
+            g.coins,
+            g.gems,
 
-    async fn edit_item_quantity(
-        conn: &mut Db::Connection,
+            COALESCE(m.tech, 0) AS "tech!",
+            COALESCE(m.utility, 0) AS "utility!",
+            COALESCE(m.production, 0) AS "production!",
+            COALESCE(m.coal, 0) AS "coal!",
+            COALESCE(m.iron, 0) AS "iron!",
+            COALESCE(m.gold, 0) AS "gold!",
+            COALESCE(m.redstone, 0) AS "redstone!",
+            COALESCE(m.lapis, 0) AS "lapis!",
+            COALESCE(m.diamonds, 0) AS "diamonds!",
+            COALESCE(m.emeralds, 0) AS "emeralds!"
+
+            FROM gambling g LEFT JOIN gambling_mine m ON g.user_id = m.user_id WHERE g.user_id = $1"#,
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn inventory_items(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<GamblingItems> {
+        let items = sqlx::query_as!(
+            GamblingItem,
+            r#"SELECT item_id, quantity
+            FROM gambling_inventory
+            WHERE user_id = $1"#,
+            as_i64(id.get())
+        )
+        .fetch_all(pool)
+        .await?;
+
+        Ok(GamblingItems(items))
+    }
+
+    pub async fn edit_item_quantity(
+        conn: &mut PgConnection,
         id: UserId,
         item_id: &str,
         amount: i64,
-    ) -> sqlx::Result<i64>;
+    ) -> sqlx::Result<i64> {
+        sqlx::query_scalar!(
+            r#"
+        WITH updated_row AS (
+            UPDATE gambling_inventory
+            SET quantity = quantity - $3
+            WHERE user_id = $1
+              AND item_id = $2
+              AND $3 <= gambling_inventory.quantity
+            RETURNING quantity
+        ),
+        deleted_row AS (
+            DELETE FROM gambling_inventory
+            WHERE user_id = $1 AND item_id = $2
+            AND EXISTS (SELECT 1 FROM updated_row ur WHERE ur.quantity <= 0)
+            RETURNING item_id
+        )
+        SELECT
+            ur.quantity
+        FROM
+            updated_row ur
+        "#,
+            as_i64(id.get()),
+            item_id,
+            amount
+        )
+        .fetch_one(conn)
+        .await
+    }
 }
 
 #[derive(Default, FromRow)]
@@ -199,39 +268,19 @@ impl Mining for InventoryRow {
 }
 
 impl Commands {
-    pub async fn inventory<
-        Data: EmojiCacheData,
-        Db: Database,
-        EffectsHandler: EffectsManager<Db>,
-        InventoryHandler: InventoryManager<Db>,
-    >(
+    pub async fn inventory<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
         let (name, options) = parse_subcommand(options)?;
 
         match name {
-            "show" => {
-                show::<Data, Db, EffectsHandler, InventoryHandler>(
-                    ctx,
-                    interaction,
-                    pool,
-                )
-                .await
-            },
-            "use" => {
-                use_item::<Data, Db, EffectsHandler, InventoryHandler>(
-                    ctx,
-                    interaction,
-                    options,
-                    pool,
-                )
-                .await
-            },
+            "show" => show::<Data>(ctx, interaction, pool).await,
+            "use" => use_item::<Data>(ctx, interaction, options, pool).await,
             _ => Err(GamblingError::InvalidAmount),
         }
     }
@@ -271,25 +320,21 @@ impl Commands {
     }
 }
 
-async fn show<
-    Data: EmojiCacheData,
-    Db: Database,
-    EffectsHandler: EffectsManager<Db>,
-    Manager: InventoryManager<Db>,
->(
+async fn show<Data: EmojiCacheData>(
     ctx: &Context,
     interaction: &CommandInteraction,
-    pool: &Pool<Db>,
+    pool: &PgPool,
 ) -> Result<()> {
-    let gambling_row =
-        Manager::gambling_row(pool, interaction.user.id).await?.unwrap_or_default();
+    let gambling_row = InventoryManager::gambling_row(pool, interaction.user.id)
+        .await?
+        .unwrap_or_default();
 
     let inventory_items =
-        Manager::inventory_items(pool, interaction.user.id).await?;
+        InventoryManager::inventory_items(pool, interaction.user.id).await?;
 
     let active_effects = {
         let mut conn = pool.acquire().await?;
-        EffectsHandler::active_effects(&mut conn, interaction.user.id).await?
+        EffectsManager::active_effects(&mut conn, interaction.user.id).await?
     };
 
     let emojis = {
@@ -404,16 +449,11 @@ async fn show<
     Ok(())
 }
 
-async fn use_item<
-    Data: EmojiCacheData,
-    Db: Database,
-    EffectsHandler: EffectsManager<Db>,
-    InventoryHandler: InventoryManager<Db>,
->(
+async fn use_item<Data: EmojiCacheData>(
     ctx: &Context,
     interaction: &CommandInteraction,
     options: FixedArray<ResolvedOption<'_>>,
-    pool: &Pool<Db>,
+    pool: &PgPool,
 ) -> Result<()> {
     let mut options = parse_options(options);
 
@@ -445,8 +485,8 @@ async fn use_item<
 
     let mut tx = pool.begin().await?;
 
-    let quantity = match InventoryHandler::edit_item_quantity(
-        &mut *tx,
+    let quantity = match InventoryManager::edit_item_quantity(
+        &mut tx,
         interaction.user.id,
         item_id,
         amount,
@@ -459,7 +499,7 @@ async fn use_item<
     };
 
     for _ in 0..amount {
-        EffectsHandler::add_effect(&mut *tx, interaction.user.id, item).await?;
+        EffectsManager::add_effect(&mut tx, interaction.user.id, item).await?;
     }
 
     tx.commit().await?;

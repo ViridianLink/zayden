@@ -15,7 +15,7 @@ use serenity::all::{
     MessageFlags,
     ResolvedOption,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, sole_option};
 
@@ -38,26 +38,17 @@ use crate::{
     EffectsManager,
     GamblingData,
     GamblingError,
-    GameManager,
-    GoalsManager,
     Result,
     ShopCurrency,
     card_deck,
 };
 
 impl Commands {
-    pub async fn blackjack<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn blackjack<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         mut options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -65,7 +56,7 @@ impl Commands {
 
         let mut tx = pool.begin().await?;
 
-        let coins = GamblingHandler::coins(&mut *tx, interaction.user.id).await?;
+        let coins = GamblingManager::coins(&mut tx, interaction.user.id).await?;
 
         tx.commit().await?;
 
@@ -74,14 +65,8 @@ impl Commands {
             .await
             .game_cache()
             .check_and_set(interaction.user.id)?;
-        EffectsHandler::bet_limit::<GamblingHandler>(
-            pool,
-            interaction.user.id,
-            bet,
-            coins,
-        )
-        .await?;
-        if !GamblingHandler::bet(pool, interaction.user.id, bet).await? {
+        EffectsManager::bet_limit(pool, interaction.user.id, bet, coins).await?;
+        if !GamblingManager::bet(pool, interaction.user.id, bet).await? {
             return Err(GamblingError::InsufficientFunds {
                 required: bet,
                 currency: ShopCurrency::Coins,
@@ -127,33 +112,31 @@ impl Commands {
         let game = GameDetails::new(bet, player_hand, dealer_hand[0]);
 
         if player_value == 21 && dealer_value == 21 {
-            let response =
-                game_end_draw::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-                    ctx,
-                    pool,
-                    &emojis,
-                    interaction.user.id,
-                    interaction.channel_id,
-                    game,
-                    &dealer_hand,
-                )
-                .await?;
+            let response = game_end_draw(
+                ctx,
+                pool,
+                &emojis,
+                interaction.user.id,
+                interaction.channel_id,
+                game,
+                &dealer_hand,
+            )
+            .await?;
 
             interaction.edit_response(&ctx.http, response).await?;
 
             return Ok(());
         } else if player_value == 21 {
-            let response =
-                game_end_blackjack::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-                    ctx,
-                    pool,
-                    &emojis,
-                    interaction.user.id,
-                    interaction.channel_id,
-                    game,
-                    &dealer_hand,
-                )
-                .await?;
+            let response = game_end_blackjack(
+                ctx,
+                pool,
+                &emojis,
+                interaction.user.id,
+                interaction.channel_id,
+                game,
+                &dealer_hand,
+            )
+            .await?;
 
             interaction.edit_response(&ctx.http, response).await?;
 

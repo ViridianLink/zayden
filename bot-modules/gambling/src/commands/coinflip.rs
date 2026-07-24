@@ -11,38 +11,21 @@ use serenity::all::{
     ResolvedOption,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, parse_options};
 
 use super::Commands;
 use crate::events::{Dispatch, Event, GameEvent};
-use crate::models::gambling::GamblingManager;
 use crate::utils::{Emoji, GameResult, game_embed};
-use crate::{
-    Coins,
-    EffectsManager,
-    GamblingData,
-    GamblingError,
-    GameManager,
-    GameRow,
-    GoalsManager,
-    Result,
-};
+use crate::{Coins, EffectsManager, GamblingData, GamblingError, GameRow, Result};
 
 impl Commands {
-    pub async fn coinflip<
-        Data: GamblingData + EmojiCacheData,
-        Db: Database,
-        GamblingHandler: GamblingManager<Db>,
-        GoalsHandler: GoalsManager<Db> + Send + Sync,
-        EffectsHandler: EffectsManager<Db> + Send,
-        GameHandler: GameManager<Db>,
-    >(
+    pub async fn coinflip<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
@@ -60,20 +43,15 @@ impl Commands {
             return Err(GamblingError::InvalidAmount);
         };
 
-        let mut row = GameHandler::row(pool, interaction.user.id)
+        let mut row = GameRow::get(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
         let data = ctx.data::<RwLock<Data>>();
 
         data.read().await.game_cache().check_and_set(interaction.user.id)?;
-        EffectsHandler::bet_limit::<GamblingHandler>(
-            pool,
-            interaction.user.id,
-            bet,
-            row.coins(),
-        )
-        .await?;
+        EffectsManager::bet_limit(pool, interaction.user.id, bet, row.coins())
+            .await?;
         row.bet(bet);
 
         let heads = rand::random_bool(0.5);
@@ -91,7 +69,7 @@ impl Commands {
             data.emojis()
         };
 
-        Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, &emojis)
+        Dispatch::new(&ctx.http, pool, &emojis)
             .fire(
                 interaction.channel_id,
                 &mut row,
@@ -105,7 +83,7 @@ impl Commands {
             )
             .await?;
 
-        let payout_result = EffectsHandler::payout(
+        let payout_result = EffectsManager::payout(
             pool,
             interaction.user.id,
             "coinflip",
@@ -120,7 +98,7 @@ impl Commands {
 
         let coins = row.coins();
 
-        GameHandler::save(pool, row).await?;
+        GameRow::save(pool, row).await?;
 
         let (coin, title) = if edge {
             (prediction, "Coin Flip - EDGE ROLL!")

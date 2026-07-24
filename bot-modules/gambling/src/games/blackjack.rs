@@ -20,7 +20,7 @@ use serenity::all::{
     parse_emoji,
 };
 use serenity::small_fixed_array::FixedString;
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{EmojiCache, FormatNum};
 
 use crate::events::{Dispatch, Event, GameEvent};
@@ -31,9 +31,7 @@ use crate::{
     Coins,
     EffectsManager,
     GamblingError,
-    GameManager,
     GameRow,
-    GoalsManager,
     Result,
     card_deck,
 };
@@ -359,14 +357,9 @@ struct GameOutcome {
     win: Option<bool>,
 }
 
-async fn game_end_common<
-    Db: Database,
-    GoalsHandler: GoalsManager<Db> + Send + Sync,
-    EffectsHandler: EffectsManager<Db> + Send,
-    GameHandler: GameManager<Db>,
->(
+async fn game_end_common(
     ctx: &Context,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     emojis: &EmojiCache,
     user_id: UserId,
     channel_id: GenericChannelId,
@@ -374,11 +367,10 @@ async fn game_end_common<
 ) -> Result<(i64, i64, Vec<AppliedEffect>)> {
     let GameOutcome { bet, mut payout, win } = outcome;
 
-    let mut row = GameHandler::row(pool, user_id)
-        .await?
-        .unwrap_or_else(|| GameRow::new(user_id));
+    let mut row =
+        GameRow::get(pool, user_id).await?.unwrap_or_else(|| GameRow::new(user_id));
 
-    let dispatch = Dispatch::<Db, GoalsHandler>::new(&ctx.http, pool, emojis);
+    let dispatch = Dispatch::new(&ctx.http, pool, emojis);
 
     dispatch
         .fire(
@@ -395,14 +387,14 @@ async fn game_end_common<
         .await?;
 
     let payout_result =
-        EffectsHandler::payout(pool, user_id, "blackjack", bet, payout, win).await;
+        EffectsManager::payout(pool, user_id, "blackjack", bet, payout, win).await;
     payout = payout_result.payout;
 
     row.add_coins(payout);
 
     let coins = row.coins();
 
-    GameHandler::save(pool, row).await?;
+    GameRow::save(pool, row).await?;
 
     Ok((payout, coins, payout_result.effects))
 }
@@ -422,15 +414,9 @@ fn build_hand_str(
     Ok(s)
 }
 
-pub async fn game_end_draw<
-    'a,
-    Db: Database,
-    GoalsHandler: GoalsManager<Db> + Send + Sync,
-    EffectsHandler: EffectsManager<Db> + Send,
-    GameHandler: GameManager<Db>,
->(
+pub async fn game_end_draw<'a>(
     ctx: &Context,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     emojis: &EmojiCache,
     user_id: UserId,
     channel_id: GenericChannelId,
@@ -441,14 +427,11 @@ pub async fn game_end_draw<
     let dealer_value = sum_cards(emojis, dealer_hand)?;
 
     let (_, coins, _) =
-        game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-            ctx,
-            pool,
-            emojis,
-            user_id,
-            channel_id,
-            GameOutcome { bet, payout: bet, win: None },
-        )
+        game_end_common(ctx, pool, emojis, user_id, channel_id, GameOutcome {
+            bet,
+            payout: bet,
+            win: None,
+        })
         .await?;
 
     let card_to_num = get_card_values(emojis)?;
@@ -476,15 +459,9 @@ pub async fn game_end_draw<
     Ok(EditInteractionResponse::new().embed(embed).components(Vec::new()))
 }
 
-pub async fn game_end_blackjack<
-    'a,
-    Db: Database,
-    GoalsHandler: GoalsManager<Db> + Send + Sync,
-    EffectsHandler: EffectsManager<Db>,
-    GameHandler: GameManager<Db>,
->(
+pub async fn game_end_blackjack<'a>(
     ctx: &Context,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     emojis: &EmojiCache,
     user_id: UserId,
     channel_id: GenericChannelId,
@@ -496,14 +473,11 @@ pub async fn game_end_blackjack<
     let dealer_value = sum_cards(emojis, dealer_hand)?;
 
     let (payout, coins, effects) =
-        game_end_common::<Db, GoalsHandler, EffectsHandler, GameHandler>(
-            ctx,
-            pool,
-            emojis,
-            user_id,
-            channel_id,
-            GameOutcome { bet, payout, win: Some(true) },
-        )
+        game_end_common(ctx, pool, emojis, user_id, channel_id, GameOutcome {
+            bet,
+            payout,
+            win: Some(true),
+        })
         .await?;
 
     let card_to_num = get_card_values(emojis)?;

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use jiff::tz::TimeZone;
 use jiff_sqlx::{Date, ToSqlx};
 use serenity::all::{
@@ -10,7 +9,7 @@ use serenity::all::{
     EditInteractionResponse,
     UserId,
 };
-use sqlx::{Database, FromRow, Pool};
+use sqlx::{FromRow, PgPool};
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64};
 
@@ -21,7 +20,6 @@ use crate::{
     GamblingGoalsRow,
     Gems,
     GoalHandler,
-    GoalsManager,
     MaxBet,
     Prestige,
     Result,
@@ -29,22 +27,55 @@ use crate::{
     tomorrow,
 };
 
-#[async_trait]
-pub trait DailyManager<Db: Database> {
-    async fn daily_row(
-        pool: &Pool<Db>,
-        id: UserId,
-    ) -> sqlx::Result<Option<DailyRow>>;
-    async fn goal_rows(
-        pool: &Pool<Db>,
-        id: UserId,
-    ) -> sqlx::Result<Vec<GamblingGoalsRow>>;
+pub struct DailyManager;
 
-    async fn claim_daily(
-        pool: &Pool<Db>,
+impl DailyManager {
+    pub async fn daily_row(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<Option<DailyRow>> {
+        sqlx::query_file_as!(
+            DailyRow,
+            "sql/DailyManager/daily_row.sql",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await
+    }
+
+    pub async fn goal_rows(
+        pool: &PgPool,
+        id: UserId,
+    ) -> sqlx::Result<Vec<GamblingGoalsRow>> {
+        sqlx::query_file_as!(
+            GamblingGoalsRow,
+            "sql/DailyManager/goal_rows.sql",
+            as_i64(id.get())
+        )
+        .fetch_all(pool)
+        .await
+    }
+
+    pub async fn claim_daily(
+        pool: &PgPool,
         id: UserId,
         amount: i64,
-    ) -> sqlx::Result<bool>;
+    ) -> sqlx::Result<bool> {
+        let result = sqlx::query!(
+            "INSERT INTO gambling (user_id, coins, daily)
+            VALUES ($1, $2, (now() AT TIME ZONE 'UTC')::date)
+            ON CONFLICT (user_id) DO UPDATE SET
+                coins = gambling.coins + $2,
+                daily = (now() AT TIME ZONE 'UTC')::date
+            WHERE gambling.daily <> (now() AT TIME ZONE 'UTC')::date",
+            as_i64(id.get()),
+            amount,
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(result.rows_affected() == 1)
+    }
 }
 
 #[derive(FromRow)]
@@ -104,18 +135,14 @@ impl MaxBet for DailyRow {
 }
 
 impl Commands {
-    pub async fn daily<
-        Data: EmojiCacheData,
-        Db: Database,
-        Manager: DailyManager<Db> + GoalsManager<Db>,
-    >(
+    pub async fn daily<Data: EmojiCacheData>(
         ctx: &Context,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(&ctx.http).await?;
 
-        let mut row = Manager::daily_row(pool, interaction.user.id)
+        let mut row = DailyManager::daily_row(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| DailyRow::new(interaction.user.id));
 
@@ -129,7 +156,7 @@ impl Commands {
         let amount = START_AMOUNT * (row.prestige.unwrap_or_default() + 1);
 
         let claimed =
-            Manager::claim_daily(pool, interaction.user.id, amount).await?;
+            DailyManager::claim_daily(pool, interaction.user.id, amount).await?;
         if !claimed {
             return Err(GamblingError::DailyClaimed(tomorrow(Some(now))?));
         }
@@ -137,15 +164,11 @@ impl Commands {
         *row.coins_mut() += amount;
         row.daily = today.to_sqlx();
 
-        let mut goals = Manager::goal_rows(pool, interaction.user.id).await?;
+        let mut goals = DailyManager::goal_rows(pool, interaction.user.id).await?;
         if goals.is_empty() || !goals.first().is_some_and(GamblingGoalsRow::is_today)
         {
-            goals = GoalHandler::daily_reset::<Db, Manager>(
-                pool,
-                interaction.user.id,
-                &row,
-            )
-            .await?;
+            goals =
+                GoalHandler::daily_reset(pool, interaction.user.id, &row).await?;
         }
 
         let goals_str = goals
