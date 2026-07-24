@@ -14,13 +14,16 @@ pub enum LlamaD2Error {
 
     #[error(transparent)]
     Discord(#[from] serenity::Error),
+
+    #[error(transparent)]
+    Database(#[from] sqlx::Error),
 }
 
 impl Respond for LlamaD2Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::IncorrectCodeword => Some(Cow::Owned(self.to_string())),
-            Self::Internal(_) | Self::Discord(_) => None,
+            Self::Internal(_) | Self::Discord(_) | Self::Database(_) => None,
         }
     }
 }

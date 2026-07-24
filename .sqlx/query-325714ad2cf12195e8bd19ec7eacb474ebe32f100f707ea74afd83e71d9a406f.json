@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO llamad2_counters (name, count)\n                 VALUES ($1, 1)\n             ON CONFLICT (name)\n                 DO UPDATE SET count = llamad2_counters.count + 1\n             RETURNING count",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "llamad2_counters",
+            "name": "count"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "325714ad2cf12195e8bd19ec7eacb474ebe32f100f707ea74afd83e71d9a406f"
+}

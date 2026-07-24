@@ -13,6 +13,35 @@ placement) problem.
 ## Findings
 
 ### 1. Blocking `std::fs` counter persistence on async path  ·  #3  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24, folds in #2):** Both counters moved to the DB. New migration
+  `0016_llamad2_counters` adds `llamad2_counters (name text PRIMARY KEY, count
+  bigint NOT NULL DEFAULT 0)`; the two blocking read-modify-rewrite sites
+  (`counting_fail.rs`, `goof.rs`) are replaced with a single **atomic** upsert —
+  `INSERT … VALUES ($1, 1) ON CONFLICT (name) DO UPDATE SET count =
+  llamad2_counters.count + 1 RETURNING count` (compile-time `query_scalar!`) — so
+  the increment is server-side (`count = count + 1`, per
+  [CC-9](_cross-cutting.md#cc-9), *not* read-then-absolute-write), removing both
+  the reactor-blocking `std::fs` and the concurrent-message lost-update race in
+  one change. This also fixes the pre-existing empty-file bug (a freshly
+  `create`d file made `serde_json::from_str("")` error): a missing row now inserts
+  count = 1. Both `run`s take `&PgPool` (`message_create` passes its `pool`; the
+  `goof` binding passes `&cx.app.db`) and return `crate::Result` (new
+  `LlamaD2Error::Database(#[from] sqlx::Error)`). Dropped the now-unused `serde`
+  /`serde_json` deps, added `sqlx` (`cargo machete` clean). `.sqlx/` regenerated
+  `--all-features` (one new entry; no LEFT JOIN, so plan-insensitive — the other
+  cache entries are unchanged). **No regression test:** the fix is a DB-only
+  atomic write with no pure-logic surface, and the workspace has no live-`PgPool`
+  test harness ([CC-6](_cross-cutting.md#cc-6)) — same posture as gold-star/lfg
+  DS-1, temp-voice DS-2; the compile-time SQL check is the net. Counters remain
+  global (name-keyed), matching prior behaviour — no per-guild scope change.
+  **One-time data migration (temporary):** `counter_migration::migrate_json_counters`
+  (called once at startup in `bot/src/main.rs`, after `migrate!`) reads any
+  surviving legacy `countingFails.json`/`dumbCount.json`, seeds the DB with
+  `GREATEST(existing, file)` (never lowers a count), and deletes the file only on
+  a successful seed — so the accumulated on-disk counts are not lost on first
+  deploy. It is self-contained and marked for removal (with the re-added
+  `serde_json` dep) once it has run in production.
 - **Where:** `src/counting_fail.rs:31-48` (`OpenOptions`… `write_all`, file
   `countingFails.json`), `src/goof.rs:26-43` (file `dumbCount.json`). Both inside
   `async fn run(...)`.
@@ -26,9 +55,11 @@ placement) problem.
   placement problem at once. See also [CC-5](_cross-cutting.md#cc-5).
 
 ### 2. Counter state belongs in the DB  ·  #5  ·  med
+- **Status:** `in-review` (folded into finding #1)            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** same as #1 (`countingFails.json`, `dumbCount.json`).
 - **What / Why / Fix:** Persistent per-guild counters stored outside the DB.
-  Fold into the fix for #1.
+  Fold into the fix for #1. **Resolved by finding #1's fix** — both counters now
+  live in the `llamad2_counters` DB table (migration `0016_llamad2_counters`).
 
 ### 3. No integration tests  ·  #6  ·  low
 - **Where:** no `tests/` directory. Low priority — mostly cosmetic handlers.

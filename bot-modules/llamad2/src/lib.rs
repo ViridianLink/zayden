@@ -4,6 +4,7 @@ pub mod error;
 pub use error::{LlamaD2Error, Result};
 
 mod behind_the_scenes;
+mod counter_migration;
 mod counting_fail;
 mod dungeon_report;
 mod goodmorning;
@@ -16,6 +17,7 @@ mod socials;
 mod status_update;
 
 pub use behind_the_scenes::BehindTheScenes;
+pub use counter_migration::migrate_json_counters;
 pub use counting_fail::CountingFail;
 pub use dungeon_report::DungeonReport;
 pub use goodmorning::{GoodMorning, GoodMorningCache};

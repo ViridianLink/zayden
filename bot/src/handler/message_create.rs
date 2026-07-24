@@ -46,7 +46,7 @@ impl Handler {
         let (..) = tokio::try_join!(
             llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
-            llamad2::CountingFail::run(ctx, msg).map(Result::Ok),
+            llamad2::CountingFail::run(ctx, msg, pool).map(Result::Ok),
             Box::pin(support(&ctx.http, msg, stores, pool)),
             Box::pin(Ai::run(ctx, msg, &app)),
         )?;
