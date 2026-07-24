@@ -1,6 +1,6 @@
 use jiff_cron;
-use sqlx::postgres::PgQueryResult;
 use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use zayden_core::CronJob;
 
 pub const MAX_STAMINA: i32 = 3;

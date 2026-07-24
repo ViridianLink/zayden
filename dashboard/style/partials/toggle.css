@@ -1,0 +1,39 @@
+/* Toggle switch */
+
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  border: none;
+  background-color: var(--overlay-3);
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-spring);
+  flex-shrink: 0;
+}
+
+.toggle-on {
+  background: var(--accent-gradient);
+}
+
+.toggle::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background-color: #fff;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+.toggle-on::after {
+  transform: translateX(20px);
+}
+
+.toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

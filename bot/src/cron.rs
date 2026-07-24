@@ -17,8 +17,7 @@ use crate::{BotState, Result};
 pub struct EntitlementSweepCron;
 
 impl EntitlementSweepCron {
-    pub fn cron_job()
-    -> std::result::Result<CronJob, jiff_cron::error::Error> {
+    pub fn cron_job() -> std::result::Result<CronJob, jiff_cron::error::Error> {
         CronJob::new("entitlement_expiry_sweep", "0 0 * * * * *").map(|job| {
             job.set_action(|ctx, _pool| async move {
                 let entitlements = {

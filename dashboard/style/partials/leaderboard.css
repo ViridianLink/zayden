@@ -1,0 +1,75 @@
+/* Leaderboard */
+
+.leaderboard {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  background-color: var(--bg-card);
+}
+
+.lb-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr 5rem 6rem 7rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1.1rem;
+  border-top: 1px solid var(--border);
+}
+
+.lb-row:first-child {
+  border-top: none;
+}
+
+.lb-head {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  background-color: var(--overlay-1);
+}
+
+.lb-rank {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-user {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.lb-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  flex-shrink: 0;
+  background-color: var(--overlay-2);
+}
+
+.lb-avatar.placeholder {
+  background: var(--accent-gradient);
+}
+
+.lb-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lb-num {
+  text-align: right;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-head .lb-num {
+  color: var(--text-tertiary);
+}

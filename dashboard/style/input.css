@@ -6,7 +6,14 @@
 @import "./partials/landing.css";
 @import "./partials/layout.css";
 @import "./partials/pages.css";
-@import "./partials/components.css";
+@import "./partials/card.css";
+@import "./partials/module-card.css";
+@import "./partials/settings.css";
+@import "./partials/upgrade.css";
+@import "./partials/toggle.css";
+@import "./partials/segmented.css";
+@import "./partials/leaderboard.css";
+@import "./partials/pager.css";
 @import "./partials/responsive.css";
 
 @source "../src/**/*.rs";

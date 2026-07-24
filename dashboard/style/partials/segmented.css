@@ -1,0 +1,33 @@
+/* Segmented control (scope switch) */
+
+.segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background-color: var(--overlay-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+
+.segmented .seg {
+  padding: 0.4rem 0.95rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease-spring),
+    color 0.2s var(--ease-spring);
+}
+
+.segmented .seg:hover {
+  color: var(--text-primary);
+}
+
+.segmented .seg.active {
+  background: var(--accent-gradient);
+  color: #fff;
+}

@@ -69,7 +69,26 @@ pattern before the larger crates.
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 4. Leaderboard / rank are better as dashboard read-views  ·  #8  ·  low
-- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24, task 2 of 2 — dashboard read-view):** Built the web
+  leaderboard the backend (task 1) unblocked. New `dashboard/src/server/levels.rs`
+  `get_leaderboard(guild, global, page)` server fn reads `guild_levels` (guild
+  scope) or `levels` (global scope) directly with `query_as!` — the SQL strings
+  are kept **byte-identical** to `levels::LeaderboardRow::{guild,global}_leaderboard`
+  so the shared `.sqlx` offline cache is reused (`git status .sqlx` clean, no
+  regeneration; offline SSR build verified). It gates on `guild_admin_context`
+  (same as every other `/guild/:id/*` fn, both scopes) and resolves display
+  names/avatars best-effort via the bot's twilight client (falls back to the raw
+  id on lookup failure — no serenity/bot-module dep pulled into the web crate).
+  New `LevelsPage` (`ui/pages/levels.rs`) renders a paged table with a
+  guild/global segmented toggle (resets to page 1 on flip; "Next" gated on a full
+  page); routed at `/guild/:id/levels`, linked from the guild sidebar
+  (`trophy` icon). `LeaderboardEntry` DTO + leaderboard/segmented/pager CSS in
+  `style/partials/components.css`. No test (DB + Discord + WASM UI, no dashboard
+  lib test target — see [CC-6](_cross-cutting.md#cc-6)); task 1's `tests/logic.rs`
+  already covers the XP-curve math. **Residual:** per-page name resolution is
+  ≤10 sequential Discord calls (a `users`-table name cache / bulk member fetch is
+  a later optimisation, not a correctness issue).
 - **Progress (2026-07-24, task 1 of 2 — levels dual-scope backend):** Reframed per
   the guild+global scope decision. The global `levels` table is unchanged; a new
   `guild_levels (guild_id, user_id PK)` table (migration `0017`) tracks per-guild

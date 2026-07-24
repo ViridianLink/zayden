@@ -18,11 +18,7 @@ const COUNTER: &str = "counting_fails";
 pub struct CountingFail;
 
 impl CountingFail {
-    pub async fn run(
-        ctx: &Context,
-        message: &Message,
-        pool: &PgPool,
-    ) -> Result<()> {
+    pub async fn run(ctx: &Context, message: &Message, pool: &PgPool) -> Result<()> {
         if message.channel_id.expect_channel() != COUNTING_CHANNEL
             || !message.content.contains(" RUINED IT AT ")
         {

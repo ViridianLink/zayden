@@ -16,8 +16,8 @@ use serenity::all::{
     ModalInteraction,
     RoleId,
 };
-use sqlx::prelude::FromRow;
 use sqlx::PgPool;
+use sqlx::prelude::FromRow;
 use tracing::warn;
 use zayden_core::{CronJobData, as_u64, parse_modal_components};
 

@@ -21,10 +21,7 @@ use crate::{Join, PostRow};
     clippy::significant_drop_tightening,
     reason = "jobs borrows from the write guard and must be held for the full extend call"
 )]
-pub async fn create_reminders<Data: CronJobData>(
-    ctx: &Context,
-    row: &PostRow,
-) {
+pub async fn create_reminders<Data: CronJobData>(ctx: &Context, row: &PostRow) {
     let post_id = row.thread();
     let start_time = row.start_time.to_jiff().to_zoned(TimeZone::UTC);
 

@@ -6,6 +6,7 @@ use leptos_router::path;
 use crate::ui::pages::guild_settings::GuildSettingsPage;
 use crate::ui::pages::guilds::GuildListPage;
 use crate::ui::pages::landing::LandingPage;
+use crate::ui::pages::levels::LevelsPage;
 use crate::ui::pages::login::LoginPage;
 use crate::ui::pages::modules::GuildOverviewPage;
 use crate::ui::pages::not_found::NotFound;
@@ -51,6 +52,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/guilds") view=GuildListPage/>
                 <Route path=path!("/guild/:id") view=GuildOverviewPage/>
                 <Route path=path!("/guild/:id/settings") view=GuildSettingsPage/>
+                <Route path=path!("/guild/:id/levels") view=LevelsPage/>
             </Routes>
         </Router>
     }
