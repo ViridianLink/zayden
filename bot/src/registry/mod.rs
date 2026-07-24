@@ -1,10 +1,7 @@
-pub mod dispatch_map;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
-use dispatch_map::DispatchMap;
-pub use dispatch_map::OverlapError;
 use serenity::all::{
     CommandInteraction,
     ComponentInteraction,
@@ -18,6 +15,8 @@ use serenity::all::{
 use tracing::warn;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState;
+use zayden_core::DispatchMap;
+pub use zayden_core::OverlapError;
 use zayden_core::ctx::{AutocompleteCtx, ComponentCtx, InvocationCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{
@@ -28,10 +27,6 @@ use zayden_core::module::{
 };
 use zayden_core::scope::CommandScope;
 
-/// Mutable builder used at startup to register all module handlers.
-///
-/// Consume via [`RegistryBuilder::build`] to produce a frozen
-/// [`CommandRegistry`].
 pub struct RegistryBuilder {
     commands: HashMap<Cow<'static, str>, Arc<dyn ModuleCommand>>,
     components: DispatchMap<dyn ModuleComponent>,
@@ -100,10 +95,6 @@ impl RegistryBuilder {
     }
 }
 
-/// Immutable, frozen command registry shared by all handler tasks.
-///
-/// Constructed once at startup via [`RegistryBuilder::build`] and stored in
-/// `Arc<CommandRegistry>` on the [`Handler`].
 pub struct CommandRegistry {
     commands: HashMap<Cow<'static, str>, Arc<dyn ModuleCommand>>,
     components: DispatchMap<dyn ModuleComponent>,
@@ -112,8 +103,6 @@ pub struct CommandRegistry {
 }
 
 impl CommandRegistry {
-    /// Return the slash-command definitions that should be registered for
-    /// `guild_id`, honouring each command's [`CommandScope`].
     #[must_use]
     pub fn definitions_for(&self, guild_id: GuildId) -> Vec<CreateCommand<'static>> {
         self.commands

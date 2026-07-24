@@ -9,6 +9,7 @@ mod roster;
 mod type_chart;
 mod upload;
 
+pub use breed_plan::gender_gap;
 use serenity::all::{
     CommandOptionType,
     CreateCommand,

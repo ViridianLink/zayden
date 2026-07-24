@@ -21,6 +21,9 @@ pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
 pub mod cron;
 pub use cron::{ActionFn, CronJob, CronJobData};
 
+pub mod dispatch_map;
+pub use dispatch_map::{DispatchMap, OverlapError};
+
 pub mod modals;
 pub use modals::{parse_modal_components, parse_text_components};
 

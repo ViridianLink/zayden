@@ -51,7 +51,33 @@ served by the website — and two `setup` commands already duplicate its writes.
   `levels` are the smallest starting points; `gambling` is the largest.
 
 ### CC-2. Inline `#[cfg(test)] mod tests` in `src/` (convention violation)  ·  #6  ·  med
-
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24):** Relocated the **7 surviving** inline `#[cfg(test)]` modules
+  (the original list's `gambling/components/tictactoe.rs` and `family/family_manager.rs`
+  sites were already deleted/renamed by the CC-1 migrations) to `tests/` integration
+  files, exposing the minimum surface for each:
+  - `zayden-core/src/snowflake.rs` → `zayden-core/tests/snowflake.rs` (fns already `pub`).
+  - `zayden-app/src/entitlement/types.rs` → appended to `zayden-app/tests/entitlement.rs`
+    (`EntitlementScope` API already `pub`).
+  - `temp-voice/src/voice_channel_manager.rs` → `temp-voice/tests/voice_channel_row.rs`
+    (`VoiceChannelRow` API already `pub`).
+  - `temp-voice/src/commands/mod.rs` (`has_manage_channels`) → `temp-voice/tests/permissions.rs`
+    (made the fn `pub`, reachable via `commands::has_manage_channels`).
+  - `family/src/commands/information/siblings.rs` (`collect_sibling_ids`) →
+    `family/tests/siblings.rs` (made the fn `pub`, re-exported via `commands`).
+  - `palworld/src/commands/breed_plan.rs` (`gender_gap`) → `palworld/tests/gender_gap.rs`
+    (made the fn `pub`, re-exported via `commands`; the now-public-API `implicit_hasher`
+    lint required generalising its `HashMap` over `BuildHasher`).
+  - **`bot/src/registry/dispatch_map.rs`** (the flagged no-lib-target case): moved
+    `DispatchMap`/`OverlapError` **into `zayden-core`** (`src/dispatch_map.rs`, re-exported
+    from its `lib.rs`) — they are generic routing infra whose only dependency,
+    `IdMatch`, already lives there. `bot::registry` now imports `zayden_core::DispatchMap`
+    and re-exports `OverlapError` (bindings' `crate::registry::OverlapError` path
+    unchanged). Test → `zayden-core/tests/dispatch_map.rs`.
+  All 35 relocated tests pass. Gate green: `cargo +nightly clippy --workspace
+  --all-targets -D warnings` clean, `cargo test` green, no new `#[allow]`/`#[expect]`.
+  No SQL / `Cargo.toml` dep change, so no `.sqlx`/`machete` delta. **Residual:** none for
+  CC-2; the `DispatchMap` relocation makes a `bot` lib target unnecessary.
 - **Where:** `bot/src/registry/dispatch_map.rs:103`,
   `bot-modules/palworld/src/commands/breed_plan.rs:147`,
   `bot-modules/gambling/src/components/tictactoe.rs:509`,

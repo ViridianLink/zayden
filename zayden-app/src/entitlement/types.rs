@@ -48,12 +48,6 @@ impl std::str::FromStr for Tier {
     }
 }
 
-/// Identifies the principal (user, guild, or both) for an entitlement check.
-///
-/// `scope_id` maps to `user_id` for `User`, `guild_id` for `Guild`, and
-/// `(user_id, guild_id)` for `UserInGuild`. The integer widths match Serenity's
-/// `UserId`/`GuildId` newtypes without creating a Serenity dependency in this
-/// crate.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EntitlementScope {
     User(u64),
@@ -93,8 +87,6 @@ impl EntitlementScope {
         }
     }
 
-    /// Encodes the scope as a `pg_notify` payload string:
-    /// `"scope_type:scope_id:scope_secondary_id"`.
     #[must_use]
     pub fn to_notify_payload(&self) -> String {
         format!(
@@ -105,7 +97,6 @@ impl EntitlementScope {
         )
     }
 
-    /// Decodes a `pg_notify` payload string produced by `to_notify_payload`.
     pub fn from_notify_payload(s: &str) -> Result<Self, ParseError> {
         let mut parts = s.splitn(3, ':');
         let scope_type =
@@ -138,38 +129,5 @@ impl EntitlementScope {
             },
             other => Err(ParseError(format!("unknown scope_type: {other}"))),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn notify_payload_round_trips_all_variants() {
-        let cases = [
-            EntitlementScope::User(123_456_789),
-            EntitlementScope::Guild(987_654_321),
-            EntitlementScope::UserInGuild(111_111_111, 222_222_222),
-        ];
-        for scope in &cases {
-            let payload = scope.to_notify_payload();
-            let result = EntitlementScope::from_notify_payload(&payload);
-            assert!(
-                result.is_ok(),
-                "round-trip failed for {scope:?}: {:?}",
-                result.err()
-            );
-            if let Ok(decoded) = result {
-                assert_eq!(scope, &decoded, "payload was: {payload:?}");
-            }
-        }
-    }
-
-    #[test]
-    fn from_notify_payload_rejects_invalid_input() {
-        assert!(EntitlementScope::from_notify_payload("badtype:1:0").is_err());
-        assert!(EntitlementScope::from_notify_payload("user:notanumber:0").is_err());
-        assert!(EntitlementScope::from_notify_payload("").is_err());
     }
 }

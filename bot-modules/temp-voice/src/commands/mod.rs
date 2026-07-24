@@ -55,7 +55,8 @@ use zayden_core::{optional_option, parse_options, parse_subcommand};
 
 use crate::{Result, TempVoiceError, VoiceChannelRow, VoiceStateCache};
 
-fn has_manage_channels(permissions: Option<Permissions>) -> bool {
+#[must_use]
+pub fn has_manage_channels(permissions: Option<Permissions>) -> bool {
     permissions.is_some_and(Permissions::manage_channels)
 }
 
@@ -535,32 +536,5 @@ impl VoiceCommand {
                     "The voice channel to persist.",
                 )),
             )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn has_manage_channels_true_when_permission_granted() {
-        assert!(has_manage_channels(Some(Permissions::MANAGE_CHANNELS)));
-    }
-
-    #[test]
-    fn has_manage_channels_true_with_other_permissions_present() {
-        assert!(has_manage_channels(Some(
-            Permissions::MANAGE_CHANNELS | Permissions::SEND_MESSAGES
-        )));
-    }
-
-    #[test]
-    fn has_manage_channels_false_when_permission_absent() {
-        assert!(!has_manage_channels(Some(Permissions::SEND_MESSAGES)));
-    }
-
-    #[test]
-    fn has_manage_channels_false_when_permissions_missing() {
-        assert!(!has_manage_channels(None));
     }
 }

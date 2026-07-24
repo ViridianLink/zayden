@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::BuildHasher;
 
 use serenity::all::ResolvedValue;
 use sqlx::PgPool;
@@ -121,10 +122,10 @@ pub(super) async fn run(
     .await
 }
 
-fn gender_gap(
+pub fn gender_gap<S: BuildHasher>(
     a: &str,
     b: &str,
-    owned_gender: &HashMap<&str, (bool, bool)>,
+    owned_gender: &HashMap<&str, (bool, bool), S>,
     display: &impl Fn(&str) -> String,
 ) -> Option<String> {
     let ga = owned_gender.get(a).copied()?;
@@ -142,63 +143,4 @@ fn gender_gap(
         return None;
     }
     Some(format!("an opposite-gender **{}** or **{}**", display(a), display(b)))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn owned<'a>(
-        entries: &[(&'a str, (bool, bool))],
-    ) -> HashMap<&'a str, (bool, bool)> {
-        entries.iter().copied().collect()
-    }
-
-    fn id(key: &str) -> String {
-        key.to_string()
-    }
-
-    #[test]
-    fn same_species_single_gender_needs_opposite() {
-        let g = owned(&[("A", (true, false))]);
-        assert_eq!(
-            gender_gap("A", "A", &g, &id),
-            Some("another **A** (female)".to_string())
-        );
-
-        let g = owned(&[("A", (false, true))]);
-        assert_eq!(
-            gender_gap("A", "A", &g, &id),
-            Some("another **A** (male)".to_string())
-        );
-    }
-
-    #[test]
-    fn same_species_both_genders_has_no_gap() {
-        let g = owned(&[("A", (true, true))]);
-        assert_eq!(gender_gap("A", "A", &g, &id), None);
-    }
-
-    #[test]
-    fn different_species_same_gender_needs_opposite() {
-        let g = owned(&[("A", (true, false)), ("B", (true, false))]);
-        assert_eq!(
-            gender_gap("A", "B", &g, &id),
-            Some("an opposite-gender **A** or **B**".to_string())
-        );
-    }
-
-    #[test]
-    fn different_species_compatible_has_no_gap() {
-        let g = owned(&[("A", (true, false)), ("B", (false, true))]);
-        assert_eq!(gender_gap("A", "B", &g, &id), None);
-    }
-
-    #[test]
-    fn unowned_parent_yields_no_gap() {
-        // A parent that will be caught or bred is not an owned-gender problem.
-        let g = owned(&[("A", (true, false))]);
-        assert_eq!(gender_gap("A", "B", &g, &id), None);
-        assert_eq!(gender_gap("X", "Y", &g, &id), None);
-    }
 }

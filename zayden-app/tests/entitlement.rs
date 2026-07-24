@@ -193,3 +193,31 @@ fn discord_sku_selects_tier() {
             .expect("grant");
     assert_eq!(unknown.tier, Tier::Pro);
 }
+
+#[test]
+fn notify_payload_round_trips_all_variants() {
+    let cases = [
+        EntitlementScope::User(123_456_789),
+        EntitlementScope::Guild(987_654_321),
+        EntitlementScope::UserInGuild(111_111_111, 222_222_222),
+    ];
+    for scope in &cases {
+        let payload = scope.to_notify_payload();
+        let result = EntitlementScope::from_notify_payload(&payload);
+        assert!(
+            result.is_ok(),
+            "round-trip failed for {scope:?}: {:?}",
+            result.err()
+        );
+        if let Ok(decoded) = result {
+            assert_eq!(scope, &decoded, "payload was: {payload:?}");
+        }
+    }
+}
+
+#[test]
+fn from_notify_payload_rejects_invalid_input() {
+    assert!(EntitlementScope::from_notify_payload("badtype:1:0").is_err());
+    assert!(EntitlementScope::from_notify_payload("user:notanumber:0").is_err());
+    assert!(EntitlementScope::from_notify_payload("").is_err());
+}
