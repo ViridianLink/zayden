@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use bungie_api::BungieClient;
 use jiff_cron;
-use sqlx::Postgres;
 use zayden_core::CronJob;
 
 use crate::compendium;
@@ -14,7 +13,7 @@ impl EndgameAnalysisSheetCron {
     pub fn cron_job(
         bungie_client: Arc<BungieClient>,
         google_api_key: String,
-    ) -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    ) -> Result<CronJob, jiff_cron::error::Error> {
         CronJob::new("endgame_analysis_sheet_weekly", "0 0 0 * * Mon *").map(|job| {
             job.set_action(move |_ctx, pool| {
                 let bungie_client = Arc::clone(&bungie_client);

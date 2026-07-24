@@ -13,7 +13,7 @@ use palworld::cron::PalworldUploadSweepCron;
 use palworld::transport::Pelican;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use temp_voice::VoiceStateCache;
 use tokio::sync::RwLock;
 use zayden_app::config::BotConfig;
@@ -35,7 +35,7 @@ pub struct BotState {
     pub bungie_client: Arc<BungieClient>,
     marathon_bungie_api_key: String,
     emoji_cache: Arc<EmojiCache>,
-    cron_jobs: Vec<CronJob<Postgres>>,
+    cron_jobs: Vec<CronJob>,
     guild_members: HashMap<GuildId, Vec<UserId>>,
     gambling_cache: GameCache,
     good_morning_cache: HashMap<GenericChannelId, (UserId, bool)>,
@@ -158,12 +158,12 @@ impl EmojiCacheData for BotState {
     }
 }
 
-impl CronJobData<Postgres> for BotState {
-    fn jobs(&self) -> &[CronJob<Postgres>] {
+impl CronJobData for BotState {
+    fn jobs(&self) -> &[CronJob] {
         &self.cron_jobs
     }
 
-    fn jobs_mut(&mut self) -> &mut Vec<CronJob<Postgres>> {
+    fn jobs_mut(&mut self) -> &mut Vec<CronJob> {
         &mut self.cron_jobs
     }
 }

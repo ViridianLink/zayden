@@ -29,7 +29,6 @@ pub mod templates;
 pub mod error;
 pub use error::{CoreError, HandlerError, Respond};
 
-pub mod events;
 pub mod format_num;
 pub use format_num::FormatNum;
 

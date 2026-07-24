@@ -9,7 +9,7 @@ use serenity::all::{
     JsonErrorCode,
     ModalInteraction,
 };
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use tracing::debug;
 use zayden_core::{CronJobData, parse_modal_components};
 
@@ -22,7 +22,7 @@ use crate::{LfgError, PostBuilder, PostRow, Result, UserSettings};
 pub struct Edit;
 
 impl Edit {
-    pub async fn run<Data: CronJobData<Postgres>>(
+    pub async fn run<Data: CronJobData>(
         ctx: &Context,
         interaction: &ModalInteraction,
         pool: &PgPool,

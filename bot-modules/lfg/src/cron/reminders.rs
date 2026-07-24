@@ -10,7 +10,7 @@ use serenity::all::{
     Mentionable,
     ThreadId,
 };
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tracing::error;
 use zayden_core::{CronJob, CronJobData};
@@ -21,7 +21,7 @@ use crate::{Join, PostRow};
     clippy::significant_drop_tightening,
     reason = "jobs borrows from the write guard and must be held for the full extend call"
 )]
-pub async fn create_reminders<Data: CronJobData<Postgres>>(
+pub async fn create_reminders<Data: CronJobData>(
     ctx: &Context,
     row: &PostRow,
 ) {
@@ -32,7 +32,7 @@ pub async fn create_reminders<Data: CronJobData<Postgres>>(
     let day = &start_time - Span::new().hours(24);
     let mins_30 = &start_time - Span::new().minutes(30);
 
-    let week_job = match CronJob::<Postgres>::new(
+    let week_job = match CronJob::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -52,7 +52,7 @@ pub async fn create_reminders<Data: CronJobData<Postgres>>(
         },
     };
 
-    let day_job = match CronJob::<Postgres>::new(
+    let day_job = match CronJob::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -72,7 +72,7 @@ pub async fn create_reminders<Data: CronJobData<Postgres>>(
         },
     };
 
-    let mins_30_job = match CronJob::<Postgres>::new(
+    let mins_30_job = match CronJob::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -92,7 +92,7 @@ pub async fn create_reminders<Data: CronJobData<Postgres>>(
         },
     };
 
-    let now_job = match CronJob::<Postgres>::new(
+    let now_job = match CronJob::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",

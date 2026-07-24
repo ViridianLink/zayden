@@ -5,30 +5,28 @@ use std::sync::Arc;
 
 use jiff_cron::Schedule;
 use serenity::all::Context;
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-pub type ActionFn<Db> = Arc<
-    dyn Fn(Context, Pool<Db>) -> Pin<Box<dyn Future<Output = ()> + Send>>
+pub type ActionFn = Arc<
+    dyn Fn(Context, PgPool) -> Pin<Box<dyn Future<Output = ()> + Send>>
         + Send
         + Sync,
 >;
 
-pub trait CronJobData<Db: Database>: Send + Sync + 'static {
-    fn jobs(&self) -> &[CronJob<Db>];
+pub trait CronJobData: Send + Sync + 'static {
+    fn jobs(&self) -> &[CronJob];
 
-    fn jobs_mut(&mut self) -> &mut Vec<CronJob<Db>>;
+    fn jobs_mut(&mut self) -> &mut Vec<CronJob>;
 }
 
 #[derive(Clone)]
-pub struct CronJob<Db: Database> {
+pub struct CronJob {
     pub id: String,
     pub schedule: Schedule,
-    pub action_fn: ActionFn<Db>,
+    pub action_fn: ActionFn,
 }
 
-impl<Db: Database> CronJob<Db> {
-    /// Create a new cron job. Returns an error if `source` is not a valid cron
-    /// expression.
+impl CronJob {
     pub fn new(
         id: impl Into<String>,
         source: &str,
@@ -40,9 +38,9 @@ impl<Db: Database> CronJob<Db> {
         })
     }
 
-    fn action_fn<F, Fut>(f: F) -> ActionFn<Db>
+    fn action_fn<F, Fut>(f: F) -> ActionFn
     where
-        F: Fn(Context, Pool<Db>) -> Fut + Send + Sync + 'static,
+        F: Fn(Context, PgPool) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
         let action_closure = move |ctx, pool| {
@@ -62,7 +60,7 @@ impl<Db: Database> CronJob<Db> {
     #[must_use]
     pub fn set_action<F, Fut>(mut self, f: F) -> Self
     where
-        F: Fn(Context, Pool<Db>) -> Fut + Send + Sync + 'static,
+        F: Fn(Context, PgPool) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = ()> + Send + 'static,
     {
         self.action_fn = Self::action_fn(f);
@@ -70,7 +68,7 @@ impl<Db: Database> CronJob<Db> {
     }
 }
 
-impl<Db: Database> Debug for CronJob<Db> {
+impl Debug for CronJob {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CronJob")
             .field("id", &self.id)

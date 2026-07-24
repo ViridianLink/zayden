@@ -15,7 +15,7 @@ use compile-time macros.
 ## Findings
 
 ### 1. DB-generic `async_trait` managers (pervasive)  ·  #1  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 83930148`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** CC-1 concrete-`PgPool` migration — the final and largest
   module (after `gold-star`/`levels`/`reaction-roles`/`suggestions`/`family`/
   `temp-voice`/`lfg`). Removed all 21 generic manager traits + `#[async_trait]`

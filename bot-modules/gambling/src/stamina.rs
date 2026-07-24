@@ -1,6 +1,6 @@
 use jiff_cron;
 use sqlx::postgres::PgQueryResult;
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use zayden_core::CronJob;
 
 pub const MAX_STAMINA: i32 = 3;
@@ -21,7 +21,7 @@ impl StaminaManager {
 pub struct StaminaCron;
 
 impl StaminaCron {
-    pub fn cron_job() -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    pub fn cron_job() -> Result<CronJob, jiff_cron::error::Error> {
         Ok(CronJob::new("stamina", "0 */10 * * * * *")?.set_action(
             |_ctx, pool| async move {
                 if let Err(e) = StaminaManager::update(&pool).await {

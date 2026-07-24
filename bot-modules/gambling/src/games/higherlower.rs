@@ -37,7 +37,7 @@ impl HigherLowerManager {
 pub struct HigherLower;
 
 impl HigherLower {
-    pub fn cron_job() -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    pub fn cron_job() -> Result<CronJob, jiff_cron::error::Error> {
         Ok(CronJob::new("lotto", "0 0 17 * * Fri *")?.set_action(|ctx, pool| async move {
             if let Err(e) = (async {
                 let mut tx: Transaction<'_, Postgres> = pool.begin().await?;

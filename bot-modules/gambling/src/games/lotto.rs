@@ -138,7 +138,7 @@ pub struct Lotto;
 
 impl Lotto {
     pub fn cron_job<Data: EmojiCacheData>()
-    -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    -> Result<CronJob, jiff_cron::error::Error> {
         Ok(CronJob::new("lotto", "0 0 17 * * Fri *")?.set_action(|ctx, pool| async move {
             if let Err(e) = (async {
                 let bot_id = bot_id(&ctx.http)

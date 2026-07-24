@@ -17,7 +17,7 @@ use serenity::all::{
     RoleId,
 };
 use sqlx::prelude::FromRow;
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use tracing::warn;
 use zayden_core::{CronJobData, as_u64, parse_modal_components};
 
@@ -53,7 +53,7 @@ impl GuildRow {
 pub struct Create;
 
 impl Create {
-    pub async fn run<Data: CronJobData<Postgres>>(
+    pub async fn run<Data: CronJobData>(
         ctx: &Context,
         interaction: &ModalInteraction,
         pool: &PgPool,

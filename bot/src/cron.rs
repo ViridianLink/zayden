@@ -6,7 +6,7 @@ use futures::future;
 use jiff::tz::TimeZone;
 use jiff::{SignedDuration, Timestamp, Zoned};
 use serenity::all::Context;
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use tracing::{debug, error, info};
@@ -18,7 +18,7 @@ pub struct EntitlementSweepCron;
 
 impl EntitlementSweepCron {
     pub fn cron_job()
-    -> std::result::Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    -> std::result::Result<CronJob, jiff_cron::error::Error> {
         CronJob::new("entitlement_expiry_sweep", "0 0 * * * * *").map(|job| {
             job.set_action(|ctx, _pool| async move {
                 let entitlements = {
@@ -81,14 +81,14 @@ async fn run_cron_jobs_loop(ctx: Context, pool: PgPool) -> Result<()> {
     }
 }
 
-async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn<Postgres>)> {
-    let mut pending_jobs: Vec<(Zoned, ActionFn<Postgres>)> = Vec::new();
+async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn)> {
+    let mut pending_jobs: Vec<(Zoned, ActionFn)> = Vec::new();
 
     let data = ctx.data::<RwLock<BotState>>();
 
     let now = Timestamp::now().to_zoned(TimeZone::UTC);
 
-    let jobs: Vec<(Zoned, ActionFn<Postgres>)> = {
+    let jobs: Vec<(Zoned, ActionFn)> = {
         let mut data = data.write().await;
         // TODO(M9-correctness): verify retain predicate - `upcoming().next()`
         // already returns a future time, so `t > now` may be redundant, and

@@ -32,7 +32,7 @@ pub async fn thread_delete(
     Ok(())
 }
 
-pub async fn guild_create<Data: CronJobData<sqlx::Postgres>>(
+pub async fn guild_create<Data: CronJobData>(
     ctx: &Context,
     guild: &Guild,
     pool: &PgPool,

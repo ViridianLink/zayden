@@ -1,4 +1,3 @@
-use sqlx::Postgres;
 use tracing::{error, warn};
 use zayden_core::CronJob;
 
@@ -7,7 +6,7 @@ use crate::upload::SaveUpload;
 pub struct PalworldUploadSweepCron;
 
 impl PalworldUploadSweepCron {
-    pub fn cron_job() -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    pub fn cron_job() -> Result<CronJob, jiff_cron::error::Error> {
         CronJob::new("palworld_upload_sweep", "0 0 * * * * *").map(|job| {
             job.set_action(move |_ctx, pool| async move {
                 match SaveUpload::delete_expired(&pool).await {

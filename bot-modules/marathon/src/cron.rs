@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use reqwest::Client;
 use serenity::all::{ChannelId, CreateMessage, MessageFlags};
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use tracing::{debug, error};
 use zayden_core::{CronJob, as_u64};
 
@@ -17,7 +17,7 @@ pub struct MarathonAnnounceCron;
 impl MarathonAnnounceCron {
     pub fn cron_job(
         client: Arc<MarathonClient>,
-    ) -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    ) -> Result<CronJob, jiff_cron::error::Error> {
         CronJob::new("marathon_schedule_announce", "0 0 17,18 * * Sun,Thu *").map(|job| {
             job.set_action(move |ctx, pool| {
                 let client = Arc::clone(&client);
@@ -104,7 +104,7 @@ impl MarathonNewsCron {
     pub fn cron_job(
         client: Client,
         bungie_api_key: Option<String>,
-    ) -> Result<CronJob<Postgres>, jiff_cron::error::Error> {
+    ) -> Result<CronJob, jiff_cron::error::Error> {
         CronJob::new("marathon_news_announce", "0 0,30 * * * * *").map(|job| {
             job.set_action(move |ctx, pool| {
                 let client = client.clone();
