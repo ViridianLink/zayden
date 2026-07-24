@@ -2,13 +2,10 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use serenity::all::CreateCommand;
-use sqlx::Postgres;
 use tracing::debug;
 use zayden_core::ctx::{AutocompleteCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleAutocomplete, ModuleCommand};
-
-use super::{PostTable, UsersTable};
 
 pub struct Lfg;
 
@@ -24,13 +21,7 @@ impl ModuleCommand for Lfg {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         let options = cx.interaction.data.options();
-        lfg::Command::lfg::<Postgres, UsersTable, PostTable>(
-            &cx.ctx.http,
-            cx.interaction,
-            options,
-            &cx.app.db,
-        )
-        .await?;
+        lfg::Command::lfg(&cx.ctx.http, cx.interaction, options, &cx.app.db).await?;
         Ok(())
     }
 }

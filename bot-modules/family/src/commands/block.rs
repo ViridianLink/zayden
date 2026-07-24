@@ -71,7 +71,8 @@ impl Unblock {
 
         let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        FamilyRow::remove_block(pool, guild_id, interaction.user.id, user.id).await?;
+        FamilyRow::remove_block(pool, guild_id, interaction.user.id, user.id)
+            .await?;
 
         Ok(())
     }

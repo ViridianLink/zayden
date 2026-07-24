@@ -6,19 +6,19 @@ use serenity::all::{
     HttpError,
     JsonErrorCode,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use crate::templates::TemplateInfo;
-use crate::{LfgError, PostManager, Result};
+use crate::{LfgError, PostRow, Result};
 
-pub async fn delete<Db: Database, Manager: PostManager<Db>>(
+pub async fn delete(
     http: &Http,
     channel: impl Into<GenericChannelId>,
-    pool: &Pool<Db>,
+    pool: &PgPool,
 ) -> Result<()> {
     let channel = channel.into();
 
-    let Ok(post) = Manager::post_row(pool, channel).await else {
+    let Ok(post) = PostRow::get(pool, channel).await else {
         return Err(LfgError::ThreadNotFound);
     };
 
@@ -54,7 +54,7 @@ pub async fn delete<Db: Database, Manager: PostManager<Db>>(
         }
     }
 
-    Manager::delete(pool, channel).await?;
+    PostRow::delete(pool, channel).await?;
 
     Ok(())
 }

@@ -1,14 +1,14 @@
-use async_trait::async_trait;
 use jiff::Zoned;
 use jiff::tz::TimeZone;
 use jiff_sqlx::{Timestamp, ToSqlx};
 use serenity::all::{GenericChannelId, MessageId, ThreadId, UserId};
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
 use zayden_core::{as_i64, as_u64};
 
 use crate::templates::TemplateInfo;
-use crate::{Join, Result};
+use crate::{Join, LfgError, Result};
 
 pub struct PostBuilder {
     id: ThreadId,
@@ -173,38 +173,6 @@ impl From<PostRow> for PostBuilder {
     }
 }
 
-#[async_trait]
-pub trait PostManager<Db: Database> {
-    async fn exists(pool: &Pool<Db>, id: GenericChannelId) -> sqlx::Result<bool>;
-
-    async fn owner(pool: &Pool<Db>, id: GenericChannelId) -> sqlx::Result<UserId>;
-
-    async fn post_row(
-        pool: &Pool<Db>,
-        id: GenericChannelId,
-    ) -> sqlx::Result<PostRow>;
-
-    async fn join(
-        pool: &Pool<Db>,
-        id: GenericChannelId,
-        user: UserId,
-        alternative: bool,
-    ) -> Result<PostRow>;
-
-    async fn leave(
-        pool: &Pool<Db>,
-        id: GenericChannelId,
-        user: UserId,
-    ) -> sqlx::Result<PostRow>;
-
-    async fn edit(pool: &Pool<Db>, post: &PostRow) -> sqlx::Result<Db::QueryResult>;
-
-    async fn delete(
-        pool: &Pool<Db>,
-        id: GenericChannelId,
-    ) -> sqlx::Result<Db::QueryResult>;
-}
-
 #[derive(Debug, Clone, FromRow)]
 
 pub struct PostRow {
@@ -234,6 +202,171 @@ impl PostRow {
     #[must_use]
     pub const fn owner(&self) -> UserId {
         UserId::new(as_u64(self.owner_id))
+    }
+
+    pub async fn exists(pool: &PgPool, id: GenericChannelId) -> sqlx::Result<bool> {
+        sqlx::query_scalar!(
+            "SELECT EXISTS (SELECT 1 FROM lfg_posts WHERE id = $1)",
+            as_i64(id.get())
+        )
+        .fetch_one(pool)
+        .await
+        .map(|exists| exists.unwrap_or(false))
+    }
+
+    pub async fn fetch_owner(
+        pool: &PgPool,
+        id: GenericChannelId,
+    ) -> sqlx::Result<UserId> {
+        sqlx::query_scalar!(
+            "SELECT owner_id from lfg_posts WHERE id = $1",
+            as_i64(id.get())
+        )
+        .fetch_one(pool)
+        .await
+        .map(|id| UserId::new(as_u64(id)))
+    }
+
+    pub async fn get(pool: &PgPool, id: GenericChannelId) -> sqlx::Result<Self> {
+        sqlx::query_file_as!(
+            PostRow,
+            "sql/PostManager/post_row.sql",
+            as_i64(id.get())
+        )
+        .fetch_one(pool)
+        .await
+    }
+
+    pub async fn join(
+        pool: &PgPool,
+        id: GenericChannelId,
+        user: UserId,
+        alternative: bool,
+    ) -> Result<Self> {
+        let mut tx = pool.begin().await?;
+
+        sqlx::query_file!("sql/PostManager/lock_post.sql", as_i64(id.get()))
+            .fetch_optional(&mut *tx)
+            .await?;
+
+        sqlx::query_file_as!(
+            PostRow,
+            "sql/PostManager/join.sql",
+            as_i64(id.get()),
+            as_i64(user.get()),
+            alternative
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let row = sqlx::query_file_as!(
+            PostRow,
+            "sql/PostManager/post_row.sql",
+            as_i64(id.get())
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        if !alternative && row.fireteam_len() > Join::fireteam_size(&row) {
+            return Err(LfgError::FireteamFull);
+        }
+
+        tx.commit().await?;
+
+        Ok(row)
+    }
+
+    pub async fn leave(
+        pool: &PgPool,
+        id: GenericChannelId,
+        user: UserId,
+    ) -> sqlx::Result<Self> {
+        let mut tx = pool.begin().await?;
+
+        sqlx::query_file_as!(
+            PostRow,
+            "sql/PostManager/leave.sql",
+            as_i64(id.get()),
+            as_i64(user.get()),
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let row = sqlx::query_file_as!(
+            PostRow,
+            "sql/PostManager/post_row.sql",
+            as_i64(id.get())
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(row)
+    }
+
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
+    pub async fn edit(pool: &PgPool, post: &Self) -> sqlx::Result<PgQueryResult> {
+        sqlx::query_file!(
+            "sql/PostManager/edit.sql",
+            post.id,
+            post.owner_id,
+            post.activity,
+            post.start_time as Timestamp,
+            post.description,
+            post.fireteam_size,
+        )
+        .execute(pool)
+        .await
+    }
+
+    pub async fn delete(
+        pool: &PgPool,
+        id: GenericChannelId,
+    ) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!("DELETE FROM lfg_posts WHERE id = $1", as_i64(id.get()))
+            .execute(pool)
+            .await
+    }
+
+    #[expect(
+        trivial_casts,
+        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+    )]
+    pub async fn save(pool: &PgPool, row: Self) -> sqlx::Result<PgQueryResult> {
+        let mut tx = pool.begin().await?;
+
+        let main_result = sqlx::query_file!(
+            "sql/PostManager/save_post.sql",
+            row.id,
+            row.owner_id,
+            row.activity,
+            row.start_time as Timestamp,
+            row.description,
+            row.fireteam_size,
+            &row.fireteam,
+            &row.alternatives
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        if let (Some(channel), Some(message)) = (row.alt_channel, row.alt_message) {
+            sqlx::query!(
+                "INSERT INTO lfg_messages (post_id, message_id, channel_id) VALUES ($1, $2, $3) ON CONFLICT (post_id) DO NOTHING",
+                row.id,
+                message,
+                channel,
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(main_result)
     }
 }
 

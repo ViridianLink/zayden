@@ -8,13 +8,12 @@ use serenity::all::{
     ThreadId,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{optional_option, parse_options, parse_subcommand};
 
-use crate::models::Savable;
 use crate::templates::DefaultTemplate;
 use crate::utils::{Announcement, update_embeds};
-use crate::{PostManager, PostRow, Result};
+use crate::{PostRow, Result};
 
 #[expect(
     dead_code,
@@ -82,19 +81,15 @@ impl From<&ComponentInteraction> for LeaveInteraction {
     }
 }
 
-pub async fn leave<
-    'a,
-    Db: Database,
-    Manager: PostManager<Db> + Savable<Db, PostRow>,
->(
+pub async fn leave<'a>(
     http: &'a Http,
     interaction: impl Into<LeaveInteraction>,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     user: UserId,
 ) -> Result<(ThreadId, CreateEmbed<'a>)> {
     let interaction = interaction.into();
 
-    let row = Manager::leave(pool, interaction.thread.widen(), user).await?;
+    let row = PostRow::leave(pool, interaction.thread.widen(), user).await?;
 
     let owner = row.owner().to_user(http).await?;
 

@@ -1,38 +1,25 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use serenity::all::{
     CommandInteraction,
     EditInteractionResponse,
-    GenericChannelId,
     GenericInteractionChannel,
-    GuildId,
     Http,
     ResolvedValue,
     Role,
-    RoleId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{optional_option, required_option};
 
 use super::Command;
+use crate::modals::create::GuildRow;
 use crate::{LfgError, Result};
 
-#[async_trait]
-pub trait SetupManager<Db: Database> {
-    async fn insert(
-        pool: &Pool<Db>,
-        id: GuildId,
-        channel: GenericChannelId,
-        role: Option<RoleId>,
-    ) -> sqlx::Result<Db::QueryResult>;
-}
-
 impl Command {
-    pub async fn setup<Db: Database, Manager: SetupManager<Db>>(
+    pub async fn setup(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -44,7 +31,7 @@ impl Command {
 
         let role = optional_option(&mut options, "role").map(|role: &Role| role.id);
 
-        Manager::insert(pool, guild_id, channel.id(), role).await?;
+        GuildRow::insert(pool, guild_id, channel.id(), role).await?;
 
         interaction
             .edit_response(

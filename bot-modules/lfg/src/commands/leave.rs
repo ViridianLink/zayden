@@ -5,29 +5,21 @@ use serenity::all::{
     Http,
     Mentionable,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::Command;
-use crate::{PostManager, PostRow, Result, Savable, actions};
+use crate::{Result, actions};
 
 impl Command {
-    pub async fn leave<
-        Db: Database,
-        Manager: PostManager<Db> + Savable<Db, PostRow>,
-    >(
+    pub async fn leave(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let (thread, embed) = actions::leave::<Db, Manager>(
-            http,
-            interaction,
-            pool,
-            interaction.user.id,
-        )
-        .await?;
+        let (thread, embed) =
+            actions::leave(http, interaction, pool, interaction.user.id).await?;
 
         thread
             .widen()

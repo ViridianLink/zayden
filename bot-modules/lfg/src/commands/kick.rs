@@ -9,21 +9,17 @@ use serenity::all::{
     ResolvedValue,
     User,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::required_option;
 
 use super::Command;
-use crate::models::post::PostManager;
-use crate::{LfgError, PostRow, Result, Savable, actions};
+use crate::{LfgError, PostRow, Result, actions};
 
 impl Command {
-    pub async fn kick<
-        Db: Database,
-        Manager: PostManager<Db> + Savable<Db, PostRow>,
-    >(
+    pub async fn kick(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -33,7 +29,7 @@ impl Command {
             _ => interaction.channel_id,
         };
 
-        let owner = match Manager::owner(pool, thread).await {
+        let owner = match PostRow::fetch_owner(pool, thread).await {
             Ok(owner) => owner,
             Err(sqlx::Error::RowNotFound) => return Err(LfgError::ThreadNotFound),
             Err(e) => return Err(LfgError::Sqlx(e)),
@@ -45,7 +41,7 @@ impl Command {
         let (user, _): (&User, _) = required_option(&mut options, "user")?;
 
         let (thread, embed) =
-            actions::leave::<Db, Manager>(http, interaction, pool, user.id).await?;
+            actions::leave(http, interaction, pool, user.id).await?;
 
         thread
             .widen()

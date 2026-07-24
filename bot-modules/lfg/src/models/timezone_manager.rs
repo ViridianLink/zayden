@@ -1,7 +1,9 @@
-use async_trait::async_trait;
+use jiff::tz;
 use jiff::tz::TimeZone;
 use serenity::all::UserId;
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
+use zayden_core::as_i64;
 
 #[must_use]
 pub fn locale_to_timezone(locale: &str) -> &'static str {
@@ -41,14 +43,40 @@ pub fn locale_to_timezone(locale: &str) -> &'static str {
     }
 }
 
-#[async_trait]
-pub trait TimezoneManager<Db: Database> {
-    async fn get(pool: &Pool<Db>, id: UserId, local: &str)
-    -> sqlx::Result<TimeZone>;
+pub struct UserSettings;
 
-    async fn save(
-        pool: &Pool<Db>,
+impl UserSettings {
+    pub async fn get(
+        pool: &PgPool,
+        id: UserId,
+        locale: &str,
+    ) -> sqlx::Result<TimeZone> {
+        let row = sqlx::query!(
+            "SELECT timezone FROM lfg_user_settings WHERE id = $1",
+            as_i64(id.get())
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        let tz_name = match row {
+            Some(row) => row.timezone,
+            None => locale_to_timezone(locale).to_string(),
+        };
+
+        Ok(tz::db().get(&tz_name).unwrap_or(TimeZone::UTC))
+    }
+
+    pub async fn save(
+        pool: &PgPool,
         id: UserId,
         tz_name: &str,
-    ) -> sqlx::Result<Db::QueryResult>;
+    ) -> sqlx::Result<PgQueryResult> {
+        sqlx::query!(
+            "INSERT INTO lfg_user_settings (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
+            as_i64(id.get()),
+            tz_name
+        )
+        .execute(pool)
+        .await
+    }
 }

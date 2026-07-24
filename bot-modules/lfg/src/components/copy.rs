@@ -4,19 +4,19 @@ use serenity::all::{
     CreateModal,
     Http,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
-use super::{Components, EditManager};
+use super::{Components, EditRow};
 use crate::modals::modal_components;
 use crate::{LfgError, Result};
 
 impl Components {
-    pub async fn copy<Db: Database, Manager: EditManager<Db>>(
+    pub async fn copy(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
-        let post = Manager::edit_row(pool, interaction.message.id).await?;
+        let post = EditRow::get(pool, interaction.message.id).await?;
 
         if interaction.user.id != post.owner() {
             return Err(LfgError::PermissionDenied(post.owner()));

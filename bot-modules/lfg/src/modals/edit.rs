@@ -9,7 +9,7 @@ use serenity::all::{
     JsonErrorCode,
     ModalInteraction,
 };
-use sqlx::{Database, Pool};
+use sqlx::{PgPool, Postgres};
 use tracing::debug;
 use zayden_core::{CronJobData, parse_modal_components};
 
@@ -17,28 +17,15 @@ use super::start_time;
 use crate::cron::create_reminders;
 use crate::templates::DefaultTemplate;
 use crate::utils::update_embeds;
-use crate::{
-    LfgError,
-    PostBuilder,
-    PostManager,
-    PostRow,
-    Result,
-    Savable,
-    TimezoneManager,
-};
+use crate::{LfgError, PostBuilder, PostRow, Result, UserSettings};
 
 pub struct Edit;
 
 impl Edit {
-    pub async fn run<
-        Data: CronJobData<Db>,
-        Db: Database,
-        Manager: PostManager<Db> + Savable<Db, PostRow>,
-        TzManager: TimezoneManager<Db>,
-    >(
+    pub async fn run<Data: CronJobData<Postgres>>(
         ctx: &Context,
         interaction: &ModalInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction
             .create_response(&ctx.http, CreateInteractionResponse::Acknowledge)
@@ -69,22 +56,22 @@ impl Edit {
             .unwrap_or_default();
 
         let timezone =
-            TzManager::get(pool, interaction.user.id, &interaction.locale).await?;
+            UserSettings::get(pool, interaction.user.id, &interaction.locale)
+                .await?;
 
         let start_time = start_time(timezone, &start_time_str)?;
 
         let str_time = start_time.strftime("%d %b %H:%M %Z");
 
-        let post = PostBuilder::from(
-            Manager::post_row(pool, interaction.channel_id).await?,
-        )
-        .activity(activity.to_string())
-        .fireteam_size(fireteam_size)
-        .description(description)
-        .start(start_time)
-        .build();
+        let post =
+            PostBuilder::from(PostRow::get(pool, interaction.channel_id).await?)
+                .activity(activity.to_string())
+                .fireteam_size(fireteam_size)
+                .description(description)
+                .start(start_time)
+                .build();
 
-        Manager::edit(pool, &post).await?;
+        PostRow::edit(pool, &post).await?;
 
         let thread = interaction.channel_id.expect_thread();
 
@@ -117,7 +104,7 @@ impl Edit {
         )
         .await?;
 
-        create_reminders::<Data, Db, Manager>(ctx, &post).await;
+        create_reminders::<Data>(ctx, &post).await;
 
         thread
             .widen()

@@ -11,37 +11,33 @@ use serenity::all::{
     JsonErrorCode,
     PartialGuildThread,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use tracing::debug;
 use zayden_core::CronJobData;
 
 use crate::cron::create_reminders;
+use crate::modals::create::GuildRow;
 use crate::templates::TemplateInfo;
-use crate::{GuildManager, LfgError, PostManager, Result, actions};
+use crate::{LfgError, PostRow, Result, actions};
 
-pub async fn thread_delete<Db: Database, Manager: PostManager<Db>>(
+pub async fn thread_delete(
     http: &Http,
     thread: &PartialGuildThread,
-    pool: &Pool<Db>,
+    pool: &PgPool,
 ) -> Result<()> {
-    if Manager::exists(pool, thread.id.widen()).await? {
-        actions::delete::<Db, Manager>(http, thread.id, pool).await?;
+    if PostRow::exists(pool, thread.id.widen()).await? {
+        actions::delete(http, thread.id, pool).await?;
     }
 
     Ok(())
 }
 
-pub async fn guild_create<
-    Data: CronJobData<Db>,
-    Db: Database,
-    GuildHandler: GuildManager<Db>,
-    PostHandler: PostManager<Db>,
->(
+pub async fn guild_create<Data: CronJobData<sqlx::Postgres>>(
     ctx: &Context,
     guild: &Guild,
-    pool: &Pool<Db>,
+    pool: &PgPool,
 ) -> Result<()> {
-    let Ok(Some(guild_row)) = GuildHandler::row(pool, guild.id).await else {
+    let Ok(Some(guild_row)) = GuildRow::get(pool, guild.id).await else {
         debug!("guild not configured for LFG");
         return Ok(());
     };
@@ -130,14 +126,14 @@ pub async fn guild_create<
             }
         }
 
-        let Ok(post) = PostHandler::post_row(pool, thread.id.widen()).await else {
+        let Ok(post) = PostRow::get(pool, thread.id.widen()).await else {
             continue;
         };
 
         let start_time = post.start_time.to_jiff().to_zoned(TimeZone::UTC);
 
         if start_time > now {
-            create_reminders::<Data, Db, PostHandler>(ctx, &post).await;
+            create_reminders::<Data>(ctx, &post).await;
         }
 
         if start_time < now

@@ -8,17 +8,17 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::required_option;
 
 use super::Command;
-use crate::{Result, TimezoneManager};
+use crate::{Result, UserSettings};
 
 impl Command {
-    pub async fn timezone<Db: Database, Manager: TimezoneManager<Db>>(
+    pub async fn timezone(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -28,7 +28,7 @@ impl Command {
         let tz = tz::db().get(region).unwrap_or(TimeZone::UTC);
         let tz_name = tz.iana_name().unwrap_or(region);
 
-        Manager::save(pool, interaction.user.id, tz_name).await?;
+        UserSettings::save(pool, interaction.user.id, tz_name).await?;
 
         interaction
             .edit_response(

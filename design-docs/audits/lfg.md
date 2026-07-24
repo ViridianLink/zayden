@@ -13,6 +13,32 @@ best migration reference alongside temp-voice.
 ## Findings
 
 ### 1. DB-generic `async_trait` managers  ·  #1  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-24):** CC-1 concrete-`PgPool` migration (seventh module, after the
+  `gold-star`/`levels`/`reaction-roles`/`suggestions`/`family`/`temp-voice` pilots).
+  Dropped every generic manager trait — `PostManager<Db>`, `Savable<Db, T>`,
+  `TimezoneManager<Db>`, `GuildManager<Db>`, `SetupManager<Db>`, `JoinedManager<Db>`,
+  `EditManager<Db>` — and the `#[async_trait]` on each. The SQL now lives in the crate
+  as concrete `&PgPool` associated functions: `PostRow::{exists,fetch_owner,get,join,
+  leave,edit,delete,save}`, `GuildRow::{get,insert}`, `UserSettings::{get,save}` (the
+  new home for the ex-`TimezoneManager` user-settings SQL), `JoinedRow::upcoming`, and
+  `EditRow::get`. The six `PostManager` `query_file!` SQL files moved from
+  `bot/sql/lfg/PostManager/` into the crate at `bot-modules/lfg/sql/PostManager/`
+  (byte-identical → offline cache reused). Every command/component/action/modal/event/
+  cron `fn` lost its `<Db, Manager…>` generics and now takes `&PgPool`; the cron/modal/
+  event paths that schedule reminders keep a single `Data: CronJobData<Postgres>` type
+  param (the zayden-core `CronJob<Db>` generic is its own CC-1 item, left untouched) and
+  are pinned to `Postgres`. `bot/src/bindings/lfg/{mod,slash_command}.rs` collapse to the
+  `ModuleComponent`/`ModuleModal`/`ModuleCommand` wiring only — `PostTable`/`UsersTable`
+  and all trait impls deleted, turbofish dropped; `bot/src/handler/{guild_create,
+  thread_delete}.rs` drop their `::<…, GuildTable, PostTable>` turbofish. Removed the
+  now-unused `async-trait` dependency (`cargo machete` clean). **Behaviour-preserving:**
+  every `query!`/`query_as!`/`query_scalar!`/`query_file!` string was moved
+  byte-identically, so the whole workspace compiles under `SQLX_OFFLINE=true` with the
+  existing cache and `git status .sqlx` is clean (no regeneration needed). One naming
+  change: the DB owner lookup is `PostRow::fetch_owner` (the inherent `PostRow::owner`
+  instance accessor already exists). Only `gambling` and the `zayden-core` traits now
+  remain on CC-1.
 - **Where:** `src/guild_manager.rs`, `src/models/{post,timezone_manager,mod}.rs`,
   all `commands/*`, `components/*`, `actions/*`, `modals/*`.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1).

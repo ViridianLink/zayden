@@ -8,7 +8,7 @@ mod leave;
 mod settings;
 mod tags;
 
-pub use edit::{EditManager, EditRow};
+pub use edit::EditRow;
 pub use kick::KickComponent;
 pub use tags::TagsComponent;
 

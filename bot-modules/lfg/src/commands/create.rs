@@ -8,18 +8,18 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::required_option;
 
 use super::Command;
 use crate::modals::modal_components;
-use crate::{ACTIVITIES, Result, TimezoneManager};
+use crate::{ACTIVITIES, Result, UserSettings};
 
 impl Command {
-    pub async fn create<Db: Database, Manager: TimezoneManager<Db>>(
+    pub async fn create(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         let activity: &str = required_option(&mut options, "activity")?;
@@ -30,7 +30,8 @@ impl Command {
         };
 
         let timezone =
-            Manager::get(pool, interaction.user.id, &interaction.locale).await?;
+            UserSettings::get(pool, interaction.user.id, &interaction.locale)
+                .await?;
         let now = Timestamp::now().to_zoned(timezone);
 
         let fireteam_size = ACTIVITIES

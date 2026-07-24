@@ -10,22 +10,18 @@ use serenity::all::{
     Mentionable,
     ThreadId,
 };
-use sqlx::{Database, Pool};
+use sqlx::{PgPool, Postgres};
 use tokio::sync::RwLock;
 use tracing::error;
 use zayden_core::{CronJob, CronJobData};
 
-use crate::{Join, PostManager, PostRow};
+use crate::{Join, PostRow};
 
 #[expect(
     clippy::significant_drop_tightening,
     reason = "jobs borrows from the write guard and must be held for the full extend call"
 )]
-pub async fn create_reminders<
-    Data: CronJobData<Db>,
-    Db: Database,
-    Manager: PostManager<Db>,
->(
+pub async fn create_reminders<Data: CronJobData<Postgres>>(
     ctx: &Context,
     row: &PostRow,
 ) {
@@ -36,7 +32,7 @@ pub async fn create_reminders<
     let day = &start_time - Span::new().hours(24);
     let mins_30 = &start_time - Span::new().minutes(30);
 
-    let week_job = match CronJob::<Db>::new(
+    let week_job = match CronJob::<Postgres>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -48,7 +44,7 @@ pub async fn create_reminders<
         ),
     ) {
         Ok(j) => j.set_action(move |ctx, pool| async move {
-            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+            reminder(&ctx.http, pool, post_id).await;
         }),
         Err(e) => {
             error!(error = ?e, "invalid lfg cron schedule");
@@ -56,7 +52,7 @@ pub async fn create_reminders<
         },
     };
 
-    let day_job = match CronJob::<Db>::new(
+    let day_job = match CronJob::<Postgres>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -68,7 +64,7 @@ pub async fn create_reminders<
         ),
     ) {
         Ok(j) => j.set_action(move |ctx, pool| async move {
-            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+            reminder(&ctx.http, pool, post_id).await;
         }),
         Err(e) => {
             error!(error = ?e, "invalid lfg cron schedule");
@@ -76,7 +72,7 @@ pub async fn create_reminders<
         },
     };
 
-    let mins_30_job = match CronJob::<Db>::new(
+    let mins_30_job = match CronJob::<Postgres>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -88,7 +84,7 @@ pub async fn create_reminders<
         ),
     ) {
         Ok(j) => j.set_action(move |ctx, pool| async move {
-            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+            reminder(&ctx.http, pool, post_id).await;
         }),
         Err(e) => {
             error!(error = ?e, "invalid lfg cron schedule");
@@ -96,7 +92,7 @@ pub async fn create_reminders<
         },
     };
 
-    let now_job = match CronJob::<Db>::new(
+    let now_job = match CronJob::<Postgres>::new(
         format!("lfg_{post_id}"),
         &format!(
             "0 {} {} {} {} * {}",
@@ -108,7 +104,7 @@ pub async fn create_reminders<
         ),
     ) {
         Ok(j) => j.set_action(move |ctx, pool| async move {
-            reminder::<Db, Manager>(&ctx.http, pool, post_id).await;
+            reminder(&ctx.http, pool, post_id).await;
         }),
         Err(e) => {
             error!(error = ?e, "invalid lfg cron schedule");
@@ -124,12 +120,8 @@ pub async fn create_reminders<
     jobs.extend([week_job, day_job, mins_30_job, now_job]);
 }
 
-async fn reminder<Db: Database, Manager: PostManager<Db>>(
-    http: &Http,
-    pool: Pool<Db>,
-    id: ThreadId,
-) {
-    let post = match Manager::post_row(&pool, id.widen()).await {
+async fn reminder(http: &Http, pool: PgPool, id: ThreadId) {
+    let post = match PostRow::get(&pool, id.widen()).await {
         Ok(post) => post,
         // Post deleted
         Err(sqlx::Error::RowNotFound) => return,

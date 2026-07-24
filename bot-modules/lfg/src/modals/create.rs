@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use serenity::all::{
     AutoArchiveDuration,
     ChannelId,
@@ -11,7 +10,6 @@ use serenity::all::{
     DiscordJsonError,
     ErrorResponse,
     GenericChannelId,
-    GuildId,
     HttpError,
     JsonErrorCode,
     Mentionable,
@@ -19,28 +17,14 @@ use serenity::all::{
     RoleId,
 };
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
+use sqlx::{PgPool, Postgres};
 use tracing::warn;
 use zayden_core::{CronJobData, as_u64, parse_modal_components};
 
 use super::start_time;
 use crate::cron::create_reminders;
 use crate::templates::{DefaultTemplate, Template};
-use crate::{
-    ACTIVITIES,
-    LfgError,
-    PostBuilder,
-    PostManager,
-    PostRow,
-    Result,
-    Savable,
-    TimezoneManager,
-};
-
-#[async_trait]
-pub trait GuildManager<Db: Database> {
-    async fn row(pool: &Pool<Db>, id: GuildId) -> sqlx::Result<Option<GuildRow>>;
-}
+use crate::{ACTIVITIES, LfgError, PostBuilder, PostRow, Result, UserSettings};
 
 #[derive(FromRow)]
 pub struct GuildRow {
@@ -69,16 +53,10 @@ impl GuildRow {
 pub struct Create;
 
 impl Create {
-    pub async fn run<
-        Data: CronJobData<Db>,
-        Db: Database,
-        GuildHandler: GuildManager<Db>,
-        PostHandler: PostManager<Db> + Savable<Db, PostRow>,
-        TzManager: TimezoneManager<Db>,
-    >(
+    pub async fn run<Data: CronJobData<Postgres>>(
         ctx: &Context,
         interaction: &ModalInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let guild_id = interaction.guild_id.ok_or(LfgError::MissingGuildId)?;
 
@@ -109,7 +87,8 @@ impl Create {
             .unwrap_or_default();
 
         let timezone =
-            TzManager::get(pool, interaction.user.id, &interaction.locale).await?;
+            UserSettings::get(pool, interaction.user.id, &interaction.locale)
+                .await?;
 
         let start_time = start_time(timezone, &start_time_str)?;
 
@@ -127,9 +106,8 @@ impl Create {
             DefaultTemplate::thread_embed(&post, interaction.user.display_name());
         let row = DefaultTemplate::main_row();
 
-        let lfg_guild = GuildHandler::row(pool, guild_id)
-            .await?
-            .ok_or(LfgError::MissingSetup)?;
+        let lfg_guild =
+            GuildRow::get(pool, guild_id).await?.ok_or(LfgError::MissingSetup)?;
 
         let channel = match lfg_guild.channel_id() {
             Some(id) => id.to_guild_channel(&ctx.http, Some(guild_id)).await?,
@@ -215,9 +193,9 @@ impl Create {
 
         let post = post.id(thread.id).build();
 
-        create_reminders::<Data, Db, PostHandler>(ctx, &post).await;
+        create_reminders::<Data>(ctx, &post).await;
 
-        PostHandler::save(pool, post).await?;
+        PostRow::save(pool, post).await?;
 
         interaction
             .create_response(

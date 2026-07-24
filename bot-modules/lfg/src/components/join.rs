@@ -1,22 +1,18 @@
 use serenity::all::{ComponentInteraction, EditInteractionResponse, Http};
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::Components;
-use crate::{PostManager, PostRow, Result, Savable, actions};
+use crate::{Result, actions};
 
 impl Components {
-    pub async fn join<
-        Db: Database,
-        Manager: PostManager<Db> + Savable<Db, PostRow>,
-    >(
+    pub async fn join(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        let (_, embed) =
-            actions::join::<Db, Manager>(http, interaction, pool, false).await?;
+        let (_, embed) = actions::join(http, interaction, pool, false).await?;
 
         interaction
             .edit_response(http, EditInteractionResponse::new().embed(embed))

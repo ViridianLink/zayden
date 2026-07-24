@@ -8,19 +8,16 @@ use serenity::all::{
     Mentionable,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::Command;
-use crate::{PostManager, PostRow, Result, Savable, actions};
+use crate::{Result, actions};
 
 impl Command {
-    pub async fn join<
-        Db: Database,
-        Manager: PostManager<Db> + Savable<Db, PostRow>,
-    >(
+    pub async fn join(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         mut options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
@@ -31,8 +28,7 @@ impl Command {
         };
 
         let (thread, embed) =
-            actions::join::<Db, Manager>(http, interaction, pool, alternative)
-                .await?;
+            actions::join(http, interaction, pool, alternative).await?;
 
         thread
             .widen()

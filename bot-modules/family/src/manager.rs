@@ -257,10 +257,7 @@ impl FamilyRow {
         Ok(tree)
     }
 
-    pub async fn tree(
-        self,
-        pool: &PgPool,
-    ) -> sqlx::Result<HashMap<i32, Vec<Self>>> {
+    pub async fn tree(self, pool: &PgPool) -> sqlx::Result<HashMap<i32, Vec<Self>>> {
         Self::build_tree(
             pool,
             GuildId::new(as_u64(self.guild_id)),

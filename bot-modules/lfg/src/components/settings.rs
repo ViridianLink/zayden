@@ -5,19 +5,19 @@ use serenity::all::{
     CreateInteractionResponseMessage,
     Http,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::Components;
 use crate::templates::{DefaultTemplate, Template};
-use crate::{LfgError, PostManager, Result};
+use crate::{LfgError, PostRow, Result};
 
 impl Components {
-    pub async fn settings<Db: Database, Manager: PostManager<Db>>(
+    pub async fn settings(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
-        let owner = match Manager::owner(pool, interaction.channel_id).await {
+        let owner = match PostRow::fetch_owner(pool, interaction.channel_id).await {
             Ok(owner) => owner,
             Err(sqlx::Error::RowNotFound) => interaction.user.id,
             Err(e) => return Err(e.into()),

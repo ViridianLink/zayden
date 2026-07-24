@@ -1,5 +1,5 @@
 pub mod create;
-pub use create::{Create, GuildManager};
+pub use create::Create;
 
 pub mod edit;
 pub use edit::Edit;

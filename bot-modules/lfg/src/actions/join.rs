@@ -8,13 +8,12 @@ use serenity::all::{
     ThreadId,
     UserId,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{parse_options, parse_subcommand};
 
-use crate::models::Savable;
 use crate::templates::DefaultTemplate;
 use crate::utils::{Announcement, update_embeds};
-use crate::{PostManager, PostRow, Result};
+use crate::{PostRow, Result};
 
 pub struct JoinInteraction {
     thread: ThreadId,
@@ -53,19 +52,15 @@ impl From<&CommandInteraction> for JoinInteraction {
     }
 }
 
-pub async fn join<
-    'a,
-    Db: Database,
-    Manager: PostManager<Db> + Savable<Db, PostRow>,
->(
+pub async fn join<'a>(
     http: &'a Http,
     interaction: impl Into<JoinInteraction>,
-    pool: &Pool<Db>,
+    pool: &PgPool,
     alternative: bool,
 ) -> Result<(ThreadId, CreateEmbed<'a>)> {
     let interaction = interaction.into();
 
-    let row = Manager::join(
+    let row = PostRow::join(
         pool,
         interaction.thread.widen(),
         interaction.user,

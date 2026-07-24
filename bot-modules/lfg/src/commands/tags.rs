@@ -12,21 +12,21 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::Command;
-use crate::{LfgError, PostManager, Result};
+use crate::{LfgError, PostRow, Result};
 
 impl Command {
-    pub async fn tags<Db: Database, Manager: PostManager<Db>>(
+    pub async fn tags(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
         options: HashMap<&str, ResolvedValue<'_>>,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let post_owner = Manager::owner(pool, interaction.channel_id).await?;
+        let post_owner = PostRow::fetch_owner(pool, interaction.channel_id).await?;
 
         if post_owner != interaction.user.id {
             return Err(LfgError::PermissionDenied(post_owner));

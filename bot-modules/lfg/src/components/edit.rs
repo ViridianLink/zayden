@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use jiff::Zoned;
 use jiff::tz::{self, TimeZone};
 use jiff_sqlx::Timestamp;
@@ -10,18 +9,13 @@ use serenity::all::{
     MessageId,
     UserId,
 };
+use sqlx::PgPool;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
-use zayden_core::as_u64;
+use zayden_core::{as_i64, as_u64};
 
 use super::Components;
 use crate::modals::modal_components;
 use crate::{LfgError, Result};
-
-#[async_trait]
-pub trait EditManager<Db: Database> {
-    async fn edit_row(pool: &Pool<Db>, id: MessageId) -> sqlx::Result<EditRow>;
-}
 
 #[derive(FromRow)]
 pub struct EditRow {
@@ -49,15 +43,41 @@ impl EditRow {
 
         self.start_time.to_jiff().to_zoned(tz)
     }
+
+    pub async fn get(pool: &PgPool, id: MessageId) -> sqlx::Result<Self> {
+        let id = as_i64(id.get());
+
+        sqlx::query_as!(
+            EditRow,
+            r#"
+            SELECT
+                p.owner_id AS "owner_id!",
+                p.activity AS "activity!",
+                p.start_time AS "start_time!: jiff_sqlx::Timestamp",
+                p.description AS "description!",
+                p.fireteam_size AS "fireteam_size!",
+                u.timezone AS "timezone?"
+            FROM
+                lfg_posts AS p
+            LEFT JOIN
+                lfg_user_settings AS u ON p.owner_id = u.id
+            WHERE
+                p.id = $1
+            "#,
+            id
+        )
+        .fetch_one(pool)
+        .await
+    }
 }
 
 impl Components {
-    pub async fn edit<Db: Database, Manager: EditManager<Db>>(
+    pub async fn edit(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
-        let post = Manager::edit_row(pool, interaction.message.id).await?;
+        let post = EditRow::get(pool, interaction.message.id).await?;
 
         if interaction.user.id != post.owner() {
             return Err(LfgError::PermissionDenied(post.owner()));

@@ -14,7 +14,7 @@ no coverage of the `actions` layer where the M4 permission re-checks live.
 ## Findings
 
 ### 1. DB-generic `async_trait` managers  ·  #1  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 611d350b`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** CC-1 concrete-`PgPool` migration (sixth module after the
   `gold-star`/`levels`/`reaction-roles`/`suggestions`/`family` pilots). Dropped both
   generic manager traits — `TempVoiceGuildManager<Db: Database>` and

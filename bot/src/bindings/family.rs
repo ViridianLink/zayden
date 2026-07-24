@@ -84,9 +84,7 @@ impl ModuleCommand for MarryCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        let target_id =
-            Marry::run(cx.ctx, cx.interaction, &cx.app.db)
-                .await?;
+        let target_id = Marry::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         let content = format!(
             "{}, {} wants to marry you! Do you accept?",
@@ -124,12 +122,7 @@ impl ModuleCommand for DivorceCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        let partner_id = Divorce::run(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        let partner_id = Divorce::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         let content = format!("You have divorced {}.", partner_id.mention());
 
@@ -160,9 +153,7 @@ impl ModuleCommand for AdoptCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        let target_id =
-            Adopt::run(cx.ctx, cx.interaction, &cx.app.db)
-                .await?;
+        let target_id = Adopt::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         let content = format!(
             "{}, {} wants to adopt you! Do you accept?",
@@ -200,8 +191,7 @@ impl ModuleCommand for BlockCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Block::run(cx.ctx, cx.interaction, &cx.app.db)
-            .await?;
+        Block::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         cx.interaction
             .create_response(
@@ -230,8 +220,7 @@ impl ModuleCommand for UnblockCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Unblock::run(cx.ctx, cx.interaction, &cx.app.db)
-            .await?;
+        Unblock::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         cx.interaction
             .create_response(
@@ -262,12 +251,8 @@ impl ModuleCommand for ChildrenCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Children::run(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        let (user_id, names) =
+            Children::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         let content =
             format!("{}'s children: {}", user_id.mention(), names.join(", "));
@@ -298,12 +283,8 @@ impl ModuleCommand for ParentsCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Parents::run(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        let (user_id, names) =
+            Parents::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         let content =
             format!("{}'s parents: {}", user_id.mention(), names.join(", "));
@@ -334,12 +315,8 @@ impl ModuleCommand for PartnerCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Partner::run(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        let (user_id, names) =
+            Partner::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         let content =
             format!("{}'s partners: {}", user_id.mention(), names.join(", "));
@@ -370,12 +347,8 @@ impl ModuleCommand for SiblingsCmd {
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         cx.interaction.defer(&cx.ctx.http).await?;
 
-        let (user_id, names) = Siblings::run(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        let (user_id, names) =
+            Siblings::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         let content =
             format!("{}'s siblings: {}", user_id.mention(), names.join(", "));
@@ -405,12 +378,8 @@ impl ModuleCommand for RelationshipCmd {
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
         // Relationship::run defers the interaction internally.
-        let resp = Relationship::run(
-            &cx.ctx.http,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        let resp =
+            Relationship::run(&cx.ctx.http, cx.interaction, &cx.app.db).await?;
 
         let content = format!(
             "{} and {} are: **{}**",
@@ -443,12 +412,7 @@ impl ModuleCommand for ResetFamilyCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        ResetFamily::run(
-            cx.ctx,
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        ResetFamily::run(cx.ctx, cx.interaction, &cx.app.db).await?;
 
         cx.interaction
             .create_response(
@@ -561,11 +525,7 @@ impl ModuleComponent for MarryAccept {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        family::components::marry::accept(
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        family::components::marry::accept(cx.interaction, &cx.app.db).await?;
 
         cx.interaction
             .create_response(
@@ -615,11 +575,7 @@ impl ModuleComponent for AdoptAccept {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        family::components::adopt::accept(
-            cx.interaction,
-            &cx.app.db,
-        )
-        .await?;
+        family::components::adopt::accept(cx.interaction, &cx.app.db).await?;
 
         cx.interaction
             .create_response(

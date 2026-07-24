@@ -1,16 +1,12 @@
-use async_trait::async_trait;
 use serenity::all::{GenericChannelId, GuildId, RoleId};
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
+use sqlx::postgres::PgQueryResult;
 use zayden_core::as_i64;
 
-use crate::commands::SetupManager;
-use crate::modals::create::{GuildManager, GuildRow};
+use crate::modals::create::GuildRow;
 
-pub struct GuildTable;
-
-#[async_trait]
-impl GuildManager<Postgres> for GuildTable {
-    async fn row(pool: &PgPool, id: GuildId) -> sqlx::Result<Option<GuildRow>> {
+impl GuildRow {
+    pub async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             GuildRow,
             r#"
@@ -23,16 +19,13 @@ impl GuildManager<Postgres> for GuildTable {
         .fetch_optional(pool)
         .await
     }
-}
 
-#[async_trait]
-impl SetupManager<Postgres> for GuildTable {
-    async fn insert(
+    pub async fn insert(
         pool: &PgPool,
         id: GuildId,
         channel: GenericChannelId,
         role: Option<RoleId>,
-    ) -> sqlx::Result<sqlx::postgres::PgQueryResult> {
+    ) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             r#"
             INSERT INTO lfg_settings (guild_id, lfg_channel_id, lfg_role_id)

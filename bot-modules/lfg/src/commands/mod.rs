@@ -7,7 +7,7 @@ mod setup;
 pub mod tags;
 mod timezone;
 
-pub use joined::{JoinedManager, JoinedRow};
+pub use joined::JoinedRow;
 use serenity::all::{
     AutocompleteChoice,
     AutocompleteOption,
@@ -20,69 +20,47 @@ use serenity::all::{
     Http,
     ResolvedOption,
 };
-pub use setup::SetupManager;
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 use zayden_core::{parse_options, parse_subcommand};
 
-use crate::{
-    ACTIVITIES,
-    LfgError,
-    PostManager,
-    PostRow,
-    Result,
-    Savable,
-    TimezoneManager,
-};
+use crate::{ACTIVITIES, LfgError, Result};
 
 pub struct Command;
 
 impl Command {
-    pub async fn lfg<
-        Db: Database,
-        TzManager: TimezoneManager<Db>,
-        PostHandler: PostManager<Db>
-            + SetupManager<Db>
-            + JoinedManager<Db>
-            + Savable<Db, PostRow>,
-    >(
+    pub async fn lfg(
         http: &Http,
         interaction: &CommandInteraction,
         options: Vec<ResolvedOption<'_>>,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         let (name, options) = parse_subcommand(options)?;
         let options = parse_options(options);
 
         match name {
             "setup" => {
-                Self::setup::<Db, PostHandler>(http, interaction, pool, options)
-                    .await?;
+                Self::setup(http, interaction, pool, options).await?;
             },
             "create" => {
-                Self::create::<Db, TzManager>(http, interaction, pool, options)
-                    .await?;
+                Self::create(http, interaction, pool, options).await?;
             },
             "tags" => {
-                Self::tags::<Db, PostHandler>(http, interaction, pool, options)
-                    .await?;
+                Self::tags(http, interaction, pool, options).await?;
             },
             "join" => {
-                Self::join::<Db, PostHandler>(http, interaction, pool, options)
-                    .await?;
+                Self::join(http, interaction, pool, options).await?;
             },
             "leave" => {
-                Self::leave::<Db, PostHandler>(http, interaction, pool).await?;
+                Self::leave(http, interaction, pool).await?;
             },
             "joined" => {
-                Self::joined::<Db, PostHandler>(http, interaction, pool).await?;
+                Self::joined(http, interaction, pool).await?;
             },
             "kick" => {
-                Self::kick::<Db, PostHandler>(http, interaction, pool, options)
-                    .await?;
+                Self::kick(http, interaction, pool, options).await?;
             },
             "timezone" => {
-                Self::timezone::<Db, TzManager>(http, interaction, pool, options)
-                    .await?;
+                Self::timezone(http, interaction, pool, options).await?;
             },
             _ => {
                 return Err(LfgError::Internal(format!(

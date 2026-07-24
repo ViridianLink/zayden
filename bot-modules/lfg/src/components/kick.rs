@@ -8,19 +8,18 @@ use serenity::all::{
     EditInteractionResponse,
     Http,
 };
-use sqlx::{Database, Pool};
+use sqlx::PgPool;
 
 use super::Components;
-use crate::models::post::PostManager;
-use crate::{LfgError, PostRow, Result, Savable, actions};
+use crate::{LfgError, PostRow, Result, actions};
 
 impl Components {
-    pub async fn kick<Db: Database, Manager: PostManager<Db>>(
+    pub async fn kick(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
-        let owner = Manager::owner(pool, interaction.channel_id).await?;
+        let owner = PostRow::fetch_owner(pool, interaction.channel_id).await?;
 
         if interaction.user.id != owner {
             return Err(LfgError::PermissionDenied(owner));
@@ -50,13 +49,10 @@ impl Components {
 pub struct KickComponent;
 
 impl KickComponent {
-    pub async fn run<
-        Db: Database,
-        Manager: PostManager<Db> + Savable<Db, PostRow>,
-    >(
+    pub async fn run(
         http: &Http,
         interaction: &ComponentInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer(http).await?;
 
@@ -83,8 +79,7 @@ impl KickComponent {
         };
 
         let (_, embed) =
-            actions::leave::<Db, Manager>(http, interaction, pool, kicked_user)
-                .await?;
+            actions::leave(http, interaction, pool, kicked_user).await?;
 
         interaction
             .edit_response(http, EditInteractionResponse::new().embed(embed))

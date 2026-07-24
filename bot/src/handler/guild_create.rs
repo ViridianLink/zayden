@@ -1,11 +1,9 @@
-use lfg::GuildTable;
 use serenity::all::{Context, Guild};
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tracing::info;
 
 use super::Handler;
-use crate::bindings::lfg::PostTable;
 use crate::{BotState, Result};
 
 impl Handler {
@@ -18,9 +16,7 @@ impl Handler {
         let data = ctx.data::<RwLock<BotState>>();
 
         let (lfg_result, ()) = tokio::join!(
-            lfg::events::guild_create::<BotState, Postgres, GuildTable, PostTable>(
-                ctx, guild, pool
-            ),
+            lfg::events::guild_create::<BotState>(ctx, guild, pool),
             BotState::guild_create(data, guild),
         );
         lfg_result?;

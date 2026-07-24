@@ -42,7 +42,9 @@ impl Marry {
 
         let max_partners = FamilySettings::get(pool, guild_id).await?.max_partners();
 
-        if let Some(row) = FamilyRow::get(pool, guild_id, interaction.user.id).await? {
+        if let Some(row) =
+            FamilyRow::get(pool, guild_id, interaction.user.id).await?
+        {
             let relationship = row.relationship(target_user.id);
 
             if relationship != Relationships::None {

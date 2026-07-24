@@ -40,8 +40,13 @@ impl Divorce {
             return Err(FamilyError::NotPartners(target_user.id));
         }
 
-        FamilyRow::remove_partner(pool, guild_id, interaction.user.id, target_user.id)
-            .await?;
+        FamilyRow::remove_partner(
+            pool,
+            guild_id,
+            interaction.user.id,
+            target_user.id,
+        )
+        .await?;
 
         Ok(target_user.id)
     }

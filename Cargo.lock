@@ -3247,7 +3247,6 @@ dependencies = [
 name = "lfg"
 version = "1.0.0"
 dependencies = [
- "async-trait",
  "futures",
  "jiff",
  "jiff-sqlx",

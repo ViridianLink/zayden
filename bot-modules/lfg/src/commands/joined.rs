@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use jiff_sqlx::Timestamp;
 use serenity::all::{
     ChannelId,
@@ -9,18 +8,12 @@ use serenity::all::{
     Mentionable,
     UserId,
 };
+use sqlx::PgPool;
 use sqlx::prelude::FromRow;
-use sqlx::{Database, Pool};
-use zayden_core::as_u64;
+use zayden_core::{as_i64, as_u64};
 
 use super::Command;
 use crate::Result;
-
-#[async_trait]
-pub trait JoinedManager<Db: Database> {
-    async fn upcoming(pool: &Pool<Db>, user: UserId)
-    -> sqlx::Result<Vec<JoinedRow>>;
-}
 
 #[derive(FromRow)]
 pub struct JoinedRow {
@@ -49,17 +42,43 @@ impl JoinedRow {
     pub fn fireteam(&self) -> impl Iterator<Item = UserId> {
         self.fireteam.iter().map(|&id| UserId::new(as_u64(id)))
     }
+
+    pub async fn upcoming(pool: &PgPool, user: UserId) -> sqlx::Result<Vec<Self>> {
+        sqlx::query_as!(
+            JoinedRow,
+            r#"
+            SELECT
+                p.id,
+                p.activity,
+                p.start_time as "start_time: jiff_sqlx::Timestamp",
+
+                COALESCE(
+                    (SELECT array_agg(f.user_id) FROM lfg_fireteam f WHERE f.post_id = p.id),
+                    '{}'
+                ) AS "fireteam!"
+
+            FROM
+                lfg_posts p
+            JOIN lfg_fireteam f ON p.id = f.post_id
+            WHERE
+                f.user_id = $1
+            "#,
+            as_i64(user.get())
+        )
+        .fetch_all(pool)
+        .await
+    }
 }
 
 impl Command {
-    pub async fn joined<Db: Database, Manager: JoinedManager<Db>>(
+    pub async fn joined(
         http: &Http,
         interaction: &CommandInteraction,
-        pool: &Pool<Db>,
+        pool: &PgPool,
     ) -> Result<()> {
         interaction.defer_ephemeral(http).await?;
 
-        let posts = Manager::upcoming(pool, interaction.user.id).await?;
+        let posts = JoinedRow::upcoming(pool, interaction.user.id).await?;
 
         let (joined, alternative) =
             posts.into_iter().partition::<Vec<_>, _>(|row| {
