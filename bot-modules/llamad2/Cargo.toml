@@ -10,7 +10,6 @@ workspace = true
 [dependencies]
 zayden-core = { workspace = true }
 
-serde_json = { workspace = true } # TEMPORARY: remove with src/counter_migration.rs
 serenity = { workspace = true }
 sqlx = { workspace = true }
 thiserror = { workspace = true }

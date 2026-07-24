@@ -35,13 +35,6 @@ placement) problem.
   test harness ([CC-6](_cross-cutting.md#cc-6)) — same posture as gold-star/lfg
   DS-1, temp-voice DS-2; the compile-time SQL check is the net. Counters remain
   global (name-keyed), matching prior behaviour — no per-guild scope change.
-  **One-time data migration (temporary):** `counter_migration::migrate_json_counters`
-  (called once at startup in `bot/src/main.rs`, after `migrate!`) reads any
-  surviving legacy `countingFails.json`/`dumbCount.json`, seeds the DB with
-  `GREATEST(existing, file)` (never lowers a count), and deletes the file only on
-  a successful seed — so the accumulated on-disk counts are not lost on first
-  deploy. It is self-contained and marked for removal (with the re-added
-  `serde_json` dep) once it has run in production.
 - **Where:** `src/counting_fail.rs:31-48` (`OpenOptions`… `write_all`, file
   `countingFails.json`), `src/goof.rs:26-43` (file `dumbCount.json`). Both inside
   `async fn run(...)`.

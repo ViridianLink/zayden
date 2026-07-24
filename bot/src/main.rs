@@ -95,10 +95,6 @@ async fn main() -> Result<()> {
         .map_err(|e| BotError::Other(format!("failed to run migrations: {e}")))?;
     info!("Database migrations applied");
 
-    // TEMPORARY: one-time seed of llamad2 counters from the legacy on-disk JSON
-    // files, then delete them. Remove once it has run in production.
-    llamad2::migrate_json_counters(&pool).await;
-
     let bot_config = BotConfig::load(&pool).await?;
     info!("BotConfig loaded successfully");
 
