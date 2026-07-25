@@ -2,15 +2,15 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
-use serenity::all::{ChannelId, GuildId, UserId};
+use serenity::all::{ChannelId, CreateMessage, GuildId, UserId};
 use songbird::tracks::PlayMode;
 use songbird::{Event, EventContext, EventHandler, Songbird};
 use tracing::{error, warn};
 use zayden_app::entitlement::{EntitlementScope, EntitlementService, Tier};
 
 use crate::manager::MusicManager;
-use crate::resolve::TrackResolver;
-use crate::voice;
+use crate::voice::Playback;
+use crate::{embeds, voice};
 
 pub struct TrackErrorNotifier {
     pub guild_id: GuildId,
@@ -39,31 +39,28 @@ impl EventHandler for TrackErrorNotifier {
 pub struct TrackEndNotifier {
     pub guild_id: GuildId,
     pub generation: u64,
-    pub music: Arc<MusicManager>,
-    pub songbird: Arc<Songbird>,
-    pub resolver: Arc<dyn TrackResolver>,
+    pub playback: Playback,
 }
 
 #[async_trait]
 impl EventHandler for TrackEndNotifier {
     async fn act(&self, _ctx: &EventContext<'_>) -> Option<Event> {
-        let player = self.music.get(self.guild_id)?;
+        let player = self.playback.music.get(self.guild_id)?;
 
-        let next = {
+        let (next, announce_to) = {
             let mut guard = player.lock().await;
             if guard.generation != self.generation {
                 return None;
             }
-            guard.advance_queue()
+            (guard.advance_queue(), guard.announce_target())
         };
 
         let next_track = next?;
         let next_generation = self.generation.wrapping_add(1);
+        let announcement = embeds::track_announcement_embed(&next_track);
 
         if let Err(e) = voice::start_playback(
-            &self.songbird,
-            &self.music,
-            &self.resolver,
+            &self.playback,
             self.guild_id,
             next_generation,
             next_track,
@@ -71,6 +68,18 @@ impl EventHandler for TrackEndNotifier {
         .await
         {
             error!(error = ?e, guild_id = %self.guild_id, "failed to start next track");
+            return None;
+        }
+
+        if let Some(channel) = announce_to
+            && let Err(e) = channel
+                .send_message(
+                    &self.playback.http,
+                    CreateMessage::new().embed(announcement),
+                )
+                .await
+        {
+            warn!(error = ?e, guild_id = %self.guild_id, "failed to announce next track");
         }
 
         None

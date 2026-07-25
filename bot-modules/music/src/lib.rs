@@ -17,7 +17,7 @@ pub use error::{MusicError, Result};
 pub use events::{InactivityCheck, TrackEndNotifier};
 pub use manager::MusicManager;
 pub use occupancy::VoiceOccupancy;
-pub use player::{GuildPlayer, NowPlaying};
+pub use player::{AnnounceConfig, GuildPlayer, NowPlaying};
 pub use queue::Queue;
 pub use resolve::{
     CompositeResolver,

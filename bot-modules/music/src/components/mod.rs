@@ -13,9 +13,19 @@ use crate::error::{MusicError, Result};
 use crate::manager::MusicManager;
 use crate::permissions;
 use crate::resolve::TrackResolver;
+use crate::voice::Playback;
+
+pub struct PanelServices {
+    pub http: Arc<Http>,
+    pub songbird: Arc<Songbird>,
+    pub music: Arc<MusicManager>,
+    pub resolver: Arc<dyn TrackResolver>,
+    pub settings: Arc<SettingsStore<MusicSettingsRow>>,
+}
 
 pub struct PanelCtx<'a> {
     pub http: &'a Http,
+    pub http_owned: Arc<Http>,
     pub interaction: &'a ComponentInteraction,
     pub guild_id: GuildId,
     pub bot_id: UserId,
@@ -30,22 +40,30 @@ impl<'a> PanelCtx<'a> {
         http: &'a Http,
         interaction: &'a ComponentInteraction,
         bot_id: UserId,
-        songbird: Arc<Songbird>,
-        music: Arc<MusicManager>,
-        resolver: Arc<dyn TrackResolver>,
-        settings: Arc<SettingsStore<MusicSettingsRow>>,
+        services: PanelServices,
     ) -> Result<Self> {
         let guild_id = interaction.guild_id.ok_or(MusicError::MissingGuildId)?;
         Ok(Self {
             http,
+            http_owned: services.http,
             interaction,
             guild_id,
             bot_id,
-            songbird,
-            music,
-            resolver,
-            settings,
+            songbird: services.songbird,
+            music: services.music,
+            resolver: services.resolver,
+            settings: services.settings,
         })
+    }
+
+    #[must_use]
+    pub fn playback(&self) -> Playback {
+        Playback {
+            http: Arc::clone(&self.http_owned),
+            songbird: Arc::clone(&self.songbird),
+            music: Arc::clone(&self.music),
+            resolver: Arc::clone(&self.resolver),
+        }
     }
 
     pub async fn settings(&self) -> Result<Arc<MusicSettingsRow>> {

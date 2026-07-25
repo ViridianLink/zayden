@@ -81,16 +81,22 @@ fn view_embed(row: &MusicSettingsRow) -> CreateEmbed<'static> {
         .dj_role_id
         .map_or_else(|| "Everyone".to_string(), |id| format!("<@&{id}>"));
 
+    let announce_channel = row.announce_channel_id.map_or_else(
+        || "The channel /play was used in".to_string(),
+        |id| format!("<#{id}>"),
+    );
+
     CreateEmbed::new()
         .title("Music Settings")
         .field("DJ Role", dj_role, true)
         .field("Default Volume", format!("{}%", row.default_volume), true)
         .field("Auto-disconnect", format!("{}s", row.auto_disconnect_secs), true)
         .field("Announce Now Playing", row.announce_now_playing.to_string(), true)
+        .field("Announce Channel", announce_channel, true)
         .field("24/7 (Stay Connected)", row.stay_connected.to_string(), true)
         .field("Autoplay", row.autoplay.to_string(), true)
         .footer(CreateEmbedFooter::new(
-            "DJ Role, Auto-disconnect and Announce Now Playing are managed on the \
-             dashboard.",
+            "DJ Role, Auto-disconnect and the announcement settings are managed \
+             on the dashboard.",
         ))
 }

@@ -6,6 +6,7 @@ use music::components::{
     CONTROL_PANEL_PREFIX,
     ControlPanel as MusicControlPanel,
     PanelCtx,
+    PanelServices,
     QUEUE_PAGER_PREFIX,
     QueuePager as MusicQueuePager,
 };
@@ -40,10 +41,13 @@ impl ModuleComponent for ControlPanel {
             &cx.ctx.http,
             cx.interaction,
             UserId::new(cx.app.zayden_id),
-            songbird,
-            music,
-            resolver,
-            settings,
+            PanelServices {
+                http: Arc::clone(&cx.ctx.http),
+                songbird,
+                music,
+                resolver,
+                settings,
+            },
         )?;
 
         let action = cx
@@ -80,10 +84,13 @@ impl ModuleComponent for QueuePager {
             &cx.ctx.http,
             cx.interaction,
             UserId::new(cx.app.zayden_id),
-            songbird,
-            music,
-            resolver,
-            settings,
+            PanelServices {
+                http: Arc::clone(&cx.ctx.http),
+                songbird,
+                music,
+                resolver,
+                settings,
+            },
         )?;
 
         let page_suffix = cx

@@ -271,6 +271,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                 // Music — admin setup only.
                                 {let r = save_music.value();
                                 let roles = roles.clone();
+                                let channels = channels.clone();
                                 view! {
                                     <fieldset class="settings-section">
                                         <legend><Icon name="music"/>"Music"</legend>
@@ -293,8 +294,20 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                                 name="announce_now_playing"
                                                 value=s.music_announce_now_playing
                                             />
+                                            <ChannelSelect
+                                                label="Announce Channel"
+                                                name="announce_channel_id"
+                                                selected=sel(s.music_announce_channel_id.as_deref())
+                                                channels=channels
+                                                kinds=TEXT_KINDS
+                                            />
                                             <SaveButton/>
                                         </ActionForm>
+                                        <p class="page-lead">
+                                            "Announcements post when a track ends and the next "
+                                            "one starts. Leave the announce channel unset to use "
+                                            "the channel /play was run in."
+                                        </p>
                                         <p class="page-lead">
                                             "Default volume, 24/7 mode and autoplay change "
                                             "while music is playing \u{2014} set those in Discord "

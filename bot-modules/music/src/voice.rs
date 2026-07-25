@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use serenity::all::{ChannelId, GenericChannelId, GuildId, UserId};
+use serenity::all::{ChannelId, GenericChannelId, GuildId, Http, UserId};
 use songbird::id::ChannelId as SongbirdChannelId;
 use songbird::tracks::TrackHandle;
 use songbird::{Call, Event, Songbird, TrackEvent};
@@ -11,7 +11,7 @@ use zayden_app::entitlement::EntitlementService;
 use crate::error::{MusicError, Result};
 use crate::events::{InactivityCheck, TrackEndNotifier, TrackErrorNotifier};
 use crate::manager::MusicManager;
-use crate::player::NowPlaying;
+use crate::player::{AnnounceConfig, NowPlaying};
 use crate::resolve::TrackResolver;
 use crate::track::ResolvedTrack;
 
@@ -49,6 +49,7 @@ pub struct SessionRequest {
     pub default_volume: u8,
     pub auto_disconnect_secs: u64,
     pub stay_connected: bool,
+    pub announce: AnnounceConfig,
     pub entitlements: Arc<EntitlementService>,
 }
 
@@ -70,6 +71,7 @@ pub async fn ensure_session(
     );
 
     let mut guard = player.lock().await;
+    guard.set_announce(request.announce);
     if !guard.periodic_registered {
         let mut call_guard = call.lock().await;
         call_guard.add_global_event(
@@ -94,14 +96,22 @@ pub async fn ensure_session(
     Ok((channel_id, call))
 }
 
+#[derive(Clone)]
+pub struct Playback {
+    pub http: Arc<Http>,
+    pub songbird: Arc<Songbird>,
+    pub music: Arc<MusicManager>,
+    pub resolver: Arc<dyn TrackResolver>,
+}
+
 pub async fn start_playback(
-    songbird: &Arc<Songbird>,
-    music: &Arc<MusicManager>,
-    resolver: &Arc<dyn TrackResolver>,
+    playback: &Playback,
     guild_id: GuildId,
     generation: u64,
     track: ResolvedTrack,
 ) -> Result<()> {
+    let Playback { songbird, music, resolver, .. } = playback;
+
     let call = get_call(songbird, guild_id).ok_or(MusicError::NotConnected)?;
     let input = resolver.stream(&track).await?;
 
@@ -114,9 +124,7 @@ pub async fn start_playback(
         .add_event(Event::Track(TrackEvent::End), TrackEndNotifier {
             guild_id,
             generation,
-            music: Arc::clone(music),
-            songbird: Arc::clone(songbird),
-            resolver: Arc::clone(resolver),
+            playback: playback.clone(),
         })
         .map_err(|e| MusicError::Songbird(e.to_string()))?;
 
@@ -139,9 +147,7 @@ pub async fn start_playback(
 }
 
 pub async fn stop_current_and_start(
-    songbird: &Arc<Songbird>,
-    music: &Arc<MusicManager>,
-    resolver: &Arc<dyn TrackResolver>,
+    playback: &Playback,
     guild_id: GuildId,
     old_handle: Option<TrackHandle>,
     next: Option<ResolvedTrack>,
@@ -152,8 +158,7 @@ pub async fn stop_current_and_start(
     }
 
     if let Some(track) = next {
-        start_playback(songbird, music, resolver, guild_id, generation, track)
-            .await?;
+        start_playback(playback, guild_id, generation, track).await?;
     }
 
     Ok(())

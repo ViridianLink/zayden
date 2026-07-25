@@ -78,3 +78,14 @@ fn music_settings_empty_default_matches_the_parse_fallback() {
     );
     assert_eq!(MusicSettingsRow::TABLE, "music_settings");
 }
+
+// music DS-3: announcements are opt-out (the column defaults to TRUE) and have
+// no dedicated channel until an admin picks one, in which case the bot falls
+// back to the channel the play command was used in.
+#[test]
+fn music_settings_empty_announces_to_the_command_channel() {
+    let row = MusicSettingsRow::empty(123);
+
+    assert!(row.announce_now_playing);
+    assert_eq!(row.announce_channel_id, None);
+}

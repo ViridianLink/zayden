@@ -3,6 +3,8 @@ use std::time::Instant;
 
 use serenity::all::{GenericChannelId, UserId};
 use songbird::tracks::TrackHandle;
+use zayden_app::config::MusicSettingsRow;
+use zayden_core::as_u64;
 
 use crate::queue::Queue;
 use crate::track::{LoopMode, ResolvedTrack};
@@ -13,6 +15,27 @@ pub struct NowPlaying {
     pub track: ResolvedTrack,
     pub handle: TrackHandle,
     pub started_at: Instant,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AnnounceConfig {
+    pub enabled: bool,
+    pub channel: Option<GenericChannelId>,
+}
+
+impl AnnounceConfig {
+    pub const DEFAULT: Self = Self { enabled: true, channel: None };
+}
+
+impl From<&MusicSettingsRow> for AnnounceConfig {
+    fn from(settings: &MusicSettingsRow) -> Self {
+        Self {
+            enabled: settings.announce_now_playing,
+            channel: settings
+                .announce_channel_id
+                .map(|id| GenericChannelId::new(as_u64(id))),
+        }
+    }
 }
 
 pub struct GuildPlayer {
@@ -27,6 +50,7 @@ pub struct GuildPlayer {
     pub idle_since: Option<Instant>,
     pub periodic_registered: bool,
     pub starting: bool,
+    pub announce: AnnounceConfig,
 }
 
 impl GuildPlayer {
@@ -44,6 +68,23 @@ impl GuildPlayer {
             idle_since: None,
             periodic_registered: false,
             starting: false,
+            announce: AnnounceConfig::DEFAULT,
+        }
+    }
+
+    pub const fn set_announce(&mut self, announce: AnnounceConfig) {
+        self.announce = announce;
+    }
+
+    #[must_use]
+    pub const fn announce_target(&self) -> Option<GenericChannelId> {
+        if !self.announce.enabled {
+            return None;
+        }
+
+        match self.announce.channel {
+            Some(channel) => Some(channel),
+            None => Some(self.text_channel),
         }
     }
 

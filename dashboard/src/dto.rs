@@ -97,6 +97,7 @@ pub struct GuildSettings {
     pub(crate) music_dj_role_id: Option<String>,
     pub(crate) music_auto_disconnect_secs: String,
     pub(crate) music_announce_now_playing: bool,
+    pub(crate) music_announce_channel_id: Option<String>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

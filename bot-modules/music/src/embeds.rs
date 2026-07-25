@@ -89,6 +89,22 @@ pub fn now_playing_embed(
     }
 }
 
+pub fn track_announcement_embed(track: &ResolvedTrack) -> CreateEmbed<'static> {
+    let embed = CreateEmbed::new()
+        .title("Now Playing")
+        .description(format!(
+            "Song finished, now playing [{}]({})",
+            track.title, track.url
+        ))
+        .colour(Colour::BLURPLE)
+        .field("Requested by", track.requested_by.display_name.clone(), true);
+
+    match &track.thumbnail_url {
+        Some(url) => embed.thumbnail(url.clone(), None),
+        None => embed,
+    }
+}
+
 pub fn queued_embed(track: &ResolvedTrack, position: usize) -> CreateEmbed<'static> {
     CreateEmbed::new()
         .title("Queued")

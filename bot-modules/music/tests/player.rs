@@ -1,5 +1,6 @@
-use music::{GuildPlayer, LoopMode};
+use music::{AnnounceConfig, GuildPlayer, LoopMode, MusicSettingsRow};
 use serenity::all::GenericChannelId;
+use zayden_app::config::SettingsRow;
 
 fn track(id: &str) -> music::ResolvedTrack {
     music::ResolvedTrack {
@@ -67,6 +68,63 @@ fn finish_start_releases_the_reservation_for_a_later_idle_start() {
         player.try_begin_start(),
         "reservation should be reusable after finish_start"
     );
+}
+
+// DS-3 regression: `announce_now_playing` had no consumer at all, so the
+// toggle was a no-op at every value. `announce_target` is the decision the
+// `TrackEndNotifier` now makes before posting an unprompted announcement.
+#[test]
+fn announce_target_defaults_to_the_session_text_channel() {
+    let command_channel = GenericChannelId::new(10);
+    let player = GuildPlayer::new(command_channel, 100);
+
+    assert_eq!(player.announce_target(), Some(command_channel));
+}
+
+#[test]
+fn announce_target_prefers_the_configured_announce_channel() {
+    let command_channel = GenericChannelId::new(10);
+    let announce_channel = GenericChannelId::new(20);
+    let mut player = GuildPlayer::new(command_channel, 100);
+
+    player.set_announce(AnnounceConfig {
+        enabled: true,
+        channel: Some(announce_channel),
+    });
+
+    assert_eq!(player.announce_target(), Some(announce_channel));
+}
+
+#[test]
+fn announce_target_is_none_when_announcements_are_disabled() {
+    let mut player = GuildPlayer::new(GenericChannelId::new(10), 100);
+
+    player.set_announce(AnnounceConfig {
+        enabled: false,
+        channel: Some(GenericChannelId::new(20)),
+    });
+
+    assert_eq!(
+        player.announce_target(),
+        None,
+        "a disabled toggle must silence announcements even with a channel set"
+    );
+}
+
+#[test]
+fn announce_config_mirrors_the_guild_settings_row() {
+    let mut row = MusicSettingsRow::empty(1);
+    assert_eq!(AnnounceConfig::from(&row), AnnounceConfig {
+        enabled: true,
+        channel: None,
+    });
+
+    row.announce_now_playing = false;
+    row.announce_channel_id = Some(20);
+    assert_eq!(AnnounceConfig::from(&row), AnnounceConfig {
+        enabled: false,
+        channel: Some(GenericChannelId::new(20)),
+    });
 }
 
 #[test]

@@ -29,7 +29,7 @@ youtube). No CC-1 (in-memory manager, not DB-generic). Only minor lint debt.
   `.timeout(...)`; if not, add one. Quick check, likely already fine.
 
 ### 3. `settings` (default-volume) belongs on the dashboard  ·  #8  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — ed359268`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Scope decision (2026-07-25):** *Partial* move, not the wholesale migration the
   finding proposed. The owner's call: music settings are tweaked **live** as
   listeners and songs change, so the playback-behaviour fields stay in Discord;
@@ -208,7 +208,7 @@ _Deep sweep: 2026-07-17 · lens: state/cache correctness (multi-guild aliasing).
   `check_and_set`-style guard mirroring gambling's `GameCache`.
 
 ### DS-3. `announce_now_playing` is stored, edited and displayed but never read → track announcements are an inert setting  ·  Pass 1 (silent failure) / #2  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `zayden-app/src/config/tables/music.rs:13` (column),
   `bot-modules/music/src/commands/settings.rs` (embed field) and
   `dashboard/src/server/guild.rs` (`save_music_settings`) — every *writer* and

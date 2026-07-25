@@ -11,6 +11,7 @@ pub struct MusicSettingsRow {
     pub stay_connected: bool,
     pub autoplay: bool,
     pub announce_now_playing: bool,
+    pub announce_channel_id: Option<i64>,
 }
 
 impl MusicSettingsRow {
@@ -39,6 +40,7 @@ impl SettingsRow for MusicSettingsRow {
             stay_connected: false,
             autoplay: false,
             announce_now_playing: true,
+            announce_channel_id: None,
         }
     }
 
@@ -56,7 +58,8 @@ impl SettingsRow for MusicSettingsRow {
                 auto_disconnect_secs,
                 stay_connected,
                 autoplay,
-                announce_now_playing
+                announce_now_playing,
+                announce_channel_id
             FROM music_settings
             WHERE guild_id = $1
             "#,
@@ -72,9 +75,9 @@ impl SettingsRow for MusicSettingsRow {
             r#"
             INSERT INTO music_settings (
                 guild_id, dj_role_id, default_volume, auto_disconnect_secs,
-                stay_connected, autoplay, announce_now_playing
+                stay_connected, autoplay, announce_now_playing, announce_channel_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (guild_id) DO UPDATE SET
                 dj_role_id = EXCLUDED.dj_role_id,
                 default_volume = EXCLUDED.default_volume,
@@ -82,6 +85,7 @@ impl SettingsRow for MusicSettingsRow {
                 stay_connected = EXCLUDED.stay_connected,
                 autoplay = EXCLUDED.autoplay,
                 announce_now_playing = EXCLUDED.announce_now_playing,
+                announce_channel_id = EXCLUDED.announce_channel_id,
                 updated_at = now()
             RETURNING
                 guild_id,
@@ -90,7 +94,8 @@ impl SettingsRow for MusicSettingsRow {
                 auto_disconnect_secs,
                 stay_connected,
                 autoplay,
-                announce_now_playing
+                announce_now_playing,
+                announce_channel_id
             "#,
             self.guild_id,
             self.dj_role_id,
@@ -98,7 +103,8 @@ impl SettingsRow for MusicSettingsRow {
             self.auto_disconnect_secs,
             self.stay_connected,
             self.autoplay,
-            self.announce_now_playing
+            self.announce_now_playing,
+            self.announce_channel_id
         )
         .fetch_one(pool)
         .await

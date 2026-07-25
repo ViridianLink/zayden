@@ -118,6 +118,7 @@ pub async fn get_guild_settings(
         music_dj_role_id: opt_str(music.dj_role_id),
         music_auto_disconnect_secs: music.auto_disconnect_secs.to_string(),
         music_announce_now_playing: music.announce_now_playing,
+        music_announce_channel_id: opt_str(music.announce_channel_id),
     })
 }
 
@@ -279,6 +280,7 @@ pub async fn save_music_settings(
     dj_role_id: String,
     auto_disconnect_secs: String,
     announce_now_playing: String,
+    announce_channel_id: String,
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
@@ -292,6 +294,7 @@ pub async fn save_music_settings(
             p.dj_role_id = parse_id(&dj_role_id);
             p.auto_disconnect_secs = auto_disconnect_secs;
             p.announce_now_playing = announce_now_playing;
+            p.announce_channel_id = parse_id(&announce_channel_id);
         })
         .await
         .map(|_| ())

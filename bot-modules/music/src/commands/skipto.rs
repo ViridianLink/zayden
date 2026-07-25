@@ -31,9 +31,7 @@ pub(super) async fn run(
     };
 
     voice::stop_current_and_start(
-        &ctx.songbird,
-        &ctx.music,
-        &ctx.resolver,
+        &ctx.playback(),
         ctx.guild_id,
         old_handle,
         Some(next),

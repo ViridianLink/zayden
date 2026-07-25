@@ -82,9 +82,7 @@ pub(super) async fn run(
         Outcome::Skipped { old_handle, next, generation, forced } => {
             let started_next = next.is_some();
             voice::stop_current_and_start(
-                &ctx.songbird,
-                &ctx.music,
-                &ctx.resolver,
+                &ctx.playback(),
                 ctx.guild_id,
                 old_handle,
                 next,

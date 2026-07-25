@@ -8,8 +8,9 @@ use zayden_app::entitlement::EntitlementService;
 use crate::error::{MusicError, Result};
 use crate::manager::MusicManager;
 use crate::permissions;
+use crate::player::AnnounceConfig;
 use crate::resolve::TrackResolver;
-use crate::voice::SessionRequest;
+use crate::voice::{Playback, SessionRequest};
 
 pub struct MusicServices {
     pub http: Arc<Http>,
@@ -72,7 +73,18 @@ impl<'a> MusicCtx<'a> {
                 settings.auto_disconnect_secs,
             )),
             stay_connected: settings.stay_connected,
+            announce: AnnounceConfig::from(settings),
             entitlements: Arc::clone(&self.entitlements),
+        }
+    }
+
+    #[must_use]
+    pub fn playback(&self) -> Playback {
+        Playback {
+            http: Arc::clone(&self.http_owned),
+            songbird: Arc::clone(&self.songbird),
+            music: Arc::clone(&self.music),
+            resolver: Arc::clone(&self.resolver),
         }
     }
 

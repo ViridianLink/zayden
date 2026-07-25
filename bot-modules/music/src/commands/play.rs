@@ -93,15 +93,7 @@ pub(super) async fn enqueue(
         guard.queue.pop_front()
     };
     let start_result = if let Some(next) = next {
-        voice::start_playback(
-            &ctx.songbird,
-            &ctx.music,
-            &ctx.resolver,
-            ctx.guild_id,
-            generation,
-            next,
-        )
-        .await
+        voice::start_playback(&ctx.playback(), ctx.guild_id, generation, next).await
     } else {
         Ok(())
     };
