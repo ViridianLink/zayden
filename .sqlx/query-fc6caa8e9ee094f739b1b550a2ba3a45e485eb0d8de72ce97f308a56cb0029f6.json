@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    g.user_id,\n    g.coins,\n    i.quantity AS quantity\nFROM\n    gambling g\nLEFT JOIN gambling_inventory i\n    ON\n        g.user_id = i.user_id\n        AND i.item_id = $1\nWHERE\n    i.quantity > 0\n",
+  "query": "SELECT\n    g.user_id,\n    g.coins,\n    i.quantity AS quantity\nFROM\n    gambling g\n    LEFT JOIN gambling_inventory i ON g.user_id = i.user_id\n        AND i.item_id = $1\nWHERE\n    i.quantity > 0\n",
   "describe": {
     "columns": [
       {
@@ -45,8 +45,8 @@
     "nullable": [
       false,
       false,
-      true
+      false
     ]
   },
-  "hash": "895e6b862eaf6ef521e80bda81e7e7a95fe02387d6f85bf60e91c66596dfe1b9"
+  "hash": "fc6caa8e9ee094f739b1b550a2ba3a45e485eb0d8de72ce97f308a56cb0029f6"
 }

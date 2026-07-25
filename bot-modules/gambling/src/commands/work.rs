@@ -9,7 +9,6 @@ use serenity::all::{
     UserId,
 };
 use sqlx::PgPool;
-use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64};
@@ -26,6 +25,7 @@ use crate::{
     Prestige,
     Result,
     Stamina,
+    out_of_stamina,
 };
 
 #[derive(Debug, FromRow)]
@@ -141,39 +141,72 @@ impl WorkManager {
         trivial_casts,
         reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
     )]
-    pub async fn save(pool: &PgPool, row: WorkRow) -> sqlx::Result<PgQueryResult> {
+    pub async fn commit_work(
+        pool: &PgPool,
+        id: UserId,
+        delta: WorkDelta,
+        mine_activity: jiff::Timestamp,
+    ) -> sqlx::Result<Option<WorkCommit>> {
+        let user_id = as_i64(id.get());
+
         let mut tx = pool.begin().await?;
 
-        let mut result = sqlx::query!(
+        let Some(committed) = sqlx::query_as!(
+            WorkCommit,
             "INSERT INTO gambling (user_id, coins, gems, stamina)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
-            row.user_id,
-            row.coins,
-            row.gems,
-            row.stamina
+                coins = gambling.coins + $2,
+                gems = gambling.gems + $3,
+                stamina = gambling.stamina - 1
+            WHERE gambling.stamina > 0
+            RETURNING coins, gems, stamina;",
+            user_id,
+            delta.coins,
+            delta.gems,
+            <WorkRow as Stamina>::MAX_STAMINA - 1,
         )
-        .execute(&mut *tx)
-        .await?;
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(None);
+        };
 
-        let result2 = sqlx::query!(
+        sqlx::query!(
             "INSERT INTO gambling_mine (user_id, mine_activity)
             VALUES ($1, $2)
             ON CONFLICT (user_id) DO UPDATE SET
             mine_activity = EXCLUDED.mine_activity;",
-            row.user_id,
-            row.mine_activity as Option<Timestamp>,
+            user_id,
+            mine_activity.to_sqlx() as Timestamp,
         )
         .execute(&mut *tx)
         .await?;
 
-        result.extend([result2]);
-
         tx.commit().await?;
 
-        Ok(result)
+        Ok(Some(committed))
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct WorkDelta {
+    pub coins: i64,
+    pub gems: i64,
+}
+
+impl WorkDelta {
+    #[must_use]
+    pub const fn between(before: (i64, i64), after: (i64, i64)) -> Self {
+        Self { coins: after.0 - before.0, gems: after.1 - before.1 }
+    }
+}
+
+#[derive(Debug, FromRow)]
+pub struct WorkCommit {
+    pub coins: i64,
+    pub gems: i64,
+    pub stamina: i32,
 }
 
 impl Commands {
@@ -190,6 +223,8 @@ impl Commands {
 
         row.verify_work()?;
 
+        let before = (row.coins(), row.gems());
+
         let base_amount = rand::random_range(100..=500);
         let mine_amount = row.mine_amount()?;
         let total_amount = base_amount + mine_amount;
@@ -203,8 +238,6 @@ impl Commands {
             ""
         };
 
-        let coins = row.coins_str();
-
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
@@ -215,12 +248,23 @@ impl Commands {
             .fire(interaction.channel_id, &mut row, Event::Work(interaction.user.id))
             .await?;
 
-        row.done_work();
-        row.mine_activity = Some(jiff::Timestamp::now().to_sqlx());
+        let delta = WorkDelta::between(before, (row.coins(), row.gems()));
 
+        let committed = WorkManager::commit_work(
+            pool,
+            interaction.user.id,
+            delta,
+            jiff::Timestamp::now(),
+        )
+        .await?
+        .ok_or_else(out_of_stamina)?;
+
+        *row.coins_mut() = committed.coins;
+        *row.gems_mut() = committed.gems;
+        *row.stamina_mut() = committed.stamina;
+
+        let coins = row.coins_str();
         let stamina = row.stamina_str();
-
-        WorkManager::save(pool, row).await?;
 
         let coin = emojis.emoji("heads").map_err(|n| {
             GamblingError::Internal(format!("emoji '{n}' not in cache"))

@@ -72,7 +72,7 @@ no coverage of the `actions` layer where the M4 permission re-checks live.
   branches (the M3 `loadout_refresh.rs` permission test is a template).
 
 ### 5. `setup` duplicates the dashboard's temp-voice settings  ·  #8  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 39fae2dc`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-25):** Removed the duplicate editor and closed the one capability
   gap that removal opened. Following the lfg #4 precedent (`51d8412e`): deleted
   `commands/setup.rs`, dropped the `setup` subcommand from `Command::register()`

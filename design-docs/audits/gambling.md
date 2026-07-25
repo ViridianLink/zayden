@@ -279,7 +279,52 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   atomic `add_coins` (DS-1, DS-2) or a shared pool (DS-3/DS-4).
 
 ### DS-7. `daily` / `work` are further CC-9 whole-row absolute-overwrite sites (lost concurrent update)  ·  Pass 2  ·  low-med
-- **Status:** `complete — 82f308a2` (partial — `daily` fixed, `work` deferred)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review` (`daily` fixed in `82f308a2`; `work` half fixed 2026-07-25)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-25, `work`):** The deferral above no longer applies — the
+  [CC-1](_cross-cutting.md#cc-1) concrete-`PgPool` migration has landed, so the
+  per-field-delta conversion is now a surgical change. `WorkManager::save` (whole-row
+  absolute upsert) replaced with `WorkManager::commit_work`, a single guarded atomic
+  upsert — `INSERT … ON CONFLICT DO UPDATE SET coins = gambling.coins + $2,
+  gems = gambling.gems + $3, stamina = gambling.stamina - 1 WHERE gambling.stamina > 0
+  RETURNING coins, gems, stamina`. The command now captures a pre-image right after its
+  read and persists `WorkDelta::between(before, after)` — taken **after**
+  `Dispatch::fire`, so goal rewards (`add_coins(5_000)`/`add_gems(1)`) ride the same
+  atomic increment. No row returned ⇒ the guard rejected the decrement (another command
+  spent the last stamina point in between) ⇒ `out_of_stamina()`, and the transaction
+  rolls back without writing `mine_activity`.
+  - **Also closes the stamina check-then-act race.** `verify_work()`/`done_work()` were
+    a purely in-memory guard: two concurrent `/work` calls both read `stamina = 3` and
+    both absolute-wrote `2`, so the second shift was free. The guarded decrement makes
+    the two calls consume two points (3→2→1), the same corrective pattern as
+    [DS-5](#ds-5).
+  - The embed now reports the **post-write** balances from `RETURNING` rather than the
+    in-memory pre-image plus this shift's earnings.
+  - `out_of_stamina()` was extracted out of `Stamina::verify_work` (`models/mod.rs`) so
+    the up-front check and the guarded write raise the identical error.
+  - **New-row parity:** the INSERT branch still seeds `coins = delta`,
+    `stamina = MAX_STAMINA - 1`, matching the old `WorkRow::new` + `done_work()` path.
+  - **Verification:** `bot-modules/gambling/tests/work.rs` (4 tests) pins the
+    delta-vs-absolute distinction at the value level — modelling the interleave where a
+    +500 credit lands mid-shift and asserting `current + delta` = 1 800 while the old
+    absolute write produced 1 300. Following the family DS-1 / lotto DS-6 precedent, the
+    end-to-end path is not covered: it needs a live `PgPool` + Discord interaction and
+    this crate has no DB harness (see [CC-6](_cross-cutting.md#cc-6)), and the guard
+    itself lives in SQL. `WorkDelta` did not exist before the fix, so the test is
+    structurally unbuildable against the old code rather than red-then-green.
+  - **Gate:** `cargo +nightly clippy --workspace --all-targets -D warnings` clean,
+    `cargo test` green (98 test binaries). No new `#[allow]`/`#[expect]` — the
+    `#[expect(trivial_casts)]` on `commit_work` is the pre-existing one carried over
+    from `save` (sqlx's `jiff_sqlx` bind-type override). No `Cargo.toml` dep change, so
+    no `cargo machete` run. `.sqlx`: one new entry (`176a9f01`).
+  - **Residual:** `Dispatch::fire` commits goal progress and sends its congratulation
+    message *before* the guarded write, so in the rare case the guard rejects, those
+    side effects have already fired. Closing that needs the dispatch moved inside the
+    transaction — a larger restructure, left as a follow-up. Also unchanged: the
+    pre-existing `.sqlx` drift on `main` (`895e6b8`/`fc6caa8e`) recorded in the
+    [CC-5 residual](_cross-cutting.md#cc-5), so `cargo sqlx prepare --check` still fails
+    for that reason alone.
+  - **This was the last open CC-9 site** — [CC-9](_cross-cutting.md#cc-9) is now
+    closable as bookkeeping.
 - **Fix (2026-07-19, `daily`):** `DailyManager::save` (whole-row absolute upsert)
   replaced with `DailyManager::claim_daily`, a single guarded atomic upsert —
   `INSERT … ON CONFLICT DO UPDATE SET coins = gambling.coins + $2, daily = today
@@ -287,7 +332,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   the command now also rejects a same-tick double-submit (previously only the
   in-memory date read guarded it). Closes both the lost-update and the residual
   double-credit window for `daily`.
-- **`work` deferred:** the `work` path interleaves `Dispatch::fire` (which mutates
+- **`work` deferred** _(superseded — see the 2026-07-25 fix above)_**:** the `work` path interleaves `Dispatch::fire` (which mutates
   the row mid-flow), stamina bookkeeping (`verify_work`/`done_work`), gem rolls, and
   `mine_activity` before a single absolute `save`. A correct atomic conversion needs
   per-field deltas **and** a guarded stamina decrement (its own floor race, cf.

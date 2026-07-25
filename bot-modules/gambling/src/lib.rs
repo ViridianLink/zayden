@@ -22,6 +22,7 @@ pub mod utils;
 
 pub use commands::Commands;
 pub use commands::goals::GoalsManager;
+pub use commands::work::{WorkCommit, WorkDelta};
 pub use common::{
     SHOP_ITEMS,
     ShopCurrency,
@@ -65,6 +66,7 @@ pub use models::{
     Prestige,
     Stamina,
     StatsManager,
+    out_of_stamina,
 };
 pub use stamina::{StaminaCron, StaminaManager};
 

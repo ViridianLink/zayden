@@ -81,23 +81,28 @@ pub trait Stamina {
 
     fn verify_work(&self) -> Result<()> {
         if self.stamina() <= 0 {
-            let next_timestamp = StaminaCron::cron_job()
-                .map_err(|e| {
-                    GamblingError::Internal(format!(
-                        "stamina cron schedule parse failed: {e}"
-                    ))
-                })?
-                .schedule
-                .upcoming(TimeZone::UTC)
-                .next()
-                .unwrap_or_default()
-                .timestamp();
-
-            return Err(GamblingError::OutOfStamina(next_timestamp));
+            return Err(out_of_stamina());
         }
 
         Ok(())
     }
+}
+
+#[must_use]
+pub fn out_of_stamina() -> GamblingError {
+    let job = match StaminaCron::cron_job() {
+        Ok(job) => job,
+        Err(e) => {
+            return GamblingError::Internal(format!(
+                "stamina cron schedule parse failed: {e}"
+            ));
+        },
+    };
+
+    let next_timestamp =
+        job.schedule.upcoming(TimeZone::UTC).next().unwrap_or_default().timestamp();
+
+    GamblingError::OutOfStamina(next_timestamp)
 }
 
 pub trait ItemInventory {
