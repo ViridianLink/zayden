@@ -72,6 +72,41 @@ no coverage of the `actions` layer where the M4 permission re-checks live.
   branches (the M3 `loadout_refresh.rs` permission test is a template).
 
 ### 5. `setup` duplicates the dashboard's temp-voice settings  ·  #8  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-25):** Removed the duplicate editor and closed the one capability
+  gap that removal opened. Following the lfg #4 precedent (`51d8412e`): deleted
+  `commands/setup.rs`, dropped the `setup` subcommand from `Command::register()`
+  and its match arm (`commands/mod.rs`), and removed the now-orphaned
+  `TempVoiceRow::save` (its only caller was `setup`) plus its now-unused
+  `PgQueryResult` import — `get`/`get_category`/`get_creator_channel` are
+  unchanged. `TempVoiceError::AdministratorRequired`/`IneligibleChannel` stay,
+  still used by `panel` and the channel commands.
+  **The gap:** unlike lfg's, this `setup` also *created* the "➕ Creator Channel"
+  voice channel, which a web form cannot do — the dashboard can only select
+  channels that already exist. So the dashboard gained a
+  `create_temp_voice_creator_channel` server fn
+  (`dashboard/src/server/guild.rs`) that creates the voice channel under a chosen
+  category via the bot-token twilight client and points `temp_voice_settings` at
+  both, behind the same `guild_admin_context` authz gate as every other settings
+  write. The Temp Voice section of the settings page (`ui/pages/guild_settings.rs`)
+  now carries a "Create Creator Channel" button beside the existing save form, and
+  the settings `Resource` is keyed on that action's `version()` so the new channel
+  appears in the pickers immediately (same pattern as `ui/pages/modules.rs`).
+  **`.sqlx`:** the change only *removes* one `query!` (the 3-col insert) and adds
+  none — the dashboard path reuses the already-cached `TempVoiceSettingsRow::upsert`
+  — so the cache was reconciled by deleting just that orphaned entry
+  (`query-76409a92…json`); `cargo sqlx prepare` was deliberately **not** run (this
+  dev DB is not the empty/freshly-migrated DB required for correct LEFT-JOIN
+  nullability inference). **Gates:** `cargo +nightly clippy --workspace
+  --all-targets -D warnings` clean, `cargo test` green (0 failures), plus
+  `-p dashboard --features ssr` and the wasm/`--features hydrate` check, since this
+  touches hydrated UI. No new `#[allow]`/`#[expect]`; no `Cargo.toml` dep change.
+  **No test:** a duplication removal with no pure-logic surface (the "regression" is
+  that the bot write path no longer exists), and the new server fn needs live
+  Discord + DB — `dashboard` has no lib-target test harness (see CC-6). Mirrors the
+  lfg #4 / family #3 precedent.
+  **Residual:** the dashboard is now the single editor of `temp_voice_settings`;
+  `panel` and the live channel mutations stay in-bot as the finding directs.
 - **Where:** `src/commands/setup.rs` (writes `temp_voice_settings`).
 - **What:** Writes the same row the dashboard now writes via
   `save_temp_voice_settings` — a duplicate editor.

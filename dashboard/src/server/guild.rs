@@ -5,13 +5,16 @@ use {
         app_state,
         bearer_client,
         db_pool,
+        discord_client,
         guild_admin_context,
         server_err,
     },
     leptos_axum::{extract, redirect},
     std::sync::Arc,
     tower_cookies::Cookies,
+    twilight_model::channel::ChannelType,
     twilight_model::guild::Permissions,
+    twilight_model::id::Id,
     zayden_app::state::AppState,
 };
 
@@ -198,6 +201,48 @@ pub async fn save_temp_voice_settings(
         .update(guild_id, |p| {
             p.temp_voice_category = parse_id(&temp_voice_category);
             p.temp_voice_creator_channel = parse_id(&temp_voice_creator_channel);
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[cfg(feature = "ssr")]
+const CREATOR_CHANNEL_NAME: &str = "\u{2795} Creator Channel";
+
+#[server]
+pub async fn create_temp_voice_creator_channel(
+    guild: String,
+    temp_voice_category: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let category = parse_id(&temp_voice_category)
+        .and_then(|id| Id::new_checked(id.cast_unsigned()));
+    let Some(category) = category else {
+        return Err(ServerFnError::ServerError(
+            "select a category first".to_string(),
+        ));
+    };
+
+    let channel = discord_client()?
+        .create_guild_channel(
+            Id::new(guild_id.cast_unsigned()),
+            CREATOR_CHANNEL_NAME,
+        )
+        .kind(ChannelType::GuildVoice)
+        .parent_id(category)
+        .await
+        .map_err(server_err)?
+        .model()
+        .await
+        .map_err(server_err)?;
+
+    app.settings
+        .temp_voice
+        .update(guild_id, |p| {
+            p.temp_voice_category = Some(category.get().cast_signed());
+            p.temp_voice_creator_channel = Some(channel.id.get().cast_signed());
         })
         .await
         .map(|_| ())

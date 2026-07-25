@@ -14,7 +14,6 @@ mod persist;
 mod privacy;
 mod region;
 mod reset;
-mod setup;
 mod transfer;
 mod trust;
 mod unblock;
@@ -45,7 +44,6 @@ use serenity::all::{
     GenericInteractionChannel,
     Permissions,
 };
-use setup::setup;
 use sqlx::PgPool;
 use transfer::transfer;
 use trust::trust;
@@ -76,11 +74,6 @@ impl VoiceCommand {
         let mut options = parse_options(sub_options);
 
         match sub_name {
-            "setup" => {
-                setup(&ctx.http, interaction, pool, guild_id, options).await?;
-
-                return Ok(());
-            },
             "create" => {
                 create(&ctx.http, interaction, pool, guild_id, options).await?;
 
@@ -224,20 +217,6 @@ impl VoiceCommand {
     }
 
     pub fn register<'a>() -> CreateCommand<'a> {
-        let setup = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "setup",
-            "Setup the temporary voice channel module for the guild.",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::Channel,
-                "category",
-                "The category to create temporary voice channels in.",
-            )
-            .required(true),
-        );
-
         let create = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "create",
@@ -269,7 +248,6 @@ impl VoiceCommand {
 
         CreateCommand::new("voice")
             .description("Commands for creating and managing temporary voice channels.")
-            .add_option(setup)
             .add_option(create)
             .add_option(
                 CreateCommandOption::new(

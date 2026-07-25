@@ -51,7 +51,7 @@ served by the website — and two `setup` commands already duplicate its writes.
   `levels` are the smallest starting points; `gambling` is the largest.
 
 ### CC-2. Inline `#[cfg(test)] mod tests` in `src/` (convention violation)  ·  #6  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — de1238d8`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** Relocated the **7 surviving** inline `#[cfg(test)]` modules
   (the original list's `gambling/components/tictactoe.rs` and `family/family_manager.rs`
   sites were already deleted/renamed by the CC-1 migrations) to `tests/` integration
@@ -149,7 +149,7 @@ served by the website — and two `setup` commands already duplicate its writes.
   feature is actually built.
 
 ### CC-5. Runtime `sqlx::query(...)` bypassing compile-time macros  ·  #1  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 6049775d`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** Converted every remaining runtime-SQL site to compile-time
   macros. The audit's `gold_star.rs:83` site is already gone (folded into gold-star's
   CC-1 migration), but a full re-grep found the theme had **grown to 14 sites in 6
@@ -235,6 +235,10 @@ served by the website — and two `setup` commands already duplicate its writes.
      `bot-modules/temp-voice/src/commands/setup.rs` write the *same*
      `lfg_settings` / `temp_voice_settings` rows the dashboard now writes. Same
      for support/channels/roles config commands. Two editors, one table.
+     _(Both `setup` commands are now **removed** — lfg #4 at `51d8412e`,
+     temp-voice #5 in review; the dashboard is the single editor of both tables.
+     The remaining duplication sub-item is the support/channels/roles config
+     commands.)_
   2. **Config still stranded in-bot.** `music` (`commands/settings.rs`,
      default-volume), `ticket` (support-guild config), `suggestions` config, and
      `reaction-roles` (`add`/`remove` mapping CRUD) have **no** dashboard

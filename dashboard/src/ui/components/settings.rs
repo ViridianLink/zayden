@@ -8,6 +8,16 @@ pub(crate) fn save_feedback(r: Result<(), ServerFnError>) -> AnyView {
     }
 }
 
+pub(crate) fn create_feedback(r: Result<(), ServerFnError>) -> AnyView {
+    match r {
+        Ok(()) => view! { <p class="success">"Creator channel created."</p> }.into_any(),
+        Err(e) => {
+            view! { <p class="error">"Failed to create channel: " {e.to_string()}</p> }
+                .into_any()
+        },
+    }
+}
+
 #[component]
 pub(crate) fn SaveButton() -> impl IntoView {
     view! {

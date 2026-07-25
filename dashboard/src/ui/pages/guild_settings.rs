@@ -7,6 +7,7 @@ use twilight_model::channel::ChannelType;
 use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
 use crate::server::discord::{list_guild_channels, list_guild_roles};
 use crate::server::guild::{
+    CreateTempVoiceCreatorChannel,
     SaveChannelSettings,
     SaveFamilySettings,
     SaveLfgSettings,
@@ -18,7 +19,12 @@ use crate::server::guild::{
 use crate::ui::components::icons::Icon;
 use crate::ui::components::layout::AppShell;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
-use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
+use crate::ui::components::settings::{
+    SaveButton,
+    SettingField,
+    create_feedback,
+    save_feedback,
+};
 
 const TEXT_KINDS: &[ChannelType] = &[
     ChannelType::GuildText,
@@ -35,14 +41,20 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let params = use_params_map();
     let guild_id = move || params.with(|p| p.get("id").unwrap_or_default());
 
-    let data = Resource::new_blocking(guild_id, |gid| async move {
-        let settings = get_guild_settings(gid.clone()).await?;
-        let channels = list_guild_channels(gid.clone()).await.unwrap_or_default();
-        let roles = list_guild_roles(gid).await.unwrap_or_default();
-        Ok::<(GuildSettings, Vec<ChannelInfo>, Vec<RoleInfo>), ServerFnError>((
-            settings, channels, roles,
-        ))
-    });
+    let create_creator = ServerAction::<CreateTempVoiceCreatorChannel>::new();
+
+    let data = Resource::new_blocking(
+        move || (guild_id(), create_creator.version().get()),
+        |(gid, _)| async move {
+            let settings = get_guild_settings(gid.clone()).await?;
+            let channels =
+                list_guild_channels(gid.clone()).await.unwrap_or_default();
+            let roles = list_guild_roles(gid).await.unwrap_or_default();
+            Ok::<(GuildSettings, Vec<ChannelInfo>, Vec<RoleInfo>), ServerFnError>((
+                settings, channels, roles,
+            ))
+        },
+    );
 
     let save_support = ServerAction::<SaveSupportSettings>::new();
     let save_channels = ServerAction::<SaveChannelSettings>::new();
@@ -184,7 +196,12 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
 
                                 // Temp Voice
                                 {let r = save_temp_voice.value();
-                                let channels = channels.clone();
+                                let c = create_creator.value();
+                                let save_channels = channels.clone();
+                                let create_channels = channels.clone();
+                                let save_category = sel(s.temp_voice_category.as_deref());
+                                let create_category = save_category.clone();
+                                let creator = sel(s.temp_voice_creator_channel.as_deref());
                                 view! {
                                     <fieldset class="settings-section">
                                         <legend><Icon name="music"/>"Temp Voice"</legend>
@@ -194,18 +211,38 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             <ChannelSelect
                                                 label="Category"
                                                 name="temp_voice_category"
-                                                selected=sel(s.temp_voice_category.as_deref())
-                                                channels=channels.clone()
+                                                selected=save_category
+                                                channels=save_channels.clone()
                                                 kinds=&[ChannelType::GuildCategory]
                                             />
                                             <ChannelSelect
                                                 label="Creator Channel"
                                                 name="temp_voice_creator_channel"
-                                                selected=sel(s.temp_voice_creator_channel.as_deref())
-                                                channels=channels.clone()
+                                                selected=creator
+                                                channels=save_channels
                                                 kinds=&[ChannelType::GuildVoice]
                                             />
                                             <SaveButton/>
+                                        </ActionForm>
+                                        <p class="page-lead">
+                                            "No creator channel yet? Zayden can make one for you "
+                                            "and point the settings above at it."
+                                        </p>
+                                        {move || c.get().map(create_feedback)}
+                                        <ActionForm action=create_creator>
+                                            <input type="hidden" name="guild" value=guild_id()/>
+                                            <ChannelSelect
+                                                label="Create Creator Channel In"
+                                                name="temp_voice_category"
+                                                selected=create_category
+                                                channels=create_channels
+                                                kinds=&[ChannelType::GuildCategory]
+                                            />
+                                            <div class="form-actions">
+                                                <button type="submit" class="btn btn-secondary">
+                                                    "Create Creator Channel"
+                                                </button>
+                                            </div>
                                         </ActionForm>
                                     </fieldset>
                                 }}

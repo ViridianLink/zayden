@@ -1,5 +1,4 @@
 use serenity::all::{ChannelId, GuildId};
-use sqlx::postgres::PgQueryResult;
 use sqlx::{FromRow, PgPool};
 use zayden_core::{as_i64, as_u64};
 
@@ -24,29 +23,6 @@ impl TempVoiceRow {
     #[must_use]
     pub fn creator_channel(&self) -> Option<ChannelId> {
         self.temp_voice_creator_channel.map(|id| ChannelId::from(as_u64(id)))
-    }
-
-    pub async fn save(
-        pool: &PgPool,
-        id: GuildId,
-        category: ChannelId,
-        creator_channel: ChannelId,
-    ) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            r#"
-            INSERT INTO temp_voice_settings (guild_id, temp_voice_category, temp_voice_creator_channel)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (guild_id) DO UPDATE SET
-                temp_voice_category = EXCLUDED.temp_voice_category,
-                temp_voice_creator_channel = EXCLUDED.temp_voice_creator_channel,
-                updated_at = now()
-            "#,
-            as_i64(id.get()),
-            as_i64(category.get()),
-            as_i64(creator_channel.get())
-        )
-        .execute(pool)
-        .await
     }
 
     pub async fn get(pool: &PgPool, id: GuildId) -> sqlx::Result<Self> {
