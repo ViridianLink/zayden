@@ -7,6 +7,8 @@ target/
 .github/
 .vscode/
 
+.cargo/
+
 # Docs / logs / scratch 
 *.md
 !README.md
