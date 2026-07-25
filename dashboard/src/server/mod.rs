@@ -4,4 +4,5 @@ pub mod guild;
 pub mod kofi;
 pub mod levels;
 pub mod modules;
+pub mod reaction_roles;
 pub mod tier;

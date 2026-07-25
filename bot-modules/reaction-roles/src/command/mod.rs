@@ -18,7 +18,6 @@ use zayden_core::{
 };
 
 mod add;
-mod remove;
 
 use crate::error::{ReactionRoleError, Result};
 
@@ -50,10 +49,6 @@ impl ReactionRoleCommand {
         match name {
             "add" => {
                 Self::add(http, pool, guild_id, channel_id, reaction, options)
-                    .await?;
-            },
-            "remove" => {
-                Self::remove(http, pool, channel_id, guild_id, reaction, options)
                     .await?;
             },
             _ => {
@@ -103,37 +98,9 @@ impl ReactionRoleCommand {
             "The message id of the reaction role message",
         ));
 
-        let remove = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "remove",
-            "Removes a reaction role",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::String,
-                "message_id",
-                "The message id of the reaction role message",
-            )
-            .required(true),
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::String,
-                "emoji",
-                "The emoji of the reaction role",
-            )
-            .required(true),
-        )
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::Channel,
-            "channel",
-            "The channel the message is in",
-        ));
-
         CreateCommand::new("reaction_role")
-            .description("Adds or removes a reaction role")
+            .description("Adds a reaction role")
             .default_member_permissions(Permissions::MANAGE_MESSAGES)
             .add_option(add)
-            .add_option(remove)
     }
 }

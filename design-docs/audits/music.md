@@ -208,7 +208,7 @@ _Deep sweep: 2026-07-17 · lens: state/cache correctness (multi-guild aliasing).
   `check_and_set`-style guard mirroring gambling's `GameCache`.
 
 ### DS-3. `announce_now_playing` is stored, edited and displayed but never read → track announcements are an inert setting  ·  Pass 1 (silent failure) / #2  ·  med
-- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 82967a56`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `zayden-app/src/config/tables/music.rs:13` (column),
   `bot-modules/music/src/commands/settings.rs` (embed field) and
   `dashboard/src/server/guild.rs` (`save_music_settings`) — every *writer* and

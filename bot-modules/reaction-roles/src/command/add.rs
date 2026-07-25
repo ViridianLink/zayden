@@ -52,13 +52,14 @@ impl ReactionRoleCommand {
             },
         };
 
+        let emoji = reaction.to_string();
+
+        if ReactionRole::row(pool, message.id, &emoji).await?.is_some() {
+            return Err(ReactionRoleError::DuplicateMapping(emoji));
+        }
+
         ReactionRole::create(
-            pool,
-            guild_id,
-            channel_id,
-            message.id,
-            role.id,
-            &reaction.to_string(),
+            pool, guild_id, channel_id, message.id, role.id, &emoji,
         )
         .await?;
 

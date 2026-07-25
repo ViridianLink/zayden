@@ -5,4 +5,5 @@ pub mod levels;
 pub mod login;
 pub mod modules;
 pub mod not_found;
+pub mod reaction_roles;
 pub mod upgrade;

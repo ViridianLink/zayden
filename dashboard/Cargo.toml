@@ -36,6 +36,7 @@ ssr = [
   "dep:moka",
   "dep:oauth2",
   "dep:rand",
+  "dep:reaction-roles",
   "dep:rustls",
   "dep:sha2",
   "dep:sqlx",
@@ -74,6 +75,7 @@ oauth2 = { version = "*", default-features = false, features = [
   "rustls-tls",
 ], optional = true }
 rand = { workspace = true, features = ["thread_rng"], optional = true }
+reaction-roles = { workspace = true, optional = true }
 rustls = { workspace = true, features = ["aws-lc-rs"], optional = true }
 sha2 = { version = "*", default-features = false, optional = true }
 sqlx = { workspace = true, features = [

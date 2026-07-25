@@ -239,10 +239,19 @@ served by the website — and two `setup` commands already duplicate its writes.
      temp-voice #5 in review; the dashboard is the single editor of both tables.
      The remaining duplication sub-item is the support/channels/roles config
      commands.)_
-  2. **Config still stranded in-bot.** `ticket` (support-guild config),
-     `suggestions` config, and `reaction-roles` (`add`/`remove` mapping CRUD) have
-     **no** dashboard equivalent yet, though they are the same shape as things
-     already moved.
+  2. **Config still stranded in-bot.** `ticket` (support-guild config) and
+     `suggestions` config have **no** dashboard equivalent yet, though they are
+     the same shape as things already moved.
+     _(`reaction-roles` mapping CRUD is now **done** — see
+     [reaction-roles.md #3](reaction-roles.md); it set the pattern for admin CRUD
+     of *reference data* rather than a settings row: a table page plus server
+     fns, with the module crate kept as the single owner of the SQL and of any
+     value-normalisation contract the bot relies on. It also sharpened the
+     heuristic a second time: music #3 split by **field**, reaction-roles splits
+     by **operation** — an in-bot writer earns its keep when the Discord client
+     supplies input the web cannot match, here the emoji picker. When a
+     duplicated writer survives on those grounds, converge it on one SQL path
+     and one normalisation rule rather than accepting two.)_
      _(`music` is now **split** — see [music.md #3](music.md). The owner's ruling
      refines the heuristic below: "one-shot config → dashboard" is really
      **"admin setup → dashboard, live-tweak → bot"**. Music's DJ role,
@@ -275,8 +284,12 @@ served by the website — and two `setup` commands already duplicate its writes.
     interactions in-bot.
   - `suggestions` — channel/threshold config → dashboard. Keep the submit modal +
     vote reactions in-bot.
-  - `reaction-roles` — `add`/`remove` mapping CRUD → dashboard (browsable list of
-    message→emoji→role maps). Keep the reaction event handler in-bot.
+  - `reaction-roles` — **done (split)**: the browsable list of
+    message→emoji→role maps and mapping *removal* moved to the dashboard
+    (`/guild/:id/reaction-roles`); `/reaction_role add` **stays in Discord** on
+    the owner's ruling — the client's emoji picker beats a web text field. The
+    reaction event handler stays in-bot. See
+    [reaction-roles.md #3](reaction-roles.md).
   - `gambling` — `leaderboard`, `profile`/stats → dashboard read views. Keep all
     games/economy actions in-bot.
   - `levels` — `leaderboard`, `rank` → dashboard read views. Keep the message-XP

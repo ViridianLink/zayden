@@ -101,6 +101,14 @@ pub struct GuildSettings {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub struct ReactionRoleInfo {
+    pub(crate) channel_id: String,
+    pub(crate) message_id: String,
+    pub(crate) role_id: String,
+    pub(crate) emoji: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ChannelInfo {
     pub(crate) id: String,
     pub(crate) name: String,
