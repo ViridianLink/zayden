@@ -239,10 +239,18 @@ served by the website — and two `setup` commands already duplicate its writes.
      temp-voice #5 in review; the dashboard is the single editor of both tables.
      The remaining duplication sub-item is the support/channels/roles config
      commands.)_
-  2. **Config still stranded in-bot.** `music` (`commands/settings.rs`,
-     default-volume), `ticket` (support-guild config), `suggestions` config, and
-     `reaction-roles` (`add`/`remove` mapping CRUD) have **no** dashboard
-     equivalent yet, though they are the same shape as things already moved.
+  2. **Config still stranded in-bot.** `ticket` (support-guild config),
+     `suggestions` config, and `reaction-roles` (`add`/`remove` mapping CRUD) have
+     **no** dashboard equivalent yet, though they are the same shape as things
+     already moved.
+     _(`music` is now **split** — see [music.md #3](music.md). The owner's ruling
+     refines the heuristic below: "one-shot config → dashboard" is really
+     **"admin setup → dashboard, live-tweak → bot"**. Music's DJ role,
+     auto-disconnect and now-playing announcements moved to `save_music_settings`;
+     default volume, 24/7 and autoplay stayed on `/music settings` because they are
+     changed *while music is playing*. Per-field ownership, not per-command — apply
+     the same lens to the three remaining modules rather than moving whole
+     commands.)_
 - **Why it matters:** With the website live, the bot's config/admin/CRUD surface
   and its data-dense read views are the weakest fit for Discord: `setup` commands
   are one-shot forms better as a web page; leaderboards/profiles/tier-lists are
@@ -260,8 +268,9 @@ served by the website — and two `setup` commands already duplicate its writes.
     → dashboard. Keep create/join/leave/kick (live post interaction) in-bot.
   - `temp-voice` — `setup` (**duplicates** `save_temp_voice_settings`) → dashboard.
     Keep `panel` + live channel mutations (claim/kick/transfer/limit) in-bot.
-  - `music` — `settings` (default-volume) → dashboard (no server fn yet). Keep
-    playback + control panel in-bot.
+  - `music` — **done (split)**: DJ role / auto-disconnect / announce-now-playing →
+    dashboard (`save_music_settings`); default volume / 24-7 / autoplay stay in-bot
+    alongside playback + control panel. See [music.md #3](music.md).
   - `ticket` — support-guild / panel config → dashboard. Keep open/close/claim
     interactions in-bot.
   - `suggestions` — channel/threshold config → dashboard. Keep the submit modal +

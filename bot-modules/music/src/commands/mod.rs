@@ -296,29 +296,9 @@ impl Command {
             "View or change this server's music settings",
         )
         .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::Role,
-            "dj_role",
-            "Role required to use privileged music commands",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::Boolean,
-            "clear_dj_role",
-            "Clear the DJ role, making privileged commands open to everyone",
-        ))
-        .add_sub_option(CreateCommandOption::new(
             CommandOptionType::Integer,
             "default_volume",
             "Default playback volume percentage (0-100)",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::Integer,
-            "auto_disconnect_secs",
-            "Seconds of inactivity before auto-disconnecting",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::Boolean,
-            "announce_now_playing",
-            "Whether to announce each new track",
         ))
         .add_sub_option(CreateCommandOption::new(
             CommandOptionType::Boolean,

@@ -13,6 +13,20 @@ pub struct MusicSettingsRow {
     pub announce_now_playing: bool,
 }
 
+impl MusicSettingsRow {
+    pub const DEFAULT_AUTO_DISCONNECT_SECS: i32 = 120;
+    pub const MAX_AUTO_DISCONNECT_SECS: i32 = 600;
+
+    #[must_use]
+    pub fn parse_auto_disconnect_secs(input: &str) -> i32 {
+        input
+            .trim()
+            .parse::<i32>()
+            .unwrap_or(Self::DEFAULT_AUTO_DISCONNECT_SECS)
+            .clamp(0, Self::MAX_AUTO_DISCONNECT_SECS)
+    }
+}
+
 impl SettingsRow for MusicSettingsRow {
     const TABLE: &'static str = "music_settings";
 
@@ -21,7 +35,7 @@ impl SettingsRow for MusicSettingsRow {
             guild_id,
             dj_role_id: None,
             default_volume: 100,
-            auto_disconnect_secs: 120,
+            auto_disconnect_secs: Self::DEFAULT_AUTO_DISCONNECT_SECS,
             stay_connected: false,
             autoplay: false,
             announce_now_playing: true,

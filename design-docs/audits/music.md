@@ -29,6 +29,68 @@ youtube). No CC-1 (in-memory manager, not DB-generic). Only minor lint debt.
   `.timeout(...)`; if not, add one. Quick check, likely already fine.
 
 ### 3. `settings` (default-volume) belongs on the dashboard  ·  #8  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Scope decision (2026-07-25):** *Partial* move, not the wholesale migration the
+  finding proposed. The owner's call: music settings are tweaked **live** as
+  listeners and songs change, so the playback-behaviour fields stay in Discord;
+  only the **admin setup** fields move to the web.
+  - **→ Dashboard:** `dj_role_id`, `auto_disconnect_secs`, `announce_now_playing`.
+  - **→ Stay editable in-bot:** `default_volume`, `stay_connected`, `autoplay`.
+  - Moved fields lose their `/music settings` command options (dashboard becomes the
+    single editor) but remain in the command's read-only embed, mirroring the
+    loadout `refresh` precedent in [CC-8](_cross-cutting.md#cc-8).
+- **Fix (2026-07-25):** Split `music_settings` between the two editors so that
+  **every column has exactly one writer** — the divergence risk CC-8 flags, avoided
+  without moving the live-tweak fields off Discord.
+  - **Dashboard (new):** `save_music_settings` server fn in
+    `dashboard/src/server/guild.rs`, gated by the existing `admin_app` /
+    `guild_admin_context` authz like every other `save_*_settings`; `get_guild_settings`
+    now also reads the music row into three new `GuildSettings` DTO fields. A "Music"
+    `fieldset` on the guild-settings page renders DJ Role (`RoleSelect`),
+    Auto-disconnect (`SettingField`) and Announce Now Playing (new `ToggleField`),
+    with a note pointing volume/24-7/autoplay back to Discord.
+  - **`ToggleField`** (`ui/components/settings.rs`) renders a bool as a two-option
+    `<select>` rather than a checkbox: an unchecked checkbox submits *nothing*, which
+    would make "off" and "field absent" indistinguishable to the server fn, so the
+    off state would never round-trip.
+  - **Bot:** the four moved sub-options (`dj_role`, `clear_dj_role`,
+    `auto_disconnect_secs`, `announce_now_playing`) are gone from `Command::register`
+    and from `settings::run`'s option parsing. All six fields remain in the view
+    embed, which gained a footer naming the dashboard as the editor of the moved ones.
+  - **Validation moved with the field.** `auto_disconnect_secs` went from a Discord
+    `Integer` option (bounded by Discord itself) to a dashboard free-text field, so
+    `MusicSettingsRow::parse_auto_disconnect_secs` now owns the normalisation:
+    unparseable → `DEFAULT_AUTO_DISCONNECT_SECS` (120), otherwise clamped into
+    `0..=MAX_AUTO_DISCONNECT_SECS` (600). This matters beyond tidiness — a negative
+    value would pass through `as_u64` in `commands/ctx.rs:71` and become a huge `u64`,
+    silently disabling auto-disconnect. `empty()` now seeds from the same constant.
+  - **Verification:** `bot-modules/music/tests/settings_surface.rs` (3 tests) pins the
+    command surface by serialising `Command::register()` and asserting the `settings`
+    subcommand exposes *exactly* `default_volume`/`stay_connected`/`autoplay`.
+    **Fails-before / passes-after confirmed:** against `HEAD`'s command definition, 2
+    of the 3 fail (`found options: ["dj_role", "clear_dj_role", "default_volume",
+    "auto_disconnect_secs", "announce_now_playing", "stay_connected", "autoplay"]`);
+    all 3 pass after. 4 more in `zayden-app/tests/config_settings.rs` cover the
+    clamp/fallback. The dashboard's own server fn is not directly covered — it needs a
+    live `PgPool` + an OAuth session, and `dashboard` compiles its SSR code behind a
+    feature flag that plain `cargo test` doesn't enable (see
+    [CC-6](_cross-cutting.md#cc-6)); the pure logic it delegates to *is* covered.
+  - **Gate:** `cargo +nightly clippy --workspace --all-targets -D warnings` clean,
+    `cargo test` green, `-p dashboard --features ssr` and
+    `--target wasm32-unknown-unknown --features hydrate` both clean. No new
+    `#[allow]`/`#[expect]`. No `query!`/`query_as!` added or changed, so no `.sqlx`
+    delta; no `Cargo.toml` dep change, so no `cargo machete` run.
+  - **Residual / follow-ups:**
+    1. **`announce_now_playing` is a soft stub.** It is stored, edited and displayed,
+       but grep finds **no consumer** in the playback path — nothing reads it before
+       posting a now-playing message. Checklist #2; worth its own finding (wire it up
+       in `player`/`events`, or drop the column). Pre-existing, not introduced here.
+    2. The settings page's `Resource` keys on `guild_id` + the create-creator action
+       only, so a **clamped** `auto_disconnect_secs` isn't reflected until reload. This
+       is the pre-existing behaviour of *every* `save_*` form on the page, left alone
+       rather than changed under this finding.
+    3. CC-8's "config stranded in-bot" list still holds `ticket`, `suggestions` and
+       `reaction-roles`.
 - **Where:** `src/commands/settings.rs` (writes `MusicSettingsRow`,
   `default_volume`).
 - **What:** A one-shot config command with no dashboard equivalent yet, though it
@@ -144,3 +206,44 @@ _Deep sweep: 2026-07-17 · lens: state/cache correctness (multi-guild aliasing).
   track) so a concurrent caller sees `should_start == false` and only enqueues.
   Alternatively gate the whole play path behind a per-guild
   `check_and_set`-style guard mirroring gambling's `GameCache`.
+
+### DS-3. `announce_now_playing` is stored, edited and displayed but never read → track announcements are an inert setting  ·  Pass 1 (silent failure) / #2  ·  med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `zayden-app/src/config/tables/music.rs:13` (column),
+  `bot-modules/music/src/commands/settings.rs` (embed field) and
+  `dashboard/src/server/guild.rs` (`save_music_settings`) — every *writer* and
+  *reader-for-display*. There is **no** consumer: a workspace grep for
+  `announce_now_playing` returns only the row definition, the settings editors and
+  the view embed. `bot-modules/music/src/events.rs:47-76` (`TrackEndNotifier`) — the
+  natural consumer — advances the queue and starts the next track without posting
+  anything.
+- **What:** The guild can toggle "Announce Now Playing" in Discord *and* (since
+  [#3](#3-settings-default-volume-belongs-on-the-dashboard--8--low)) on the
+  dashboard, but the flag changes nothing. Same class as
+  [family DS-1](family.md) (`/block` never enforced): a setting with a UI, a column
+  and no enforcement.
+- **Failure scenario:** An admin enables "Announce Now Playing" expecting a message
+  per track. Nothing is ever posted, at any setting value. The toggle is
+  indistinguishable from a no-op, and the dashboard now advertises it as a
+  supported feature.
+- **Confidence:** confirmed (grep: no consumer).
+- **Intended behaviour (owner, 2026-07-25)** — this is a *spec*, not just a
+  wire-up:
+  1. **Default (no announce channel configured):** announcements go to the channel
+     the command was invoked in, as a reply/followup. The plumbing already exists —
+     `GuildPlayer::text_channel` is captured from the interaction at
+     `commands/ctx.rs:69` and is already used this way for the background
+     playlist-truncation notice (`commands/play.rs:148-158`).
+  2. **When an admin sets an announce channel:** track announcements go *there*
+     instead — e.g. `"Song finished, now playing …"`.
+  3. **Direct command feedback is unaffected** and stays on the interaction
+     response. Only the unprompted, event-driven announcements are routed; a user
+     who runs a command still gets their answer where they ran it.
+- **Suggested fix:** Add a nullable `announce_channel_id` to `music_settings`
+  (**needs a new migration**, `0018_*`, plus a `.sqlx` regen against an empty
+  freshly-migrated DB per [CC-5's residual](_cross-cutting.md#cc-5)), surface it as
+  a `ChannelSelect` in the dashboard's Music panel next to the existing toggle
+  (admin setup → web, per #3's split), and consume both in `TrackEndNotifier`:
+  when `announce_now_playing`, post to `announce_channel_id` if set, else
+  `GuildPlayer::text_channel`. Decide explicitly whether an unset toggle silences
+  announcements entirely or only suppresses the per-track message.

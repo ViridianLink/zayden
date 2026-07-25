@@ -15,6 +15,7 @@ use {
     twilight_model::channel::ChannelType,
     twilight_model::guild::Permissions,
     twilight_model::id::Id,
+    zayden_app::config::MusicSettingsRow,
     zayden_app::state::AppState,
 };
 
@@ -95,6 +96,7 @@ pub async fn get_guild_settings(
     let temp_voice = s.temp_voice.get(guild_id).await.map_err(server_err)?;
     let lfg = s.lfg.get(guild_id).await.map_err(server_err)?;
     let family = s.family.get(guild_id).await.map_err(server_err)?;
+    let music = s.music.get(guild_id).await.map_err(server_err)?;
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
@@ -113,6 +115,9 @@ pub async fn get_guild_settings(
         lfg_role_id: opt_str(lfg.lfg_role_id),
         lfg_scheduled_thread_id: opt_str(lfg.lfg_scheduled_thread_id),
         family_max_partners: family.max_partners.to_string(),
+        music_dj_role_id: opt_str(music.dj_role_id),
+        music_auto_disconnect_secs: music.auto_disconnect_secs.to_string(),
+        music_announce_now_playing: music.announce_now_playing,
     })
 }
 
@@ -262,6 +267,31 @@ pub async fn save_family_settings(
         .family
         .update(guild_id, |p| {
             p.max_partners = max_partners;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_music_settings(
+    guild: String,
+    dj_role_id: String,
+    auto_disconnect_secs: String,
+    announce_now_playing: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let auto_disconnect_secs =
+        MusicSettingsRow::parse_auto_disconnect_secs(&auto_disconnect_secs);
+    let announce_now_playing = announce_now_playing.trim() == "true";
+
+    app.settings
+        .music
+        .update(guild_id, |p| {
+            p.dj_role_id = parse_id(&dj_role_id);
+            p.auto_disconnect_secs = auto_disconnect_secs;
+            p.announce_now_playing = announce_now_playing;
         })
         .await
         .map(|_| ())

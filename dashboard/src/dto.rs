@@ -94,6 +94,9 @@ pub struct GuildSettings {
     pub(crate) lfg_role_id: Option<String>,
     pub(crate) lfg_scheduled_thread_id: Option<String>,
     pub(crate) family_max_partners: String,
+    pub(crate) music_dj_role_id: Option<String>,
+    pub(crate) music_auto_disconnect_secs: String,
+    pub(crate) music_announce_now_playing: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

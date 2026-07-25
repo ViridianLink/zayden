@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 
-use serenity::all::{CreateEmbed, EditInteractionResponse, ResolvedValue, Role};
+use serenity::all::{
+    CreateEmbed,
+    CreateEmbedFooter,
+    EditInteractionResponse,
+    ResolvedValue,
+};
 use zayden_app::config::MusicSettingsRow;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_core::{as_i64, optional_option};
@@ -25,17 +30,8 @@ pub(super) async fn run(
         return Ok(());
     }
 
-    let clear_dj_role = matches!(
-        options.remove("clear_dj_role"),
-        Some(ResolvedValue::Boolean(true))
-    );
-    let dj_role: Option<&Role> = optional_option(&mut options, "dj_role");
     let default_volume: Option<i64> =
         optional_option(&mut options, "default_volume");
-    let auto_disconnect_secs: Option<i64> =
-        optional_option(&mut options, "auto_disconnect_secs");
-    let announce_now_playing: Option<bool> =
-        optional_option(&mut options, "announce_now_playing");
     let stay_connected: Option<bool> =
         optional_option(&mut options, "stay_connected");
     let autoplay: Option<bool> = optional_option(&mut options, "autoplay");
@@ -60,19 +56,8 @@ pub(super) async fn run(
     let updated = ctx
         .settings
         .update(guild_id, |row| {
-            if clear_dj_role {
-                row.dj_role_id = None;
-            } else if let Some(role) = dj_role {
-                row.dj_role_id = Some(as_i64(role.id.get()));
-            }
             if let Some(volume) = default_volume {
                 row.default_volume = i16::try_from(volume).unwrap_or(100);
-            }
-            if let Some(secs) = auto_disconnect_secs {
-                row.auto_disconnect_secs = i32::try_from(secs.max(0)).unwrap_or(120);
-            }
-            if let Some(announce) = announce_now_playing {
-                row.announce_now_playing = announce;
             }
             if let Some(stay) = stay_connected {
                 row.stay_connected = stay;
@@ -104,4 +89,8 @@ fn view_embed(row: &MusicSettingsRow) -> CreateEmbed<'static> {
         .field("Announce Now Playing", row.announce_now_playing.to_string(), true)
         .field("24/7 (Stay Connected)", row.stay_connected.to_string(), true)
         .field("Autoplay", row.autoplay.to_string(), true)
+        .footer(CreateEmbedFooter::new(
+            "DJ Role, Auto-disconnect and Announce Now Playing are managed on the \
+             dashboard.",
+        ))
 }

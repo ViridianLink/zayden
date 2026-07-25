@@ -11,6 +11,7 @@ use crate::server::guild::{
     SaveChannelSettings,
     SaveFamilySettings,
     SaveLfgSettings,
+    SaveMusicSettings,
     SaveRoleSettings,
     SaveSupportSettings,
     SaveTempVoiceSettings,
@@ -22,6 +23,7 @@ use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{
     SaveButton,
     SettingField,
+    ToggleField,
     create_feedback,
     save_feedback,
 };
@@ -61,6 +63,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let save_roles = ServerAction::<SaveRoleSettings>::new();
     let save_temp_voice = ServerAction::<SaveTempVoiceSettings>::new();
     let save_family = ServerAction::<SaveFamilySettings>::new();
+    let save_music = ServerAction::<SaveMusicSettings>::new();
     let save_lfg = ServerAction::<SaveLfgSettings>::new();
 
     view! {
@@ -262,6 +265,41 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             />
                                             <SaveButton/>
                                         </ActionForm>
+                                    </fieldset>
+                                }}
+
+                                // Music — admin setup only.
+                                {let r = save_music.value();
+                                let roles = roles.clone();
+                                view! {
+                                    <fieldset class="settings-section">
+                                        <legend><Icon name="music"/>"Music"</legend>
+                                        {move || r.get().map(save_feedback)}
+                                        <ActionForm action=save_music>
+                                            <input type="hidden" name="guild" value=guild_id()/>
+                                            <RoleSelect
+                                                label="DJ Role"
+                                                name="dj_role_id"
+                                                selected=sel(s.music_dj_role_id.as_deref())
+                                                roles=roles
+                                            />
+                                            <SettingField
+                                                label="Auto-disconnect (seconds)"
+                                                name="auto_disconnect_secs"
+                                                value=s.music_auto_disconnect_secs.clone()
+                                            />
+                                            <ToggleField
+                                                label="Announce Now Playing"
+                                                name="announce_now_playing"
+                                                value=s.music_announce_now_playing
+                                            />
+                                            <SaveButton/>
+                                        </ActionForm>
+                                        <p class="page-lead">
+                                            "Default volume, 24/7 mode and autoplay change "
+                                            "while music is playing \u{2014} set those in Discord "
+                                            "with /music settings."
+                                        </p>
                                     </fieldset>
                                 }}
 

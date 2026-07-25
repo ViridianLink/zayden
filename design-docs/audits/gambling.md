@@ -279,7 +279,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   atomic `add_coins` (DS-1, DS-2) or a shared pool (DS-3/DS-4).
 
 ### DS-7. `daily` / `work` are further CC-9 whole-row absolute-overwrite sites (lost concurrent update)  ·  Pass 2  ·  low-med
-- **Status:** `in-review` (`daily` fixed in `82f308a2`; `work` half fixed 2026-07-25)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — b5bfebf6` (`daily` half fixed in `82f308a2`; `work` half in `b5bfebf6`)            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-25, `work`):** The deferral above no longer applies — the
   [CC-1](_cross-cutting.md#cc-1) concrete-`PgPool` migration has landed, so the
   per-field-delta conversion is now a surgical change. `WorkManager::save` (whole-row
