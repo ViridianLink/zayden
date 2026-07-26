@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT role_id FROM guild_support_roles WHERE guild_id = $1",
+  "query": "SELECT role_id FROM guild_support_roles WHERE guild_id = $1 ORDER BY role_id",
   "describe": {
     "columns": [
       {
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "00f522a75afa85fbaecefe53acaf3fd6e86c6e9969d2318aebb380c75871643a"
+  "hash": "e2b0c694956485e2823bd2aebb4bcc235f4a8bdbfd129b5154b0b2d1d7ee91df"
 }

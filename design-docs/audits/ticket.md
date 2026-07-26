@@ -26,6 +26,45 @@ state transitions.
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 2. Support-guild / panel config belongs on the dashboard  ·  #8  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Scope correction (2026-07-26):** re-tracing the finding turned it from a
+  *placement* preference into a **live dead-config defect**, which is what this
+  task actually fixes. The dashboard's Support section wrote
+  `support_settings.support_role_id` (`server/guild.rs`), but the ticket flow has
+  only ever built its ping list from **`guild_support_roles`**
+  (`support_guild_manager.rs:50`) — and a workspace-wide grep found **no writer
+  for that table** in any command, server fn, or migration backfill. So the
+  column was written and never read, the table read and never written, and
+  `message_command.rs:90` therefore took its "no support role configured" branch
+  on *every* ticket, waking the **guild owner** instead of the configured support
+  role. Two names for one concept, neither wired to the other. The rest of the
+  finding was already satisfied: support/FAQ channels are on the dashboard, and
+  `slash_commands/support/*` is `get`/`list` (FAQ reads), not config.
+- **Fix (2026-07-26):** Converged both sides on `guild_support_roles` as the
+  single source of truth, per CC-8's "one SQL path, one editor" rule.
+  - **The module owns the SQL.** New `ticket::SupportRoles` (`ids` / `add` /
+    `remove`) holds every statement touching `guild_support_roles`, mirroring the
+    reaction-roles precedent; `TicketGuildRow::get` now reads through it, so the
+    bot's ping list and the web editor cannot drift onto separate columns again.
+    `add` seeds the `guilds` row in the same transaction (the table is
+    `REFERENCES guilds (id)`) and reports a duplicate rather than silently
+    succeeding.
+  - **Dashboard editor.** `list_support_roles` / `add_support_role` /
+    `remove_support_role` (`server/guild.rs`, behind the same
+    `guild_admin_context` authz as every other guild mutation) plus a
+    `SupportRoleField` chip list in the settings page's Support section — a set,
+    so it gets add/remove actions rather than a field on the section's save form.
+    Roles already configured are dropped from the add picker.
+  - **Dead columns dropped** (`0019_support_roles_single_source`): `support_role_id`
+    (backfilled into `guild_support_roles` first) and `support_thread_id`, which
+    was likewise unread — ticket thread numbering lives in
+    `ticket_settings.thread_id`. `SupportSettingsRow` is down to the two fields
+    anything actually reads.
+  - **Regression test** `tests/support_mentions.rs` (the crate's first —
+    see [CC-6](_cross-cutting.md#cc-6)): the mention-selection branch was
+    extracted to a pure `ticket::support_mentions` and pinned, including that a
+    configured role is pinged *instead of* the owner. The
+    `guild_support_roles` statements themselves still need a live `PgPool`.
 - **Where:** `src/support_guild_manager.rs` + the config-shaped
   `slash_commands/support/*`.
 - **What:** Support-guild routing config is admin setup with no dashboard

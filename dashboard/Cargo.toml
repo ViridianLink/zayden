@@ -41,6 +41,7 @@ ssr = [
   "dep:sha2",
   "dep:sqlx",
   "dep:tokio",
+  "dep:ticket",
   "dep:tower-cookies",
   "dep:tracing-subscriber",
   "dep:twilight-http",
@@ -84,6 +85,7 @@ sqlx = { workspace = true, features = [
   "tls-rustls-aws-lc-rs",
   "macros",
 ], optional = true }
+ticket = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
 tower-cookies = { version = "*", default-features = false, features = [
   "axum-core",

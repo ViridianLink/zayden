@@ -7,7 +7,6 @@ use serenity::all::{
     CreateMessage,
     CreateThread,
     Http,
-    Mentionable,
     Message,
 };
 use sqlx::PgPool;
@@ -20,6 +19,7 @@ use crate::{
     TicketGuildRow,
     TicketStores,
     send_support_message,
+    support_mentions,
     thread_name,
 };
 
@@ -87,16 +87,12 @@ impl SupportMessageCommand {
             .collect::<Vec<_>>()
             .await;
 
-        let mentions = if role_ids.is_empty() {
-            let owner_id = guild_id.to_partial_guild(http).await?.owner_id;
-            vec![message.author.mention(), owner_id.mention()]
+        let owner_id = if role_ids.is_empty() {
+            Some(guild_id.to_partial_guild(http).await?.owner_id)
         } else {
-            role_ids
-                .into_iter()
-                .map(|id| id.mention())
-                .chain([message.author.mention()])
-                .collect::<Vec<_>>()
+            None
         };
+        let mentions = support_mentions(role_ids, message.author.id, owner_id);
 
         send_support_message(http, thread.id, &mentions, vec![
             CreateMessage::new().embed(issue).files(attachments),

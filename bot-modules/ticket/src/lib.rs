@@ -4,8 +4,11 @@ use serenity::all::{
     CreateMessage,
     Http,
     Mention,
+    Mentionable,
     ThreadId,
+    UserId,
 };
+pub use serenity::all::{GuildId, RoleId};
 
 pub mod components;
 pub mod error;
@@ -20,7 +23,7 @@ use error::Result;
 pub use error::TicketError;
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
-pub use support_guild_manager::{TicketGuildRow, TicketStores};
+pub use support_guild_manager::{SupportRoles, TicketGuildRow, TicketStores};
 pub use ticket_manager::TicketRow;
 
 pub struct Support;
@@ -29,6 +32,22 @@ pub struct Ticket;
 #[must_use]
 pub fn thread_name(thread_id: i32, author_name: &str, content: &str) -> String {
     format!("{thread_id} - {author_name} - {content}").chars().take(100).collect()
+}
+
+#[must_use]
+pub fn support_mentions(
+    role_ids: &[RoleId],
+    author: UserId,
+    owner: Option<UserId>,
+) -> Vec<Mention> {
+    if role_ids.is_empty() {
+        return owner.map_or_else(
+            || vec![author.mention()],
+            |owner| vec![author.mention(), owner.mention()],
+        );
+    }
+
+    role_ids.iter().map(Mentionable::mention).chain([author.mention()]).collect()
 }
 
 pub async fn send_support_message(

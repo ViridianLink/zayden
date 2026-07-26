@@ -41,7 +41,7 @@ DB-generic `async_trait` pattern (CC-1) and no `tests/`. Otherwise unremarkable.
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 3. `add`/`remove` mapping CRUD belongs on the dashboard  ·  #8  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — eaf63161`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Scope decision (owner, 2026-07-25):** *Partial* move, not the wholesale
   migration the finding proposed — the same per-field lens the music [#3](music.md)
   ruling established, applied to per-*operation*. **`/reaction_role add` stays in

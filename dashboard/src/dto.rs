@@ -79,7 +79,6 @@ pub struct GuildInfo {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct GuildSettings {
     pub(crate) support_channel_id: Option<String>,
-    pub(crate) support_role_id: Option<String>,
     pub(crate) faq_channel_id: Option<String>,
     pub(crate) suggestions_channel_id: Option<String>,
     pub(crate) review_channel_id: Option<String>,

@@ -242,6 +242,16 @@ served by the website — and two `setup` commands already duplicate its writes.
   2. **Config still stranded in-bot.** `ticket` (support-guild config) and
      `suggestions` config have **no** dashboard equivalent yet, though they are
      the same shape as things already moved.
+     _(`ticket` is now **done** — see [ticket.md #2](ticket.md). It sharpened the
+     heuristic a third time: the two earlier splits divided a *live* editor
+     between bot and web, but here neither side worked. The dashboard wrote
+     `support_settings.support_role_id` while the bot read `guild_support_roles`,
+     which nothing wrote — a duplicated *concept* with no duplicated write, which
+     reads as "stranded config" until you check whether the reader and the writer
+     name the same table. Worth applying that check to the remaining candidates
+     before assuming a bot editor exists at all. The corrective pattern is CC-5's:
+     one owner for the SQL — here `ticket::SupportRoles` — with the dashboard
+     calling into the module crate rather than issuing its own statements.)_
      _(`reaction-roles` mapping CRUD is now **done** — see
      [reaction-roles.md #3](reaction-roles.md); it set the pattern for admin CRUD
      of *reference data* rather than a settings row: a table page plus server

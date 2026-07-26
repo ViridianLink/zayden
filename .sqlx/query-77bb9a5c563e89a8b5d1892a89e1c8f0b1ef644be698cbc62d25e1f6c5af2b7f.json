@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                guild_id,\n                dj_role_id,\n                default_volume,\n                auto_disconnect_secs,\n                stay_connected,\n                autoplay,\n                announce_now_playing\n            FROM music_settings\n            WHERE guild_id = $1\n            ",
+  "query": "\n            SELECT\n                guild_id,\n                dj_role_id,\n                default_volume,\n                auto_disconnect_secs,\n                stay_connected,\n                autoplay,\n                announce_now_playing,\n                announce_channel_id\n            FROM music_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,17 @@
             "name": "announce_now_playing"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "announce_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "music_settings",
+            "name": "announce_channel_id"
+          }
+        }
       }
     ],
     "parameters": {
@@ -93,8 +104,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "03d8988105d489c148d4eccf8469fe07862694fc0ae81a1de0a5a659aad9a289"
+  "hash": "77bb9a5c563e89a8b5d1892a89e1c8f0b1ef644be698cbc62d25e1f6c5af2b7f"
 }

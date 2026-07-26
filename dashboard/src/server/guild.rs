@@ -11,6 +11,7 @@ use {
     },
     leptos_axum::{extract, redirect},
     std::sync::Arc,
+    ticket::{GuildId, RoleId, SupportRoles},
     tower_cookies::Cookies,
     twilight_model::channel::ChannelType,
     twilight_model::guild::Permissions,
@@ -31,6 +32,14 @@ async fn admin_app(guild: &str) -> Result<(i64, Arc<AppState>), ServerFnError> {
 fn parse_id(s: &str) -> Option<i64> {
     let t = s.trim();
     if t.is_empty() { None } else { t.parse().ok() }
+}
+
+#[cfg(feature = "ssr")]
+fn parse_role(s: &str) -> Result<RoleId, ServerFnError> {
+    s.trim()
+        .parse::<u64>()
+        .map(RoleId::new)
+        .map_err(|_e| ServerFnError::ServerError("invalid role".to_string()))
 }
 
 #[server]
@@ -100,7 +109,6 @@ pub async fn get_guild_settings(
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
-        support_role_id: opt_str(support.support_role_id),
         faq_channel_id: opt_str(support.faq_channel_id),
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
         review_channel_id: opt_str(suggestions.review_channel_id),
@@ -126,7 +134,6 @@ pub async fn get_guild_settings(
 pub async fn save_support_settings(
     guild: String,
     support_channel_id: String,
-    support_role_id: String,
     faq_channel_id: String,
     suggestions_channel_id: String,
     review_channel_id: String,
@@ -137,7 +144,6 @@ pub async fn save_support_settings(
         .support
         .update(guild_id, |p| {
             p.support_channel_id = parse_id(&support_channel_id);
-            p.support_role_id = parse_id(&support_role_id);
             p.faq_channel_id = parse_id(&faq_channel_id);
         })
         .await
@@ -152,6 +158,62 @@ pub async fn save_support_settings(
         .await
         .map(|_| ())
         .map_err(server_err)
+}
+
+#[server]
+pub async fn list_support_roles(
+    guild: String,
+) -> Result<Vec<String>, ServerFnError> {
+    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let pool = db_pool()?;
+
+    Ok(SupportRoles::ids(&pool, GuildId::new(guild_id.cast_unsigned()))
+        .await
+        .map_err(server_err)?
+        .into_iter()
+        .map(|id| id.get().to_string())
+        .collect())
+}
+
+#[server]
+pub async fn add_support_role(
+    guild: String,
+    role_id: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let pool = db_pool()?;
+
+    let role = parse_role(&role_id)?;
+
+    let added =
+        SupportRoles::add(&pool, GuildId::new(guild_id.cast_unsigned()), role)
+            .await
+            .map_err(server_err)?;
+
+    if added {
+        Ok(())
+    } else {
+        Err(ServerFnError::ServerError(
+            "that role is already a support role".to_string(),
+        ))
+    }
+}
+
+#[server]
+pub async fn remove_support_role(
+    guild: String,
+    role_id: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let pool = db_pool()?;
+
+    let role = parse_role(&role_id)?;
+
+    SupportRoles::remove(&pool, GuildId::new(guild_id.cast_unsigned()), role)
+        .await
+        .map_err(server_err)?;
+
+    Ok(())
 }
 
 #[server]

@@ -7,7 +7,9 @@ use twilight_model::channel::ChannelType;
 use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
 use crate::server::discord::{list_guild_channels, list_guild_roles};
 use crate::server::guild::{
+    AddSupportRole,
     CreateTempVoiceCreatorChannel,
+    RemoveSupportRole,
     SaveChannelSettings,
     SaveFamilySettings,
     SaveLfgSettings,
@@ -16,6 +18,7 @@ use crate::server::guild::{
     SaveSupportSettings,
     SaveTempVoiceSettings,
     get_guild_settings,
+    list_support_roles,
 };
 use crate::ui::components::icons::Icon;
 use crate::ui::components::layout::AppShell;
@@ -44,17 +47,29 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let guild_id = move || params.with(|p| p.get("id").unwrap_or_default());
 
     let create_creator = ServerAction::<CreateTempVoiceCreatorChannel>::new();
+    let add_support_role = ServerAction::<AddSupportRole>::new();
+    let remove_support_role = ServerAction::<RemoveSupportRole>::new();
 
     let data = Resource::new_blocking(
-        move || (guild_id(), create_creator.version().get()),
-        |(gid, _)| async move {
+        move || {
+            (
+                guild_id(),
+                create_creator.version().get(),
+                add_support_role.version().get(),
+                remove_support_role.version().get(),
+            )
+        },
+        |(gid, ..)| async move {
             let settings = get_guild_settings(gid.clone()).await?;
+            let support_roles =
+                list_support_roles(gid.clone()).await.unwrap_or_default();
             let channels =
                 list_guild_channels(gid.clone()).await.unwrap_or_default();
             let roles = list_guild_roles(gid).await.unwrap_or_default();
-            Ok::<(GuildSettings, Vec<ChannelInfo>, Vec<RoleInfo>), ServerFnError>((
-                settings, channels, roles,
-            ))
+            Ok::<
+                (GuildSettings, Vec<String>, Vec<ChannelInfo>, Vec<RoleInfo>),
+                ServerFnError,
+            >((settings, support_roles, channels, roles))
         },
     );
 
@@ -85,12 +100,20 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                         Err(e) => view! {
                             <p class="error">"Failed to load settings: " {e.to_string()}</p>
                         }.into_any(),
-                        Ok((s, channels, roles)) => {
+                        Ok((s, support_roles, channels, roles)) => {
                             view! {
                                 // Support
                                 {let r = save_support.value();
                                 let channels = channels.clone();
-                                let roles = roles.clone();
+                                let support_role_views = view! {
+                                    <SupportRoleField
+                                        guild_id=guild_id()
+                                        support_roles=support_roles
+                                        roles=roles.clone()
+                                        add=add_support_role
+                                        remove=remove_support_role
+                                    />
+                                };
                                 view! {
                                     <fieldset class="settings-section">
                                         <legend><Icon name="message"/>"Support"</legend>
@@ -103,12 +126,6 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                                 selected=sel(s.support_channel_id.as_deref())
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
-                                            />
-                                            <RoleSelect
-                                                label="Support Role"
-                                                name="support_role_id"
-                                                selected=sel(s.support_role_id.as_deref())
-                                                roles=roles.clone()
                                             />
                                             <ChannelSelect
                                                 label="FAQ Channel"
@@ -133,6 +150,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             />
                                             <SaveButton/>
                                         </ActionForm>
+                                        {support_role_views}
                                     </fieldset>
                                 }}
 
@@ -352,5 +370,68 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                 </Suspense>
             </div>
         </AppShell>
+    }
+}
+
+#[component]
+fn SupportRoleField(
+    guild_id: String,
+    support_roles: Vec<String>,
+    roles: Vec<RoleInfo>,
+    add: ServerAction<AddSupportRole>,
+    remove: ServerAction<RemoveSupportRole>,
+) -> impl IntoView {
+    let add_result = add.value();
+    let remove_result = remove.value();
+
+    let unconfigured = roles
+        .iter()
+        .filter(|r| !support_roles.contains(&r.id))
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let chips = support_roles
+        .into_iter()
+        .map(|id| {
+            let name = roles.iter().find(|r| r.id == id).map_or_else(
+                || format!("@unknown ({id})"),
+                |r| format!("@{}", r.name),
+            );
+            let gid = guild_id.clone();
+
+            view! {
+                <ActionForm action=remove attr:class="chip">
+                    <input type="hidden" name="guild" value=gid/>
+                    <input type="hidden" name="role_id" value=id/>
+                    <span class="chip-label">{name}</span>
+                    <button type="submit" class="chip-remove" title="Remove">
+                        <Icon name="x"/>
+                    </button>
+                </ActionForm>
+            }
+        })
+        .collect_view();
+
+    view! {
+        <div class="setting-field">
+            <label>"Support Roles"</label>
+            <p class="page-lead">
+                "Pinged in every new ticket thread. With none set, Zayden falls "
+                "back to pinging the server owner."
+            </p>
+            <div class="chip-list">{chips}</div>
+            {move || remove_result.get().map(save_feedback)}
+            {move || add_result.get().map(save_feedback)}
+            <ActionForm action=add attr:class="chip-add">
+                <input type="hidden" name="guild" value=guild_id/>
+                <RoleSelect
+                    label="Add a support role"
+                    name="role_id"
+                    selected=String::new()
+                    roles=unconfigured
+                />
+                <button type="submit" class="btn btn-ghost">"Add role"</button>
+            </ActionForm>
+        </div>
     }
 }

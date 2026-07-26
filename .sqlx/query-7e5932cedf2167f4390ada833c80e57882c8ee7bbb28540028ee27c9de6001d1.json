@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT guild_id, support_channel_id, support_thread_id, support_role_id, faq_channel_id\n            FROM support_settings\n            WHERE guild_id = $1\n            ",
+  "query": "\n            SELECT guild_id, support_channel_id, faq_channel_id\n            FROM support_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -27,28 +27,6 @@
       },
       {
         "ordinal": 2,
-        "name": "support_thread_id",
-        "type_info": "Int4",
-        "origin": {
-          "Table": {
-            "table": "support_settings",
-            "name": "support_thread_id"
-          }
-        }
-      },
-      {
-        "ordinal": 3,
-        "name": "support_role_id",
-        "type_info": "Int8",
-        "origin": {
-          "Table": {
-            "table": "support_settings",
-            "name": "support_role_id"
-          }
-        }
-      },
-      {
-        "ordinal": 4,
         "name": "faq_channel_id",
         "type_info": "Int8",
         "origin": {
@@ -67,10 +45,8 @@
     "nullable": [
       false,
       true,
-      false,
-      true,
       true
     ]
   },
-  "hash": "ca5c97546ccd3ebaf987eba626d273cf489a575ccca008898ffa3b0ecd4f78e4"
+  "hash": "7e5932cedf2167f4390ada833c80e57882c8ee7bbb28540028ee27c9de6001d1"
 }
