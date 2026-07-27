@@ -393,3 +393,86 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   also wrap the cron write in a `40P01` retry (and/or `SET LOCAL lock_timeout`), and
   consider ordering the update (`… WHERE stamina < $1`) so it and gameplay agree on
   lock order.
+
+### DS-9. `/shop buy` whole-row absolute overwrite → double-submit buys two items for one charge  ·  Pass 8 (CC-9 sweep)  ·  med-high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `bot-modules/gambling/src/commands/shop/buy.rs:46-151` and
+  `bot-modules/gambling/src/common/shop/mod.rs:71-152`
+  (`ShopManager::buy_save` — `coins = EXCLUDED.coins, gems = EXCLUDED.gems` plus
+  twelve absolute `gambling_mine` columns; `ShopManager::save_inventory` —
+  `quantity = EXCLUDED.quantity`).
+- **What:** A textbook [CC-9](_cross-cutting.md) site, and the largest one left
+  after DS-1…DS-8: `buy` reads the whole `ShopRow` (coins, gems, the three
+  crafted currencies, nine mine columns), deducts the cost **in memory**, awaits
+  `Dispatch::fire` (which can credit goal rewards), then writes the resulting
+  **absolute** values back. There is no `GameCache::check_and_set` guard on this
+  path, unlike the wager games.
+- **Failure scenario:**
+  1. User holds 10 000 coins and double-submits `/shop buy` for a 4 000-coin
+     item. Discord dispatches each interaction on its own tokio task
+     (`bot/src/handler/interaction/mod.rs:168`); both read `coins = 10 000`.
+  2. Both compute `10 000 - 4 000` and both write the **absolute** 6 000.
+  3. The inventory upsert is `quantity = EXCLUDED.quantity` from each task's own
+     in-memory count, so the item lands twice by the same lost-update — or once,
+     depending on ordering. Either way **two items were delivered and one was
+     charged**: 4 000 coins minted.
+  4. Any concurrent credit (a `/gift`, a `/work` payout, a goal reward) landing
+     in that window is erased by the absolute write.
+  5. Mine purchases lose the symmetric way: two concurrent `miner` buys both
+     pass the app-layer `max_values` check against the same stale snapshot, so
+     the pair can land **above** the capacity cap, or one increment is dropped
+     while both are charged.
+- **Additional gap:** `save_inventory` committed on the pool at
+  `buy.rs:129` — *before*, and outside, `buy_save`'s transaction. An error
+  between the two granted the items with no debit at all.
+- **Confidence:** confirmed-logic, plausible-interleave (same class as DS-2/DS-7,
+  which were confirmed).
+- **Fix (2026-07-28):** Replaced the read-modify-write with `ShopDelta` (the net
+  change, taken *after* the dispatch so goal rewards ride along) plus
+  `ShopManager::commit_purchase`, one transaction of atomic guarded writes:
+  - `UPDATE gambling SET coins = coins + $2, gems = gems + $3 WHERE user_id = $1
+    AND ($2 = 0 OR coins + $2 >= 0) AND ($3 = 0 OR gems + $3 >= 0)`.
+  - `UPDATE gambling_mine SET <12 columns> = <column> + $n` with a per-column
+    guard `($n = 0 OR col + $n BETWEEN 0 AND <ratio> * (<sibling> + $m + 1))`.
+    The ceilings are evaluated against the **live** row, so a cap check that
+    passed on a stale snapshot cannot be used to exceed the cap. The ratios are
+    bound from the `MaxValues` trait fns rather than duplicated as SQL literals.
+  - Inventory folded into the same transaction as
+    `quantity = gambling_inventory.quantity + $3 RETURNING quantity`, closing the
+    non-atomic gap above.
+  - The `$n = 0 OR …` escape means a column that is not part of this purchase
+    can never block it — an existing row already above a cap (or a legacy
+    negative balance) still transacts on unrelated columns.
+  - Guard rejection surfaces as the new `GamblingError::PurchaseConflict`
+    ("your balance changed, try again") rather than a 500 or a silent overdraw.
+    The app-layer pre-checks are kept for their precise user-facing messages;
+    SQL is the authority for correctness.
+  - `buy_save` and `save_inventory` are **deleted** — the absolute-write helpers
+    are gone, not merely bypassed, so the pattern cannot regress here.
+- **Verification:** `bot-modules/gambling/tests/shop_buy.rs` (8 tests,
+  fails-before: `ShopDelta` did not exist). Gate: `cargo +nightly clippy
+  --workspace --all-targets -D warnings` clean with no new `#[allow]`/`#[expect]`;
+  `cargo test` green; `.sqlx` regenerated with `--all-features`.
+- **Residual / follow-ups:**
+  - **`/shop sell` is the same class and is NOT fixed here** — `sell_save`
+    (`common/shop/mod.rs`) still writes `coins = EXCLUDED.coins` and an absolute
+    `gambling_inventory.quantity` from a snapshot read at `sell.rs:74`. Recorded
+    as **DS-10** below; kept out of this task to keep the diff reviewable.
+  - `dig`, `craft`, `prestige` and `game_row` retain absolute `EXCLUDED` writes
+    (see the CC-9 umbrella); each is its own task.
+
+### DS-10. `/shop sell` is the same absolute-overwrite site as DS-9  ·  Pass 8 (CC-9 sweep)  ·  med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `bot-modules/gambling/src/commands/shop/sell.rs:74-91` and
+  `ShopManager::sell_save` (`bot-modules/gambling/src/common/shop/mod.rs`).
+- **What:** `sell` reads `SellRow` (coins + the item's inventory quantity),
+  credits the payment and decrements the quantity in memory, then persists both
+  absolutely (`coins = EXCLUDED.coins`, `UPDATE gambling_inventory SET quantity = $1`).
+- **Failure scenario:** double-submitting a sale of the last N of an item has
+  both invocations read `quantity = N`, both write `quantity = 0`, and both
+  credit the payment via an absolute coin write — so the payout that lands last
+  wins, but the **item is consumed once**. Mirrored against a concurrent credit,
+  the sale erases it. Same shape as DS-9, opposite direction.
+- **Suggested fix:** the DS-9 pattern — `coins = coins + $payment` and
+  `UPDATE gambling_inventory SET quantity = quantity - $n WHERE quantity >= $n`
+  in one transaction, `RETURNING` the post-image; delete `sell_save`.

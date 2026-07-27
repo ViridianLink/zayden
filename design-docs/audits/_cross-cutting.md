@@ -98,7 +98,7 @@ served by the website — and two `setup` commands already duplicate its writes.
   logic into a lib crate.
 
 ### CC-3. `#[expect(...)]` lint escape-hatches  ·  #7 / #2  ·  low–med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 3d787146`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-28):** Triaged **all** sites. The inventory had grown from 22 to
   **27** by fix time (the CC-1 migrations moved SQL into the module crates and
   carried their suppressions with them — the `bot/src/bindings/*` sites in the list
@@ -415,6 +415,16 @@ first-pass structural findings only hinted at. Per-module detail lives in the
 cross-cutting theme plus an index._
 
 ### CC-9. Read-modify-write on economy/counter rows with **absolute** overwrite (race class)  ·  #3  ·  high
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+  Umbrella — stays `open` until every site is closed. Each site is its own task.
+  - **Closed:** [gambling DS-1…DS-5, DS-7](gambling.md),
+    [gold-star DS-1](gold-star.md), [temp-voice DS-2](temp-voice.md),
+    **[gambling DS-9](gambling.md) (`/shop buy`) — `in-review`.**
+  - **Remaining (the "etc." this entry always implied), newly enumerated by the
+    2026-07-28 sweep for `EXCLUDED`-write sites:**
+    [gambling DS-10](gambling.md) (`/shop sell`), plus the absolute writes still
+    in `gambling` `dig`, `craft`, `prestige`, `game_row`, and
+    `common/shop/mod.rs`'s remaining helpers. Each needs its own `DS-#` and task.
 
 - **Where (pattern):** the command-layer `save`/`save_*` methods that persist a
   whole in-memory row with `INSERT … ON CONFLICT DO UPDATE SET col =

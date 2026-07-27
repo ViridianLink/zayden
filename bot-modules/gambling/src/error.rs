@@ -30,6 +30,7 @@ pub enum GamblingError {
     InvalidPrediction,
     InvalidAmount,
     InsufficientCapacity(i64),
+    PurchaseConflict,
     ItemNotInInventory,
     InsufficientItemQuantity(i64),
     NotEnoughMiners { required: i64, current: i64 },
@@ -94,6 +95,10 @@ impl std::fmt::Display for GamblingError {
                 f,
                 "You don't have enough capacity to buy that many.\nYou can buy `{remaining}` more before you are at capacity"
             ),
+            Self::PurchaseConflict => write!(
+                f,
+                "Your balance changed while that purchase was being processed, so it was cancelled. Please try again."
+            ),
             Self::ItemNotInInventory => {
                 write!(f, "You don't have that item in your inventory.")
             },
@@ -139,6 +144,7 @@ impl std::error::Error for GamblingError {
             | Self::InvalidPrediction
             | Self::InvalidAmount
             | Self::InsufficientCapacity(_)
+            | Self::PurchaseConflict
             | Self::ItemNotInInventory
             | Self::InsufficientItemQuantity(_)
             | Self::NotEnoughMiners { .. } => None,
@@ -168,6 +174,7 @@ impl Respond for GamblingError {
             | Self::InvalidPrediction
             | Self::InvalidAmount
             | Self::InsufficientCapacity(_)
+            | Self::PurchaseConflict
             | Self::ItemNotInInventory
             | Self::InsufficientItemQuantity(_)
             | Self::NotEnoughMiners { .. } => Some(Cow::Owned(self.to_string())),
@@ -223,6 +230,7 @@ impl From<GamblingError> for HandlerError {
             | GamblingError::InvalidPrediction
             | GamblingError::InvalidAmount
             | GamblingError::InsufficientCapacity(_)
+            | GamblingError::PurchaseConflict
             | GamblingError::ItemNotInInventory
             | GamblingError::InsufficientItemQuantity(_)
             | GamblingError::NotEnoughMiners { .. }) => Self::from_respond(e),

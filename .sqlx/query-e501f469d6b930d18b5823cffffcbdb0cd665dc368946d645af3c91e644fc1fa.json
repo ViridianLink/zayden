@@ -1,0 +1,180 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling_mine\n                SET miners = miners + $2,\n                    mines = mines + $3,\n                    land = land + $4,\n                    countries = countries + $5,\n                    continents = continents + $6,\n                    planets = planets + $7,\n                    solar_systems = solar_systems + $8,\n                    galaxies = galaxies + $9,\n                    universes = universes + $10,\n                    tech = tech + $11,\n                    utility = utility + $12,\n                    production = production + $13\n                WHERE user_id = $1\n                    AND ($2::bigint = 0 OR miners + $2 BETWEEN 0 AND $14 * (mines + $3 + 1))\n                    AND ($3::bigint = 0 OR mines + $3 BETWEEN 0 AND $15 * (land + $4 + 1))\n                    AND ($4::bigint = 0 OR land + $4 BETWEEN 0 AND $16 * (countries + $5 + 1))\n                    AND ($5::bigint = 0 OR countries + $5 BETWEEN 0 AND $17 * (continents + $6 + 1))\n                    AND ($6::bigint = 0 OR continents + $6 BETWEEN 0 AND $18 * (planets + $7 + 1))\n                    AND ($7::bigint = 0 OR planets + $7 BETWEEN 0 AND $19 * (solar_systems + $8 + 1))\n                    AND ($8::bigint = 0 OR solar_systems + $8 BETWEEN 0 AND $20 * (galaxies + $9 + 1))\n                    AND ($9::bigint = 0 OR galaxies + $9 BETWEEN 0 AND $21 * (universes + $10 + 1))\n                    AND ($10::bigint = 0 OR universes + $10 BETWEEN 0 AND prestige + 1)\n                    AND ($11::bigint = 0 OR tech + $11 >= 0)\n                    AND ($12::bigint = 0 OR utility + $12 >= 0)\n                    AND ($13::bigint = 0 OR production + $13 >= 0)\n                RETURNING miners, mines, land, countries, continents, planets,\n                    solar_systems, galaxies, universes, tech, utility, production;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "miners",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "miners"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "mines",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "mines"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "land",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "land"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "countries",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "countries"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "continents",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "continents"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "planets",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "planets"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "solar_systems",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "solar_systems"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "galaxies",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "galaxies"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "universes",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "universes"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "tech",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "tech"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "utility",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "utility"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "production",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "production"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e501f469d6b930d18b5823cffffcbdb0cd665dc368946d645af3c91e644fc1fa"
+}

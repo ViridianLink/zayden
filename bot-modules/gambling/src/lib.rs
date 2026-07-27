@@ -24,8 +24,11 @@ pub use commands::Commands;
 pub use commands::goals::GoalsManager;
 pub use commands::work::{WorkCommit, WorkDelta};
 pub use common::{
+    MineCommit,
+    PurchaseCommit,
     SHOP_ITEMS,
     ShopCurrency,
+    ShopDelta,
     ShopItem,
     ShopItems,
     ShopManager,

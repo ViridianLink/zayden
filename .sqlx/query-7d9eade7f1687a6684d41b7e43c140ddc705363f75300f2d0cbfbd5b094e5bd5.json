@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling\n            SET coins = coins + $2, gems = gems + $3\n            WHERE user_id = $1\n                AND ($2::bigint = 0 OR coins + $2 >= 0)\n                AND ($3::bigint = 0 OR gems + $3 >= 0)\n            RETURNING coins, gems;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coins",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "coins"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "gems",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling",
+            "name": "gems"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "7d9eade7f1687a6684d41b7e43c140ddc705363f75300f2d0cbfbd5b094e5bd5"
+}

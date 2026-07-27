@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling (user_id) VALUES ($1)\n            ON CONFLICT (user_id) DO NOTHING;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0504a370878c3027ad45c6a8cb90b863a0cc51f96a62fc538d4961fb8bf22e68"
+}

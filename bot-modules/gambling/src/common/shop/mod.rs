@@ -19,6 +19,7 @@ use crate::{
     GamblingItems,
     Gems,
     MaxBet,
+    MaxValues,
     Mining,
     Prestige,
     Result,
@@ -68,87 +69,139 @@ impl ShopManager {
         ).fetch_optional(pool).await
     }
 
-    pub async fn buy_save(
+    pub async fn commit_purchase(
         pool: &PgPool,
-        row: ShopRow,
-    ) -> sqlx::Result<PgQueryResult> {
+        id: UserId,
+        delta: &ShopDelta,
+        item: Option<(&str, i64)>,
+    ) -> sqlx::Result<Option<PurchaseCommit>> {
+        let user_id = as_i64(id.get());
+
         let mut tx = pool.begin().await?;
 
-        let mut result = sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, gems)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems;",
-            row.user_id,
-            row.coins,
-            row.gems,
+        sqlx::query!(
+            "INSERT INTO gambling (user_id) VALUES ($1)
+            ON CONFLICT (user_id) DO NOTHING;",
+            user_id
         )
         .execute(&mut *tx)
         .await?;
 
-        let result3 = sqlx::query!(
-            "INSERT INTO gambling_mine (user_id, miners, mines, land, countries, continents, planets, solar_systems, galaxies, universes, tech, utility, production)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-            ON CONFLICT (user_id) DO UPDATE
-            SET
-            miners = EXCLUDED.miners,
-            mines = EXCLUDED.mines,
-            land = EXCLUDED.land,
-            countries = EXCLUDED.countries,
-            continents = EXCLUDED.continents,
-            planets = EXCLUDED.planets,
-            solar_systems = EXCLUDED.solar_systems,
-            galaxies = EXCLUDED.galaxies,
-            universes = EXCLUDED.universes,
-            tech = EXCLUDED.tech,
-            utility = EXCLUDED.utility,
-            production = EXCLUDED.production;",
-            row.user_id,
-            row.miners,
-            row.mines,
-            row.land,
-            row.countries,
-            row.continents,
-            row.planets,
-            row.solar_systems,
-            row.galaxies,
-            row.universes,
-            row.tech,
-            row.utility,
-            row.production,
-        ).execute(&mut *tx).await?;
+        let Some(balance) = sqlx::query!(
+            "UPDATE gambling
+            SET coins = coins + $2, gems = gems + $3
+            WHERE user_id = $1
+                AND ($2::bigint = 0 OR coins + $2 >= 0)
+                AND ($3::bigint = 0 OR gems + $3 >= 0)
+            RETURNING coins, gems;",
+            user_id,
+            delta.coins,
+            delta.gems,
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(None);
+        };
 
-        result.extend([result3]);
+        let mine = if delta.is_mine_noop() {
+            None
+        } else {
+            sqlx::query!(
+                "INSERT INTO gambling_mine (user_id) VALUES ($1)
+                ON CONFLICT (user_id) DO NOTHING;",
+                user_id
+            )
+            .execute(&mut *tx)
+            .await?;
+
+            let Some(mine) = sqlx::query_as!(
+                MineCommit,
+                "UPDATE gambling_mine
+                SET miners = miners + $2,
+                    mines = mines + $3,
+                    land = land + $4,
+                    countries = countries + $5,
+                    continents = continents + $6,
+                    planets = planets + $7,
+                    solar_systems = solar_systems + $8,
+                    galaxies = galaxies + $9,
+                    universes = universes + $10,
+                    tech = tech + $11,
+                    utility = utility + $12,
+                    production = production + $13
+                WHERE user_id = $1
+                    AND ($2::bigint = 0 OR miners + $2 BETWEEN 0 AND $14 * (mines + $3 + 1))
+                    AND ($3::bigint = 0 OR mines + $3 BETWEEN 0 AND $15 * (land + $4 + 1))
+                    AND ($4::bigint = 0 OR land + $4 BETWEEN 0 AND $16 * (countries + $5 + 1))
+                    AND ($5::bigint = 0 OR countries + $5 BETWEEN 0 AND $17 * (continents + $6 + 1))
+                    AND ($6::bigint = 0 OR continents + $6 BETWEEN 0 AND $18 * (planets + $7 + 1))
+                    AND ($7::bigint = 0 OR planets + $7 BETWEEN 0 AND $19 * (solar_systems + $8 + 1))
+                    AND ($8::bigint = 0 OR solar_systems + $8 BETWEEN 0 AND $20 * (galaxies + $9 + 1))
+                    AND ($9::bigint = 0 OR galaxies + $9 BETWEEN 0 AND $21 * (universes + $10 + 1))
+                    AND ($10::bigint = 0 OR universes + $10 BETWEEN 0 AND prestige + 1)
+                    AND ($11::bigint = 0 OR tech + $11 >= 0)
+                    AND ($12::bigint = 0 OR utility + $12 >= 0)
+                    AND ($13::bigint = 0 OR production + $13 >= 0)
+                RETURNING miners, mines, land, countries, continents, planets,
+                    solar_systems, galaxies, universes, tech, utility, production;",
+                user_id,
+                delta.miners,
+                delta.mines,
+                delta.land,
+                delta.countries,
+                delta.continents,
+                delta.planets,
+                delta.solar_systems,
+                delta.galaxies,
+                delta.universes,
+                delta.tech,
+                delta.utility,
+                delta.production,
+                <ShopRow as MaxValues>::miners_per_mine(),
+                <ShopRow as MaxValues>::mines_per_land(),
+                <ShopRow as MaxValues>::land_per_country(),
+                <ShopRow as MaxValues>::countries_per_continent(),
+                <ShopRow as MaxValues>::continents_per_plant(),
+                <ShopRow as MaxValues>::plants_per_solar_system(),
+                <ShopRow as MaxValues>::solar_system_per_galaxies(),
+                <ShopRow as MaxValues>::galaxies_per_universe(),
+            )
+            .fetch_optional(&mut *tx)
+            .await?
+            else {
+                return Ok(None);
+            };
+
+            Some(mine)
+        };
+
+        let item_quantity = match item {
+            Some((item_id, amount)) => Some(
+                sqlx::query_scalar!(
+                    "INSERT INTO gambling_inventory (user_id, item_id, quantity)
+                    VALUES ($1, $2, $3)
+                    ON CONFLICT (user_id, item_id) DO UPDATE
+                    SET quantity = gambling_inventory.quantity + $3
+                    RETURNING quantity;",
+                    user_id,
+                    item_id,
+                    amount,
+                )
+                .fetch_one(&mut *tx)
+                .await?,
+            ),
+            None => None,
+        };
 
         tx.commit().await?;
 
-        Ok(result)
-    }
-
-    pub async fn save_inventory(
-        pool: &PgPool,
-        user_id: UserId,
-        rows: GamblingItems,
-    ) -> sqlx::Result<PgQueryResult> {
-        let mut item_ids = Vec::with_capacity(rows.0.len());
-        let mut quantities = Vec::with_capacity(rows.0.len());
-
-        for item in rows.0 {
-            item_ids.push(item.item_id);
-            quantities.push(item.quantity);
-        }
-
-        sqlx::query!(
-            "INSERT INTO gambling_inventory (user_id, item_id, quantity)
-            SELECT $1, * FROM UNNEST($2::text[], $3::bigint[])
-            ON CONFLICT (user_id, item_id) DO UPDATE
-            SET quantity = EXCLUDED.quantity",
-            as_i64(user_id.get()),
-            &item_ids,
-            &quantities
-        )
-        .execute(pool)
-        .await
+        Ok(Some(PurchaseCommit {
+            coins: balance.coins,
+            gems: balance.gems,
+            mine,
+            item_quantity,
+        }))
     }
 
     pub async fn sell_row(
@@ -221,7 +274,108 @@ impl ShopManager {
     }
 }
 
-#[derive(FromRow)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ShopDelta {
+    pub coins: i64,
+    pub gems: i64,
+    pub miners: i64,
+    pub mines: i64,
+    pub land: i64,
+    pub countries: i64,
+    pub continents: i64,
+    pub planets: i64,
+    pub solar_systems: i64,
+    pub galaxies: i64,
+    pub universes: i64,
+    pub tech: i64,
+    pub utility: i64,
+    pub production: i64,
+}
+
+impl ShopDelta {
+    #[must_use]
+    pub const fn between(before: &ShopRow, after: &ShopRow) -> Self {
+        Self {
+            coins: after.coins - before.coins,
+            gems: after.gems - before.gems,
+            miners: after.miners - before.miners,
+            mines: after.mines - before.mines,
+            land: after.land - before.land,
+            countries: after.countries - before.countries,
+            continents: after.continents - before.continents,
+            planets: after.planets - before.planets,
+            solar_systems: after.solar_systems - before.solar_systems,
+            galaxies: after.galaxies - before.galaxies,
+            universes: after.universes - before.universes,
+            tech: after.tech - before.tech,
+            utility: after.utility - before.utility,
+            production: after.production - before.production,
+        }
+    }
+
+    #[must_use]
+    pub fn is_noop(&self) -> bool {
+        *self == Self::default()
+    }
+
+    #[must_use]
+    pub const fn is_mine_noop(&self) -> bool {
+        self.miners == 0
+            && self.mines == 0
+            && self.land == 0
+            && self.countries == 0
+            && self.continents == 0
+            && self.planets == 0
+            && self.solar_systems == 0
+            && self.galaxies == 0
+            && self.universes == 0
+            && self.tech == 0
+            && self.utility == 0
+            && self.production == 0
+    }
+}
+
+pub struct PurchaseCommit {
+    pub coins: i64,
+    pub gems: i64,
+    pub mine: Option<MineCommit>,
+    pub item_quantity: Option<i64>,
+}
+
+pub struct MineCommit {
+    pub miners: i64,
+    pub mines: i64,
+    pub land: i64,
+    pub countries: i64,
+    pub continents: i64,
+    pub planets: i64,
+    pub solar_systems: i64,
+    pub galaxies: i64,
+    pub universes: i64,
+    pub tech: i64,
+    pub utility: i64,
+    pub production: i64,
+}
+
+impl MineCommit {
+    #[must_use]
+    pub fn quantity(&self, item_id: &str) -> Option<i64> {
+        Some(match item_id {
+            "miner" => self.miners,
+            "mine" => self.mines,
+            "land" => self.land,
+            "country" => self.countries,
+            "continent" => self.continents,
+            "planet" => self.planets,
+            "solar_system" => self.solar_systems,
+            "galaxy" => self.galaxies,
+            "universe" => self.universes,
+            _ => return None,
+        })
+    }
+}
+
+#[derive(Clone, FromRow)]
 pub struct ShopRow {
     pub user_id: i64,
     pub coins: i64,

@@ -9,14 +9,11 @@ use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, parse_options_ref};
 
-use crate::commands::inventory::InventoryManager;
-use crate::common::shop::{ShopManager, ShopRow};
+use crate::common::shop::{ShopDelta, ShopManager, ShopRow};
 use crate::events::{Dispatch, Event, ShopPurchaseEvent};
-use crate::models::GamblingItem;
 use crate::{
     Coins,
     GamblingError,
-    GamblingItems,
     Gems,
     MaxValues,
     Result,
@@ -49,6 +46,8 @@ pub async fn buy<Data: EmojiCacheData>(
     let mut row = ShopManager::buy_row(pool, interaction.user.id)
         .await?
         .unwrap_or_else(|| ShopRow::new(interaction.user.id));
+
+    let before = row.clone();
 
     let amount: i64 = match amount.parse() {
         Ok(x) => x,
@@ -118,18 +117,11 @@ pub async fn buy<Data: EmojiCacheData>(
         }
     }
 
-    let quantity = if matches!(item.category, ShopPage::Mine1 | ShopPage::Mine2) {
-        edit_mine(&mut row, item, amount)?
-    } else {
-        let mut inventory =
-            InventoryManager::inventory_items(pool, interaction.user.id).await?;
+    let is_mine_item = matches!(item.category, ShopPage::Mine1 | ShopPage::Mine2);
 
-        let quantity = edit_inv(&mut inventory, item, amount);
-
-        ShopManager::save_inventory(pool, interaction.user.id, inventory).await?;
-
-        quantity
-    };
+    if is_mine_item {
+        edit_mine(&mut row, item, amount)?;
+    }
 
     let emojis = {
         let data_lock = ctx.data::<RwLock<Data>>();
@@ -148,7 +140,34 @@ pub async fn buy<Data: EmojiCacheData>(
         )
         .await?;
 
-    ShopManager::buy_save(pool, row).await?;
+    let delta = ShopDelta::between(&before, &row);
+
+    let committed = ShopManager::commit_purchase(
+        pool,
+        interaction.user.id,
+        &delta,
+        (!is_mine_item).then_some((item.id, amount)),
+    )
+    .await?
+    .ok_or(GamblingError::PurchaseConflict)?;
+
+    let quantity = if is_mine_item {
+        committed.mine.as_ref().and_then(|mine| mine.quantity(item.id)).ok_or_else(
+            || {
+                GamblingError::Internal(format!(
+                    "no mine column committed for '{}'",
+                    item.id
+                ))
+            },
+        )?
+    } else {
+        committed.item_quantity.ok_or_else(|| {
+            GamblingError::Internal(format!(
+                "no quantity committed for '{}'",
+                item.id
+            ))
+        })?
+    };
 
     let cost = costs
         .into_iter()
@@ -171,20 +190,6 @@ pub async fn buy<Data: EmojiCacheData>(
         .await?;
 
     Ok(())
-}
-
-fn edit_inv(inventory: &mut GamblingItems, item: &ShopItem<'_>, amount: i64) -> i64 {
-    if let Some(item) =
-        inventory.0.iter_mut().find(|inv_item| inv_item.item_id == item.id)
-    {
-        item.quantity += amount;
-        item.quantity
-    } else {
-        let mut item = GamblingItem::from(item);
-        item.quantity = amount;
-        inventory.0.push(item);
-        amount
-    }
 }
 
 fn edit_mine(row: &mut ShopRow, item: &ShopItem<'_>, amount: i64) -> Result<i64> {
