@@ -314,10 +314,6 @@ impl FullLevelRow {
         .await
     }
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "DB columns xp/message_count are INT4; values are bounded by gameplay"
-    )]
     pub async fn save(self, pool: &PgPool) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
             "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",
@@ -337,9 +333,9 @@ impl FullLevelRow {
                 last_xp = now();",
             self.user_id,
             self.xp,
-            self.total_xp as i32,
+            i32::try_from(self.total_xp).unwrap_or(i32::MAX),
             self.level,
-            self.message_count as i32,
+            i32::try_from(self.message_count).unwrap_or(i32::MAX),
         )
         .execute(pool)
         .await

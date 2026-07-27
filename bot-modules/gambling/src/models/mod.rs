@@ -64,13 +64,11 @@ pub trait Stamina {
 
     fn stamina(&self) -> i32;
 
-    #[expect(clippy::cast_sign_loss, reason = "stamina is always non-negative")]
     fn stamina_str(&self) -> String {
-        format!(
-            "{}{}",
-            "🟩 ".repeat(self.stamina() as usize),
-            "⬛ ".repeat((Self::MAX_STAMINA - self.stamina()).max(0) as usize)
-        )
+        let max = usize::try_from(Self::MAX_STAMINA).unwrap_or(0);
+        let filled = usize::try_from(self.stamina()).unwrap_or(0).min(max);
+
+        format!("{}{}", "🟩 ".repeat(filled), "⬛ ".repeat(max - filled))
     }
 
     fn stamina_mut(&mut self) -> &mut i32;

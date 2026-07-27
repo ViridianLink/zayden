@@ -81,10 +81,6 @@ impl DigManager {
         .await
     }
 
-    #[expect(
-        trivial_casts,
-        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
-    )]
     pub async fn save(pool: &PgPool, row: &DigRow) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
@@ -103,6 +99,10 @@ impl DigManager {
         .execute(&mut *tx)
         .await?;
 
+        #[expect(
+            trivial_casts,
+            reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
+        )]
         let result2 = sqlx::query!(
             r#"INSERT INTO gambling_mine (user_id, miners, coal, iron, gold, redstone, lapis, diamonds, emeralds, prestige, mine_activity)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)

@@ -137,10 +137,6 @@ impl WorkManager {
         .await
     }
 
-    #[expect(
-        trivial_casts,
-        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
-    )]
     pub async fn commit_work(
         pool: &PgPool,
         id: UserId,
@@ -172,6 +168,10 @@ impl WorkManager {
             return Ok(None);
         };
 
+        #[expect(
+            trivial_casts,
+            reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
+        )]
         sqlx::query!(
             "INSERT INTO gambling_mine (user_id, mine_activity)
             VALUES ($1, $2)

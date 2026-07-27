@@ -82,49 +82,56 @@ impl PartialEq for GameResult {
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "game embed requires all display parameters"
-)]
-pub fn game_embed<'a>(
-    emojis: &EmojiCache,
-    title: &'a str,
-    prediction: impl Into<GameResult>,
-    outcome_text: &str,
-    outcome: impl Into<GameResult>,
-    bet: i64,
-    payout: i64,
-    coins: i64,
-    effects: &[AppliedEffect],
-) -> Result<CreateEmbed<'a>> {
-    let prediction: GameResult = prediction.into();
-    let outcome: GameResult = outcome.into();
+pub struct GameEmbed<'a> {
+    pub title: &'a str,
+    pub prediction: GameResult,
+    pub outcome_text: &'a str,
+    pub outcome: GameResult,
+    pub bet: i64,
+    pub payout: i64,
+    pub coins: i64,
+    pub effects: &'a [AppliedEffect],
+}
 
-    let win = prediction == outcome;
+impl<'a> GameEmbed<'a> {
+    pub fn build(self, emojis: &EmojiCache) -> Result<CreateEmbed<'a>> {
+        let Self {
+            title,
+            prediction,
+            outcome_text,
+            outcome,
+            bet,
+            payout,
+            coins,
+            effects,
+        } = self;
 
-    let result =
-        format!("Payout: {} ({})", payout.format(), (payout - bet).format());
+        let win = prediction == outcome;
 
-    let colour = if win { Colour::DARK_GREEN } else { Colour::RED };
+        let result =
+            format!("Payout: {} ({})", payout.format(), (payout - bet).format());
 
-    let coin = emojis
-        .emoji("heads")
-        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
+        let colour = if win { Colour::DARK_GREEN } else { Colour::RED };
 
-    let desc = format!(
-        "Your bet: {} <:coin:{coin}>
+        let coin = emojis.emoji("heads").map_err(|n| {
+            GamblingError::Internal(format!("emoji '{n}' not in cache"))
+        })?;
+
+        let desc = format!(
+            "Your bet: {} <:coin:{coin}>
 
         **You bet on:** {} ({prediction})
         **{outcome_text}:** {} ({outcome})
 
         {result}
         Your coins: {}{}",
-        bet.format(),
-        prediction.emoji(emojis)?,
-        outcome.emoji(emojis)?,
-        coins.format(),
-        effects_summary(emojis, effects),
-    );
+            bet.format(),
+            prediction.emoji(emojis)?,
+            outcome.emoji(emojis)?,
+            coins.format(),
+            effects_summary(emojis, effects),
+        );
 
-    Ok(CreateEmbed::<'a>::new().title(title).description(desc).colour(colour))
+        Ok(CreateEmbed::<'a>::new().title(title).description(desc).colour(colour))
+    }
 }

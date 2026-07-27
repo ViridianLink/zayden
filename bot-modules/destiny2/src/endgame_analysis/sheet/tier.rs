@@ -104,7 +104,7 @@ fn google_colour_to_serde_colour(
     #[expect(
         clippy::cast_possible_truncation,
         clippy::cast_sign_loss,
-        reason = "clamping and scaling guarantees the value is within [0.0, 255.0], making the cast to u8 safe"
+        reason = "clamped to [0.0, 255.0] before the cast, so no truncation or sign loss is reachable"
     )]
     fn f64_to_u8(value: f64) -> u8 {
         (value.clamp(0.0, 1.0) * 255.0).round() as u8

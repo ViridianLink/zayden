@@ -42,18 +42,18 @@ pub fn progress_bar(elapsed: Duration, total: Option<Duration>) -> String {
         return format!("`{}` 🔴 PLAYING", format_duration(elapsed));
     };
 
-    let ratio = if total.is_zero() {
-        0.0
+    let filled = if total.is_zero() {
+        0
     } else {
-        (elapsed.as_secs_f64() / total.as_secs_f64()).clamp(0.0, 1.0)
+        let total_nanos = total.as_nanos();
+        let elapsed_nanos = elapsed.as_nanos().min(total_nanos);
+        let scaled =
+            2 * u128::from(PROGRESS_BAR_WIDTH) * elapsed_nanos + total_nanos;
+
+        u32::try_from(scaled / (2 * total_nanos))
+            .unwrap_or(PROGRESS_BAR_WIDTH)
+            .min(PROGRESS_BAR_WIDTH)
     };
-    #[expect(
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        reason = "ratio is clamped to [0.0, 1.0], so the product fits in PROGRESS_BAR_WIDTH"
-    )]
-    let filled = (ratio * f64::from(PROGRESS_BAR_WIDTH)).round() as u32;
-    let filled = filled.min(PROGRESS_BAR_WIDTH);
 
     let bar: String = (0..PROGRESS_BAR_WIDTH)
         .map(|i| match i.cmp(&filled) {

@@ -32,12 +32,7 @@ use crate::{
     tomorrow,
 };
 
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    reason = "compile-time constant: precision and truncation are acceptable here"
-)]
-const GIFT_AMOUNT: i64 = (START_AMOUNT as f64 * 2.5) as i64;
+const GIFT_AMOUNT: i64 = START_AMOUNT * 5 / 2;
 
 use super::Commands;
 

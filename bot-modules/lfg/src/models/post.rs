@@ -307,7 +307,7 @@ impl PostRow {
 
     #[expect(
         trivial_casts,
-        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+        reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
     )]
     pub async fn edit(pool: &PgPool, post: &Self) -> sqlx::Result<PgQueryResult> {
         sqlx::query_file!(
@@ -332,13 +332,13 @@ impl PostRow {
             .await
     }
 
-    #[expect(
-        trivial_casts,
-        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
-    )]
     pub async fn save(pool: &PgPool, row: Self) -> sqlx::Result<PgQueryResult> {
         let mut tx = pool.begin().await?;
 
+        #[expect(
+            trivial_casts,
+            reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
+        )]
         let main_result = sqlx::query_file!(
             "sql/PostManager/save_post.sql",
             row.id,

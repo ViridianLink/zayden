@@ -72,9 +72,9 @@ impl EntitlementService {
         let expires_at_pg = expires_at.map(Timestamp::from);
 
         #[expect(
-        trivial_casts,
-        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
-    )]
+            trivial_casts,
+            reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
+        )]
         sqlx::query!(
             r"
             INSERT INTO entitlements

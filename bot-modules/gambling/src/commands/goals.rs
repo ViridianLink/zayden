@@ -63,10 +63,6 @@ impl GoalsManager {
         .await
     }
 
-    #[expect(
-        trivial_casts,
-        reason = "sqlx requires explicit type for jiff_sqlx DATE[] mapping"
-    )]
     pub async fn update(
         pool: &PgPool,
         rows: &[GamblingGoalsRow],
@@ -97,6 +93,10 @@ impl GoalsManager {
             targets.push(row.target);
         }
 
+        #[expect(
+            trivial_casts,
+            reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because DATE[] has no built-in jiff mapping"
+        )]
         let rows = sqlx::query_as!(
             GamblingGoalsRow,
             r#"INSERT INTO gambling_goals (user_id, goal_id, day, progress, target)

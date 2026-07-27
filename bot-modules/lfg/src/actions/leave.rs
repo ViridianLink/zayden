@@ -1,7 +1,6 @@
 use serenity::all::{
     CommandInteraction,
     ComponentInteraction,
-    ComponentInteractionDataKind,
     CreateEmbed,
     GenericInteractionChannel,
     Http,
@@ -15,24 +14,14 @@ use crate::templates::DefaultTemplate;
 use crate::utils::{Announcement, update_embeds};
 use crate::{PostRow, Result};
 
-#[expect(
-    dead_code,
-    reason = "LeaveInteraction fields are not yet consumed after construction"
-)]
 pub struct LeaveInteraction {
     thread: ThreadId,
-    author: UserId,
-    user: UserId,
 }
 
 impl From<&CommandInteraction> for LeaveInteraction {
     fn from(value: &CommandInteraction) -> Self {
         let Ok((_, sub_options)) = parse_subcommand(value.data.options()) else {
-            return Self {
-                thread: value.channel_id.expect_thread(),
-                author: value.user.id,
-                user: value.user.id,
-            };
+            return Self { thread: value.channel_id.expect_thread() };
         };
 
         let mut options = parse_options(sub_options);
@@ -45,39 +34,13 @@ impl From<&CommandInteraction> for LeaveInteraction {
             _ => value.channel_id.expect_thread(),
         };
 
-        let user =
-            optional_option(&mut options, "guardian").unwrap_or(&value.user).id;
-
-        Self { thread, author: value.user.id, user }
+        Self { thread }
     }
 }
 
 impl From<&ComponentInteraction> for LeaveInteraction {
     fn from(value: &ComponentInteraction) -> Self {
-        let user = match &value.data.kind {
-            ComponentInteractionDataKind::UserSelect { values } => {
-                let Some(v) = values.first() else {
-                    return Self {
-                        thread: value.channel_id.expect_thread(),
-                        author: value.user.id,
-                        user: value.user.id,
-                    };
-                };
-                *v
-            },
-            ComponentInteractionDataKind::Button
-            | ComponentInteractionDataKind::StringSelect { .. }
-            | ComponentInteractionDataKind::RoleSelect { .. }
-            | ComponentInteractionDataKind::MentionableSelect { .. }
-            | ComponentInteractionDataKind::ChannelSelect { .. }
-            | ComponentInteractionDataKind::Unknown(_) => value.user.id,
-        };
-
-        Self {
-            thread: value.channel_id.expect_thread(),
-            author: value.user.id,
-            user,
-        }
+        Self { thread: value.channel_id.expect_thread() }
     }
 }
 

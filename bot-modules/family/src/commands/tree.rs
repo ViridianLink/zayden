@@ -67,10 +67,6 @@ impl From<&Node> for GraphNode {
 pub struct Tree;
 
 impl Tree {
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "precision loss is acceptable for tree layout positioning"
-    )]
     pub async fn run(
         _ctx: &Context,
         interaction: &CommandInteraction,
@@ -95,13 +91,15 @@ impl Tree {
                 continue;
             };
             let width = values.len();
-            let width_diff = max_width - width;
-            let spacing = width_diff as f64 / 2.0;
+            let width_diff = u32::try_from(max_width - width).unwrap_or(u32::MAX);
+            let spacing = f64::from(width_diff) / 2.0;
             for (index, value) in values.iter().enumerate() {
+                let index = u32::try_from(index).unwrap_or(u32::MAX);
+
                 let mut node = Node::new(
                     value.id,
                     value.username.clone(),
-                    spacing + index as f64,
+                    spacing + f64::from(index),
                     f64::from(depth),
                 );
                 for id in value.children_ids.iter().chain(value.partner_ids.iter()) {

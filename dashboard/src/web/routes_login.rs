@@ -93,7 +93,7 @@ pub(super) async fn discord_auth_callback_handler(
 
     #[expect(
         trivial_casts,
-        reason = "sqlx requires explicit type for jiff_sqlx TIMESTAMPTZ mapping"
+        reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
     )]
     let insert_result = sqlx::query!(
         "INSERT INTO web_sessions \

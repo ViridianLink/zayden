@@ -98,7 +98,7 @@ pub fn jackpot(tickets: i64) -> i64 {
 
 pub fn select_winners(
     mut rows: Vec<LottoRow>,
-    prize_share: &[f64],
+    prize_share: &[i64],
     jackpot: i64,
 ) -> Result<Vec<(UserId, i64)>, GamblingError> {
     let mut dist =
@@ -122,12 +122,9 @@ pub fn select_winners(
             )?;
         }
 
-        #[expect(
-            clippy::cast_possible_truncation,
-            clippy::cast_precision_loss,
-            reason = "lottery payout: precision/truncation acceptable"
-        )]
-        let payout = (jackpot as f64 * share) as i64;
+        let payout = i64::try_from(i128::from(jackpot) * i128::from(share) / 100)
+            .unwrap_or(i64::MAX);
+
         winners.push((winner.user_id(), payout));
     }
 
@@ -153,7 +150,7 @@ impl Lotto {
 
                 rows.retain(|row| as_u64(row.user_id) != bot_id.get());
 
-                let prize_share = [0.5, 0.3, 0.2];
+                let prize_share = [50, 30, 20];
                 let expected_winners = prize_share.len();
 
                 if rows.len() < expected_winners {

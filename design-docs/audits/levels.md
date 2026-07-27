@@ -113,7 +113,7 @@ pattern before the larger crates.
   in-bot. See [CC-8](_cross-cutting.md#cc-8).
 
 ### 5. Unused `tokio` dependency → `cargo machete` is not clean workspace-wide  ·  #7  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 994fea89`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-27):** Deleted `tokio = { workspace = true }` from
   `bot-modules/levels/Cargo.toml:19`; `Cargo.lock` drops the corresponding `levels →
   tokio` edge. Confirmed still-unused before removing (no `tokio` token anywhere in

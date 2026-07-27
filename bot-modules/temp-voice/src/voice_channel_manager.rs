@@ -180,15 +180,15 @@ impl VoiceChannelRow {
         Ok(result.rows_affected() == 1)
     }
 
-    #[expect(
-        trivial_casts,
-        reason = "sqlx requires explicit type for custom temp_voice_mode pgtype"
-    )]
     pub async fn save(self, pool: &PgPool) -> Result<PgQueryResult> {
         let mode = TempVoiceMode::from(self.mode);
 
         let mut tx = pool.begin().await?;
 
+        #[expect(
+            trivial_casts,
+            reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required for the custom temp_voice_mode pgtype"
+        )]
         let mut result = sqlx::query!(
             r#"
             INSERT INTO voice_channels (id, owner_id, password, persistent, mode)

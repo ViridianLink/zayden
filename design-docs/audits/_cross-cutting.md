@@ -98,8 +98,87 @@ served by the website — and two `setup` commands already duplicate its writes.
   logic into a lib crate.
 
 ### CC-3. `#[expect(...)]` lint escape-hatches  ·  #7 / #2  ·  low–med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-28):** Triaged **all** sites. The inventory had grown from 22 to
+  **27** by fix time (the CC-1 migrations moved SQL into the module crates and
+  carried their suppressions with them — the `bot/src/bindings/*` sites in the list
+  below are gone, replaced by sites in `gambling`/`levels`/`lfg`/`temp-voice`).
+  **10 suppressions removed, 17 remain**, all of the remaining now carrying a
+  `reason` that states a real invariant rather than a deferral.
 
-- **Where (22 sites):** `bot/src/handler/mod.rs:121`,
+  **Removed by fixing the cause (10):**
+  - `gambling/src/utils.rs:85` `too_many_arguments` → the 9-arg `game_embed` free
+    fn became a `GameEmbed<'a>` struct with a `build(&EmojiCache)` method
+    (the audit's prescribed "bundle args into a struct"); the two call sites
+    (`coinflip`, `roll`) now use struct literals. The `impl Into<GameResult>`
+    ergonomics moved to `.into()` at the call site.
+  - `gambling/src/models/mod.rs` `cast_sign_loss` on `Stamina::stamina_str` →
+    `usize::try_from(...).unwrap_or(0).min(max)`. **This one was masking a live
+    panic:** nothing guarantees stamina is non-negative (`done_work` decrements
+    unconditionally), and `-1 as usize` asks `str::repeat` for ~2^64 copies →
+    `capacity overflow` abort. Verified fails-before (see Verification).
+  - `gambling/src/commands/gift.rs` `cast_possible_truncation` +
+    `cast_precision_loss` → `const GIFT_AMOUNT: i64 = START_AMOUNT * 5 / 2`
+    replaces the `(START_AMOUNT as f64 * 2.5) as i64` float round-trip. Same value.
+  - `gambling/src/games/lotto.rs` `cast_possible_truncation` +
+    `cast_precision_loss` → **float money removed from the economy**:
+    `select_winners`'s `prize_share` is now `&[i64]` in whole percent
+    (`[50, 30, 20]`, was `[0.5, 0.3, 0.2]`) and the payout is
+    `i64::try_from(i128::from(jackpot) * i128::from(share) / 100)`, widened so the
+    multiply cannot overflow. `tests/lotto.rs`'s exact-payout assertions
+    (200k/300k/500k) pass unchanged, pinning the value equivalence.
+  - `gambling/src/common/shop/items.rs:192` `dead_code` → deleted the unused
+    `RIGGED_LUCK` const ("reserved for future implementation"). This is the
+    [CC-4](#cc-4) sub-item that lived in this file.
+  - `levels/src/manager.rs` `cast_possible_truncation` → `FullLevelRow::save`
+    binds `i32::try_from(self.total_xp).unwrap_or(i32::MAX)` (same for
+    `message_count`) instead of `as i32`, so an over-large counter **saturates**
+    at the INT4 ceiling rather than wrapping to a negative XP total.
+  - `family/src/commands/tree.rs` `cast_precision_loss` → the two `usize as f64`
+    layout casts widen through `u32::try_from(..).unwrap_or(u32::MAX)` +
+    `f64::from`, which is lossless.
+  - `music/src/embeds.rs:50` `cast_possible_truncation` + `cast_sign_loss` →
+    `progress_bar`'s fill position is now integer round-half-up on nanoseconds
+    (`(2·W·elapsed + total) / (2·total)`) instead of
+    `(ratio * WIDTH).round() as u32`. Pinned equivalent to the float version at
+    every second of a track by a new test.
+  - `lfg/src/actions/leave.rs:19` `dead_code` → `LeaveInteraction` had `author`
+    and `user` fields that no caller ever read: **every** call site passes the
+    target user as a separate argument, and `/lfg leave` registers no target
+    option at all, so the `From` impls' `guardian`-option and `UserSelect`
+    parsing was dead by construction. Reduced the struct to the one consumed
+    field (`thread`) and deleted the dead parsing.
+  - `lfg/src/cron/reminders.rs:20` `significant_drop_tightening` → dropped the
+    intermediate `let jobs = data.jobs_mut()` binding that forced the write guard
+    to stay live, and hoisted the `format!("lfg_{post_id}")` out of the `retain`
+    closure (it was re-allocating per element).
+
+  **Kept, with the reason sharpened (17):**
+  - **The 8 `trivial_casts` sqlx sites** (`gambling/commands/{dig,goals,work}.rs`,
+    `lfg/models/post.rs` ×2, `temp-voice/voice_channel_manager.rs`,
+    `zayden-app/entitlement/service.rs`, `dashboard/web/routes_login.rs`) are
+    **load-bearing, not escape hatches** — this is the pass's main correction to
+    the finding. `expr as T` on a bind argument is *sqlx's type-override syntax*,
+    not a Rust cast; removing it fails the build with `optional sqlx feature
+    "time" required for type TIMESTAMPTZ of param #N`, because `jiff_sqlx` types
+    have no built-in mapping. Verified empirically by removing all 8 and
+    compiling. What *was* wrong is scope: 6 sat on the whole `fn`, where they
+    would also silence an unrelated real cast. All are now narrowed to the single
+    `let`/statement holding the macro, and the `reason` says why it is not a cast.
+    (The two fn-level survivors — `PostRow::edit` and the tail of the others —
+    are fns whose body *is* the one macro call.)
+  - **The 7 `const fn` builder sites** (`destiny2/raid_guides/mod.rs` ×6 =
+    3 × `indexing_slicing` + `panic` pairs, `gambling/common/shop/items.rs:47`)
+    document a genuine **compile-time** invariant: these run in const context, so
+    a violated slot count is a build error, not a runtime panic. Left as-is —
+    destiny2 #1 (retire the all-`const` render pipeline) is the real fix target.
+  - `destiny2/endgame_analysis/sheet/tier.rs:104` `cast_possible_truncation` +
+    `cast_sign_loss` — std has no fallible float→int conversion, so an `f64 → u8`
+    cast is unavoidable; the `clamp(0.0, 1.0) * 255.0` is what makes it total.
+    Reason reworded to say that.
+  - `bot/src/handler/mod.rs:121` `wildcard_enum_match_arm` — `FullEvent` is large
+    and `#[non_exhaustive]`; the filter fn is the real exhaustiveness gate.
+- **Where (22 sites, as inventoried 2026-07-17):** `bot/src/handler/mod.rs:121`,
   `bot/src/bindings/gambling/{goals,daily,dig,work}.rs`,
   `bot/src/bindings/lfg/mod.rs:159,189`, `bot/src/bindings/levels/mod.rs:105`,
   `bot/src/bindings/temp_voice/mod.rs:132`,
@@ -134,6 +213,18 @@ served by the website — and two `setup` commands already duplicate its writes.
   CC-4) → delete the stub. Keep only the ones documenting a true compile-time
   invariant (e.g. the `const fn` builder panics in `raid_guides`, which are the
   better fix target in CC-5).
+- **Residual / follow-ups:**
+  - **[CC-4](#cc-4) is now only half-closed.** Its `items.rs:192` `dead_code`
+    sub-item was deleted here, but its main subject — the `tictactoe` `GameState`
+    stub and the `#[expect(clippy::future_not_send)]` at
+    `gambling/src/commands/tictactoe.rs:175,182` — **no longer exists in the tree**
+    (the file has no `#[expect]` left). CC-4 should be reconciled on its own.
+  - The 8 sqlx `trivial_casts` suppressions can only be retired upstream, by
+    `jiff_sqlx` gaining a built-in TIMESTAMPTZ mapping (or sqlx growing a
+    non-`as` param-override syntax). Not actionable here; recorded so a future
+    pass does not re-litigate them.
+  - `destiny2/src/loadouts/record.rs:89` from the original list no longer carries
+    a suppression (removed by an earlier task); the inventory above is corrected.
 
 ### CC-4. `tictactoe` dead `GameState` stub  ·  #2  ·  low
 

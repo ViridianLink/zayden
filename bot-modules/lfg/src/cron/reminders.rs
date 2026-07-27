@@ -17,10 +17,6 @@ use zayden_core::{CronJob, CronJobData};
 
 use crate::{Join, PostRow};
 
-#[expect(
-    clippy::significant_drop_tightening,
-    reason = "jobs borrows from the write guard and must be held for the full extend call"
-)]
 pub async fn create_reminders<Data: CronJobData>(ctx: &Context, row: &PostRow) {
     let post_id = row.thread();
     let start_time = row.start_time.to_jiff().to_zoned(TimeZone::UTC);
@@ -109,12 +105,12 @@ pub async fn create_reminders<Data: CronJobData>(ctx: &Context, row: &PostRow) {
         },
     };
 
+    let job_id = format!("lfg_{post_id}");
+
     let data = ctx.data::<RwLock<Data>>();
     let mut data = data.write().await;
-    let jobs = data.jobs_mut();
-
-    jobs.retain(|job| job.id != format!("lfg_{post_id}"));
-    jobs.extend([week_job, day_job, mins_30_job, now_job]);
+    data.jobs_mut().retain(|job| job.id != job_id);
+    data.jobs_mut().extend([week_job, day_job, mins_30_job, now_job]);
 }
 
 async fn reminder(http: &Http, pool: PgPool, id: ThreadId) {

@@ -1,7 +1,8 @@
 use gambling::{LottoRow, select_winners};
 
 /// The three prize tiers the weekly draw pays out, mirroring `Lotto::cron_job`.
-const PRIZE_SHARE: &[f64] = &[0.5, 0.3, 0.2];
+/// Whole percent of the jackpot.
+const PRIZE_SHARE: &[i64] = &[50, 30, 20];
 
 const fn row(user_id: i64, quantity: i64) -> LottoRow {
     LottoRow { user_id, coins: 0, quantity: Some(quantity) }

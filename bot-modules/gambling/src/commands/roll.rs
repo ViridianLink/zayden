@@ -14,7 +14,7 @@ use zayden_core::{EmojiCacheData, parse_options};
 
 use super::Commands;
 use crate::events::{Dispatch, Event, GameEvent};
-use crate::utils::{GameResult, game_embed};
+use crate::utils::{GameEmbed, GameResult};
 use crate::{Coins, EffectsManager, GamblingData, GamblingError, GameRow, Result};
 
 impl Commands {
@@ -103,17 +103,17 @@ impl Commands {
 
         GameRow::save(pool, row).await?;
 
-        let embed = game_embed(
-            &emojis,
+        let embed = GameEmbed {
             title,
-            GameResult::new_with_str(prediction.to_string(), "🎲"),
-            "Result",
-            GameResult::new_with_str(roll.to_string(), "🎲"),
+            prediction: GameResult::new_with_str(prediction.to_string(), "🎲"),
+            outcome_text: "Result",
+            outcome: GameResult::new_with_str(roll.to_string(), "🎲"),
             bet,
             payout,
             coins,
-            &payout_result.effects,
-        )?;
+            effects: &payout_result.effects,
+        }
+        .build(&emojis)?;
 
         interaction
             .edit_response(&ctx.http, EditInteractionResponse::new().embed(embed))
