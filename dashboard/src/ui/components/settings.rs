@@ -54,6 +54,7 @@ pub(crate) fn SettingField(
     label: &'static str,
     name: &'static str,
     value: String,
+    #[prop(default = "[0-9]*")] pattern: &'static str,
 ) -> impl IntoView {
     view! {
         <div class="setting-field">
@@ -63,7 +64,7 @@ pub(crate) fn SettingField(
                 name=name
                 value=value
                 placeholder="(not set)"
-                pattern="[0-9]*"
+                pattern=pattern
             />
         </div>
     }

@@ -148,8 +148,26 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                                 channels=channels.clone()
                                                 kinds=TEXT_KINDS
                                             />
+                                            <SettingField
+                                                label="Promote at net upvotes"
+                                                name="promote_threshold"
+                                                value=s.suggestions_promote_threshold.clone()
+                                            />
+                                            <SettingField
+                                                label="Demote at or below"
+                                                name="demote_threshold"
+                                                value=s.suggestions_demote_threshold.clone()
+                                                pattern="-?[0-9]*"
+                                            />
                                             <SaveButton/>
                                         </ActionForm>
+                                        <p class="page-lead">
+                                            "A suggestion is posted to the review channel once "
+                                            "its \u{1F44D} minus \u{1F44E} count reaches the promote "
+                                            "threshold, and removed again if it falls to or below "
+                                            "the demote threshold. Tune both to your server size "
+                                            "\u{2014} demote must stay below promote."
+                                        </p>
                                         {support_role_views}
                                     </fieldset>
                                 }}

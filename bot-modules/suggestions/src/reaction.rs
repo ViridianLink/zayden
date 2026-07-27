@@ -78,9 +78,11 @@ impl Suggestions {
                 }
             });
 
+        let thresholds = row.thresholds();
+
         let mut messages = review_channel_id.widen().messages_iter(http).boxed();
 
-        match review_action(pos_count, neg_count) {
+        match review_action(pos_count, neg_count, thresholds) {
             ReviewAction::Promote => {
                 while let Some(mut msg) = messages.try_next().await? {
                     if let Some(embed) = msg.embeds.first()
@@ -124,12 +126,16 @@ impl Suggestions {
                     .await?;
             },
             ReviewAction::Demote => {
+                let reason = format!(
+                    "Positive delta fell to or below {}",
+                    thresholds.demote()
+                );
+
                 while let Some(msg) = messages.try_next().await? {
                     if msg.embeds.first().and_then(|e| e.url.as_deref())
                         == Some(message.link().to_string().as_str())
                     {
-                        msg.delete(http, Some("Positive delta fell to or below 15"))
-                            .await?;
+                        msg.delete(http, Some(&reason)).await?;
 
                         return Ok(());
                     }
@@ -149,13 +155,60 @@ pub enum ReviewAction {
     Unchanged,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReviewThresholds {
+    promote: i32,
+    demote: i32,
+}
+
+impl Default for ReviewThresholds {
+    fn default() -> Self {
+        Self { promote: Self::DEFAULT_PROMOTE, demote: Self::DEFAULT_DEMOTE }
+    }
+}
+
+impl ReviewThresholds {
+    pub const DEFAULT_DEMOTE: i32 = 15;
+    pub const DEFAULT_PROMOTE: i32 = 20;
+
+    #[must_use]
+    pub const fn new(promote: i32, demote: i32) -> Self {
+        let demote =
+            if demote < promote { demote } else { promote.saturating_sub(1) };
+
+        Self { promote, demote }
+    }
+
+    #[must_use]
+    pub fn parse(promote: &str, demote: &str) -> Self {
+        Self::new(
+            promote.trim().parse().unwrap_or(Self::DEFAULT_PROMOTE),
+            demote.trim().parse().unwrap_or(Self::DEFAULT_DEMOTE),
+        )
+    }
+
+    #[must_use]
+    pub const fn promote(self) -> i32 {
+        self.promote
+    }
+
+    #[must_use]
+    pub const fn demote(self) -> i32 {
+        self.demote
+    }
+}
+
 #[must_use]
-pub const fn review_action(pos_count: i32, neg_count: i32) -> ReviewAction {
+pub const fn review_action(
+    pos_count: i32,
+    neg_count: i32,
+    thresholds: ReviewThresholds,
+) -> ReviewAction {
     let delta = pos_count - neg_count;
 
-    if delta >= 20 {
+    if delta >= thresholds.promote {
         ReviewAction::Promote
-    } else if delta <= 15 {
+    } else if delta <= thresholds.demote {
         ReviewAction::Demote
     } else {
         ReviewAction::Unchanged

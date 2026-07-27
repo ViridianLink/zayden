@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO suggestions_settings (guild_id, suggestions_channel_id, review_channel_id)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                suggestions_channel_id = EXCLUDED.suggestions_channel_id,\n                review_channel_id = EXCLUDED.review_channel_id,\n                updated_at = now()\n            RETURNING guild_id, suggestions_channel_id, review_channel_id\n            ",
+  "query": "\n            SELECT\n                guild_id,\n                suggestions_channel_id,\n                review_channel_id,\n                promote_threshold,\n                demote_threshold\n            FROM suggestions_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -35,20 +35,42 @@
             "name": "review_channel_id"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "promote_threshold",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "promote_threshold"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "demote_threshold",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "suggestions_settings",
+            "name": "demote_threshold"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
         "Int8"
       ]
     },
     "nullable": [
       false,
       true,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "06b745931b24b0cfd7e60c196fdb17c14763e27129ddd7778779066b00b8ccd4"
+  "hash": "1dd4b8dc0530509f397f4fb18562832399f6e0296fd62f6c89368ec57e268586"
 }

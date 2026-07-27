@@ -36,8 +36,35 @@ pub struct WeaponBuilder {
     pub notes: Option<String>,
 }
 
+#[must_use]
+pub fn strip_reissue_annotation(name: &str) -> &str {
+    fn is_version_marker(s: &str) -> bool {
+        let s = s.trim();
+        s.len() > "version".len() && s.to_lowercase().ends_with("version")
+    }
+
+    let name = name.trim();
+
+    if let Some((base, marker)) = name.split_once('\n')
+        && is_version_marker(marker)
+    {
+        return base.trim();
+    }
+
+    if let Some((base, marker)) = name.rsplit_once(" (")
+        && let Some(marker) = marker.strip_suffix(')')
+        && is_version_marker(marker)
+    {
+        return base.trim();
+    }
+
+    name
+}
+
 impl WeaponBuilder {
     pub fn new(name: &str, archetype: impl Into<String>) -> Self {
+        let name = strip_reissue_annotation(name);
+
         let name = match name {
             "Song of Ir Yut" => "Song of Ir Yût",
             "Fang of Ir Yut" => "Fang of Ir Yût",
@@ -52,12 +79,7 @@ impl WeaponBuilder {
             "Jararaca-3SR" => "Jararaca-3sr",
             "Redback-5SI" => "Redback-5si",
             "Judgement" => "Judgment",
-            "Long Arm\nRotn version" => "Long Arm",
-            name => name
-                .trim()
-                .trim_end_matches("\nBRAVE version")
-                .trim_end_matches(" (BRAVE version)")
-                .trim_end_matches("\nRotN version"),
+            name => name,
         };
 
         Self {

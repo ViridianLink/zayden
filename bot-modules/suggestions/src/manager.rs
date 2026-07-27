@@ -2,14 +2,23 @@ use serenity::all::{ChannelId, GuildId};
 use sqlx::{FromRow, PgPool};
 use zayden_core::{as_i64, as_u64};
 
+use crate::ReviewThresholds;
+
 #[derive(FromRow)]
 pub struct SuggestionsGuildRow {
     pub id: i64,
     pub suggestions_channel_id: Option<i64>,
     pub review_channel_id: Option<i64>,
+    pub promote_threshold: i32,
+    pub demote_threshold: i32,
 }
 
 impl SuggestionsGuildRow {
+    #[must_use]
+    pub const fn thresholds(&self) -> ReviewThresholds {
+        ReviewThresholds::new(self.promote_threshold, self.demote_threshold)
+    }
+
     #[must_use]
     pub fn channel_id(&self) -> Option<ChannelId> {
         self.suggestions_channel_id.map(|id| ChannelId::new(as_u64(id)))
@@ -24,7 +33,12 @@ impl SuggestionsGuildRow {
         sqlx::query_as!(
             Self,
             r#"
-            SELECT guild_id AS id, suggestions_channel_id, review_channel_id
+            SELECT
+                guild_id AS id,
+                suggestions_channel_id,
+                review_channel_id,
+                promote_threshold,
+                demote_threshold
             FROM suggestions_settings
             WHERE guild_id = $1
             "#,

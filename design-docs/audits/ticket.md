@@ -26,7 +26,7 @@ state transitions.
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 2. Support-guild / panel config belongs on the dashboard  ·  #8  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — fd479154`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Scope correction (2026-07-26):** re-tracing the finding turned it from a
   *placement* preference into a **live dead-config defect**, which is what this
   task actually fixes. The dashboard's Support section wrote

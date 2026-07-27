@@ -9,11 +9,36 @@
 //! subsequent `/destiny2 perk` re-ran `update` and re-panicked.
 //!
 //! `perk_entry` now guards the length and skips short rows via `None`.
+//!
+//! The tab has since been **renamed upstream**: `Gear Perks` became
+//! `Weapon Perks` when armor set bonuses were split onto their own tab, which
+//! failed the refresh outright with `MissingData("gear perks sheet")`. The
+//! lookup now tries both titles, and `is_safe_replace` guards the destructive
+//! `TRUNCATE` against the next such drift.
 
-use destiny2::compendium::perk_entry;
+use destiny2::compendium::{is_safe_replace, perk_entry};
 
 fn cells(values: &[&str]) -> Vec<Option<String>> {
     values.iter().map(|v| Some((*v).to_string())).collect()
+}
+
+#[test]
+fn refresh_that_collapses_the_catalog_is_refused() {
+    // `compendium::replace` TRUNCATEs before inserting, so a parse that yields
+    // only a handful of rows would wipe the catalog. Upstream renamed the tab
+    // once already; a layout change is the same class of drift and must not be
+    // allowed to destroy the data.
+    assert!(!is_safe_replace(400, 0));
+    assert!(!is_safe_replace(400, 12));
+    assert!(!is_safe_replace(400, 199));
+}
+
+#[test]
+fn a_legitimate_refresh_is_allowed() {
+    assert!(is_safe_replace(400, 200)); // boundary: exactly half
+    assert!(is_safe_replace(400, 410)); // the sheet grew
+    assert!(is_safe_replace(0, 0)); // first run, nothing to lose
+    assert!(is_safe_replace(0, 400));
 }
 
 #[test]

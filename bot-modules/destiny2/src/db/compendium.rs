@@ -12,6 +12,15 @@ pub async fn is_empty(pool: &PgPool) -> sqlx::Result<bool> {
     Ok(!exists.unwrap_or(false))
 }
 
+pub async fn count(pool: &PgPool) -> sqlx::Result<i64> {
+    let count =
+        sqlx::query_scalar!(r#"SELECT COUNT(*) FROM destiny2_compendium_perks"#)
+            .fetch_one(pool)
+            .await?;
+
+    Ok(count.unwrap_or(0))
+}
+
 pub async fn find(pool: &PgPool, key: &str) -> sqlx::Result<Option<PerkInfo>> {
     sqlx::query_as!(
         PerkInfo,

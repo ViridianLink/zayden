@@ -82,6 +82,8 @@ pub struct GuildSettings {
     pub(crate) faq_channel_id: Option<String>,
     pub(crate) suggestions_channel_id: Option<String>,
     pub(crate) review_channel_id: Option<String>,
+    pub(crate) suggestions_promote_threshold: String,
+    pub(crate) suggestions_demote_threshold: String,
     pub(crate) rules_channel_id: Option<String>,
     pub(crate) general_channel_id: Option<String>,
     pub(crate) spoiler_channel_id: Option<String>,

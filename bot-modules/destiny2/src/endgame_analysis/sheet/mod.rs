@@ -15,7 +15,7 @@ pub use affinity::Affinity;
 pub use frame::Frame;
 pub use tier::{TIERS, Tier, TierLabel};
 use tracing::error;
-pub use weapon::{Weapon, WeaponBuilder};
+pub use weapon::{Weapon, WeaponBuilder, strip_reissue_annotation};
 
 use crate::db::endgame;
 use crate::endgame_analysis::{EndgameAnalysisError, Result};

@@ -11,6 +11,7 @@ use {
     },
     leptos_axum::{extract, redirect},
     std::sync::Arc,
+    suggestions::ReviewThresholds,
     ticket::{GuildId, RoleId, SupportRoles},
     tower_cookies::Cookies,
     twilight_model::channel::ChannelType,
@@ -112,6 +113,8 @@ pub async fn get_guild_settings(
         faq_channel_id: opt_str(support.faq_channel_id),
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
         review_channel_id: opt_str(suggestions.review_channel_id),
+        suggestions_promote_threshold: suggestions.promote_threshold.to_string(),
+        suggestions_demote_threshold: suggestions.demote_threshold.to_string(),
         rules_channel_id: opt_str(channels.rules_channel_id),
         general_channel_id: opt_str(channels.general_channel_id),
         spoiler_channel_id: opt_str(channels.spoiler_channel_id),
@@ -137,8 +140,12 @@ pub async fn save_support_settings(
     faq_channel_id: String,
     suggestions_channel_id: String,
     review_channel_id: String,
+    promote_threshold: String,
+    demote_threshold: String,
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
+
+    let thresholds = ReviewThresholds::parse(&promote_threshold, &demote_threshold);
 
     app.settings
         .support
@@ -154,6 +161,8 @@ pub async fn save_support_settings(
         .update(guild_id, |p| {
             p.suggestions_channel_id = parse_id(&suggestions_channel_id);
             p.review_channel_id = parse_id(&review_channel_id);
+            p.promote_threshold = thresholds.promote();
+            p.demote_threshold = thresholds.demote();
         })
         .await
         .map(|_| ())
