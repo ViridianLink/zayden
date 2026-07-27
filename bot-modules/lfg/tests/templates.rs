@@ -49,6 +49,24 @@ fn render(embed: &CreateEmbed<'_>) -> String {
     serde_json::to_string(embed).unwrap_or_default()
 }
 
+fn fields(embed: &CreateEmbed<'_>) -> Vec<(String, String)> {
+    let json = serde_json::to_value(embed).unwrap_or(Value::Null);
+
+    json.get("fields")
+        .and_then(Value::as_array)
+        .map(|fields| {
+            fields
+                .iter()
+                .map(|field| (text(field, "name"), text(field, "value")))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn text(field: &Value, key: &str) -> String {
+    field.get(key).and_then(Value::as_str).unwrap_or_default().to_string()
+}
+
 /// Every `custom_id` anywhere in a serialized action row, sorted.
 fn custom_ids(row: &CreateActionRow<'_>) -> Vec<String> {
     let json = serde_json::to_value(row).unwrap_or(Value::Null);
@@ -157,6 +175,52 @@ fn description_field_is_omitted_when_blank() {
     ));
     assert!(filled.contains("Description"));
     assert!(filled.contains("Mic required"));
+}
+
+#[test]
+fn joined_field_survives_the_last_member_leaving() {
+    // lfg DS-2: `leave` deletes the last `lfg_fireteam` row with no guard, so the
+    // post is re-rendered with an empty roster. Discord requires an embed field
+    // `value` of 1-1024 characters, so an empty join list must still emit a
+    // non-empty value or the follow-up edit 400s and the post renders forever.
+    let embed = DefaultTemplate::thread_embed(&post(&[], &[], ""), "Kilo");
+
+    let (name, value) = fields(&embed)
+        .into_iter()
+        .find(|(name, _)| name.starts_with("Joined:"))
+        .expect("the joined field is always emitted");
+
+    assert_eq!(name, "Joined: 0/6");
+    assert!(!value.is_empty(), "empty fireteam rendered an empty field value");
+}
+
+#[test]
+fn no_embed_field_is_ever_emitted_with_an_empty_value() {
+    // The invariant behind DS-2, swept across the shapes a post degrades through:
+    // an empty roster, a blank description and no alternates each individually
+    // drop a field's content to nothing.
+    let shapes = [
+        post(&[], &[], ""),
+        post(&[], &[OWNER + 9], ""),
+        post(&members(1), &[], ""),
+        post(&members(6), &[OWNER + 9], "Mic required"),
+    ];
+
+    for row in &shapes {
+        let embeds = [
+            DefaultTemplate::thread_embed(row, "Kilo"),
+            DefaultTemplate::message_embed(row, "Kilo", ThreadId::new(THREAD)),
+        ];
+
+        for embed in &embeds {
+            for (name, value) in fields(embed) {
+                assert!(
+                    (1..=1024).contains(&value.chars().count()),
+                    "field `{name}` has an illegal value length: {value:?}",
+                );
+            }
+        }
+    }
 }
 
 #[test]

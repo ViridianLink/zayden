@@ -44,7 +44,7 @@ best migration reference alongside temp-voice.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1).
 
 ### 2. No integration tests  ·  #6  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — f148a563`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-27):** Added **36 integration tests** across four new `tests/`
   files, covering the crate's DB-free logic (the `actions`/`components` layer is
   `PgPool` + `Http` bound and stays uncovered — see **Residual**):
@@ -185,7 +185,39 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity._
   the check is `>` on a stale count).
 
 ### DS-2. Last member leaving renders an embed field with an **empty value** → Discord 400  ·  Pass 3 (Discord-API correctness)  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-27):** Guarded the `Joined` field's value the way its siblings are
+  guarded. `templates.rs:109` now substitutes the placeholder `*Empty*` when the
+  roster is empty instead of passing `fireteam.join("\n")`'s empty string straight
+  into the field. The `Description`/`Alternatives` siblings drop the field entirely
+  when empty, which is not an option here — the `Joined: n/size` header is the
+  post's capacity readout and must always render — so a placeholder is the
+  equivalent guard. Both `thread_embed` and `message_embed` route through the same
+  `embed()` helper, so the scheduled-message render (`update_embeds`' `edit_message`,
+  which 400s *first* in the failure scenario) is covered by the one change.
+  **Tests (fail-before / pass-after, `tests/templates.rs`):**
+  `joined_field_survives_the_last_member_leaving` renders a 0-member post and
+  asserts the field is named `Joined: 0/6` with a non-empty value;
+  `no_embed_field_is_ever_emitted_with_an_empty_value` sweeps the four shapes a post
+  degrades through (empty roster, empty roster + alternate, solo, full) across
+  **both** embed builders and asserts every field value is 1–1024 chars — pinning
+  Discord's limit itself rather than this one field, so a future unguarded field
+  fails here too. Both failed on the pre-fix code with exactly the DS-2 symptom
+  (`field `Joined: 0/6` has an illegal value length: ""`) and pass after. Added a
+  `fields()` helper that reads `(name, value)` off the serialized embed, using
+  `Value::get` rather than indexing (the workspace denies `clippy::indexing_slicing`).
+  Gate: `cargo +nightly clippy --workspace --all-targets -D warnings` clean,
+  `cargo test` green (12/12 in `templates.rs`, 0 failures workspace-wide), no new
+  `#[allow]`/`#[expect]`. No SQL and no `Cargo.toml` dep change → no `.sqlx` /
+  `machete` delta.
+- **Residual:** the **behaviour** question is deliberately untouched — an emptied
+  post is still left orphaned (owner included, since `lfg_leave` is not owner-gated),
+  it just renders legally now instead of 400ing. Whether `PostRow::leave` should
+  delete the post when the last member (or the owner) leaves is a separate
+  semantics decision; file it as its own finding if pursued. The `leave` path's
+  other half — the DB write committing before the render is attempted, so any
+  render error strands a completed mutation — is the general shape, not specific
+  to this field.
 - **Found:** 2026-07-27, while writing the lfg #2 coverage (not fixed there — one
   finding per task).
 - **Where:** `bot-modules/lfg/src/templates.rs:109` (`fireteam_str`) consumed at

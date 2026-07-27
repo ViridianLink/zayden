@@ -106,7 +106,11 @@ fn embed<'a>(
     let alternatives =
         post.alternatives().map(|id| id.mention().to_string()).collect::<Vec<_>>();
 
-    let fireteam_str = fireteam.join("\n");
+    let fireteam_str = if fireteam.is_empty() {
+        String::from("*Empty*")
+    } else {
+        fireteam.join("\n")
+    };
 
     let mut embed = CreateEmbed::new()
         .title(format!("{} - <t:{timestamp}>", post.activity()))
