@@ -185,7 +185,7 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity._
   the check is `>` on a stale count).
 
 ### DS-2. Last member leaving renders an embed field with an **empty value** → Discord 400  ·  Pass 3 (Discord-API correctness)  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 46312479`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-27):** Guarded the `Joined` field's value the way its siblings are
   guarded. `templates.rs:109` now substitutes the placeholder `*Empty*` when the
   roster is empty instead of passing `fireteam.join("\n")`'s empty string straight

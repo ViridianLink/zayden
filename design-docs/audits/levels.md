@@ -113,7 +113,21 @@ pattern before the larger crates.
   in-bot. See [CC-8](_cross-cutting.md#cc-8).
 
 ### 5. Unused `tokio` dependency → `cargo machete` is not clean workspace-wide  ·  #7  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-27):** Deleted `tokio = { workspace = true }` from
+  `bot-modules/levels/Cargo.toml:19`; `Cargo.lock` drops the corresponding `levels →
+  tokio` edge. Confirmed still-unused before removing (no `tokio` token anywhere in
+  `levels/src/` or `levels/tests/`), and `cargo +nightly check -p levels --all-targets`
+  compiles unchanged after — the crate's async surface is all `async fn` in traits plus
+  `serenity`/`sqlx` types, none of which need a direct `tokio` dep. **No test added:**
+  removing an unreferenced dependency has no runtime-behaviour delta to regress, so the
+  gate *is* the verification — `cargo machete` reported this crate **before** and reports
+  `didn't find any unused dependencies` **after**. Gate green: `cargo machete` clean
+  (workspace-wide, for the first time), `cargo +nightly clippy --workspace --all-targets
+  -D warnings` clean, `cargo test` green, `cargo +nightly fmt --check` clean. No new
+  `#[allow]`/`#[expect]`. No SQL change, so no `.sqlx` delta.
+  **Residual:** none. This clears the last blocker on the `cargo machete` exit gate, so
+  future tasks touching a dependency list can now report it cleanly.
 - **Found:** 2026-07-27, while running the `cargo machete` gate for
   [lfg #2](lfg.md). Pre-existing on clean `main` (verified by stashing), unrelated
   to that task, so left unfixed.
