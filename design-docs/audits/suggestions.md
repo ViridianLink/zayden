@@ -41,7 +41,7 @@ no `tests/`. Otherwise clean.
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 3. Channel/threshold config belongs on the dashboard  ·  #8  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 6608720d`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Scope correction (2026-07-27):** re-tracing the finding split it in half. The
   **channel** half was already satisfied — `suggestions_channel_id` *and*
   `review_channel_id` are both written by `save_support_settings`

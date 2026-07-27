@@ -112,6 +112,22 @@ pattern before the larger crates.
 - **Suggested fix:** Add read-only dashboard views; keep the message-XP accrual
   in-bot. See [CC-8](_cross-cutting.md#cc-8).
 
+### 5. Unused `tokio` dependency → `cargo machete` is not clean workspace-wide  ·  #7  ·  low
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Found:** 2026-07-27, while running the `cargo machete` gate for
+  [lfg #2](lfg.md). Pre-existing on clean `main` (verified by stashing), unrelated
+  to that task, so left unfixed.
+- **Where:** `bot-modules/levels/Cargo.toml` (`tokio = { workspace = true }`).
+- **What:** `tokio` is declared but referenced nowhere in `src/` or `tests/` —
+  most likely a leftover of the CC-1 concrete-`PgPool` migration (`04a8ab2b`),
+  which is when `lfg`'s equivalent unused `async-trait` was removed.
+- **Why it matters:** `cargo machete` is a mandated exit gate
+  ([`CLAUDE.md`](../../CLAUDE.md)); while it reports this, the gate cannot be
+  reported clean by *any* task that touches a dependency list, so the signal is
+  permanently muddied.
+- **Suggested fix:** delete the line, then `cargo +nightly check -p levels` and
+  `cargo machete`. One-line change; no behaviour delta expected.
+
 ## Clean
 - #1 DB access: concrete impl uses compile-time `query!`/`query_as!`/
   `query_scalar!` (no runtime SQL).

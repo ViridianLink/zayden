@@ -44,6 +44,49 @@ best migration reference alongside temp-voice.
 - **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1).
 
 ### 2. No integration tests  ·  #6  ·  high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-27):** Added **36 integration tests** across four new `tests/`
+  files, covering the crate's DB-free logic (the `actions`/`components` layer is
+  `PgPool` + `Http` bound and stays uncovered — see **Residual**):
+  - `tests/fireteam.rs` (9) — the slot/alternate accounting `PostRow::join`'s
+    rollback guard is built on: `is_full` flips **exactly** at capacity (5/6 → 6/6),
+    stays true past it, alternates never consume a slot, an emptied fireteam is not
+    full, and `fireteam_len`'s `try_from(...).unwrap_or(i16::MAX)` saturates high
+    rather than wrapping negative. One test pins the guard predicate itself
+    (`fireteam_len() > fireteam_size()`) at both boundaries, so an off-by-one that
+    would re-open **DS-1** fails here.
+  - `tests/post_row.rs` (9) — `PostBuilder` ⇄ `PostRow`: builder seeds the owner
+    into slot 1, `build()` carries every field, the `PostRow → PostBuilder → PostRow`
+    round trip the edit/copy components perform is lossless (roster included), and
+    the zone-normalising-but-instant-preserving `From<PostRow>` behaviour is pinned.
+    Two tests assert the crate's **two `TemplateInfo` impls agree field-for-field**,
+    so the pre-save (builder) and post-save (row) embeds cannot drift.
+  - `tests/templates.rs` (10) — the post's rendered surface: `main_row`/`settings_row`
+    emit **exactly** the eight `custom_id`s `bot/src/bindings/lfg/mod.rs` routes on
+    with `IdMatch::Exact` (a rename on either side otherwise compiles and silently
+    deadens the button), all `lfg_`-namespaced and unique; plus the `Joined: n/size`
+    counter, member/alternate mentions, the conditional `Alternatives` and
+    `Description` fields, `Event Thread` only on the scheduled-message embed, and the
+    three `Announcement` strings.
+  - `tests/user_settings.rs` (8) — `locale_to_timezone`: **every** one of the 31
+    mapped locales resolves in the tzdb and none lands on the `UTC` fallback.
+    `UserSettings::get` swallows a bad name with `unwrap_or(TimeZone::UTC)`, so a
+    typo there is otherwise invisible and silently shifts every scheduled post in
+    that locale. Plus `ACTIVITIES` catalog invariants (positive sizes ≤ 6, unique
+    names, raids 6 / dungeons 3).
+  **No production code changed** — this is a coverage finding, so the tests
+  characterise current behaviour rather than failing first; none of the 36 failed on
+  first run, i.e. no latent defect surfaced. Added `serde_json` as a **dev**-dependency
+  (the existing `temp-voice`/`palworld` idiom for asserting on serialised builders).
+  Gate: `cargo +nightly clippy --workspace --all-targets -D warnings` clean,
+  `cargo test` green (106 suites, 0 failures), no new `#[allow]`/`#[expect]`. No SQL
+  touched → no `.sqlx` delta.
+  **Residual:** (a) the `actions`/`components`/`cron` layer still needs a test-pool
+  harness (CC-6's standing blocker) — the join/leave *transactions* themselves remain
+  uncovered; (b) one defect found while reading, **left unfixed and filed below** as
+  DS-2; (c) `cargo machete` is **not** clean workspace-wide — an unused `tokio` in
+  `levels`, pre-existing on clean `main` and unrelated to this task (filed as
+  [levels #5](levels.md)).
 - **Where:** no `tests/` directory.
 - **What:** The post lifecycle (join/leave/alternate/kick, slot counting) and the
   reminder cron have no coverage — the highest-value untested logic in the
@@ -140,6 +183,38 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity._
   or enforce capacity with a DB constraint/trigger on `lfg_fireteam` count.
   **Confidence: confirmed** (distinct-row inserts + `READ COMMITTED` snapshot;
   the check is `>` on a stale count).
+
+### DS-2. Last member leaving renders an embed field with an **empty value** → Discord 400  ·  Pass 3 (Discord-API correctness)  ·  med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Found:** 2026-07-27, while writing the lfg #2 coverage (not fixed there — one
+  finding per task).
+- **Where:** `bot-modules/lfg/src/templates.rs:109` (`fireteam_str`) consumed at
+  `:126-130` (the `Joined:` field), reached from `src/actions/leave.rs:92-104` and
+  `src/components/leave.rs:15-21`.
+- **What:** `embed()` unconditionally emits the `Joined: n/size` field with
+  `fireteam.join("\n")` as its value. When the fireteam is empty that value is the
+  empty string, and Discord requires an embed field `value` of 1–1024 characters —
+  the same class as ticket DS-1/DS-2 (a component built past a hard API limit).
+  Nothing keeps the roster non-empty: `PostRow::leave` (`models/post.rs:279-306`)
+  just deletes the `lfg_fireteam` row, with no "last member" or "owner" guard and
+  no cascade to delete the post. The sibling `Alternatives` and `Description`
+  fields are both correctly guarded by an `is_empty()` check; `Joined` is not.
+- **Failure scenario:** a solo post (owner only, `Joined: 1/6`). The owner clicks
+  **Leave** — the button is on every post's main row and is not owner-gated. The
+  `DELETE` commits, then an embed is built whose `Joined: 0/6` field has an empty
+  value. `Components::leave`'s `edit_response` 400s on it (`Invalid Form Body`); if
+  the post also has a scheduled message, `update_embeds`'s `edit_message` 400s first
+  — and only `UnknownMessage` is swallowed there, so that error propagates too.
+  Either way `leave` returns `Err` and the user sees an interaction failure
+  **after** the DB write already landed. The post is left orphaned with an empty
+  fireteam, and every subsequent render of it 400s the same way.
+- **Suggested fix:** guard the field like its siblings — emit a placeholder
+  (`"*Empty*"`) when the fireteam is empty, or skip the member list and keep only
+  the `Joined: 0/6` header. Decide separately whether an emptied post should be
+  deleted (owner-leaves semantics), which is a behaviour question, not a rendering
+  one. `tests/fireteam.rs::an_emptied_fireteam_is_never_full` already pins that the
+  capacity arithmetic handles the 0-member state; only the rendering is broken.
+  **Confidence: confirmed** (unguarded field + reachable empty roster).
 
 ## Clean
 - #1 Architecture: clean `actions`/`components`/`commands`/`modals`/`models`
