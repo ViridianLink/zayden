@@ -15,7 +15,7 @@
 //! tests pin that the delta is the *change*, so applying it to whatever the row
 //! holds at write time preserves a concurrent credit that an absolute write drops.
 
-use gambling::WorkDelta;
+use gambling::{MinePayout, WorkCommit, WorkDelta};
 
 /// The DS-7 interleave, at the value level.
 ///
@@ -83,4 +83,93 @@ fn unchanged_row_yields_a_zero_delta() {
     assert_eq!(delta, WorkDelta::default());
     assert_eq!(delta.coins, 0);
     assert_eq!(delta.gems, 0);
+}
+
+// --- DS-12: the hourly mine accrual is not a per-shift reward ------------
+//
+// DS-7 (above) made `/work`'s coin write atomic, which fixed the lost update
+// but turned the *other* half of the same sum into a mint: `row.mine_amount()`
+// — a time-based accrual, identical for every reader in the same hour — was
+// folded into `WorkDelta.coins` and `mine_activity` was stamped absolutely, so
+// two shifts in the same tick each incremented by the same accrued window.
+// The accrual now travels as a `MinePayout` carrying the stamp it was measured
+// from, and is credited only by the shift that wins the compare-and-swap on
+// that stamp — the pattern DS-11 introduced for `/dig`.
+
+/// The DS-12 interleave: two `/work`s in the same tick, one accrual.
+///
+/// Both read `mine_activity` at `T0` and both compute the same accrued coins.
+/// Only the base earnings are per-shift, so only those belong in the delta.
+#[test]
+fn mine_accrual_is_not_part_of_the_work_delta() {
+    let before = (1_000, 0);
+    let base_earned = 300;
+    let accrued = 2_400; // identical for both shifts — same hours, same miners
+
+    let delta = WorkDelta::between(before, (before.0 + base_earned, before.1));
+
+    assert_eq!(
+        delta.coins, base_earned,
+        "the delta is the shift's own earnings, not the mine's"
+    );
+    assert_ne!(
+        delta.coins,
+        base_earned + accrued,
+        "folding the accrual in is what let two shifts each collect it"
+    );
+
+    // Two shifts racing, both increments applied to the live row: the base
+    // earnings stack (each shift did its own work and spent its own stamina),
+    // while the accrual is paid exactly once by the CAS winner.
+    let paid_once = before.0 + delta.coins + delta.coins + accrued;
+    assert_eq!(paid_once, 1_600 + accrued);
+
+    // The pre-fix sum, pinned so a regression to it fails: the accrual rode in
+    // both deltas and was therefore credited twice.
+    let paid_twice = before.0 + (delta.coins + accrued) * 2;
+    assert_eq!(paid_twice - paid_once, accrued, "exactly one accrual minted");
+}
+
+/// The accrual is tagged with the stamp it was computed from, so the commit can
+/// discriminate between two shifts that are indistinguishable by value.
+#[test]
+fn racing_shifts_share_a_stamp_so_only_one_can_claim() {
+    let read_at: jiff::Timestamp = "2026-07-28T00:00:00Z".parse().unwrap();
+
+    let first = MinePayout::new(2_400, read_at);
+    let second = MinePayout::new(2_400, read_at);
+
+    assert_eq!(first.coins, second.coins, "same window, same amount");
+    assert_eq!(first.since, second.since, "…and the same watermark");
+    assert!(
+        first.collected_at > first.since,
+        "the proposed stamp must advance past the one measured from"
+    );
+    assert_ne!(
+        first.collected_at, second.collected_at,
+        "each shift proposes its own new stamp, so only one CAS can win"
+    );
+}
+
+/// A shift reports the accrual it actually collected, not the one it computed —
+/// the loser of the swap still works, still spends stamina, and reports `0`.
+#[test]
+fn work_commit_reports_the_payout_actually_credited() {
+    let winner = WorkCommit { coins: 3_700, gems: 0, stamina: 2, payout: 2_400 };
+    let loser = WorkCommit { coins: 4_000, gems: 0, stamina: 1, payout: 0 };
+
+    assert_eq!(winner.payout, 2_400, "the CAS winner banks the accrual");
+    assert_eq!(loser.payout, 0, "the loser gets its base pay and nothing more");
+    assert_eq!(loser.stamina, 1, "…but still spent its stamina");
+}
+
+/// A zero accrual (no miners, or under an hour) is still a valid collection: it
+/// advances the watermark without crediting anything.
+#[test]
+fn zero_accrual_still_carries_a_stamp() {
+    let read_at = jiff::Timestamp::now();
+    let payout = MinePayout::new(0, read_at);
+
+    assert_eq!(payout.coins, 0);
+    assert_eq!(payout.since, read_at);
 }

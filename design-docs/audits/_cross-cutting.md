@@ -421,7 +421,8 @@ cross-cutting theme plus an index._
     [gold-star DS-1](gold-star.md), [temp-voice DS-2](temp-voice.md),
     **[gambling DS-9](gambling.md) (`/shop buy`)**,
     **[gambling DS-10](gambling.md) (`/shop sell`)**,
-    **[gambling DS-11](gambling.md) (`/dig`) — `in-progress`.**
+    **[gambling DS-11](gambling.md) (`/dig`)**,
+    **[gambling DS-12](gambling.md) (`/work` mine accrual)**.
   - **Remaining (the "etc." this entry always implied), newly enumerated by the
     2026-07-28 sweep for `EXCLUDED`-write sites:** the absolute writes still in
     `gambling` `craft`, `prestige`, and `game_row`. `common/shop/mod.rs` is now
@@ -432,7 +433,11 @@ cross-cutting theme plus an index._
     is not an atomic increment — that pays the same accrued window twice. It is a
     compare-and-swap on the accrual's watermark (`mine_activity`), with the
     credit conditional on winning the swap. See [gambling DS-11](gambling.md) for
-    the shape and [gambling DS-12](gambling.md) for the site that still lacks it.
+    the shape. **This sub-class is now closed:** DS-12 gave `/work` the same
+    treatment, so the two collectors of the `gambling_mine` accrual interlock —
+    the loser of the swap is paid `0` for the window while still earning its own
+    base pay. `MinePayout` lives in `models/mod.rs` beside the `MineAmount` trait
+    and is the shared carrier for any future collector.
 
 - **Where (pattern):** the command-layer `save`/`save_*` methods that persist a
   whole in-memory row with `INSERT … ON CONFLICT DO UPDATE SET col =

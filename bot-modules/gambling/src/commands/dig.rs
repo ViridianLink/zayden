@@ -20,7 +20,7 @@ use zayden_core::{EmojiCacheData, FormatNum, as_i64, as_u64};
 
 use super::Commands;
 use crate::events::{Dispatch, Event};
-use crate::models::{MineAmount, Prestige};
+use crate::models::{MineAmount, MinePayout, Prestige};
 use crate::shop::ShopCurrency;
 use crate::{
     Coins,
@@ -207,20 +207,6 @@ impl DigDelta {
             diamonds: after.diamonds - before.diamonds,
             emeralds: after.emeralds - before.emeralds,
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MinePayout {
-    pub coins: i64,
-    pub since: jiff::Timestamp,
-    pub collected_at: jiff::Timestamp,
-}
-
-impl MinePayout {
-    #[must_use]
-    pub fn new(coins: i64, since: jiff::Timestamp) -> Self {
-        Self { coins, since, collected_at: jiff::Timestamp::now() }
     }
 }
 

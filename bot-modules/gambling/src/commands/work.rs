@@ -15,7 +15,7 @@ use zayden_core::{EmojiCacheData, FormatNum, as_i64};
 
 use super::Commands;
 use crate::events::{Dispatch, Event};
-use crate::models::MineAmount;
+use crate::models::{MineAmount, MinePayout};
 use crate::{
     Coins,
     GamblingError,
@@ -141,14 +141,13 @@ impl WorkManager {
         pool: &PgPool,
         id: UserId,
         delta: WorkDelta,
-        mine_activity: jiff::Timestamp,
+        payout: MinePayout,
     ) -> sqlx::Result<Option<WorkCommit>> {
         let user_id = as_i64(id.get());
 
         let mut tx = pool.begin().await?;
 
-        let Some(committed) = sqlx::query_as!(
-            WorkCommit,
+        let Some(balance) = sqlx::query!(
             "INSERT INTO gambling (user_id, coins, gems, stamina)
             VALUES ($1, $2, $3, $4)
             ON CONFLICT (user_id) DO UPDATE SET
@@ -172,20 +171,46 @@ impl WorkManager {
             trivial_casts,
             reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
         )]
-        sqlx::query!(
-            "INSERT INTO gambling_mine (user_id, mine_activity)
+        let claimed = sqlx::query_scalar!(
+            r#"INSERT INTO gambling_mine (user_id, mine_activity)
             VALUES ($1, $2)
             ON CONFLICT (user_id) DO UPDATE SET
-            mine_activity = EXCLUDED.mine_activity;",
+                mine_activity = CASE
+                    WHEN gambling_mine.mine_activity = $3 THEN EXCLUDED.mine_activity
+                    ELSE gambling_mine.mine_activity
+                END
+            RETURNING mine_activity = $2 AS "claimed!";"#,
             user_id,
-            mine_activity.to_sqlx() as Timestamp,
+            payout.collected_at.to_sqlx() as Timestamp,
+            payout.since.to_sqlx() as Timestamp,
         )
-        .execute(&mut *tx)
+        .fetch_one(&mut *tx)
         .await?;
+
+        let payout = if claimed { payout.coins } else { 0 };
+
+        let coins = if payout == 0 {
+            balance.coins
+        } else {
+            sqlx::query_scalar!(
+                "UPDATE gambling SET coins = coins + $2
+                WHERE user_id = $1
+                RETURNING coins;",
+                user_id,
+                payout,
+            )
+            .fetch_one(&mut *tx)
+            .await?
+        };
 
         tx.commit().await?;
 
-        Ok(Some(committed))
+        Ok(Some(WorkCommit {
+            coins,
+            gems: balance.gems,
+            stamina: balance.stamina,
+            payout,
+        }))
     }
 }
 
@@ -207,6 +232,7 @@ pub struct WorkCommit {
     pub coins: i64,
     pub gems: i64,
     pub stamina: i32,
+    pub payout: i64,
 }
 
 impl Commands {
@@ -226,10 +252,9 @@ impl Commands {
         let before = (row.coins(), row.gems());
 
         let base_amount = rand::random_range(100..=500);
-        let mine_amount = row.mine_amount()?;
-        let total_amount = base_amount + mine_amount;
+        *row.coins_mut() += base_amount;
 
-        *row.coins_mut() += total_amount;
+        let payout = MinePayout::new(row.mine_amount()?, row.mine_activity());
 
         let gem_desc = if rand::random_bool(1.0 / 100.0) {
             row.add_gems(1);
@@ -250,19 +275,16 @@ impl Commands {
 
         let delta = WorkDelta::between(before, (row.coins(), row.gems()));
 
-        let committed = WorkManager::commit_work(
-            pool,
-            interaction.user.id,
-            delta,
-            jiff::Timestamp::now(),
-        )
-        .await?
-        .ok_or_else(out_of_stamina)?;
+        let committed =
+            WorkManager::commit_work(pool, interaction.user.id, delta, payout)
+                .await?
+                .ok_or_else(out_of_stamina)?;
 
         *row.coins_mut() = committed.coins;
         *row.gems_mut() = committed.gems;
         *row.stamina_mut() = committed.stamina;
 
+        let total_amount = base_amount + committed.payout;
         let coins = row.coins_str();
         let stamina = row.stamina_str();
 

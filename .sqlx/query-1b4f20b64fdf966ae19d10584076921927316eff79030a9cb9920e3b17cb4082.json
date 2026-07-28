@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO gambling_mine (user_id, mine_activity)\n            VALUES ($1, $2)\n            ON CONFLICT (user_id) DO UPDATE SET\n                mine_activity = CASE\n                    WHEN gambling_mine.mine_activity = $3 THEN EXCLUDED.mine_activity\n                    ELSE gambling_mine.mine_activity\n                END\n            RETURNING mine_activity = $2 AS \"claimed!\";",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "claimed!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "1b4f20b64fdf966ae19d10584076921927316eff79030a9cb9920e3b17cb4082"
+}

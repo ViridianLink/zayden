@@ -513,7 +513,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     rather than exploitable. An idempotency gate is a separate concern.
 
 ### DS-11. `/dig` writes both `gambling` and `gambling_mine` absolutely  ·  Pass 8 (CC-9 sweep)  ·  med-high
-- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 1904945b`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `DigManager::save` (`bot-modules/gambling/src/commands/dig.rs:84-140`),
   called from `Commands::dig` (`dig.rs:319`).
 - **What:** `/dig` reads coins/gems/stamina plus the ten `gambling_mine` columns,
@@ -575,7 +575,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     costs two round-trips — it is now merely *correct* rather than exploitable.
 
 ### DS-12. `/work` collects the hourly mine accrual without a compare-and-swap  ·  Pass 8 (CC-9 sweep)  ·  low-med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `WorkManager::commit_work`
   (`bot-modules/gambling/src/commands/work.rs:140-189`), called from
   `Commands::work` (`work.rs:253`).
@@ -593,3 +593,48 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   into a `MinePayout`, advance `mine_activity` only when it still equals the
   stamp the payout was computed from, and credit the payout only on that swap.
   `MinePayout` already exists (`commands/dig.rs`); this is mostly a move.
+- **Fix (2026-07-28):** as suggested — the DS-11 shape, applied to `/work`.
+  - `MinePayout` moved from `commands/dig.rs` to `models/mod.rs`, next to the
+    `MineAmount` trait that computes the accrual it carries, and re-exported from
+    there. Both collectors now share one type instead of `/work` growing a copy;
+    the doc comment on it records *why* a time-based accrual must not become an
+    atomic increment, so the next site to touch it inherits the reasoning.
+  - `Commands::work` credits only `base_amount` (`rand::random_range(100..=500)`)
+    to the in-memory row, so `WorkDelta` — taken after `Dispatch::fire` — carries
+    the shift's own earnings and goal rewards but **not** the accrual. The
+    accrual travels as `MinePayout::new(row.mine_amount()?, row.mine_activity())`.
+  - `commit_work` keeps its existing guarded stamina/coins upsert, then advances
+    the watermark by compare-and-swap — `mine_activity = CASE WHEN
+    gambling_mine.mine_activity = $3 THEN EXCLUDED.mine_activity ELSE
+    gambling_mine.mine_activity END`, with `RETURNING mine_activity = $2 AS
+    "claimed!"` — and credits `payout.coins` in a second atomic `coins = coins +
+    $2` **only** when that swap was won, all inside the same transaction. Lock
+    order (`gambling` before `gambling_mine`) is unchanged, so it still matches
+    `commit_purchase` / `commit_sale` / `commit_dig`.
+  - `WorkCommit` gains `payout: i64` — what this shift *actually* collected. The
+    embed's "Collected N coins" line is now `base_amount + committed.payout`
+    rather than the optimistically computed total, so a shift that loses the swap
+    reports what it was really paid instead of claiming coins it never received.
+  - The unconditional `mine_activity = EXCLUDED.mine_activity` write is gone.
+- **Verification:** `bot-modules/gambling/tests/work.rs` grows four DS-12 tests
+  alongside the existing four DS-7 ones (8 total, all green). Fails-before:
+  `error[E0560]: struct WorkCommit has no field named payout` — the pre-fix
+  commit had no way to report a payout it might not have made. Gate:
+  `cargo +nightly clippy --workspace --all-targets -- -D warnings` clean, no new
+  `#[allow]`/`#[expect]` (the one `#[expect(trivial_casts)]` is the pre-existing
+  sqlx bind-override on `mine_activity`); `cargo test --workspace` green, 0
+  failures; `cargo sqlx prepare --workspace -- --all-features` regenerated
+  against an empty freshly-migrated database.
+- **Residual / follow-ups:**
+  - **`/work` and `/dig` now interlock correctly**, closing the CC-9 time-accrual
+    sub-class: whichever of the two lands first takes the window, the other is
+    paid `0` for it and still earns its own base/ore.
+  - `craft`, `prestige` and `game_row` retain absolute `EXCLUDED` writes (see the
+    [CC-9](_cross-cutting.md) umbrella); each still needs its own `DS-#`.
+  - `/work` is still not gated by `GameCache::check_and_set`, so a double-submit
+    costs two round-trips and two stamina — correct, but not idempotent.
+  - The regenerated cache also corrects an **unrelated** pre-existing entry —
+    the `lfg_posts LEFT JOIN lfg_user_settings` nullability in
+    `bot/src/bindings/lfg/mod.rs`, which had been recorded from a populated dev
+    DB (`[T,T,T,T,T,F]`) and is now the empty-DB truth (`[F,F,F,F,F,T]`). It
+    rides along in this diff rather than being split out.

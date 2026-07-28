@@ -388,3 +388,17 @@ pub trait MineAmount: MineHourly {
         Ok(hours_passed * self.hourly())
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MinePayout {
+    pub coins: i64,
+    pub since: Timestamp,
+    pub collected_at: Timestamp,
+}
+
+impl MinePayout {
+    #[must_use]
+    pub fn new(coins: i64, since: Timestamp) -> Self {
+        Self { coins, since, collected_at: Timestamp::now() }
+    }
+}

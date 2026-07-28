@@ -21,7 +21,7 @@ pub mod stamina;
 pub mod utils;
 
 pub use commands::Commands;
-pub use commands::dig::{DigCommit, DigDelta, DigRow, MinePayout};
+pub use commands::dig::{DigCommit, DigDelta, DigRow};
 pub use commands::goals::GoalsManager;
 pub use commands::work::{WorkCommit, WorkDelta};
 pub use common::{
@@ -67,6 +67,7 @@ pub use models::{
     MaxBet,
     MaxValues,
     MineHourly,
+    MinePayout,
     Mining,
     PayoutResult,
     Prestige,
