@@ -193,6 +193,22 @@ pub fn hints() -> HashMap<String, String> {
             S,
         ),
         (
+            "worldSaveData.StructProperty.RaidBossAreaInstanceSaveDataMap.MapProperty.Key.StructProperty",
+            G,
+        ),
+        (
+            "worldSaveData.StructProperty.RaidBossAreaInstanceSaveDataMap.MapProperty.Value.StructProperty",
+            S,
+        ),
+        (
+            "worldSaveData.StructProperty.RaidBossAreaInstanceSaveDataMap.MapProperty.Value.StructProperty.BaseCampWorkerSpawnedByPlayerMap.MapProperty.Key.StructProperty",
+            S,
+        ),
+        (
+            "worldSaveData.StructProperty.RaidBossAreaInstanceSaveDataMap.MapProperty.Value.StructProperty.BaseCampWorkerSpawnedByPlayerMap.MapProperty.Value.StructProperty",
+            G,
+        ),
+        (
             "SaveData.StructProperty.RecordData.StructProperty.FoundTreasureMapPointMap.MapProperty.Key.StructProperty",
             G,
         ),

@@ -176,7 +176,8 @@ fn struct_keyed_treasure_map_decodes() {
 #[test]
 fn arena_ranks_are_read_per_rank() {
     let dir = storage_world();
-    // KingJosh has cleared all five ranks; Kitty has never entered the arena.
+    // KingJosh has cleared five of the ranks; Kitty has never entered the arena.
+    // Only cleared ranks are written, so the map is short of `ARENA_RANKS`.
     let kingjosh = "5CF598C9000000000000000000000000";
     let kitty = "D0C08D37000000000000000000000000";
 

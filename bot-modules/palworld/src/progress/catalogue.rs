@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -125,43 +126,51 @@ pub struct Catalogue {
     relic_type_index: HashMap<String, usize>,
 }
 
+fn embedded<T: DeserializeOwned + Default>(name: &str, json: &str) -> T {
+    serde_json::from_str(json).unwrap_or_else(|e| {
+        tracing::error!(
+            dataset = name,
+            error = %e,
+            "palworld: embedded catalogue data did not parse; /palworld progress \
+             will count this category as empty",
+        );
+        T::default()
+    })
+}
+
 static CATALOGUE: LazyLock<Catalogue> = LazyLock::new(|| {
     let pals: Vec<PalEntry> =
-        serde_json::from_str(include_str!("../../data/pals.json"))
-            .expect("data/pals.json is valid and matches its type");
+        embedded("pals.json", include_str!("../../data/pals.json"));
 
     let relic_types: Vec<RelicType> =
-        serde_json::from_str(include_str!("../../data/relic_types.json"))
-            .expect("data/relic_types.json is valid and matches its type");
+        embedded("relic_types.json", include_str!("../../data/relic_types.json"));
 
     Catalogue {
         pal_index: index_by(&pals, |p| &p.id),
         relic_type_index: index_by(&relic_types, |t| &t.key),
 
-        fast_travel: serde_json::from_str(include_str!(
-            "../../data/fast_travel_points.json"
-        ))
-        .expect("data/fast_travel_points.json is valid and matches its type"),
+        fast_travel: embedded(
+            "fast_travel_points.json",
+            include_str!("../../data/fast_travel_points.json"),
+        ),
 
-        bosses: serde_json::from_str(include_str!("../../data/bosses.json"))
-            .expect("data/bosses.json is valid and matches its type"),
+        bosses: embedded("bosses.json", include_str!("../../data/bosses.json")),
 
-        relics: serde_json::from_str(include_str!("../../data/relics.json"))
-            .expect("data/relics.json is valid and matches its type"),
+        relics: embedded("relics.json", include_str!("../../data/relics.json")),
 
-        technologies: serde_json::from_str(include_str!(
-            "../../data/technologies.json"
-        ))
-        .expect("data/technologies.json is valid and matches its type"),
+        technologies: embedded(
+            "technologies.json",
+            include_str!("../../data/technologies.json"),
+        ),
 
-        missions: serde_json::from_str(include_str!("../../data/missions.json"))
-            .expect("data/missions.json is valid and matches its type"),
+        missions: embedded(
+            "missions.json",
+            include_str!("../../data/missions.json"),
+        ),
 
-        areas: serde_json::from_str(include_str!("../../data/areas.json"))
-            .expect("data/areas.json is valid and matches its type"),
+        areas: embedded("areas.json", include_str!("../../data/areas.json")),
 
-        towers: serde_json::from_str(include_str!("../../data/towers.json"))
-            .expect("data/towers.json is valid and matches its type"),
+        towers: embedded("towers.json", include_str!("../../data/towers.json")),
 
         pals,
         relic_types,

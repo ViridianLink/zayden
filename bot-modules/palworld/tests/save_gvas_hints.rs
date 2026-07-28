@@ -6,16 +6,32 @@
 //! new field. These tests pin the recovery that stops the next update from
 //! taking `/palworld progress` down with it.
 
+use std::path::Path;
+
 use palworld::save::gvas::{hints, read_gvas, read_inferring};
 
 pub mod common;
-use common::storage_world;
+use common::{progressed_world, storage_world};
 
 /// The decompressed GVAS of the one fixture save that needs the newest hint.
 fn player_save() -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let path =
         storage_world().join("Players").join("B0726C28000000000000000000000000.sav");
+    decompressed(&path)
+}
+
+fn decompressed(path: &Path) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     Ok(palworld::save::decompress::decompress(&std::fs::read(path)?)?)
+}
+
+/// Decodes with the shipped table alone - no inference allowed to cover for it.
+fn strictly_decodes(bytes: &[u8]) -> Result<(), gvas::error::Error> {
+    gvas::GvasFile::read_with_hints(
+        &mut std::io::Cursor::new(bytes),
+        gvas::game_version::GameVersion::Default,
+        &hints(),
+    )
+    .map(drop)
 }
 
 /// The shipped table decodes the fixture outright - the inference below is a
@@ -26,12 +42,22 @@ fn the_shipped_hint_table_is_complete_for_current_saves() {
     assert!(read_inferring(&bytes, hints()).is_ok());
 
     // No inference needed means the same read succeeds with the table alone.
-    let strict = gvas::GvasFile::read_with_hints(
-        &mut std::io::Cursor::new(&bytes),
-        gvas::game_version::GameVersion::Default,
-        &hints(),
-    );
-    assert!(strict.is_ok(), "shipped hints alone: {:?}", strict.err());
+    assert!(strictly_decodes(&bytes).is_ok(), "shipped hints alone");
+}
+
+/// Every `worldSaveData.*` hint lives in `Level.sav`, so the player save above
+/// exercises almost none of the table. Both world fixtures must decode strictly
+/// too, or a stale entry there only surfaces as a runtime inference warning.
+#[test]
+fn the_shipped_hint_table_is_complete_for_world_saves() {
+    for world in [progressed_world(), storage_world()] {
+        let path = world.join("Level.sav");
+        let bytes = decompressed(&path).expect("fixture");
+
+        if let Err(e) = strictly_decodes(&bytes) {
+            panic!("shipped hints alone on {}: {e}", path.display());
+        }
+    }
 }
 
 /// With an empty table, the reader has to discover

@@ -240,10 +240,12 @@ fn a_complete_record_reads_as_one_hundred_percent() {
         technologies: cat.technologies.iter().map(|t| t.id.clone()).collect(),
         quests_completed: cat.missions.iter().map(|m| m.id.clone()).collect(),
         areas_found: cat.areas.iter().cloned().collect(),
-        arena_ranks: ["Bronze", "Silver", "Gold", "Platinum", "Diamond"]
-            .iter()
-            .map(|rank| ((*rank).to_string(), 1))
-            .collect(),
+        arena_ranks: [
+            "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Legend",
+        ]
+        .iter()
+        .map(|rank| ((*rank).to_string(), 1))
+        .collect(),
         game_cleared: true,
         ..PlayerRecord::default()
     };
@@ -456,7 +458,7 @@ fn counters_without_a_catalogue_are_unranked() {
 }
 
 /// The arena's denominator comes from a hard-coded rank list, so it has to cope
-/// with a build that adds a sixth rank: `have` may never exceed `total`.
+/// with a build that adds an eighth rank: `have` may never exceed `total`.
 #[test]
 fn arena_denominator_grows_with_unknown_ranks() {
     let cat = catalogue();
@@ -470,21 +472,26 @@ fn arena_denominator_grows_with_unknown_ranks() {
     };
     let arena = compute(Some(&known), &roster("Fighter"), cat);
     let arena = arena.milestone("arena").expect("m");
-    assert_eq!((arena.have, arena.total), (2, Some(5)));
-    assert_eq!(arena.missing.len(), 3);
-    // A side mode with five entries must not sway the headline percentage.
+    assert_eq!((arena.have, arena.total), (2, Some(7)));
+    assert_eq!(arena.missing.len(), 5);
+    // A side mode with seven entries must not sway the headline percentage.
     assert!(!arena.weighted);
 
+    // Every known rank plus one this build has never heard of: the extra widens
+    // the denominator instead of pushing the milestone past 100%.
     let future = PlayerRecord {
-        arena_ranks: ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Mythic"]
-            .iter()
-            .map(|r| ((*r).to_string(), 1))
-            .collect(),
+        arena_ranks: [
+            "Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master", "Legend",
+            "Mythic",
+        ]
+        .iter()
+        .map(|r| ((*r).to_string(), 1))
+        .collect(),
         ..PlayerRecord::default()
     };
     let arena = compute(Some(&future), &roster("Champion"), cat);
     let arena = arena.milestone("arena").expect("m");
-    assert_eq!((arena.have, arena.total), (6, Some(6)));
+    assert_eq!((arena.have, arena.total), (8, Some(8)));
     assert!(arena.is_complete(), "an unrecognised rank still counts as cleared");
 
     // A rank listed with zero clears is entered, not beaten.
