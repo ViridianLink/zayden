@@ -47,3 +47,39 @@ good example of #4 done right. Minor: one inline test module and one blocking
 - #4 Stringly typing: `model.rs` element enum has an alias-tolerant `parse`
   (handles source typos like `"electricty"`) — good.
 - #6 Tests: 12 integration files (breeding, upload, save decode/world, guild).
+
+## Addendum — save write path (2026-07-28)
+
+The crate previously only ever read saves. It now has a write path, used by the
+dashboard's admin save editor:
+
+- **`save::compress`** — the inverse of `save::decompress`. Emits the 12-byte
+  Palworld container header plus a zlib body. Only `PlZ` is written: the game's
+  own saves are Oodle (`PlM`) and `oozextract` decompresses but cannot encode,
+  so a re-exported save changes container format. `source_type_byte` reads the
+  type byte off the original so single/double compression is preserved.
+  Whether the game *accepts* `PlZ` in place of `PlM` cannot be proven from
+  inside the repo — it is a manual check.
+- **`save::gvas::reparse_properties_at`** — reads a `CharacterSaveParameterMap`
+  `RawData` blob and reports where it stopped, keeping the bytes after the
+  `"None"` terminator. Measured at 24 bytes on every one of the fixture's 1,822
+  characters (padding plus a group-id GUID). `reparse_properties` discards that
+  trailer and is now a thin wrapper over this; it remains correct for read-only
+  callers, but writing from its output alone would truncate every character in
+  the world. `write_properties` is the exact inverse and is asserted
+  byte-identical across all 1,822 blobs.
+- **`save::edit`** — `read_roster` produces an editable summary keyed by
+  `InstanceId` (unique per character, unlike `PlayerUId`); `apply_edits` patches
+  `Level`, `Exp`, the three `Talent_*` IVs and `PassiveSkillList` and re-emits a
+  compressed save. Insertion is mandatory rather than optional: the game omits
+  default-valued properties, so 176 of 1,822 characters carry no `Level` at all
+  and 126 carry no `PassiveSkillList`. An unknown instance id is a hard error
+  (`PalworldError::Edit`), the signal that the mirror moved under an in-flight
+  edit.
+
+Nothing in this path writes to disk. `apply_edits` returns bytes; the mirror is
+opened read-only on every route.
+
+Two behaviours are asserted by tests but not yet confirmed in-game: `PlZ`
+acceptance, and that setting `Exp = 0` alongside a level change does not make
+the game re-derive the level from accumulated experience and revert it.

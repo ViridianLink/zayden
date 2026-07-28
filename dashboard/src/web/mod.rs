@@ -1,5 +1,6 @@
 mod routes_kofi;
 mod routes_login;
+mod routes_palworld_save;
 
 pub(crate) const SESSION_COOKIE: &str = "session";
 pub(crate) const OAUTH_STATE_COOKIE: &str = "oauth_state";
@@ -17,6 +18,10 @@ use crate::middleware::auth::require_auth;
 pub(crate) fn routes(state: WebState) -> Router<WebState> {
     let protected = Router::new()
         .route("/kofi/link", post(routes_kofi::kofi_link_handler))
+        .route(
+            "/admin/palworld/save/export",
+            post(routes_palworld_save::export_handler),
+        )
         .route_layer(from_fn_with_state(state, require_auth));
 
     Router::new()

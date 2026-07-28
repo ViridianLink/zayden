@@ -1214,6 +1214,7 @@ dependencies = [
  "leptos_router",
  "moka",
  "oauth2",
+ "palworld",
  "rand 0.10.2",
  "reaction-roles",
  "rustls",
@@ -1230,6 +1231,8 @@ dependencies = [
  "twilight-http",
  "twilight-model",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
  "zayden-app",
 ]
 

@@ -51,3 +51,37 @@ escape-hatch. No lib target, so integration tests are structurally awkward
 - #3 Async: no blocking I/O on request paths; no locks across `.await`.
 - #6 Tests: no lib target → integration tests structurally awkward; acceptable,
   see [CC-6](_cross-cutting.md#cc-6).
+
+## Addendum — website roles and the Palworld save editor (2026-07-28)
+
+**`web_user_roles`** (migration `0021`) is the dashboard's first website-level
+role table: `(discord_user_id, role)`, seeded with the bot owner as `admin`
+because there is otherwise no way to grant the first role. It is deliberately
+distinct from `guild_admin_context`, which checks a Discord guild permission
+bitfield over the API — this checks a row we own. `require_role(WebRole::Admin)`
+in `server/auth.rs` is the server-fn gate; it returns `"unauthenticated"` with
+no valid session and `"forbidden"` when the session is valid but the role is
+absent.
+
+**`/admin/palworld/save`** is an unlinked admin page. It appears in no
+navigation, and *any* error from `get_save_roster` — no session, no role —
+renders the `NotFound` view rather than an error or a 403, so the page does not
+disclose its own existence. The export route (`POST
+/admin/palworld/save/export`) re-checks `web_user_roles` itself, because the
+`require_auth` middleware proves a session but not a role, and returns `404`
+rather than `403` for the same reason. A genuine configuration error ("no world
+save is configured") is shown as itself, since reaching it already proves the
+caller is an admin.
+
+Two structural notes:
+
+- The save DTOs (`SaveRoster`, `SavePal`, `SaveEdits`, …) are **mirrored** in
+  `dashboard::dto`, not re-exported from the `palworld` crate. `palworld` is an
+  `ssr`-only dependency, but these types appear in a `#[server]` signature and
+  are constructed client-side by the editor page, so the WASM build needs them.
+  Conversion to and from `palworld::save::edit` happens at the server boundary
+  behind `#[cfg(feature = "ssr")]`.
+- The editor is stateless between load and export. A parsed world is hundreds of
+  megabytes, so nothing is cached; the export re-reads the mirror. The mirror is
+  opened read-only on every path and nothing is written back to it or to the
+  game server — the only output is an HTTP download.

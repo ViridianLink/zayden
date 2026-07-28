@@ -16,6 +16,7 @@
 @import "./partials/reaction-roles.css";
 @import "./partials/chips.css";
 @import "./partials/pager.css";
+@import "./partials/save-editor.css";
 @import "./partials/responsive.css";
 
 @source "../src/**/*.rs";

@@ -22,7 +22,12 @@ required-features = ["ssr"]
 [features]
 default = []
 
-hydrate = ["leptos/hydrate", "dep:wasm-bindgen"]
+hydrate = [
+  "leptos/hydrate",
+  "dep:wasm-bindgen",
+  "dep:wasm-bindgen-futures",
+  "dep:web-sys",
+]
 
 ssr = [
   "leptos/ssr",
@@ -35,6 +40,7 @@ ssr = [
   "dep:jiff-sqlx",
   "dep:moka",
   "dep:oauth2",
+  "dep:palworld",
   "dep:rand",
   "dep:reaction-roles",
   "dep:rustls",
@@ -76,6 +82,7 @@ oauth2 = { version = "*", default-features = false, features = [
   "reqwest",
   "rustls-tls",
 ], optional = true }
+palworld = { workspace = true, optional = true }
 rand = { workspace = true, features = ["thread_rng"], optional = true }
 reaction-roles = { workspace = true, optional = true }
 rustls = { workspace = true, features = ["aws-lc-rs"], optional = true }
@@ -106,6 +113,21 @@ zayden-app = { workspace = true, optional = true }
 # ── Hydrate-only ─────────────────────────────────────────────────────────────
 
 wasm-bindgen = { version = "*", optional = true }
+wasm-bindgen-futures = { version = "*", optional = true }
+web-sys = { version = "*", optional = true, features = [
+  "Blob",
+  "Document",
+  "Headers",
+  "HtmlAnchorElement",
+  "HtmlCollection",
+  "HtmlOptionElement",
+  "HtmlSelectElement",
+  "Request",
+  "RequestInit",
+  "Response",
+  "Url",
+  "Window",
+] }
 
 # ── cargo-leptos build configuration ─────────────────────────────────────────
 

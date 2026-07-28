@@ -172,7 +172,8 @@ fn character_id(fields: &HashableIndexMap<String, Vec<Property>>) -> Option<Stri
     }
 }
 
-fn nickname(fields: &HashableIndexMap<String, Vec<Property>>) -> Option<String> {
+#[must_use]
+pub fn nickname(fields: &HashableIndexMap<String, Vec<Property>>) -> Option<String> {
     if let Some(Property::StrProperty(s)) = field(fields, "NickName") {
         s.value.clone()
     } else {
@@ -180,7 +181,8 @@ fn nickname(fields: &HashableIndexMap<String, Vec<Property>>) -> Option<String> 
     }
 }
 
-fn gender(fields: &HashableIndexMap<String, Vec<Property>>) -> Gender {
+#[must_use]
+pub fn gender(fields: &HashableIndexMap<String, Vec<Property>>) -> Gender {
     if let Some(Property::EnumProperty(e)) = field(fields, "Gender") {
         Gender::parse(&e.value)
     } else {
@@ -225,13 +227,22 @@ fn old_owner_last(
     (*bytes != [0u8; 16]).then(|| hex_upper(bytes))
 }
 
-fn key_player_uid(key: &Property) -> Option<String> {
+#[must_use]
+pub fn key_player_uid(key: &Property) -> Option<String> {
     let fields = struct_fields(key)?;
     let bytes = guid_bytes(field(fields, "PlayerUId")?)?;
     (bytes != [0u8; 16]).then(|| hex_upper(&bytes))
 }
 
-const fn guid_bytes(prop: &Property) -> Option<[u8; 16]> {
+#[must_use]
+pub fn key_instance_id(key: &Property) -> Option<String> {
+    let fields = struct_fields(key)?;
+    let bytes = guid_bytes(field(fields, "InstanceId")?)?;
+    (bytes != [0u8; 16]).then(|| hex_upper(&bytes))
+}
+
+#[must_use]
+pub const fn guid_bytes(prop: &Property) -> Option<[u8; 16]> {
     let value = if let Property::StructProperty(s) = prop {
         &s.value
     } else if let Property::StructPropertyValue(v) = prop {

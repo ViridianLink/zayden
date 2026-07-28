@@ -2,6 +2,7 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     leptos_axum::extract,
+    palworld::client::PalworldClient,
     sqlx::PgPool,
     std::sync::Arc,
     tower_cookies::Cookies,
@@ -41,6 +42,13 @@ pub(crate) fn discord_client() -> Result<Arc<Client>, ServerFnError> {
 }
 
 #[cfg(feature = "ssr")]
+pub(crate) fn palworld_client() -> Result<Arc<PalworldClient>, ServerFnError> {
+    use_context::<Arc<PalworldClient>>().ok_or_else(|| {
+        ServerFnError::ServerError("missing Palworld client".to_string())
+    })
+}
+
+#[cfg(feature = "ssr")]
 pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
     let pool = db_pool()?;
     let cookies: Cookies = extract().await.map_err(server_err)?;
@@ -59,6 +67,43 @@ pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
     Ok(user_id)
+}
+
+#[cfg(feature = "ssr")]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WebRole {
+    Admin,
+}
+
+#[cfg(feature = "ssr")]
+impl WebRole {
+    pub(crate) const fn as_str(self) -> &'static str {
+        match self {
+            Self::Admin => "admin",
+        }
+    }
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) async fn require_role(role: WebRole) -> Result<i64, ServerFnError> {
+    let user_id = current_user_id().await?;
+    let pool = db_pool()?;
+
+    let granted = sqlx::query_scalar!(
+        "SELECT 1 FROM web_user_roles WHERE discord_user_id = $1 AND role = $2",
+        user_id,
+        role.as_str(),
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(server_err)?
+    .is_some();
+
+    if granted {
+        Ok(user_id)
+    } else {
+        Err(ServerFnError::ServerError("forbidden".to_string()))
+    }
 }
 
 #[cfg(feature = "ssr")]

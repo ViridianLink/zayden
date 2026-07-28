@@ -26,6 +26,13 @@ pub fn storage_world() -> PathBuf {
     fixture("storage-world")
 }
 
+/// A small (113 KB) single-player world - the cheapest fixture that still
+/// exercises the full container and GVAS paths.
+#[must_use]
+pub fn steam_world1() -> PathBuf {
+    fixture("steam-world1")
+}
+
 fn fixture(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures").join(name)
 }

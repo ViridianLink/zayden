@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::io::Cursor;
 
 use gvas::GvasFile;
-use gvas::cursor_ext::ReadExt;
+use gvas::cursor_ext::{ReadExt, WriteExt};
 use gvas::error::{DeserializeError, Error};
 use gvas::game_version::GameVersion;
-use gvas::properties::{Property, PropertyOptions};
+use gvas::properties::{Property, PropertyOptions, PropertyTrait};
 use gvas::types::Guid;
 use gvas::types::map::HashableIndexMap;
 
@@ -296,10 +296,16 @@ fn read_with(
     GvasFile::read_with_hints(&mut Cursor::new(bytes), GameVersion::Default, hints)
 }
 
-pub fn reparse_properties(
+#[derive(Debug, Clone)]
+pub struct RawProperties {
+    pub properties: Vec<(String, Property)>,
+    pub tail: Vec<u8>,
+}
+
+pub fn reparse_properties_at(
     bytes: &[u8],
     custom_versions: &HashableIndexMap<Guid, u32>,
-) -> Result<Vec<(String, Property)>> {
+) -> Result<RawProperties> {
     let mut cursor = Cursor::new(bytes);
     let mut stack: Vec<String> = Vec::new();
     let hints = HashMap::new();
@@ -309,7 +315,7 @@ pub fn reparse_properties(
         custom_versions,
     };
 
-    let mut out = Vec::new();
+    let mut properties = Vec::new();
     while let Ok(name) = cursor.read_string() {
         if name == "None" {
             break;
@@ -322,8 +328,49 @@ pub fn reparse_properties(
             .map_err(|e| PalworldError::Gvas(e.to_string()));
         let _ = options.properties_stack.pop();
 
-        out.push((name, property?));
+        properties.push((name, property?));
     }
 
+    let stop = usize::try_from(cursor.position()).map_err(|e| {
+        PalworldError::Gvas(format!("RawData blob is larger than usize: {e}"))
+    })?;
+    let tail = bytes
+        .get(stop..)
+        .ok_or_else(|| PalworldError::Gvas("RawData ended mid-property".into()))?
+        .to_vec();
+
+    Ok(RawProperties { properties, tail })
+}
+
+pub fn write_properties(
+    raw: &RawProperties,
+    custom_versions: &HashableIndexMap<Guid, u32>,
+) -> Result<Vec<u8>> {
+    let mut cursor = Cursor::new(Vec::new());
+    let mut stack: Vec<String> = Vec::new();
+    let hints = HashMap::new();
+    let mut options = PropertyOptions {
+        hints: &hints,
+        properties_stack: &mut stack,
+        custom_versions,
+    };
+
+    for (name, property) in &raw.properties {
+        cursor.write_string(name).map_err(|e| PalworldError::Gvas(e.to_string()))?;
+        property
+            .write(&mut cursor, true, &mut options)
+            .map_err(|e| PalworldError::Gvas(e.to_string()))?;
+    }
+    cursor.write_string("None").map_err(|e| PalworldError::Gvas(e.to_string()))?;
+
+    let mut out = cursor.into_inner();
+    out.extend_from_slice(&raw.tail);
     Ok(out)
+}
+
+pub fn reparse_properties(
+    bytes: &[u8],
+    custom_versions: &HashableIndexMap<Guid, u32>,
+) -> Result<Vec<(String, Property)>> {
+    Ok(reparse_properties_at(bytes, custom_versions)?.properties)
 }

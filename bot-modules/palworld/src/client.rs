@@ -95,6 +95,11 @@ impl PalworldClient {
         }
     }
 
+    #[must_use]
+    pub fn save_dir(&self) -> Option<&Path> {
+        self.save_dir.as_deref()
+    }
+
     pub async fn pals_basic(&self) -> Result<Arc<[Pal]>> {
         self.pal_basic_cache
             .try_get_with((), async {

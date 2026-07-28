@@ -60,6 +60,8 @@ pub enum PalworldError {
     Pelican(String),
     #[error("save upload rejected: {0}")]
     Upload(String),
+    #[error("save edit failed: {0}")]
+    Edit(String),
 
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
@@ -94,6 +96,7 @@ impl PalworldError {
             Self::Gvas(m) => Self::Gvas(m.clone()),
             Self::Pelican(m) => Self::Pelican(m.clone()),
             Self::Upload(m) => Self::Upload(m.clone()),
+            Self::Edit(m) => Self::Edit(m.clone()),
 
             e @ Self::Io(_) => Self::Save(e.to_string()),
             e @ (Self::Reqwest(_) | Self::Serenity(_) | Self::Sqlx(_)) => {
@@ -116,10 +119,12 @@ impl Respond for PalworldError {
             | Self::LinkedWorldGone
             | Self::NoPlayerSave { .. }
             | Self::Upload(_) => Some(Cow::Owned(self.to_string())),
-            Self::Save(_) | Self::Gvas(_) | Self::Io(_) => Some(Cow::Borrowed(
-                "Couldn't read the world save. If it's your upload, re-upload a \
-                 fresh `Level.sav` with `/palworld upload`.",
-            )),
+            Self::Save(_) | Self::Gvas(_) | Self::Io(_) | Self::Edit(_) => {
+                Some(Cow::Borrowed(
+                    "Couldn't read the world save. If it's your upload, re-upload \
+                     a fresh `Level.sav` with `/palworld upload`.",
+                ))
+            },
             Self::Pelican(_) => Some(Cow::Borrowed(
                 "Couldn't reach the game server to refresh the world save.",
             )),
