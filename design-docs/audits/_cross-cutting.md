@@ -420,12 +420,19 @@ cross-cutting theme plus an index._
   - **Closed:** [gambling DS-1…DS-5, DS-7](gambling.md),
     [gold-star DS-1](gold-star.md), [temp-voice DS-2](temp-voice.md),
     **[gambling DS-9](gambling.md) (`/shop buy`)**,
-    **[gambling DS-10](gambling.md) (`/shop sell`) — `in-review`.**
+    **[gambling DS-10](gambling.md) (`/shop sell`)**,
+    **[gambling DS-11](gambling.md) (`/dig`) — `in-progress`.**
   - **Remaining (the "etc." this entry always implied), newly enumerated by the
     2026-07-28 sweep for `EXCLUDED`-write sites:** the absolute writes still in
-    `gambling` `dig`, `craft`, `prestige`, and `game_row`. `common/shop/mod.rs`
-    is now clear — DS-9 and DS-10 removed its last absolute-write helpers. Each
+    `gambling` `craft`, `prestige`, and `game_row`. `common/shop/mod.rs` is now
+    clear — DS-9 and DS-10 removed its last absolute-write helpers. Each
     remaining site needs its own `DS-#` and task.
+  - **New sub-class surfaced by DS-11:** where the value being persisted is a
+    *time-based accrual* rather than a per-action reward, the corrective pattern
+    is not an atomic increment — that pays the same accrued window twice. It is a
+    compare-and-swap on the accrual's watermark (`mine_activity`), with the
+    credit conditional on winning the swap. See [gambling DS-11](gambling.md) for
+    the shape and [gambling DS-12](gambling.md) for the site that still lacks it.
 
 - **Where (pattern):** the command-layer `save`/`save_*` methods that persist a
   whole in-memory row with `INSERT … ON CONFLICT DO UPDATE SET col =

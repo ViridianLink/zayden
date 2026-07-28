@@ -462,7 +462,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     (see the CC-9 umbrella); each is its own task.
 
 ### DS-10. `/shop sell` is the same absolute-overwrite site as DS-9  ·  Pass 8 (CC-9 sweep)  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — f7280e37`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/gambling/src/commands/shop/sell.rs:74-91` and
   `ShopManager::sell_save` (`bot-modules/gambling/src/common/shop/mod.rs`).
 - **What:** `sell` reads `SellRow` (coins + the item's inventory quantity),
@@ -511,3 +511,85 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   - Neither `/shop buy` nor `/shop sell` is gated by `GameCache::check_and_set`,
     so a double-submit still costs two round-trips — it is now merely *correct*
     rather than exploitable. An idempotency gate is a separate concern.
+
+### DS-11. `/dig` writes both `gambling` and `gambling_mine` absolutely  ·  Pass 8 (CC-9 sweep)  ·  med-high
+- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `DigManager::save` (`bot-modules/gambling/src/commands/dig.rs:84-140`),
+  called from `Commands::dig` (`dig.rs:319`).
+- **What:** `/dig` reads coins/gems/stamina plus the ten `gambling_mine` columns,
+  mutates them in memory across two awaits (`Dispatch::fire`, then the mine
+  payout and `done_work()`), and persists both rows absolutely —
+  `coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina` and
+  `coal = EXCLUDED.coal, … prestige = EXCLUDED.prestige`. There is no
+  `WHERE stamina > 0` guard, so SQL never re-checks the stamina the command
+  approved from a snapshot.
+- **Failure scenario:** double-submitting `/dig` has both invocations read
+  `stamina = N`; both write `N - 1`, so **one dig is free**, and the second
+  absolute write clobbers the first's ore gains and mine payout — one dig's whole
+  yield vanishes. At `stamina = 1` both digs pass the app-layer `verify_work()`
+  and land the row at 0. Against a concurrent `/work`, `/shop buy` or a wager
+  payout, the dig's absolute coin write erases that transaction outright.
+- **Suggested fix:** the DS-7 (`/work`) pattern — a `DigDelta` committed by
+  `DigManager::commit_dig` in one transaction: atomic `coins = gambling.coins +
+  $n`, `stamina = gambling.stamina - 1 WHERE gambling.stamina > 0`, and
+  `coal = gambling_mine.coal + $n` per ore column; delete `save`. The hourly mine
+  accrual must **not** simply become additive — see the payout note below.
+- **Fix (2026-07-28):** `DigDelta` (the change a dig made to the row it read)
+  plus `DigManager::commit_dig`, one transaction of atomic guarded writes:
+  - `INSERT … ON CONFLICT DO UPDATE SET coins = gambling.coins + $2, gems =
+    gambling.gems + $3, stamina = gambling.stamina - 1 WHERE gambling.stamina > 0
+    RETURNING coins, gems, stamina` — the stamina guard is evaluated against the
+    **live** row, so two digs racing on the last point cannot both succeed;
+    rejection surfaces as the existing `out_of_stamina()` error, as in `/work`.
+  - `gambling_mine` ore columns become `coal = gambling_mine.coal + $2, …` —
+    each dig keeps its own roll. `miners` and `prestige` are dropped from the
+    write entirely: `/dig` only ever read them, so writing them back could only
+    ever clobber a concurrent `/shop buy`.
+  - `gambling` is locked **before** `gambling_mine`, matching `commit_purchase` /
+    `commit_sale` / `commit_work`, so no inverted lock order.
+  - **The hourly accrual is deliberately not additive.** It is time-based, so
+    crediting it as an increment would let two digs in the same tick each collect
+    the same hours — trading the lost update for a mint. It travels as
+    `MinePayout { coins, since, collected_at }` and `mine_activity` advances via
+    a compare-and-swap (`CASE WHEN gambling_mine.mine_activity = $10 THEN
+    EXCLUDED.mine_activity ELSE gambling_mine.mine_activity END`, with
+    `RETURNING mine_activity = $9`). The payout is credited only by the dig that
+    wins that swap; a loser still gets its ore and still spends its stamina, and
+    reports `0` collected. `save` is **deleted**.
+- **Verification:** `bot-modules/gambling/tests/dig.rs` (6 tests, fails-before:
+  `unresolved import gambling::DigDelta`). Gate: `cargo +nightly clippy
+  --workspace --all-targets -- -D warnings` clean with no new
+  `#[allow]`/`#[expect]` (the one `#[expect(trivial_casts)]` is the pre-existing
+  sqlx bind-override on `mine_activity`, carried over from the deleted `save`);
+  `cargo test --workspace` green.
+- **Residual / follow-ups:**
+  - **`/work` collects the same accrual without a CAS** — `commit_work`
+    (`commands/work.rs:175`) still writes `mine_activity = EXCLUDED.mine_activity`
+    unconditionally and folds `mine_amount` into `WorkDelta`, so a `/work` racing
+    a `/dig` can still pay the accrual twice. `/dig` now refuses its half of that
+    race; closing it fully needs the same `MinePayout` treatment in `/work`.
+    Recorded as **DS-12** below.
+  - `craft`, `prestige` and `game_row` retain absolute `EXCLUDED` writes (see the
+    [CC-9](_cross-cutting.md) umbrella); each is its own task.
+  - `/dig` is not gated by `GameCache::check_and_set`, so a double-submit still
+    costs two round-trips — it is now merely *correct* rather than exploitable.
+
+### DS-12. `/work` collects the hourly mine accrual without a compare-and-swap  ·  Pass 8 (CC-9 sweep)  ·  low-med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `WorkManager::commit_work`
+  (`bot-modules/gambling/src/commands/work.rs:140-189`), called from
+  `Commands::work` (`work.rs:253`).
+- **What:** the DS-7 fix made `/work`'s coin/gem writes atomic, but the hourly
+  mine payout (`row.mine_amount()`) is folded into `WorkDelta.coins` and
+  `mine_activity` is stamped absolutely (`mine_activity = EXCLUDED.mine_activity`),
+  so the accrual is credited unconditionally.
+- **Failure scenario:** two `/work`s in the same tick both read `mine_activity`
+  at `T0`, both compute the same accrued hours, and both credit them — the same
+  mine output is paid twice for two stamina. The pre-DS-7 absolute write masked
+  this by dropping one of the two payouts; the atomic increment does not.
+  Mirrored against `/dig`, whose accrual is now CAS-guarded (DS-11), `/work`
+  still wins the double payment.
+- **Suggested fix:** the DS-11 pattern — pull `mine_amount` out of `WorkDelta`
+  into a `MinePayout`, advance `mine_activity` only when it still equals the
+  stamp the payout was computed from, and credit the payout only on that swap.
+  `MinePayout` already exists (`commands/dig.rs`); this is mostly a move.

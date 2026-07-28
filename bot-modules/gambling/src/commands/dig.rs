@@ -14,7 +14,6 @@ use serenity::all::{
     UserId,
 };
 use sqlx::PgPool;
-use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, FormatNum, as_i64, as_u64};
@@ -23,7 +22,16 @@ use super::Commands;
 use crate::events::{Dispatch, Event};
 use crate::models::{MineAmount, Prestige};
 use crate::shop::ShopCurrency;
-use crate::{Coins, GamblingError, Gems, MaxBet, MineHourly, Result, Stamina};
+use crate::{
+    Coins,
+    GamblingError,
+    Gems,
+    MaxBet,
+    MineHourly,
+    Result,
+    Stamina,
+    out_of_stamina,
+};
 
 const CHUNK_BLOCKS: f64 = 16.0 * 16.0 * 62.0;
 const COAL_PER_CHUNK: f64 = 140.0;
@@ -81,66 +89,150 @@ impl DigManager {
         .await
     }
 
-    pub async fn save(pool: &PgPool, row: &DigRow) -> sqlx::Result<PgQueryResult> {
+    pub async fn commit_dig(
+        pool: &PgPool,
+        id: UserId,
+        delta: &DigDelta,
+        payout: MinePayout,
+    ) -> sqlx::Result<Option<DigCommit>> {
+        let user_id = as_i64(id.get());
+
         let mut tx = pool.begin().await?;
 
-        let mut result = sqlx::query!(
-            r#"INSERT INTO gambling (user_id, coins, gems, stamina)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins,
-            gems = EXCLUDED.gems,
-            stamina = EXCLUDED.stamina"#,
-            row.user_id,
-            row.coins,
-            row.gems,
-            row.stamina,
+        let Some(balance) = sqlx::query!(
+            "INSERT INTO gambling (user_id, coins, gems, stamina)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (user_id) DO UPDATE SET
+                coins = gambling.coins + $2,
+                gems = gambling.gems + $3,
+                stamina = gambling.stamina - 1
+            WHERE gambling.stamina > 0
+            RETURNING coins, gems, stamina;",
+            user_id,
+            delta.coins,
+            delta.gems,
+            <DigRow as Stamina>::MAX_STAMINA - 1,
         )
-        .execute(&mut *tx)
-        .await?;
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(None);
+        };
 
         #[expect(
             trivial_casts,
             reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
         )]
-        let result2 = sqlx::query!(
-            r#"INSERT INTO gambling_mine (user_id, miners, coal, iron, gold, redstone, lapis, diamonds, emeralds, prestige, mine_activity)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        let claimed = sqlx::query_scalar!(
+            r#"INSERT INTO gambling_mine (user_id, coal, iron, gold, redstone, lapis, diamonds, emeralds, mine_activity)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT (user_id) DO UPDATE SET
-                miners = EXCLUDED.miners,
-                coal = EXCLUDED.coal,
-                iron = EXCLUDED.iron,
-                gold = EXCLUDED.gold,
-                redstone = EXCLUDED.redstone,
-                lapis = EXCLUDED.lapis,
-                diamonds = EXCLUDED.diamonds,
-                emeralds = EXCLUDED.emeralds,
-                prestige = EXCLUDED.prestige,
-                mine_activity = EXCLUDED.mine_activity"#,
-            row.user_id,
-            row.miners,
-            row.coal,
-            row.iron,
-            row.gold,
-            row.redstone,
-            row.lapis,
-            row.diamonds,
-            row.emeralds,
-            row.prestige,
-            row.mine_activity as Timestamp,
+                coal = gambling_mine.coal + $2,
+                iron = gambling_mine.iron + $3,
+                gold = gambling_mine.gold + $4,
+                redstone = gambling_mine.redstone + $5,
+                lapis = gambling_mine.lapis + $6,
+                diamonds = gambling_mine.diamonds + $7,
+                emeralds = gambling_mine.emeralds + $8,
+                mine_activity = CASE
+                    WHEN gambling_mine.mine_activity = $10 THEN EXCLUDED.mine_activity
+                    ELSE gambling_mine.mine_activity
+                END
+            RETURNING mine_activity = $9 AS "claimed!";"#,
+            user_id,
+            delta.coal,
+            delta.iron,
+            delta.gold,
+            delta.redstone,
+            delta.lapis,
+            delta.diamonds,
+            delta.emeralds,
+            payout.collected_at.to_sqlx() as Timestamp,
+            payout.since.to_sqlx() as Timestamp,
         )
-        .execute(&mut *tx)
+        .fetch_one(&mut *tx)
         .await?;
+
+        let payout = if claimed { payout.coins } else { 0 };
+
+        let coins = if payout == 0 {
+            balance.coins
+        } else {
+            sqlx::query_scalar!(
+                "UPDATE gambling SET coins = coins + $2
+                WHERE user_id = $1
+                RETURNING coins;",
+                user_id,
+                payout,
+            )
+            .fetch_one(&mut *tx)
+            .await?
+        };
 
         tx.commit().await?;
 
-        result.extend([result2]);
+        Ok(Some(DigCommit {
+            coins,
+            gems: balance.gems,
+            stamina: balance.stamina,
+            payout,
+        }))
+    }
+}
 
-        Ok(result)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct DigDelta {
+    pub coins: i64,
+    pub gems: i64,
+    pub coal: i64,
+    pub iron: i64,
+    pub gold: i64,
+    pub redstone: i64,
+    pub lapis: i64,
+    pub diamonds: i64,
+    pub emeralds: i64,
+}
+
+impl DigDelta {
+    #[must_use]
+    pub const fn between(before: &DigRow, after: &DigRow) -> Self {
+        Self {
+            coins: after.coins - before.coins,
+            gems: after.gems - before.gems,
+            coal: after.coal - before.coal,
+            iron: after.iron - before.iron,
+            gold: after.gold - before.gold,
+            redstone: after.redstone - before.redstone,
+            lapis: after.lapis - before.lapis,
+            diamonds: after.diamonds - before.diamonds,
+            emeralds: after.emeralds - before.emeralds,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MinePayout {
+    pub coins: i64,
+    pub since: jiff::Timestamp,
+    pub collected_at: jiff::Timestamp,
+}
+
+impl MinePayout {
+    #[must_use]
+    pub fn new(coins: i64, since: jiff::Timestamp) -> Self {
+        Self { coins, since, collected_at: jiff::Timestamp::now() }
     }
 }
 
 #[derive(Debug, FromRow)]
+pub struct DigCommit {
+    pub coins: i64,
+    pub gems: i64,
+    pub stamina: i32,
+    pub payout: i64,
+}
+
+#[derive(Debug, Clone, FromRow)]
 pub struct DigRow {
     pub user_id: i64,
     pub coins: i64,
@@ -250,6 +342,8 @@ impl Commands {
 
         row.verify_work()?;
 
+        let before = row.clone();
+
         let mut resources = HashMap::from([
             ("coal", 0),
             ("iron", 0),
@@ -308,15 +402,22 @@ impl Commands {
             .fire(interaction.channel_id, &mut row, Event::Work(interaction.user.id))
             .await?;
 
-        let mine_amount = row.mine_amount()?;
-        *row.coins_mut() += mine_amount;
+        let payout =
+            MinePayout::new(row.mine_amount()?, row.mine_activity.to_jiff());
 
-        row.done_work();
-        row.mine_activity = jiff::Timestamp::now().to_sqlx();
+        let delta = DigDelta::between(&before, &row);
 
+        let committed =
+            DigManager::commit_dig(pool, interaction.user.id, &delta, payout)
+                .await?
+                .ok_or_else(out_of_stamina)?;
+
+        *row.coins_mut() = committed.coins;
+        *row.gems_mut() = committed.gems;
+        *row.stamina_mut() = committed.stamina;
+
+        let mine_amount = committed.payout;
         let stamina = row.stamina_str();
-
-        DigManager::save(pool, &row).await?;
 
         let found = resources
             .drain()
