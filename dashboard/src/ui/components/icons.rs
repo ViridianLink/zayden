@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 #[component]
-pub(crate) fn Icon(name: &'static str) -> impl IntoView {
+pub(crate) fn Icon(name: &'static str) -> AnyView {
     let paths = icon_paths(name);
     view! {
         <svg
@@ -16,6 +16,7 @@ pub(crate) fn Icon(name: &'static str) -> impl IntoView {
             inner_html=paths
         ></svg>
     }
+    .into_any()
 }
 
 fn icon_paths(name: &str) -> &'static str {

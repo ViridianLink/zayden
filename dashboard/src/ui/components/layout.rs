@@ -29,7 +29,7 @@ pub(crate) fn AppShell(children: Children) -> impl IntoView {
 }
 
 #[component]
-fn AppNavBar() -> impl IntoView {
+fn AppNavBar() -> AnyView {
     let session = Resource::new_blocking(|| (), |()| check_session());
 
     view! {
@@ -65,6 +65,7 @@ fn AppNavBar() -> impl IntoView {
             </div>
         </nav>
     }
+    .into_any()
 }
 
 #[component]
