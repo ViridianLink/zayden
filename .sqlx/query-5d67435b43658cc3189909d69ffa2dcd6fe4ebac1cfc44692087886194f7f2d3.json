@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling_inventory SET quantity = quantity - $3\n            WHERE user_id = $1 AND item_id = $2 AND quantity >= $3\n            RETURNING quantity;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "quantity",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_inventory",
+            "name": "quantity"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5d67435b43658cc3189909d69ffa2dcd6fe4ebac1cfc44692087886194f7f2d3"
+}

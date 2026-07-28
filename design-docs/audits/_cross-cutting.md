@@ -419,12 +419,13 @@ cross-cutting theme plus an index._
   Umbrella — stays `open` until every site is closed. Each site is its own task.
   - **Closed:** [gambling DS-1…DS-5, DS-7](gambling.md),
     [gold-star DS-1](gold-star.md), [temp-voice DS-2](temp-voice.md),
-    **[gambling DS-9](gambling.md) (`/shop buy`) — `in-review`.**
+    **[gambling DS-9](gambling.md) (`/shop buy`)**,
+    **[gambling DS-10](gambling.md) (`/shop sell`) — `in-review`.**
   - **Remaining (the "etc." this entry always implied), newly enumerated by the
-    2026-07-28 sweep for `EXCLUDED`-write sites:**
-    [gambling DS-10](gambling.md) (`/shop sell`), plus the absolute writes still
-    in `gambling` `dig`, `craft`, `prestige`, `game_row`, and
-    `common/shop/mod.rs`'s remaining helpers. Each needs its own `DS-#` and task.
+    2026-07-28 sweep for `EXCLUDED`-write sites:** the absolute writes still in
+    `gambling` `dig`, `craft`, `prestige`, and `game_row`. `common/shop/mod.rs`
+    is now clear — DS-9 and DS-10 removed its last absolute-write helpers. Each
+    remaining site needs its own `DS-#` and task.
 
 - **Where (pattern):** the command-layer `save`/`save_*` methods that persist a
   whole in-memory row with `INSERT … ON CONFLICT DO UPDATE SET col =

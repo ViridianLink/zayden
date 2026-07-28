@@ -395,7 +395,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
   lock order.
 
 ### DS-9. `/shop buy` whole-row absolute overwrite → double-submit buys two items for one charge  ·  Pass 8 (CC-9 sweep)  ·  med-high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 80859b63`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/gambling/src/commands/shop/buy.rs:46-151` and
   `bot-modules/gambling/src/common/shop/mod.rs:71-152`
   (`ShopManager::buy_save` — `coins = EXCLUDED.coins, gems = EXCLUDED.gems` plus
@@ -462,7 +462,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     (see the CC-9 umbrella); each is its own task.
 
 ### DS-10. `/shop sell` is the same absolute-overwrite site as DS-9  ·  Pass 8 (CC-9 sweep)  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/gambling/src/commands/shop/sell.rs:74-91` and
   `ShopManager::sell_save` (`bot-modules/gambling/src/common/shop/mod.rs`).
 - **What:** `sell` reads `SellRow` (coins + the item's inventory quantity),
@@ -476,3 +476,38 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
 - **Suggested fix:** the DS-9 pattern — `coins = coins + $payment` and
   `UPDATE gambling_inventory SET quantity = quantity - $n WHERE quantity >= $n`
   in one transaction, `RETURNING` the post-image; delete `sell_save`.
+- **Fix (2026-07-28):** Applied the DS-9 pattern. `SaleDelta` (payment credited,
+  units removed — the sales-tax arithmetic moved out of the command into
+  `SaleDelta::new`) plus `ShopManager::commit_sale`, one transaction of atomic
+  guarded writes:
+  - `UPDATE gambling SET coins = coins + $2 WHERE user_id = $1 RETURNING coins`.
+  - `UPDATE gambling_inventory SET quantity = quantity - $3 WHERE user_id = $1
+    AND item_id = $2 AND quantity >= $3 RETURNING quantity` — the guard is
+    evaluated against the **live** row, so a stock check that passed on a stale
+    snapshot cannot oversell.
+  - The row is `DELETE`d only when the *returned* post-image is 0, inside the
+    same transaction (previously the delete was keyed off the in-memory value).
+  - `gambling` is locked **before** `gambling_inventory`, matching
+    `commit_purchase`'s order, so a concurrent buy and sell of the same item
+    cannot deadlock on inverted lock order.
+  - Guard rejection surfaces as `GamblingError::TransactionConflict` (the DS-9
+    `PurchaseConflict` variant, renamed and its message made direction-neutral
+    so it reads correctly on both the buy and sell paths).
+  - `sell_save` and `SellRow` are **deleted**. The pre-check read is now
+    `sell_quantity` — a single-table `SELECT quantity`, replacing the `LEFT JOIN`
+    that only existed to fetch the coins the command no longer mutates in
+    memory. Its only job is choosing between the `ItemNotInInventory` and
+    `InsufficientItemQuantity` messages; SQL is the authority for correctness.
+- **Verification:** `bot-modules/gambling/tests/shop_sell.rs` (7 tests,
+  fails-before: `unresolved import gambling::SaleDelta`). Gate: `cargo +nightly
+  clippy --workspace --all-targets -- -D warnings` clean with no new
+  `#[allow]`/`#[expect]`; `cargo test --workspace` green; `.sqlx` regenerated
+  with `--all-features` (4 entries removed, 4 added, no unrelated churn) and
+  re-verified with `SQLX_OFFLINE=true`.
+- **Residual / follow-ups:**
+  - `dig`, `craft`, `prestige` and `game_row` retain absolute `EXCLUDED` writes
+    (see the [CC-9](_cross-cutting.md) umbrella); each is its own task. With
+    DS-10 closed, `common/shop/mod.rs` itself has no absolute-write helpers left.
+  - Neither `/shop buy` nor `/shop sell` is gated by `GameCache::check_and_set`,
+    so a double-submit still costs two round-trips — it is now merely *correct*
+    rather than exploitable. An idempotency gate is a separate concern.

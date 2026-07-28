@@ -149,7 +149,7 @@ pub async fn buy<Data: EmojiCacheData>(
         (!is_mine_item).then_some((item.id, amount)),
     )
     .await?
-    .ok_or(GamblingError::PurchaseConflict)?;
+    .ok_or(GamblingError::TransactionConflict)?;
 
     let quantity = if is_mine_item {
         committed.mine.as_ref().and_then(|mine| mine.quantity(item.id)).ok_or_else(

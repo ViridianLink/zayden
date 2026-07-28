@@ -8,11 +8,9 @@ use serenity::all::{
     CreateEmbed,
     UserId,
 };
-use sqlx::postgres::PgQueryResult;
 use sqlx::{FromRow, PgPool};
 use zayden_core::{EmojiCache, FormatNum, as_i64};
 
-use crate::commands::shop::SellRow;
 use crate::{
     Coins,
     GamblingError,
@@ -204,27 +202,14 @@ impl ShopManager {
         }))
     }
 
-    pub async fn sell_row(
+    pub async fn sell_quantity(
         pool: &PgPool,
         id: UserId,
         item_id: &str,
-    ) -> sqlx::Result<Option<SellRow>> {
-        sqlx::query_as!(
-            SellRow,
-            r#"
-            SELECT
-                g.user_id,
-                g.coins,
-
-                i.id AS "item_row_id?",
-                i.quantity AS "item_quantity?"
-            FROM
-                gambling g
-            LEFT JOIN
-                gambling_inventory i ON g.user_id = i.user_id AND i.item_id = $2
-            WHERE
-                g.user_id = $1
-            "#,
+    ) -> sqlx::Result<Option<i64>> {
+        sqlx::query_scalar!(
+            "SELECT quantity FROM gambling_inventory
+            WHERE user_id = $1 AND item_id = $2;",
             as_i64(id.get()),
             item_id
         )
@@ -232,46 +217,79 @@ impl ShopManager {
         .await
     }
 
-    pub async fn sell_save(
+    pub async fn commit_sale(
         pool: &PgPool,
-        row: SellRow,
-    ) -> sqlx::Result<PgQueryResult> {
+        id: UserId,
+        item_id: &str,
+        delta: &SaleDelta,
+    ) -> sqlx::Result<Option<SaleCommit>> {
+        let user_id = as_i64(id.get());
+
         let mut tx = pool.begin().await?;
 
-        let mut result = sqlx::query!(
-            "INSERT INTO gambling (user_id, coins)
-            VALUES ($1, $2)
-            ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins;",
-            row.user_id,
-            row.coins,
+        let Some(coins) = sqlx::query_scalar!(
+            "UPDATE gambling SET coins = coins + $2
+            WHERE user_id = $1
+            RETURNING coins;",
+            user_id,
+            delta.coins,
         )
-        .execute(&mut *tx)
-        .await?;
-
-        let result2 = if row.item_quantity == Some(0) {
-            sqlx::query!(
-                "DELETE FROM gambling_inventory WHERE id = $1",
-                row.item_row_id
-            )
-            .execute(&mut *tx)
-            .await?
-        } else {
-            sqlx::query!(
-                "UPDATE gambling_inventory SET quantity = $1 WHERE id = $2",
-                row.item_quantity,
-                row.item_row_id
-            )
-            .execute(&mut *tx)
-            .await?
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(None);
         };
 
-        result.extend([result2]);
+        let Some(quantity) = sqlx::query_scalar!(
+            "UPDATE gambling_inventory SET quantity = quantity - $3
+            WHERE user_id = $1 AND item_id = $2 AND quantity >= $3
+            RETURNING quantity;",
+            user_id,
+            item_id,
+            delta.quantity,
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        else {
+            return Ok(None);
+        };
+
+        if quantity == 0 {
+            sqlx::query!(
+                "DELETE FROM gambling_inventory
+                WHERE user_id = $1 AND item_id = $2;",
+                user_id,
+                item_id
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
 
         tx.commit().await?;
 
-        Ok(result)
+        Ok(Some(SaleCommit { coins, quantity }))
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SaleDelta {
+    pub coins: i64,
+    pub quantity: i64,
+}
+
+impl SaleDelta {
+    #[must_use]
+    pub const fn new(unit_coin_cost: i64, amount: i64) -> Self {
+        Self {
+            coins: unit_coin_cost * amount * SALES_RETURN / 100,
+            quantity: amount,
+        }
+    }
+}
+
+pub struct SaleCommit {
+    pub coins: i64,
+    pub quantity: i64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

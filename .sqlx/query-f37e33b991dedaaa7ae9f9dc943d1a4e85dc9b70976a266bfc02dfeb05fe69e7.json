@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM gambling_inventory\n                WHERE user_id = $1 AND item_id = $2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f37e33b991dedaaa7ae9f9dc943d1a4e85dc9b70976a266bfc02dfeb05fe69e7"
+}

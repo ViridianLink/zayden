@@ -14,7 +14,7 @@ pub mod sell;
 
 pub use buy::buy;
 pub use list::list;
-pub use sell::{SellRow, sell};
+pub use sell::sell;
 use zayden_core::{EmojiCacheData, parse_subcommand};
 
 use super::Commands;

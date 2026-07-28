@@ -6,6 +6,8 @@ pub use shop::{
     MineCommit,
     PurchaseCommit,
     SHOP_ITEMS,
+    SaleCommit,
+    SaleDelta,
     ShopCurrency,
     ShopDelta,
     ShopItem,

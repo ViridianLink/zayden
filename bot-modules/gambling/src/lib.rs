@@ -27,6 +27,8 @@ pub use common::{
     MineCommit,
     PurchaseCommit,
     SHOP_ITEMS,
+    SaleCommit,
+    SaleDelta,
     ShopCurrency,
     ShopDelta,
     ShopItem,
