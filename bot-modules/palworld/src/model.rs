@@ -200,11 +200,14 @@ impl Gender {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct OwnedPal {
     pub species: String,
     pub gender: Gender,
     pub nickname: Option<String>,
+    pub is_alpha: bool,
+    pub is_lucky: bool,
+    pub stars: u8,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -223,11 +226,14 @@ pub struct BreedPlan {
     pub catch_cost: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PlayerRoster {
     pub uid: String,
     pub name: String,
     pub pals: Vec<OwnedPal>,
+    pub personal_pals: Vec<OwnedPal>,
+    pub level: i64,
+    pub exp: i64,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]

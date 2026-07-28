@@ -3,6 +3,7 @@ use std::io::Cursor;
 
 use gvas::GvasFile;
 use gvas::cursor_ext::ReadExt;
+use gvas::error::{DeserializeError, Error};
 use gvas::game_version::GameVersion;
 use gvas::properties::{Property, PropertyOptions};
 use gvas::types::Guid;
@@ -171,18 +172,112 @@ pub fn hints() -> HashMap<String, String> {
             "worldSaveData.StructProperty.FishingSpotSaveData.MapProperty.Value.StructProperty",
             S,
         ),
+        (
+            "worldSaveData.StructProperty.LevelObjectRecoverPartySaveData.MapProperty.Key.StructProperty",
+            G,
+        ),
+        (
+            "worldSaveData.StructProperty.LevelObjectRecoverPartySaveData.MapProperty.Value.StructProperty",
+            S,
+        ),
+        (
+            "worldSaveData.StructProperty.LevelObjectRecoverPartySaveData.MapProperty.Value.StructProperty.PlayerLastUsedTimes.MapProperty.Key.StructProperty",
+            G,
+        ),
+        (
+            "worldSaveData.StructProperty.SupplySaveData.StructProperty.SupplyInfos.MapProperty.Key.StructProperty",
+            G,
+        ),
+        (
+            "worldSaveData.StructProperty.SupplySaveData.StructProperty.SupplyInfos.MapProperty.Value.StructProperty",
+            S,
+        ),
+        (
+            "SaveData.StructProperty.RecordData.StructProperty.FoundTreasureMapPointMap.MapProperty.Key.StructProperty",
+            G,
+        ),
+        (
+            "SaveData.StructProperty.RecordData.StructProperty.FoundTreasureMapPointMap.MapProperty.Value.StructProperty",
+            S,
+        ),
     ];
 
     pairs.iter().map(|(k, v)| ((*k).to_string(), (*v).to_string())).collect()
 }
 
+const CANDIDATES: [&str; 2] = ["Guid", "StructProperty"];
+
+const FIRST_CANDIDATE: &str = "Guid";
+
+const MAX_INFERRED: usize = 8;
+
 pub fn read_gvas(bytes: &[u8]) -> Result<GvasFile> {
-    GvasFile::read_with_hints(
-        &mut Cursor::new(bytes),
-        GameVersion::Default,
-        &hints(),
-    )
-    .map_err(|e| PalworldError::Gvas(e.to_string()))
+    read_inferring(bytes, hints())
+}
+
+pub fn read_inferring(
+    bytes: &[u8],
+    base: impl IntoIterator<Item = (String, String)>,
+) -> Result<GvasFile> {
+    let mut hints: HashMap<String, String> = base.into_iter().collect();
+    let mut inferred: Vec<(String, usize)> = Vec::new();
+
+    loop {
+        match read_with(bytes, &hints) {
+            Ok(file) => {
+                if !inferred.is_empty() {
+                    tracing::warn!(
+                        hints = ?inferred
+                            .iter()
+                            .filter_map(|(p, i)| {
+                                Some(format!("{p} = {}", CANDIDATES.get(*i)?))
+                            })
+                            .collect::<Vec<_>>(),
+                        "palworld: save contains structs missing from the hint \
+                         table; inferred them for this read. Add them to \
+                         save::gvas::hints so the first parse succeeds.",
+                    );
+                }
+                return Ok(file);
+            },
+            Err(Error::Deserialize(DeserializeError::MissingHint(_, path, _)))
+                if inferred.len() < MAX_INFERRED
+                    && !hints.contains_key(path.as_ref()) =>
+            {
+                let path = path.into_string();
+                hints.insert(path.clone(), FIRST_CANDIDATE.to_string());
+                inferred.push((path, 0));
+            },
+            Err(e) => {
+                if !backtrack(&mut hints, &mut inferred) {
+                    return Err(PalworldError::Gvas(e.to_string()));
+                }
+            },
+        }
+    }
+}
+
+fn backtrack(
+    hints: &mut HashMap<String, String>,
+    inferred: &mut Vec<(String, usize)>,
+) -> bool {
+    while let Some((path, index)) = inferred.last_mut() {
+        if let Some(next) = CANDIDATES.get(*index + 1) {
+            *index += 1;
+            hints.insert(path.clone(), (*next).to_string());
+            return true;
+        }
+        hints.remove(path);
+        inferred.pop();
+    }
+    false
+}
+
+fn read_with(
+    bytes: &[u8],
+    hints: &HashMap<String, String>,
+) -> std::result::Result<GvasFile, Error> {
+    GvasFile::read_with_hints(&mut Cursor::new(bytes), GameVersion::Default, hints)
 }
 
 pub fn reparse_properties(

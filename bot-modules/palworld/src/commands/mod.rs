@@ -5,6 +5,7 @@ mod item;
 mod link;
 mod pal;
 mod passive;
+mod progress;
 mod roster;
 mod type_chart;
 mod upload;
@@ -22,7 +23,7 @@ use sqlx::PgPool;
 use zayden_core::ctx::ModalCtx;
 use zayden_core::{InvocationCtx, as_i64, parse_options, parse_subcommand};
 
-use crate::client::PalworldClient;
+use crate::client::{PalworldClient, SourceKey};
 use crate::error::{PalworldError, Result};
 use crate::link::PlayerLink;
 use crate::model::{Element, Pal, PlayerRoster, WorldRoster};
@@ -125,11 +126,29 @@ impl Command {
         .add_sub_option(name_option_named("target", "Target Pal"))
         .add_sub_option(player_option());
 
+        let mut category = CreateCommandOption::new(
+            CommandOptionType::String,
+            "category",
+            "Show what's still missing in one category",
+        )
+        .required(false);
+        for (key, label) in progress::CATEGORIES {
+            category = category.add_string_choice(*label, *key);
+        }
+        let progress = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "progress",
+            "Completion milestones: fast travel, bosses, effigies, Paldeck, \
+             technology and more",
+        )
+        .add_sub_option(player_option())
+        .add_sub_option(category);
+
         let upload = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "upload",
-            "Upload your Level.sav (from your world's save folder) to use as \
-             your private world",
+            "Upload your Level.sav (and Players/<id>.sav) to use as your private \
+             world",
         );
 
         CreateCommand::new("palworld")
@@ -145,6 +164,7 @@ impl Command {
             .add_option(link)
             .add_option(unlink)
             .add_option(roster)
+            .add_option(progress)
             .add_option(breed_plan)
             .add_option(upload)
     }
@@ -170,6 +190,9 @@ impl Command {
             "type" => type_chart::run(cx, client, parse_options(sub_options)).await,
             "link" => link::link(cx, client, pool, parse_options(sub_options)).await,
             "unlink" => link::unlink(cx, pool).await,
+            "progress" => {
+                progress::run(cx, client, pool, parse_options(sub_options)).await
+            },
             "roster" => {
                 roster::run(cx, client, pool, parse_options(sub_options)).await
             },
@@ -208,40 +231,52 @@ pub(crate) async fn resolve_player(
     pool: &PgPool,
     player: Option<&str>,
 ) -> Result<PlayerRoster> {
+    resolve_player_source(cx, client, pool, player).await.map(|(_, r)| r)
+}
+
+pub(crate) async fn resolve_player_source(
+    cx: &InvocationCtx<'_>,
+    client: &PalworldClient,
+    pool: &PgPool,
+    player: Option<&str>,
+) -> Result<(SourceKey, PlayerRoster)> {
     let discord_id = as_i64(cx.interaction.user.id.get());
 
     if let Some(upload) = SaveUpload::select(pool, discord_id).await?
         && !upload.is_expired()
     {
         let roster = client.user_roster(discord_id).await?;
-        return player.map_or_else(
+        let found = player.map_or_else(
             || most_populated_player(&roster),
             |name| player_by_name(&roster, name),
-        );
+        )?;
+        return Ok((SourceKey::User(discord_id), found));
     }
 
     if let Some(link) = PlayerLink::select(pool, discord_id).await? {
-        let roster = match link.host_discord_id {
+        let (source, roster) = match link.host_discord_id {
             Some(host) => {
                 match SaveUpload::select(pool, host).await? {
                     Some(upload) if !upload.is_expired() => {},
                     _ => return Err(PalworldError::LinkedWorldGone),
                 }
-                client.user_roster(host).await?
+                (SourceKey::User(host), client.user_roster(host).await?)
             },
-            None => client.roster().await?,
+            None => (SourceKey::Shared, client.roster().await?),
         };
-        return player.map_or_else(
+        let found = player.map_or_else(
             || player_by_uid(&roster, &link),
             |name| player_by_name(&roster, name),
-        );
+        )?;
+        return Ok((source, found));
     }
 
     let roster = client.roster().await?;
-    player.map_or_else(
+    let found = player.map_or_else(
         || Err(PalworldError::NotLinked),
         |name| player_by_name(&roster, name),
-    )
+    )?;
+    Ok((SourceKey::Shared, found))
 }
 
 fn player_by_name(roster: &WorldRoster, name: &str) -> Result<PlayerRoster> {

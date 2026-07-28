@@ -1,17 +1,16 @@
 //! Unit coverage for the user-upload feature (Milestone 9).
 //!
-//! The `SaveUpload` cooldown/expiry logic is pure and runs everywhere. The
-//! `load_world` round-trip needs the real save and is gated on `PALWORLD_SAVE=1`
-//! (mirroring `tests/save_world.rs`); it proves an uploaded, `Level.sav`-only
-//! world (no `Players/` directory) parses cleanly.
-
-use std::path::PathBuf;
+//! The `SaveUpload` cooldown/expiry logic is pure. The `load_world` round-trip
+//! runs against the committed `progressed-world` fixture and proves an
+//! uploaded, `Level.sav`-only world (no `Players/` directory) parses cleanly.
 
 use jiff::{SignedDuration, Timestamp};
 use jiff_sqlx::ToSqlx;
 use palworld::save::load_world;
 use palworld::upload::{SaveUpload, UploadQuota};
 use zayden_app::entitlement::Tier;
+
+pub mod common;
 
 fn upload(uploaded: Timestamp, expires: Timestamp) -> SaveUpload {
     SaveUpload {
@@ -91,28 +90,12 @@ fn past_expiry_is_expired() {
     assert!(u.is_expired(), "TTL elapsed");
 }
 
-fn real_save_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../056C426C55974CFCA115EB695A224F67")
-}
-
-fn save_enabled() -> bool {
-    std::env::var("PALWORLD_SAVE").is_ok()
-        && std::fs::read(real_save_dir().join("Level.sav"))
-            .is_ok_and(|raw| palworld::save::validate_level(&raw).is_ok())
-}
-
 /// An uploaded world is `Level.sav`-only - no `Players/` directory. `load_world`
 /// must treat the absent directory as an empty UID set and still parse.
 #[test]
 fn uploaded_level_only_world_parses_without_players_dir() {
-    if !save_enabled() {
-        eprintln!("skipping: set PALWORLD_SAVE=1 with the real save present");
-        return;
-    }
-
-    let raw =
-        std::fs::read(real_save_dir().join("Level.sav")).expect("read Level.sav");
+    let raw = std::fs::read(common::progressed_world().join("Level.sav"))
+        .expect("fixture Level.sav");
 
     let dir = std::env::temp_dir()
         .join(format!("palworld_upload_test_{}", std::process::id()));

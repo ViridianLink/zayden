@@ -10,6 +10,7 @@ pub mod link;
 pub mod merge;
 pub mod model;
 pub mod parse;
+pub mod progress;
 pub mod save;
 pub mod source;
 pub mod transport;

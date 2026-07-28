@@ -10,6 +10,7 @@ use tokio::sync::Mutex;
 use crate::breeding::BreedingIndex;
 use crate::error::{PalworldError, Result};
 use crate::model::{Item, Pal, PassiveSkill, WorldRoster};
+use crate::save::player::PlayerRecord;
 use crate::source::SourceId;
 use crate::transport::{Fandom, PalCalc, PalDb, Paldex, PalworldGg, Pelican};
 use crate::{merge, parse, save};
@@ -50,6 +51,7 @@ pub struct PalworldClient {
     passive_list_cache: Cache<(), Arc<[PassiveSkill]>>,
     breeding_cache: Cache<(), Arc<BreedingIndex>>,
     roster_cache: Cache<(SourceKey, u64), Arc<WorldRoster>>,
+    record_cache: Cache<(SourceKey, String, u64), Arc<PlayerRecord>>,
 }
 
 impl PalworldClient {
@@ -79,6 +81,7 @@ impl PalworldClient {
             passive_list_cache: ttl_cache(),
             breeding_cache: ttl_cache(),
             roster_cache: ttl_cache(),
+            record_cache: ttl_cache(),
         }
     }
 
@@ -225,8 +228,50 @@ impl PalworldClient {
     }
 
     pub async fn user_roster(&self, discord_id: i64) -> Result<Arc<WorldRoster>> {
-        let dir = self.uploads_dir.join(discord_id.to_string());
-        self.roster_from(SourceKey::User(discord_id), &dir).await
+        self.roster_from(SourceKey::User(discord_id), &self.user_dir(discord_id))
+            .await
+    }
+
+    pub async fn player_record(
+        &self,
+        source: SourceKey,
+        uid: &str,
+    ) -> Result<Option<Arc<PlayerRecord>>> {
+        let dir = match source {
+            SourceKey::Shared => {
+                self.refresh_shared_if_stale().await;
+                self.save_dir.clone().ok_or(PalworldError::NoWorld)?
+            },
+            SourceKey::User(discord_id) => self.user_dir(discord_id),
+        };
+
+        let Some(path) = save::player_save_path(&dir, uid) else {
+            return Ok(None);
+        };
+        let Some(mtime) = file_mtime(&path) else { return Ok(None) };
+
+        let key = (source, uid.to_string(), mtime);
+        if let Some(cached) = self.record_cache.get(&key).await {
+            return Ok(Some(cached));
+        }
+
+        let uid_owned = uid.to_string();
+        let record = tokio::task::spawn_blocking(move || {
+            save::player::load_player(&dir, &uid_owned)
+        })
+        .await
+        .map_err(|e| {
+            PalworldError::Save(format!("player save parse task failed: {e}"))
+        })??;
+
+        let Some(record) = record else { return Ok(None) };
+        let record = Arc::new(record);
+        self.record_cache.insert(key, Arc::clone(&record)).await;
+        Ok(Some(record))
+    }
+
+    fn user_dir(&self, discord_id: i64) -> PathBuf {
+        self.uploads_dir.join(discord_id.to_string())
     }
 
     #[must_use]
@@ -239,11 +284,7 @@ impl PalworldClient {
         key: SourceKey,
         dir: &Path,
     ) -> Result<Arc<WorldRoster>> {
-        let mtime = std::fs::metadata(dir.join("Level.sav"))?
-            .modified()?
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_nanos())
-            .map_or(0, |n| u64::try_from(n).unwrap_or(u64::MAX));
+        let mtime = mtime_nanos(&std::fs::metadata(dir.join("Level.sav"))?);
 
         if let Some(cached) = self.roster_cache.get(&(key, mtime)).await {
             return Ok(cached);
@@ -292,17 +333,28 @@ impl PalworldClient {
     }
 
     async fn refresh_shared(pelican: &Pelican, save_dir: &Path) -> Result<()> {
+        let level = Self::refresh_shared_level(pelican, save_dir).await;
+
+        if let Err(e) = Self::refresh_shared_players(pelican, save_dir).await {
+            tracing::warn!(
+                error = %e,
+                "palworld: player save refresh failed; using last local copies"
+            );
+        }
+
+        level
+    }
+
+    async fn refresh_shared_level(pelican: &Pelican, save_dir: &Path) -> Result<()> {
         let remote_modified = pelican.level_modified().await?;
 
         let level_path = save_dir.join("Level.sav");
-        let local_modified = {
-            let level_path = level_path.clone();
+        let local_modified =
             tokio::task::spawn_blocking(move || local_mtime_secs(&level_path))
                 .await
                 .map_err(|e| {
                     PalworldError::Pelican(format!("mtime task failed: {e}"))
-                })?
-        };
+                })?;
 
         if remote_modified <= local_modified {
             return Ok(());
@@ -326,6 +378,72 @@ impl PalworldClient {
 
         Ok(())
     }
+
+    async fn refresh_shared_players(
+        pelican: &Pelican,
+        save_dir: &Path,
+    ) -> Result<()> {
+        let players_dir = save_dir.join("Players");
+
+        for remote in pelican.list_players().await? {
+            let local = players_dir.join(format!("{}.sav", remote.stem));
+            let local_modified =
+                tokio::task::spawn_blocking(move || local_mtime_secs(&local))
+                    .await
+                    .map_err(|e| {
+                        PalworldError::Pelican(format!("mtime task failed: {e}"))
+                    })?;
+            if remote.modified <= local_modified {
+                continue;
+            }
+
+            let bytes = match pelican.download_player(&remote.stem).await {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        player = remote.stem,
+                        "palworld: player save download failed"
+                    );
+                    continue;
+                },
+            };
+
+            let save_dir = save_dir.to_path_buf();
+            let stem = remote.stem.clone();
+            let is_storage = remote.is_storage;
+            let written = tokio::task::spawn_blocking(move || {
+                validate_player_file(&bytes, is_storage).map_err(|e| {
+                    PalworldError::Pelican(format!(
+                        "downloaded player save failed validation: {e}"
+                    ))
+                })?;
+                save::write_raw_player(&save_dir, &stem, &bytes)
+            })
+            .await
+            .map_err(|e| {
+                PalworldError::Pelican(format!("save write task failed: {e}"))
+            })?;
+
+            if let Err(e) = written {
+                tracing::warn!(
+                    error = %e,
+                    player = remote.stem,
+                    "palworld: keeping last local player save"
+                );
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn validate_player_file(bytes: &[u8], is_storage: bool) -> Result<()> {
+    if is_storage {
+        save::dps::parse(bytes).map(|_| ())
+    } else {
+        save::player::parse_player_uid(bytes).map(|_| ())
+    }
 }
 
 fn local_mtime_secs(level_path: &Path) -> i64 {
@@ -334,4 +452,15 @@ fn local_mtime_secs(level_path: &Path) -> i64 {
         .ok()
         .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+}
+
+fn mtime_nanos(meta: &std::fs::Metadata) -> u64 {
+    meta.modified()
+        .ok()
+        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+        .map_or(0, |d| u64::try_from(d.as_nanos()).unwrap_or(u64::MAX))
+}
+
+fn file_mtime(path: &Path) -> Option<u64> {
+    std::fs::metadata(path).ok().map(|m| mtime_nanos(&m))
 }

@@ -181,7 +181,7 @@ impl EmojiCache {
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,
-            HeaderValue::from_static(serenity::constants::USER_AGENT),
+            HeaderValue::from_static(serenity::http::SERENITY_USER_AGENT),
         );
 
         let Ok(auth_header) = HeaderValue::from_str(&format!("Bot {parent_token}"))

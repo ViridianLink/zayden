@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use gvas::GvasFile;
 use gvas::properties::Property;
 use gvas::properties::array_property::ArrayProperty;
+use gvas::properties::int_property::BytePropertyValue;
 use gvas::properties::map_property::MapProperty;
 use gvas::properties::struct_property::StructPropertyValue;
 use gvas::types::Guid;
@@ -13,9 +14,16 @@ use crate::model::{Gender, OwnedPal};
 
 #[derive(Debug, Default)]
 pub struct ExtractedWorld {
-    pub player_names: HashMap<String, String>,
+    pub players: HashMap<String, PlayerInfo>,
     pub pals: HashMap<String, Vec<OwnedPal>>,
     pub base_pals: Vec<BasePal>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PlayerInfo {
+    pub name: String,
+    pub level: i64,
+    pub exp: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -65,17 +73,16 @@ pub fn extract(level: &GvasFile) -> Result<ExtractedWorld> {
             if let (Some(uid), Some(name)) =
                 (key_player_uid(key), nickname(save_param))
             {
-                out.player_names.insert(uid, name);
+                out.players.insert(uid, PlayerInfo {
+                    name,
+                    level: int_field(save_param, "Level"),
+                    exp: int_field(save_param, "Exp"),
+                });
             }
             continue;
         }
 
-        let Some(species) = character_id(save_param) else { continue };
-        let pal = OwnedPal {
-            species,
-            gender: gender(save_param),
-            nickname: nickname(save_param),
-        };
+        let Some(pal) = owned_pal(save_param) else { continue };
 
         if let Some(owner) = owner_uid(save_param) {
             out.pals.entry(owner).or_default().push(pal);
@@ -87,7 +94,8 @@ pub fn extract(level: &GvasFile) -> Result<ExtractedWorld> {
     Ok(out)
 }
 
-pub(crate) const fn struct_fields(
+#[must_use]
+pub const fn struct_fields(
     prop: &Property,
 ) -> Option<&HashableIndexMap<String, Vec<Property>>> {
     let value = if let Property::StructProperty(s) = prop {
@@ -100,7 +108,8 @@ pub(crate) const fn struct_fields(
     if let StructPropertyValue::CustomStruct(m) = value { Some(m) } else { None }
 }
 
-pub(crate) fn custom_struct(
+#[must_use]
+pub fn custom_struct(
     prop: Option<&Property>,
 ) -> Option<&HashableIndexMap<String, Vec<Property>>> {
     struct_fields(prop?)
@@ -114,15 +123,45 @@ fn as_map(prop: &Property) -> Result<&MapProperty> {
     }
 }
 
-pub(crate) fn field<'a>(
+#[must_use]
+pub fn field<'a>(
     fields: &'a HashableIndexMap<String, Vec<Property>>,
     name: &str,
 ) -> Option<&'a Property> {
     fields.0.get(name).and_then(|v| v.first())
 }
 
+#[must_use]
+pub fn int_field(
+    fields: &HashableIndexMap<String, Vec<Property>>,
+    name: &str,
+) -> i64 {
+    match field(fields, name) {
+        Some(Property::IntProperty(i)) => i64::from(i.value),
+        Some(Property::Int64Property(i)) => i.value,
+        Some(Property::ByteProperty(b)) => match b.value {
+            BytePropertyValue::Byte(v) => i64::from(v),
+            BytePropertyValue::Namespaced(_) => 0,
+        },
+        _ => 0,
+    }
+}
+
+#[must_use]
+pub fn bool_field(
+    fields: &HashableIndexMap<String, Vec<Property>>,
+    name: &str,
+) -> bool {
+    matches!(field(fields, name), Some(Property::BoolProperty(b)) if b.value)
+}
+
 fn is_player(fields: &HashableIndexMap<String, Vec<Property>>) -> bool {
-    matches!(field(fields, "IsPlayer"), Some(Property::BoolProperty(b)) if b.value)
+    bool_field(fields, "IsPlayer")
+}
+
+fn stars(fields: &HashableIndexMap<String, Vec<Property>>) -> u8 {
+    let rank = int_field(fields, "Rank");
+    u8::try_from(rank.saturating_sub(1).clamp(0, 4)).unwrap_or(0)
 }
 
 fn character_id(fields: &HashableIndexMap<String, Vec<Property>>) -> Option<String> {
@@ -149,7 +188,25 @@ fn gender(fields: &HashableIndexMap<String, Vec<Property>>) -> Gender {
     }
 }
 
-fn owner_uid(fields: &HashableIndexMap<String, Vec<Property>>) -> Option<String> {
+#[must_use]
+pub fn owned_pal(
+    save_param: &HashableIndexMap<String, Vec<Property>>,
+) -> Option<OwnedPal> {
+    let species = character_id(save_param)?;
+    Some(OwnedPal {
+        is_alpha: species.to_ascii_uppercase().starts_with("BOSS_"),
+        is_lucky: bool_field(save_param, "IsRare"),
+        stars: stars(save_param),
+        species,
+        gender: gender(save_param),
+        nickname: nickname(save_param),
+    })
+}
+
+#[must_use]
+pub fn owner_uid(
+    fields: &HashableIndexMap<String, Vec<Property>>,
+) -> Option<String> {
     let bytes = guid_bytes(field(fields, "OwnerPlayerUId")?)?;
     (bytes != [0u8; 16]).then(|| hex_upper(&bytes))
 }
@@ -200,7 +257,8 @@ fn rawdata_bytes(val: &Property) -> Option<&[u8]> {
     }
 }
 
-pub(crate) fn hex_upper(bytes: &[u8]) -> String {
+#[must_use]
+pub fn hex_upper(bytes: &[u8]) -> String {
     use std::fmt::Write;
     bytes.iter().fold(String::with_capacity(bytes.len() * 2), |mut s, b| {
         let _ = write!(s, "{b:02X}");

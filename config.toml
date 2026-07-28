@@ -21,8 +21,8 @@ palcalc_url = "https://raw.githubusercontent.com/tylercamp/palcalc/main/PalCalc.
 uploads_dir = "palworld_uploads"
 
 [pelican]
-server_id = "14da478e"
-save_path = "/Pal/Saved/SaveGames/0/056C426C55974CFCA115EB695A224F67"
+server_id = "9e3e23c9"
+save_path = "/Pal/Saved/SaveGames/0/2DC13F3E524A4B1380CFA432C542A077"
 
 [entitlements.discord.skus]
 pro = 1234567890

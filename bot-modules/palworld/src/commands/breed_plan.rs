@@ -35,9 +35,8 @@ pub(super) async fn run(
         .pals
         .iter()
         .filter_map(|p| {
-            save::palmap::resolve_species(&p.species, &pals).map(|species| {
-                OwnedPal { species, gender: p.gender, nickname: p.nickname.clone() }
-            })
+            save::palmap::resolve_species(&p.species, &pals)
+                .map(|species| OwnedPal { species, ..p.clone() })
         })
         .collect();
 

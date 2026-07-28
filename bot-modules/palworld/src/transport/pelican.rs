@@ -5,6 +5,15 @@ use crate::error::{PalworldError, Result};
 
 const MAX_SAVE_BYTES: u64 = 64 * 1024 * 1024;
 
+const MAX_PLAYER_SAVE_BYTES: u64 = 4 * 1024 * 1024;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RemotePlayerSave {
+    pub stem: String,
+    pub modified: i64,
+    pub is_storage: bool,
+}
+
 #[derive(Debug, Clone)]
 pub struct Pelican {
     client: Client,
@@ -68,11 +77,11 @@ impl Pelican {
         format!("{}/api/client/servers/{}/{path}", self.base_url, self.server_id)
     }
 
-    pub async fn level_modified(&self) -> Result<i64> {
-        let resp: ListResponse = self
+    async fn list(&self, directory: &str) -> Result<ListResponse> {
+        let resp = self
             .client
             .get(self.endpoint("files/list"))
-            .query(&[("directory", self.save_path.as_str())])
+            .query(&[("directory", directory)])
             .bearer_auth(&self.api_key)
             .header(reqwest::header::ACCEPT, "application/json")
             .send()
@@ -80,6 +89,11 @@ impl Pelican {
             .error_for_status()?
             .json()
             .await?;
+        Ok(resp)
+    }
+
+    pub async fn level_modified(&self) -> Result<i64> {
+        let resp = self.list(&self.save_path).await?;
 
         let modified = resp
             .data
@@ -97,11 +111,46 @@ impl Pelican {
 
     pub async fn download_level(&self) -> Result<Vec<u8>> {
         let file = format!("{}/Level.sav", self.save_path.trim_end_matches('/'));
+        self.download(&file, MAX_SAVE_BYTES).await
+    }
 
+    pub async fn list_players(&self) -> Result<Vec<RemotePlayerSave>> {
+        let resp = self.list(&self.players_path()).await?;
+
+        Ok(resp
+            .data
+            .into_iter()
+            .filter_map(|f| {
+                let stem = f.attributes.name.strip_suffix(".sav")?;
+                let modified = f
+                    .attributes
+                    .modified_at
+                    .as_deref()
+                    .and_then(|raw| parse_modified_at(raw).ok())
+                    .unwrap_or(0);
+                Some(RemotePlayerSave {
+                    is_storage: stem.ends_with("_dps"),
+                    stem: stem.to_string(),
+                    modified,
+                })
+            })
+            .collect())
+    }
+
+    pub async fn download_player(&self, stem: &str) -> Result<Vec<u8>> {
+        let file = format!("{}/{stem}.sav", self.players_path());
+        self.download(&file, MAX_PLAYER_SAVE_BYTES).await
+    }
+
+    fn players_path(&self) -> String {
+        format!("{}/Players", self.save_path.trim_end_matches('/'))
+    }
+
+    async fn download(&self, file: &str, max_bytes: u64) -> Result<Vec<u8>> {
         let signed: SignedUrlResponse = self
             .client
             .get(self.endpoint("files/download"))
-            .query(&[("file", file.as_str())])
+            .query(&[("file", file)])
             .bearer_auth(&self.api_key)
             .header(reqwest::header::ACCEPT, "application/json")
             .send()
@@ -117,20 +166,19 @@ impl Pelican {
             .await?
             .error_for_status()?;
 
+        let too_large = |len: u64| {
+            PalworldError::Pelican(format!("remote save too large: {len} bytes"))
+        };
+
         if let Some(len) = resp.content_length()
-            && len > MAX_SAVE_BYTES
+            && len > max_bytes
         {
-            return Err(PalworldError::Pelican(format!(
-                "remote save too large: {len} bytes"
-            )));
+            return Err(too_large(len));
         }
 
         let bytes = resp.bytes().await?;
-        if bytes.len() as u64 > MAX_SAVE_BYTES {
-            return Err(PalworldError::Pelican(format!(
-                "remote save too large: {} bytes",
-                bytes.len()
-            )));
+        if bytes.len() as u64 > max_bytes {
+            return Err(too_large(bytes.len() as u64));
         }
         Ok(bytes.to_vec())
     }

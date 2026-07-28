@@ -1,28 +1,56 @@
 pub mod decompress;
+pub mod dps;
 pub mod extract;
 pub mod guild;
 pub mod gvas;
 pub mod palmap;
+pub mod player;
 
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-use crate::error::Result;
+use crate::error::{PalworldError, Result};
 use crate::model::{OwnedPal, PlayerRoster, WorldRoster};
+
+pub const GLOBAL_STORAGE_UID: &str = "00000000000000000000000001000000";
 
 pub fn validate_level(raw: &[u8]) -> Result<()> {
     let decompressed = decompress::decompress(raw)?;
-    gvas::read_gvas(&decompressed)?;
+    let file = gvas::read_gvas(&decompressed)?;
+    if !file.properties.0.contains_key("worldSaveData") {
+        return Err(PalworldError::Gvas(
+            "not a world save: missing worldSaveData".into(),
+        ));
+    }
     Ok(())
 }
 
 pub fn write_level_atomic(dir: &Path, bytes: &[u8]) -> Result<()> {
-    std::fs::create_dir_all(dir)?;
-    let tmp = dir.join("Level.sav.tmp");
-    let final_path = dir.join("Level.sav");
+    write_atomic(&dir.join("Level.sav"), bytes)
+}
+
+pub fn write_player_atomic(dir: &Path, uid: &str, bytes: &[u8]) -> Result<()> {
+    let stem = uid_to_filename(uid).unwrap_or_else(|| uid.to_string());
+    write_raw_player(dir, &stem, bytes)
+}
+
+pub fn write_raw_player(dir: &Path, stem: &str, bytes: &[u8]) -> Result<()> {
+    write_atomic(&dir.join("Players").join(format!("{stem}.sav")), bytes)
+}
+
+fn write_atomic(final_path: &Path, bytes: &[u8]) -> Result<()> {
+    if let Some(parent) = final_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp = final_path.with_extension("sav.tmp");
     std::fs::write(&tmp, bytes)?;
-    std::fs::rename(&tmp, &final_path)?;
+    std::fs::rename(&tmp, final_path)?;
     Ok(())
+}
+
+#[must_use]
+pub fn player_save_path(save_dir: &Path, uid: &str) -> Option<PathBuf> {
+    Some(save_dir.join("Players").join(format!("{}.sav", uid_to_filename(uid)?)))
 }
 
 pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
@@ -33,6 +61,13 @@ pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
     let extracted = extract::extract(&level)?;
     let guilds = guild::decode_guilds(&level);
 
+    let mut extracted = extracted;
+    extracted.pals.remove(GLOBAL_STORAGE_UID);
+    for (uid, mut stored) in dps::load_all(save_dir) {
+        extracted.pals.entry(uid).or_default().append(&mut stored);
+    }
+
+    let personal: HashMap<String, Vec<OwnedPal>> = extracted.pals.clone();
     let mut pals_by_uid: HashMap<String, Vec<OwnedPal>> = extracted.pals;
 
     for base in &extracted.base_pals {
@@ -54,23 +89,26 @@ pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
         }
     }
 
-    let mut uids: Vec<String> = extracted.player_names.keys().cloned().collect();
+    let mut uids: Vec<String> = extracted.players.keys().cloned().collect();
     uids.extend(pals_by_uid.keys().cloned());
     uids.extend(guilds.all_members().cloned());
     uids.extend(player_dir_uids(save_dir));
     uids.sort_unstable();
     uids.dedup();
+    uids.retain(|uid| uid != GLOBAL_STORAGE_UID);
 
     let mut players: Vec<PlayerRoster> = uids
         .into_iter()
         .map(|uid| {
-            let name = extracted
-                .player_names
-                .get(&uid)
-                .cloned()
-                .unwrap_or_else(|| uid.clone());
-            let pals = pals_by_uid.get(&uid).cloned().unwrap_or_default();
-            PlayerRoster { uid, name, pals }
+            let info = extracted.players.get(&uid);
+            PlayerRoster {
+                name: info.map_or_else(|| uid.clone(), |i| i.name.clone()),
+                level: info.map_or(0, |i| i.level),
+                exp: info.map_or(0, |i| i.exp),
+                personal_pals: personal.get(&uid).cloned().unwrap_or_default(),
+                pals: pals_by_uid.get(&uid).cloned().unwrap_or_default(),
+                uid,
+            }
         })
         .collect();
 
@@ -93,17 +131,18 @@ fn player_dir_uids(save_dir: &Path) -> Vec<String> {
         if stem.ends_with("_dps") {
             continue;
         }
-        if let Some(uid) = normalize_player_uid(stem) {
+        if let Some(uid) = uid_to_filename(stem) {
             uids.push(uid);
         }
     }
     uids
 }
 
-fn normalize_player_uid(stem: &str) -> Option<String> {
+#[must_use]
+pub fn uid_to_filename(uid: &str) -> Option<String> {
     let parsed: Option<Vec<u8>> = (0..16)
         .map(|i| {
-            stem.get(i * 2..i * 2 + 2).and_then(|p| u8::from_str_radix(p, 16).ok())
+            uid.get(i * 2..i * 2 + 2).and_then(|p| u8::from_str_radix(p, 16).ok())
         })
         .collect();
     let mut bytes: [u8; 16] = parsed?.try_into().ok()?;

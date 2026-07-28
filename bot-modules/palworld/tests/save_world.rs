@@ -1,9 +1,10 @@
 //! End-to-end `load_world` validation against the real world save.
 //!
 //! Gated on `PALWORLD_SAVE=1` (mirroring the `PALWORLD_LIVE=1` gate in
-//! `tests/live.rs`) so `cargo test` stays green in CI and offline. It parses the
-//! real `Level.sav` at `056C426C…/`, then confirms the two things the temporary
-//! `/palworld roster` harness existed to eyeball:
+//! `tests/live.rs`) because the Pal list is fetched over the network, not
+//! because of the save - that is the committed `progressed-world` fixture. It
+//! confirms the two things the temporary `/palworld roster` harness existed to
+//! eyeball:
 //!   1. at least one player has a non-empty, gendered roster, and
 //!   2. every owned `CharacterID` codename resolves to a `Pal.key` - proving the
 //!      `palmap` override table is complete for this save.
@@ -20,10 +21,8 @@ use palworld::model::Gender;
 use palworld::save::load_world;
 use palworld::save::palmap::resolve_species;
 
-fn save_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../056C426C55974CFCA115EB695A224F67")
-}
+pub mod common;
+use common::progressed_world as save_dir;
 
 fn client() -> PalworldClient {
     PalworldClient::new(
@@ -37,25 +36,14 @@ fn client() -> PalworldClient {
     )
 }
 
-/// Skip unless explicitly enabled *and* the save is decodable on disk.
+/// Skip unless explicitly enabled - these cases reach the network for the Pal
+/// list, which `cargo test` must not require.
 fn enabled() -> bool {
     if std::env::var("PALWORLD_SAVE").is_err() {
-        eprintln!("skipping: set PALWORLD_SAVE=1 to run the real-save fixture test");
+        eprintln!("skipping: set PALWORLD_SAVE=1 to run the network-backed cases");
         return false;
     }
-    match std::fs::read(save_dir().join("Level.sav")) {
-        Ok(raw) => match palworld::save::validate_level(&raw) {
-            Ok(()) => true,
-            Err(e) => {
-                eprintln!("skipping: save present but not decodable ({e})");
-                false
-            },
-        },
-        Err(e) => {
-            eprintln!("skipping: real save not present ({e})");
-            false
-        },
-    }
+    true
 }
 
 #[test]
@@ -90,16 +78,25 @@ fn load_world_yields_gendered_rosters() {
 }
 
 /// Codenames that legitimately have no breedable `Pal` and are expected to
-/// resolve to `None`: capturable human NPCs (soldiers, hunters, merchants) and
-/// `GrassBoss`, a special boss with no entry in `PalCalc`'s breeding DB. The
-/// command layer skips these when building a breeding roster.
+/// resolve to `None`: capturable human NPCs (soldiers, hunters, merchants,
+/// scientists) and `GrassBoss`, a special boss with no entry in `PalCalc`'s
+/// breeding DB. The command layer skips these when building a breeding roster.
+///
+/// Humans are recognisable by their character-blueprint naming - a `Male_`/
+/// `Female_` gendered prefix, or a role word where a species name would be - and
+/// none of them are listed as a Pal anywhere, which is why they are enumerated
+/// here rather than resolved.
 const NON_PAL_CODENAMES: &[&str] = &[
     "BOSS_Female_People03",
     "BOSS_Male_Soldier04",
+    "BOSS_Scientist_LaserRifle",
     "Believer_CrossBow",
+    "Female_Kunoichi01",
     "GrassBoss",
     "Hunter_Handgun",
     "Hunter_Rifle",
+    "Male_Angler01_v01",
+    "Male_Scientist01_LaserRifle",
     "PalDealer",
     "RandomEventShop",
 ];

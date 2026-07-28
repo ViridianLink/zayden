@@ -10,7 +10,7 @@ workspace = true
 
 [dependencies]
 async-trait = { workspace = true }
-base64 = { workspace = true }
+base64 = { workspace = true, features = ["std"] }
 jiff-cron = { workspace = true }
 serenity = { workspace = true, features = ["rustls_backend", "gateway"] }
 serde = { workspace = true }

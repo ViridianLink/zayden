@@ -39,6 +39,13 @@ pub enum PalworldError {
          expired). Ask them to re-upload, or `/palworld unlink`."
     )]
     LinkedWorldGone,
+    #[error(
+        "No player save is loaded for **{player}**, and progress is recorded \
+         there rather than in `Level.sav`. Upload `Players/{file}.sav` from the \
+         same folder with `/palworld upload` - or, on a shared world, ask \
+         whoever hosts it to upload the `Players` folder."
+    )]
+    NoPlayerSave { player: String, file: String },
 
     #[error("FlareSolverr error: {0}")]
     FlareSolverr(String),
@@ -75,6 +82,7 @@ impl Respond for PalworldError {
             | Self::LinkNotSameGuild
             | Self::LinkHostNoWorld
             | Self::LinkedWorldGone
+            | Self::NoPlayerSave { .. }
             | Self::Upload(_) => Some(Cow::Owned(self.to_string())),
             Self::Save(_) | Self::Gvas(_) | Self::Io(_) => Some(Cow::Borrowed(
                 "Couldn't read the world save. If it's your upload, re-upload a \

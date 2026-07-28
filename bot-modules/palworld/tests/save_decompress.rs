@@ -1,17 +1,17 @@
 //! `save::decompress` - the `.sav` outer-wrapper codec.
 //!
-//! The real `PlM`/Oodle `Level.sav` decompress is asserted when the save
-//! folder is present (mirroring the gated live tests); the synthetic `PlZ`
-//! round-trip and the malformed-header rejections always run so `cargo test`
-//! stays green offline.
+//! The real `PlM`/Oodle `Level.sav` decompress is asserted against the
+//! committed `progressed-world` fixture; the synthetic `PlZ` round-trip and the
+//! malformed-header rejections cover the wrappers no real save on hand uses.
 
 use std::io::Write;
-use std::path::PathBuf;
 
 use flate2::Compression;
 use flate2::write::ZlibEncoder;
 use palworld::error::PalworldError;
 use palworld::save::decompress::decompress;
+
+pub mod common;
 
 const GVAS_MAGIC: &[u8; 4] = b"GVAS";
 
@@ -67,13 +67,8 @@ fn truncated_header_is_rejected() {
 
 #[test]
 fn real_oodle_level_sav_decompresses_to_gvas() {
-    // The save dir lives at the workspace root, two levels up from the crate.
-    let level = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../056C426C55974CFCA115EB695A224F67/Level.sav");
-    let Ok(raw) = std::fs::read(&level) else {
-        eprintln!("skipping: real save not present at {}", level.display());
-        return;
-    };
+    let level = common::progressed_world().join("Level.sav");
+    let raw = std::fs::read(&level).expect("fixture Level.sav");
 
     let out = decompress(&raw).expect("real PlM Level.sav decompresses");
     assert_eq!(

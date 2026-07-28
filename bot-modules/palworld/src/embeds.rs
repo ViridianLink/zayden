@@ -15,6 +15,7 @@ use serenity::all::{
 };
 
 use crate::model::{Element, Item, Pal, PassiveSkill};
+use crate::progress::{Milestone, Progress, Region};
 
 const MAX_LEAVES: usize = 25;
 
@@ -350,12 +351,33 @@ pub fn breed_plan_unreachable_component(target: &Pal) -> CreateComponent<'static
     )])
 }
 
-pub fn upload_confirm_component(expires: &str) -> CreateComponent<'static> {
-    container(vec![text(format!(
+pub fn upload_confirm_component(
+    expires: &str,
+    player_saves: usize,
+) -> CreateComponent<'static> {
+    let mut body = String::from(
         "# ✅ Save uploaded\nYour `Level.sav` is now your private world for \
-         `/palworld roster` and `/palworld breed-plan`.\n-# Expires {expires}. \
-         Re-upload any time to refresh it."
-    ))])
+         `/palworld roster` and `/palworld breed-plan`.",
+    );
+    let _ = match player_saves {
+        0 => write!(
+            body,
+            "\n-# Add a `Players/<id>.sav` from the same folder to unlock \
+             `/palworld progress`."
+        ),
+        1 => write!(
+            body,
+            "\n-# 1 player save stored — `/palworld progress` is ready."
+        ),
+        n => write!(
+            body,
+            "\n-# {n} player saves stored — `/palworld progress` is ready."
+        ),
+    };
+    let _ =
+        write!(body, "\n-# Expires {expires}. Re-upload any time to refresh it.");
+
+    container(vec![text(body)])
 }
 
 pub fn upload_cooldown_component(
@@ -380,8 +402,174 @@ pub fn upload_cooldown_component(
 pub fn upload_invalid_component(reason: &str) -> CreateComponent<'static> {
     container(vec![text(format!(
         "# Upload rejected\n{reason}\n-# Upload the `Level.sav` from your world's \
-         save folder."
+         save folder, optionally with your `Players/<id>.sav` from the same \
+         folder."
     ))])
+}
+
+const BAR_CELLS: usize = 10;
+
+fn progress_bar(have: usize, total: usize) -> String {
+    let filled = if total == 0 {
+        BAR_CELLS
+    } else {
+        (have.min(total) * BAR_CELLS).div_ceil(total).min(BAR_CELLS)
+    };
+    format!("{}{}", "▰".repeat(filled), "▱".repeat(BAR_CELLS - filled))
+}
+
+fn milestone_line(milestone: &Milestone) -> String {
+    let mut line = match (milestone.total, milestone.fraction()) {
+        (Some(total), Some(fraction)) => format!(
+            "{} `{:>4}/{:<4}` **{}** ({:.0}%)",
+            progress_bar(milestone.have, total),
+            milestone.have,
+            total,
+            milestone.label,
+            fraction * 100.0,
+        ),
+        _ => format!("`{:>9}` **{}**", milestone.have, milestone.label),
+    };
+    if milestone.is_complete() {
+        line.push_str(" ✅");
+    }
+    if let Some(note) = &milestone.note {
+        let _ = write!(line, "\n-# {note}");
+    }
+    line
+}
+
+const fn map_icon(map: Region) -> &'static str {
+    match map {
+        Region::Palpagos => "🏝️",
+        Region::WorldTree => "🌳",
+    }
+}
+
+fn milestone_lines(milestones: &[&Milestone]) -> String {
+    milestones.iter().map(|m| milestone_line(m)).collect::<Vec<_>>().join("\n")
+}
+
+pub fn progress_component(progress: &Progress) -> CreateComponent<'static> {
+    let mut header = format!(
+        "# {} — {:.0}% complete",
+        progress.player,
+        progress.overall() * 100.0
+    );
+    if progress.level > 0 {
+        let _ = write!(header, "\n-# Level {}", progress.level);
+    }
+    if progress.game_cleared {
+        header.push_str(" · 🏆 story cleared");
+    }
+
+    let mut components = vec![text(header), separator()];
+
+    for map in Region::ALL {
+        let (ranked, counted): (Vec<_>, Vec<_>) =
+            progress.on_map(map).partition(|m| m.total.is_some());
+        if ranked.is_empty() && counted.is_empty() {
+            continue;
+        }
+
+        let mut section = format!("## {} {}", map_icon(map), map.label());
+        if let Some(fraction) = progress.map_overall(map) {
+            let _ = write!(section, " — {:.0}%", fraction * 100.0);
+        }
+        if !progress.is_unlocked(map) {
+            let _ = write!(section, "\n-# 🔒 Not discovered yet.");
+        }
+        for lines in [ranked, counted] {
+            if !lines.is_empty() {
+                let _ = write!(section, "\n{}", milestone_lines(&lines));
+            }
+        }
+        components.push(text(section));
+    }
+
+    let (ranked, counted): (Vec<_>, Vec<_>) =
+        progress.global().partition(|m| m.total.is_some());
+    if !ranked.is_empty() {
+        components.push(separator());
+        components.push(text(format!(
+            "## Across both maps\n{}",
+            milestone_lines(&ranked)
+        )));
+    }
+    if !counted.is_empty() {
+        components.push(separator());
+        components
+            .push(text(format!("### Also tracked\n{}", milestone_lines(&counted))));
+    }
+
+    components.push(text(
+        "-# Your own Paldeck and captures — guild and shared-storage Pals are \
+         not counted.\n-# `/palworld progress category:` lists what's still \
+         missing.",
+    ));
+
+    container(components)
+}
+
+const MAX_MISSING: usize = 25;
+
+pub fn progress_detail_component(
+    progress: &Progress,
+    milestone: &Milestone,
+) -> CreateComponent<'static> {
+    let mut header = format!("# {} — {}", progress.player, milestone.label);
+    if let Some(map) = milestone.map {
+        let _ = write!(header, " · {} {}", map_icon(map), map.label());
+    }
+    let _ = match (milestone.total, milestone.fraction()) {
+        (Some(total), Some(fraction)) => write!(
+            header,
+            "\n{} **{}/{}** ({:.0}%)",
+            progress_bar(milestone.have, total),
+            milestone.have,
+            total,
+            fraction * 100.0
+        ),
+        _ => write!(header, "\n**{}**", milestone.have),
+    };
+    if let Some(note) = &milestone.note {
+        let _ = write!(header, "\n-# {note}");
+    }
+
+    let mut components = vec![text(header), separator()];
+
+    if milestone.missing.is_empty() {
+        components.push(text(if milestone.is_complete() {
+            "### ✅ Nothing left\nThis one's finished.".to_string()
+        } else {
+            "### Nothing to list\nThis milestone has no catalogue of entries to \
+             diff against."
+                .to_string()
+        }));
+        return container(components);
+    }
+
+    let lines: Vec<String> = milestone
+        .missing
+        .iter()
+        .take(MAX_MISSING)
+        .map(|entry| match entry.coords {
+            Some((x, y)) => format!("- {} `({x}, {y})`", entry.name),
+            None => format!("- {}", entry.name),
+        })
+        .collect();
+
+    let hidden = milestone.missing.len().saturating_sub(lines.len());
+    let mut body = format!("### Still missing\n{}", lines.join("\n"));
+    if hidden > 0 {
+        let _ = write!(body, "\n-# …and {hidden} more.");
+    }
+    if milestone.missing.iter().any(|e| e.coords.is_some()) {
+        body.push_str("\n-# Coordinates are in-game map coordinates.");
+    }
+
+    components.push(text(body));
+    container(components)
 }
 
 pub fn type_component(

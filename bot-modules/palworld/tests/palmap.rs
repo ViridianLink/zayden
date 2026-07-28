@@ -66,6 +66,25 @@ fn falls_back_to_display_name() {
     assert_eq!(resolve_species("Lamball", &pals()).as_deref(), Some("SheepBall"));
 }
 
+/// A boss's companion Pal is the same species as the boss it escorts, so the
+/// `_otomo` suffix comes off - but only after an exact match has been tried, or
+/// a species whose own key ended that way would be mis-resolved.
+#[test]
+fn otomo_suffix_is_stripped() {
+    assert_eq!(
+        resolve_species("BOSS_SheepBall_otomo", &pals()).as_deref(),
+        Some("SheepBall"),
+    );
+
+    let mut with_otomo = pals();
+    with_otomo.push(pal("SheepBall_otomo", "Companion Lamball"));
+    assert_eq!(
+        resolve_species("BOSS_SheepBall_otomo", &with_otomo).as_deref(),
+        Some("SheepBall_otomo"),
+        "an exact key wins over the trimmed one",
+    );
+}
+
 #[test]
 fn unknown_codename_resolves_to_none() {
     // Human NPC records (BOSS_Male_Soldier04, …) have no Pal and are skipped.

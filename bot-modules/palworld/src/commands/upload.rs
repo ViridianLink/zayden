@@ -28,6 +28,8 @@ use crate::{embeds, save};
 pub(super) const MODAL_ID: &str = "palworld_save_upload";
 const FILE_ID: &str = "save";
 
+const MAX_FILES: u8 = 8;
+
 pub(super) async fn open_modal(cx: &InvocationCtx<'_>, pool: &PgPool) -> Result<()> {
     let discord_id = as_i64(cx.interaction.user.id.get());
     let tier = cx.app.entitlements.user_tier(cx.interaction.user.id.get()).await;
@@ -54,11 +56,12 @@ pub(super) async fn open_modal(cx: &InvocationCtx<'_>, pool: &PgPool) -> Result<
         return Ok(());
     }
 
-    let file_upload = CreateFileUpload::new(FILE_ID).max_values(1).required(true);
+    let file_upload =
+        CreateFileUpload::new(FILE_ID).max_values(MAX_FILES).required(true);
     let modal =
-        CreateModal::new(MODAL_ID, "Upload your Level.sav").components(vec![
+        CreateModal::new(MODAL_ID, "Upload your world save").components(vec![
             CreateModalComponent::Label(CreateLabel::file_upload(
-                "Level.sav",
+                "Level.sav — add your Players/<id>.sav for /palworld progress",
                 file_upload,
             )),
         ]);
@@ -92,74 +95,147 @@ pub(super) async fn submit(
         .await;
     }
 
-    let Some(attachment) = find_attachment(cx.interaction) else {
+    let attachments = find_attachments(cx.interaction);
+    if attachments.is_empty() {
         return respond(
             cx,
             embeds::upload_invalid_component("No file was attached."),
         )
         .await;
-    };
-
-    if !attachment.filename.to_lowercase().ends_with(".sav") {
-        return respond(
-            cx,
-            embeds::upload_invalid_component("That isn't a `.sav` file."),
-        )
-        .await;
     }
-    if u64::from(attachment.size) > quota.max_bytes {
-        return respond(
-            cx,
-            embeds::upload_invalid_component(&format!(
-                "That save is larger than {} MB.",
-                quota.max_megabytes()
-            )),
-        )
-        .await;
-    }
-
-    let bytes =
-        download(&cx.app.http, attachment.url.as_str(), quota.max_bytes).await?;
 
     let dir = client.uploads_dir().join(discord_id.to_string());
-    let file_path = dir.join("Level.sav").to_string_lossy().into_owned();
+    let mut level_stored = false;
+    let mut players_stored = 0usize;
 
-    let result = tokio::task::spawn_blocking(move || -> Result<()> {
-        save::validate_level(&bytes).map_err(|e| {
-            PalworldError::Upload(format!(
-                "that file isn't a readable Palworld save ({e})"
-            ))
-        })?;
-        save::write_level_atomic(&dir, &bytes)
-    })
-    .await
-    .map_err(|e| PalworldError::Upload(format!("store task failed: {e}")))?;
-
-    if let Err(e) = result {
-        if let PalworldError::Upload(reason) = &e {
-            return respond(cx, embeds::upload_invalid_component(reason)).await;
+    for attachment in attachments {
+        if !attachment.filename.to_lowercase().ends_with(".sav") {
+            return reject(
+                cx,
+                &format!("`{}` isn't a `.sav` file.", attachment.filename),
+            )
+            .await;
         }
-        return Err(e);
+        if u64::from(attachment.size) > quota.max_bytes {
+            return reject(
+                cx,
+                &format!(
+                    "`{}` is larger than {} MB.",
+                    attachment.filename,
+                    quota.max_megabytes()
+                ),
+            )
+            .await;
+        }
+
+        let bytes =
+            download(&cx.app.http, attachment.url.as_str(), quota.max_bytes).await?;
+
+        let dir = dir.clone();
+        let filename = attachment.filename.to_string();
+        let name = filename.clone();
+        let stored = tokio::task::spawn_blocking(move || store(&dir, &name, &bytes))
+            .await
+            .map_err(|e| PalworldError::Upload(format!("store task failed: {e}")))?;
+
+        match stored {
+            Ok(Stored::Level) => level_stored = true,
+            Ok(Stored::Player | Stored::Storage) => players_stored += 1,
+            Err(PalworldError::Upload(reason)) => {
+                return reject(cx, &format!("`{filename}`: {reason}")).await;
+            },
+            Err(e) => return Err(e),
+        }
     }
 
+    if !level_stored {
+        let existing = SaveUpload::select(pool, discord_id).await?;
+        if existing.is_none_or(|u| u.is_expired()) {
+            return reject(
+                cx,
+                "None of those files was a `Level.sav`. Upload your world's \
+                 `Level.sav` - a player save alone can't be read.",
+            )
+            .await;
+        }
+    }
+
+    let file_path = dir.join("Level.sav").to_string_lossy().into_owned();
     let stored = SaveUpload::upsert(pool, discord_id, &file_path).await?;
     let expires = format!("<t:{}:R>", stored.expires_at.to_jiff().as_second());
-    respond(cx, embeds::upload_confirm_component(&expires)).await
+    respond(cx, embeds::upload_confirm_component(&expires, players_stored)).await
 }
 
-fn find_attachment(interaction: &ModalInteraction) -> Option<&Attachment> {
-    interaction.data.components.iter().find_map(|component| {
-        let ModalComponent::Label(label) = component else {
-            return None;
-        };
-        let LabelComponent::FileUpload(file_upload) = &label.component else {
-            return None;
-        };
-        file_upload
-            .values
-            .iter()
-            .find_map(|id| interaction.data.resolved.attachments.get(id))
-    })
+enum Stored {
+    Level,
+    Player,
+    Storage,
+}
+
+fn store(dir: &std::path::Path, filename: &str, bytes: &[u8]) -> Result<Stored> {
+    if save::validate_level(bytes).is_ok() {
+        save::write_level_atomic(dir, bytes)?;
+        return Ok(Stored::Level);
+    }
+
+    if let Ok(uid) = save::player::parse_player_uid(bytes) {
+        save::write_player_atomic(dir, &uid, bytes)?;
+        return Ok(Stored::Player);
+    }
+
+    match save::dps::parse(bytes) {
+        Ok(stored) => {
+            save::write_raw_player(dir, &storage_stem(filename, &stored), bytes)?;
+            Ok(Stored::Storage)
+        },
+        Err(e) => Err(PalworldError::Upload(format!(
+            "that isn't a readable Palworld world, player or Pal storage save \
+             ({e})"
+        ))),
+    }
+}
+
+fn storage_stem(
+    filename: &str,
+    stored: &std::collections::HashMap<String, Vec<crate::model::OwnedPal>>,
+) -> String {
+    let stem = filename.trim_end_matches(".sav").trim_end_matches(".SAV");
+    if let Some(uid) = stem.strip_suffix("_dps")
+        && uid.len() == 32
+        && uid.chars().all(|c| c.is_ascii_hexdigit())
+    {
+        return format!("{}_dps", uid.to_ascii_uppercase());
+    }
+
+    let owner = stored
+        .keys()
+        .min()
+        .and_then(|uid| save::uid_to_filename(uid))
+        .unwrap_or_else(|| "00000000000000000000000000000000".to_string());
+    format!("{owner}_dps")
+}
+
+fn find_attachments(interaction: &ModalInteraction) -> Vec<&Attachment> {
+    interaction
+        .data
+        .components
+        .iter()
+        .filter_map(|component| {
+            let ModalComponent::Label(label) = component else {
+                return None;
+            };
+            let LabelComponent::FileUpload(file_upload) = &label.component else {
+                return None;
+            };
+            Some(&file_upload.values)
+        })
+        .flatten()
+        .filter_map(|id| interaction.data.resolved.attachments.get(id))
+        .collect()
+}
+
+async fn reject(cx: &ModalCtx<'_>, reason: &str) -> Result<()> {
+    respond(cx, embeds::upload_invalid_component(reason)).await
 }
 
 async fn download(
@@ -188,10 +264,6 @@ async fn download(
     Ok(bytes.to_vec())
 }
 
-// Only upsell Free users toward Pro. Ultra is temporarily unlisted on the
-// upgrade page (it doesn't yet justify its price), so a Pro user sent there
-// would find nothing to buy — don't upsell them. Widen back to `Tier::Ultra`
-// when Ultra is re-listed (see `Tier::PAID_LADDER` in the dashboard).
 fn upsell_url(app: &AppState, tier: Tier) -> Option<&str> {
     (tier < Tier::Pro).then_some(app.upgrade_url.as_deref()).flatten()
 }

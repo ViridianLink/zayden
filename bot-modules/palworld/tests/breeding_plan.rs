@@ -8,7 +8,7 @@ use palworld::breeding::BreedingIndex;
 use palworld::model::{Gender, OwnedPal};
 
 fn pal(species: &str, gender: Gender) -> OwnedPal {
-    OwnedPal { species: species.to_string(), gender, nickname: None }
+    OwnedPal { species: species.to_string(), gender, ..OwnedPal::default() }
 }
 
 fn base_costs(entries: &[(&str, i64)]) -> HashMap<String, i64> {
