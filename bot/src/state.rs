@@ -9,7 +9,11 @@ use marathon::client::MarathonClient;
 use marathon::cron::{MarathonAnnounceCron, MarathonNewsCron};
 use music::{MusicManager, TrackResolver};
 use palworld::client::PalworldClient;
-use palworld::cron::PalworldUploadSweepCron;
+use palworld::cron::{
+    PalworldSaveRefreshCron,
+    PalworldUploadSweepCron,
+    PalworldWarmCron,
+};
 use palworld::transport::Pelican;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
@@ -108,6 +112,8 @@ impl BotState {
                 Some(self.marathon_bungie_api_key.clone()),
             ),
             PalworldUploadSweepCron::cron_job(),
+            PalworldSaveRefreshCron::cron_job(Arc::clone(&self.palworld)),
+            PalworldWarmCron::cron_job(Arc::clone(&self.palworld)),
             EntitlementSweepCron::cron_job(),
         ];
         for job in jobs {

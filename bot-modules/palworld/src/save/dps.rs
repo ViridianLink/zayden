@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use gvas::properties::Property;
 use gvas::properties::array_property::ArrayProperty;
@@ -10,45 +10,62 @@ use super::extract::{field, owned_pal, owner_uid, struct_fields};
 use crate::error::Result;
 use crate::model::OwnedPal;
 
-#[must_use]
-pub fn load_all(save_dir: &Path) -> HashMap<String, Vec<OwnedPal>> {
-    let mut out: HashMap<String, Vec<OwnedPal>> = HashMap::new();
+pub type StoredPals = HashMap<String, Vec<OwnedPal>>;
 
+#[must_use]
+pub fn list_files(save_dir: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(save_dir.join("Players")) else {
-        return out;
+        return Vec::new();
     };
 
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if !name.ends_with("_dps.sav") {
-            continue;
-        }
+    entries
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.ends_with("_dps.sav"))
+        })
+        .collect()
+}
 
-        let parsed = std::fs::read(&path)
-            .map_err(crate::error::PalworldError::from)
-            .and_then(|raw| parse(&raw));
+pub fn load_file(path: &Path) -> Result<StoredPals> {
+    let raw = std::fs::read(path)?;
+    parse(&raw)
+}
 
-        match parsed {
-            Ok(pals) => {
-                for (uid, mut owned) in pals {
-                    out.entry(uid).or_default().append(&mut owned);
-                }
-            },
-            Err(e) => tracing::warn!(
-                error = %e,
-                file = name,
-                "palworld: skipping unreadable Pal storage save",
-            ),
+#[must_use]
+pub fn load_all(save_dir: &Path) -> StoredPals {
+    let paths = list_files(save_dir);
+    let mut out = StoredPals::new();
+
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = paths
+            .iter()
+            .map(|path| scope.spawn(move || (path, load_file(path))))
+            .collect();
+
+        for handle in handles {
+            let Ok((path, parsed)) = handle.join() else { continue };
+            match parsed {
+                Ok(pals) => {
+                    for (uid, mut owned) in pals {
+                        out.entry(uid).or_default().append(&mut owned);
+                    }
+                },
+                Err(e) => tracing::warn!(
+                    error = %e,
+                    file = %path.display(),
+                    "palworld: skipping unreadable Pal storage save",
+                ),
+            }
         }
-    }
+    });
 
     out
 }
 
-pub fn parse(raw: &[u8]) -> Result<HashMap<String, Vec<OwnedPal>>> {
+pub fn parse(raw: &[u8]) -> Result<StoredPals> {
     let file = super::gvas::read_gvas(&decompress::decompress(raw)?)?;
 
     let Some(Property::ArrayProperty(ArrayProperty::Structs { structs, .. })) =
@@ -57,7 +74,7 @@ pub fn parse(raw: &[u8]) -> Result<HashMap<String, Vec<OwnedPal>>> {
         return Ok(HashMap::new());
     };
 
-    let mut out: HashMap<String, Vec<OwnedPal>> = HashMap::new();
+    let mut out = StoredPals::new();
     for slot in structs {
         let StructPropertyValue::CustomStruct(fields) = slot else { continue };
         let Some(save_param) =

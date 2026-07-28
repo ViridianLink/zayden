@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
 use sqlx::PgPool;
 use tokio::sync::broadcast;
@@ -8,6 +9,25 @@ use tokio::sync::broadcast::Sender;
 use crate::config::{BotConfig, SettingsRegistry};
 use crate::entitlement::{EntitlementService, Tier};
 use crate::events::AppEvent;
+
+const HTTP_TIMEOUT: Duration = Duration::from_secs(30);
+
+const HTTP_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
+
+fn http_client() -> reqwest::Client {
+    reqwest::Client::builder()
+        .timeout(HTTP_TIMEOUT)
+        .connect_timeout(HTTP_CONNECT_TIMEOUT)
+        .build()
+        .unwrap_or_else(|e| {
+            tracing::warn!(
+                error = %e,
+                "failed to build the shared HTTP client; falling back to the \
+                 default (no timeout)"
+            );
+            reqwest::Client::new()
+        })
+}
 
 pub struct AppState {
     pub db: PgPool,
@@ -60,7 +80,7 @@ impl AppState {
             settings,
             entitlements,
             events,
-            http: reqwest::Client::new(),
+            http: http_client(),
             ai_provider_key: config.ai_provider_key.clone(),
             ai_api_endpoint: config.ai_api_endpoint.clone(),
             ai_model: config.ai_model.clone(),

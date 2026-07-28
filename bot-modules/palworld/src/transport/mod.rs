@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 mod cloudflare;
 mod fandom;
 mod palcalc;
@@ -5,6 +7,8 @@ mod paldb;
 mod paldex;
 mod palworldgg;
 mod pelican;
+
+pub(crate) const SOURCE_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub use fandom::Fandom;
 pub use palcalc::{

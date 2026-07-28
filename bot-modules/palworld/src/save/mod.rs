@@ -7,10 +7,12 @@ pub mod palmap;
 pub mod player;
 
 use std::collections::HashMap;
+use std::hash::BuildHasher;
 use std::path::{Path, PathBuf};
 
 use crate::error::{PalworldError, Result};
-use crate::model::{OwnedPal, PlayerRoster, WorldRoster};
+use crate::model::{OwnedPal, PlayerName, PlayerRoster, WorldRoster};
+use crate::save::dps::StoredPals;
 
 pub const GLOBAL_STORAGE_UID: &str = "00000000000000000000000001000000";
 
@@ -53,24 +55,73 @@ pub fn player_save_path(save_dir: &Path, uid: &str) -> Option<PathBuf> {
     Some(save_dir.join("Players").join(format!("{}.sav", uid_to_filename(uid)?)))
 }
 
-pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
-    let level_path = save_dir.join("Level.sav");
-    let raw = std::fs::read(&level_path)?;
+fn read_level(
+    save_dir: &Path,
+) -> Result<(extract::ExtractedWorld, guild::GuildData)> {
+    let raw = std::fs::read(save_dir.join("Level.sav"))?;
     let decompressed = decompress::decompress(&raw)?;
     let level = gvas::read_gvas(&decompressed)?;
     let extracted = extract::extract(&level)?;
     let guilds = guild::decode_guilds(&level);
+    Ok((extracted, guilds))
+}
 
-    let mut extracted = extracted;
-    extracted.pals.remove(GLOBAL_STORAGE_UID);
-    for (uid, mut stored) in dps::load_all(save_dir) {
-        extracted.pals.entry(uid).or_default().append(&mut stored);
+fn roster_uids<'a>(
+    players: &HashMap<String, extract::PlayerInfo>,
+    guilds: &guild::GuildData,
+    pal_owners: impl Iterator<Item = &'a String>,
+    save_dir: &Path,
+) -> Vec<String> {
+    let mut uids: Vec<String> = players.keys().cloned().collect();
+    uids.extend(pal_owners.cloned());
+    uids.extend(guilds.all_members().cloned());
+    uids.extend(player_dir_uids(save_dir));
+    uids.sort_unstable();
+    uids.dedup();
+    uids.retain(|uid| uid != GLOBAL_STORAGE_UID);
+    uids
+}
+
+pub fn load_player_names(save_dir: &Path) -> Result<Vec<PlayerName>> {
+    let (extracted, guilds) = read_level(save_dir)?;
+    let uids =
+        roster_uids(&extracted.players, &guilds, extracted.pals.keys(), save_dir);
+
+    let mut players: Vec<PlayerName> = uids
+        .into_iter()
+        .map(|uid| {
+            let name = extracted
+                .players
+                .get(&uid)
+                .map_or_else(|| uid.clone(), |i| i.name.clone());
+            PlayerName::new(uid, name)
+        })
+        .collect();
+
+    players.sort_by(|a, b| a.search_key.cmp(&b.search_key));
+    Ok(players)
+}
+
+pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
+    load_world_with(save_dir, dps::load_all(save_dir))
+}
+
+pub fn load_world_with<S: BuildHasher>(
+    save_dir: &Path,
+    stored: HashMap<String, Vec<OwnedPal>, S>,
+) -> Result<WorldRoster> {
+    let (extracted, guilds) = read_level(save_dir)?;
+    let extract::ExtractedWorld { players: info, mut pals, base_pals } = extracted;
+
+    pals.remove(GLOBAL_STORAGE_UID);
+    for (uid, mut owned) in stored {
+        pals.entry(uid).or_default().append(&mut owned);
     }
 
-    let personal: HashMap<String, Vec<OwnedPal>> = extracted.pals.clone();
-    let mut pals_by_uid: HashMap<String, Vec<OwnedPal>> = extracted.pals;
+    let personal: StoredPals = pals.clone();
+    let mut pals_by_uid: StoredPals = pals;
 
-    for base in &extracted.base_pals {
+    for base in &base_pals {
         match guilds.guild_of(&base.last_owner) {
             Some(gid) => {
                 for member in guilds.members(gid) {
@@ -89,18 +140,12 @@ pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
         }
     }
 
-    let mut uids: Vec<String> = extracted.players.keys().cloned().collect();
-    uids.extend(pals_by_uid.keys().cloned());
-    uids.extend(guilds.all_members().cloned());
-    uids.extend(player_dir_uids(save_dir));
-    uids.sort_unstable();
-    uids.dedup();
-    uids.retain(|uid| uid != GLOBAL_STORAGE_UID);
+    let uids = roster_uids(&info, &guilds, pals_by_uid.keys(), save_dir);
 
     let mut players: Vec<PlayerRoster> = uids
         .into_iter()
         .map(|uid| {
-            let info = extracted.players.get(&uid);
+            let info = info.get(&uid);
             PlayerRoster {
                 name: info.map_or_else(|| uid.clone(), |i| i.name.clone()),
                 level: info.map_or(0, |i| i.level),

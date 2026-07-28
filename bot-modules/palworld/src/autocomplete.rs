@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use serenity::all::{
     AutocompleteChoice,
@@ -8,10 +9,12 @@ use serenity::all::{
 };
 use zayden_core::{AutocompleteCtx, as_i64, parse_subcommand};
 
-use crate::client::PalworldClient;
+use crate::client::{PalworldClient, SourceKey};
 use crate::error::{PalworldError, Result};
-use crate::model::WorldRoster;
+use crate::model::PlayerName;
 use crate::upload::SaveUpload;
+
+const CHOICE_BUDGET: Duration = Duration::from_millis(2_500);
 
 pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()> {
     let (name, sub_options) = parse_subcommand(cx.interaction.data.options())
@@ -55,24 +58,27 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
         })
         .flatten();
 
-    let choices: Vec<AutocompleteChoice<'static>> = if is_player_field {
-        let discord_id = as_i64(cx.interaction.user.id.get());
-        player_roster(client, &cx.app.db, discord_id, host)
-            .await
-            .map(|roster| {
-                roster
-                    .players
-                    .iter()
-                    .filter(|p| p.name.to_lowercase().contains(&query_lower))
-                    .take(25)
-                    .map(|p| AutocompleteChoice::new(p.name.clone(), p.name.clone()))
-                    .collect()
-            })
-            .unwrap_or_default()
-    } else {
+    let build = async {
+        if is_player_field {
+            let discord_id = as_i64(cx.interaction.user.id.get());
+            return player_names(client, &cx.app.db, discord_id, host)
+                .await
+                .map(|players| {
+                    players
+                        .iter()
+                        .filter(|p| p.search_key.contains(&query_lower))
+                        .take(25)
+                        .map(|p| {
+                            AutocompleteChoice::new(p.name.clone(), p.name.clone())
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+        }
+
         match name {
             "pal" | "breeding" | "breed-for" | "breed-plan" => client
-                .pals()
+                .pals_basic()
                 .await
                 .map(|items| {
                     filter_choices(items.iter(), &query_lower, |p| (&p.key, &p.name))
@@ -96,6 +102,16 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
         }
     };
 
+    let choices =
+        tokio::time::timeout(CHOICE_BUDGET, build).await.unwrap_or_else(|_| {
+            tracing::warn!(
+                command = name,
+                field = focused_name,
+                "palworld: autocomplete exceeded its budget; answering empty",
+            );
+            Vec::new()
+        });
+
     cx.interaction
         .create_response(
             &cx.ctx.http,
@@ -108,24 +124,24 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
     Ok(())
 }
 
-async fn player_roster(
+async fn player_names(
     client: &PalworldClient,
     pool: &sqlx::PgPool,
     discord_id: i64,
     host: Option<i64>,
-) -> Result<Arc<WorldRoster>> {
+) -> Result<Arc<[PlayerName]>> {
     if let Some(host) = host
         && let Some(upload) = SaveUpload::select(pool, host).await?
         && !upload.is_expired()
     {
-        return client.user_roster(host).await;
+        return client.player_names(SourceKey::User(host)).await;
     }
     if let Some(upload) = SaveUpload::select(pool, discord_id).await?
         && !upload.is_expired()
     {
-        return client.user_roster(discord_id).await;
+        return client.player_names(SourceKey::User(discord_id)).await;
     }
-    client.roster().await
+    client.player_names(SourceKey::Shared).await
 }
 
 fn filter_choices<'a, T: 'a>(

@@ -237,6 +237,20 @@ pub struct PlayerRoster {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PlayerName {
+    pub uid: String,
+    pub name: String,
+    pub search_key: String,
+}
+
+impl PlayerName {
+    #[must_use]
+    pub fn new(uid: String, name: String) -> Self {
+        Self { search_key: name.to_lowercase(), name, uid }
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct WorldRoster {
     pub players: Vec<PlayerRoster>,
 }

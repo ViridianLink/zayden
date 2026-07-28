@@ -1,7 +1,7 @@
 use reqwest::Client;
 use serde::Deserialize;
 
-use super::BreedingMap;
+use super::{BreedingMap, SOURCE_TIMEOUT};
 use crate::error::Result;
 
 pub const DEFAULT_PALCALC_BASE: &str =
@@ -173,6 +173,7 @@ impl PalCalc {
         let value = self
             .client
             .get(&url)
+            .timeout(SOURCE_TIMEOUT)
             .header(reqwest::header::USER_AGENT, BROWSER_USER_AGENT)
             .send()
             .await?

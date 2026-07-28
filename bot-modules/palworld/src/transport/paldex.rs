@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use reqwest::Client;
 use serde::Deserialize;
 
+use super::SOURCE_TIMEOUT;
 use crate::error::Result;
 
 pub const DEFAULT_BASE: &str =
@@ -156,6 +157,7 @@ impl Paldex {
         let value = self
             .client
             .get(&url)
+            .timeout(SOURCE_TIMEOUT)
             .header(reqwest::header::USER_AGENT, BROWSER_USER_AGENT)
             .send()
             .await?

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -9,7 +10,8 @@ use tokio::sync::Mutex;
 
 use crate::breeding::BreedingIndex;
 use crate::error::{PalworldError, Result};
-use crate::model::{Item, Pal, PassiveSkill, WorldRoster};
+use crate::model::{Element, Item, Pal, PassiveSkill, PlayerName, WorldRoster};
+use crate::save::dps::StoredPals;
 use crate::save::player::PlayerRecord;
 use crate::source::SourceId;
 use crate::transport::{Fandom, PalCalc, PalDb, Paldex, PalworldGg, Pelican};
@@ -45,12 +47,16 @@ pub struct PalworldClient {
     pelican: Option<Pelican>,
     refresh_lock: Mutex<Option<Instant>>,
 
+    pal_basic_cache: Cache<(), Arc<[Pal]>>,
+    elements_cache: Cache<(), Arc<HashMap<String, Vec<Element>>>>,
     pal_list_cache: Cache<(), Arc<[Pal]>>,
     pal_cache: Cache<String, Arc<Pal>>,
     item_list_cache: Cache<(), Arc<[Item]>>,
     passive_list_cache: Cache<(), Arc<[PassiveSkill]>>,
     breeding_cache: Cache<(), Arc<BreedingIndex>>,
     roster_cache: Cache<(SourceKey, u64), Arc<WorldRoster>>,
+    names_cache: Cache<(SourceKey, u64), Arc<[PlayerName]>>,
+    dps_cache: Cache<(PathBuf, u64), Arc<StoredPals>>,
     record_cache: Cache<(SourceKey, String, u64), Arc<PlayerRecord>>,
 }
 
@@ -75,50 +81,79 @@ impl PalworldClient {
             uploads_dir,
             pelican,
             refresh_lock: Mutex::new(None),
+            pal_basic_cache: ttl_cache(),
+            elements_cache: ttl_cache(),
             pal_list_cache: ttl_cache(),
             pal_cache: ttl_cache(),
             item_list_cache: ttl_cache(),
             passive_list_cache: ttl_cache(),
             breeding_cache: ttl_cache(),
             roster_cache: ttl_cache(),
+            names_cache: ttl_cache(),
+            dps_cache: ttl_cache(),
             record_cache: ttl_cache(),
         }
     }
 
+    pub async fn pals_basic(&self) -> Result<Arc<[Pal]>> {
+        self.pal_basic_cache
+            .try_get_with((), async {
+                let raw = self.palcalc.pals().await?;
+                Ok::<_, PalworldError>(
+                    raw.into_iter().map(parse::pal_from_palcalc).collect(),
+                )
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
+    }
+
+    pub async fn elements(&self) -> Option<Arc<HashMap<String, Vec<Element>>>> {
+        self.elements_cache
+            .try_get_with((), async {
+                self.palworldgg
+                    .elements_index()
+                    .await
+                    .map(Arc::new)
+                    .ok_or(PalworldError::SourceUnavailable)
+            })
+            .await
+            .ok()
+    }
+
     pub async fn pals(&self) -> Result<Arc<[Pal]>> {
-        if let Some(cached) = self.pal_list_cache.get(&()).await {
-            return Ok(cached);
-        }
-        let raw = self.palcalc.pals().await?;
-        let mut pals: Vec<Pal> =
-            raw.into_iter().map(parse::pal_from_palcalc).collect();
+        self.pal_list_cache
+            .try_get_with((), async {
+                let mut pals: Vec<Pal> = self.pals_basic().await?.to_vec();
 
-        if let Some(index) = self.palworldgg.elements_index().await {
-            for pal in &mut pals {
-                if let Some(elements) = index.get(&parse::gg_slug(&pal.name)) {
-                    pal.elements.clone_from(elements);
+                if let Some(index) = self.elements().await {
+                    for pal in &mut pals {
+                        if let Some(elements) = index.get(&parse::gg_slug(&pal.name))
+                        {
+                            pal.elements.clone_from(elements);
+                        }
+                    }
                 }
-            }
-        }
 
-        let pals: Arc<[Pal]> = pals.into();
-        self.pal_list_cache.insert((), Arc::clone(&pals)).await;
-        Ok(pals)
+                Ok::<_, PalworldError>(pals.into())
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
     }
 
     pub async fn pal(&self, key: &str) -> Result<Arc<Pal>> {
-        if let Some(cached) = self.pal_cache.get(key).await {
-            return Ok(cached);
-        }
-
-        let pals = self.pals().await?;
-        let base = pals.iter().find(|p| p.key == key).cloned().ok_or_else(|| {
-            PalworldError::NotFound { entity: "pal", query: key.to_string() }
-        })?;
-
-        let enriched = Arc::new(self.enrich_pal(base).await);
-        self.pal_cache.insert(key.to_string(), Arc::clone(&enriched)).await;
-        Ok(enriched)
+        self.pal_cache
+            .try_get_with(key.to_string(), async {
+                let pals = self.pals().await?;
+                let base = pals.iter().find(|p| p.key == key).cloned().ok_or_else(
+                    || PalworldError::NotFound {
+                        entity: "pal",
+                        query: key.to_string(),
+                    },
+                )?;
+                Ok::<_, PalworldError>(Arc::new(self.enrich_pal(base).await))
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
     }
 
     async fn enrich_pal(&self, base: Pal) -> Pal {
@@ -161,13 +196,15 @@ impl PalworldClient {
     }
 
     pub async fn items(&self) -> Result<Arc<[Item]>> {
-        if let Some(cached) = self.item_list_cache.get(&()).await {
-            return Ok(cached);
-        }
-        let raw = self.paldex.items().await?;
-        let items: Arc<[Item]> = raw.into_iter().map(parse::item_from_raw).collect();
-        self.item_list_cache.insert((), Arc::clone(&items)).await;
-        Ok(items)
+        self.item_list_cache
+            .try_get_with((), async {
+                let raw = self.paldex.items().await?;
+                Ok::<_, PalworldError>(
+                    raw.into_iter().map(parse::item_from_raw).collect(),
+                )
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
     }
 
     pub async fn item(&self, key: &str) -> Result<Item> {
@@ -184,18 +221,18 @@ impl PalworldClient {
     }
 
     pub async fn passives(&self) -> Result<Arc<[PassiveSkill]>> {
-        if let Some(cached) = self.passive_list_cache.get(&()).await {
-            return Ok(cached);
-        }
-        let raw = self.paldex.passives().await?;
-        let mut passives: Vec<PassiveSkill> = raw
-            .into_iter()
-            .map(|(key, value)| parse::passive_from_raw(key, value))
-            .collect();
-        passives.sort_by_key(|p| p.name.to_lowercase());
-        let passives: Arc<[PassiveSkill]> = passives.into();
-        self.passive_list_cache.insert((), Arc::clone(&passives)).await;
-        Ok(passives)
+        self.passive_list_cache
+            .try_get_with((), async {
+                let raw = self.paldex.passives().await?;
+                let mut passives: Vec<PassiveSkill> = raw
+                    .into_iter()
+                    .map(|(key, value)| parse::passive_from_raw(key, value))
+                    .collect();
+                passives.sort_by_key(|p| p.name.to_lowercase());
+                Ok::<_, PalworldError>(passives.into())
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
     }
 
     pub async fn passive(&self, key: &str) -> Result<PassiveSkill> {
@@ -212,17 +249,17 @@ impl PalworldClient {
     }
 
     pub async fn breeding_index(&self) -> Result<Arc<BreedingIndex>> {
-        if let Some(cached) = self.breeding_cache.get(&()).await {
-            return Ok(cached);
-        }
-        let map = self.palcalc.breeding().await?;
-        let index = Arc::new(BreedingIndex::from_map(map));
-        self.breeding_cache.insert((), Arc::clone(&index)).await;
-        Ok(index)
+        self.breeding_cache
+            .try_get_with((), async {
+                let map = self.palcalc.breeding().await?;
+                Ok::<_, PalworldError>(Arc::new(BreedingIndex::from_map(map)))
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
     }
 
     pub async fn roster(&self) -> Result<Arc<WorldRoster>> {
-        let save_dir = self.save_dir.clone().ok_or(PalworldError::NoWorld)?;
+        let save_dir = self.source_dir(SourceKey::Shared)?;
         self.refresh_shared_if_stale().await;
         self.roster_from(SourceKey::Shared, &save_dir).await
     }
@@ -230,6 +267,43 @@ impl PalworldClient {
     pub async fn user_roster(&self, discord_id: i64) -> Result<Arc<WorldRoster>> {
         self.roster_from(SourceKey::User(discord_id), &self.user_dir(discord_id))
             .await
+    }
+
+    pub async fn player_names(
+        &self,
+        source: SourceKey,
+    ) -> Result<Arc<[PlayerName]>> {
+        let dir = self.source_dir(source)?;
+        let mtime = level_mtime(&dir).await?;
+
+        self.names_cache
+            .try_get_with((source, mtime), async {
+                let load_dir = dir.clone();
+                let names = tokio::task::spawn_blocking(move || {
+                    save::load_player_names(&load_dir)
+                })
+                .await
+                .map_err(|e| {
+                    PalworldError::Save(format!("name index task failed: {e}"))
+                })?
+                .inspect_err(|e| {
+                    tracing::error!(
+                        error = %e,
+                        dir = %dir.display(),
+                        "failed to read player names",
+                    );
+                })?;
+                Ok::<_, PalworldError>(names.into())
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
+    }
+
+    fn source_dir(&self, source: SourceKey) -> Result<PathBuf> {
+        match source {
+            SourceKey::Shared => self.save_dir.clone().ok_or(PalworldError::NoWorld),
+            SourceKey::User(discord_id) => Ok(self.user_dir(discord_id)),
+        }
     }
 
     pub async fn player_record(
@@ -284,15 +358,16 @@ impl PalworldClient {
         key: SourceKey,
         dir: &Path,
     ) -> Result<Arc<WorldRoster>> {
-        let mtime = mtime_nanos(&std::fs::metadata(dir.join("Level.sav"))?);
+        let mtime = level_mtime(dir).await?;
 
-        if let Some(cached) = self.roster_cache.get(&(key, mtime)).await {
-            return Ok(cached);
-        }
+        self.roster_cache
+            .try_get_with((key, mtime), async {
+                let stored = self.storage_pals(dir).await;
 
-        let load_dir = dir.to_path_buf();
-        let roster =
-            tokio::task::spawn_blocking(move || save::load_world(&load_dir))
+                let load_dir = dir.to_path_buf();
+                let roster = tokio::task::spawn_blocking(move || {
+                    save::load_world_with(&load_dir, stored)
+                })
                 .await
                 .map_err(|e| {
                     PalworldError::Save(format!("save parse task failed: {e}"))
@@ -305,9 +380,97 @@ impl PalworldClient {
                     );
                 })?;
 
-        let roster = Arc::new(roster);
-        self.roster_cache.insert((key, mtime), Arc::clone(&roster)).await;
-        Ok(roster)
+                Ok::<_, PalworldError>(Arc::new(roster))
+            })
+            .await
+            .map_err(|e| PalworldError::from_shared(&e))
+    }
+
+    async fn storage_pals(&self, dir: &Path) -> StoredPals {
+        let mut out = StoredPals::new();
+        let mut merge = |pals: &StoredPals| {
+            for (uid, owned) in pals {
+                out.entry(uid.clone()).or_default().extend_from_slice(owned);
+            }
+        };
+
+        let mut pending = Vec::new();
+        for path in save::dps::list_files(dir) {
+            let Some(mtime) = file_mtime(&path) else { continue };
+
+            if let Some(cached) = self.dps_cache.get(&(path.clone(), mtime)).await {
+                merge(&cached);
+                continue;
+            }
+
+            let load_path = path.clone();
+            let handle = tokio::task::spawn_blocking(move || {
+                save::dps::load_file(&load_path)
+            });
+            pending.push((path, mtime, handle));
+        }
+
+        for (path, mtime, handle) in pending {
+            let parsed = match handle.await {
+                Ok(Ok(pals)) => Arc::new(pals),
+                Ok(Err(e)) => {
+                    tracing::warn!(
+                        error = %e,
+                        file = %path.display(),
+                        "palworld: skipping unreadable Pal storage save",
+                    );
+                    continue;
+                },
+                Err(e) => {
+                    tracing::warn!(
+                        error = %e,
+                        file = %path.display(),
+                        "palworld: Pal storage parse task failed",
+                    );
+                    continue;
+                },
+            };
+
+            merge(&parsed);
+            self.dps_cache.insert((path, mtime), parsed).await;
+        }
+
+        out
+    }
+
+    pub async fn refresh_shared_save(&self) {
+        self.refresh_shared_if_stale().await;
+    }
+
+    pub async fn warm(&self) {
+        let (pals, items, passives, breeding) = tokio::join!(
+            self.pals(),
+            self.items(),
+            self.passives(),
+            self.breeding_index(),
+        );
+
+        for (source, result) in [
+            ("pals", pals.err()),
+            ("items", items.err()),
+            ("passives", passives.err()),
+            ("breeding", breeding.err()),
+        ] {
+            if let Some(e) = result {
+                tracing::warn!(error = %e, source, "palworld: cache warm failed");
+            }
+        }
+
+        self.warm_player_names().await;
+    }
+
+    pub async fn warm_player_names(&self) {
+        if self.save_dir.is_none() {
+            return;
+        }
+        if let Err(e) = self.player_names(SourceKey::Shared).await {
+            tracing::warn!(error = %e, "palworld: player name warm failed");
+        }
     }
 
     async fn refresh_shared_if_stale(&self) {
@@ -452,6 +615,11 @@ fn local_mtime_secs(level_path: &Path) -> i64 {
         .ok()
         .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
         .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+}
+
+async fn level_mtime(dir: &Path) -> Result<u64> {
+    let meta = tokio::fs::metadata(dir.join("Level.sav")).await?;
+    Ok(mtime_nanos(&meta))
 }
 
 fn mtime_nanos(meta: &std::fs::Metadata) -> u64 {

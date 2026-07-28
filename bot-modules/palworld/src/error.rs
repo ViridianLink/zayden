@@ -71,6 +71,38 @@ pub enum PalworldError {
     Sqlx(#[from] sqlx::Error),
 }
 
+impl PalworldError {
+    #[must_use]
+    pub fn from_shared(shared: &std::sync::Arc<Self>) -> Self {
+        match &**shared {
+            Self::SourceUnavailable => Self::SourceUnavailable,
+            Self::NotFound { entity, query } => {
+                Self::NotFound { entity, query: query.clone() }
+            },
+            Self::UnknownElement(e) => Self::UnknownElement(e.clone()),
+            Self::NoWorld => Self::NoWorld,
+            Self::NotLinked => Self::NotLinked,
+            Self::LinkNotSameGuild => Self::LinkNotSameGuild,
+            Self::LinkHostNoWorld => Self::LinkHostNoWorld,
+            Self::LinkedWorldGone => Self::LinkedWorldGone,
+            Self::NoPlayerSave { player, file } => {
+                Self::NoPlayerSave { player: player.clone(), file: file.clone() }
+            },
+            Self::FlareSolverr(m) => Self::FlareSolverr(m.clone()),
+            Self::Parse(m) => Self::Parse(m.clone()),
+            Self::Save(m) => Self::Save(m.clone()),
+            Self::Gvas(m) => Self::Gvas(m.clone()),
+            Self::Pelican(m) => Self::Pelican(m.clone()),
+            Self::Upload(m) => Self::Upload(m.clone()),
+
+            e @ Self::Io(_) => Self::Save(e.to_string()),
+            e @ (Self::Reqwest(_) | Self::Serenity(_) | Self::Sqlx(_)) => {
+                Self::Parse(e.to_string())
+            },
+        }
+    }
+}
+
 impl Respond for PalworldError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {

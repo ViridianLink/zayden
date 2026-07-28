@@ -1,4 +1,5 @@
 use std::num::NonZeroU16;
+use std::sync::Arc;
 
 use serenity::all::{Context, OnlineStatus, Ready};
 use tracing::info;
@@ -25,6 +26,9 @@ impl Handler {
             if ready.application.id.get() == self.app.zayden_id {
                 self.bot_state.write().await.setup_static_cron();
             }
+
+            let palworld = Arc::clone(&self.bot_state.read().await.palworld);
+            tokio::spawn(async move { palworld.warm().await });
 
             let ctx = ctx.clone();
             let pool = self.app.db.clone();
