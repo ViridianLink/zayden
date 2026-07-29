@@ -222,8 +222,27 @@ hygiene), then **structural enablers** that unblock later fixes. The three
 | 17 | [bot DS-1](bot.md) — level-up coin reward lost on co-future error | med | Reward silently dropped. |
 | 18 | [bot DS-2](bot.md) — orphaned `moderation` tree | med | **Decide first: revive or delete.** Dead feature + 3 latent bugs. Likely a `wontfix`/delete, not a fix. |
 | 19 | Remaining `DS-#` (music, marathon, reaction-roles, family DS-2, temp-voice DS-2, ticket DS-2) | low-med → low | Work down by severity. |
-| 20 | Structural `CC-1` (generic `async_trait` managers → concrete `PgPool`) | high (effort) | Large, cross-crate; schedule deliberately — it *camouflages* race hazards, so pairs well with the CC-9 work. |
-| 21 | `CC-8` dashboard migrations, `CC-2`/`CC-5`/`CC-3` hygiene, per-module test gaps (`#6`) | med → low | Lowest urgency; batch by theme, still one finding per task. |
+| 20 | ~~Structural `CC-1` (generic `async_trait` managers → concrete `PgPool`)~~ | — | **Done.** Closed piecemeal by the eight per-module migrations; umbrella reconciled 2026-07-29. Its `bot` #3 sub-item closed with it. |
+| 21 | `CC-8` dashboard migrations, ~~`CC-2`/`CC-5`/`CC-3` hygiene~~, per-module test gaps (`#6` / `CC-6`) | med → low | Lowest urgency; batch by theme, still one finding per task. `CC-2` (`de1238d8`), `CC-5` (`6049775d`) and `CC-3` (`3d787146`) are done. |
+
+**Queue status as of 2026-07-29 (`bf0d90ff`):** rows **1–20 are complete** — every
+deep-sweep `DS-#` finding in the workspace now carries a commit sha. What remains
+is the first-pass structural/hygiene backlog, which was never given status tags:
+
+| Finding | Sev | Note |
+|---------|-----|------|
+| [`CC-4`](_cross-cutting.md) — `RIGGED_LUCK` dead const + its `#[expect(dead_code)]` | low | **Half open.** The `GameState` half died with CC-1 (`83930148`); the `items.rs:192` half is still live — CC-3's record wrongly claimed it deleted. Smallest remaining task. |
+| [`CC-6`](_cross-cutting.md) — test-coverage gaps | med | `gold-star`, `llamad2`, `verify` still ship zero `tests/`. One crate per task. |
+| [`CC-7`](_cross-cutting.md) — `custom_id` string routing | low | Mechanical; `levels` already has `LevelsCustomId` (`04a8ab2b`) as the precedent. |
+| [`CC-8`](_cross-cutting.md) — dashboard config pages | med | Largest. The active-duplication half is closed (both `setup` commands removed); what's left is *building* music/ticket/suggestions/reaction-roles pages — feature work, not a defect fix. |
+| [`CC-9`](_cross-cutting.md) umbrella | high | Every enumerated site closed. `in-review` — **the human's call to close**, not an agent task. |
+
+> **Lesson recorded 2026-07-29:** the CC-1 reconcile found a fix note asserting a
+> deletion that never happened (CC-3 ↔ `RIGGED_LUCK`). A satisfied
+> `#[expect(dead_code)]` keeps the clippy gate green, so the gate cannot catch a
+> stale suppression — **reconcile fix records against the tree, not against the
+> record.** Prefer citing a `path:line` or `git log -S` check in a fix note over
+> asserting an outcome.
 
 > **Note on #7 (CC-9):** do not "fix" a race by swapping one absolute overwrite
 > for another. The cross-cutting record distinguishes **read-modify-write +

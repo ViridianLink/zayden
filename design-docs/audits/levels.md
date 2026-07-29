@@ -143,7 +143,11 @@ pattern before the larger crates.
   `cargo machete`. One-line change; no behaviour delta expected.
 
 ### DS-1. Message XP is a read-modify-write persisted as a whole-row absolute overwrite (and the 1-minute cooldown is checked only in memory)  ·  Pass 8 (CC-9 sweep)  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — bf0d90ff`            <!-- open | in-progress | in-review | complete | wontfix -->
+  <!-- Reconciled 2026-07-29: marker was left at `in-review` after the human
+       committed. `bf0d90ff` ("Refactor levels module to use atomic SQL
+       operations for XP accrual") carries manager.rs, message_create.rs,
+       tests/accrual.rs, the .sqlx delta and this file's fix note. -->
 - **Fix (2026-07-29):** As suggested. Both `save` methods are **removed** (the
   DS-13/DS-14 precedent: delete the absolute-write helper rather than leave it
   callable) and replaced by `FullLevelRow::accrue_message` /

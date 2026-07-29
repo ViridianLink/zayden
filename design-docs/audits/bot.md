@@ -40,6 +40,18 @@ tests (no lib target).
   [CC-2](_cross-cutting.md#cc-2).
 
 ### 3. Concrete SQL for CC-1 modules lives here  ·  #1  ·  med (tracked in CC-1)
+- **Status:** `complete — with CC-1`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-07-29):** Closed as a sub-item of
+  [CC-1](_cross-cutting.md#cc-1), whose per-module migrations moved each
+  module's SQL home. Verified on `bf0d90ff`: **no
+  `impl XxxManager<Postgres> for XxxTable` bodies remain** anywhere in
+  `bot/src/bindings/`, and the only `query!`/`query_as!`/`query_scalar!` call
+  sites left under `bindings/` are in `moderation/{mod,rules,infraction}.rs`.
+- **Residual (deliberate, not a CC-1 leftover):** the `moderation` SQL stays in
+  `bot/`. `moderation` is **not a crate** — it is a set of bindings under
+  `bot/src/bindings/moderation/` ([`README.md:130`](README.md)) — so there is no
+  module crate for its SQL to move into, and it never used a DB-generic manager
+  trait. Extracting it into its own crate would be a new finding, not this one.
 - **Where:** `src/bindings/{gambling,levels,gold_star,family,…}/…` —
   `impl XxxManager<Postgres> for XxxTable` bodies.
 - **What:** Because the manager traits are DB-generic, each module's SQL is

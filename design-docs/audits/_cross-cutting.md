@@ -24,7 +24,41 @@ served by the website — and two `setup` commands already duplicate its writes.
 ## Findings
 
 ### CC-1. DB-generic `async_trait` manager pattern (should be concrete `PgPool`)  ·  #1  ·  high
+- **Status:** `complete — per-module, see below`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-07-29):** No fix was performed by this task — CC-1 was
+  **already fully closed** by the per-module migrations that each cited it, and
+  never had its umbrella status tag set. All eight enumerated modules went
+  concrete:
 
+  | Module | Commit |
+  |--------|--------|
+  | `gambling` | `83930148` |
+  | `family` | `5ac30447` |
+  | `lfg` | `240b47e5` |
+  | `temp-voice` | `611d350b` |
+  | `levels` | `04a8ab2b` |
+  | `reaction-roles` | `c7c535de` |
+  | `suggestions` | `b4bb8582` |
+  | `gold-star` | `c2b4c4cf` |
+
+  **Verified against `bf0d90ff`:** a workspace grep for `<Db`, `Db:`,
+  `Database>`, and `Pool<` (non-`PgPool`) returns **zero** hits in `src/` — the
+  only matches are a doc-comment in `family/tests/manager.rs` describing the
+  migration, and two unrelated field initialisers (`MarathonDb`, `PalDb`).
+  `levels/src/sqlx_lib.rs` is gone, `gold-star/src/manager.rs` is a plain
+  `PgPool` + `FromRow` module, and `zayden-core/src/` carries no manager traits.
+  `async-trait` remains a dependency of only `bot`, `zayden-core`, `music` and
+  `zayden-app`; all eight module crates dropped it.
+- **Not part of this finding (correctly left alone):** the surviving
+  `#[async_trait]` sites are the `ModuleCommand` / `ModuleComponent` /
+  `ModuleModal` / `ModuleAutocomplete` impls in `bot/src/bindings/*`, declared in
+  `zayden-core/src/module.rs`. Those **must** stay boxed — they are consumed as
+  trait objects (`Arc<dyn ModuleCommand>`, `DispatchMap<dyn ModuleComponent>` at
+  `bot/src/registry/mod.rs:31-34`), which native `async fn` in traits does not
+  support. They are the manual serenity routing framework `CLAUDE.md` mandates,
+  not the DB-generic manager pattern this finding describes. Likewise the
+  non-DB `async_trait` traits in `music/src/resolve/` and
+  `zayden-app/src/entitlement/provider/`.
 - **Where:** manager traits declared `<Db: Database>` / `Pool<Db>` and only ever
   implemented for `Postgres`. Present in: `gambling` (pervasive — `models/*`,
   `commands/*`, `games/*`), `family` (`family_manager.rs` + all commands),
@@ -105,6 +139,16 @@ served by the website — and two `setup` commands already duplicate its writes.
   below are gone, replaced by sites in `gambling`/`levels`/`lfg`/`temp-voice`).
   **10 suppressions removed, 17 remain**, all of the remaining now carrying a
   `reason` that states a real invariant rather than a deferral.
+  **Corrected 2026-07-29: 9 removed, 18 remain** — the `RIGGED_LUCK` deletion
+  claimed below never landed (see the struck-through entry). The live inventory
+  on `bf0d90ff` is **24** attributes, which reconciles exactly:
+  18 (CC-3 survivors) + 6 added *after* this fix by the palworld save-editor
+  work (`palworld/src/progress/mod.rs` ×5 and `palworld/tests/progress.rs` ×1,
+  all introduced with the file in `0f309783`, 2026-07-28 — a legitimate new
+  addition, not a CC-3 regression). Spot-checked and **confirmed landed**: the
+  other 9 removals (`GameEmbed<'a>` in `utils.rs:85`, `GIFT_AMOUNT` in
+  `gift.rs:35`, `prize_share: &[i64]` in `lotto.rs:101`, the one-field
+  `LeaveInteraction` in `leave.rs:17`, and the rest).
 
   **Removed by fixing the cause (10):**
   - `gambling/src/utils.rs:85` `too_many_arguments` → the 9-arg `game_embed` free
@@ -127,9 +171,15 @@ served by the website — and two `setup` commands already duplicate its writes.
     `i64::try_from(i128::from(jackpot) * i128::from(share) / 100)`, widened so the
     multiply cannot overflow. `tests/lotto.rs`'s exact-payout assertions
     (200k/300k/500k) pass unchanged, pinning the value equivalence.
-  - `gambling/src/common/shop/items.rs:192` `dead_code` → deleted the unused
+  - ~~`gambling/src/common/shop/items.rs:192` `dead_code` → deleted the unused
     `RIGGED_LUCK` const ("reserved for future implementation"). This is the
-    [CC-4](#cc-4) sub-item that lived in this file.
+    [CC-4](#cc-4) sub-item that lived in this file.~~
+    **CORRECTION (2026-07-29, CC-1 reconcile task): this claim is false — the
+    deletion never happened.** The `#[expect(dead_code)]` and the `RIGGED_LUCK`
+    const are both still at `items.rs:192-201` on `bf0d90ff`, and
+    `git log -S RIGGED_LUCK` on that file shows `3d787146` never touched it.
+    So **9 suppressions were removed here, not 10**, and the CC-4 sub-item that
+    lives in this file is still open. Tracked in [CC-4](#cc-4).
   - `levels/src/manager.rs` `cast_possible_truncation` → `FullLevelRow::save`
     binds `i32::try_from(self.total_xp).unwrap_or(i32::MAX)` (same for
     `message_count`) instead of `as i32`, so an over-large counter **saturates**
@@ -227,10 +277,38 @@ served by the website — and two `setup` commands already duplicate its writes.
     a suppression (removed by an earlier task); the inventory above is corrected.
 
 ### CC-4. `tictactoe` dead `GameState` stub  ·  #2  ·  low
-
-- **Where:** `bot-modules/gambling/src/commands/tictactoe.rs:175,182`
-  (`#[expect(clippy::future_not_send, reason = "dead code within GameState stub")]`)
-  and the `#[expect(dead_code, reason = "reserved for future implementation")]`
+- **Status:** `open` (half closed — see reconciliation)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-07-29):** CC-3's residual note asked for CC-4 to be
+  reconciled on its own. Doing that turned up a **factual error in CC-3's own
+  fix record**, so this finding is *not* closeable as written:
+  - **`GameState` half — closed by `83930148`.** The stub and both
+    `#[expect(clippy::future_not_send, reason = "dead code within GameState stub")]`
+    attributes are gone from the tree, and `GameState` now returns zero hits
+    workspace-wide. It was not deleted deliberately: the stub was itself
+    DB-generic (`struct GameState<Db: Database, Manager: GameManager<Db>>`), so
+    it died *with* the gambling [CC-1](#cc-1) migration. CC-3 was right that it
+    "no longer exists in the tree", but attributed it to no commit.
+  - **`items.rs` half — still live. CC-3's record is wrong here.** CC-3's fix
+    note claims `gambling/src/common/shop/items.rs:192` `dead_code` was
+    "**Removed** by fixing the cause … deleted the unused `RIGGED_LUCK` const".
+    It was not. `#[expect(dead_code, reason = "reserved for future
+    implementation")]` and the `RIGGED_LUCK` const are **both still present** at
+    `items.rs:192-201`, with the item still commented out of `SHOP_ITEMS`
+    (`items.rs:396`). `git log -S RIGGED_LUCK` on that file returns only the
+    original `78edaf90` — `3d787146` never touched it.
+  - **Why the gate never caught it:** the const genuinely *is* unused, so the
+    `#[expect(dead_code)]` is satisfied and
+    `clippy --workspace --all-targets -D warnings` stays green. A stale
+    suppression that is still doing its job is invisible to the gate — only
+    reading the record against the tree finds it.
+- **Remaining work:** delete `RIGGED_LUCK` (`items.rs:192-201`) and its
+  commented-out `SHOP_ITEMS` entry (`items.rs:396`), per the finding's own
+  "delete the dead stub" direction and the mandate's preference for the correct
+  end state over the low-churn path. One-crate change, `-p gambling`.
+- **Where:** ~~`bot-modules/gambling/src/commands/tictactoe.rs:175,182`
+  (`#[expect(clippy::future_not_send, reason = "dead code within GameState stub")]`)~~
+  — removed in `83930148`; **still live:** the
+  `#[expect(dead_code, reason = "reserved for future implementation")]`
   at `bot-modules/gambling/src/common/shop/items.rs:192`.
 - **What:** Self-described dead/stub code retained behind `#[expect]`.
 - **Why it matters:** Checklist #2 — soft stubs that compile but do nothing. They
