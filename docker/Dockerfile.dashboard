@@ -45,6 +45,9 @@ COPY --from=builder /app/target/release/dashboard /usr/local/bin/dashboard
 COPY --from=builder /app/target/site              /app/target/site
 COPY --from=builder /app/dashboard/Cargo.toml     /app/dashboard/Cargo.toml
 
+RUN mkdir -p /app/palworld_uploads \
+    && chown -R zayden:zayden /app
+
 ENV LEPTOS_ENV=PROD \
     LEPTOS_OUTPUT_NAME=dashboard \
     LEPTOS_SITE_ROOT=target/site \
