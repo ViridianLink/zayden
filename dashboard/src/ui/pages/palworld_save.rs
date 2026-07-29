@@ -13,6 +13,8 @@ const MAX_TRAITS: usize = 4;
 const MAX_LEVEL: i64 = 80;
 const MAX_TALENT: i64 = 100;
 
+const FALLBACK_EXPORT_NAME: &str = "Level_modified.sav";
+
 #[component]
 pub(crate) fn PalworldSavePage() -> impl IntoView {
     let roster = Resource::new(|| (), |()| get_save_roster());
@@ -30,7 +32,7 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
         set_status.set("Building save\u{2026}".to_string());
         leptos::task::spawn_local(async move {
             match download_export(&edits).await {
-                Ok(()) => set_status.set("Downloaded Level.sav.".to_string()),
+                Ok(name) => set_status.set(format!("Downloaded {name}.")),
                 Err(e) => set_status.set(format!("Export failed: {e}")),
             }
         });
@@ -303,8 +305,24 @@ const fn selected_values(_ev: &leptos::ev::Event) -> Vec<String> {
     Vec::new()
 }
 
+#[cfg(any(feature = "hydrate", test))]
+fn disposition_filename(raw: &str) -> Option<String> {
+    let name = raw
+        .split(';')
+        .filter_map(|part| part.trim().split_once('='))
+        .find_map(|(key, value)| {
+            key.eq_ignore_ascii_case("filename")
+                .then(|| value.trim().trim_matches('"'))
+        })?;
+
+    if name.is_empty() || name.contains(['/', '\\']) {
+        return None;
+    }
+    Some(name.to_string())
+}
+
 #[cfg(feature = "hydrate")]
-async fn download_export(edits: &SaveEdits) -> Result<(), String> {
+async fn download_export(edits: &SaveEdits) -> Result<String, String> {
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
 
@@ -330,6 +348,15 @@ async fn download_export(edits: &SaveEdits) -> Result<(), String> {
         return Err(format!("server returned {}", resp.status()));
     }
 
+    let filename = resp
+        .headers()
+        .get("content-disposition")
+        .ok()
+        .flatten()
+        .as_deref()
+        .and_then(disposition_filename)
+        .unwrap_or_else(|| FALLBACK_EXPORT_NAME.to_string());
+
     let blob: web_sys::Blob = JsFuture::from(resp.blob().map_err(|_e| "blob")?)
         .await
         .map_err(|_e| "blob")?
@@ -345,14 +372,40 @@ async fn download_export(edits: &SaveEdits) -> Result<(), String> {
         .dyn_into()
         .map_err(|_e| "anchor")?;
     anchor.set_href(&url);
-    anchor.set_download("Level.sav");
+    anchor.set_download(&filename);
     anchor.click();
     let _ = web_sys::Url::revoke_object_url(&url);
-    Ok(())
+    Ok(filename)
 }
 
 #[cfg(not(feature = "hydrate"))]
-async fn download_export(_edits: &SaveEdits) -> Result<(), String> {
+async fn download_export(_edits: &SaveEdits) -> Result<String, String> {
     std::future::ready(()).await;
-    Ok(())
+    Ok(FALLBACK_EXPORT_NAME.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::disposition_filename;
+
+    #[test]
+    fn reads_the_servers_modified_name() {
+        assert_eq!(
+            disposition_filename(
+                "attachment; filename=\"Level_modified_20260729-142530Z.sav\"",
+            )
+            .as_deref(),
+            Some("Level_modified_20260729-142530Z.sav"),
+        );
+    }
+
+    #[test]
+    fn rejects_paths_and_missing_names() {
+        assert_eq!(disposition_filename("attachment"), None);
+        assert_eq!(disposition_filename("attachment; filename=\"\""), None);
+        assert_eq!(
+            disposition_filename("attachment; filename=\"../Level.sav\""),
+            None,
+        );
+    }
 }

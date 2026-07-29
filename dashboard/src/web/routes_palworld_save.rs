@@ -2,6 +2,7 @@ use axum::Json;
 use axum::extract::{Extension, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use jiff::Timestamp;
 use palworld::save::edit::apply_edits;
 use tracing::warn;
 
@@ -63,12 +64,21 @@ pub(crate) async fn export_handler(
         },
     };
 
+    let filename = export_filename(Timestamp::now());
+
     (
         [
-            (header::CONTENT_TYPE, "application/octet-stream"),
-            (header::CONTENT_DISPOSITION, "attachment; filename=\"Level.sav\""),
+            (header::CONTENT_TYPE, "application/octet-stream".to_string()),
+            (
+                header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{filename}\""),
+            ),
         ],
         bytes,
     )
         .into_response()
+}
+
+fn export_filename(now: Timestamp) -> String {
+    format!("Level_modified_{}.sav", now.strftime("%Y%m%d-%H%M%SZ"))
 }
