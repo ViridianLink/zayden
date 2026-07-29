@@ -24,6 +24,7 @@ pub use commands::Commands;
 pub use commands::craft::{CraftCommit, CraftDelta, CraftManager, CraftRow};
 pub use commands::dig::{DigCommit, DigDelta, DigRow};
 pub use commands::goals::GoalsManager;
+pub use commands::prestige::{PrestigeManager, PrestigeRow};
 pub use commands::work::{WorkCommit, WorkDelta};
 pub use common::{
     MineCommit,

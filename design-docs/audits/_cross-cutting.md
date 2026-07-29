@@ -424,13 +424,33 @@ cross-cutting theme plus an index._
     **[gambling DS-11](gambling.md) (`/dig`)**,
     **[gambling DS-12](gambling.md) (`/work` mine accrual)**,
     **[gambling DS-13](gambling.md) (`/craft`)**,
-    **[gambling DS-14](gambling.md) (every wager game — `GameRow::save`)**.
-  - **Remaining (the "etc." this entry always implied), newly enumerated by the
-    2026-07-28 sweep for `EXCLUDED`-write sites:** the absolute write still in
-    `gambling` `prestige` — the last one in the module. `common/shop/mod.rs`,
-    `commands/craft.rs` and `models/game_row.rs` are now clear — DS-9/DS-10
+    **[gambling DS-14](gambling.md) (every wager game — `GameRow::save`)**,
+    **[gambling DS-15](gambling.md) (`/prestige` gem award)**.
+  - **`gambling` is now fully closed.** DS-15 removed the last absolute
+    `EXCLUDED` write in the module; `common/shop/mod.rs`, `commands/craft.rs`,
+    `models/game_row.rs` and `commands/prestige.rs` are all clear (DS-9/DS-10
     removed the shop helpers, DS-13 removed `CraftManager::save`, DS-14 removed
-    `GameRow::save`. The remaining site needs its own `DS-#` and task.
+    `GameRow::save`, DS-15 split the prestige write by semantics).
+  - **Remaining (re-enumerated 2026-07-29, since the 2026-07-28 sweep scoped its
+    "last one" claim to `gambling` only):** `levels`
+    (`bot-modules/levels/src/manager.rs:325` `FullLevelRow::save` and `:435`)
+    still writes the XP row absolutely — `xp = EXCLUDED.xp, total_xp =
+    EXCLUDED.total_xp, level = EXCLUDED.level, message_count =
+    EXCLUDED.message_count`. The third pass already identified this as "the known
+    CC-9 class on a self-only, low-value row" (two same-tick messages double-count
+    the read-modify-write) and traced the *cooldown* clean, but the write itself
+    was never converted. It needs its own `DS-#` and task; it is the last
+    enumerated site, and CC-9 stays `open` until it closes.
+  - **DS-15 sharpened the corrective pattern a third time.** DS-11 established
+    that a *time-based accrual* needs a compare-and-swap rather than an
+    increment. DS-15 adds: not every column in an absolute write is a defect.
+    `/prestige` writes `coins`, `gems` and `stamina` together, but only `gems` is
+    a read-modify-write — `coins` and `stamina` are deliberate **resets**, whose
+    whole purpose is to ignore the pre-image (put the player back to
+    `START_AMOUNT` with a full stamina bar so they can keep playing immediately).
+    Converting those to increments would be a *bug*. Split the write by
+    semantics — increment what accumulates, overwrite what resets — rather than
+    mechanically converting every `EXCLUDED.col` found by grep.
   - **New sub-class surfaced by DS-11:** where the value being persisted is a
     *time-based accrual* rather than a per-action reward, the corrective pattern
     is not an atomic increment — that pays the same accrued window twice. It is a

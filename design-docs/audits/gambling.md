@@ -806,3 +806,111 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     the two DS-14 entries and neither new statement contains a `LEFT JOIN`, so
     the plan-sensitive nullability trap does not apply here — but a re-run
     against an empty DB is the cheap way to confirm that.
+
+### DS-15. `/prestige` awards gems with a whole-row absolute overwrite  ·  Pass 8 (CC-9 sweep)  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `PrestigeManager::save`
+  (`bot-modules/gambling/src/commands/prestige.rs:134-145`), reached from
+  `Commands::confirm_prestige` (`commands/prestige.rs:419`).
+- **What:** the **last** absolute `EXCLUDED` write in the module — the site the
+  [CC-9](_cross-cutting.md#cc-9) umbrella enumerates as remaining after DS-14.
+  `confirm_prestige` reads the whole `PrestigeRow` (`row.sql`, a JOIN of
+  `gambling` and `gambling_mine`), `do_prestige()` mutates it in memory, and
+  `save` persists the `gambling` half absolutely:
+  `coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina`.
+  Of those three columns only **`gems`** is a read-modify-write:
+  `do_prestige` computes `self.gems += self.prestige`
+  (`commands/prestige.rs:217`) against the snapshot. `coins` and `stamina` are
+  deliberate absolute **resets** — prestige puts the player back to
+  `START_AMOUNT` with a full stamina bar so they can keep playing immediately —
+  and are correct as absolute writes.
+- **Failure scenario:** a user with 40 gems clicks **Confirm**. While the handler
+  is still fetching their inventory (`commands/prestige.rs:405`), a concurrent
+  `/work` credits +5 gems with an atomic `gems = gambling.gems + $3`
+  (`commands/work.rs:155`), so the live row holds 45. `save` then writes
+  `40 + 1 (the new prestige level) = 41` **absolutely** and the `/work` gems are
+  gone. Every other gem writer in the module is already atomic — `/work`
+  (`work.rs:155`), `/dig` (`dig.rs:107`), the wager games
+  (`models/game_row.rs:69`, DS-14), `/shop` (`common/shop/mod.rs:90`) and
+  `GamblingManager::add_gems` (`sql/GamblingManager/add_gems.sql:8`) — so
+  prestige is the only writer that can lose one of their credits.
+- **Not in scope (already fixed):** double-submit. DS-4 added the
+  compare-and-swap `WHERE user_id = $1 AND prestige = $22` on the `gambling_mine`
+  half (`commands/prestige.rs:102`), which makes a second confirmation a no-op.
+  This finding is purely the lost update against *other* commands.
+- **Confidence:** confirmed-logic, plausible-interleave (same class as
+  DS-9/DS-11/DS-13/DS-14, which were confirmed).
+- **Suggested fix:** persist the gem award as an atomic increment
+  (`gems = gems + $n`) while leaving `coins`/`stamina` as the intended absolute
+  resets — i.e. carry the award out of `do_prestige` as a delta instead of
+  folding it into the snapshot.
+- **Fix (2026-07-29):** As suggested, and scoped narrowly — this is **not** the
+  full `Delta`-struct treatment of DS-13/DS-14, because only one of the three
+  columns is a read-modify-write. Splitting the write by *semantics* is the
+  point of the fix:
+  - `do_prestige` no longer mutates `self.gems`. It **returns** the award (the
+    new prestige level) and is `#[must_use]`, so the award cannot be silently
+    dropped — dropping it would mean the player prestiges for no gems.
+  - `PrestigeManager::save` takes that award and persists it as
+    `gems = gems + $3` against the **live** row, so a concurrent `/work`,
+    `/dig`, `/shop sell`, wager-game payout or `add_gems` credit is no longer
+    clobbered.
+  - `coins = $2` and `stamina = $4` stay **absolute** — deliberately, per the
+    owner's ruling: prestige resets a player to the starting balance and
+    refills stamina to `MAX_STAMINA` so they can keep playing straight after
+    prestiging instead of being stranded on 0 stamina. Their pre-image is
+    irrelevant by design, so there is no lost update to protect against.
+  - The `INSERT … ON CONFLICT DO UPDATE` upsert is replaced by the module's
+    established `INSERT INTO gambling (user_id) … ON CONFLICT DO NOTHING` +
+    `UPDATE` pair (`GameRow::insert_missing`, DS-14), so the row-creation and
+    the value change are separate statements with distinct semantics. Both stay
+    inside the existing transaction, behind the DS-4 `gambling_mine`
+    compare-and-swap.
+  - **Also fixed in passing:** `do_prestige` set `self.stamina = 3` — a magic
+    literal that `save` then ignored, binding `MAX_STAMINA` instead. Same value
+    today, so no live defect, but a latent trap the moment `MAX_STAMINA`
+    changes. The dead assignment is deleted and the stamina reset is documented
+    on both `do_prestige` and `save`.
+  - `PrestigeManager` / `PrestigeRow` are re-exported from the crate root
+    (`lib.rs`), matching `CraftRow`/`DigRow`/`GameRow`, so the type is reachable
+    from `tests/`.
+- **Verification:** `bot-modules/gambling/tests/prestige.rs` (5 tests,
+  fails-before: `unresolved import gambling::PrestigeRow`, then
+  `do_prestige` returning `()`) pins the increment-vs-absolute distinction at
+  the value level — the award is returned rather than folded into the snapshot,
+  a concurrent +5 gem credit survives the prestige write (the DS-15 scenario
+  itself), the award scales with the level, and the `coins`/mine resets are
+  asserted to be *independent of the pre-image*, which is what makes an absolute
+  write correct for them. The end-to-end path needs a live `PgPool` + Discord
+  interaction (crate has no DB harness, CC-6) and the increment itself lives in
+  SQL, so it is not covered in-process — the DS-11/DS-12/DS-13/DS-14 precedent.
+  Gate: `cargo +nightly fmt --check` clean,
+  `cargo +nightly clippy --workspace --all-targets -- -D warnings` clean, no new
+  `#[allow]`/`#[expect]`; `cargo test --workspace` green (5/5 new tests pass);
+  `SQLX_OFFLINE=true cargo +nightly check --workspace --all-targets` and
+  `-p dashboard --features ssr` both clean, confirming the regenerated cache is
+  complete. `.sqlx` regenerated with
+  `cargo sqlx prepare --workspace -- --all-features` against a **throwaway,
+  empty, freshly-migrated Postgres 18 container** (never the shared dev DB):
+  exactly one entry removed (the old absolute upsert) and one added (the
+  `gems = gems + $3` update); the `ON CONFLICT DO NOTHING` insert was already
+  cached from DS-14. No `Cargo.toml` dep change, so no `cargo machete` run.
+- **Residual / follow-ups:**
+  - **`gambling` now has no absolute `EXCLUDED` write left.** The
+    [CC-9](_cross-cutting.md#cc-9) umbrella's remaining site for this module is
+    closed; see that entry for the one outside it.
+  - The empty-DB regen re-surfaced the **pre-existing** `.sqlx` drift that CC-5
+    already recorded as its own finding — `query-905f7d2…` (the
+    `lfg_posts LEFT JOIN lfg_user_settings` nullability, `[T,T,T,T,T,F]`
+    committed vs. `[F,F,F,F,F,T]` on an empty DB). It was **reverted** so this
+    diff is DS-15-only, per the CC-5 / lfg #4 / DS-13 / DS-14 precedent. It is a
+    one-file fix and it is what makes `cargo sqlx prepare --check` fail on clean
+    `main`; worth its own task.
+  - `save` still ignores `row.gems` and `row.stamina` — they are read by
+    `row.sql` (a JOIN that also feeds `req_miners`) but no longer written from
+    the snapshot. Harmless, but `PrestigeRow` is now doing two jobs: the mine
+    invariant check and the reset payload. Splitting it is a readability
+    follow-up, not a defect.
+  - `/prestige` still has no `GameCache::check_and_set` gate, so a double-submit
+    costs two round-trips before the DS-4 compare-and-swap rejects the second.
+    Correct, but not free — the same note DS-13 left for `/craft`.

@@ -74,6 +74,7 @@ impl PrestigeManager {
         pool: &PgPool,
         row: PrestigeRow,
         expected_prestige: i64,
+        gems_awarded: i64,
     ) -> sqlx::Result<bool> {
         let mut tx = pool.begin().await?;
 
@@ -132,13 +133,22 @@ impl PrestigeManager {
         }
 
         sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, gems, stamina)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems, stamina = EXCLUDED.stamina;",
+            "INSERT INTO gambling (user_id) VALUES ($1)
+            ON CONFLICT (user_id) DO NOTHING;",
+            row.user_id,
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            "UPDATE gambling SET
+                coins = $2,
+                gems = gems + $3,
+                stamina = $4
+            WHERE user_id = $1;",
             row.user_id,
             row.coins,
-            row.gems,
+            gems_awarded,
             MAX_STAMINA,
         )
         .execute(&mut *tx)
@@ -211,11 +221,10 @@ impl PrestigeRow {
         required_miners
     }
 
-    pub const fn do_prestige(&mut self) {
+    #[must_use]
+    pub const fn do_prestige(&mut self) -> i64 {
         self.prestige += 1;
         self.coins = START_AMOUNT;
-        self.gems += self.prestige;
-        self.stamina = 3;
 
         self.miners = 0;
         self.mines = 0;
@@ -236,6 +245,8 @@ impl PrestigeRow {
         self.tech = 0;
         self.utility = 0;
         self.production = 0;
+
+        self.prestige
     }
 }
 
@@ -414,10 +425,15 @@ impl Commands {
             .min(100_000);
 
         let expected_prestige = prestige_row.prestige;
-        prestige_row.do_prestige();
+        let gems_awarded = prestige_row.do_prestige();
 
-        let applied =
-            PrestigeManager::save(pool, prestige_row, expected_prestige).await?;
+        let applied = PrestigeManager::save(
+            pool,
+            prestige_row,
+            expected_prestige,
+            gems_awarded,
+        )
+        .await?;
         if !applied {
             return Err(GamblingError::internal(
                 "prestige already completed - duplicate confirmation ignored",
