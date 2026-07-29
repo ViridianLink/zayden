@@ -575,7 +575,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     costs two round-trips — it is now merely *correct* rather than exploitable.
 
 ### DS-12. `/work` collects the hourly mine accrual without a compare-and-swap  ·  Pass 8 (CC-9 sweep)  ·  low-med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — a7d549dd`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `WorkManager::commit_work`
   (`bot-modules/gambling/src/commands/work.rs:140-189`), called from
   `Commands::work` (`work.rs:253`).
@@ -638,3 +638,82 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     `bot/src/bindings/lfg/mod.rs`, which had been recorded from a populated dev
     DB (`[T,T,T,T,T,F]`) and is now the empty-DB truth (`[F,F,F,F,F,T]`). It
     rides along in this diff rather than being split out.
+
+### DS-13. `/craft` whole-row absolute overwrite of `gambling_mine`  ·  Pass 8 (CC-9 sweep)  ·  med-high
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `CraftManager::save`
+  (`bot-modules/gambling/src/commands/craft.rs:44-73`), called from
+  `Commands::craft` (`craft.rs:211`).
+- **What:** the same [CC-9](_cross-cutting.md#cc-9) shape as DS-9/DS-11 on the
+  same table. `/craft` reads the whole `CraftRow` (all ten `gambling_mine`
+  currency columns), deducts the recipe's raw-material costs and adds the crafted
+  pack **in memory**, then writes every column back **absolutely**
+  (`coal = EXCLUDED.coal, … production = EXCLUDED.production`). There is no
+  `GameCache::check_and_set` guard on this path.
+- **Failure scenario:** double-submitting `/craft` has both invocations read the
+  same pre-image (Discord dispatches each interaction on its own tokio task,
+  `bot/src/handler/interaction/mod.rs:168`); both deduct the cost and both write
+  the same absolute post-image, so one craft's raw materials are never charged —
+  a free pack. Mirrored against a concurrent `/dig` ore gain, `/work` mine
+  accrual or `/shop buy` miner purchase landing in the window, the craft's
+  absolute write of all ten columns erases that transaction outright (silent ore
+  loss).
+- **Confidence:** confirmed-logic, plausible-interleave (same class as
+  DS-9/DS-11, which were confirmed).
+- **Suggested fix:** the DS-9/DS-11 pattern — a `CraftDelta` committed by
+  `CraftManager::commit_craft` in one transaction of atomic guarded per-column
+  writes (`col = col + $n` with a `($n = 0 OR col + $n >= 0)` floor on every
+  consumed currency, evaluated against the **live** row so a stale-snapshot cost
+  check cannot overdraw); delete `save`.
+- **Fix (2026-07-29):** As suggested. `CraftDelta` (the net change a craft made
+  to the ten `gambling_mine` currency columns — consumed ingredients negative,
+  produced pack positive) plus `CraftManager::commit_craft`, a single
+  `UPDATE gambling_mine SET col = col + $n … WHERE user_id = $1 AND (…floors…)
+  RETURNING tech, utility, production`:
+  - Every column is written as an atomic increment, so a concurrent `/dig`,
+    `/work` or `/shop buy` write to the same row is no longer clobbered.
+  - Each consumed currency carries a `($n::bigint = 0 OR col + $n >= 0)` floor
+    evaluated against the **live** row (the `::bigint` cast pins the param type,
+    mirroring `commit_purchase`), so a cost check that passed on a stale snapshot
+    cannot overdraw. The `$n = 0` escape means a column this recipe does not
+    touch can never block it.
+  - A plain guarded `UPDATE` (not an upsert): reaching `commit_craft` with
+    sufficient funds implies an existing miner row — a craft's ingredients only
+    exist once `/dig`/`/work` created the row — so a 0-row result is a lost race,
+    surfaced as the existing `GamblingError::TransactionConflict`, not a missing
+    row. The app-layer per-currency `InsufficientFunds` pre-checks are kept for
+    their precise messages; SQL is the authority for correctness.
+  - The crafted pack's new quantity is read from `RETURNING` (the authoritative
+    post-write value) rather than the command's in-memory snapshot, so a shift
+    racing another craft of the same pack reports the true total.
+  - `CraftManager::save` is **deleted** — the absolute-write helper is gone, not
+    merely bypassed, so the pattern cannot regress here.
+- **Verification:** `bot-modules/gambling/tests/craft.rs` (5 tests, fails-before:
+  `unresolved import gambling::CraftDelta`) pins the delta-vs-absolute
+  distinction at the value level — two same-tick crafts each charged, a
+  concurrent ore gain surviving, multi-ingredient and multi-pack recipes. The
+  end-to-end path needs a live `PgPool` + Discord interaction (crate has no DB
+  harness, CC-6) and the floor guard lives in SQL, so it is not covered
+  in-process, following the DS-11/DS-12 precedent. Gate: `cargo +nightly clippy
+  --workspace --all-targets -- -D warnings` clean, no new `#[allow]`/`#[expect]`;
+  `cargo test` green (all 5 craft tests pass). `.sqlx` regenerated with
+  `cargo sqlx prepare --workspace -- --all-features` against a throwaway empty,
+  freshly-migrated Postgres 18 (one entry removed — the old `save` — one added —
+  `commit_craft`); the two unrelated `web_user_roles` entries the full regen
+  surfaced (a pre-existing cache gap from migration 21, feature-gated `ssr`) were
+  reverted so the diff is DS-13-only, per the CC-5 / lfg #4 precedent. No
+  `Cargo.toml` dep change, so no `cargo machete` run.
+- **Residual / follow-ups:**
+  - `prestige` and `game_row` remain the last two absolute `EXCLUDED` writes in
+    the module (see the [CC-9](_cross-cutting.md#cc-9) umbrella); each still needs
+    its own `DS-#` and task. With DS-13 closed, `commands/craft.rs` has no
+    absolute-write helper left.
+  - `/craft` is not gated by `GameCache::check_and_set`, so a double-submit still
+    costs two round-trips — it is now merely *correct* rather than exploitable. An
+    idempotency gate is a separate concern.
+  - **Pre-existing flaky test (not DS-13):** `tests/dig.rs::mine_payout_is_tagged_with_the_stamp_it_was_computed_from`
+    failed once under parallel load (two `MinePayout::new` calls collided on the
+    same `Timestamp::now()` tick, so its `assert_ne!` on `collected_at` failed);
+    it passes in isolation and passed on a full re-run. Timing-dependent, in
+    `dig`/`MinePayout` code this change does not touch. Worth its own fix (seed
+    the two stamps deterministically, or assert `>=` not `!=`).

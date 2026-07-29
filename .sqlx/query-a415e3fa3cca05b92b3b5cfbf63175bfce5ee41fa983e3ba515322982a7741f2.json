@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE gambling_mine SET\n                coal = coal + $2,\n                iron = iron + $3,\n                gold = gold + $4,\n                redstone = redstone + $5,\n                lapis = lapis + $6,\n                diamonds = diamonds + $7,\n                emeralds = emeralds + $8,\n                tech = tech + $9,\n                utility = utility + $10,\n                production = production + $11\n            WHERE user_id = $1\n                AND ($2::bigint = 0 OR coal + $2 >= 0)\n                AND ($3::bigint = 0 OR iron + $3 >= 0)\n                AND ($4::bigint = 0 OR gold + $4 >= 0)\n                AND ($5::bigint = 0 OR redstone + $5 >= 0)\n                AND ($6::bigint = 0 OR lapis + $6 >= 0)\n                AND ($7::bigint = 0 OR diamonds + $7 >= 0)\n                AND ($8::bigint = 0 OR emeralds + $8 >= 0)\n                AND ($9::bigint = 0 OR tech + $9 >= 0)\n                AND ($10::bigint = 0 OR utility + $10 >= 0)\n                AND ($11::bigint = 0 OR production + $11 >= 0)\n            RETURNING tech, utility, production;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tech",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "tech"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "utility",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "utility"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "production",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "gambling_mine",
+            "name": "production"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a415e3fa3cca05b92b3b5cfbf63175bfce5ee41fa983e3ba515322982a7741f2"
+}

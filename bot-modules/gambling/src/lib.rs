@@ -21,6 +21,7 @@ pub mod stamina;
 pub mod utils;
 
 pub use commands::Commands;
+pub use commands::craft::{CraftCommit, CraftDelta, CraftManager, CraftRow};
 pub use commands::dig::{DigCommit, DigDelta, DigRow};
 pub use commands::goals::GoalsManager;
 pub use commands::work::{WorkCommit, WorkDelta};

@@ -12,7 +12,6 @@ use serenity::all::{
     UserId,
 };
 use sqlx::PgPool;
-use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
 use tokio::sync::RwLock;
 use zayden_core::{
@@ -41,39 +40,54 @@ impl CraftManager {
         .await
     }
 
-    pub async fn save(pool: &PgPool, row: CraftRow) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            "INSERT INTO gambling_mine (user_id, coal, iron, gold, redstone, lapis, diamonds, emeralds, tech, utility, production)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            ON CONFLICT (user_id) DO UPDATE SET
-            coal = EXCLUDED.coal,
-            iron = EXCLUDED.iron,
-            gold = EXCLUDED.gold,
-            redstone = EXCLUDED.redstone,
-            lapis = EXCLUDED.lapis,
-            diamonds = EXCLUDED.diamonds,
-            emeralds = EXCLUDED.emeralds,
-            tech = EXCLUDED.tech,
-            utility = EXCLUDED.utility,
-            production = EXCLUDED.production;",
-            row.user_id,
-            row.coal,
-            row.iron,
-            row.gold,
-            row.redstone,
-            row.lapis,
-            row.diamonds,
-            row.emeralds,
-            row.tech,
-            row.utility,
-            row.production,
+    pub async fn commit_craft(
+        pool: &PgPool,
+        id: UserId,
+        delta: &CraftDelta,
+    ) -> sqlx::Result<Option<CraftCommit>> {
+        sqlx::query_as!(
+            CraftCommit,
+            "UPDATE gambling_mine SET
+                coal = coal + $2,
+                iron = iron + $3,
+                gold = gold + $4,
+                redstone = redstone + $5,
+                lapis = lapis + $6,
+                diamonds = diamonds + $7,
+                emeralds = emeralds + $8,
+                tech = tech + $9,
+                utility = utility + $10,
+                production = production + $11
+            WHERE user_id = $1
+                AND ($2::bigint = 0 OR coal + $2 >= 0)
+                AND ($3::bigint = 0 OR iron + $3 >= 0)
+                AND ($4::bigint = 0 OR gold + $4 >= 0)
+                AND ($5::bigint = 0 OR redstone + $5 >= 0)
+                AND ($6::bigint = 0 OR lapis + $6 >= 0)
+                AND ($7::bigint = 0 OR diamonds + $7 >= 0)
+                AND ($8::bigint = 0 OR emeralds + $8 >= 0)
+                AND ($9::bigint = 0 OR tech + $9 >= 0)
+                AND ($10::bigint = 0 OR utility + $10 >= 0)
+                AND ($11::bigint = 0 OR production + $11 >= 0)
+            RETURNING tech, utility, production;",
+            as_i64(id.get()),
+            delta.coal,
+            delta.iron,
+            delta.gold,
+            delta.redstone,
+            delta.lapis,
+            delta.diamonds,
+            delta.emeralds,
+            delta.tech,
+            delta.utility,
+            delta.production,
         )
-        .execute(pool)
+        .fetch_optional(pool)
         .await
     }
 }
 
-#[derive(FromRow)]
+#[derive(Debug, Clone, FromRow)]
 pub struct CraftRow {
     pub user_id: i64,
     pub coal: i64,
@@ -105,6 +119,45 @@ impl CraftRow {
             production: 0,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct CraftDelta {
+    pub coal: i64,
+    pub iron: i64,
+    pub gold: i64,
+    pub redstone: i64,
+    pub lapis: i64,
+    pub diamonds: i64,
+    pub emeralds: i64,
+    pub tech: i64,
+    pub utility: i64,
+    pub production: i64,
+}
+
+impl CraftDelta {
+    #[must_use]
+    pub const fn between(before: &CraftRow, after: &CraftRow) -> Self {
+        Self {
+            coal: after.coal - before.coal,
+            iron: after.iron - before.iron,
+            gold: after.gold - before.gold,
+            redstone: after.redstone - before.redstone,
+            lapis: after.lapis - before.lapis,
+            diamonds: after.diamonds - before.diamonds,
+            emeralds: after.emeralds - before.emeralds,
+            tech: after.tech - before.tech,
+            utility: after.utility - before.utility,
+            production: after.production - before.production,
+        }
+    }
+}
+
+#[derive(Debug, FromRow)]
+pub struct CraftCommit {
+    pub tech: i64,
+    pub utility: i64,
+    pub production: i64,
 }
 
 impl Commands {
@@ -157,6 +210,8 @@ impl Commands {
             .map(|(currency, cost)| (currency, i64::from(cost) * amount))
             .collect::<Vec<_>>();
 
+        let before = row.clone();
+
         for (currency, cost) in costs {
             let fund = match currency {
                 ShopCurrency::Coal => &mut row.coal,
@@ -184,19 +239,31 @@ impl Commands {
             }
         }
 
+        match item {
+            ShopCurrency::Tech => row.tech += amount,
+            ShopCurrency::Utility => row.utility += amount,
+            ShopCurrency::Production => row.production += amount,
+            ShopCurrency::Coins
+            | ShopCurrency::Gems
+            | ShopCurrency::Coal
+            | ShopCurrency::Iron
+            | ShopCurrency::Gold
+            | ShopCurrency::Redstone
+            | ShopCurrency::Lapis
+            | ShopCurrency::Diamonds
+            | ShopCurrency::Emeralds => return Err(GamblingError::InvalidAmount),
+        }
+
+        let delta = CraftDelta::between(&before, &row);
+
+        let commit = CraftManager::commit_craft(pool, interaction.user.id, &delta)
+            .await?
+            .ok_or(GamblingError::TransactionConflict)?;
+
         let quantity = match item {
-            ShopCurrency::Tech => {
-                row.tech += amount;
-                row.tech
-            },
-            ShopCurrency::Utility => {
-                row.utility += amount;
-                row.utility
-            },
-            ShopCurrency::Production => {
-                row.production += amount;
-                row.production
-            },
+            ShopCurrency::Tech => commit.tech,
+            ShopCurrency::Utility => commit.utility,
+            ShopCurrency::Production => commit.production,
             ShopCurrency::Coins
             | ShopCurrency::Gems
             | ShopCurrency::Coal
@@ -207,8 +274,6 @@ impl Commands {
             | ShopCurrency::Diamonds
             | ShopCurrency::Emeralds => return Err(GamblingError::InvalidAmount),
         };
-
-        CraftManager::save(pool, row).await?;
 
         let embed = CreateEmbed::new()
             .description(format!(

@@ -422,12 +422,14 @@ cross-cutting theme plus an index._
     **[gambling DS-9](gambling.md) (`/shop buy`)**,
     **[gambling DS-10](gambling.md) (`/shop sell`)**,
     **[gambling DS-11](gambling.md) (`/dig`)**,
-    **[gambling DS-12](gambling.md) (`/work` mine accrual)**.
+    **[gambling DS-12](gambling.md) (`/work` mine accrual)**,
+    **[gambling DS-13](gambling.md) (`/craft`)**.
   - **Remaining (the "etc." this entry always implied), newly enumerated by the
     2026-07-28 sweep for `EXCLUDED`-write sites:** the absolute writes still in
-    `gambling` `craft`, `prestige`, and `game_row`. `common/shop/mod.rs` is now
-    clear — DS-9 and DS-10 removed its last absolute-write helpers. Each
-    remaining site needs its own `DS-#` and task.
+    `gambling` `prestige` and `game_row`. `common/shop/mod.rs` and
+    `commands/craft.rs` are now clear — DS-9/DS-10 removed the shop helpers,
+    DS-13 removed `CraftManager::save`. Each remaining site needs its own `DS-#`
+    and task.
   - **New sub-class surfaced by DS-11:** where the value being persisted is a
     *time-based accrual* rather than a per-action reward, the corrective pattern
     is not an atomic increment — that pays the same accrued window twice. It is a
