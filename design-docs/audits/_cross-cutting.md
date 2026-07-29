@@ -277,7 +277,26 @@ served by the website — and two `setup` commands already duplicate its writes.
     a suppression (removed by an earlier task); the inventory above is corrected.
 
 ### CC-4. `tictactoe` dead `GameState` stub  ·  #2  ·  low
-- **Status:** `open` (half closed — see reconciliation)            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-29):** Closed. The reconciliation below reopened this finding
+  after establishing that CC-3 never deleted `RIGGED_LUCK`; the follow-up task
+  deleted it for real — the const (`gambling/src/common/shop/items.rs:192-201`),
+  its `#[expect(dead_code)]`, and its commented-out `SHOP_ITEMS` entry
+  (`items.rs:396`). Both halves of CC-4 are now gone from the tree.
+  **Safe to delete:** `git log -S '    RIGGED_LUCK,'` on that file returns no
+  commit, so the item was never uncommented into `SHOP_ITEMS`, never
+  purchasable, and no inventory row can reference `"riggedluck"`.
+  **No regression test** — deleting an unreferenced private const has no runtime
+  behaviour to pin, and a "not in `SHOP_ITEMS`" assertion would have passed
+  *before* the fix too (the entry was already commented out), so it could not
+  fail-before. The compiler is the check: the const was private and unreferenced,
+  so any surviving reference would break the build, and because `#[expect]` errors
+  when *unfulfilled*, `-D warnings` would have caught a still-needed suppression.
+- **Follow-up recorded:** deleting `RIGGED_LUCK` surfaced
+  [gambling #2b](gambling.md) — `pub const WEAPON_CRATE` is the identical dead
+  stub, but carries no `#[expect]` because `pub` + a fully public module chain
+  makes rustc treat it as reachable API. Same defect, invisible to the gate.
+  Left for its own task per one-finding-one-task.
 - **Reconciled (2026-07-29):** CC-3's residual note asked for CC-4 to be
   reconciled on its own. Doing that turned up a **factual error in CC-3's own
   fix record**, so this finding is *not* closeable as written:

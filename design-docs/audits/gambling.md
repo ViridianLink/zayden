@@ -48,12 +48,50 @@ use compile-time macros.
   the small crates prove the pattern.
 
 ### 2. Dead `GameState` / reserved stubs  ·  #2  ·  low
-- **Where:** `src/commands/tictactoe.rs:175,182`
-  (`future_not_send, reason = "dead code within GameState stub"`),
-  `src/common/shop/items.rs:192` (`dead_code, reason = "reserved for future
-  implementation"`).
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-29):** Module-level mirror of [CC-4](_cross-cutting.md#cc-4);
+  both halves are now closed. The `GameState` half went with the gambling CC-1
+  migration (`83930148`) — the stub was itself DB-generic, so it died with the
+  pattern. This task deleted the second half: the `RIGGED_LUCK` const
+  (`items.rs:192-201`), its `#[expect(dead_code, reason = "reserved for future
+  implementation")]`, and its commented-out `SHOP_ITEMS` entry (`items.rs:396`).
+- **Safe to delete:** `git log -S '    RIGGED_LUCK,'` on `items.rs` returns **no
+  commit** — the entry was never uncommented, so the item was never purchasable,
+  no `gambling_inventory` row can carry `"riggedluck"`, and no id lookup can
+  resolve to it. Deletion is a pure dead-code removal with no data implication.
+- **Where:** ~~`src/commands/tictactoe.rs:175,182`
+  (`future_not_send, reason = "dead code within GameState stub"`)~~ (gone in
+  `83930148`), ~~`src/common/shop/items.rs:192` (`dead_code, reason = "reserved
+  for future implementation"`)~~ (deleted here).
 - **What / Why / Fix:** See [CC-4](_cross-cutting.md#cc-4). Delete the stub
   until the feature is real; removes two CC-3 escape-hatches with it.
+
+### 2b. `WEAPON_CRATE` is the same dead stub, hidden by `pub` instead of `#[expect]`  ·  #2  ·  low
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Found:** 2026-07-29, while deleting `RIGGED_LUCK` for finding #2 / CC-4. Not
+  part of that finding's text, so recorded separately rather than folded in
+  (one finding → one task).
+- **Where:** `src/common/shop/items.rs:157` (the const) and `:393` (its
+  commented-out `SHOP_ITEMS` entry).
+- **What:** `pub const WEAPON_CRATE` is dead in exactly the way `RIGGED_LUCK`
+  was — declared, commented out of `SHOP_ITEMS`, never purchasable. It carries
+  **no** `#[expect(dead_code)]` only because it is `pub` and the module chain is
+  public all the way out (`lib.rs:11 pub mod common` → `common/mod.rs:2 pub mod
+  shop` → `shop/mod.rs:31 pub use items::*`), so rustc considers it reachable
+  API and never fires the lint.
+- **Why it matters:** This is the more dangerous shape of CC-4. The `#[expect]`
+  on `RIGGED_LUCK` was at least a visible marker that something was dead;
+  `WEAPON_CRATE` is dead code that is **structurally invisible to the gate** —
+  no lint, no suppression to grep for. It also leaks a non-feature into the
+  crate's public API, where an external `pub use items::*` consumer could
+  legitimately depend on it.
+- **Suggested fix:** Delete both lines, same as `RIGGED_LUCK`. Verify first with
+  `git log -S '    WEAPON_CRATE,'` that it was never active in `SHOP_ITEMS`
+  (`RIGGED_LUCK`'s check came back empty; this one was not run).
+- **Follow-up worth considering:** a `tests/` catalogue-integrity check —
+  `SHOP_ITEMS` ids are unique, and no `ShopItem` const exists outside
+  `SHOP_ITEMS` — would make this whole class fail loudly instead of silently.
+  Fits [CC-6](_cross-cutting.md#cc-6).
 
 ### 3. `#[expect]` cluster  ·  #7  ·  med
 - **Where:** `src/utils.rs:85`, `src/models/mod.rs:74` (`cast_sign_loss`),

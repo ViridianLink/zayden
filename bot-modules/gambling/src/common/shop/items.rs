@@ -189,16 +189,15 @@ pub const ALL_INS: ShopItem<'static> = ShopItem::new(
 .useable(true)
 .duration(Duration::from_mins(2));
 
-#[expect(dead_code, reason = "reserved for future implementation")]
-const RIGGED_LUCK: ShopItem<'static> = ShopItem::new(
-    "riggedluck",
-    "Rigged Luck",
-    Emoji::Str("⚪"),
-    "Double your chances! Your win probability is increased by 100% for the next game. (Max 75% total win chance)",
-    30,
-    ShopCurrency::Gems,
-    ShopPage::Boost1,
-).useable(true);
+// const RIGGED_LUCK: ShopItem<'static> = ShopItem::new(
+//     "riggedluck",
+//     "Rigged Luck",
+//     Emoji::Str("⚪"),
+//     "Double your chances! Your win probability is increased by 100% for the next
+// game. (Max 75% total win chance)",     30,
+//     ShopCurrency::Gems,
+//     ShopPage::Boost1,
+// ).useable(true);
 
 const PAYOUT_X2: ShopItem<'static> = ShopItem::new(
     "payout2x",
