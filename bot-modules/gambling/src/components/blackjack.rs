@@ -38,6 +38,7 @@ use crate::{
     GamblingData,
     GamblingError,
     GamblingManager,
+    GameDelta,
     GameRow,
     Result,
     ShopCurrency,
@@ -190,6 +191,8 @@ impl Blackjack {
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
+        let before = row.clone();
+
         let dispatch = Dispatch::new(&ctx.http, pool, &emojis);
 
         let mut payout = game.bet() / 2;
@@ -221,9 +224,12 @@ impl Blackjack {
 
         row.add_coins(payout);
 
-        let coins = row.coins();
+        let delta = GameDelta::between(&before, &row);
 
-        GameRow::save(pool, row).await?;
+        let coins = GameRow::commit(pool, interaction.user.id, &delta)
+            .await?
+            .ok_or(GamblingError::TransactionConflict)?
+            .coins;
 
         let coin = emojis.emoji("heads").map_err(|n| {
             GamblingError::Internal(format!("emoji '{n}' not in cache"))
@@ -300,6 +306,8 @@ async fn game_end(
         .await?
         .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
+    let before = row.clone();
+
     let dispatch = Dispatch::new(&ctx.http, pool, emojis);
 
     if player_value > 21 {
@@ -373,9 +381,12 @@ async fn game_end(
 
     row.add_coins(payout);
 
-    let coins = row.coins();
+    let delta = GameDelta::between(&before, &row);
 
-    GameRow::save(pool, row).await?;
+    let coins = GameRow::commit(pool, interaction.user.id, &delta)
+        .await?
+        .ok_or(GamblingError::TransactionConflict)?
+        .coins;
 
     let card_to_num = card_values(emojis)?;
     let coin = emojis
@@ -436,6 +447,8 @@ async fn bust(
     mut row: GameRow,
     dispatch: Dispatch<'_>,
 ) -> Result<String> {
+    let before = row.clone();
+
     dispatch
         .fire(
             interaction.channel_id,
@@ -463,9 +476,12 @@ async fn bust(
 
     row.add_coins(payout);
 
-    let coins = row.coins();
+    let delta = GameDelta::between(&before, &row);
 
-    GameRow::save(pool, row).await?;
+    let coins = GameRow::commit(pool, interaction.user.id, &delta)
+        .await?
+        .ok_or(GamblingError::TransactionConflict)?
+        .coins;
 
     let mut dealer_hand = vec![game.dealer_card()];
     dealer_hand.push(game.next_card()?);

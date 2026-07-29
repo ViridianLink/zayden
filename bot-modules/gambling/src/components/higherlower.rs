@@ -24,6 +24,7 @@ use crate::{
     Coins,
     GamblingError,
     GamblingManager,
+    GameDelta,
     GameRow,
     Result,
     StatsManager,
@@ -245,11 +246,11 @@ impl HigherLower {
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
 
+        let before = row.clone();
+
         row.add_coins(self.payout);
 
         let colour = if self.payout > 0 { Colour::DARK_GREEN } else { Colour::RED };
-
-        let coins = row.coins_str();
 
         Dispatch::new(http, pool, emojis)
             .fire(
@@ -265,7 +266,13 @@ impl HigherLower {
             )
             .await?;
 
-        GameRow::save(pool, row).await?;
+        let delta = GameDelta::between(&before, &row);
+
+        let coins = GameRow::commit(pool, interaction.user.id, &delta)
+            .await?
+            .ok_or(GamblingError::TransactionConflict)?
+            .coins
+            .format();
 
         let mut tx = pool.begin().await?;
 

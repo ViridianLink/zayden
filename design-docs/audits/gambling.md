@@ -640,7 +640,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     rides along in this diff rather than being split out.
 
 ### DS-13. `/craft` whole-row absolute overwrite of `gambling_mine`  ·  Pass 8 (CC-9 sweep)  ·  med-high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 94f838ff`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `CraftManager::save`
   (`bot-modules/gambling/src/commands/craft.rs:44-73`), called from
   `Commands::craft` (`craft.rs:211`).
@@ -717,3 +717,92 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     it passes in isolation and passed on a full re-run. Timing-dependent, in
     `dig`/`MinePayout` code this change does not touch. Worth its own fix (seed
     the two stamps deterministically, or assert `>=` not `!=`).
+
+### DS-14. Every wager game persists the balance with a whole-row absolute overwrite  ·  Pass 8 (CC-9 sweep)  ·  med-high
+- **Status:** `complete — 8ac57f8c`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `GameRow::save` (`bot-modules/gambling/src/models/game_row.rs:36-48`),
+  called from nine sites — `/roll` (`commands/roll.rs:104`), `/coinflip`
+  (`commands/coinflip.rs:101`), `/rps` (`commands/rps.rs:108`), `/tictactoe`
+  (`commands/tictactoe.rs:52`, `components/tictactoe.rs:176-177,277,299`),
+  blackjack (`components/blackjack.rs:226,378,468`, `games/blackjack.rs:397`) and
+  higher-or-lower (`components/higherlower.rs:268`).
+- **What:** the [CC-9](_cross-cutting.md#cc-9) shape on the `gambling` row itself,
+  and the last high-traffic instance of it. Each game reads the whole `GameRow`,
+  deducts the bet and adds the payout **in memory** (`row.bet()` /
+  `row.add_coins()`), then writes the balance back **absolutely**
+  (`coins = EXCLUDED.coins, gems = EXCLUDED.gems`).
+- **Failure scenario:** `GameCache::check_and_set` gates only the same user's
+  repeat *game* plays (5 s); it does not gate the other commands that write
+  `gambling.coins` **atomically** — `/daily`, `/work`, `/dig`, `/shop sell`, or an
+  inbound `/send` from another player. Any of those landing between a game's read
+  and its write is **erased** by the absolute post-image (the user silently loses
+  the credit); with the ordering reversed the game's own bet/payout is the write
+  that is lost. `gems` (goal rewards, `Dispatch` grants) has the identical shape.
+  The two-player `/tictactoe` accept path additionally debited each stake in its
+  **own** statement, so a failure between them could take one player's coins for a
+  game that never started.
+- **Confidence:** confirmed-logic, plausible-interleave (same class as
+  DS-9/DS-11/DS-13, which were confirmed).
+- **Suggested fix:** the DS-9/DS-13 pattern — a `GameDelta` committed by
+  `GameRow::commit` as atomic guarded per-column increments; delete `save`.
+- **Fix (2026-07-29):** As suggested. `GameDelta` (the net change a game made to
+  `coins`/`gems` — bet, payout, and any goal reward `Dispatch` granted into the
+  in-memory row) plus `GameRow::commit` / `commit_tx`:
+  `INSERT INTO gambling (user_id) … ON CONFLICT DO NOTHING`, then
+  `UPDATE gambling SET coins = coins + $2, gems = gems + $3 WHERE user_id = $1
+  AND (…floors…) RETURNING coins, gems`, both in one transaction.
+  - Both columns are written as atomic increments, so a concurrent `/daily`,
+    `/work`, `/dig`, `/shop sell` or `/send` write to the same row is no longer
+    clobbered.
+  - Each column carries a `($n::bigint = 0 OR col + $n >= 0)` floor evaluated
+    against the **live** row (mirroring `commit_purchase`/`commit_craft`), so a
+    bet that passed `EffectsManager::bet_limit` on a stale snapshot cannot
+    overdraw. A 0-row result is a lost race, surfaced as the existing
+    `GamblingError::TransactionConflict`.
+  - The row is created by the same `ON CONFLICT DO NOTHING` insert the shop uses,
+    so the column defaults (`coins = 1000 = START_AMOUNT`, `gems = 0`) supply a
+    first-time player's opening balance and the floor guard then applies to new
+    and existing rows alike — no `START_AMOUNT` literal in SQL.
+  - The displayed balance now comes from `RETURNING` (the authoritative
+    post-write value) rather than the command's in-memory snapshot, so a game
+    settling alongside another credit reports the true total.
+  - `components/tictactoe.rs` `accept` debits **both** stakes through
+    `commit_tx` in **one** transaction — either the game is funded or neither
+    player pays — ordered by `user_id` so two accepts racing over the same pair
+    cannot deadlock on each other's row locks (the DS-8 `40P01` failure mode).
+  - `commands/tictactoe.rs:52` was an *unmodified* row written back absolutely —
+    a pure clobber whose only real effect was creating the row. It is now
+    `GameRow::ensure`, which does exactly that and nothing else.
+  - `GameRow::save` is **deleted** — the absolute-write helper is gone, not
+    merely bypassed, so the pattern cannot regress here.
+- **Verification:** `bot-modules/gambling/tests/game_row.rs` (6 tests,
+  fails-before: `unresolved import gambling::GameDelta`) pins the
+  delta-vs-absolute distinction at the value level — a concurrent credit
+  surviving the game write, two games settling from one pre-image, the
+  `Dispatch` goal reward travelling on both columns, the tic-tac-toe stake, and
+  the zero-delta draw. The end-to-end path needs a live `PgPool` + Discord
+  interaction (crate has no DB harness, CC-6) and the floor guard lives in SQL,
+  so it is not covered in-process, following the DS-11/DS-12/DS-13 precedent.
+  Gate: `cargo +nightly clippy --workspace --all-targets -- -D warnings` clean,
+  no new `#[allow]`/`#[expect]` (the 8-argument `bust` clippy hit was resolved by
+  cloning the pre-image inside `bust` rather than threading a parameter);
+  `cargo test` green (whole workspace, 6/6 new tests pass). `.sqlx` regenerated
+  with `cargo sqlx prepare --workspace -- --all-features`: exactly one entry
+  removed (the old `save` upsert) and one added (the guarded `UPDATE`); the
+  insert-if-missing statement was already cached from `commit_purchase`. No
+  `Cargo.toml` dep change, so no `cargo machete` run.
+- **Residual / follow-ups:**
+  - `prestige` is now the **last** absolute `EXCLUDED` write in the module (see
+    the [CC-9](_cross-cutting.md#cc-9) umbrella); it still needs its own `DS-#`
+    and task. `models/game_row.rs` has no absolute-write helper left.
+  - The `/tictactoe` **command** still writes nothing but a row-existence insert;
+    the wager is only debited on accept. Unchanged behaviour, now explicit.
+  - `GamblingManager::bet` (`sql/GamblingManager/bet.sql`, used by blackjack
+    `double`) remains a separate guarded decrement outside `GameDelta` — correct
+    (it has its own `WHERE coins >= $2` floor, DS-5), but it means a blackjack
+    `double` charges its extra stake in a transaction of its own.
+  - The regeneration ran against the configured dev database rather than a
+    throwaway empty one (the DS-13 precedent). The resulting diff contains only
+    the two DS-14 entries and neither new statement contains a `LEFT JOIN`, so
+    the plan-sensitive nullability trap does not apply here — but a re-run
+    against an empty DB is the cheap way to confirm that.

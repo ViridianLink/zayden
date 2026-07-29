@@ -19,7 +19,7 @@ pub use gambling_effects::{
 pub use gambling_goals::GamblingGoalsRow;
 pub use gambling_inventory::{GamblingItem, GamblingItems, InventoryRow};
 pub use gambling_stats::StatsManager;
-pub use game_row::GameRow;
+pub use game_row::{GameCommit, GameDelta, GameRow};
 use jiff::tz::TimeZone;
 use jiff::{Timestamp, Unit};
 use zayden_core::{EmojiCache, FormatNum};

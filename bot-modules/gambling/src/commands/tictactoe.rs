@@ -49,7 +49,7 @@ impl Commands {
         EffectsManager::bet_limit(pool, interaction.user.id, bet, row.coins())
             .await?;
 
-        GameRow::save(pool, row).await?;
+        GameRow::ensure(pool, interaction.user.id).await?;
 
         let coin = data_lock.read().await.emojis().emoji("heads").map_err(|n| {
             GamblingError::Internal(format!("emoji '{n}' not in cache"))

@@ -423,13 +423,14 @@ cross-cutting theme plus an index._
     **[gambling DS-10](gambling.md) (`/shop sell`)**,
     **[gambling DS-11](gambling.md) (`/dig`)**,
     **[gambling DS-12](gambling.md) (`/work` mine accrual)**,
-    **[gambling DS-13](gambling.md) (`/craft`)**.
+    **[gambling DS-13](gambling.md) (`/craft`)**,
+    **[gambling DS-14](gambling.md) (every wager game — `GameRow::save`)**.
   - **Remaining (the "etc." this entry always implied), newly enumerated by the
-    2026-07-28 sweep for `EXCLUDED`-write sites:** the absolute writes still in
-    `gambling` `prestige` and `game_row`. `common/shop/mod.rs` and
-    `commands/craft.rs` are now clear — DS-9/DS-10 removed the shop helpers,
-    DS-13 removed `CraftManager::save`. Each remaining site needs its own `DS-#`
-    and task.
+    2026-07-28 sweep for `EXCLUDED`-write sites:** the absolute write still in
+    `gambling` `prestige` — the last one in the module. `common/shop/mod.rs`,
+    `commands/craft.rs` and `models/game_row.rs` are now clear — DS-9/DS-10
+    removed the shop helpers, DS-13 removed `CraftManager::save`, DS-14 removed
+    `GameRow::save`. The remaining site needs its own `DS-#` and task.
   - **New sub-class surfaced by DS-11:** where the value being persisted is a
     *time-based accrual* rather than a per-action reward, the corrective pattern
     is not an atomic increment — that pays the same accrued window twice. It is a
@@ -473,6 +474,11 @@ cross-cutting theme plus an index._
   residual is that `bet.sql` lacks a `WHERE coins >= bet` floor, allowing an
   overdraft when a *different* command mutates the balance between the app-layer
   check and the decrement (see [gambling.md DS-5](gambling.md)).
+  **Corrected by the 2026-07-29 pass:** "mostly clean" understated it. The
+  `check_and_set` gate covers only same-user *game* replays, and the games'
+  *settlement* — not the `bet.sql` decrement — went through `GameRow::save`, an
+  absolute whole-row write, so every concurrent `/daily`/`/work`/`/dig`/`/send`
+  credit was clobbered. See [gambling DS-14](gambling.md), now closed.
 
 ### Deep-sweep index
 

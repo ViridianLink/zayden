@@ -25,7 +25,7 @@ use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, as_u64, message_metadata};
 
 use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
-use crate::{Coins, EffectsManager, GamblingError, GameRow, Result};
+use crate::{Coins, EffectsManager, GamblingError, GameDelta, GameRow, Result};
 
 type Board = Vec<Vec<Option<ReactionType>>>;
 
@@ -149,8 +149,8 @@ async fn accept(
 
     state.players[1] = interaction.user.id;
 
-    let mut p1_row = state.p1_row(pool).await?;
-    let mut p2_row = state.p2_row(pool).await?;
+    let p1_row = state.p1_row(pool).await?;
+    let p2_row = state.p2_row(pool).await?;
 
     EffectsManager::bet_limit(
         pool,
@@ -170,11 +170,22 @@ async fn accept(
     state.current_turn =
         *state.players.choose(&mut rng()).unwrap_or(&state.players[0]);
 
-    p1_row.add_coins(-state.bet);
-    p2_row.add_coins(-state.bet);
+    let mut stakes = [
+        (UserId::new(as_u64(p1_row.user_id)), p1_row.user_id),
+        (UserId::new(as_u64(p2_row.user_id)), p2_row.user_id),
+    ];
+    stakes.sort_unstable_by_key(|&(_, user_id)| user_id);
 
-    GameRow::save(pool, p1_row).await?;
-    GameRow::save(pool, p2_row).await?;
+    let stake = GameDelta::coins(-state.bet);
+    let mut tx = pool.begin().await?;
+
+    for (player, _) in stakes {
+        GameRow::commit_tx(&mut tx, player, &stake)
+            .await?
+            .ok_or(GamblingError::TransactionConflict)?;
+    }
+
+    tx.commit().await?;
 
     let blank = emojis
         .emoji("blank")
@@ -270,11 +281,9 @@ async fn make_move(
 
     if won {
         let winner = current_turn;
-        let mut row = GameRow::get(pool, winner)
+        GameRow::commit(pool, winner, &GameDelta::coins(2 * bet))
             .await?
-            .unwrap_or_else(|| GameRow::new(winner));
-        row.add_coins(2 * bet);
-        GameRow::save(pool, row).await?;
+            .ok_or(GamblingError::TransactionConflict)?;
 
         let embed = CreateEmbed::new()
             .title("TicTacToe")
@@ -292,11 +301,9 @@ async fn make_move(
             .await?;
     } else if draw {
         for &player in &players {
-            let mut row = GameRow::get(pool, player)
+            GameRow::commit(pool, player, &GameDelta::coins(bet))
                 .await?
-                .unwrap_or_else(|| GameRow::new(player));
-            row.add_coins(bet);
-            GameRow::save(pool, row).await?;
+                .ok_or(GamblingError::TransactionConflict)?;
         }
 
         let embed =

@@ -21,7 +21,15 @@ use zayden_core::{EmojiCacheData, FormatNum, parse_options};
 use super::Commands;
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::utils::effects_summary;
-use crate::{Coins, EffectsManager, GamblingData, GamblingError, GameRow, Result};
+use crate::{
+    Coins,
+    EffectsManager,
+    GamblingData,
+    GamblingError,
+    GameDelta,
+    GameRow,
+    Result,
+};
 
 impl Commands {
     pub async fn rps<Data: GamblingData + EmojiCacheData>(
@@ -50,6 +58,8 @@ impl Commands {
         let mut row = GameRow::get(pool, interaction.user.id)
             .await?
             .unwrap_or_else(|| GameRow::new(interaction.user.id));
+
+        let before = row.clone();
 
         let data = ctx.data::<RwLock<Data>>();
 
@@ -103,9 +113,12 @@ impl Commands {
 
         row.add_coins(payout);
 
-        let coins = row.coins();
+        let delta = GameDelta::between(&before, &row);
 
-        GameRow::save(pool, row).await?;
+        let coins = GameRow::commit(pool, interaction.user.id, &delta)
+            .await?
+            .ok_or(GamblingError::TransactionConflict)?
+            .coins;
 
         let title = if winner == Some(true) {
             "Rock 🪨 Paper 🗞️ Scissors ✂ - You Won!"

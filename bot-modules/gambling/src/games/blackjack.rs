@@ -31,6 +31,7 @@ use crate::{
     Coins,
     EffectsManager,
     GamblingError,
+    GameDelta,
     GameRow,
     Result,
     card_deck,
@@ -370,6 +371,8 @@ async fn game_end_common(
     let mut row =
         GameRow::get(pool, user_id).await?.unwrap_or_else(|| GameRow::new(user_id));
 
+    let before = row.clone();
+
     let dispatch = Dispatch::new(&ctx.http, pool, emojis);
 
     dispatch
@@ -392,9 +395,12 @@ async fn game_end_common(
 
     row.add_coins(payout);
 
-    let coins = row.coins();
+    let delta = GameDelta::between(&before, &row);
 
-    GameRow::save(pool, row).await?;
+    let coins = GameRow::commit(pool, user_id, &delta)
+        .await?
+        .ok_or(GamblingError::TransactionConflict)?
+        .coins;
 
     Ok((payout, coins, payout_result.effects))
 }

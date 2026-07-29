@@ -62,6 +62,8 @@ pub use models::{
     GamblingItem,
     GamblingItems,
     GamblingManager,
+    GameCommit,
+    GameDelta,
     GameRow,
     Gems,
     ItemInventory,

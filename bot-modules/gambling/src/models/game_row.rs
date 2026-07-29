@@ -1,12 +1,11 @@
 use serenity::all::UserId;
-use sqlx::postgres::PgQueryResult;
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, PgConnection, PgPool};
 use zayden_core::as_i64;
 
 use super::{Coins, Gems, MaxBet};
 use crate::{Prestige, START_AMOUNT};
 
-#[derive(FromRow)]
+#[derive(Debug, Clone, FromRow)]
 pub struct GameRow {
     pub user_id: i64,
     pub coins: i64,
@@ -33,19 +32,93 @@ impl GameRow {
             .await
     }
 
-    pub async fn save(pool: &PgPool, row: Self) -> sqlx::Result<PgQueryResult> {
+    pub async fn ensure(pool: &PgPool, id: UserId) -> sqlx::Result<()> {
+        let mut conn = pool.acquire().await?;
+
+        Self::insert_missing(&mut conn, as_i64(id.get())).await
+    }
+
+    async fn insert_missing(
+        conn: &mut PgConnection,
+        user_id: i64,
+    ) -> sqlx::Result<()> {
         sqlx::query!(
-            "INSERT INTO gambling (user_id, coins, gems)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (user_id) DO UPDATE SET
-            coins = EXCLUDED.coins, gems = EXCLUDED.gems;",
-            row.user_id,
-            row.coins,
-            row.gems,
+            "INSERT INTO gambling (user_id) VALUES ($1)
+            ON CONFLICT (user_id) DO NOTHING;",
+            user_id
         )
-        .execute(pool)
+        .execute(conn)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn commit_tx(
+        conn: &mut PgConnection,
+        id: UserId,
+        delta: &GameDelta,
+    ) -> sqlx::Result<Option<GameCommit>> {
+        let user_id = as_i64(id.get());
+
+        Self::insert_missing(&mut *conn, user_id).await?;
+
+        sqlx::query_as!(
+            GameCommit,
+            "UPDATE gambling SET
+                coins = coins + $2,
+                gems = gems + $3
+            WHERE user_id = $1
+                AND ($2::bigint = 0 OR coins + $2 >= 0)
+                AND ($3::bigint = 0 OR gems + $3 >= 0)
+            RETURNING coins, gems;",
+            user_id,
+            delta.coins,
+            delta.gems,
+        )
+        .fetch_optional(conn)
         .await
     }
+
+    pub async fn commit(
+        pool: &PgPool,
+        id: UserId,
+        delta: &GameDelta,
+    ) -> sqlx::Result<Option<GameCommit>> {
+        let mut tx = pool.begin().await?;
+
+        let Some(commit) = Self::commit_tx(&mut tx, id, delta).await? else {
+            tx.rollback().await?;
+            return Ok(None);
+        };
+
+        tx.commit().await?;
+
+        Ok(Some(commit))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct GameDelta {
+    pub coins: i64,
+    pub gems: i64,
+}
+
+impl GameDelta {
+    #[must_use]
+    pub const fn between(before: &GameRow, after: &GameRow) -> Self {
+        Self { coins: after.coins - before.coins, gems: after.gems - before.gems }
+    }
+
+    #[must_use]
+    pub const fn coins(coins: i64) -> Self {
+        Self { coins, gems: 0 }
+    }
+}
+
+#[derive(Debug, FromRow)]
+pub struct GameCommit {
+    pub coins: i64,
+    pub gems: i64,
 }
 
 impl Coins for GameRow {
