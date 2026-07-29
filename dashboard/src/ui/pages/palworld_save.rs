@@ -10,6 +10,9 @@ use crate::ui::pages::not_found::NotFound;
 
 const MAX_TRAITS: usize = 4;
 
+const MAX_LEVEL: i64 = 80;
+const MAX_TALENT: i64 = 100;
+
 #[component]
 pub(crate) fn PalworldSavePage() -> impl IntoView {
     let roster = Resource::new(|| (), |()| get_save_roster());
@@ -84,23 +87,23 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
                                                 </span>
                                             </summary>
                                             <label class="save-field">
-                                                "Character level"
+                                                {format!("Character level (1-{MAX_LEVEL})")}
                                                 <input
-                                                    type="number" min="1" max="60"
+                                                    type="number" min="1" max=MAX_LEVEL
                                                     value=level
                                                     on:change=move |ev| {
-                                                        let raw = event_target_value(&ev);
                                                         let id = pid.clone();
+                                                        let Ok(v) = event_target_value(&ev).parse::<i64>() else {
+                                                            player_pending.update(|m| { let _ = m.remove(&id); });
+                                                            return;
+                                                        };
+                                                        let v = v.clamp(1, MAX_LEVEL);
+                                                        set_input_value(&ev, v);
                                                         player_pending.update(|m| {
-                                                            match raw.parse::<i32>() {
-                                                                Ok(v) => {
-                                                                    let _ = m.insert(id.clone(), PlayerEdit {
-                                                                        instance_id: id,
-                                                                        level: Some(v.clamp(1, 60)),
-                                                                    });
-                                                                },
-                                                                Err(_) => { let _ = m.remove(&id); },
-                                                            }
+                                                            let _ = m.insert(id.clone(), PlayerEdit {
+                                                                instance_id: id,
+                                                                level: i32::try_from(v).ok(),
+                                                            });
                                                         });
                                                     }
                                                 />
@@ -192,21 +195,24 @@ fn pal_row(
 
     let num_input = move |label: &'static str,
                           value: i64,
+                          min: i64,
                           max: i64,
                           apply: fn(&mut PalEdit, i64)| {
         let id = id.clone();
         view! {
             <label class="save-field">
-                {label}
+                {format!("{label} ({min}-{max})")}
                 <input
-                    type="number" min="0" max=max value=value
+                    type="number" min=min max=max value=value
                     on:change=move |ev| {
                         let Ok(v) = event_target_value(&ev).parse::<i64>() else {
                             return;
                         };
+                        let v = v.clamp(min, max);
+                        set_input_value(&ev, v);
                         let id = id.clone();
                         let mut edit = edit_for(&id, pending);
-                        apply(&mut edit, v.clamp(0, max));
+                        apply(&mut edit, v);
                         pending.update(|m| { let _ = m.insert(id, edit); });
                     }
                 />
@@ -226,16 +232,16 @@ fn pal_row(
                 </span>
             </div>
             <div class="save-pal-stats">
-                {num_input("Level", i64::from(level), 60, |e, v| {
-                    e.level = i32::try_from(v).ok().map(|v| v.max(1));
+                {num_input("Level", i64::from(level), 1, MAX_LEVEL, |e, v| {
+                    e.level = i32::try_from(v).ok();
                 })}
-                {num_input("HP IV", i64::from(talent_hp), 100, |e, v| {
+                {num_input("HP IV", i64::from(talent_hp), 0, MAX_TALENT, |e, v| {
                     e.talent_hp = u8::try_from(v).ok();
                 })}
-                {num_input("Atk IV", i64::from(talent_shot), 100, |e, v| {
+                {num_input("Atk IV", i64::from(talent_shot), 0, MAX_TALENT, |e, v| {
                     e.talent_shot = u8::try_from(v).ok();
                 })}
-                {num_input("Def IV", i64::from(talent_defense), 100, |e, v| {
+                {num_input("Def IV", i64::from(talent_defense), 0, MAX_TALENT, |e, v| {
                     e.talent_defense = u8::try_from(v).ok();
                 })}
             </div>
@@ -262,6 +268,19 @@ fn pal_row(
         </div>
     }
 }
+
+#[cfg(feature = "hydrate")]
+fn set_input_value(ev: &leptos::ev::Event, value: i64) {
+    use wasm_bindgen::JsCast;
+    if let Some(input) =
+        ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+    {
+        input.set_value(&value.to_string());
+    }
+}
+
+#[cfg(not(feature = "hydrate"))]
+const fn set_input_value(_ev: &leptos::ev::Event, _value: i64) {}
 
 #[cfg(feature = "hydrate")]
 fn selected_values(ev: &leptos::ev::Event) -> Vec<String> {
