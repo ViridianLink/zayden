@@ -1,32 +1,56 @@
-use jiff_sqlx::{Timestamp, ToSqlx};
+use jiff_sqlx::Timestamp;
 use serenity::all::{GuildId, UserId};
 use sqlx::PgPool;
-use sqlx::postgres::PgQueryResult;
 use sqlx::prelude::FromRow;
 use zayden_core::{as_i64, as_u64};
 
 use crate::level_up_xp;
 
-fn accrue_message(
-    xp: &mut i32,
-    level: &mut i32,
-    total_xp: &mut i64,
-    message_count: &mut i64,
-) -> Option<i32> {
-    *message_count += 1;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MessageXp(i32);
 
-    let rand_xp = rand::random_range(15..25);
-    *total_xp += i64::from(rand_xp);
-    *xp += rand_xp;
+impl MessageXp {
+    pub const MAX: i32 = 24;
+    pub const MIN: i32 = 15;
 
-    let next_level_xp = level_up_xp(*level);
-    if *xp >= next_level_xp {
-        *xp -= next_level_xp;
-        *level += 1;
-        return Some(*level);
+    #[must_use]
+    pub fn roll() -> Self {
+        Self(rand::random_range(Self::MIN..=Self::MAX))
     }
 
-    None
+    #[must_use]
+    pub const fn new(xp: i32) -> Self {
+        Self(xp)
+    }
+
+    #[must_use]
+    pub const fn amount(self) -> i32 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LevelUp {
+    pub from_level: i32,
+    pub threshold: i32,
+}
+
+impl LevelUp {
+    #[must_use]
+    pub const fn check(xp: i32, level: i32) -> Option<Self> {
+        let threshold = level_up_xp(level);
+
+        if xp >= threshold {
+            Some(Self { from_level: level, threshold })
+        } else {
+            None
+        }
+    }
+
+    #[must_use]
+    pub const fn new_level(self) -> i32 {
+        self.from_level + 1
+    }
 }
 
 pub trait LevelsRow {
@@ -283,25 +307,63 @@ pub struct FullLevelRow {
 }
 
 impl FullLevelRow {
-    #[must_use]
-    pub fn new(id: UserId) -> Self {
-        Self {
-            user_id: as_i64(id.get()),
-            xp: 0,
-            level: 0,
-            total_xp: 0,
-            message_count: 0,
-            last_xp: jiff::Timestamp::default().to_sqlx(),
-        }
-    }
+    pub async fn accrue_message(
+        pool: &PgPool,
+        id: UserId,
+        xp: MessageXp,
+    ) -> sqlx::Result<Option<i32>> {
+        let user_id = as_i64(id.get());
 
-    pub fn new_message(&mut self) -> Option<i32> {
-        accrue_message(
-            &mut self.xp,
-            &mut self.level,
-            &mut self.total_xp,
-            &mut self.message_count,
+        let mut tx = pool.begin().await?;
+
+        sqlx::query!(
+            "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",
+            user_id
         )
+        .execute(&mut *tx)
+        .await?;
+
+        let accrued = sqlx::query!(
+            "INSERT INTO levels (user_id, xp, total_xp, level, message_count, last_xp)
+            VALUES ($1, $2, $2, 0, 1, now())
+            ON CONFLICT (user_id) DO UPDATE
+            SET xp = levels.xp + $2,
+                total_xp = levels.total_xp + $2,
+                message_count = levels.message_count + 1,
+                last_xp = now()
+            WHERE levels.last_xp <= now() - interval '1 minute'
+            RETURNING xp, level;",
+            user_id,
+            xp.amount(),
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        let Some(accrued) = accrued else {
+            tx.rollback().await?;
+            return Ok(None);
+        };
+
+        let Some(level_up) = LevelUp::check(accrued.xp, accrued.level) else {
+            tx.commit().await?;
+            return Ok(None);
+        };
+
+        let new_level = sqlx::query_scalar!(
+            "UPDATE levels
+            SET xp = xp - $2, level = level + 1
+            WHERE user_id = $1 AND level = $3 AND xp >= $2
+            RETURNING level;",
+            user_id,
+            level_up.threshold,
+            level_up.from_level,
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(new_level)
     }
 
     pub async fn get(pool: &PgPool, id: UserId) -> sqlx::Result<Option<Self>> {
@@ -311,33 +373,6 @@ impl FullLevelRow {
             as_i64(id.get())
         )
         .fetch_optional(pool)
-        .await
-    }
-
-    pub async fn save(self, pool: &PgPool) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",
-            self.user_id
-        )
-        .execute(pool)
-        .await?;
-
-        sqlx::query!(
-            "INSERT INTO levels (user_id, xp, total_xp, level, message_count, last_xp)
-            VALUES ($1, $2, $3, $4, $5, now())
-            ON CONFLICT (user_id) DO UPDATE
-            SET xp = EXCLUDED.xp,
-                total_xp = EXCLUDED.total_xp,
-                level = EXCLUDED.level,
-                message_count = EXCLUDED.message_count,
-                last_xp = now();",
-            self.user_id,
-            self.xp,
-            i32::try_from(self.total_xp).unwrap_or(i32::MAX),
-            self.level,
-            i32::try_from(self.message_count).unwrap_or(i32::MAX),
-        )
-        .execute(pool)
         .await
     }
 }
@@ -380,26 +415,74 @@ pub struct GuildLevelRow {
 }
 
 impl GuildLevelRow {
-    #[must_use]
-    pub fn new(guild_id: GuildId, id: UserId) -> Self {
-        Self {
-            guild_id: as_i64(guild_id.get()),
-            user_id: as_i64(id.get()),
-            xp: 0,
-            level: 0,
-            total_xp: 0,
-            message_count: 0,
-            last_xp: jiff::Timestamp::default().to_sqlx(),
-        }
-    }
+    pub async fn accrue_message(
+        pool: &PgPool,
+        guild_id: GuildId,
+        id: UserId,
+        xp: MessageXp,
+    ) -> sqlx::Result<Option<i32>> {
+        let guild_id = as_i64(guild_id.get());
+        let user_id = as_i64(id.get());
 
-    pub fn new_message(&mut self) -> Option<i32> {
-        accrue_message(
-            &mut self.xp,
-            &mut self.level,
-            &mut self.total_xp,
-            &mut self.message_count,
+        let mut tx = pool.begin().await?;
+
+        sqlx::query!(
+            "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+            guild_id
         )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",
+            user_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        let accrued = sqlx::query!(
+            "INSERT INTO guild_levels (guild_id, user_id, xp, total_xp, level, message_count, last_xp)
+            VALUES ($1, $2, $3::int, $3::int, 0, 1, now())
+            ON CONFLICT (guild_id, user_id) DO UPDATE
+            SET xp = guild_levels.xp + $3::int,
+                total_xp = guild_levels.total_xp + $3::int,
+                message_count = guild_levels.message_count + 1,
+                last_xp = now()
+            WHERE guild_levels.last_xp <= now() - interval '1 minute'
+            RETURNING xp, level;",
+            guild_id,
+            user_id,
+            xp.amount(),
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        let Some(accrued) = accrued else {
+            tx.rollback().await?;
+            return Ok(None);
+        };
+
+        let Some(level_up) = LevelUp::check(accrued.xp, accrued.level) else {
+            tx.commit().await?;
+            return Ok(None);
+        };
+
+        let new_level = sqlx::query_scalar!(
+            "UPDATE guild_levels
+            SET xp = xp - $3, level = level + 1
+            WHERE guild_id = $1 AND user_id = $2 AND level = $4 AND xp >= $3
+            RETURNING level;",
+            guild_id,
+            user_id,
+            level_up.threshold,
+            level_up.from_level,
+        )
+        .fetch_optional(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(new_level)
     }
 
     pub async fn get(
@@ -414,41 +497,6 @@ impl GuildLevelRow {
             as_i64(id.get())
         )
         .fetch_optional(pool)
-        .await
-    }
-
-    pub async fn save(self, pool: &PgPool) -> sqlx::Result<PgQueryResult> {
-        sqlx::query!(
-            "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
-            self.guild_id
-        )
-        .execute(pool)
-        .await?;
-
-        sqlx::query!(
-            "INSERT INTO users (id, username) VALUES ($1, 'PLACEHOLDER') ON CONFLICT (id) DO NOTHING",
-            self.user_id
-        )
-        .execute(pool)
-        .await?;
-
-        sqlx::query!(
-            "INSERT INTO guild_levels (guild_id, user_id, xp, total_xp, level, message_count, last_xp)
-            VALUES ($1, $2, $3, $4, $5, $6, now())
-            ON CONFLICT (guild_id, user_id) DO UPDATE
-            SET xp = EXCLUDED.xp,
-                total_xp = EXCLUDED.total_xp,
-                level = EXCLUDED.level,
-                message_count = EXCLUDED.message_count,
-                last_xp = now();",
-            self.guild_id,
-            self.user_id,
-            self.xp,
-            self.total_xp,
-            self.level,
-            self.message_count,
-        )
-        .execute(pool)
         .await
     }
 }

@@ -15,7 +15,9 @@ pub use manager::{
     FullLevelRow,
     GuildLevelRow,
     LeaderboardRow,
+    LevelUp,
     LevelsRow,
+    MessageXp,
     RankRow,
     XpRow,
 };

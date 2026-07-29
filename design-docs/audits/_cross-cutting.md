@@ -415,8 +415,9 @@ first-pass structural findings only hinted at. Per-module detail lives in the
 cross-cutting theme plus an index._
 
 ### CC-9. Read-modify-write on economy/counter rows with **absolute** overwrite (race class)  ·  #3  ·  high
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
-  Umbrella — stays `open` until every site is closed. Each site is its own task.
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+  Umbrella — every enumerated site is now closed; the umbrella itself is the
+  human's call to close. Each site was its own task.
   - **Closed:** [gambling DS-1…DS-5, DS-7](gambling.md),
     [gold-star DS-1](gold-star.md), [temp-voice DS-2](temp-voice.md),
     **[gambling DS-9](gambling.md) (`/shop buy`)**,
@@ -431,16 +432,35 @@ cross-cutting theme plus an index._
     `models/game_row.rs` and `commands/prestige.rs` are all clear (DS-9/DS-10
     removed the shop helpers, DS-13 removed `CraftManager::save`, DS-14 removed
     `GameRow::save`, DS-15 split the prestige write by semantics).
-  - **Remaining (re-enumerated 2026-07-29, since the 2026-07-28 sweep scoped its
-    "last one" claim to `gambling` only):** `levels`
-    (`bot-modules/levels/src/manager.rs:325` `FullLevelRow::save` and `:435`)
-    still writes the XP row absolutely — `xp = EXCLUDED.xp, total_xp =
-    EXCLUDED.total_xp, level = EXCLUDED.level, message_count =
-    EXCLUDED.message_count`. The third pass already identified this as "the known
-    CC-9 class on a self-only, low-value row" (two same-tick messages double-count
-    the read-modify-write) and traced the *cooldown* clean, but the write itself
-    was never converted. It needs its own `DS-#` and task; it is the last
-    enumerated site, and CC-9 stays `open` until it closes.
+  - **`levels` (the last enumerated site) is now closed** by
+    **[levels DS-1](levels.md)** — the site re-enumerated here on 2026-07-29
+    after `gambling` closed (`manager.rs:325` `FullLevelRow::save` and `:435`
+    `GuildLevelRow::save`, both `xp = EXCLUDED.xp, total_xp = EXCLUDED.total_xp,
+    level = EXCLUDED.level, message_count = EXCLUDED.message_count`). Both
+    `save`s were removed in favour of `accrue_message`, which increments in SQL.
+    The third pass had traced the *cooldown* clean; DS-1 shows it was not — it
+    was an in-memory comparison against the **snapshot's** `last_xp`, so the
+    same interleave that lost the XP also let both handlers spend one cooldown
+    window. It is now the write's own `WHERE last_xp <= now() - interval
+    '1 minute'` guard.
+  - **DS-1 adds a third corrective shape.** DS-11 gave the *accrual*
+    compare-and-swap and DS-15 the *split-by-semantics* rule; DS-1 covers a
+    **derived column** — `level` is a function of `xp`, so it cannot be an
+    increment. The pattern is: increment the accumulators in one guarded
+    statement, `RETURNING` the post-increment values, then apply the derived
+    change in a second statement guarded on the value you saw
+    (`WHERE level = $old AND xp >= $threshold`). The loser of the race matches
+    no row rather than writing back a stale derivation.
+  - **Re-swept 2026-07-29 (levels DS-1 task):** every remaining `EXCLUDED.` in
+    the workspace was re-read. What is left is settings/config rows
+    (`zayden-app/src/config/tables/*`, `marathon/announce.rs`), catalog and
+    metadata upserts (`destiny2/db/compendium.rs`, `palworld/{link,upload}.rs`,
+    `family/manager.rs` username), the deliberate CAS arms from DS-11/DS-12
+    (`CASE WHEN … THEN EXCLUDED.mine_activity`), and the monotone
+    `GREATEST(stats.col, EXCLUDED.col)` score upsert
+    (`gambling/sql/StatsManager/higherlower.sql`) — all last-writer-wins or
+    race-safe **by design**, none of them read-modify-write economy/counter
+    rows. No unenumerated site was found.
   - **DS-15 sharpened the corrective pattern a third time.** DS-11 established
     that a *time-based accrual* needs a compare-and-swap rather than an
     increment. DS-15 adds: not every column in an absolute write is a defect.

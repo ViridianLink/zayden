@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_levels (guild_id, user_id, xp, total_xp, level, message_count, last_xp)\n            VALUES ($1, $2, $3::int, $3::int, 0, 1, now())\n            ON CONFLICT (guild_id, user_id) DO UPDATE\n            SET xp = guild_levels.xp + $3::int,\n                total_xp = guild_levels.total_xp + $3::int,\n                message_count = guild_levels.message_count + 1,\n                last_xp = now()\n            WHERE guild_levels.last_xp <= now() - interval '1 minute'\n            RETURNING xp, level;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "xp",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "guild_levels",
+            "name": "xp"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "guild_levels",
+            "name": "level"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "53fd78a1bd479d8b8e0d019f4ba0b1769a6e36ee3994b88955f337b16cc53513"
+}

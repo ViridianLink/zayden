@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE levels\n            SET xp = xp - $2, level = level + 1\n            WHERE user_id = $1 AND level = $3 AND xp >= $2\n            RETURNING level;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "level",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "levels",
+            "name": "level"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dff1738d2e2127cc8ba0ab92c65addabeb8aafb7594bf048fab66bb0d1cea48e"
+}

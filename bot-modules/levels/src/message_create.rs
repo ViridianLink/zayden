@@ -1,15 +1,7 @@
-use jiff::{Span, Timestamp};
 use serenity::all::Message;
 use sqlx::PgPool;
 
-use super::LevelsRow;
-use crate::{FullLevelRow, GuildLevelRow};
-
-fn on_cooldown(last_xp: Timestamp) -> bool {
-    let cooldown =
-        last_xp.checked_add(Span::new().minutes(1)).unwrap_or(Timestamp::MAX);
-    cooldown > Timestamp::now()
-}
+use crate::{FullLevelRow, GuildLevelRow, MessageXp};
 
 pub async fn message_create(
     message: &Message,
@@ -19,26 +11,13 @@ pub async fn message_create(
         return Ok(None);
     };
 
-    let mut global = FullLevelRow::get(pool, message.author.id)
-        .await?
-        .unwrap_or_else(|| FullLevelRow::new(message.author.id));
+    let author_id = message.author.id;
 
-    let global_level = if on_cooldown(global.last_xp()) {
-        None
-    } else {
-        let new_level = global.new_message();
-        global.save(pool).await?;
-        new_level
-    };
+    let global_level =
+        FullLevelRow::accrue_message(pool, author_id, MessageXp::roll()).await?;
 
-    let mut guild = GuildLevelRow::get(pool, guild_id, message.author.id)
-        .await?
-        .unwrap_or_else(|| GuildLevelRow::new(guild_id, message.author.id));
-
-    if !on_cooldown(guild.last_xp()) {
-        guild.new_message();
-        guild.save(pool).await?;
-    }
+    GuildLevelRow::accrue_message(pool, guild_id, author_id, MessageXp::roll())
+        .await?;
 
     Ok(global_level)
 }

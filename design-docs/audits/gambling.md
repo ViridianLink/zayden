@@ -808,7 +808,7 @@ read-modify-write race class this drills beneath (CC-1 enables it)._
     against an empty DB is the cheap way to confirm that.
 
 ### DS-15. `/prestige` awards gems with a whole-row absolute overwrite  ·  Pass 8 (CC-9 sweep)  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 03ce3894`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `PrestigeManager::save`
   (`bot-modules/gambling/src/commands/prestige.rs:134-145`), reached from
   `Commands::confirm_prestige` (`commands/prestige.rs:419`).

@@ -142,6 +142,88 @@ pattern before the larger crates.
 - **Suggested fix:** delete the line, then `cargo +nightly check -p levels` and
   `cargo machete`. One-line change; no behaviour delta expected.
 
+### DS-1. Message XP is a read-modify-write persisted as a whole-row absolute overwrite (and the 1-minute cooldown is checked only in memory)  ·  Pass 8 (CC-9 sweep)  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-29):** As suggested. Both `save` methods are **removed** (the
+  DS-13/DS-14 precedent: delete the absolute-write helper rather than leave it
+  callable) and replaced by `FullLevelRow::accrue_message` /
+  `GuildLevelRow::accrue_message`, which do the whole accrual in SQL inside one
+  transaction per row:
+  - **The accrual is an increment.** `SET xp = levels.xp + $2, total_xp =
+    levels.total_xp + $2, message_count = levels.message_count + 1` against the
+    live row, so a concurrent handler's credit can no longer be clobbered. The
+    XP roll itself stays in-process (`MessageXp::roll`, still `15..=24`) — it is
+    the *amount*, not a post-image.
+  - **The cooldown is now a compare-and-swap**, not an in-memory comparison:
+    `ON CONFLICT … DO UPDATE … WHERE levels.last_xp <= now() - interval
+    '1 minute'`. When the guard rejects, `RETURNING` yields no row, the handler
+    returns `Ok(None)` and the message earns nothing — so two interleaved
+    handlers can no longer both spend the same cooldown window.
+  - **The level-up is decided against the returned post-increment row**
+    (`LevelUp::check(accrued.xp, accrued.level)`) and applied by a second
+    guarded statement, `WHERE user_id = $1 AND level = $3 AND xp >= $2`. The
+    `level = $3` compare half means a racing handler that saw the same
+    pre-image matches no row instead of reverting the level the winner set;
+    the announcement fires only when that update actually applied.
+  - `i32::try_from(total_xp).unwrap_or(i32::MAX)` in the old global `save` is
+    gone with it — the silent clamp existed only because the in-memory row
+    carried `i64`s for `levels`' `int4` columns.
+  - **Not changed:** the XP curve (`level_up_xp`), the roll band, the per-row
+    independence of the global and guild accruals (each still rolls its own XP,
+    as before), and the fact that only the *global* level-up is announced.
+- **Verification:** `bot-modules/levels/tests/accrual.rs` (7 tests) covers the
+  in-process half — the roll band, the increment-vs-post-image arithmetic of the
+  failure scenario, and `LevelUp`'s compare-and-swap contract. It fails before
+  the fix (`unresolved imports levels::LevelUp, levels::MessageXp` — the API the
+  fix introduces did not exist) and passes after. The SQL half has no test
+  harness in this workspace (CC-6), so it was verified directly against the dev
+  database inside a rolled-back transaction: an off-cooldown accrual returns
+  `xp 90 → 110, message_count 10 → 11`; an immediate second accrual returns
+  **zero rows** and leaves the row untouched; the guarded level-up applies once
+  (`level 0 → 1`, `xp 110 → 10`, carrying the overshoot) and returns **zero
+  rows** when replayed; and the insert branch still creates a fresh row at
+  `xp = 20, message_count = 1`.
+- **Where:** `FullLevelRow::save` (`bot-modules/levels/src/manager.rs:325`, table
+  `levels`) and `GuildLevelRow::save` (`:435`, table `guild_levels`), driven by
+  `message_create` (`bot-modules/levels/src/message_create.rs:22-41`).
+- **What:** the last enumerated site of the
+  [CC-9](_cross-cutting.md#cc-9) absolute-overwrite class, re-enumerated there on
+  2026-07-29 after `gambling` closed. `message_create` reads the whole row,
+  `accrue_message` mutates `xp`/`level`/`total_xp`/`message_count` **in memory**
+  (`manager.rs:10-30`), and `save` persists the post-image absolutely:
+  `SET xp = EXCLUDED.xp, total_xp = EXCLUDED.total_xp, level = EXCLUDED.level,
+  message_count = EXCLUDED.message_count`. The 1-minute cooldown is likewise a
+  pure in-memory comparison against the *snapshot's* `last_xp`
+  (`message_create.rs:8-12`), with no guard on the write.
+- **Failure scenario:** a user posts two messages that are dispatched
+  concurrently (two shards' `MESSAGE_CREATE` handlers, or simply two messages
+  within the same tick — Serenity spawns a task per event, so the handlers
+  interleave freely). Both read `xp = 90, total_xp = 90, message_count = 10,
+  last_xp = <2 min ago>`; both pass the in-memory cooldown check because both
+  saw the *stale* `last_xp`; both accrue ~20 XP in memory; both write
+  absolutely. The row ends at `xp ≈ 110, message_count = 11` — one message's XP
+  and message count are gone. The same interleave also double-spends a cooldown
+  that should have blocked the second message, and a level-up computed against a
+  stale `level` can be written back over a level the other handler already
+  advanced (the loser's `level = EXCLUDED.level` reverts it, and its `xp` is a
+  post-threshold-subtraction value, so the player is left mid-curve one level
+  lower than they earned).
+- **Why it matters:** every other counter writer in the workspace is now atomic
+  after the CC-9 sweep; this is the last one that can silently lose a credit.
+  Blast radius is small per event (one message's XP) but it is the hottest write
+  path in the bot — it fires on every message in every guild — and a reverted
+  level-up is user-visible (the level-up announcement fires for a level the row
+  no longer holds).
+- **Confidence:** confirmed-logic, plausible-interleave (same class as
+  gambling DS-9/DS-11/DS-13/DS-14/DS-15, which were confirmed).
+- **Suggested fix:** convert both `save`s to an atomic accrual — `xp = xp + $n,
+  total_xp = total_xp + $n, message_count = message_count + 1` — with the
+  cooldown enforced *in the statement* as a compare-and-swap
+  (`WHERE last_xp <= now() - interval '1 minute'`), and decide the level-up
+  against the `RETURNING`ed post-increment values via a second guarded
+  `WHERE level = $old AND xp >= $threshold` update, so the level-up cannot be
+  applied twice or reverted. See [CC-9](_cross-cutting.md#cc-9).
+
 ## Clean
 - #1 DB access: concrete impl uses compile-time `query!`/`query_as!`/
   `query_scalar!` (no runtime SQL).
