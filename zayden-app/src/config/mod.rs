@@ -6,4 +6,9 @@ pub mod tables;
 pub use bot_config::{BotConfig, PelicanConfig};
 pub use registry::SettingsRegistry;
 pub use settings_store::{SettingsRow, SettingsStore};
-pub use tables::{MusicSettingsRow, SupportSettingsRow, TicketSettingsRow};
+pub use tables::{
+    HoneypotSettingsRow,
+    MusicSettingsRow,
+    SupportSettingsRow,
+    TicketSettingsRow,
+};

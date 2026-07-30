@@ -1,0 +1,18 @@
+[package]
+name = "honeypot"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+zayden-core = { workspace = true }
+zayden-app = { workspace = true }
+
+moka = { workspace = true, features = ["future"] }
+serenity = { workspace = true, features = ["builder"] }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }

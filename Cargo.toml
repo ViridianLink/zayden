@@ -135,6 +135,7 @@ destiny2 = { path = "./bot-modules/destiny2" }
 family = { path = "./bot-modules/family" }
 gambling = { path = "./bot-modules/gambling" }
 gold-star = { path = "./bot-modules/gold-star" }
+honeypot = { path = "./bot-modules/honeypot" }
 levels = { path = "./bot-modules/levels" }
 lfg = { path = "./bot-modules/lfg" }
 llamad2 = { path = "./bot-modules/llamad2" }

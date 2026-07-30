@@ -7,8 +7,10 @@ use sqlx::PgPool;
 use ticket::TicketStores;
 use tracing::debug;
 use zayden_app::state::AppState;
+use zayden_core::as_i64;
 
 use crate::bindings::ai::Ai;
+use crate::bindings::honeypot::record_hit;
 use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
 use crate::{BotState, Result};
@@ -23,6 +25,15 @@ impl Handler {
         if msg.author.bot() {
             debug!(author_id = %msg.author.id, "message author is a bot; ignoring");
             return Ok(());
+        }
+
+        if let Some(guild_id) = msg.guild_id {
+            let settings = app.settings.honeypot.get(as_i64(guild_id.get())).await?;
+
+            if let Some(hit) = honeypot::message_create(ctx, msg, &settings).await? {
+                record_hit(&app, &hit).await?;
+                return Ok(());
+            }
         }
 
         let stores = TicketStores {

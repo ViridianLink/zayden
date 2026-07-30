@@ -1,0 +1,189 @@
+use std::collections::HashMap;
+
+use serenity::all::{
+    CommandOptionType,
+    CreateCommand,
+    CreateCommandOption,
+    EditInteractionResponse,
+    GenericInteractionChannel,
+    Permissions,
+    ResolvedValue,
+};
+use zayden_core::{
+    InvocationCtx,
+    as_i64,
+    as_u64,
+    parse_options,
+    parse_subcommand,
+    required_option,
+};
+
+use crate::error::{HoneypotError, Result};
+use crate::guard::GUARD;
+
+pub struct Honeypot;
+
+impl Honeypot {
+    pub fn register() -> CreateCommand<'static> {
+        CreateCommand::new("honeypot")
+            .description("Auto-ban spam bots that post in a decoy channel")
+            .default_member_permissions(Permissions::MANAGE_GUILD)
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::SubCommand,
+                    "set",
+                    "Set the honeypot channel. Anyone who posts there is soft-banned.",
+                )
+                .add_sub_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::Channel,
+                        "channel",
+                        "An empty channel nobody has a reason to post in",
+                    )
+                    .required(true),
+                ),
+            )
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::SubCommand,
+                "disable",
+                "Turn the honeypot off",
+            ))
+            .add_option(CreateCommandOption::new(
+                CommandOptionType::SubCommand,
+                "status",
+                "Show the current honeypot configuration",
+            ))
+    }
+
+    pub async fn run(cx: &InvocationCtx<'_>) -> Result<()> {
+        let (name, sub_options) = parse_subcommand(cx.interaction.data.options())?;
+        let options = parse_options(sub_options);
+
+        match name {
+            "set" => set(cx, options).await,
+            "disable" => disable(cx).await,
+            "status" => status(cx).await,
+            _ => Err(HoneypotError::UnknownSubcommand(name.to_string())),
+        }
+    }
+}
+
+fn require_manage_guild(cx: &InvocationCtx<'_>) -> Result<()> {
+    let privileged = cx
+        .interaction
+        .member
+        .as_ref()
+        .and_then(|member| member.permissions)
+        .is_some_and(Permissions::manage_guild);
+
+    if privileged { Ok(()) } else { Err(HoneypotError::NotPrivileged) }
+}
+
+async fn set(
+    cx: &InvocationCtx<'_>,
+    mut options: HashMap<&str, ResolvedValue<'_>>,
+) -> Result<()> {
+    let guild_id = cx.interaction.guild_id.ok_or(HoneypotError::MissingGuildId)?;
+    require_manage_guild(cx)?;
+
+    let channel: &GenericInteractionChannel =
+        required_option(&mut options, "channel")?;
+    let channel_id = channel.id().expect_channel();
+
+    cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
+
+    let guild_id_i64 = as_i64(guild_id.get());
+
+    sqlx::query!(
+        "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+        guild_id_i64
+    )
+    .execute(&cx.app.db)
+    .await?;
+
+    cx.app
+        .settings
+        .honeypot
+        .update(guild_id_i64, |row| {
+            row.channel_id = Some(as_i64(channel_id.get()));
+        })
+        .await?;
+
+    GUARD.forget(guild_id).await;
+
+    cx.interaction
+        .edit_response(
+            &cx.ctx.http,
+            EditInteractionResponse::new().content(format!(
+                "Honeypot armed on <#{channel_id}>. Anyone who posts there is \
+                 banned (which purges their recent messages server-wide) and \
+                 then immediately unbanned, so a recovered account can rejoin.\n\n\
+                 Leave the channel postable by @everyone — the trap only catches \
+                 spam bots that can actually reach it."
+            )),
+        )
+        .await?;
+
+    Ok(())
+}
+
+async fn disable(cx: &InvocationCtx<'_>) -> Result<()> {
+    let guild_id = cx.interaction.guild_id.ok_or(HoneypotError::MissingGuildId)?;
+    require_manage_guild(cx)?;
+
+    cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
+
+    cx.app
+        .settings
+        .honeypot
+        .update(as_i64(guild_id.get()), |row| {
+            row.channel_id = None;
+        })
+        .await?;
+
+    GUARD.forget(guild_id).await;
+
+    cx.interaction
+        .edit_response(
+            &cx.ctx.http,
+            EditInteractionResponse::new().content("Honeypot disabled."),
+        )
+        .await?;
+
+    Ok(())
+}
+
+async fn status(cx: &InvocationCtx<'_>) -> Result<()> {
+    let guild_id = cx.interaction.guild_id.ok_or(HoneypotError::MissingGuildId)?;
+    require_manage_guild(cx)?;
+
+    cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
+
+    let settings = cx.app.settings.honeypot.get(as_i64(guild_id.get())).await?;
+
+    let content = settings.channel_id.map_or_else(
+        || "Honeypot is disabled. Use `/honeypot set` to arm it.".to_string(),
+        |channel_id| {
+            let mut exemptions = vec!["the server owner".to_string()];
+            if settings.exempt_admins {
+                exemptions.push("admins and Manage Server holders".to_string());
+            }
+            if let Some(role_id) = settings.exempt_role_id {
+                exemptions.push(format!("<@&{}>", as_u64(role_id)));
+            }
+
+            format!(
+                "Honeypot is armed on <#{}>.\n**Exempt:** {}\n\n\
+                 Change the exemptions from the dashboard.",
+                as_u64(channel_id),
+                exemptions.join(", "),
+            )
+        },
+    );
+
+    cx.interaction
+        .edit_response(&cx.ctx.http, EditInteractionResponse::new().content(content))
+        .await?;
+
+    Ok(())
+}

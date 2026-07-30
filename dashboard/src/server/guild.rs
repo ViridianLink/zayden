@@ -107,6 +107,7 @@ pub async fn get_guild_settings(
     let lfg = s.lfg.get(guild_id).await.map_err(server_err)?;
     let family = s.family.get(guild_id).await.map_err(server_err)?;
     let music = s.music.get(guild_id).await.map_err(server_err)?;
+    let honeypot = s.honeypot.get(guild_id).await.map_err(server_err)?;
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
@@ -130,6 +131,9 @@ pub async fn get_guild_settings(
         music_auto_disconnect_secs: music.auto_disconnect_secs.to_string(),
         music_announce_now_playing: music.announce_now_playing,
         music_announce_channel_id: opt_str(music.announce_channel_id),
+        honeypot_channel_id: opt_str(honeypot.channel_id),
+        honeypot_exempt_admins: honeypot.exempt_admins,
+        honeypot_exempt_role_id: opt_str(honeypot.exempt_role_id),
     })
 }
 
@@ -366,6 +370,29 @@ pub async fn save_music_settings(
             p.auto_disconnect_secs = auto_disconnect_secs;
             p.announce_now_playing = announce_now_playing;
             p.announce_channel_id = parse_id(&announce_channel_id);
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_honeypot_settings(
+    guild: String,
+    channel_id: String,
+    exempt_admins: String,
+    exempt_role_id: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let exempt_admins = exempt_admins.trim() == "true";
+
+    app.settings
+        .honeypot
+        .update(guild_id, |p| {
+            p.channel_id = parse_id(&channel_id);
+            p.exempt_admins = exempt_admins;
+            p.exempt_role_id = parse_id(&exempt_role_id);
         })
         .await
         .map(|_| ())

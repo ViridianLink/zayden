@@ -21,13 +21,12 @@ use zayden_core::{
     HandlerError,
     InvocationCtx,
     ModuleCommand,
-    as_i64,
     optional_option,
     parse_options,
     required_option,
 };
 
-use super::{InfractionKind, InfractionRow, NO_REASON};
+use super::{InfractionKind, InfractionRow, NewInfraction, NO_REASON};
 
 pub(super) struct Infraction;
 
@@ -124,24 +123,18 @@ struct Case<'a> {
 
 impl Case<'_> {
     async fn record(&self, kind: InfractionKind) -> sqlx::Result<()> {
-        sqlx::query!(
-            "INSERT INTO infractions
-                (user_id, username, guild_id, infraction_type,
-                 moderator_id, moderator_username, points, reason)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            as_i64(self.target.id.get()),
-            self.target.name.as_str(),
-            as_i64(self.guild_id.get()),
-            kind as _,
-            as_i64(self.moderator.id.get()),
-            self.moderator.name.as_str(),
-            self.points,
-            self.reason,
-        )
-        .execute(self.pool)
-        .await?;
-
-        Ok(())
+        NewInfraction {
+            guild_id: self.guild_id,
+            target_id: self.target.id,
+            target_username: self.target.name.as_str(),
+            kind,
+            moderator_id: self.moderator.id,
+            moderator_username: self.moderator.name.as_str(),
+            points: self.points,
+            reason: self.reason,
+        }
+        .record(self.pool)
+        .await
     }
 }
 

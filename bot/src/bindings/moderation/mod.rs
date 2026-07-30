@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use serenity::all::UserId;
+use serenity::all::{GuildId, UserId};
 use sqlx::PgPool;
 use zayden_core::as_i64;
 
@@ -40,6 +40,40 @@ impl Display for InfractionKind {
             Self::Ban => "Ban",
         };
         f.write_str(s)
+    }
+}
+
+pub(crate) struct NewInfraction<'a> {
+    pub guild_id: GuildId,
+    pub target_id: UserId,
+    pub target_username: &'a str,
+    pub kind: InfractionKind,
+    pub moderator_id: UserId,
+    pub moderator_username: &'a str,
+    pub points: i32,
+    pub reason: &'a str,
+}
+
+impl NewInfraction<'_> {
+    pub(crate) async fn record(&self, pool: &PgPool) -> sqlx::Result<()> {
+        sqlx::query!(
+            "INSERT INTO infractions
+                (user_id, username, guild_id, infraction_type,
+                 moderator_id, moderator_username, points, reason)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+            as_i64(self.target_id.get()),
+            self.target_username,
+            as_i64(self.guild_id.get()),
+            self.kind as _,
+            as_i64(self.moderator_id.get()),
+            self.moderator_username,
+            self.points,
+            self.reason,
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
     }
 }
 

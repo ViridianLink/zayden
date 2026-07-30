@@ -103,6 +103,12 @@ const MODULES: &[ModuleDef] = &[
         commands: &["ticket", "support"],
     },
     ModuleDef {
+        id: "honeypot",
+        label: "Honeypot",
+        description: "Decoy channel that soft-bans spam bots on sight.",
+        commands: &["honeypot"],
+    },
+    ModuleDef {
         id: "misc",
         label: "Misc",
         description: "Miscellaneous utility commands.",

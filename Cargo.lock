@@ -526,6 +526,7 @@ dependencies = [
  "futures",
  "gambling",
  "gold-star",
+ "honeypot",
  "jiff",
  "jiff-cron",
  "levels",
@@ -2384,6 +2385,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6303bc9732ae41b04cb554b844a762b4115a61bfaa81e3e83050991eeb56863f"
 dependencies = [
  "digest 0.11.3",
+]
+
+[[package]]
+name = "honeypot"
+version = "1.0.0"
+dependencies = [
+ "moka",
+ "serenity",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tracing",
+ "zayden-app",
+ "zayden-core",
 ]
 
 [[package]]

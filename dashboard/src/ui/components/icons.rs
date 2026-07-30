@@ -93,6 +93,7 @@ pub(crate) fn module_icon(id: &str) -> &'static str {
         "gambling" => "dice",
         "family" => "heart",
         "ticket" => "ticket",
+        "honeypot" => "shield",
         _ => "sparkles",
     }
 }
@@ -105,6 +106,7 @@ pub(crate) fn module_tint(id: &str) -> &'static str {
         "gambling" => "#f472b6",
         "family" => "#fb7185",
         "ticket" => "#38bdf8",
+        "honeypot" => "#fbbf24",
         _ => "#94a3b8",
     }
 }

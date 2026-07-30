@@ -30,4 +30,7 @@ pub struct GuildSettings {
     pub(crate) music_auto_disconnect_secs: String,
     pub(crate) music_announce_now_playing: bool,
     pub(crate) music_announce_channel_id: Option<String>,
+    pub(crate) honeypot_channel_id: Option<String>,
+    pub(crate) honeypot_exempt_admins: bool,
+    pub(crate) honeypot_exempt_role_id: Option<String>,
 }

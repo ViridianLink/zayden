@@ -7,6 +7,7 @@ use super::SettingsStore;
 use super::tables::{
     ChannelsSettingsRow,
     FamilySettingsRow,
+    HoneypotSettingsRow,
     LfgSettingsRow,
     MusicSettingsRow,
     RolesSettingsRow,
@@ -27,6 +28,7 @@ pub struct SettingsRegistry {
     pub music: Arc<SettingsStore<MusicSettingsRow>>,
     pub ticket: Arc<SettingsStore<TicketSettingsRow>>,
     pub family: Arc<SettingsStore<FamilySettingsRow>>,
+    pub honeypot: Arc<SettingsStore<HoneypotSettingsRow>>,
 }
 
 impl SettingsRegistry {
@@ -40,7 +42,8 @@ impl SettingsRegistry {
         let lfg = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let music = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let ticket = Arc::new(SettingsStore::new(db.clone(), events.clone()));
-        let family = Arc::new(SettingsStore::new(db, events.clone()));
+        let family = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let honeypot = Arc::new(SettingsStore::new(db, events.clone()));
 
         SettingsStore::spawn_invalidator(Arc::clone(&support), events.subscribe());
         SettingsStore::spawn_invalidator(
@@ -57,6 +60,7 @@ impl SettingsRegistry {
         SettingsStore::spawn_invalidator(Arc::clone(&music), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&ticket), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&family), events.subscribe());
+        SettingsStore::spawn_invalidator(Arc::clone(&honeypot), events.subscribe());
 
         Self {
             support,
@@ -68,6 +72,7 @@ impl SettingsRegistry {
             music,
             ticket,
             family,
+            honeypot,
         }
     }
 }

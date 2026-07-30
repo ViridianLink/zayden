@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT guild_id, channel_id, exempt_admins, exempt_role_id\n            FROM honeypot_settings\n            WHERE guild_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "exempt_admins",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "exempt_admins"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "exempt_role_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "exempt_role_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "f6b819f4d4ea2d7cb1dbbd8a75a0e55c9501dcb3f645dd0ed24a79cd63583ac4"
+}

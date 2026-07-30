@@ -12,6 +12,7 @@ use crate::server::guild::{
     RemoveSupportRole,
     SaveChannelSettings,
     SaveFamilySettings,
+    SaveHoneypotSettings,
     SaveLfgSettings,
     SaveMusicSettings,
     SaveRoleSettings,
@@ -79,6 +80,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let save_temp_voice = ServerAction::<SaveTempVoiceSettings>::new();
     let save_family = ServerAction::<SaveFamilySettings>::new();
     let save_music = ServerAction::<SaveMusicSettings>::new();
+    let save_honeypot = ServerAction::<SaveHoneypotSettings>::new();
     let save_lfg = ServerAction::<SaveLfgSettings>::new();
 
     view! {
@@ -348,6 +350,51 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             "Default volume, 24/7 mode and autoplay change "
                                             "while music is playing \u{2014} set those in Discord "
                                             "with /music settings."
+                                        </p>
+                                    </fieldset>
+                                }}
+
+                                // Honeypot — anti-spam trap.
+                                {let r = save_honeypot.value();
+                                let roles = roles.clone();
+                                let channels = channels.clone();
+                                view! {
+                                    <fieldset class="settings-section">
+                                        <legend><Icon name="shield"/>"Honeypot"</legend>
+                                        {move || r.get().map(save_feedback)}
+                                        <ActionForm action=save_honeypot>
+                                            <input type="hidden" name="guild" value=guild_id()/>
+                                            <ChannelSelect
+                                                label="Honeypot Channel"
+                                                name="channel_id"
+                                                selected=sel(s.honeypot_channel_id.as_deref())
+                                                channels=channels
+                                                kinds=TEXT_KINDS
+                                            />
+                                            <ToggleField
+                                                label="Exempt Admins"
+                                                name="exempt_admins"
+                                                value=s.honeypot_exempt_admins
+                                            />
+                                            <RoleSelect
+                                                label="Exempt Role"
+                                                name="exempt_role_id"
+                                                selected=sel(s.honeypot_exempt_role_id.as_deref())
+                                                roles=roles
+                                            />
+                                            <SaveButton/>
+                                        </ActionForm>
+                                        <p class="page-lead">
+                                            "Anyone who posts in the honeypot channel is "
+                                            "banned \u{2014} which purges their recent messages "
+                                            "server-wide \u{2014} and then immediately unbanned, "
+                                            "so a recovered account can rejoin. Leave the "
+                                            "channel unset to turn the trap off."
+                                        </p>
+                                        <p class="page-lead">
+                                            "The server owner is always exempt. Keep the channel "
+                                            "postable by @everyone \u{2014} the trap only catches "
+                                            "spam bots that can actually reach it."
                                         </p>
                                     </fieldset>
                                 }}

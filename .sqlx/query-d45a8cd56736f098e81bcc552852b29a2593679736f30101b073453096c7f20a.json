@@ -1,0 +1,67 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO honeypot_settings\n                (guild_id, channel_id, exempt_admins, exempt_role_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                channel_id = EXCLUDED.channel_id,\n                exempt_admins = EXCLUDED.exempt_admins,\n                exempt_role_id = EXCLUDED.exempt_role_id,\n                updated_at = now()\n            RETURNING guild_id, channel_id, exempt_admins, exempt_role_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "exempt_admins",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "exempt_admins"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "exempt_role_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "exempt_role_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "d45a8cd56736f098e81bcc552852b29a2593679736f30101b073453096c7f20a"
+}
