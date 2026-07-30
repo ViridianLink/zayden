@@ -2146,6 +2146,7 @@ dependencies = [
  "jiff-sqlx",
  "serenity",
  "sqlx",
+ "tokio",
  "zayden-core",
 ]
 

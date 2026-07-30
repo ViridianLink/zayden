@@ -13,4 +13,7 @@ zayden-core = { workspace = true }
 jiff = { workspace = true }
 jiff-sqlx = { workspace = true }
 serenity = { workspace = true }
-sqlx = { workspace = true }
+sqlx = { workspace = true, features = ["migrate"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }

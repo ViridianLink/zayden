@@ -48,7 +48,7 @@ use compile-time macros.
   the small crates prove the pattern.
 
 ### 2. Dead `GameState` / reserved stubs  ·  #2  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — a2c6f652`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-29):** Module-level mirror of [CC-4](_cross-cutting.md#cc-4);
   both halves are now closed. The `GameState` half went with the gambling CC-1
   migration (`83930148`) — the stub was itself DB-generic, so it died with the
@@ -67,10 +67,26 @@ use compile-time macros.
   until the feature is real; removes two CC-3 escape-hatches with it.
 
 ### 2b. `WEAPON_CRATE` is the same dead stub, hidden by `pub` instead of `#[expect]`  ·  #2  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `wontfix — retained as a future plan; owner's ruling 2026-07-29`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Ruling (2026-07-29):** Do **not** delete reserved shop items — they are
+  planned features. The standing rule the owner set here: *comment the const out
+  only when it is flagged by an `#[expect]`; if it is already commented out,
+  leave it.* `WEAPON_CRATE` satisfies neither trigger — it carries no `#[expect]`
+  (being `pub` through a public module chain, the `dead_code` lint never fires)
+  and its `SHOP_ITEMS` entry is already commented out (`items.rs:392`). So the
+  finding is closed with no code change. The analysis below stands as the record
+  of *why* the gate cannot see it, which is the part worth remembering.
+- **Pre-checks run before the ruling (read-only, 2026-07-29):**
+  `git log -S '    WEAPON_CRATE,'` on `items.rs` returns **no commit** — the
+  `SHOP_ITEMS` entry was never uncommented, so no `gambling_inventory` row can
+  hold `"weaponcrate"`. A workspace grep for `WEAPON_CRATE` / `weaponcrate` /
+  `"Weapon Crate"` matches only `items.rs:157` and `:392`; nothing resolves the
+  id and no use-handler exists.
 - **Found:** 2026-07-29, while deleting `RIGGED_LUCK` for finding #2 / CC-4. Not
   part of that finding's text, so recorded separately rather than folded in
-  (one finding → one task).
+  (one finding → one task). Note that `RIGGED_LUCK` was *deleted* under the
+  earlier approval; the ruling above supersedes that approach for any future
+  reserved item.
 - **Where:** `src/common/shop/items.rs:157` (the const) and `:393` (its
   commented-out `SHOP_ITEMS` entry).
 - **What:** `pub const WEAPON_CRATE` is dead in exactly the way `RIGGED_LUCK`

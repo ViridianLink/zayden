@@ -277,7 +277,14 @@ served by the website — and two `setup` commands already duplicate its writes.
     a suppression (removed by an earlier task); the inventory above is corrected.
 
 ### CC-4. `tictactoe` dead `GameState` stub  ·  #2  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — a2c6f652`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-07-29):** the marker below was left at `in-review` after the
+  human committed the fix; `a2c6f652` ("remove dead code for RIGGED_LUCK and
+  update audit findings") is that commit, so the status is now `complete`.
+  Its follow-up, [gambling #2b](gambling.md) (`WEAPON_CRATE`), was subsequently
+  ruled **`wontfix`** — reserved shop items are planned features and are deleted
+  or commented out only when an `#[expect]` flags them. That ruling does **not**
+  reopen CC-4; it sets the policy for anything like it found from here on.
 - **Fix (2026-07-29):** Closed. The reconciliation below reopened this finding
   after establishing that CC-3 never deleted `RIGGED_LUCK`; the follow-up task
   deleted it for real — the const (`gambling/src/common/shop/items.rs:192-201`),
@@ -379,6 +386,35 @@ served by the website — and two `setup` commands already duplicate its writes.
   `gold-star` also has CC-1, so fold this into its concrete-`PgPool` migration.
 
 ### CC-6. Test-coverage gaps  ·  #6  ·  med
+- **Status:** `open — 1 of 3 remaining crates closed (gold-star, in-review)`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Progress (2026-07-29):** [`gold-star`](gold-star.md#3-no-integration-tests--6--low)
+  now has `tests/`; `llamad2` and `verify` remain, one crate per task.
+- **This task changed how CC-6 can be closed — read before taking the next crate.**
+  Every pre-existing `tests/` file in the workspace is **pure and offline**; the
+  DB paths were consistently left uncovered with a note pointing back here
+  (`gambling/tests/shop_buy.rs:13-18`, `levels/tests/accrual.rs:14-19`). For a
+  crate whose logic *is* the SQL — which `gold-star` is, and which the remaining
+  economy-adjacent crates are — offline tests can only assert constructor
+  defaults and error strings, i.e. the trivia checklist #6 warns against. On the
+  owner's ruling (2026-07-29) the harness was built instead:
+  - `#[sqlx::test(migrations = "../../migrations", fixtures("<name>"))]` with
+    `sqlx = { features = ["migrate"] }` on the crate. sqlx creates a fresh
+    database per test, applies the workspace migrations to it, loads the fixture
+    and drops it afterwards. No `sqlx migrate run`, no shared state between
+    tests, and the `.sqlx` cache is untouched because fixtures are plain SQL
+    applied at runtime rather than `query!` macros.
+  - **Consequence for the gate:** `cargo test` now needs `DATABASE_URL` pointing
+    at a Postgres the runner may create databases on. Use a throwaway server,
+    never a live one — see [`CLAUDE.md`](../../CLAUDE.md) for the command. The
+    build itself still works offline (`SQLX_OFFLINE=true`) from the committed
+    cache.
+  - **Verification pattern for a coverage finding:** a test written against
+    already-fixed code cannot fail-before. Establish the equivalent by removing
+    each guard in turn and re-running (then reverting), and record the matrix —
+    including the guards that turn out **not** to be independently observable,
+    rather than claiming coverage the suite does not have. `gold-star`'s
+    `WHERE number_of_stars >= 1` was one such: redundant with the `FOR UPDATE`
+    read in a single process.
 
 - **Where:** crates with **zero** `tests/` files: `ticket`, `lfg`, `family`
   (has only inline — see CC-2), `levels`, `reaction-roles`, `suggestions`,

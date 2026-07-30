@@ -46,7 +46,45 @@ concrete-`PgPool` + compile-time-macro migration.
   finding #1 in a single small PR — this crate is the recommended pilot.
 
 ### 3. No integration tests  ·  #6  ·  low
-- **Where:** no `tests/` directory.
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-29):** Added `tests/give_star.rs` (5 tests) + `tests/fixtures/
+  gold_stars.sql`. This crate is a thin shell over SQL and Discord I/O — the
+  free-star window, the overdraft floor and the atomic credit all live inside
+  `GoldStarRow::give_star`'s single transaction (`manager.rs:50-120`), with no
+  Rust-side representation to assert against. The workspace's existing tests are
+  all pure/offline, so on the owner's ruling this task **built the workspace's
+  first DB-backed harness** rather than settle for asserting `GoldStarRow::new`
+  defaults:
+  - `sqlx = { features = ["migrate"] }` + `#[sqlx::test(migrations =
+    "../../migrations", fixtures("gold_stars"))]`. Each test gets its own
+    freshly-migrated database, created and dropped by sqlx; migrations are
+    applied by the harness, so no `sqlx migrate run` is involved.
+  - `tokio` added as a **dev**-dependency for `join!` (the concurrency test).
+  - Coverage: the free star is free and closes its own 24h window; the paid arm
+    debits exactly one and refuses at zero without crediting; a refused give
+    commits nothing (not even the target's row); and two concurrent gives to one
+    target both land.
+- **Verification (mutation testing).** The code under test was already fixed by
+  [DS-1](#ds-1-give_star-read-modify-write-races--star-mint-loss-and-free-star-cap-bypass--pass-2--med),
+  so "fails-before" was established by removing each guard in turn and re-running
+  (each then reverted; `src/` is unmodified by this task):
+
+  | Guard removed | Result |
+  |---|---|
+  | free-star comparison `<=` flipped to `>=` | 4 of 5 fail |
+  | `last_free_star = now()` bump (the cap bypass) | `free_star_is_free_and_closes_its_window` fails |
+  | atomic credit → absolute `EXCLUDED.number_of_stars` (the DS-1 shape) | `concurrent_gives_to_one_target_both_land` fails, `[1, 1]` vs `[1, 2]` |
+  | `WHERE number_of_stars >= 1` **alone** | **nothing fails** |
+  | all three overdraft guards together | 3 of 5 fail |
+
+  The fourth row is the interesting one and is recorded in the test's own doc
+  comment: the app-layer balance check, the SQL floor and the `rows_affected`
+  assertion are **mutually redundant in a single process**, because the
+  `FOR UPDATE` read already excludes a concurrent balance change. The floor is
+  defence-in-depth against the lock being weakened, not independently
+  observable — so no test should claim to cover it.
+- **Where:** ~~no `tests/` directory~~ → `tests/give_star.rs`,
+  `tests/fixtures/gold_stars.sql`.
 - **Suggested fix:** Add coverage for the free-star cooldown / star-count logic.
   See [CC-6](_cross-cutting.md#cc-6).
 
@@ -99,6 +137,30 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity. Instance of
   1`, and gate the free star with a conditional `last_free_star` write. Fold into
   the CC-1/CC-5 concrete-`PgPool` migration for this crate. **Confidence:
   confirmed.**
+
+### DS-2. `give_star` never ensures a `users` row → FK violation for an unseen author or target  ·  Pass 10 (CC-6 harness) / #1  ·  low-med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Found:** 2026-07-29, while writing the [#3](#3-no-integration-tests--6--low)
+  harness — the first fixture attempt failed on the FK, which is how the gap
+  surfaced. Recorded separately per one-finding-one-task.
+- **Where:** `src/manager.rs:57-64` (the author's `INSERT INTO gold_stars …
+  ON CONFLICT DO NOTHING`) and `:105-115` (the target's upsert). Schema:
+  `migrations/0001_v1_init.up.sql:132` — `gold_stars.id BIGINT PRIMARY KEY
+  REFERENCES users (id)`.
+- **What:** `gold_stars.id` is a foreign key into `users`, but `give_star`
+  inserts into `gold_stars` without ensuring the `users` row exists. Compare
+  `levels/src/manager.rs:320,437` and `family/src/manager.rs:286,421`, which
+  both `INSERT INTO users (id, username) … ON CONFLICT (id) DO NOTHING` first.
+- **Why it matters:** `/give_star` against a user with no `users` row fails with
+  a `23503` foreign-key violation. That surfaces as `GoldStarError::Sqlx`, whose
+  `Respond::user_message` returns `None` (`error.rs:52`), so the user gets a
+  generic failure with no indication of why. In practice most members already
+  have a `users` row from levels XP accrual, which is why this has not been
+  loud — a member who has never sent a message is the reachable case.
+- **Suggested fix:** mirror the `levels`/`family` idiom — insert the `users` row
+  for **both** author and target inside the existing transaction, before the
+  `gold_stars` writes. The command layer has the `User` objects, so a real
+  username can be passed rather than a placeholder.
 
 ## Clean
 - #1 Architecture: simple manager + commands split.

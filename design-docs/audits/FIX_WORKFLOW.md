@@ -231,11 +231,19 @@ is the first-pass structural/hygiene backlog, which was never given status tags:
 
 | Finding | Sev | Note |
 |---------|-----|------|
-| [`CC-4`](_cross-cutting.md) — `RIGGED_LUCK` dead const + its `#[expect(dead_code)]` | low | **Half open.** The `GameState` half died with CC-1 (`83930148`); the `items.rs:192` half is still live — CC-3's record wrongly claimed it deleted. Smallest remaining task. |
-| [`CC-6`](_cross-cutting.md) — test-coverage gaps | med | `gold-star`, `llamad2`, `verify` still ship zero `tests/`. One crate per task. |
+| ~~[`CC-4`](_cross-cutting.md) — `RIGGED_LUCK` dead const + its `#[expect(dead_code)]`~~ | low | **Done (`a2c6f652`).** `GameState` half died with CC-1 (`83930148`); the `items.rs:192` half was deleted here. Its follow-up [gambling #2b](gambling.md) (`WEAPON_CRATE`) is **`wontfix`** — see the policy note below. |
+| [`CC-6`](_cross-cutting.md) — test-coverage gaps | med | **1 of 3 done.** [`gold-star`](gold-star.md) closed (`in-review`) — it also built the workspace's first `#[sqlx::test]` harness, so `cargo test` now needs a throwaway `DATABASE_URL`; read CC-6's progress note before taking the next crate. `llamad2` and `verify` remain, one per task. |
 | [`CC-7`](_cross-cutting.md) — `custom_id` string routing | low | Mechanical; `levels` already has `LevelsCustomId` (`04a8ab2b`) as the precedent. |
 | [`CC-8`](_cross-cutting.md) — dashboard config pages | med | Largest. The active-duplication half is closed (both `setup` commands removed); what's left is *building* music/ticket/suggestions/reaction-roles pages — feature work, not a defect fix. |
 | [`CC-9`](_cross-cutting.md) umbrella | high | Every enumerated site closed. `in-review` — **the human's call to close**, not an agent task. |
+
+> **Policy recorded 2026-07-29 (reserved/dead consts):** do **not** delete
+> reserved catalogue items (shop items and the like) — they are planned features.
+> Comment the declaration out **only** when an `#[expect]` is flagging it; if it
+> is already commented out of its registry, leave it alone and move to the next
+> finding. This closed [gambling #2b](gambling.md) as `wontfix`. It does not
+> retroactively apply to `RIGGED_LUCK`, deleted under the earlier approval in
+> `a2c6f652`.
 
 > **Lesson recorded 2026-07-29:** the CC-1 reconcile found a fix note asserting a
 > deletion that never happened (CC-3 ↔ `RIGGED_LUCK`). A satisfied
