@@ -83,3 +83,47 @@ opened read-only on every route.
 Two behaviours are asserted by tests but not yet confirmed in-game: `PlZ`
 acceptance, and that setting `Exp = 0` alongside a level change does not make
 the game re-derive the level from accumulated experience and revert it.
+
+## Addendum — level-up point grants (2026-07-29)
+
+A level edit that only moved `Level` handed out a level without the points that
+level would have earned. Both grants now travel with it.
+
+**Status points — one per level, measured.** `save::edit::STATUS_POINTS_PER_LEVEL`
+is not taken on trust. `tests/save_points.rs` asserts an identity across all 11
+player characters in `progressed-world` and `storage-world`: the points
+allocated to the five level-up stats in `GotStatusPointList` (`最大HP`, `最大SP`,
+`攻撃力`, `所持重量`, `作業速度`) plus `UnusedStatusPoint` equal `level - 1`
+exactly. It also held on all three characters in the live world. The other
+entries in that list (`捕獲率`, `移動速度アップ`, …) and the whole of
+`GotExStatusPointList` come from non-level sources and are excluded.
+
+`steam-world1` is the one save that breaks the identity — 250 core points at
+level 65 — and it is why `grant_status_points` moves the unspent pool by a delta
+instead of recomputing the total from the level. A recompute would silently
+rewrite a manipulated save's allocations, and the editor cannot assume the
+identity holds on input it did not create.
+
+**Technology points — six per level, from the wiki.** `TECH_POINTS_PER_LEVEL`
+cannot be confirmed against a save: the earned total is only recoverable as
+`TechnologyPoint + sum(cost of UnlockedRecipeTechnologyNames)`, and saves carry
+no recipe costs. `bossTechnologyPoint` is never touched — Ancient Technology
+Points come from first-time Alpha Pal (1) and Tower Boss (5) kills and from
+Technical Manuals, so granting them for a level change would hand out progress
+the grind never would.
+
+**Two files, one archive.** Technology points live in `Players/<uid>.sav`, not
+`Level.sav`, so `apply_edits` now returns `EditedSave { level, level_deltas }`
+and the caller patches each moved player's file via
+`save::edit_player::grant_tech_points`. The export route bundles them into a zip
+(stored, not deflated — the payloads are already compressed containers) because
+the two files are only valid together; a level-only edit still returns a bare
+`Level.sav`. A player file that cannot be read is a hard error rather than a
+partial export, since a save whose levels moved but whose points did not is
+indistinguishable from a correct one at a glance.
+
+**Level cap is 80, not 60.** Four characters across the live world and the
+fixtures sit at exactly level 80 with byte-identical `Exp` (45859908), and the
+live saves carry `ExpTableMigrationVersion = 1` — the game's own marker that it
+migrated off the older, lower cap. `Level` is a `ByteProperty`, so the format
+ceiling is 255.

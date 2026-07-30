@@ -198,7 +198,7 @@ macro_rules! edited {
     ($edits:expr) => {{
         let raw = level_bytes!(common::progressed_world());
         let out = apply_edits(&raw, $edits).expect("apply_edits");
-        read_roster(&out, 0).expect("re-read edited save")
+        read_roster(&out.level, 0).expect("re-read edited save")
     }};
 }
 
@@ -312,7 +312,7 @@ fn absent_properties_are_inserted_not_skipped() {
     })
     .expect("apply_edits");
 
-    let after = read_roster(&out, 0).expect("re-read");
+    let after = read_roster(&out.level, 0).expect("re-read");
     let pal = after
         .players
         .iter()
@@ -356,6 +356,6 @@ fn edited_save_is_a_valid_container() {
     let raw = level_bytes!(common::progressed_world());
     let out = apply_edits(&raw, &SaveEdits::default()).expect("apply_edits");
 
-    palworld::save::validate_level(&out)
+    palworld::save::validate_level(&out.level)
         .expect("the exported save passes the same validation an upload would");
 }

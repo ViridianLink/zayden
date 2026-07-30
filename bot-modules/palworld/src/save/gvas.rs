@@ -149,6 +149,10 @@ pub fn hints() -> HashMap<String, String> {
             S,
         ),
         (
+            "worldSaveData.StructProperty.InvaderDeclarationSaveData.StructProperty.ValidatedStartPointIds.SetProperty.StructProperty",
+            G,
+        ),
+        (
             "worldSaveData.StructProperty.OilrigSaveData.StructProperty.OilrigMap.MapProperty.Value.StructProperty",
             S,
         ),

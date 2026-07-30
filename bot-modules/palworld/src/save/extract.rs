@@ -109,6 +109,20 @@ pub const fn struct_fields(
 }
 
 #[must_use]
+pub const fn struct_fields_mut(
+    prop: &mut Property,
+) -> Option<&mut HashableIndexMap<String, Vec<Property>>> {
+    let value = if let Property::StructProperty(s) = prop {
+        &mut s.value
+    } else if let Property::StructPropertyValue(v) = prop {
+        v
+    } else {
+        return None;
+    };
+    if let StructPropertyValue::CustomStruct(m) = value { Some(m) } else { None }
+}
+
+#[must_use]
 pub fn custom_struct(
     prop: Option<&Property>,
 ) -> Option<&HashableIndexMap<String, Vec<Property>>> {

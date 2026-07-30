@@ -48,6 +48,7 @@ ssr = [
   "dep:sqlx",
   "dep:suggestions",
   "dep:tokio",
+  "dep:zip",
   "dep:ticket",
   "dep:tower-cookies",
   "dep:tracing-subscriber",
@@ -96,6 +97,9 @@ sqlx = { workspace = true, features = [
 suggestions = { workspace = true, optional = true }
 ticket = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
+zip = { version = "*", default-features = false, features = [
+  "deflate",
+], optional = true }
 tower-cookies = { version = "*", default-features = false, features = [
   "axum-core",
 ], optional = true }

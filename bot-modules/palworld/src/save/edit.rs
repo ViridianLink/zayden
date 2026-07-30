@@ -8,6 +8,7 @@ use gvas::properties::int_property::{
     ByteProperty,
     BytePropertyValue,
     Int64Property,
+    UInt16Property,
 };
 use gvas::properties::map_property::MapProperty;
 use gvas::properties::struct_property::StructPropertyValue;
@@ -263,14 +264,22 @@ struct Change {
     traits: Option<Vec<String>>,
 }
 
-pub fn apply_edits(level_bytes: &[u8], edits: &SaveEdits) -> Result<Vec<u8>> {
+pub const STATUS_POINTS_PER_LEVEL: i32 = 1;
+
+#[derive(Debug, Clone)]
+pub struct EditedSave {
+    pub level: Vec<u8>,
+    pub level_deltas: Vec<(String, i32)>,
+}
+
+pub fn apply_edits(level_bytes: &[u8], edits: &SaveEdits) -> Result<EditedSave> {
     let ty = compress::source_type_byte(level_bytes)?;
     let decompressed = decompress::decompress(level_bytes)?;
     let mut file = save_gvas::read_gvas(&decompressed)?;
     let custom_versions = file.header.get_custom_versions().clone();
 
     let mut pending = pending_changes(edits);
-    patch_characters(&mut file, &custom_versions, &mut pending)?;
+    let level_deltas = patch_characters(&mut file, &custom_versions, &mut pending)?;
 
     if let Some(missing) = pending.keys().next() {
         return Err(PalworldError::Edit(format!(
@@ -281,7 +290,10 @@ pub fn apply_edits(level_bytes: &[u8], edits: &SaveEdits) -> Result<Vec<u8>> {
 
     let mut out = Cursor::new(Vec::new());
     file.write(&mut out).map_err(|e| PalworldError::Gvas(e.to_string()))?;
-    compress::compress(&out.into_inner(), ty)
+    Ok(EditedSave {
+        level: compress::compress(&out.into_inner(), ty)?,
+        level_deltas,
+    })
 }
 
 fn pending_changes(edits: &SaveEdits) -> HashMap<String, Change> {
@@ -304,14 +316,16 @@ fn patch_characters(
     file: &mut GvasFile,
     custom_versions: &HashableIndexMap<Guid, u32>,
     pending: &mut HashMap<String, Change>,
-) -> Result<()> {
+) -> Result<Vec<(String, i32)>> {
+    let mut deltas = Vec::new();
     if pending.is_empty() {
-        return Ok(());
+        return Ok(deltas);
     }
 
     for (key, val) in character_map_mut(file)? {
         let Some(instance_id) = key_instance_id(key) else { continue };
         let Some(change) = pending.remove(&instance_id) else { continue };
+        let player_uid = key_player_uid(key);
 
         let raw = rawdata_mut(val).ok_or_else(|| {
             PalworldError::Edit(format!("character {instance_id} has no RawData"))
@@ -329,21 +343,34 @@ fn patch_characters(
                 ))
             })?;
 
-        apply_change(save_param, &change);
+        let delta = apply_change(save_param, &change);
+        if let Some(uid) = player_uid
+            && delta != 0
+            && bool_field(save_param, "IsPlayer")
+        {
+            deltas.push((uid, delta));
+        }
         *raw = save_gvas::write_properties(&parsed, custom_versions)?;
     }
 
-    Ok(())
+    Ok(deltas)
 }
 
+/// Applies one character's changes and reports the level delta, which is zero
+/// unless the level actually moved.
 fn apply_change(
     save_param: &mut HashableIndexMap<String, Vec<Property>>,
     change: &Change,
-) {
+) -> i32 {
+    let mut delta = 0;
     if let Some(level) = change.level {
-        let level = u8::try_from(level.clamp(1, 255)).unwrap_or(1);
+        let level = level.clamp(1, 255);
+        let old = i32::try_from(int_field(save_param, "Level")).unwrap_or(1).max(1);
+        delta = level - old;
+        let level = u8::try_from(level).unwrap_or(1);
         set(save_param, "Level", byte(level));
         set(save_param, "Exp", Property::Int64Property(Int64Property::new(0)));
+        grant_status_points(save_param, delta);
     }
     for (name, value) in [
         ("Talent_HP", change.talent_hp),
@@ -362,6 +389,31 @@ fn apply_change(
             Property::ArrayProperty(ArrayProperty::Names { names }),
         );
     }
+    delta
+}
+
+fn grant_status_points(
+    save_param: &mut HashableIndexMap<String, Vec<Property>>,
+    delta: i32,
+) {
+    if !bool_field(save_param, "IsPlayer") {
+        return;
+    }
+    let current = if let Some(Property::UInt16Property(p)) =
+        field(save_param, "UnusedStatusPoint")
+    {
+        i32::from(p.value)
+    } else {
+        0
+    };
+    let granted = delta.saturating_mul(STATUS_POINTS_PER_LEVEL);
+    let next =
+        u16::try_from(current.saturating_add(granted).max(0)).unwrap_or(u16::MAX);
+    set(
+        save_param,
+        "UnusedStatusPoint",
+        Property::UInt16Property(UInt16Property::new(next)),
+    );
 }
 
 fn set(

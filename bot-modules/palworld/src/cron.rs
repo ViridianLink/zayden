@@ -16,10 +16,7 @@ impl PalworldSaveRefreshCron {
         CronJob::new("palworld_save_refresh", "0 */2 * * * * *").map(|job| {
             job.set_action(move |_ctx, _pool| {
                 let client = Arc::clone(&client);
-                async move {
-                    client.refresh_shared_save().await;
-                    client.warm_player_names().await;
-                }
+                async move { client.warm_player_names().await }
             })
         })
     }

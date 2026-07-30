@@ -60,6 +60,19 @@ fn the_shipped_hint_table_is_complete_for_world_saves() {
     }
 }
 
+/// `InvaderDeclarationSaveData` only appears in a world where a raid has been
+/// declared, which no committed fixture has, so the two strict tests above cannot
+/// cover it. It was recovered by inference from a live server save (the reader
+/// logged `... ValidatedStartPointIds.SetProperty.StructProperty = Guid`); pin it
+/// here so the entry is not dropped as unused.
+#[test]
+fn the_invader_declaration_set_is_hinted() {
+    let path = "worldSaveData.StructProperty.InvaderDeclarationSaveData.\
+                StructProperty.ValidatedStartPointIds.SetProperty.StructProperty";
+
+    assert_eq!(hints().get(path).map(String::as_str), Some("Guid"));
+}
+
 /// With an empty table, the reader has to discover
 /// `FoundTreasureMapPointMap`'s key *and* value layouts - a GUID and a
 /// named-field struct - which also exercises backtracking, since the value only

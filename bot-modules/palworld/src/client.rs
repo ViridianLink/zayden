@@ -486,8 +486,11 @@ impl PalworldClient {
             return;
         }
 
-        if let Err(e) = self.player_names(SourceKey::Shared).await {
-            tracing::warn!(error = %e, "palworld: player name warm failed");
+        match self.player_names(SourceKey::Shared).await {
+            Ok(_) | Err(PalworldError::NoWorld) => {},
+            Err(e) => {
+                tracing::warn!(error = %e, "palworld: player name warm failed");
+            },
         }
     }
 
@@ -636,7 +639,13 @@ fn local_mtime_secs(level_path: &Path) -> i64 {
 }
 
 async fn level_mtime(dir: &Path) -> Result<u64> {
-    let meta = tokio::fs::metadata(dir.join(LEVEL_SAVE)).await?;
+    let meta = tokio::fs::metadata(dir.join("Level.sav")).await.map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            PalworldError::NoWorld
+        } else {
+            PalworldError::Io(e)
+        }
+    })?;
     Ok(mtime_nanos(&meta))
 }
 

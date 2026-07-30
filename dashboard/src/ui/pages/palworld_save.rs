@@ -13,6 +13,9 @@ const MAX_TRAITS: usize = 4;
 const MAX_LEVEL: i64 = 80;
 const MAX_TALENT: i64 = 100;
 
+const STATUS_POINTS_PER_LEVEL: i32 = 1;
+const TECH_POINTS_PER_LEVEL: i32 = 6;
+
 const FALLBACK_EXPORT_NAME: &str = "Level_modified.sav";
 
 #[component]
@@ -69,7 +72,11 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
                                         <p class="page-lead">
                                             "Edits are applied to a copy and handed back as a download. "
                                             "Nothing is written to the game server. "
-                                            "Palbox pals are stored in a separate file and are not listed here."
+                                            "Palbox pals are stored in a separate file and are not listed here. "
+                                            "Changing a character level also grants the status and technology "
+                                            "points that level would have earned, so the export becomes a zip: "
+                                            "unpack it over the world directory, since Level.sav and the player "
+                                            "file are only valid together."
                                         </p>
                                         <p class="save-meta">
                                             "Level.sav modified: " {modified}
@@ -79,6 +86,7 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
 
                                 {view_model.roster.players.into_iter().map(|player| {
                                     let pid = player.instance_id.clone();
+                                    let grant_id = player.instance_id.clone();
                                     let level = player.level;
                                     view! {
                                         <details class="save-group" open=true>
@@ -110,6 +118,15 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
                                                     }
                                                 />
                                             </label>
+                                            <p class="save-grant">
+                                                {move || grant_summary(
+                                                    level,
+                                                    player_pending
+                                                        .get()
+                                                        .get(&grant_id)
+                                                        .and_then(|e| e.level),
+                                                )}
+                                            </p>
                                             {player.pals.into_iter().map(|pal| {
                                                 pal_row(pal, pending, options.clone())
                                             }).collect_view()}
@@ -147,7 +164,7 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
                                     <button
                                         type="button" class="btn btn-primary"
                                         on:click=export
-                                    >"Export Level.sav"</button>
+                                    >"Export save"</button>
                                     <span class="save-status">{move || status.get()}</span>
                                 </div>
                             </div>
@@ -283,6 +300,27 @@ fn set_input_value(ev: &leptos::ev::Event, value: i64) {
 
 #[cfg(not(feature = "hydrate"))]
 const fn set_input_value(_ev: &leptos::ev::Event, _value: i64) {}
+
+fn grant_summary(current: i32, pending: Option<i32>) -> String {
+    let Some(target) = pending else { return String::new() };
+    let delta = target - current;
+    if delta == 0 {
+        return String::new();
+    }
+    let status = delta * STATUS_POINTS_PER_LEVEL;
+    let tech = delta * TECH_POINTS_PER_LEVEL;
+    if delta > 0 {
+        format!(
+            "{current} \u{2192} {target}: +{status} status points, \
+             +{tech} technology points. Ancient points are untouched."
+        )
+    } else {
+        format!(
+            "{current} \u{2192} {target}: {status} status points, \
+             {tech} technology points (removed, floored at zero)."
+        )
+    }
+}
 
 #[cfg(feature = "hydrate")]
 fn selected_values(ev: &leptos::ev::Event) -> Vec<String> {
