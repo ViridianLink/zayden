@@ -18,8 +18,8 @@ use crate::transport::{Fandom, PalCalc, PalDb, Paldex, PalworldGg, Pelican};
 use crate::{merge, parse, save};
 
 const LONG_TTL: Duration = Duration::from_hours(8);
-
 const SAVE_FRESHNESS: Duration = Duration::from_mins(5);
+const LEVEL_SAVE: &str = "Level.sav";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SourceKey {
@@ -469,10 +469,23 @@ impl PalworldClient {
         self.warm_player_names().await;
     }
 
+    pub async fn has_shared_save(&self) -> bool {
+        let Some(dir) = self.save_dir.as_deref() else { return false };
+        tokio::fs::try_exists(dir.join(LEVEL_SAVE)).await.unwrap_or(false)
+    }
+
     pub async fn warm_player_names(&self) {
         if self.save_dir.is_none() {
             return;
         }
+
+        self.refresh_shared_if_stale().await;
+
+        if !self.has_shared_save().await {
+            tracing::debug!("palworld: no shared save on disk yet, skipping warm");
+            return;
+        }
+
         if let Err(e) = self.player_names(SourceKey::Shared).await {
             tracing::warn!(error = %e, "palworld: player name warm failed");
         }
@@ -516,7 +529,7 @@ impl PalworldClient {
     async fn refresh_shared_level(pelican: &Pelican, save_dir: &Path) -> Result<()> {
         let remote_modified = pelican.level_modified().await?;
 
-        let level_path = save_dir.join("Level.sav");
+        let level_path = save_dir.join(LEVEL_SAVE);
         let local_modified =
             tokio::task::spawn_blocking(move || local_mtime_secs(&level_path))
                 .await
@@ -623,7 +636,7 @@ fn local_mtime_secs(level_path: &Path) -> i64 {
 }
 
 async fn level_mtime(dir: &Path) -> Result<u64> {
-    let meta = tokio::fs::metadata(dir.join("Level.sav")).await?;
+    let meta = tokio::fs::metadata(dir.join(LEVEL_SAVE)).await?;
     Ok(mtime_nanos(&meta))
 }
 

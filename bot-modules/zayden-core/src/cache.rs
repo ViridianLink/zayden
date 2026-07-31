@@ -1,11 +1,18 @@
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
+use std::time::Duration;
 
 use base64::Engine;
 use base64::engine::general_purpose;
-use reqwest::ClientBuilder;
-use reqwest::header::{AUTHORIZATION, HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::header::{
+    AUTHORIZATION,
+    HeaderMap,
+    HeaderValue,
+    RETRY_AFTER,
+    USER_AGENT,
+};
+use reqwest::{Client, ClientBuilder, StatusCode};
 use serde::Deserialize;
 use serenity::all::{
     ApplicationId,
@@ -24,6 +31,10 @@ use serenity::small_fixed_array::FixedString;
 use tracing::{error, warn};
 
 const ZAYDEN_ID: ApplicationId = ApplicationId::new(787_490_197_943_091_211);
+const PARENT_EMOJI_ATTEMPTS: u32 = 3;
+const PARENT_EMOJI_BACKOFF: Duration = Duration::from_secs(1);
+const PARENT_EMOJI_MAX_WAIT: Duration = Duration::from_secs(30);
+const LOGGED_BODY_LIMIT: usize = 512;
 
 pub type EmojiResult<T> = Result<T, String>;
 
@@ -64,7 +75,7 @@ impl EmojiCache {
     ) -> serenity::Result<Self> {
         let current_emojis = ctx.get_application_emojis().await?;
 
-        let client = reqwest::Client::new();
+        let client = Client::new();
 
         let parent_emojis = Self::parent_emojis(parent_token).await;
 
@@ -173,55 +184,41 @@ impl EmojiCache {
     }
 
     async fn parent_emojis(parent_token: &str) -> HashMap<FixedString<u8>, EmojiId> {
-        #[derive(Deserialize)]
-        struct ApplicationEmojis {
-            items: Vec<Emoji>,
-        }
-
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            USER_AGENT,
-            HeaderValue::from_static(serenity::http::SERENITY_USER_AGENT),
-        );
-
-        let Ok(auth_header) = HeaderValue::from_str(&format!("Bot {parent_token}"))
-        else {
-            error!("EmojiCache::parent_emojis: invalid bot token for header");
+        let Some(client) = parent_client(parent_token) else {
             return HashMap::new();
         };
-        headers.insert(AUTHORIZATION, auth_header);
 
-        let client = match ClientBuilder::new().default_headers(headers).build() {
-            Ok(c) => c,
-            Err(e) => {
-                error!(error = ?e, "EmojiCache::parent_emojis: client build failed");
-                return HashMap::new();
-            },
-        };
+        let url =
+            format!("https://discord.com/api/v10/applications/{ZAYDEN_ID}/emojis");
 
-        let emojis = match client
-            .get(format!(
-                "https://discord.com/api/v10/applications/{ZAYDEN_ID}/emojis"
-            ))
-            .send()
-            .await
-        {
-            Ok(r) => r,
-            Err(e) => {
-                error!(error = ?e, "EmojiCache::parent_emojis: request failed");
-                return HashMap::new();
-            },
-        };
+        let mut backoff = PARENT_EMOJI_BACKOFF;
 
-        let emojis = match emojis.json::<ApplicationEmojis>().await {
-            Ok(e) => e,
-            Err(e) => {
-                error!(error = ?e, "EmojiCache::parent_emojis: response parse failed");
-                return HashMap::new();
-            },
-        };
+        for attempt in 1..=PARENT_EMOJI_ATTEMPTS {
+            match fetch_parent_emojis(&client, &url).await {
+                FetchOutcome::Ok(emojis) => return emojis,
+                FetchOutcome::Fatal => break,
+                FetchOutcome::Retry(retry_after) => {
+                    if attempt == PARENT_EMOJI_ATTEMPTS {
+                        error!(
+                            attempts = attempt,
+                            "EmojiCache::parent_emojis: giving up, no parent emojis",
+                        );
+                        break;
+                    }
 
-        emojis.items.into_iter().map(|emoji| (emoji.name, emoji.id)).collect()
+                    let delay = retry_after.unwrap_or(backoff);
+                    warn!(
+                        attempt,
+                        ?delay,
+                        "EmojiCache::parent_emojis: retrying after transient failure",
+                    );
+                    tokio::time::sleep(delay).await;
+                    backoff = backoff.saturating_mul(2);
+                },
+            }
+        }
+
+        HashMap::new()
     }
 
     pub fn emoji(&self, name: &str) -> EmojiResult<EmojiId> {
@@ -244,5 +241,110 @@ impl Deref for EmojiCache {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+enum FetchOutcome {
+    Ok(HashMap<FixedString<u8>, EmojiId>),
+    Retry(Option<Duration>),
+    Fatal,
+}
+
+fn parent_client(parent_token: &str) -> Option<Client> {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        USER_AGENT,
+        HeaderValue::from_static(serenity::http::SERENITY_USER_AGENT),
+    );
+
+    let Ok(auth_header) = HeaderValue::from_str(&format!("Bot {parent_token}"))
+    else {
+        error!("EmojiCache::parent_emojis: invalid bot token for header");
+        return None;
+    };
+    headers.insert(AUTHORIZATION, auth_header);
+
+    match ClientBuilder::new().default_headers(headers).build() {
+        Ok(client) => Some(client),
+        Err(e) => {
+            error!(error = ?e, "EmojiCache::parent_emojis: client build failed");
+            None
+        },
+    }
+}
+
+async fn fetch_parent_emojis(client: &Client, url: &str) -> FetchOutcome {
+    #[derive(Deserialize)]
+    struct ApplicationEmojis {
+        items: Vec<Emoji>,
+    }
+
+    let response = match client.get(url).send().await {
+        Ok(response) => response,
+        Err(e) => {
+            warn!(error = ?e, "EmojiCache::parent_emojis: request failed");
+            return FetchOutcome::Retry(None);
+        },
+    };
+
+    let status = response.status();
+    let retry_after = retry_after(&response);
+
+    let body = match response.text().await {
+        Ok(body) => body,
+        Err(e) => {
+            warn!(
+                error = ?e,
+                %status,
+                "EmojiCache::parent_emojis: response read failed",
+            );
+            return FetchOutcome::Retry(None);
+        },
+    };
+
+    if status == StatusCode::TOO_MANY_REQUESTS || status.is_server_error() {
+        warn!(
+            %status,
+            body = logged_body(&body),
+            "EmojiCache::parent_emojis: transient response",
+        );
+        return FetchOutcome::Retry(retry_after);
+    }
+
+    if !status.is_success() {
+        error!(
+            %status,
+            body = logged_body(&body),
+            "EmojiCache::parent_emojis: request rejected",
+        );
+        return FetchOutcome::Fatal;
+    }
+
+    match serde_json::from_str::<ApplicationEmojis>(&body) {
+        Ok(emojis) => FetchOutcome::Ok(
+            emojis.items.into_iter().map(|emoji| (emoji.name, emoji.id)).collect(),
+        ),
+        Err(e) => {
+            error!(
+                error = ?e,
+                body = logged_body(&body),
+                "EmojiCache::parent_emojis: response parse failed",
+            );
+            FetchOutcome::Fatal
+        },
+    }
+}
+
+fn retry_after(response: &reqwest::Response) -> Option<Duration> {
+    let seconds =
+        response.headers().get(RETRY_AFTER)?.to_str().ok()?.parse::<f64>().ok()?;
+
+    Duration::try_from_secs_f64(seconds).ok().map(|d| d.min(PARENT_EMOJI_MAX_WAIT))
+}
+
+fn logged_body(body: &str) -> &str {
+    match body.char_indices().nth(LOGGED_BODY_LIMIT) {
+        Some((idx, _)) => body.get(..idx).unwrap_or(body),
+        None => body,
     }
 }

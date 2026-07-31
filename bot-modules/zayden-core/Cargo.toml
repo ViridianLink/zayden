@@ -16,6 +16,7 @@ serenity = { workspace = true, features = ["rustls_backend", "gateway"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 sqlx = { workspace = true }
+tokio = { workspace = true, features = ["time"] }
 tracing = { workspace = true }
 reqwest = { workspace = true }
 zayden-app = { workspace = true }

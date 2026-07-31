@@ -113,18 +113,67 @@ fn the_name_index_does_not_read_pal_storage() {
 fn the_background_jobs_have_valid_schedules() {
     use palworld::cron::{PalworldSaveRefreshCron, PalworldWarmCron};
 
-    let client = std::sync::Arc::new(palworld::client::PalworldClient::new(
-        reqwest::Client::new(),
-        None,
-        None,
-        None,
-        None,
-        std::path::PathBuf::from("palworld_uploads"),
-        None,
-    ));
+    let client = std::sync::Arc::new(client_for(None));
 
     assert!(
         PalworldSaveRefreshCron::cron_job(std::sync::Arc::clone(&client)).is_ok()
     );
     assert!(PalworldWarmCron::cron_job(client).is_ok());
+}
+
+/// Warming runs on boot and every two minutes thereafter, against a save
+/// directory the bot only populates once it has pulled the world from the game
+/// host. Before that first pull lands there is no `Level.sav`, and the warm used
+/// to charge ahead and log an ENOENT every cycle. It has nothing to do until the
+/// save exists, and must say so by doing nothing.
+#[tokio::test]
+async fn warming_is_a_no_op_until_the_shared_save_lands() {
+    let empty = std::env::temp_dir().join(format!(
+        "palworld-warm-{}-{:?}",
+        std::process::id(),
+        std::thread::current().id(),
+    ));
+    let _ = fs::remove_dir_all(&empty);
+    fs::create_dir_all(&empty).expect("scratch dir");
+
+    let client = client_for(Some(empty.clone()));
+    assert!(!client.has_shared_save().await, "empty dir holds no world");
+
+    // The load path that the warm guards: this error is what used to be logged.
+    assert!(
+        client.player_names(palworld::client::SourceKey::Shared).await.is_err(),
+        "there is no save to read names from",
+    );
+
+    // No panic, no work, and - unobservable here but the point of the guard - no
+    // warning. With no Pelican configured there is nothing to fetch either.
+    client.warm_player_names().await;
+
+    let _ = fs::remove_dir_all(&empty);
+}
+
+/// The same guard, satisfied: a directory with a world in it is warmable.
+#[tokio::test]
+async fn a_populated_save_directory_is_warmable() {
+    let client = client_for(Some(progressed_world()));
+    assert!(client.has_shared_save().await);
+}
+
+/// A bot with no `save_dir` configured has no shared world at all.
+#[tokio::test]
+async fn an_unconfigured_bot_has_no_shared_save() {
+    assert!(!client_for(None).has_shared_save().await);
+}
+
+fn client_for(save_dir: Option<std::path::PathBuf>) -> palworld::client::PalworldClient
+{
+    palworld::client::PalworldClient::new(
+        reqwest::Client::new(),
+        None,
+        None,
+        None,
+        save_dir,
+        std::path::PathBuf::from("palworld_uploads"),
+        None,
+    )
 }
