@@ -42,7 +42,9 @@ impl From<HandlerError> for HoneypotError {
         match e {
             HandlerError::Discord(e) => Self::Discord(e),
             HandlerError::Database(e) => Self::Database(e),
-            HandlerError::Module { source, .. } => Self::Internal(source.to_string()),
+            HandlerError::Module { source, .. } => {
+                Self::Internal(source.to_string())
+            },
         }
     }
 }

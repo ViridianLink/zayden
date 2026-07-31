@@ -26,7 +26,7 @@ use zayden_core::{
     required_option,
 };
 
-use super::{InfractionKind, InfractionRow, NewInfraction, NO_REASON};
+use super::{InfractionKind, InfractionRow, NO_REASON, NewInfraction};
 
 pub(super) struct Infraction;
 

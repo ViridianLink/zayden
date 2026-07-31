@@ -165,8 +165,9 @@ async fn an_unconfigured_bot_has_no_shared_save() {
     assert!(!client_for(None).has_shared_save().await);
 }
 
-fn client_for(save_dir: Option<std::path::PathBuf>) -> palworld::client::PalworldClient
-{
+fn client_for(
+    save_dir: Option<std::path::PathBuf>,
+) -> palworld::client::PalworldClient {
     palworld::client::PalworldClient::new(
         reqwest::Client::new(),
         None,

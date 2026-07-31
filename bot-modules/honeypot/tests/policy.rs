@@ -59,7 +59,10 @@ fn exempt_with(
 fn default_policy_exempts_only_the_owner() {
     let policy = default_policy();
 
-    assert_eq!(policy, ExemptionPolicy { exempt_admins: false, exempt_role_id: None });
+    assert_eq!(policy, ExemptionPolicy {
+        exempt_admins: false,
+        exempt_role_id: None
+    });
     assert!(exempt(OWNER, &[], &policy));
 }
 
