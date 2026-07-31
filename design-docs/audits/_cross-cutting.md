@@ -386,9 +386,28 @@ served by the website — and two `setup` commands already duplicate its writes.
   `gold-star` also has CC-1, so fold this into its concrete-`PgPool` migration.
 
 ### CC-6. Test-coverage gaps  ·  #6  ·  med
-- **Status:** `open — 1 of 3 remaining crates closed (gold-star, 9a7b8795)`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Progress (2026-07-29):** [`gold-star`](gold-star.md#3-no-integration-tests--6--low)
-  now has `tests/`; `llamad2` and `verify` remain, one crate per task.
+- **Status:** `open — 2 of 3 remaining crates closed (gold-star 9a7b8795; llamad2 in-review)`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Progress (2026-07-31):** [`gold-star`](gold-star.md#3-no-integration-tests--6--low)
+  closed (`9a7b8795`) and [`llamad2`](llamad2.md) is `in-review`. **`verify` is
+  the last one, and is likely a `wontfix`:** 112 LOC whose only branch is
+  `interaction.member.is_none()`; everything else is a constant embed and an
+  `add_role` call. Its own audit entry already says "add a test if the gate logic
+  has any branching worth pinning; **otherwise accept as-is**" — that judgement
+  should be made explicitly rather than by writing trivia to close a checkbox.
+- **What the `llamad2` task adds to the pattern:** the two earlier crates were
+  *whole crates* whose logic is SQL. `llamad2` is mixed, and splitting it by that
+  line worked better than picking one harness: `tests/counters.rs` is DB-backed
+  (`#[sqlx::test]`, no fixture — the empty table is the first case), while
+  `tests/triggers.rs` is offline over three predicates. Two further notes:
+  - **Reaching the SQL may need a small extraction.** `llamad2`'s upsert was
+    inlined byte-identically in two `run()` methods taking `&Context`, so it was
+    untestable in place. Extracting it to `Counter::bump` made it reachable *and*
+    de-duplicated it. Keep the SQL string character-for-character identical and
+    the `.sqlx` entry still resolves, so the cache needs no regeneration.
+  - **Making private fns `pub` for a test trips `clippy::must_use_candidate`**
+    (and `doc_markdown` on prose). Fix them — `#[must_use]`, backticks — do not
+    reach for `#[expect]`; the same lint fired on the CC-2 relocations
+    (`implicit_hasher` there) and is a normal cost of widening the surface.
 - **This task changed how CC-6 can be closed — read before taking the next crate.**
   Every pre-existing `tests/` file in the workspace is **pure and offline**; the
   DB paths were consistently left uncovered with a note pointing back here

@@ -27,7 +27,7 @@ impl BehindTheScenes {
             )));
         }
 
-        if !CODEWORDS.iter().any(|code| message.content.eq_ignore_ascii_case(code)) {
+        if !is_codeword(&message.content) {
             return Err(LlamaD2Error::IncorrectCodeword);
         }
 
@@ -52,4 +52,9 @@ impl BehindTheScenes {
 
         Ok(())
     }
+}
+
+#[must_use]
+pub fn is_codeword(content: &str) -> bool {
+    CODEWORDS.iter().any(|code| content.eq_ignore_ascii_case(code))
 }

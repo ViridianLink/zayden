@@ -9,11 +9,10 @@ use serenity::all::{
 use sqlx::PgPool;
 use tracing::debug;
 
-use crate::Result;
+use crate::{Counter, Result};
 
 const COUNTING_CHANNEL: ChannelId = ChannelId::new(1_386_415_868_900_020_316);
 const SADGE_EMOJI: EmojiId = EmojiId::new(1_391_921_209_884_807_299);
-const COUNTER: &str = "counting_fails";
 
 pub struct CountingFail;
 
@@ -26,16 +25,7 @@ impl CountingFail {
             return Ok(());
         }
 
-        let counting_fails = sqlx::query_scalar!(
-            "INSERT INTO llamad2_counters (name, count)
-                 VALUES ($1, 1)
-             ON CONFLICT (name)
-                 DO UPDATE SET count = llamad2_counters.count + 1
-             RETURNING count",
-            COUNTER,
-        )
-        .fetch_one(pool)
-        .await?;
+        let counting_fails = Counter::bump(pool, Counter::COUNTING_FAILS).await?;
 
         message
             .channel_id

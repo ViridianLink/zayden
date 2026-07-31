@@ -4,6 +4,7 @@ pub mod error;
 pub use error::{LlamaD2Error, Result};
 
 mod behind_the_scenes;
+mod counter;
 mod counting_fail;
 mod dungeon_report;
 mod goodmorning;
@@ -15,10 +16,16 @@ mod sensitivity;
 mod socials;
 mod status_update;
 
-pub use behind_the_scenes::BehindTheScenes;
+pub use behind_the_scenes::{BehindTheScenes, is_codeword};
+pub use counter::Counter;
 pub use counting_fail::CountingFail;
 pub use dungeon_report::DungeonReport;
-pub use goodmorning::{GoodMorning, GoodMorningCache};
+pub use goodmorning::{
+    GoodMorning,
+    GoodMorningCache,
+    is_good_morning,
+    should_greet,
+};
 pub use goof::Goof;
 pub use hello::Hello;
 pub use playlist::Playlist;

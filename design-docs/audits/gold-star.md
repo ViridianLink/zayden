@@ -139,7 +139,12 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity. Instance of
   confirmed.**
 
 ### DS-2. `give_star` never ensures a `users` row → FK violation for an unseen author or target  ·  Pass 10 (CC-6 harness) / #1  ·  low-med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 0104f142`            <!-- open | in-progress | in-review | complete | wontfix -->
+  _Reconciled 2026-07-31: the marker was left at `in-review` by the fix's own
+  commit. `0104f142` ("ensure users are created for both author and target in
+  `give_star`") is that commit — it carries `manager.rs`, `commands/give_star.rs`,
+  the two `tests/give_star.rs` regressions, the fixture change and one new
+  `.sqlx` entry, matching the fix note below._
 - **Fix (2026-07-30):** `GoldStarRow::give_star` now inserts the `users` row for
   **both** actors inside its existing transaction, immediately before each
   `gold_stars` write — `INSERT INTO users (id, username) VALUES ($1, $2) ON

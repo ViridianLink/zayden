@@ -39,11 +39,7 @@ impl GoodMorning {
             data.insert(message.channel_id, message.author.id, is_good_morning)
         };
 
-        if is_good_morning
-            && prev_msg.is_some_and(|(last_author, is_good_morning)| {
-                last_author != message.author.id && is_good_morning
-            })
-        {
+        if should_greet(is_good_morning, message.author.id, prev_msg) {
             message
                 .channel_id
                 .send_message(
@@ -59,8 +55,21 @@ impl GoodMorning {
     }
 }
 
-fn is_good_morning(content: &str) -> bool {
+#[must_use]
+pub fn is_good_morning(content: &str) -> bool {
     let trimmed_content = content.trim();
 
     GOOD_MORNINGS.iter().any(|gm_prefix| trimmed_content.starts_with(gm_prefix))
+}
+
+#[must_use]
+pub fn should_greet(
+    is_good_morning: bool,
+    author: UserId,
+    prev_msg: Option<(UserId, bool)>,
+) -> bool {
+    is_good_morning
+        && prev_msg.is_some_and(|(last_author, last_was_good_morning)| {
+            last_author != author && last_was_good_morning
+        })
 }

@@ -8,9 +8,7 @@ use serenity::all::{
 };
 use sqlx::PgPool;
 
-use crate::{LLAMA_USER, Result};
-
-const COUNTER: &str = "dumb_count";
+use crate::{Counter, LLAMA_USER, Result};
 
 pub struct Goof;
 
@@ -20,16 +18,7 @@ impl Goof {
         interaction: &CommandInteraction,
         pool: &PgPool,
     ) -> Result<()> {
-        let dumb_count = sqlx::query_scalar!(
-            "INSERT INTO llamad2_counters (name, count)
-                 VALUES ($1, 1)
-             ON CONFLICT (name)
-                 DO UPDATE SET count = llamad2_counters.count + 1
-             RETURNING count",
-            COUNTER,
-        )
-        .fetch_one(pool)
-        .await?;
+        let dumb_count = Counter::bump(pool, Counter::DUMB_COUNT).await?;
 
         interaction
             .create_response(
