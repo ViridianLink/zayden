@@ -386,7 +386,7 @@ served by the website — and two `setup` commands already duplicate its writes.
   `gold-star` also has CC-1, so fold this into its concrete-`PgPool` migration.
 
 ### CC-6. Test-coverage gaps  ·  #6  ·  med
-- **Status:** `open — 1 of 3 remaining crates closed (gold-star, in-review)`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open — 1 of 3 remaining crates closed (gold-star, 9a7b8795)`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Progress (2026-07-29):** [`gold-star`](gold-star.md#3-no-integration-tests--6--low)
   now has `tests/`; `llamad2` and `verify` remain, one crate per task.
 - **This task changed how CC-6 can be closed — read before taking the next crate.**

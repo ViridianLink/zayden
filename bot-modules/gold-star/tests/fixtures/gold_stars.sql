@@ -1,10 +1,10 @@
 -- Seed data for `tests/give_star.rs`.
 --
 -- `gold_stars.id` is `REFERENCES users (id)`, so every actor needs a `users`
--- row before it can hold stars. `GoldStarRow::give_star` does **not** create
--- one (unlike `levels`/`family`, which `INSERT INTO users … ON CONFLICT DO
--- NOTHING` first), so the fixture supplies them — see the FK note in
--- `give_star.rs`.
+-- row before it can hold stars. Since DS-2 `GoldStarRow::give_star` creates one
+-- itself, but these rows are still seeded so the star-logic tests start from a
+-- known state; the `unseen_*` tests use ids this fixture omits (500, 950) to
+-- cover the DS-2 path itself.
 INSERT INTO users(id, username)
 VALUES
     (100, 'paid-author'),

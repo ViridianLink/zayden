@@ -35,9 +35,14 @@ impl GiveStar {
             return Err(GoldStarError::SelfStar);
         }
 
-        let target_stars =
-            GoldStarRow::give_star(pool, interaction.user.id, target_user.id)
-                .await?;
+        let target_stars = GoldStarRow::give_star(
+            pool,
+            interaction.user.id,
+            &interaction.user.name,
+            target_user.id,
+            &target_user.name,
+        )
+        .await?;
 
         let mut description = format!(
             "{} received a golden star from {} for a total of **{}** stars.",

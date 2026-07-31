@@ -48,12 +48,23 @@ impl GoldStarRow {
     pub async fn give_star(
         pool: &PgPool,
         author_id: UserId,
+        author_name: &str,
         target_id: UserId,
+        target_name: &str,
     ) -> Result<i32, GoldStarError> {
         let author_id = author_id.get().cast_signed();
         let target_id = target_id.get().cast_signed();
 
         let mut tx = pool.begin().await?;
+
+        sqlx::query!(
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            author_id,
+            author_name
+        )
+        .execute(&mut *tx)
+        .await?;
 
         sqlx::query!(
             "INSERT INTO gold_stars (id, last_free_star) VALUES ($1, to_timestamp(0)) \
@@ -101,6 +112,15 @@ impl GoldStarRow {
                 return Err(GoldStarError::NoStars(author.next_free_star));
             }
         }
+
+        sqlx::query!(
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            target_id,
+            target_name
+        )
+        .execute(&mut *tx)
+        .await?;
 
         let target = sqlx::query!(
             r#"INSERT INTO gold_stars (id, number_of_stars, received_stars, last_free_star)

@@ -46,7 +46,7 @@ concrete-`PgPool` + compile-time-macro migration.
   finding #1 in a single small PR — this crate is the recommended pilot.
 
 ### 3. No integration tests  ·  #6  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 9a7b8795`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-29):** Added `tests/give_star.rs` (5 tests) + `tests/fixtures/
   gold_stars.sql`. This crate is a thin shell over SQL and Discord I/O — the
   free-star window, the overdraft floor and the atomic credit all live inside
@@ -139,7 +139,35 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity. Instance of
   confirmed.**
 
 ### DS-2. `give_star` never ensures a `users` row → FK violation for an unseen author or target  ·  Pass 10 (CC-6 harness) / #1  ·  low-med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-07-30):** `GoldStarRow::give_star` now inserts the `users` row for
+  **both** actors inside its existing transaction, immediately before each
+  `gold_stars` write — `INSERT INTO users (id, username) VALUES ($1, $2) ON
+  CONFLICT (id) DO NOTHING` — mirroring the `levels`/`family` idiom
+  (`manager.rs:66-73` author, `:122-129` target). Real Discord usernames are
+  threaded through rather than a placeholder: the signature gained
+  `author_name`/`target_name`, fed from `interaction.user.name` and the resolved
+  `target_user.name` in `commands/give_star.rs`, so a member first seen by
+  `/give_star` gets a correct `users.username` instead of `levels`'
+  `'PLACEHOLDER'`. `DO NOTHING` (not `DO UPDATE`) so an existing row maintained
+  by another module is never clobbered — see the residual note below.
+  Both macros are textually identical, so `.sqlx/` gained a single new entry.
+- **Verification:** two `#[sqlx::test]` regressions in `tests/give_star.rs`,
+  `an_unseen_author_can_give` and `an_unseen_target_can_be_given_to`, using ids
+  500/950 that `tests/fixtures/gold_stars.sql` deliberately omits. Fails-before
+  established by mutation, one insert removed at a time:
+
+  | Insert removed | Result |
+  |---|---|
+  | author's `INSERT INTO users` | `an_unseen_author_can_give` fails — `23503`, `Key (id)=(500) is not present in table "users"` |
+  | target's `INSERT INTO users` | `an_unseen_target_can_be_given_to` fails — `23503`, `Key (id)=(950)` |
+
+  Both mutations were reverted; the other 5 tests stay green under each. The
+  persisted username was confirmed to be the real one (`500` → `unseen-author`,
+  not a placeholder) with a throwaway probe, not asserted in the committed suite:
+  the crate has no `users` reader, and a `query!` in a test binary would need a
+  `.sqlx` cache prepared with `--all-targets`, which the workspace's prepare
+  command does not use.
 - **Found:** 2026-07-29, while writing the [#3](#3-no-integration-tests--6--low)
   harness — the first fixture attempt failed on the FK, which is how the gap
   surfaced. Recorded separately per one-finding-one-task.
@@ -161,6 +189,12 @@ _Deep sweep: 2026-07-17 · lens: concurrency/atomicity. Instance of
   for **both** author and target inside the existing transaction, before the
   `gold_stars` writes. The command layer has the `User` objects, so a real
   username can be passed rather than a placeholder.
+- **Residual:** `users.username` is written on insert only. A member whose row
+  was created earlier by `levels` keeps `'PLACEHOLDER'`; `/give_star` does not
+  refresh it. Refreshing every give would add a write to a row other modules
+  maintain, so the stale-username question is left as its own concern — the
+  workspace has no single owner for `users.username` today (`family::save` does
+  `DO UPDATE`, `levels` does not).
 
 ## Clean
 - #1 Architecture: simple manager + commands split.

@@ -33,13 +33,14 @@
 //! | all three overdraft guards together | 3 of 5 fail |
 //!
 //! **Note on the `users` foreign key:** `gold_stars.id` is
-//! `REFERENCES users (id)`, and `give_star` never inserts a `users` row —
-//! `levels` and `family` both do (`INSERT INTO users … ON CONFLICT DO NOTHING`)
-//! before touching their tables. So a give whose author or target has no
-//! `users` row fails with a `23503` foreign-key violation, surfaced as an
-//! opaque `GoldStarError::Sqlx`. The fixture seeds `users` so these tests
-//! exercise the star logic rather than that gap; the gap itself is recorded as
-//! a separate finding.
+//! `REFERENCES users (id)`. [DS-2](../../../design-docs/audits/gold-star.md) was
+//! that `give_star` never inserted a `users` row — `levels` and `family` both do
+//! (`INSERT INTO users … ON CONFLICT DO NOTHING`) before touching their tables —
+//! so a give whose author or target had no `users` row failed with a `23503`
+//! foreign-key violation, surfaced as an opaque `GoldStarError::Sqlx`. The
+//! fixture seeds `users` for the actors above so the tests below exercise the
+//! star logic; the two `unseen_*` tests cover DS-2 itself with actors the
+//! fixture deliberately omits.
 
 use gold_star::{GoldStarError, GoldStarRow};
 use serenity::all::UserId;
@@ -55,6 +56,11 @@ const EXPIRED_WINDOW: UserId = UserId::new(300);
 const SECOND_PAID: UserId = UserId::new(400);
 /// Has a `users` row but no `gold_stars` row yet.
 const TARGET: UserId = UserId::new(900);
+/// Deliberately absent from the fixture — no `users` row, no `gold_stars` row.
+/// A member who has never sent a message, so levels never accrued one for them.
+const UNSEEN_AUTHOR: UserId = UserId::new(500);
+/// Deliberately absent from the fixture, as [`UNSEEN_AUTHOR`].
+const UNSEEN_TARGET: UserId = UserId::new(950);
 
 const FIXTURE: &str = "gold_stars";
 
@@ -76,9 +82,15 @@ macro_rules! row {
 /// the free arm.
 #[sqlx::test(migrations = "../../migrations", fixtures("gold_stars"))]
 async fn free_star_is_free_and_closes_its_window(pool: PgPool) {
-    let stars = GoldStarRow::give_star(&pool, EXPIRED_WINDOW, TARGET)
-        .await
-        .expect("the 25h-old window has reopened, so the give is free");
+    let stars = GoldStarRow::give_star(
+        &pool,
+        EXPIRED_WINDOW,
+        "expired-window-author",
+        TARGET,
+        "target",
+    )
+    .await
+    .expect("the 25h-old window has reopened, so the give is free");
     assert_eq!(stars, 1, "the target's new star count is returned");
 
     let author = row!(pool, EXPIRED_WINDOW).expect("author row exists");
@@ -90,9 +102,15 @@ async fn free_star_is_free_and_closes_its_window(pool: PgPool) {
 
     // The window is now closed and the author owns nothing, so the second give
     // has nothing to spend.
-    let err = GoldStarRow::give_star(&pool, EXPIRED_WINDOW, TARGET)
-        .await
-        .expect_err("the free star was just spent; there is no second one");
+    let err = GoldStarRow::give_star(
+        &pool,
+        EXPIRED_WINDOW,
+        "expired-window-author",
+        TARGET,
+        "target",
+    )
+    .await
+    .expect_err("the free star was just spent; there is no second one");
     let GoldStarError::NoStars(next_free_star) = err else {
         panic!("expected NoStars, got {err:?}");
     };
@@ -125,9 +143,10 @@ async fn free_star_is_free_and_closes_its_window(pool: PgPool) {
 #[sqlx::test(migrations = "../../migrations", fixtures("gold_stars"))]
 async fn paid_gives_debit_one_each_and_stop_at_zero(pool: PgPool) {
     for expected_target_stars in 1..=2 {
-        let stars = GoldStarRow::give_star(&pool, PAID, TARGET)
-            .await
-            .expect("the author holds stars");
+        let stars =
+            GoldStarRow::give_star(&pool, PAID, "paid-author", TARGET, "target")
+                .await
+                .expect("the author holds stars");
         assert_eq!(stars, expected_target_stars);
     }
 
@@ -135,7 +154,7 @@ async fn paid_gives_debit_one_each_and_stop_at_zero(pool: PgPool) {
     assert_eq!(author.number_of_stars, 0, "two gives, two stars debited");
     assert_eq!(author.given_stars, 2);
 
-    let err = GoldStarRow::give_star(&pool, PAID, TARGET)
+    let err = GoldStarRow::give_star(&pool, PAID, "paid-author", TARGET, "target")
         .await
         .expect_err("balance is zero and the free star is spent");
     assert!(matches!(err, GoldStarError::NoStars(_)), "got {err:?}");
@@ -159,7 +178,7 @@ async fn paid_gives_debit_one_each_and_stop_at_zero(pool: PgPool) {
 /// committing the transaction on the error path.
 #[sqlx::test(migrations = "../../migrations", fixtures("gold_stars"))]
 async fn a_refused_give_credits_nothing(pool: PgPool) {
-    let err = GoldStarRow::give_star(&pool, EMPTY, TARGET)
+    let err = GoldStarRow::give_star(&pool, EMPTY, "empty-author", TARGET, "target")
         .await
         .expect_err("the author holds nothing and has spent its free star");
     assert!(matches!(err, GoldStarError::NoStars(_)), "got {err:?}");
@@ -183,8 +202,14 @@ async fn a_refused_give_credits_nothing(pool: PgPool) {
 #[sqlx::test(migrations = "../../migrations", fixtures("gold_stars"))]
 async fn concurrent_gives_to_one_target_both_land(pool: PgPool) {
     let (first, second) = tokio::join!(
-        GoldStarRow::give_star(&pool, PAID, TARGET),
-        GoldStarRow::give_star(&pool, SECOND_PAID, TARGET)
+        GoldStarRow::give_star(&pool, PAID, "paid-author", TARGET, "target"),
+        GoldStarRow::give_star(
+            &pool,
+            SECOND_PAID,
+            "second-paid-author",
+            TARGET,
+            "target"
+        )
     );
 
     let mut returned = [first.expect("first give"), second.expect("second give")];
@@ -203,6 +228,60 @@ async fn concurrent_gives_to_one_target_both_land(pool: PgPool) {
     assert_eq!(paid.number_of_stars, 1, "started with 2, gave 1");
     let second_paid = row!(pool, SECOND_PAID).expect("author row exists");
     assert_eq!(second_paid.number_of_stars, 0, "started with 1, gave 1");
+}
+
+/// DS-2: an author with no `users` row can still give. This is the reachable
+/// case — a member who has never sent a message has no `users` row, because
+/// `levels` is what normally creates one on XP accrual.
+///
+/// Catches: dropping the author's `INSERT INTO users … ON CONFLICT DO NOTHING`,
+/// which makes the `gold_stars` insert fail the `gold_stars.id REFERENCES
+/// users (id)` foreign key with SQLSTATE `23503` — surfaced to the member as an
+/// opaque `GoldStarError::Sqlx` with no user-facing message.
+#[sqlx::test(migrations = "../../migrations", fixtures("gold_stars"))]
+async fn an_unseen_author_can_give(pool: PgPool) {
+    let stars = GoldStarRow::give_star(
+        &pool,
+        UNSEEN_AUTHOR,
+        "unseen-author",
+        TARGET,
+        "target",
+    )
+    .await
+    .expect("an author with no users row must not hit a foreign-key violation");
+    assert_eq!(stars, 1, "the target is credited");
+
+    // A brand-new author row starts at `last_free_star = to_timestamp(0)`, so
+    // the give took the free arm rather than an empty balance.
+    let author =
+        row!(pool, UNSEEN_AUTHOR).expect("the author's star row was created");
+    assert_eq!(author.given_stars, 1);
+    assert_eq!(author.number_of_stars, 0, "the free star costs nothing");
+}
+
+/// DS-2, target side: a target with no `users` row can still be given to.
+///
+/// Catches: dropping the target's `INSERT INTO users … ON CONFLICT DO NOTHING`.
+/// The author here is seeded, so only the credit's foreign key is under test.
+#[sqlx::test(migrations = "../../migrations", fixtures("gold_stars"))]
+async fn an_unseen_target_can_be_given_to(pool: PgPool) {
+    let stars = GoldStarRow::give_star(
+        &pool,
+        PAID,
+        "paid-author",
+        UNSEEN_TARGET,
+        "unseen-target",
+    )
+    .await
+    .expect("a target with no users row must not hit a foreign-key violation");
+    assert_eq!(stars, 1);
+
+    let target =
+        row!(pool, UNSEEN_TARGET).expect("the target's star row was created");
+    assert_eq!(target.received_stars, 1);
+
+    let author = row!(pool, PAID).expect("author row exists");
+    assert_eq!(author.number_of_stars, 1, "started with 2, gave 1");
 }
 
 /// Guards the fixture itself: `FIXTURE` names the file the tests load, so a
