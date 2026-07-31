@@ -227,12 +227,14 @@ hygiene), then **structural enablers** that unblock later fixes. The three
 
 **Queue status as of 2026-07-29 (`bf0d90ff`):** rows **1–20 are complete** — every
 deep-sweep `DS-#` finding in the workspace now carries a commit sha. What remains
-is the first-pass structural/hygiene backlog, which was never given status tags:
+is the first-pass structural/hygiene backlog, which was never given status tags —
+plus (2026-07-31) one **new** finding that the CC-6 close-out surfaced:
 
 | Finding | Sev | Note |
 |---------|-----|------|
 | ~~[`CC-4`](_cross-cutting.md) — `RIGGED_LUCK` dead const + its `#[expect(dead_code)]`~~ | low | **Done (`a2c6f652`).** `GameState` half died with CC-1 (`83930148`); the `items.rs:192` half was deleted here. Its follow-up [gambling #2b](gambling.md) (`WEAPON_CRATE`) is **`wontfix`** — see the policy note below. |
-| [`CC-6`](_cross-cutting.md) — test-coverage gaps | med | **1 of 3 done.** [`gold-star`](gold-star.md) closed (`in-review`) — it also built the workspace's first `#[sqlx::test]` harness, so `cargo test` now needs a throwaway `DATABASE_URL`; read CC-6's progress note before taking the next crate. `llamad2` and `verify` remain, one per task. |
+| ~~[`CC-6`](_cross-cutting.md) — test-coverage gaps~~ | med | **3 of 3 done; `in-review`.** [`gold-star`](gold-star.md) (`9a7b8795`) built the workspace's first `#[sqlx::test]` harness — so `cargo test` needs a throwaway `DATABASE_URL`; [`llamad2`](llamad2.md) (`b5cc3faf`) split DB-backed from offline tests; [`verify`](verify.md) is **`wontfix`** — no independently testable surface, ruled explicitly 2026-07-31 rather than closed with trivia. That pass recorded a **new** finding, [verify #2](verify.md) (`open`). |
+| [verify #2](verify.md) — `VERIFIED_ROLE` hardcoded + duplicated | med | **New, `open` (2026-07-31).** Same role-id literal in `bot-modules/verify/src/lib.rs:19` **and** `bot/src/bindings/verify/mod.rs:80`, so the button and `/manverify` can silently drift; and being a compile-time constant it makes the module single-guild in a multi-guild bot. Ranked above CC-7/CC-8: it is a live defect, not hygiene or feature work. Fix direction is a `guild_settings.verified_role_id` column reusing the existing roles `SettingsRow`/`SettingsStore` + `save_role_settings`. |
 | [`CC-7`](_cross-cutting.md) — `custom_id` string routing | low | Mechanical; `levels` already has `LevelsCustomId` (`04a8ab2b`) as the precedent. |
 | [`CC-8`](_cross-cutting.md) — dashboard config pages | med | Largest. The active-duplication half is closed (both `setup` commands removed); what's left is *building* music/ticket/suggestions/reaction-roles pages — feature work, not a defect fix. |
 | [`CC-9`](_cross-cutting.md) umbrella | high | Every enumerated site closed. `in-review` — **the human's call to close**, not an agent task. |

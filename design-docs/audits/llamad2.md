@@ -55,7 +55,7 @@ placement) problem.
   live in the `llamad2_counters` DB table (migration `0016_llamad2_counters`).
 
 ### 3. No integration tests  ·  #6  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — b5cc3faf`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-31):** Added `tests/counters.rs` (5 tests, DB-backed) and
   `tests/triggers.rs` (9 tests, offline). Split by what the code actually is:
   - **The counters are the high-value target**, because finding #1's fix — the

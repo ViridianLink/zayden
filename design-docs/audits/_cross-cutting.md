@@ -386,14 +386,35 @@ served by the website — and two `setup` commands already duplicate its writes.
   `gold-star` also has CC-1, so fold this into its concrete-`PgPool` migration.
 
 ### CC-6. Test-coverage gaps  ·  #6  ·  med
-- **Status:** `open — 2 of 3 remaining crates closed (gold-star 9a7b8795; llamad2 in-review)`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Progress (2026-07-31):** [`gold-star`](gold-star.md#3-no-integration-tests--6--low)
-  closed (`9a7b8795`) and [`llamad2`](llamad2.md) is `in-review`. **`verify` is
-  the last one, and is likely a `wontfix`:** 112 LOC whose only branch is
-  `interaction.member.is_none()`; everything else is a constant embed and an
-  `add_role` call. Its own audit entry already says "add a test if the gate logic
-  has any branching worth pinning; **otherwise accept as-is**" — that judgement
-  should be made explicitly rather than by writing trivia to close a checkbox.
+- **Status:** `in-review — all 3 remaining crates worked (gold-star 9a7b8795; llamad2 b5cc3faf; verify wontfix)`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Closing pass (2026-07-31).** All three named crates are now resolved:
+  [`gold-star`](gold-star.md#3-no-integration-tests--6--low) closed (`9a7b8795`),
+  [`llamad2`](llamad2.md) closed (`b5cc3faf`), and
+  [`verify`](verify.md) ruled **`wontfix`** — the judgement CC-6's earlier note
+  asked to be made explicitly. Re-reading the crate confirmed the prediction:
+  112 LOC, whose only branch (`src/lib.rs:64`) has an `add_role` call in one arm
+  and an error variant in the other, so neither side is reachable without
+  fabricating a serenity `ComponentInteraction`; the remainder is a constant
+  embed and command metadata. No SQL, so the `#[sqlx::test]` harness the two
+  earlier crates built does not apply. Full reasoning — including the one
+  non-trivial property deliberately left untested (`Respond` never leaking a raw
+  `serenity::Error`, which belongs in a workspace-wide finding, not a lone
+  assertion in the smallest crate) — is in [verify.md #1](verify.md).
+  **A `wontfix` closes a coverage finding legitimately when the crate has no
+  independently observable logic** — the alternative is asserting a literal
+  against itself, which the checklist #6 wording explicitly rejects. Record the
+  reasoning per-item, as verify.md now does, so a re-audit does not re-open it.
+  _(That pass also surfaced a genuine new defect the 2026-07-17 audit had marked
+  clean: the hardcoded, duplicated `VERIFIED_ROLE` — [verify.md #2](verify.md),
+  `open`. Reading a crate closely enough to rule on its testability is itself an
+  audit; expect that.)_
+- **The `Where` list below is now fully worked** (verified against the tree, not
+  the record, per the workflow's 2026-07-29 lesson):
+  `ticket` 1, `lfg` 5, `family` 4, `levels` 2, `reaction-roles` 2, `suggestions`
+  2, `gold-star` 1, `llamad2` 2 test files; `verify` 0 by the ruling above. The
+  two remaining entries are `bot` and `dashboard`, which the finding itself
+  recorded as "no lib target, so integration tests are structurally awkward —
+  noted, not blamed"; they were never in scope and are not a blocker to closing.
 - **What the `llamad2` task adds to the pattern:** the two earlier crates were
   *whole crates* whose logic is SQL. `llamad2` is mixed, and splitting it by that
   line worked better than picking one harness: `tests/counters.rs` is DB-backed
