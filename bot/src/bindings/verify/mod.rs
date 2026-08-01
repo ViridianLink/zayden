@@ -6,7 +6,6 @@ use serenity::all::{
     CreateCommand,
     CreateCommandOption,
     Permissions,
-    RoleId,
     User,
 };
 use zayden_core::{
@@ -49,7 +48,12 @@ impl ModuleComponent for Panel {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        verify::Panel::run_component(&cx.ctx.http, cx.interaction).await?;
+        verify::Panel::run_component(
+            &cx.ctx.http,
+            cx.interaction,
+            &cx.app.settings.roles,
+        )
+        .await?;
         Ok(())
     }
 }
@@ -77,8 +81,6 @@ impl ModuleCommand for ManVerify {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        const VERIFIED_ROLE: RoleId = RoleId::new(1_404_640_603_848_839_299);
-
         let user: &User = {
             let mut options = cx.interaction.data.options();
             let options: SubCommandOptions<'_> = sole_option(&mut options)?;
@@ -87,12 +89,14 @@ impl ModuleCommand for ManVerify {
 
         let guild_id = cx.interaction.guild_id.ok_or(CoreError::MissingGuildId)?;
 
+        let role = verify::verified_role(&cx.app.settings.roles, guild_id).await?;
+
         cx.ctx
             .http
             .add_member_role(
                 guild_id,
                 user.id,
-                VERIFIED_ROLE,
+                role,
                 Some(&format!(
                     "User manually verified by {}.",
                     cx.interaction.user.display_name()

@@ -8,7 +8,12 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
+zayden-app = { workspace = true }
 zayden-core = { workspace = true }
 
 serenity = { workspace = true }
+sqlx = { workspace = true, features = ["migrate"] }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "sync"] }

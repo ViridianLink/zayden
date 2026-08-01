@@ -7,13 +7,19 @@ pub struct RolesSettingsRow {
     pub guild_id: i64,
     pub artist_role_id: Option<i64>,
     pub sleep_role_id: Option<i64>,
+    pub verified_role_id: Option<i64>,
 }
 
 impl SettingsRow for RolesSettingsRow {
     const TABLE: &'static str = "roles_settings";
 
     fn empty(guild_id: i64) -> Self {
-        Self { guild_id, artist_role_id: None, sleep_role_id: None }
+        Self {
+            guild_id,
+            artist_role_id: None,
+            sleep_role_id: None,
+            verified_role_id: None,
+        }
     }
 
     async fn select(
@@ -23,7 +29,7 @@ impl SettingsRow for RolesSettingsRow {
         sqlx::query_as!(
             Self,
             r#"
-            SELECT guild_id, artist_role_id, sleep_role_id
+            SELECT guild_id, artist_role_id, sleep_role_id, verified_role_id
             FROM roles_settings
             WHERE guild_id = $1
             "#,
@@ -37,17 +43,19 @@ impl SettingsRow for RolesSettingsRow {
         sqlx::query_as!(
             Self,
             r#"
-            INSERT INTO roles_settings (guild_id, artist_role_id, sleep_role_id)
-            VALUES ($1, $2, $3)
+            INSERT INTO roles_settings (guild_id, artist_role_id, sleep_role_id, verified_role_id)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (guild_id) DO UPDATE SET
                 artist_role_id = EXCLUDED.artist_role_id,
                 sleep_role_id = EXCLUDED.sleep_role_id,
+                verified_role_id = EXCLUDED.verified_role_id,
                 updated_at = now()
-            RETURNING guild_id, artist_role_id, sleep_role_id
+            RETURNING guild_id, artist_role_id, sleep_role_id, verified_role_id
             "#,
             self.guild_id,
             self.artist_role_id,
-            self.sleep_role_id
+            self.sleep_role_id,
+            self.verified_role_id
         )
         .fetch_one(pool)
         .await

@@ -9,15 +9,25 @@ pub enum VerifyError {
     #[error("This command can only be used by server members.")]
     NotGuildMember,
 
+    #[error(
+        "No verification role is configured for this server. An admin can set one on the dashboard under Roles."
+    )]
+    RoleNotConfigured,
+
     #[error(transparent)]
     Discord(#[from] serenity::Error),
+
+    #[error(transparent)]
+    Sqlx(#[from] sqlx::Error),
 }
 
 impl Respond for VerifyError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::NotGuildMember => Some(Cow::Owned(self.to_string())),
-            Self::Discord(_) => None,
+            Self::NotGuildMember | Self::RoleNotConfigured => {
+                Some(Cow::Owned(self.to_string()))
+            },
+            Self::Discord(_) | Self::Sqlx(_) => None,
         }
     }
 }

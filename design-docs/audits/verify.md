@@ -47,7 +47,7 @@ in #2, which the original pass recorded as clean under #4.)_
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 2. `VERIFIED_ROLE` hardcoded, and duplicated across two crates  ·  #4 / #5  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Recorded:** 2026-07-31, while closing #1. The original pass (2026-07-17)
   listed #4 as clean; that was wrong — checklist #4 covers hardcoded IDs, not
   just string matching.

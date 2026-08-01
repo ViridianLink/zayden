@@ -7477,7 +7477,10 @@ name = "verify"
 version = "1.0.0"
 dependencies = [
  "serenity",
+ "sqlx",
  "thiserror 2.0.19",
+ "tokio",
+ "zayden-app",
  "zayden-core",
 ]
 

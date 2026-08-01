@@ -121,6 +121,7 @@ pub async fn get_guild_settings(
         spoiler_channel_id: opt_str(channels.spoiler_channel_id),
         artist_role_id: opt_str(roles.artist_role_id),
         sleep_role_id: opt_str(roles.sleep_role_id),
+        verified_role_id: opt_str(roles.verified_role_id),
         temp_voice_category: opt_str(temp_voice.temp_voice_category),
         temp_voice_creator_channel: opt_str(temp_voice.temp_voice_creator_channel),
         lfg_channel_id: opt_str(lfg.lfg_channel_id),
@@ -255,6 +256,7 @@ pub async fn save_role_settings(
     guild: String,
     artist_role_id: String,
     sleep_role_id: String,
+    verified_role_id: String,
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
@@ -263,6 +265,7 @@ pub async fn save_role_settings(
         .update(guild_id, |p| {
             p.artist_role_id = parse_id(&artist_role_id);
             p.sleep_role_id = parse_id(&sleep_role_id);
+            p.verified_role_id = parse_id(&verified_role_id);
         })
         .await
         .map(|_| ())

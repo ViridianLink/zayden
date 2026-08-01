@@ -9,6 +9,7 @@ pub use settings_store::{SettingsRow, SettingsStore};
 pub use tables::{
     HoneypotSettingsRow,
     MusicSettingsRow,
+    RolesSettingsRow,
     SupportSettingsRow,
     TicketSettingsRow,
 };

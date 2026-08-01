@@ -11,12 +11,25 @@ use serenity::all::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     CreateMessage,
+    GuildId,
     Http,
     Permissions,
     RoleId,
 };
+use zayden_app::config::{RolesSettingsRow, SettingsStore};
+use zayden_core::{as_i64, as_u64};
 
-const VERIFIED_ROLE: RoleId = RoleId::new(1_404_640_603_848_839_299);
+pub async fn verified_role(
+    store: &SettingsStore<RolesSettingsRow>,
+    guild_id: GuildId,
+) -> Result<RoleId> {
+    store
+        .get(as_i64(guild_id.get()))
+        .await?
+        .verified_role_id
+        .map(|id| RoleId::new(as_u64(id)))
+        .ok_or(VerifyError::RoleNotConfigured)
+}
 
 pub struct Panel;
 
@@ -60,12 +73,15 @@ impl Panel {
     pub async fn run_component(
         http: &Http,
         interaction: &ComponentInteraction,
+        store: &SettingsStore<RolesSettingsRow>,
     ) -> Result<()> {
         let Some(member) = interaction.member.as_ref() else {
             return Err(VerifyError::NotGuildMember);
         };
 
-        member.add_role(http, VERIFIED_ROLE, Some("Verified user")).await?;
+        let role = verified_role(store, member.guild_id).await?;
+
+        member.add_role(http, role, Some("Verified user")).await?;
 
         interaction
             .create_response(

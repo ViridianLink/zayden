@@ -230,6 +230,12 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                                 selected=sel(s.sleep_role_id.as_deref())
                                                 roles=roles.clone()
                                             />
+                                            <RoleSelect
+                                                label="Verified Role"
+                                                name="verified_role_id"
+                                                selected=sel(s.verified_role_id.as_deref())
+                                                roles=roles.clone()
+                                            />
                                             <SaveButton/>
                                         </ActionForm>
                                     </fieldset>

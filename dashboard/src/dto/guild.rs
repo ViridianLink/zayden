@@ -20,6 +20,7 @@ pub struct GuildSettings {
     pub(crate) spoiler_channel_id: Option<String>,
     pub(crate) artist_role_id: Option<String>,
     pub(crate) sleep_role_id: Option<String>,
+    pub(crate) verified_role_id: Option<String>,
     pub(crate) temp_voice_category: Option<String>,
     pub(crate) temp_voice_creator_channel: Option<String>,
     pub(crate) lfg_channel_id: Option<String>,
