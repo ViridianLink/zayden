@@ -124,8 +124,23 @@ impl DigManager {
             reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
         )]
         let claimed = sqlx::query_scalar!(
-            r#"INSERT INTO gambling_mine (user_id, coal, iron, gold, redstone, lapis, diamonds, emeralds, mine_activity)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            r#"INSERT INTO gambling_mine (user_id, mine_activity)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE SET
+                mine_activity = EXCLUDED.mine_activity
+            WHERE gambling_mine.mine_activity = $3
+            RETURNING user_id;"#,
+            user_id,
+            payout.collected_at.to_sqlx() as Timestamp,
+            payout.since.to_sqlx() as Timestamp,
+        )
+        .fetch_optional(&mut *tx)
+        .await?
+        .is_some();
+
+        sqlx::query!(
+            "INSERT INTO gambling_mine (user_id, coal, iron, gold, redstone, lapis, diamonds, emeralds)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT (user_id) DO UPDATE SET
                 coal = gambling_mine.coal + $2,
                 iron = gambling_mine.iron + $3,
@@ -133,12 +148,7 @@ impl DigManager {
                 redstone = gambling_mine.redstone + $5,
                 lapis = gambling_mine.lapis + $6,
                 diamonds = gambling_mine.diamonds + $7,
-                emeralds = gambling_mine.emeralds + $8,
-                mine_activity = CASE
-                    WHEN gambling_mine.mine_activity = $10 THEN EXCLUDED.mine_activity
-                    ELSE gambling_mine.mine_activity
-                END
-            RETURNING mine_activity = $9 AS "claimed!";"#,
+                emeralds = gambling_mine.emeralds + $8;",
             user_id,
             delta.coal,
             delta.iron,
@@ -147,10 +157,8 @@ impl DigManager {
             delta.lapis,
             delta.diamonds,
             delta.emeralds,
-            payout.collected_at.to_sqlx() as Timestamp,
-            payout.since.to_sqlx() as Timestamp,
         )
-        .fetch_one(&mut *tx)
+        .execute(&mut *tx)
         .await?;
 
         let payout = if claimed { payout.coins } else { 0 };

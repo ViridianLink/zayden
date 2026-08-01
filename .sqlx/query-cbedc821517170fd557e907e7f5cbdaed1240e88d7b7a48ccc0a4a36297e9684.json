@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO roles_settings (guild_id, artist_role_id, sleep_role_id)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                artist_role_id = EXCLUDED.artist_role_id,\n                sleep_role_id = EXCLUDED.sleep_role_id,\n                updated_at = now()\n            RETURNING guild_id, artist_role_id, sleep_role_id\n            ",
+  "query": "\n            SELECT guild_id, artist_role_id, sleep_role_id, verified_role_id\n            FROM roles_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -35,20 +35,30 @@
             "name": "sleep_role_id"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "verified_role_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "roles_settings",
+            "name": "verified_role_id"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
         "Int8"
       ]
     },
     "nullable": [
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "0eb7424390010c00c1c7cb59d84b31de77d58f886c002d86c19d22eaacdc173d"
+  "hash": "cbedc821517170fd557e907e7f5cbdaed1240e88d7b7a48ccc0a4a36297e9684"
 }

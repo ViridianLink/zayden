@@ -175,17 +175,16 @@ impl WorkManager {
             r#"INSERT INTO gambling_mine (user_id, mine_activity)
             VALUES ($1, $2)
             ON CONFLICT (user_id) DO UPDATE SET
-                mine_activity = CASE
-                    WHEN gambling_mine.mine_activity = $3 THEN EXCLUDED.mine_activity
-                    ELSE gambling_mine.mine_activity
-                END
-            RETURNING mine_activity = $2 AS "claimed!";"#,
+                mine_activity = EXCLUDED.mine_activity
+            WHERE gambling_mine.mine_activity = $3
+            RETURNING user_id;"#,
             user_id,
             payout.collected_at.to_sqlx() as Timestamp,
             payout.since.to_sqlx() as Timestamp,
         )
-        .fetch_one(&mut *tx)
-        .await?;
+        .fetch_optional(&mut *tx)
+        .await?
+        .is_some();
 
         let payout = if claimed { payout.coins } else { 0 };
 

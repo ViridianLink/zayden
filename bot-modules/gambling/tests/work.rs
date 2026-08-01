@@ -130,8 +130,18 @@ fn mine_accrual_is_not_part_of_the_work_delta() {
     assert_eq!(paid_twice - paid_once, accrued, "exactly one accrual minted");
 }
 
-/// The accrual is tagged with the stamp it was computed from, so the commit can
-/// discriminate between two shifts that are indistinguishable by value.
+/// The accrual is tagged with the watermark it was computed from, so the commit
+/// can discriminate between two shifts that are indistinguishable by value.
+///
+/// The discriminator is `since`, never `collected_at`. `collected_at` is a wall
+/// clock truncated to TIMESTAMPTZ microseconds, so two shifts in the same tick
+/// can and do propose the *same* one — this test used to assert they differed
+/// and failed whenever the clock did not advance between the two constructions.
+/// Claiming by `RETURNING mine_activity = $collected_at` inherited that
+/// weakness: on a collision the swap's loser matched too and the accrual minted
+/// twice, the very DS-12 regression above. The swap is now guarded by
+/// `WHERE gambling_mine.mine_activity = $since`, so the winner is decided
+/// entirely by the shared watermark pinned here and stamp collisions are inert.
 #[test]
 fn racing_shifts_share_a_stamp_so_only_one_can_claim() {
     let read_at: jiff::Timestamp = "2026-07-28T00:00:00Z".parse().unwrap();
@@ -140,15 +150,17 @@ fn racing_shifts_share_a_stamp_so_only_one_can_claim() {
     let second = MinePayout::new(2_400, read_at);
 
     assert_eq!(first.coins, second.coins, "same window, same amount");
-    assert_eq!(first.since, second.since, "…and the same watermark");
+    assert_eq!(first.since, read_at, "the swap keys on the watermark as read");
+    assert_eq!(second.since, read_at, "…and both shifts carry it unchanged");
+
+    // Only one swap can find the row still on `read_at`; the winner moves it to
+    // its own `collected_at`, which must be strictly ahead so the watermark
+    // advances rather than stalling or rewinding.
     assert!(
         first.collected_at > first.since,
         "the proposed stamp must advance past the one measured from"
     );
-    assert_ne!(
-        first.collected_at, second.collected_at,
-        "each shift proposes its own new stamp, so only one CAS can win"
-    );
+    assert!(second.collected_at > second.since);
 }
 
 /// A shift reports the accrual it actually collected, not the one it computed —

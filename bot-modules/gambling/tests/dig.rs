@@ -124,12 +124,20 @@ fn mine_payout_is_tagged_with_the_stamp_it_was_computed_from() {
 
     // A second dig in the same tick reads the same stamp and computes the same
     // accrual — the two are indistinguishable by value, which is why the commit
-    // discriminates on the stamp rather than on the amount.
+    // discriminates on the watermark they were measured from rather than on the
+    // amount. It cannot discriminate on `collected_at`: that is a wall clock
+    // truncated to TIMESTAMPTZ microseconds, so two digs in the same tick can
+    // propose the *same* one. This used to assert they differed, and failed
+    // whenever the clock did not advance between the two constructions; the
+    // matching `RETURNING mine_activity = $collected_at` claim check inherited
+    // the same weakness and paid the accrual to both racers. `commit_dig` now
+    // guards the swap with `WHERE gambling_mine.mine_activity = $since`.
     let racing = MinePayout::new(2_400, read_at);
-    assert_eq!(racing.since, payout.since);
-    assert_ne!(
-        racing.collected_at, payout.collected_at,
-        "each dig proposes its own new stamp, so only one CAS can win"
+    assert_eq!(racing.since, payout.since, "both digs key on the same watermark");
+    assert_eq!(racing.coins, payout.coins, "…and compute the same accrual");
+    assert!(
+        racing.collected_at > racing.since,
+        "the loser's stamp is still a forward step, it just never lands"
     );
 }
 
