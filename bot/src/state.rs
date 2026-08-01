@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use bungie_api::{BungieClient, BungieClientBuilder};
+use dashmap::DashMap;
 use destiny2::endgame_analysis::EndgameAnalysisSheetCron;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use llamad2::GoodMorningCache;
@@ -40,9 +40,9 @@ pub struct BotState {
     marathon_bungie_api_key: String,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob>,
-    guild_members: HashMap<GuildId, Vec<UserId>>,
+    guild_members: DashMap<GuildId, Vec<UserId>>,
     gambling_cache: GameCache,
-    good_morning_cache: HashMap<GenericChannelId, (UserId, bool)>,
+    good_morning_cache: DashMap<GenericChannelId, (UserId, bool)>,
 }
 
 impl BotState {
@@ -91,9 +91,9 @@ impl BotState {
             marathon_bungie_api_key: config.bungie_api_key.clone(),
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),
-            guild_members: HashMap::new(),
+            guild_members: DashMap::new(),
             gambling_cache: GameCache::default(),
-            good_morning_cache: HashMap::new(),
+            good_morning_cache: DashMap::new(),
         })
     }
 
@@ -147,9 +147,9 @@ impl BotState {
     }
 
     pub async fn guild_create(data: Arc<RwLock<Self>>, guild: &Guild) {
-        let mut data = data.write().await;
+        let data = data.read().await;
         data.voice_states.guild_create(guild);
-        GuildMembersCache::guild_create(&mut *data, guild);
+        GuildMembersCache::guild_create(&*data, guild);
         data.music.occupancy().guild_create(guild);
     }
 }
@@ -175,12 +175,8 @@ impl CronJobData for BotState {
 }
 
 impl GuildMembersCache for BotState {
-    fn get(&self) -> &HashMap<GuildId, Vec<UserId>> {
+    fn get(&self) -> &DashMap<GuildId, Vec<UserId>> {
         &self.guild_members
-    }
-
-    fn get_mut(&mut self) -> &mut HashMap<GuildId, Vec<UserId>> {
-        &mut self.guild_members
     }
 }
 
@@ -192,7 +188,7 @@ impl GamblingData for BotState {
 
 impl GoodMorningCache for BotState {
     fn insert(
-        &mut self,
+        &self,
         channel_id: GenericChannelId,
         author: UserId,
         is_good_morning: bool,

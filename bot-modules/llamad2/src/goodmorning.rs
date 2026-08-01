@@ -15,7 +15,7 @@ const GOOD_MORNINGS: [&str; 8] = [
 
 pub trait GoodMorningCache: Send + Sync + 'static {
     fn insert(
-        &mut self,
+        &self,
         channel_id: GenericChannelId,
         author: UserId,
         is_good_morning: bool,
@@ -35,7 +35,7 @@ impl GoodMorning {
 
         let prev_msg = {
             let data = ctx.data::<RwLock<Data>>();
-            let mut data = data.write().await;
+            let data = data.read().await;
             data.insert(message.channel_id, message.author.id, is_good_morning)
         };
 

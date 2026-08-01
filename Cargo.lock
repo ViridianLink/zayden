@@ -520,6 +520,7 @@ dependencies = [
  "ai",
  "async-trait",
  "bungie-api",
+ "dashmap",
  "destiny2",
  "dotenvy",
  "family",
@@ -8032,6 +8033,7 @@ version = "1.0.0"
 dependencies = [
  "async-trait",
  "base64 0.23.0",
+ "dashmap",
  "jiff-cron",
  "reqwest 0.13.4",
  "serde",

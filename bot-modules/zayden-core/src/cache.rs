@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use base64::Engine;
 use base64::engine::general_purpose;
+use dashmap::DashMap;
 use reqwest::header::{
     AUTHORIZATION,
     HeaderMap,
@@ -39,12 +40,10 @@ const LOGGED_BODY_LIMIT: usize = 512;
 pub type EmojiResult<T> = Result<T, String>;
 
 pub trait GuildMembersCache: Send + Sync + 'static {
-    fn get(&self) -> &HashMap<GuildId, Vec<UserId>>;
+    fn get(&self) -> &DashMap<GuildId, Vec<UserId>>;
 
-    fn get_mut(&mut self) -> &mut HashMap<GuildId, Vec<UserId>>;
-
-    fn guild_create(&mut self, guild: &Guild) {
-        self.get_mut()
+    fn guild_create(&self, guild: &Guild) {
+        self.get()
             .insert(guild.id, guild.members.iter().map(|x| x.user.id).collect());
     }
 }
