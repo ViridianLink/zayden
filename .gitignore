@@ -17,6 +17,7 @@ target/
 *.sav
 .claude/
 skills-lock.json
+.bacon-locations
 
 # Test fixtures must be committed despite the blanket *.json/*.md ignores above.
 !bot-modules/marathon/tests/fixtures/
