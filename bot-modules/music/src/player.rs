@@ -57,6 +57,7 @@ pub struct GuildPlayer {
     pub periodic_registered: bool,
     pub starting: bool,
     pub announce: AnnounceConfig,
+    pub silenced: bool,
     pub radio: Option<Arc<RadioStation>>,
     pub radio_retries: u8,
 }
@@ -77,6 +78,7 @@ impl GuildPlayer {
             periodic_registered: false,
             starting: false,
             announce: AnnounceConfig::DEFAULT,
+            silenced: false,
             radio: None,
             radio_retries: 0,
         }
@@ -98,7 +100,7 @@ impl GuildPlayer {
 
     #[must_use]
     pub const fn announce_target(&self) -> Option<GenericChannelId> {
-        if !self.announce.enabled {
+        if self.silenced || !self.announce.enabled {
             return None;
         }
 

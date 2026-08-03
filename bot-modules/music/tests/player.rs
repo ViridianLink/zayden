@@ -125,6 +125,62 @@ fn announce_config_mirrors_the_guild_settings_row() {
 }
 
 #[test]
+fn a_new_player_is_not_silenced() {
+    let channel = GenericChannelId::new(10);
+    let player = GuildPlayer::new(channel, 100);
+
+    assert!(!player.silenced);
+    assert_eq!(player.announce_target(), Some(channel));
+}
+
+#[test]
+fn silencing_the_session_suppresses_announcements() {
+    let mut player = GuildPlayer::new(GenericChannelId::new(10), 100);
+    player.set_announce(AnnounceConfig {
+        enabled: true,
+        channel: Some(GenericChannelId::new(20)),
+    });
+
+    player.silenced = true;
+
+    assert_eq!(
+        player.announce_target(),
+        None,
+        "a silenced session must stay quiet even with announcements enabled \
+         and a dedicated channel configured"
+    );
+}
+
+// `voice::ensure_session` re-reads the guild row and calls `set_announce` on
+// every `/music play`, so session silence deliberately lives outside
+// `AnnounceConfig` — otherwise queueing a track would un-silence the session.
+#[test]
+fn refreshing_the_guild_config_does_not_clear_session_silence() {
+    let mut player = GuildPlayer::new(GenericChannelId::new(10), 100);
+    player.silenced = true;
+
+    player.set_announce(AnnounceConfig { enabled: true, channel: None });
+
+    assert!(player.silenced);
+    assert_eq!(player.announce_target(), None);
+}
+
+#[test]
+fn clearing_silence_cannot_override_a_disabled_guild_setting() {
+    let mut player = GuildPlayer::new(GenericChannelId::new(10), 100);
+    player.set_announce(AnnounceConfig { enabled: false, channel: None });
+
+    player.silenced = false;
+
+    assert_eq!(
+        player.announce_target(),
+        None,
+        "session silence only adds quiet; it never re-enables announcements \
+         the guild has turned off"
+    );
+}
+
+#[test]
 fn advance_queue_loop_off_pops_next_and_drops_finished() {
     let mut player = GuildPlayer::new(GenericChannelId::new(1), 100);
     player.queue.push(track("b"));

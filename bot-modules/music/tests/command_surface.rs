@@ -85,6 +85,18 @@ fn the_collapsed_subcommands_are_gone() {
 }
 
 #[test]
+fn silent_is_registered_with_its_optional_toggle() {
+    assert!(
+        subcommand_names().iter().any(|n| n == "silent"),
+        "`silent` disappeared from /music",
+    );
+
+    // Blank means "toggle", so the option must stay optional; a required
+    // `enabled` would break the bare `/music silent` form.
+    assert_eq!(option_names("silent"), ["enabled"]);
+}
+
+#[test]
 fn clear_absorbed_the_collapsed_queue_pruning_modes() {
     assert_eq!(option_names("clear"), ["mode"]);
 }

@@ -18,6 +18,7 @@ mod resume;
 mod seek;
 mod settings;
 mod shuffle;
+mod silent;
 mod skip;
 mod skipto;
 mod volume;
@@ -289,6 +290,17 @@ impl Command {
             "Post an interactive control panel for the current track",
         );
 
+        let silent = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "silent",
+            "Silence now-playing announcements for this session",
+        )
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::Boolean,
+            "enabled",
+            "Leave blank to toggle",
+        ));
+
         let settings = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "settings",
@@ -333,6 +345,7 @@ impl Command {
             .add_option(loop_cmd)
             .add_option(radio)
             .add_option(control)
+            .add_option(silent)
             .add_option(settings)
     }
 
@@ -372,6 +385,7 @@ impl Command {
             "shuffle" => shuffle::run(ctx).await,
             "loop" => r#loop::run(ctx, options).await,
             "control" => control::run(ctx).await,
+            "silent" => silent::run(ctx, options).await,
             "settings" => settings::run(ctx, options).await,
             _ => Err(MusicError::Internal(format!("unexpected subcommand: {name}"))),
         }
