@@ -9,6 +9,7 @@ use tracing::{error, warn};
 use zayden_app::entitlement::{EntitlementScope, EntitlementService, Tier};
 
 use crate::manager::MusicManager;
+use crate::resolve::{next_retry_count, should_reconnect, station_track};
 use crate::voice::Playback;
 use crate::{embeds, voice};
 
@@ -52,6 +53,57 @@ impl EventHandler for TrackEndNotifier {
             if guard.generation != self.generation {
                 return None;
             }
+
+            let reconnect = match (guard.radio.clone(), guard.current.as_ref()) {
+                (Some(station), Some(now)) => {
+                    let played = now.started_at.elapsed();
+                    let retries = guard.radio_retries;
+
+                    should_reconnect(played, retries).then(|| {
+                        let track = station_track(&station, now.track.requested_by);
+                        (station, track, next_retry_count(played, retries))
+                    })
+                },
+                _ => None,
+            };
+
+            match reconnect {
+                Some((station, track, retries)) => {
+                    guard.radio_retries = retries;
+                    guard.advance();
+                    let generation = guard.generation;
+                    drop(guard);
+
+                    if let Err(e) = voice::start_playback(
+                        &self.playback,
+                        self.guild_id,
+                        generation,
+                        track,
+                    )
+                    .await
+                    {
+                        error!(
+                            error = ?e,
+                            guild_id = %self.guild_id,
+                            station = %station.id,
+                            "failed to reconnect to radio station"
+                        );
+                    }
+
+                    return None;
+                },
+                None => {
+                    if let Some(station) = guard.radio.as_ref() {
+                        warn!(
+                            guild_id = %self.guild_id,
+                            station = %station.id,
+                            "radio station kept dropping; leaving radio mode"
+                        );
+                        guard.clear_radio();
+                    }
+                },
+            }
+
             (guard.advance_queue(), guard.announce_target())
         };
 

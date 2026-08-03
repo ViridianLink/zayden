@@ -5,7 +5,7 @@ use serenity::all::{EditInteractionResponse, ResolvedValue};
 use zayden_core::required_option;
 
 use super::MusicCtx;
-use crate::embeds::{format_duration, parse_timestamp};
+use crate::embeds::{SeekTarget, format_duration, parse_seek};
 use crate::error::{MusicError, Result};
 
 pub(super) async fn run(
@@ -18,7 +18,13 @@ pub(super) async fn run(
     ctx.require_privileged(&settings)?;
 
     let timestamp: &str = required_option(&mut options, "timestamp")?;
-    let target = parse_timestamp(timestamp).ok_or(MusicError::InvalidTimestamp)?;
+    let target = match parse_seek(timestamp).ok_or(MusicError::InvalidTimestamp)? {
+        SeekTarget::Absolute(target) => target,
+        SeekTarget::Forward(offset) => current_elapsed(ctx).await? + offset,
+        SeekTarget::Backward(offset) => {
+            current_elapsed(ctx).await?.saturating_sub(offset)
+        },
+    };
 
     seek_to(ctx, target).await
 }

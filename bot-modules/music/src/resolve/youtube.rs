@@ -17,7 +17,7 @@ use super::{
     TrackResolver,
 };
 use crate::error::{MusicError, Result};
-use crate::track::{RequestedBy, ResolvedTrack, TrackSource};
+use crate::track::{ResolvedTrack, TrackSource};
 
 const PLAYLIST_CAP: u64 = 500;
 
@@ -262,10 +262,7 @@ impl YtDlpOutput {
             duration,
             is_live,
             thumbnail_url,
-            requested_by: RequestedBy {
-                user_id: requested_by,
-                display_name: String::new(),
-            },
+            requested_by,
         })
     }
 }

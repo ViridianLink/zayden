@@ -153,17 +153,19 @@ impl CommandRegistry {
                 },
             );
             if !app.entitlements.allows(scope, required).await {
-                let upgrade_url = app
-                    .upgrade_url
-                    .as_deref()
-                    .unwrap_or("https://ko-fi.com/zaydenbot");
+                let content = app.upgrade_url.as_deref().map_or_else(
+                    || "This command requires a premium subscription.".to_string(),
+                    |url| {
+                        format!(
+                            "This command requires a premium subscription. Upgrade at {url}"
+                        )
+                    },
+                );
 
                 let response = CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
                         .ephemeral(true)
-                        .content(format!(
-                            "This command requires a premium subscription. Upgrade at {upgrade_url}"
-                        )),
+                        .content(content),
                 );
                 if let Err(e) =
                     interaction.create_response(&ctx.http, response).await

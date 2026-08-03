@@ -1,10 +1,13 @@
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::warn;
 
+use crate::config::radio;
+use crate::config::radio::RadioStation;
 use crate::{Error, Result};
 
 const DEFAULT_OSCAR_SIX: u64 = 211_486_447_369_322_506;
@@ -78,6 +81,8 @@ pub struct BotConfig {
 
     pub discord_sku_pro: Option<u64>,
     pub discord_sku_ultra: Option<u64>,
+
+    pub radio_stations: Arc<[RadioStation]>,
 }
 
 impl BotConfig {
@@ -179,6 +184,8 @@ impl BotConfig {
 
             discord_sku_pro: toml_cfg.entitlements.discord.skus.pro,
             discord_sku_ultra: toml_cfg.entitlements.discord.skus.ultra,
+
+            radio_stations: radio::validate_all(toml_cfg.music.stations),
         })
     }
 }
@@ -255,6 +262,14 @@ struct TomlConfig {
     pelican: TomlPelican,
     #[serde(default)]
     entitlements: TomlEntitlements,
+    #[serde(default)]
+    music: TomlMusic,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlMusic {
+    #[serde(default)]
+    stations: Vec<RadioStation>,
 }
 
 #[derive(Debug, Default, Deserialize)]

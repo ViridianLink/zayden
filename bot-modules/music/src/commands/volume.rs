@@ -4,6 +4,7 @@ use serenity::all::{EditInteractionResponse, ResolvedValue};
 
 use super::MusicCtx;
 use crate::error::{MusicError, Result};
+use crate::player::volume_scalar;
 
 pub(super) async fn run(
     ctx: &MusicCtx<'_>,
@@ -40,7 +41,7 @@ pub(super) async fn run(
         guard.volume = volume;
         if let Some(now) = guard.current.as_ref() {
             now.handle
-                .set_volume(f32::from(volume) / 100.0)
+                .set_volume(volume_scalar(volume))
                 .map_err(|e| MusicError::Songbird(e.to_string()))?;
         }
     }

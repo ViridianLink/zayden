@@ -6,6 +6,27 @@ use serenity::all::UserId;
 use crate::error::{MusicError, Result};
 use crate::track::ResolvedTrack;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ClearMode {
+    #[default]
+    All,
+    Duplicates,
+    /// Drop tracks whose requester is no longer in the voice channel.
+    Left,
+}
+
+impl ClearMode {
+    #[must_use]
+    pub fn parse(mode: Option<&str>) -> Option<Self> {
+        match mode {
+            None | Some("all") => Some(Self::All),
+            Some("duplicates") => Some(Self::Duplicates),
+            Some("left") => Some(Self::Left),
+            Some(_) => None,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Queue {
     tracks: VecDeque<ResolvedTrack>,
@@ -89,7 +110,7 @@ impl Queue {
 
     pub fn cleanup(&mut self, voice_members: &HashSet<UserId>) -> usize {
         let before = self.tracks.len();
-        self.tracks.retain(|t| voice_members.contains(&t.requested_by.user_id));
+        self.tracks.retain(|t| voice_members.contains(&t.requested_by));
         before - self.tracks.len()
     }
 }

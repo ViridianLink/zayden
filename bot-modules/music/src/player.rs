@@ -1,15 +1,21 @@
 use std::collections::{HashSet, VecDeque};
+use std::sync::Arc;
 use std::time::Instant;
 
 use serenity::all::{GenericChannelId, UserId};
 use songbird::tracks::TrackHandle;
-use zayden_app::config::MusicSettingsRow;
+use zayden_app::config::{MusicSettingsRow, RadioStation};
 use zayden_core::as_u64;
 
 use crate::queue::Queue;
-use crate::track::{LoopMode, ResolvedTrack};
+use crate::track::{LoopMode, ResolvedTrack, TrackSource};
 
 const MAX_HISTORY: usize = 20;
+
+#[must_use]
+pub fn volume_scalar(percent: u8) -> f32 {
+    f32::from(percent.min(100)) / 100.0
+}
 
 pub struct NowPlaying {
     pub track: ResolvedTrack,
@@ -51,6 +57,8 @@ pub struct GuildPlayer {
     pub periodic_registered: bool,
     pub starting: bool,
     pub announce: AnnounceConfig,
+    pub radio: Option<Arc<RadioStation>>,
+    pub radio_retries: u8,
 }
 
 impl GuildPlayer {
@@ -69,7 +77,19 @@ impl GuildPlayer {
             periodic_registered: false,
             starting: false,
             announce: AnnounceConfig::DEFAULT,
+            radio: None,
+            radio_retries: 0,
         }
+    }
+
+    pub fn set_radio(&mut self, station: Arc<RadioStation>) {
+        self.radio = Some(station);
+        self.radio_retries = 0;
+    }
+
+    pub fn clear_radio(&mut self) -> bool {
+        self.radio_retries = 0;
+        self.radio.take().is_some()
     }
 
     pub const fn set_announce(&mut self, announce: AnnounceConfig) {
@@ -105,7 +125,9 @@ impl GuildPlayer {
         self.skip_votes.clear();
 
         let previous = self.current.take().map(|now_playing| now_playing.track);
-        if let Some(track) = &previous {
+        if let Some(track) = &previous
+            && records_history(track.source)
+        {
             self.history.push_back(track.clone());
             if self.history.len() > MAX_HISTORY {
                 self.history.pop_front();
@@ -116,15 +138,46 @@ impl GuildPlayer {
 
     pub fn advance_queue(&mut self) -> Option<ResolvedTrack> {
         let finished = self.advance();
-        match self.loop_mode {
-            LoopMode::Track => finished,
-            LoopMode::Queue => {
+        let finished_is_radio =
+            finished.as_ref().is_some_and(|t| t.source == TrackSource::Radio);
+
+        match advance_action(self.loop_mode, finished_is_radio) {
+            AdvanceAction::Replay => finished,
+            AdvanceAction::Requeue => {
                 if let Some(track) = finished {
                     self.queue.push(track);
                 }
                 self.queue.pop_front()
             },
-            LoopMode::Off => self.queue.pop_front(),
+            AdvanceAction::Drop => self.queue.pop_front(),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AdvanceAction {
+    Replay,
+    Requeue,
+    Drop,
+}
+
+#[must_use]
+pub const fn advance_action(
+    loop_mode: LoopMode,
+    finished_is_radio: bool,
+) -> AdvanceAction {
+    if finished_is_radio {
+        return AdvanceAction::Drop;
+    }
+
+    match loop_mode {
+        LoopMode::Track => AdvanceAction::Replay,
+        LoopMode::Queue => AdvanceAction::Requeue,
+        LoopMode::Off => AdvanceAction::Drop,
+    }
+}
+
+#[must_use]
+pub const fn records_history(source: TrackSource) -> bool {
+    !matches!(source, TrackSource::Radio)
 }

@@ -1,8 +1,10 @@
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::time::Duration;
 
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
+use zayden_app::config::RadioStation;
 
 use crate::player::NowPlaying;
 use crate::queue::Queue;
@@ -10,6 +12,11 @@ use crate::track::{LoopMode, ResolvedTrack};
 
 const QUEUE_PAGE_SIZE: usize = 10;
 const PROGRESS_BAR_WIDTH: u32 = 20;
+
+#[must_use]
+pub fn requested_by_mention(track: &ResolvedTrack) -> String {
+    format!("<@{}>", track.requested_by)
+}
 
 #[must_use]
 pub fn format_duration(duration: Duration) -> String {
@@ -29,11 +36,35 @@ pub fn format_duration(duration: Duration) -> String {
 pub fn parse_timestamp(s: &str) -> Option<Duration> {
     let mut secs: u64 = 0;
     for part in s.split(':') {
+        if part.is_empty() || !part.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
         let n: u64 = part.parse().ok()?;
         secs = secs.checked_mul(60)?.checked_add(n)?;
     }
 
     Some(Duration::from_secs(secs))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SeekTarget {
+    Absolute(Duration),
+    Forward(Duration),
+    Backward(Duration),
+}
+
+#[must_use]
+pub fn parse_seek(s: &str) -> Option<SeekTarget> {
+    let s = s.trim();
+
+    if let Some(rest) = s.strip_prefix('+') {
+        return parse_timestamp(rest).map(SeekTarget::Forward);
+    }
+    if let Some(rest) = s.strip_prefix('-') {
+        return parse_timestamp(rest).map(SeekTarget::Backward);
+    }
+
+    parse_timestamp(s).map(SeekTarget::Absolute)
 }
 
 #[must_use]
@@ -75,7 +106,7 @@ pub fn now_playing_embed(
         .description(format!("[{}]({})", now.track.title, now.track.url))
         .colour(Colour::BLURPLE)
         .field("Progress", progress_bar(elapsed, now.track.duration), false)
-        .field("Requested by", now.track.requested_by.display_name.clone(), true);
+        .field("Requested by", requested_by_mention(&now.track), true);
 
     let embed = if loop_mode == LoopMode::Off {
         embed
@@ -97,7 +128,7 @@ pub fn track_announcement_embed(track: &ResolvedTrack) -> CreateEmbed<'static> {
             track.title, track.url
         ))
         .colour(Colour::BLURPLE)
-        .field("Requested by", track.requested_by.display_name.clone(), true);
+        .field("Requested by", requested_by_mention(track), true);
 
     match &track.thumbnail_url {
         Some(url) => embed.thumbnail(url.clone(), None),
@@ -111,6 +142,63 @@ pub fn queued_embed(track: &ResolvedTrack, position: usize) -> CreateEmbed<'stat
         .description(format!("[{}]({})", track.title, track.url))
         .colour(Colour::BLURPLE)
         .field("Position", position.to_string(), true)
+}
+
+pub fn radio_embed(station: &RadioStation) -> CreateEmbed<'static> {
+    let embed = CreateEmbed::new()
+        .title("📻 Now Streaming")
+        .description(format!("[{}]({})", station.name, station.display_url()))
+        .colour(Colour::BLURPLE)
+        .field(
+            "Genre",
+            station.genre.clone().unwrap_or_else(|| "—".to_string()),
+            true,
+        )
+        .field("Status", "🔴 LIVE", true);
+
+    match &station.logo_url {
+        Some(url) => embed.thumbnail(url.clone(), None),
+        None => embed,
+    }
+}
+
+pub fn radio_list_embed(stations: &[RadioStation]) -> CreateEmbed<'static> {
+    if stations.is_empty() {
+        return CreateEmbed::new()
+            .title("📻 Radio Stations")
+            .description("No radio stations are configured on this bot.")
+            .colour(Colour::BLURPLE);
+    }
+
+    let mut by_genre: BTreeMap<&str, Vec<&RadioStation>> = BTreeMap::new();
+    for station in stations {
+        by_genre
+            .entry(station.genre.as_deref().unwrap_or("Other"))
+            .or_default()
+            .push(station);
+    }
+
+    let mut description = String::new();
+    for (genre, mut group) in by_genre {
+        group.sort_by(|a, b| a.name.cmp(&b.name));
+        let _ = writeln!(description, "**{genre}**");
+        for station in group {
+            let _ = writeln!(
+                description,
+                "· [{}]({}) — `{}`",
+                station.name,
+                station.display_url(),
+                station.id
+            );
+        }
+        description.push('\n');
+    }
+
+    CreateEmbed::new()
+        .title("📻 Radio Stations")
+        .description(description)
+        .colour(Colour::BLURPLE)
+        .footer(CreateEmbedFooter::new("Play one with /music radio play"))
 }
 
 #[must_use]
@@ -147,7 +235,7 @@ pub fn queue_embed(
                 i + 1,
                 track.title,
                 track.url,
-                track.requested_by.display_name
+                requested_by_mention(track)
             );
         }
     }

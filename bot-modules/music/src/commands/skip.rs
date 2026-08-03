@@ -53,7 +53,7 @@ pub(super) async fn run(
     let outcome = {
         let mut guard = player.lock().await;
         let now = guard.current.as_ref().ok_or(MusicError::NothingPlaying)?;
-        let is_requester = now.track.requested_by.user_id == user_id;
+        let is_requester = now.track.requested_by == user_id;
         let alone = listeners <= 1;
 
         let can_skip_now = force || privileged || is_requester || alone || {
@@ -62,6 +62,7 @@ pub(super) async fn run(
         };
 
         if can_skip_now {
+            guard.clear_radio();
             let old_handle = guard.current.as_ref().map(|now| now.handle.clone());
             let next = guard.advance_queue();
             Outcome::Skipped {

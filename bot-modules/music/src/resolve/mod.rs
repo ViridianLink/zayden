@@ -9,9 +9,11 @@ use url::Url;
 use crate::error::Result;
 use crate::track::ResolvedTrack;
 
+pub mod radio;
 pub mod spotify;
 pub mod youtube;
 
+pub use radio::{RadioResolver, next_retry_count, should_reconnect, station_track};
 pub use spotify::{
     CompositeResolver,
     SpotifyKind,

@@ -23,10 +23,8 @@ pub(super) async fn run(
     let player = ctx.music.get(ctx.guild_id).ok_or(MusicError::QueueEmpty)?;
     let mut guard = player.lock().await;
 
-    let is_own_track = guard
-        .queue
-        .get(pos)
-        .is_some_and(|track| track.requested_by.user_id == user_id);
+    let is_own_track =
+        guard.queue.get(pos).is_some_and(|track| track.requested_by == user_id);
     if !privileged && !is_own_track {
         return Err(MusicError::NotPrivileged);
     }

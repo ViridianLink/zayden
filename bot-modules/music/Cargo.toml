@@ -40,6 +40,7 @@ symphonia = { version = "0.5", default-features = false, features = [
     "mkv",
     "isomp4",
     "aac",
+    "mp3",
 ] }
 thiserror = { workspace = true }
 tokio = { workspace = true }

@@ -1,9 +1,7 @@
-mod cleanup;
 mod clear;
 mod control;
 mod ctx;
 mod disconnect;
-mod forward;
 mod join;
 mod r#loop;
 mod move_song;
@@ -13,11 +11,10 @@ mod play;
 mod playnow;
 mod playtop;
 mod queue;
+mod radio;
 mod remove;
-mod removedupes;
 mod replay;
 mod resume;
-mod rewind;
 mod seek;
 mod settings;
 mod shuffle;
@@ -110,35 +107,7 @@ impl Command {
             CreateCommandOption::new(
                 CommandOptionType::String,
                 "timestamp",
-                "Position to seek to, e.g. 1:23 or 83",
-            )
-            .required(true),
-        );
-
-        let forward = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "forward",
-            "Seek forward by a number of seconds",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::Integer,
-                "secs",
-                "Seconds to seek forward",
-            )
-            .required(true),
-        );
-
-        let rewind = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "rewind",
-            "Seek backward by a number of seconds",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::Integer,
-                "secs",
-                "Seconds to seek backward",
+                "Absolute (1:23, 83) or relative (+30, -1:30) position",
             )
             .required(true),
         );
@@ -221,12 +190,6 @@ impl Command {
             .required(true),
         );
 
-        let removedupes = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "removedupes",
-            "Remove duplicate tracks from the queue",
-        );
-
         let move_song = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "move_song",
@@ -252,7 +215,17 @@ impl Command {
         let clear = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "clear",
-            "Clear the queue, keeping the current track",
+            "Prune the queue, keeping the current track",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "mode",
+                "What to remove (defaults to the whole queue)",
+            )
+            .add_string_choice("Everything", "all")
+            .add_string_choice("Duplicates", "duplicates")
+            .add_string_choice("Requester left voice", "left"),
         );
 
         let shuffle = CreateCommandOption::new(
@@ -278,11 +251,37 @@ impl Command {
             .add_string_choice("Queue", "queue"),
         );
 
-        let cleanup = CreateCommandOption::new(
+        let radio = CreateCommandOption::new(
+            CommandOptionType::SubCommandGroup,
+            "radio",
+            "Play a curated internet radio station",
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::SubCommand,
+                "play",
+                "Start streaming a radio station",
+            )
+            .add_sub_option(
+                CreateCommandOption::new(
+                    CommandOptionType::String,
+                    "station",
+                    "The station to stream",
+                )
+                .required(true)
+                .set_autocomplete(true),
+            ),
+        )
+        .add_sub_option(CreateCommandOption::new(
             CommandOptionType::SubCommand,
-            "cleanup",
-            "Remove queued tracks whose requester has left voice",
-        );
+            "stop",
+            "Stop the radio and resume the queue",
+        ))
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "list",
+            "List the available radio stations",
+        ));
 
         let control = CreateCommandOption::new(
             CommandOptionType::SubCommand,
@@ -322,20 +321,17 @@ impl Command {
             .add_option(resume)
             .add_option(replay)
             .add_option(seek)
-            .add_option(forward)
-            .add_option(rewind)
             .add_option(volume)
             .add_option(skip)
             .add_option(skipto)
             .add_option(playnow)
             .add_option(playtop)
             .add_option(remove)
-            .add_option(removedupes)
             .add_option(move_song)
             .add_option(clear)
             .add_option(shuffle)
             .add_option(loop_cmd)
-            .add_option(cleanup)
+            .add_option(radio)
             .add_option(control)
             .add_option(settings)
     }
@@ -346,6 +342,13 @@ impl Command {
     ) -> Result<()> {
         let (name, sub_options) =
             parse_subcommand(options).map_err(MusicError::from)?;
+
+        // `radio` is a subcommand *group*, so its payload needs a second
+        // `parse_subcommand` rather than being flattened into an option map.
+        if name == "radio" {
+            return radio::run(ctx, sub_options).await;
+        }
+
         let options = zayden_core::parse_options(sub_options);
 
         match name {
@@ -358,20 +361,16 @@ impl Command {
             "resume" => resume::run(ctx).await,
             "replay" => replay::run(ctx).await,
             "seek" => seek::run(ctx, options).await,
-            "forward" => forward::run(ctx, options).await,
-            "rewind" => rewind::run(ctx, options).await,
             "volume" => volume::run(ctx, options).await,
             "skip" => skip::run(ctx, options).await,
             "skipto" => skipto::run(ctx, options).await,
             "playnow" => playnow::run(ctx, options).await,
             "playtop" => playtop::run(ctx, options).await,
             "remove" => remove::run(ctx, options).await,
-            "removedupes" => removedupes::run(ctx).await,
             "move_song" => move_song::run(ctx, options).await,
-            "clear" => clear::run(ctx).await,
+            "clear" => clear::run(ctx, options).await,
             "shuffle" => shuffle::run(ctx).await,
             "loop" => r#loop::run(ctx, options).await,
-            "cleanup" => cleanup::run(ctx).await,
             "control" => control::run(ctx).await,
             "settings" => settings::run(ctx, options).await,
             _ => Err(MusicError::Internal(format!("unexpected subcommand: {name}"))),

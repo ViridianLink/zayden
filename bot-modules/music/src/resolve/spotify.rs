@@ -19,6 +19,7 @@ use serenity::all::UserId;
 use songbird::input::Input;
 use url::Url;
 
+use super::radio::RadioResolver;
 use super::{
     LazyTail,
     PlaylistOrigin,
@@ -29,7 +30,7 @@ use super::{
     YouTubeResolver,
 };
 use crate::error::{MusicError, Result};
-use crate::track::{RequestedBy, ResolvedTrack, TrackSource};
+use crate::track::{ResolvedTrack, TrackSource};
 
 const PLAYLIST_CAP: usize = 500;
 
@@ -183,6 +184,7 @@ impl TrackResolver for SpotifyResolver {
 pub struct CompositeResolver {
     youtube: YouTubeResolver,
     spotify: Option<SpotifyResolver>,
+    radio: RadioResolver,
 }
 
 impl CompositeResolver {
@@ -190,8 +192,9 @@ impl CompositeResolver {
     pub const fn new(
         youtube: YouTubeResolver,
         spotify: Option<SpotifyResolver>,
+        radio: RadioResolver,
     ) -> Self {
-        Self { youtube, spotify }
+        Self { youtube, spotify, radio }
     }
 }
 
@@ -216,10 +219,11 @@ impl TrackResolver for CompositeResolver {
     async fn stream(&self, track: &ResolvedTrack) -> Result<Input> {
         match track.source {
             TrackSource::YouTube => self.youtube.stream(track).await,
+            TrackSource::Radio => self.radio.stream(track).await,
             TrackSource::Spotify => {
                 let query = SourceQuery::new(track.title.clone());
                 let resolution =
-                    self.youtube.resolve(&query, track.requested_by.user_id).await?;
+                    self.youtube.resolve(&query, track.requested_by).await?;
                 let yt_track = resolution
                     .head
                     .into_iter()
@@ -265,10 +269,7 @@ fn from_full_track(track: &FullTrack, requested_by: UserId) -> ResolvedTrack {
         duration: track.duration.to_std().ok().map(|d: StdDuration| d),
         is_live: false,
         thumbnail_url: track.album.images.first().map(|i| i.url.clone()),
-        requested_by: RequestedBy {
-            user_id: requested_by,
-            display_name: String::new(),
-        },
+        requested_by,
     }
 }
 
@@ -290,10 +291,7 @@ fn from_simplified_track(
             .as_ref()
             .and_then(|a| a.images.first())
             .map(|i| i.url.clone()),
-        requested_by: RequestedBy {
-            user_id: requested_by,
-            display_name: String::new(),
-        },
+        requested_by,
     }
 }
 

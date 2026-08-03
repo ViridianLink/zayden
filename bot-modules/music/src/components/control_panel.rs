@@ -89,6 +89,7 @@ impl ControlPanel {
         let (old_handle, next, generation) = {
             let mut guard = player.lock().await;
             guard.current.as_ref().ok_or(MusicError::NothingPlaying)?;
+            guard.clear_radio();
             let old_handle = guard.current.as_ref().map(|now| now.handle.clone());
             let next = guard.advance_queue();
             (old_handle, next, guard.generation)

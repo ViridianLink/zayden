@@ -5,7 +5,7 @@ use serenity::all::{EditInteractionResponse, ResolvedValue};
 use zayden_core::required_option;
 
 use super::MusicCtx;
-use super::play::{resolve_head, spawn_lazy_tail};
+use super::play::{resolve_head, spawn_lazy_tail, stop_radio_if_active};
 use crate::error::{MusicError, Result};
 use crate::{embeds, voice};
 
@@ -20,6 +20,7 @@ pub(super) async fn run(
 
     let query: &str = required_option(&mut options, "query")?;
     let (first, tail) = resolve_head(ctx, query).await?;
+    stop_radio_if_active(ctx).await?;
 
     let player = ctx.music.get(ctx.guild_id).ok_or(MusicError::NotConnected)?;
     let (old_handle, generation) = {

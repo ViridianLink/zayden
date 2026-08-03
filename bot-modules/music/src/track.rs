@@ -6,12 +6,7 @@ use serenity::all::UserId;
 pub enum TrackSource {
     YouTube,
     Spotify,
-}
-
-#[derive(Debug, Clone)]
-pub struct RequestedBy {
-    pub user_id: UserId,
-    pub display_name: String,
+    Radio,
 }
 
 #[derive(Debug, Clone)]
@@ -23,7 +18,7 @@ pub struct ResolvedTrack {
     pub duration: Option<Duration>,
     pub is_live: bool,
     pub thumbnail_url: Option<String>,
-    pub requested_by: RequestedBy,
+    pub requested_by: UserId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

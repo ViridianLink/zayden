@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use serenity::all::{CommandInteraction, GuildId, Http, UserId};
 use songbird::Songbird;
-use zayden_app::config::{MusicSettingsRow, SettingsStore};
+use zayden_app::config::{MusicSettingsRow, RadioStation, SettingsStore};
 use zayden_app::entitlement::EntitlementService;
 
 use crate::error::{MusicError, Result};
@@ -19,6 +19,7 @@ pub struct MusicServices {
     pub resolver: Arc<dyn TrackResolver>,
     pub settings: Arc<SettingsStore<MusicSettingsRow>>,
     pub entitlements: Arc<EntitlementService>,
+    pub radio_stations: Arc<[RadioStation]>,
 }
 
 pub struct MusicCtx<'a> {
@@ -33,6 +34,7 @@ pub struct MusicCtx<'a> {
     pub resolver: Arc<dyn TrackResolver>,
     pub settings: Arc<SettingsStore<MusicSettingsRow>>,
     pub entitlements: Arc<EntitlementService>,
+    pub radio_stations: Arc<[RadioStation]>,
 }
 
 impl<'a> MusicCtx<'a> {
@@ -54,6 +56,7 @@ impl<'a> MusicCtx<'a> {
             resolver: services.resolver,
             settings: services.settings,
             entitlements: services.entitlements,
+            radio_stations: services.radio_stations,
         })
     }
 

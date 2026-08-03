@@ -11,7 +11,7 @@ use zayden_app::entitlement::EntitlementService;
 use crate::error::{MusicError, Result};
 use crate::events::{InactivityCheck, TrackEndNotifier, TrackErrorNotifier};
 use crate::manager::MusicManager;
-use crate::player::{AnnounceConfig, NowPlaying};
+use crate::player::{AnnounceConfig, NowPlaying, volume_scalar};
 use crate::resolve::TrackResolver;
 use crate::track::ResolvedTrack;
 
@@ -72,6 +72,8 @@ pub async fn ensure_session(
 
     let mut guard = player.lock().await;
     guard.set_announce(request.announce);
+    guard.volume = request.default_volume;
+
     if !guard.periodic_registered {
         let mut call_guard = call.lock().await;
         call_guard.add_global_event(
@@ -115,10 +117,19 @@ pub async fn start_playback(
     let call = get_call(songbird, guild_id).ok_or(MusicError::NotConnected)?;
     let input = resolver.stream(&track).await?;
 
+    let volume = match music.get(guild_id) {
+        Some(player) => player.lock().await.volume,
+        None => 100,
+    };
+
     let handle = {
         let mut call_guard = call.lock().await;
         call_guard.play_input(input)
     };
+
+    handle
+        .set_volume(volume_scalar(volume))
+        .map_err(|e| MusicError::Songbird(e.to_string()))?;
 
     handle
         .add_event(Event::Track(TrackEvent::End), TrackEndNotifier {

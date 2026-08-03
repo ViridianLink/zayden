@@ -4,6 +4,7 @@ use std::sync::{Arc, OnceLock};
 
 use music::{
     CompositeResolver,
+    RadioResolver,
     SpotifyResolver,
     TrackResolver,
     YouTubeResolver,
@@ -75,7 +76,15 @@ async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolve
         },
     };
 
-    Ok(Arc::new(CompositeResolver::new(youtube, spotify)))
+    let stations = Arc::clone(&config.radio_stations);
+    if stations.is_empty() {
+        warn!("no radio stations configured; /music radio will be unavailable");
+    } else {
+        info!("loaded {} radio station(s)", stations.len());
+    }
+    let radio = RadioResolver::new(stations);
+
+    Ok(Arc::new(CompositeResolver::new(youtube, spotify, radio)))
 }
 
 #[tokio::main]

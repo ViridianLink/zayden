@@ -1,5 +1,5 @@
 use music::{AnnounceConfig, GuildPlayer, LoopMode, MusicSettingsRow};
-use serenity::all::GenericChannelId;
+use serenity::all::{GenericChannelId, UserId};
 use zayden_app::config::SettingsRow;
 
 fn track(id: &str) -> music::ResolvedTrack {
@@ -11,10 +11,7 @@ fn track(id: &str) -> music::ResolvedTrack {
         duration: None,
         is_live: false,
         thumbnail_url: None,
-        requested_by: music::RequestedBy {
-            user_id: serenity::all::UserId::new(1),
-            display_name: "tester".to_string(),
-        },
+        requested_by: UserId::new(1),
     }
 }
 

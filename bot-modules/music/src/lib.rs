@@ -1,3 +1,4 @@
+pub mod autocomplete;
 pub mod commands;
 pub mod components;
 pub mod embeds;
@@ -8,20 +9,32 @@ pub mod occupancy;
 pub mod permissions;
 pub mod player;
 pub mod queue;
+pub mod radio;
 pub mod resolve;
 pub mod track;
 pub mod voice;
 
 pub use commands::Command;
+pub use embeds::{SeekTarget, parse_seek, parse_timestamp};
 pub use error::{MusicError, Result};
 pub use events::{InactivityCheck, TrackEndNotifier};
 pub use manager::MusicManager;
 pub use occupancy::VoiceOccupancy;
-pub use player::{AnnounceConfig, GuildPlayer, NowPlaying};
-pub use queue::Queue;
+pub use player::{
+    AdvanceAction,
+    AnnounceConfig,
+    GuildPlayer,
+    NowPlaying,
+    advance_action,
+    records_history,
+    volume_scalar,
+};
+pub use queue::{ClearMode, Queue};
+pub use radio::RADIO_TIER;
 pub use resolve::{
     CompositeResolver,
     PlaylistOrigin,
+    RadioResolver,
     Resolution,
     SourceKind,
     SourceQuery,
@@ -30,9 +43,12 @@ pub use resolve::{
     TrackResolver,
     YouTubeResolver,
     has_playlist,
+    next_retry_count,
     parse_spotify_url,
     playlist_start_index,
     probe_yt_dlp,
+    should_reconnect,
+    station_track,
 };
-pub use track::{LoopMode, RequestedBy, ResolvedTrack, TrackSource};
-pub use zayden_app::config::MusicSettingsRow;
+pub use track::{LoopMode, ResolvedTrack, TrackSource};
+pub use zayden_app::config::{MusicSettingsRow, RadioStation};

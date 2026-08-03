@@ -5,7 +5,7 @@ use serenity::all::{EditInteractionResponse, ResolvedValue};
 use zayden_core::required_option;
 
 use super::MusicCtx;
-use super::play::{enqueue, resolve_head, spawn_lazy_tail};
+use super::play::{enqueue, resolve_head, spawn_lazy_tail, stop_radio_if_active};
 use crate::error::Result;
 
 pub(super) async fn run(
@@ -19,6 +19,7 @@ pub(super) async fn run(
 
     let query: &str = required_option(&mut options, "query")?;
     let (first, tail) = resolve_head(ctx, query).await?;
+    stop_radio_if_active(ctx).await?;
     let embed = enqueue(ctx, first, true).await?;
 
     ctx.interaction

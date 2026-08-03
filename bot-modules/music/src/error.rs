@@ -40,6 +40,10 @@ pub enum MusicError {
     VolumeOutOfRange,
     #[error("This feature requires a premium subscription.")]
     PremiumRequired,
+    #[error("There's no radio station called `{0}`.")]
+    UnknownStation(String),
+    #[error("No radio stations are configured on this bot.")]
+    NoStationsConfigured,
 
     #[error("failed to resolve track: {0}")]
     Resolve(String),
@@ -71,7 +75,9 @@ impl Respond for MusicError {
             | Self::SeekOnLiveStream
             | Self::InvalidTimestamp
             | Self::VolumeOutOfRange
-            | Self::PremiumRequired => Some(Cow::Owned(self.to_string())),
+            | Self::PremiumRequired
+            | Self::UnknownStation(_)
+            | Self::NoStationsConfigured => Some(Cow::Owned(self.to_string())),
             Self::Resolve(_)
             | Self::Songbird(_)
             | Self::Internal(_)

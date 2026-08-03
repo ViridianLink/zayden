@@ -50,6 +50,7 @@ impl ModuleCommand for Music {
                 resolver,
                 settings,
                 entitlements: Arc::clone(&cx.app.entitlements),
+                radio_stations: Arc::clone(&cx.app.radio_stations),
             },
         )?;
 

@@ -27,6 +27,7 @@ pub(super) async fn run(
 
     let query: &str = required_option(&mut options, "query")?;
     let (first, tail) = resolve_head(ctx, query).await?;
+    stop_radio_if_active(ctx).await?;
     let embed = enqueue(ctx, first, false).await?;
 
     ctx.interaction
@@ -63,6 +64,28 @@ pub(super) async fn resolve_head(
     let first = resolution.head.remove(0);
 
     Ok((first, resolution.tail.take()))
+}
+
+pub(super) async fn stop_radio_if_active(ctx: &MusicCtx<'_>) -> Result<()> {
+    let Some(player) = ctx.music.get(ctx.guild_id) else {
+        return Ok(());
+    };
+
+    let old_handle = {
+        let mut guard = player.lock().await;
+        if !guard.clear_radio() {
+            return Ok(());
+        }
+        let old_handle = guard.current.as_ref().map(|now| now.handle.clone());
+        guard.advance();
+        old_handle
+    };
+
+    if let Some(handle) = old_handle {
+        let _ = handle.stop();
+    }
+
+    Ok(())
 }
 
 pub(super) async fn enqueue(

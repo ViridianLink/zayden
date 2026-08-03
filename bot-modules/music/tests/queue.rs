@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use music::{MusicError, Queue, RequestedBy, ResolvedTrack, TrackSource};
+use music::{MusicError, Queue, ResolvedTrack, TrackSource};
 use serenity::all::UserId;
 
 fn track(source_id: &str, user_id: u64) -> ResolvedTrack {
@@ -12,10 +12,7 @@ fn track(source_id: &str, user_id: u64) -> ResolvedTrack {
         duration: None,
         is_live: false,
         thumbnail_url: None,
-        requested_by: RequestedBy {
-            user_id: UserId::new(user_id),
-            display_name: "tester".to_string(),
-        },
+        requested_by: UserId::new(user_id),
     }
 }
 
@@ -132,5 +129,5 @@ fn cleanup_removes_tracks_from_absent_requesters() {
 
     assert_eq!(removed, 1);
     assert_eq!(q.len(), 2);
-    assert!(q.iter().all(|t| t.requested_by.user_id == UserId::new(1)));
+    assert!(q.iter().all(|t| t.requested_by == UserId::new(1)));
 }

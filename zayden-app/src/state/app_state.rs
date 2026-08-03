@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
 
-use crate::config::{BotConfig, SettingsRegistry};
+use crate::config::{BotConfig, RadioStation, SettingsRegistry};
 use crate::entitlement::{EntitlementService, Tier};
 use crate::events::AppEvent;
 
@@ -51,6 +51,7 @@ pub struct AppState {
     pub upgrade_url: Option<String>,
 
     pub sku_tiers: HashMap<u64, Tier>,
+    pub radio_stations: Arc<[RadioStation]>,
 }
 
 impl AppState {
@@ -95,6 +96,7 @@ impl AppState {
             zayden_guild: config.zayden_guild,
             upgrade_url: config.upgrade_url.clone(),
             sku_tiers,
+            radio_stations: Arc::clone(&config.radio_stations),
         }
     }
 
