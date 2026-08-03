@@ -1,10 +1,9 @@
 use std::cmp::Ordering;
-use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::time::Duration;
 
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
-use zayden_app::config::RadioStation;
+use zayden_app::config::{Genre, RadioStation};
 
 use crate::player::NowPlaying;
 use crate::queue::Queue;
@@ -144,14 +143,15 @@ pub fn queued_embed(track: &ResolvedTrack, position: usize) -> CreateEmbed<'stat
         .field("Position", position.to_string(), true)
 }
 
-pub fn radio_embed(station: &RadioStation) -> CreateEmbed<'static> {
+pub fn radio_embed(genre: Genre, station: &RadioStation) -> CreateEmbed<'static> {
     let embed = CreateEmbed::new()
         .title("📻 Now Streaming")
-        .description(format!("[{}]({})", station.name, station.display_url()))
+        .description(format!("**{}**", genre.label()))
         .colour(Colour::BLURPLE)
+        // `display_url` keeps the raw stream URL out of the embed.
         .field(
-            "Genre",
-            station.genre.clone().unwrap_or_else(|| "—".to_string()),
+            "Station",
+            format!("[{}]({})", station.name, station.display_url()),
             true,
         )
         .field("Status", "🔴 LIVE", true);
@@ -160,45 +160,6 @@ pub fn radio_embed(station: &RadioStation) -> CreateEmbed<'static> {
         Some(url) => embed.thumbnail(url.clone(), None),
         None => embed,
     }
-}
-
-pub fn radio_list_embed(stations: &[RadioStation]) -> CreateEmbed<'static> {
-    if stations.is_empty() {
-        return CreateEmbed::new()
-            .title("📻 Radio Stations")
-            .description("No radio stations are configured on this bot.")
-            .colour(Colour::BLURPLE);
-    }
-
-    let mut by_genre: BTreeMap<&str, Vec<&RadioStation>> = BTreeMap::new();
-    for station in stations {
-        by_genre
-            .entry(station.genre.as_deref().unwrap_or("Other"))
-            .or_default()
-            .push(station);
-    }
-
-    let mut description = String::new();
-    for (genre, mut group) in by_genre {
-        group.sort_by(|a, b| a.name.cmp(&b.name));
-        let _ = writeln!(description, "**{genre}**");
-        for station in group {
-            let _ = writeln!(
-                description,
-                "· [{}]({}) — `{}`",
-                station.name,
-                station.display_url(),
-                station.id
-            );
-        }
-        description.push('\n');
-    }
-
-    CreateEmbed::new()
-        .title("📻 Radio Stations")
-        .description(description)
-        .colour(Colour::BLURPLE)
-        .footer(CreateEmbedFooter::new("Play one with /music radio play"))
 }
 
 #[must_use]

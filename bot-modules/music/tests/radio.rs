@@ -1,10 +1,13 @@
-//! Radio station config validation, track shaping, reconnect budget and the
-//! interaction between radio mode and the queue's loop handling.
+//! Radio config validation, the genre catalogue, track shaping, the reconnect and
+//! failover budget, and the interaction between radio mode and the queue's loop
+//! handling.
 //!
 //! The behaviours pinned here are the ones that are invisible until they break
 //! in production:
 //!
 //! * A malformed `config.toml` entry must be dropped, not panic the bot at boot.
+//! * The genre catalogue is the Discord choice list, so it has hard shape
+//!   constraints.
 //! * A station must never re-enter the queue or the history. It is an endless live
 //!   stream, so `LoopMode::Queue` would otherwise cycle it forever and the real
 //!   queue would never play again.
@@ -12,11 +15,15 @@
 //!   `TrackEvent::End` is a hot loop against someone else's server.
 //! * The raw `stream_url` must never reach a user-visible field.
 
+use std::collections::HashSet;
+use std::sync::Arc;
 use std::time::Duration;
 
 use music::{
     AdvanceAction,
+    Genre,
     LoopMode,
+    RadioSession,
     RadioStation,
     TrackSource,
     advance_action,
@@ -26,25 +33,33 @@ use music::{
     station_track,
 };
 use serenity::all::UserId;
+use zayden_app::config::radio;
 
-fn station(id: &str, name: &str, genre: Option<&str>) -> RadioStation {
+fn station(id: &str, name: &str, genre: &str) -> RadioStation {
     RadioStation {
         id: id.to_string(),
         name: name.to_string(),
         stream_url: format!("https://example.test/{id}.mp3"),
-        genre: genre.map(ToOwned::to_owned),
+        genre: genre.to_string(),
         homepage: Some(format!("https://example.test/{id}")),
         logo_url: None,
     }
+}
+
+fn session(genre: Genre, ids: &[&str]) -> Option<RadioSession> {
+    let pool: Vec<Arc<RadioStation>> =
+        ids.iter().map(|id| Arc::new(station(id, id, genre.value()))).collect();
+
+    RadioSession::new(genre, pool)
 }
 
 // ── config validation ────────────────────────────────────────────────────────
 
 #[test]
 fn validate_all_keeps_well_formed_stations() {
-    let stations = zayden_app::config::radio::validate_all(vec![
-        station("lofi", "Lofi Hip Hop", Some("Chill")),
-        station("jazz", "Jazz FM", Some("Jazz")),
+    let stations = radio::validate_all(vec![
+        station("lofi", "Lofi Hip Hop", "lofi"),
+        station("jazz", "Jazz FM", "jazz"),
     ]);
 
     assert_eq!(stations.len(), 2);
@@ -52,15 +67,15 @@ fn validate_all_keeps_well_formed_stations() {
 
 #[test]
 fn validate_all_drops_entries_with_empty_required_fields() {
-    let mut blank_id = station("x", "Has No Id", None);
+    let mut blank_id = station("x", "Has No Id", "pop");
     blank_id.id = String::new();
-    let mut blank_name = station("y", "", None);
+    let mut blank_name = station("y", "", "pop");
     blank_name.name = "   ".to_string();
 
-    let stations = zayden_app::config::radio::validate_all(vec![
+    let stations = radio::validate_all(vec![
         blank_id,
         blank_name,
-        station("ok", "Fine", None),
+        station("ok", "Fine", "pop"),
     ]);
 
     assert_eq!(stations.len(), 1);
@@ -71,15 +86,26 @@ fn validate_all_drops_entries_with_empty_required_fields() {
 fn validate_all_drops_non_http_stream_urls() {
     // A `file://` or bare-host entry would make songbird fail at play time with
     // an opaque error; reject it at boot instead.
-    let mut local = station("local", "Local File", None);
+    let mut local = station("local", "Local File", "pop");
     local.stream_url = "file:///etc/passwd".to_string();
-    let mut bare = station("bare", "No Scheme", None);
+    let mut bare = station("bare", "No Scheme", "pop");
     bare.stream_url = "example.test/stream".to_string();
 
-    let stations = zayden_app::config::radio::validate_all(vec![
-        local,
-        bare,
-        station("ok", "Fine", None),
+    let stations =
+        radio::validate_all(vec![local, bare, station("ok", "Fine", "pop")]);
+
+    assert_eq!(stations.len(), 1);
+    assert_eq!(stations.first().map(|s| s.id.as_str()), Some("ok"));
+}
+
+#[test]
+fn validate_all_drops_unrecognised_genre_tags() {
+    // A typo'd tag would silently make the station unreachable — no choice in the
+    // picker maps to it — so drop it loudly at boot instead.
+    let stations = radio::validate_all(vec![
+        station("typo", "Typo'd Tag", "poop"),
+        station("empty", "No Tag", ""),
+        station("ok", "Fine", "pop"),
     ]);
 
     assert_eq!(stations.len(), 1);
@@ -88,15 +114,13 @@ fn validate_all_drops_non_http_stream_urls() {
 
 #[test]
 fn validate_all_drops_duplicate_ids_keeping_the_first() {
-    // `id` is the autocomplete value and the track's `source_id`, so a duplicate
-    // would make station lookup ambiguous at stream time.
-    let mut second = station("lofi", "Impostor", None);
+    // `id` is the track's `source_id`, so a duplicate would make station lookup
+    // ambiguous at stream time.
+    let mut second = station("lofi", "Impostor", "lofi");
     second.stream_url = "https://example.test/other.mp3".to_string();
 
-    let stations = zayden_app::config::radio::validate_all(vec![
-        station("lofi", "Lofi Hip Hop", Some("Chill")),
-        second,
-    ]);
+    let stations =
+        radio::validate_all(vec![station("lofi", "Lofi Hip Hop", "lofi"), second]);
 
     assert_eq!(stations.len(), 1);
     assert_eq!(stations.first().map(|s| s.name.as_str()), Some("Lofi Hip Hop"));
@@ -104,17 +128,143 @@ fn validate_all_drops_duplicate_ids_keeping_the_first() {
 
 #[test]
 fn a_station_with_no_homepage_still_has_a_display_url() {
-    let mut no_homepage = station("lofi", "Lofi", None);
+    let mut no_homepage = station("lofi", "Lofi", "lofi");
     no_homepage.homepage = None;
 
     assert_eq!(no_homepage.display_url(), no_homepage.stream_url);
+}
+
+// ── the genre catalogue ──────────────────────────────────────────────────────
+
+#[test]
+fn the_catalogue_fits_discords_choice_cap() {
+    // `Genre::ALL` is rendered verbatim as the choices on `/music radio play`, and
+    // Discord rejects a command option with more than 25 of them at `set_commands`
+    // time — in every guild, at runtime, not at compile time.
+    assert!(
+        Genre::ALL.len() <= 25,
+        "the catalogue has {} entries; Discord's cap is 25",
+        Genre::ALL.len(),
+    );
+}
+
+#[test]
+fn every_genre_round_trips_through_its_value_and_its_label() {
+    // Discord sends the value; `config.toml` is hand-written and may use either.
+    for genre in Genre::ALL {
+        assert_eq!(Genre::from_value(genre.value()), Some(genre));
+        assert_eq!(Genre::from_value(genre.label()), Some(genre));
+        assert_eq!(Genre::from_value(&genre.value().to_uppercase()), Some(genre));
+        assert_eq!(
+            Genre::from_value(&format!("  {}  ", genre.value())),
+            Some(genre)
+        );
+    }
+
+    assert_eq!(Genre::from_value("not-a-genre"), None);
+    assert_eq!(Genre::from_value(""), None);
+}
+
+#[test]
+fn genre_values_are_unique_stable_identifiers() {
+    // Values are the `config.toml` tags and the Discord choice values, so a
+    // collision would make two catalogue entries indistinguishable.
+    let values: HashSet<&str> = Genre::ALL.iter().map(|g| g.value()).collect();
+    assert_eq!(values.len(), Genre::ALL.len(), "duplicate genre value");
+
+    let labels: HashSet<&str> = Genre::ALL.iter().map(|g| g.label()).collect();
+    assert_eq!(labels.len(), Genre::ALL.len(), "duplicate genre label");
+
+    for genre in Genre::ALL {
+        let value = genre.value();
+        assert!(!value.is_empty(), "{value:?} is empty");
+        assert!(
+            value
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'),
+            "{value:?} must be lowercase kebab-case to stay stable in config.toml",
+        );
+    }
+}
+
+// ── genre pools ──────────────────────────────────────────────────────────────
+
+#[test]
+fn a_pool_holds_every_station_tagged_with_that_genre() {
+    let stations = radio::validate_all(vec![
+        station("a", "A", "rock"),
+        station("b", "B", "pop"),
+        station("c", "C", "Rock"),
+    ]);
+
+    let rock = radio::pool(&stations, Genre::Rock);
+    assert_eq!(rock.len(), 2, "the tag is matched case-insensitively");
+    assert_eq!(radio::pool(&stations, Genre::Pop).len(), 1);
+    assert!(radio::pool(&stations, Genre::Jazz).is_empty());
+}
+
+#[test]
+fn unbacked_reports_exactly_the_genres_with_no_stations() {
+    let stations = radio::validate_all(vec![
+        station("a", "A", "rock"),
+        station("b", "B", "pop"),
+    ]);
+
+    let unbacked: HashSet<Genre> = radio::unbacked(&stations).into_iter().collect();
+
+    assert!(!unbacked.contains(&Genre::Rock));
+    assert!(!unbacked.contains(&Genre::Pop));
+    assert!(unbacked.contains(&Genre::Jazz));
+    assert_eq!(unbacked.len(), Genre::ALL.len() - 2);
+
+    assert_eq!(radio::unbacked(&[]).len(), Genre::ALL.len());
+}
+
+// ── failover ─────────────────────────────────────────────────────────────────
+
+#[test]
+fn a_session_needs_at_least_one_station() {
+    assert!(RadioSession::new(Genre::Pop, Vec::new()).is_none());
+}
+
+#[test]
+fn failover_walks_the_whole_pool_without_repeating() {
+    // The user picked a genre, not a station, so one dead stream must not end radio
+    // mode while other stations for that genre are still untried.
+    let Some(mut session) = session(Genre::Rock, &["a", "b", "c"]) else {
+        panic!("a non-empty pool must yield a session");
+    };
+
+    let mut seen = vec![session.station.id.clone()];
+    while let Some(station) = session.failover() {
+        assert_eq!(
+            station.id, session.station.id,
+            "the session must track the swap"
+        );
+        seen.push(station.id.clone());
+        assert!(seen.len() <= 3, "failover handed out a station twice");
+    }
+
+    seen.sort();
+    assert_eq!(seen, ["a", "b", "c"]);
+}
+
+#[test]
+fn failover_gives_up_once_the_pool_is_exhausted() {
+    // `None` is what makes the end-of-track handler leave radio mode and resume the
+    // queue; without it a fully-dead genre would spin.
+    let Some(mut single) = session(Genre::Pop, &["only"]) else {
+        panic!("a non-empty pool must yield a session");
+    };
+    assert!(single.failover().is_none());
+    assert!(single.failover().is_none(), "exhaustion must be sticky");
 }
 
 // ── track shaping ────────────────────────────────────────────────────────────
 
 #[test]
 fn station_track_is_a_live_radio_track_with_no_duration() {
-    let station = station("lofi", "Lofi Hip Hop", Some("Chill"));
+    let station = station("lofi", "Lofi Hip Hop", "lofi");
     let track = station_track(&station, UserId::new(7));
 
     assert_eq!(track.source, TrackSource::Radio);
@@ -129,7 +279,7 @@ fn station_track_is_a_live_radio_track_with_no_duration() {
 
 #[test]
 fn station_track_never_exposes_the_raw_stream_url() {
-    let station = station("lofi", "Lofi Hip Hop", None);
+    let station = station("lofi", "Lofi Hip Hop", "lofi");
     let track = station_track(&station, UserId::new(1));
 
     assert_eq!(track.url, "https://example.test/lofi");
@@ -200,49 +350,4 @@ fn the_retry_counter_cannot_overflow() {
     // saturate rather than wrap back into the "keep trying" range.
     assert_eq!(next_retry_count(Duration::from_secs(0), u8::MAX), u8::MAX);
     assert!(!should_reconnect(Duration::from_secs(0), u8::MAX));
-}
-
-// ── autocomplete filtering ───────────────────────────────────────────────────
-
-#[test]
-fn an_empty_query_lists_stations() {
-    let stations = vec![
-        station("lofi", "Lofi Hip Hop", Some("Chill")),
-        station("a", "B", None),
-    ];
-
-    assert_eq!(music::autocomplete::matching_stations(&stations, "").len(), 2);
-}
-
-#[test]
-fn filtering_is_case_insensitive_and_matches_name_genre_and_id() {
-    let stations = vec![
-        station("lofi", "Lofi Hip Hop", Some("Chill")),
-        station("defcon", "DEF CON Radio", Some("Electronic")),
-    ];
-
-    let by_name = music::autocomplete::matching_stations(&stations, "HIP");
-    assert_eq!(by_name.len(), 1);
-    assert_eq!(by_name.first().map(|s| s.id.as_str()), Some("lofi"));
-
-    let by_genre = music::autocomplete::matching_stations(&stations, "electronic");
-    assert_eq!(by_genre.first().map(|s| s.id.as_str()), Some("defcon"));
-
-    let by_id = music::autocomplete::matching_stations(&stations, "DEFC");
-    assert_eq!(by_id.first().map(|s| s.id.as_str()), Some("defcon"));
-}
-
-#[test]
-fn autocomplete_never_exceeds_discords_choice_limit() {
-    // Discord rejects an autocomplete response with more than 25 choices, and
-    // the station list is operator-supplied, so it can grow past that freely.
-    let stations: Vec<RadioStation> = (0..60)
-        .map(|i| station(&format!("s{i}"), &format!("Station {i}"), None))
-        .collect();
-
-    assert_eq!(music::autocomplete::matching_stations(&stations, "").len(), 25);
-    assert_eq!(
-        music::autocomplete::matching_stations(&stations, "Station").len(),
-        25
-    );
 }

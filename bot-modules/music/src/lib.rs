@@ -1,4 +1,3 @@
-pub mod autocomplete;
 pub mod commands;
 pub mod components;
 pub mod embeds;
@@ -25,6 +24,7 @@ pub use player::{
     AnnounceConfig,
     GuildPlayer,
     NowPlaying,
+    RadioSession,
     advance_action,
     records_history,
     volume_scalar,
@@ -51,4 +51,4 @@ pub use resolve::{
     station_track,
 };
 pub use track::{LoopMode, ResolvedTrack, TrackSource};
-pub use zayden_app::config::{MusicSettingsRow, RadioStation};
+pub use zayden_app::config::{Genre, MusicSettingsRow, RadioStation};

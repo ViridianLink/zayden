@@ -30,6 +30,7 @@ use serenity::all::{
     CreateCommandOption,
     ResolvedOption,
 };
+use zayden_app::config::Genre;
 use zayden_core::parse_subcommand;
 
 use crate::error::{MusicError, Result};
@@ -252,36 +253,33 @@ impl Command {
             .add_string_choice("Queue", "queue"),
         );
 
+        let genre = Genre::ALL.into_iter().fold(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "genre",
+                "Genre or mood to stream",
+            )
+            .required(true),
+            |option, genre| option.add_string_choice(genre.label(), genre.value()),
+        );
+
         let radio = CreateCommandOption::new(
             CommandOptionType::SubCommandGroup,
             "radio",
-            "Play a curated internet radio station",
+            "Play a curated genre or mood radio stream",
         )
         .add_sub_option(
             CreateCommandOption::new(
                 CommandOptionType::SubCommand,
                 "play",
-                "Start streaming a radio station",
+                "Start streaming a genre or mood",
             )
-            .add_sub_option(
-                CreateCommandOption::new(
-                    CommandOptionType::String,
-                    "station",
-                    "The station to stream",
-                )
-                .required(true)
-                .set_autocomplete(true),
-            ),
+            .add_sub_option(genre),
         )
         .add_sub_option(CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "stop",
             "Stop the radio and resume the queue",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "list",
-            "List the available radio stations",
         ));
 
         let control = CreateCommandOption::new(

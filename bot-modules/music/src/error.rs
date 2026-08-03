@@ -42,6 +42,10 @@ pub enum MusicError {
     PremiumRequired,
     #[error("There's no radio station called `{0}`.")]
     UnknownStation(String),
+    #[error("There's no radio genre called `{0}`.")]
+    UnknownGenre(String),
+    #[error("No radio stations are set up for **{0}** yet.")]
+    NoStationsForGenre(String),
     #[error("No radio stations are configured on this bot.")]
     NoStationsConfigured,
 
@@ -77,6 +81,8 @@ impl Respond for MusicError {
             | Self::VolumeOutOfRange
             | Self::PremiumRequired
             | Self::UnknownStation(_)
+            | Self::UnknownGenre(_)
+            | Self::NoStationsForGenre(_)
             | Self::NoStationsConfigured => Some(Cow::Owned(self.to_string())),
             Self::Resolve(_)
             | Self::Songbird(_)

@@ -4,6 +4,7 @@ use std::sync::{Arc, OnceLock};
 
 use music::{
     CompositeResolver,
+    Genre,
     RadioResolver,
     SpotifyResolver,
     TrackResolver,
@@ -81,6 +82,15 @@ async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolve
         warn!("no radio stations configured; /music radio will be unavailable");
     } else {
         info!("loaded {} radio station(s)", stations.len());
+
+        let unbacked = zayden_app::config::radio::unbacked(&stations);
+        if !unbacked.is_empty() {
+            let names: Vec<&str> = unbacked.into_iter().map(Genre::label).collect();
+            warn!(
+                "no radio stations configured for: {}; those choices will error",
+                names.join(", ")
+            );
+        }
     }
     let radio = RadioResolver::new(stations);
 

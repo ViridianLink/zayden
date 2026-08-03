@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use serenity::all::{ChannelId, CreateMessage, GuildId, UserId};
 use songbird::tracks::PlayMode;
 use songbird::{Event, EventContext, EventHandler, Songbird};
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 use zayden_app::entitlement::{EntitlementScope, EntitlementService, Tier};
 
 use crate::manager::MusicManager;
@@ -54,22 +54,40 @@ impl EventHandler for TrackEndNotifier {
                 return None;
             }
 
-            let reconnect = match (guard.radio.clone(), guard.current.as_ref()) {
-                (Some(station), Some(now)) => {
-                    let played = now.started_at.elapsed();
-                    let retries = guard.radio_retries;
+            let requested_by =
+                guard.current.as_ref().map(|now| now.track.requested_by);
+            let played = guard.current.as_ref().map(|now| now.started_at.elapsed());
+            let retries = guard.radio_retries;
 
-                    should_reconnect(played, retries).then(|| {
-                        let track = station_track(&station, now.track.requested_by);
-                        (station, track, next_retry_count(played, retries))
-                    })
+            let next_station = match (played, requested_by, guard.radio.as_mut()) {
+                (Some(played), Some(requested_by), Some(session)) => {
+                    if should_reconnect(played, retries) {
+                        Some((
+                            Arc::clone(&session.station),
+                            requested_by,
+                            next_retry_count(played, retries),
+                        ))
+                    } else {
+                        let genre = session.genre;
+
+                        session.failover().map(|station| {
+                            info!(
+                                guild_id = %self.guild_id,
+                                station = %station.id,
+                                genre = %genre.value(),
+                                "radio station kept dropping; failing over"
+                            );
+                            (station, requested_by, 0)
+                        })
+                    }
                 },
                 _ => None,
             };
 
-            match reconnect {
-                Some((station, track, retries)) => {
+            match next_station {
+                Some((station, requested_by, retries)) => {
                     guard.radio_retries = retries;
+                    let track = station_track(&station, requested_by);
                     guard.advance();
                     let generation = guard.generation;
                     drop(guard);
@@ -93,11 +111,11 @@ impl EventHandler for TrackEndNotifier {
                     return None;
                 },
                 None => {
-                    if let Some(station) = guard.radio.as_ref() {
+                    if let Some(session) = guard.radio.as_ref() {
                         warn!(
                             guild_id = %self.guild_id,
-                            station = %station.id,
-                            "radio station kept dropping; leaving radio mode"
+                            genre = %session.genre.value(),
+                            "every station for this genre kept dropping; leaving radio mode"
                         );
                         guard.clear_radio();
                     }

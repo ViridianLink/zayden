@@ -6,6 +6,7 @@
 //! guild. `/music` sat at exactly 25 before `radio` was added, which is why
 //! `forward`/`rewind` and `removedupes`/`cleanup` were collapsed.
 
+use music::Genre;
 use serde_json::Value;
 
 /// Total by construction: the workspace lints deny `expect`/indexing outside
@@ -58,8 +59,31 @@ fn music_stays_within_discords_option_cap() {
     );
 }
 
+/// The options of a subcommand nested inside a subcommand *group*, e.g. the `genre`
+/// option of `/music radio play`. `option_names` only descends one level.
+fn nested_options(group: &str, subcommand: &str) -> Vec<Value> {
+    let command =
+        serde_json::to_value(music::Command::register()).unwrap_or(Value::Null);
+
+    command
+        .get("options")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .find(|opt| opt.get("name").and_then(Value::as_str) == Some(group))
+        .and_then(|opt| opt.get("options"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .find(|opt| opt.get("name").and_then(Value::as_str) == Some(subcommand))
+        .and_then(|opt| opt.get("options"))
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default()
+}
+
 #[test]
-fn radio_is_registered_as_a_group_with_its_three_subcommands() {
+fn radio_is_registered_as_a_group_with_its_two_subcommands() {
     assert!(
         subcommand_names().iter().any(|n| n == "radio"),
         "the radio group disappeared from /music",
@@ -67,7 +91,49 @@ fn radio_is_registered_as_a_group_with_its_three_subcommands() {
 
     let mut sub = option_names("radio");
     sub.sort();
-    assert_eq!(sub, ["list", "play", "stop"]);
+    assert_eq!(sub, ["play", "stop"]);
+}
+
+#[test]
+fn radio_play_offers_the_genre_catalogue_as_static_choices() {
+    let options = nested_options("radio", "play");
+
+    assert_eq!(options.len(), 1, "`radio play` takes exactly one option");
+
+    let Some(genre) = options.first() else {
+        panic!("failed to read the genre option");
+    };
+
+    assert_eq!(genre.get("name").and_then(Value::as_str), Some("genre"));
+    assert_eq!(genre.get("required").and_then(Value::as_bool), Some(true));
+    // The catalogue is fixed, so autocomplete would be dead weight — and Discord
+    // rejects an option that sets both `choices` and `autocomplete`.
+    assert_ne!(genre.get("autocomplete").and_then(Value::as_bool), Some(true));
+
+    let choices: Vec<(&str, &str)> = genre
+        .get("choices")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|choice| {
+            Some((
+                choice.get("name").and_then(Value::as_str)?,
+                choice.get("value").and_then(Value::as_str)?,
+            ))
+        })
+        .collect();
+
+    let expected: Vec<(&str, &str)> =
+        Genre::ALL.iter().map(|g| (g.label(), g.value())).collect();
+
+    // Discord caps a string option at 25 choices and rejects the whole command past
+    // that, in every guild, at registration time.
+    assert!(
+        choices.len() <= 25,
+        "`radio play` has {} choices; Discord's cap is 25",
+        choices.len(),
+    );
+    assert_eq!(choices, expected, "the choices must mirror `Genre::ALL` in order");
 }
 
 #[test]

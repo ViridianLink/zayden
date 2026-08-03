@@ -2,9 +2,10 @@ use std::collections::{HashSet, VecDeque};
 use std::sync::Arc;
 use std::time::Instant;
 
+use rand::seq::IndexedRandom;
 use serenity::all::{GenericChannelId, UserId};
 use songbird::tracks::TrackHandle;
-use zayden_app::config::{MusicSettingsRow, RadioStation};
+use zayden_app::config::{Genre, MusicSettingsRow, RadioStation};
 use zayden_core::as_u64;
 
 use crate::queue::Queue;
@@ -44,6 +45,37 @@ impl From<&MusicSettingsRow> for AnnounceConfig {
     }
 }
 
+pub struct RadioSession {
+    pub genre: Genre,
+    pub station: Arc<RadioStation>,
+    pool: Vec<Arc<RadioStation>>,
+    exhausted: HashSet<String>,
+}
+
+impl RadioSession {
+    #[must_use]
+    pub fn new(genre: Genre, pool: Vec<Arc<RadioStation>>) -> Option<Self> {
+        let station = Arc::clone(pool.choose(&mut rand::rng())?);
+
+        Some(Self { genre, station, pool, exhausted: HashSet::new() })
+    }
+
+    pub fn failover(&mut self) -> Option<Arc<RadioStation>> {
+        self.exhausted.insert(self.station.id.clone());
+
+        let candidates: Vec<&Arc<RadioStation>> = self
+            .pool
+            .iter()
+            .filter(|station| !self.exhausted.contains(&station.id))
+            .collect();
+
+        let next = Arc::clone(candidates.choose(&mut rand::rng())?);
+        self.station = Arc::clone(&next);
+
+        Some(next)
+    }
+}
+
 pub struct GuildPlayer {
     pub queue: Queue,
     pub current: Option<NowPlaying>,
@@ -58,7 +90,7 @@ pub struct GuildPlayer {
     pub starting: bool,
     pub announce: AnnounceConfig,
     pub silenced: bool,
-    pub radio: Option<Arc<RadioStation>>,
+    pub radio: Option<RadioSession>,
     pub radio_retries: u8,
 }
 
@@ -84,8 +116,8 @@ impl GuildPlayer {
         }
     }
 
-    pub fn set_radio(&mut self, station: Arc<RadioStation>) {
-        self.radio = Some(station);
+    pub fn set_radio(&mut self, session: RadioSession) {
+        self.radio = Some(session);
         self.radio_retries = 0;
     }
 

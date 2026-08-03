@@ -2,12 +2,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use serenity::all::{EditInteractionResponse, ResolvedOption, ResolvedValue};
-use zayden_app::config::radio;
+use zayden_app::config::{Genre, RadioStation, radio};
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_core::{parse_options, parse_subcommand, required_option};
 
 use super::MusicCtx;
 use crate::error::{MusicError, Result};
+use crate::player::RadioSession;
 use crate::radio::RADIO_TIER;
 use crate::resolve::station_track;
 use crate::{embeds, voice};
@@ -22,7 +23,6 @@ pub(super) async fn run(
     match name {
         "play" => play(ctx, options).await,
         "stop" => stop(ctx).await,
-        "list" => list(ctx).await,
         other => Err(MusicError::Internal(format!(
             "unexpected radio subcommand: {other}"
         ))),
@@ -61,10 +61,18 @@ async fn play(
     let settings = ctx.settings().await?;
     ctx.require_privileged(&settings)?;
 
-    let id: &str = required_option(&mut options, "station")?;
-    let station = radio::find(&ctx.radio_stations, id)
-        .ok_or_else(|| MusicError::UnknownStation(id.to_string()))?;
-    let station = Arc::new(station.clone());
+    let raw: &str = required_option(&mut options, "genre")?;
+    let genre = Genre::from_value(raw)
+        .ok_or_else(|| MusicError::UnknownGenre(raw.to_string()))?;
+
+    let pool: Vec<Arc<RadioStation>> = radio::pool(&ctx.radio_stations, genre)
+        .into_iter()
+        .map(|station| Arc::new(station.clone()))
+        .collect();
+
+    let session = RadioSession::new(genre, pool)
+        .ok_or_else(|| MusicError::NoStationsForGenre(genre.label().to_string()))?;
+    let station = Arc::clone(&session.station);
 
     let request = ctx.session_request(&settings);
     voice::ensure_session(&ctx.songbird, &ctx.music, request).await?;
@@ -76,7 +84,7 @@ async fn play(
         let mut guard = player.lock().await;
         let old_handle = guard.current.as_ref().map(|now| now.handle.clone());
         guard.advance();
-        guard.set_radio(Arc::clone(&station));
+        guard.set_radio(session);
         (old_handle, guard.generation)
     };
 
@@ -92,7 +100,8 @@ async fn play(
     ctx.interaction
         .edit_response(
             ctx.http,
-            EditInteractionResponse::new().embed(embeds::radio_embed(&station)),
+            EditInteractionResponse::new()
+                .embed(embeds::radio_embed(genre, &station)),
         )
         .await?;
 
@@ -139,20 +148,6 @@ async fn stop(ctx: &MusicCtx<'_>) -> Result<()> {
 
     ctx.interaction
         .edit_response(ctx.http, EditInteractionResponse::new().content(message))
-        .await?;
-
-    Ok(())
-}
-
-async fn list(ctx: &MusicCtx<'_>) -> Result<()> {
-    ctx.interaction.defer_ephemeral(ctx.http).await?;
-
-    ctx.interaction
-        .edit_response(
-            ctx.http,
-            EditInteractionResponse::new()
-                .embed(embeds::radio_list_embed(&ctx.radio_stations)),
-        )
         .await?;
 
     Ok(())
