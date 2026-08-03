@@ -14,8 +14,10 @@ pub struct QueuePager;
 
 impl QueuePager {
     pub fn buttons(page: usize, total_pages: usize) -> CreateActionRow<'static> {
+        let page = page.min(total_pages.saturating_sub(1));
+
         let prev_page = page.saturating_sub(1);
-        let next_page = (page + 1).min(total_pages.saturating_sub(1));
+        let next_page = page + 1;
 
         CreateActionRow::buttons(vec![
             CreateButton::new(format!("{QUEUE_PAGER_PREFIX}{prev_page}"))
