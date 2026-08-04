@@ -9,10 +9,12 @@ use url::Url;
 use crate::error::Result;
 use crate::track::ResolvedTrack;
 
+pub mod http;
 pub mod radio;
 pub mod spotify;
 pub mod youtube;
 
+pub use http::{STREAM_READ_TIMEOUT, stream_client};
 pub use radio::{RadioResolver, next_retry_count, should_reconnect, station_track};
 pub use spotify::{
     CompositeResolver,
@@ -21,10 +23,13 @@ pub use spotify::{
     parse_spotify_url,
 };
 pub use youtube::{
+    YT_DLP_PROBE_TIMEOUT,
+    YT_DLP_TIMEOUT,
     YouTubeResolver,
     has_playlist,
     playlist_start_index,
     probe_yt_dlp,
+    run_with_timeout,
 };
 
 #[async_trait]

@@ -13,7 +13,7 @@ this module turned out to be a real defect.)_
 ## Findings
 
 ### 1. Confirm outbound request timeout  ·  #3  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — df39b21d`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Confirmed, then fixed (2026-08-04).** The finding asked us to *confirm* the
   injected client had a timeout. It did not. `openai.rs:44` built its own
   `reqwest::ClientBuilder::new().default_headers(headers).build()?` — headers

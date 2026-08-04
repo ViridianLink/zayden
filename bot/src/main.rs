@@ -92,7 +92,7 @@ async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolve
             );
         }
     }
-    let radio = RadioResolver::new(stations);
+    let radio = RadioResolver::new(stations).map_err(BotError::from)?;
 
     Ok(Arc::new(CompositeResolver::new(youtube, spotify, radio)))
 }

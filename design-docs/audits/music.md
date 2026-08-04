@@ -19,6 +19,67 @@ youtube). No CC-1 (in-memory manager, not DB-generic). Only minor lint debt.
   [CC-3](_cross-cutting.md#cc-3); low priority.
 
 ### 2. Resolver network calls — confirm timeouts  ·  #3  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Confirmed, then fixed (2026-08-04).** Same shape as [ai #1](ai.md), and the
+  same outcome: the confirmation failed. Two independent hang surfaces, neither
+  budgeted.
+  1. **Streaming client.** `youtube.rs:32` and `radio.rs:22` each built
+     `songbird_reqwest::Client::new()` — reqwest's default, **no** timeout of any
+     kind. Both feed songbird's streaming path (`YoutubeDl::new`,
+     `HttpRequest::new`), so a station or CDN that accepts the connection and
+     then goes quiet leaves the stream future pending forever: the track never
+     starts, never errors, and the queue never advances.
+  2. **`yt-dlp` child.** The finding's cited surface had moved — resolution is
+     no longer outbound HTTP from this crate but a `yt-dlp` subprocess
+     (`youtube.rs:164`), awaited on a bare `Command::output()` with no budget. A
+     wedged child (throttled, stuck JS runtime, prompting) hangs the resolve
+     future for as long as it lives.
+- **Fix — the budget is per-read, not per-request.** The obvious move, chaining
+  the `ClientBuilderExt::with_timeouts()` that `ai` #1 landed, is **wrong here**
+  and is now guarded by a test: its 30 s cap is a *total request* budget, and
+  songbird streams the whole track body through this client, so it would cut off
+  every track longer than 30 s. New `src/resolve/http.rs` owns the audio budget
+  instead — `stream_client()` sets `connect_timeout` (shared with the rest of the
+  workspace via `zayden_app`'s `HTTP_CONNECT_TIMEOUT`) plus a
+  `STREAM_READ_TIMEOUT` (20 s) *per-read* budget, which resets on every chunk a
+  healthy stream delivers and only fires when the upstream actually stalls. Both
+  resolvers build through it; `RadioResolver::new` became fallible to match
+  `YouTubeResolver::new` (one call site, `bot/src/main.rs:95`).
+- **Fix — subprocess.** `run_with_timeout(program, args, budget)` wraps the spawn
+  in `tokio::time::timeout` with `kill_on_drop(true)` — the `kill_on_drop` is what
+  makes the budget real, since dropping the `output()` future would otherwise
+  leave the child running unreaped. `YT_DLP_TIMEOUT` (60 s, generous: a large
+  playlist page legitimately takes a while) covers metadata; `YT_DLP_PROBE_TIMEOUT`
+  (10 s) covers the startup `--version` probe, which had the same gap. Error text
+  is returned as a `String` so each caller keeps its own `MusicError` variant
+  (`Resolve` is user-facing, `Internal` is not).
+- **Regression test** `tests/resolver_timeouts.rs`, 5 tests, **4 fail-before /
+  5 pass-after** in 0.73 s: the silent-upstream test reproduces the exact
+  production symptom (fails-before with `Elapsed(())` at a 120 s backstop — the
+  client never gave up); the dribbling-stream test is the anti-regression guard
+  against the *wrong* fix above; two cover the subprocess budget (one asserts the
+  child is actually killed, via `pgrep`, skipped where `pgrep` is absent); one
+  covers the happy path. The two client tests run
+  `#[tokio::test(start_paused = true)]`, so the real 20 s/50 s spans are virtual
+  and cost the suite nothing. Verified non-flaky over 8 consecutive runs. Needed
+  `tokio/{net,io-util,process,test-util}` in `[dev-dependencies]`.
+- **Gates:** `cargo +nightly clippy --workspace --all-targets -- -D warnings`
+  clean (exit 0); `cargo test --workspace --no-fail-fast` 609 passed / 0 failed;
+  `cargo machete` clean (dep list changed); `cargo +nightly fmt`. No SQL touched,
+  so no `.sqlx` regen; `zayden-app` is read from but unmodified, so no dashboard
+  feature check. No new `#[allow]`/`#[expect]`.
+- **Spotify third: verified clean, no change needed.** `SpotifyResolver` resolves
+  through `rspotify`'s `ClientCredsSpotify`, which builds its own HTTP client
+  internally — and that client *does* carry a budget:
+  `rspotify-http-0.16.1/src/reqwest.rs:69-75` `default_reqwest_client()` sets
+  `.timeout(Duration::from_secs(10))`. This crate enables `client-reqwest` /
+  `reqwest-rustls-tls` and **not** `reqwest-middleware`, so that default is the
+  one in use. A *total* request budget is the right shape there, unlike the
+  streaming client: these are small metadata calls, nothing streams.
+- **Residual / follow-up:** none from this task. Note that
+  `run_with_timeout`'s budget bounds the child, not the caller's patience —
+  a `yt-dlp` that stalls still costs the user up to 60 s before the command
+  errors. Reducing that is a UX tuning question, not a defect.
 - **Where:** `src/resolve/{youtube,spotify}.rs`, `src/resolve/mod.rs`
   (`#[async_trait]` resolver trait).
 - **What:** External HTTP resolution for tracks. Not verified whether every

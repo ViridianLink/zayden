@@ -7,6 +7,7 @@ use songbird::input::{HttpRequest, Input};
 use songbird_reqwest::Client;
 use zayden_app::config::{RadioStation, radio};
 
+use super::http::stream_client;
 use super::{Resolution, SourceQuery, TrackResolver};
 use crate::error::{MusicError, Result};
 use crate::track::{ResolvedTrack, TrackSource};
@@ -17,9 +18,8 @@ pub struct RadioResolver {
 }
 
 impl RadioResolver {
-    #[must_use]
-    pub fn new(stations: Arc<[RadioStation]>) -> Self {
-        Self { http: Client::new(), stations }
+    pub fn new(stations: Arc<[RadioStation]>) -> Result<Self> {
+        Ok(Self { http: stream_client()?, stations })
     }
 
     #[must_use]

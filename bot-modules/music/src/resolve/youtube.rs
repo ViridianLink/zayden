@@ -1,3 +1,4 @@
+use std::process::Output;
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -8,6 +9,7 @@ use songbird_reqwest::Client;
 use tokio::process::Command;
 use url::Url;
 
+use super::http::stream_client;
 use super::{
     LazyTail,
     PlaylistOrigin,
@@ -22,6 +24,8 @@ use crate::track::{ResolvedTrack, TrackSource};
 const PLAYLIST_CAP: u64 = 500;
 
 pub const YT_DLP_PROGRAM: &str = "yt-dlp";
+pub const YT_DLP_TIMEOUT: Duration = Duration::from_secs(60);
+pub const YT_DLP_PROBE_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct YouTubeResolver {
     http: Client,
@@ -29,7 +33,7 @@ pub struct YouTubeResolver {
 
 impl YouTubeResolver {
     pub fn new() -> Result<Self> {
-        Ok(Self { http: Client::new() })
+        Ok(Self { http: stream_client()? })
     }
 
     async fn resolve_single(
@@ -161,16 +165,30 @@ pub fn playlist_start_index(raw: &str) -> u64 {
         .unwrap_or(1)
 }
 
+pub async fn run_with_timeout(
+    program: &str,
+    args: &[&str],
+    budget: Duration,
+) -> std::result::Result<Output, String> {
+    let run = Command::new(program).args(args).kill_on_drop(true).output();
+
+    match tokio::time::timeout(budget, run).await {
+        Ok(Ok(output)) => Ok(output),
+        Ok(Err(e)) => Err(format!("could not run `{program}`: {e}")),
+        Err(_) => Err(format!(
+            "`{program}` did not finish within {}s and was killed",
+            budget.as_secs()
+        )),
+    }
+}
+
 async fn run_yt_dlp(args: &[&str]) -> Result<YtDlpOutput> {
-    let output = Command::new(YT_DLP_PROGRAM)
-        .arg("--dump-single-json")
-        .arg("--no-warnings")
-        .args(args)
-        .output()
+    let mut full = vec!["--dump-single-json", "--no-warnings"];
+    full.extend_from_slice(args);
+
+    let output = run_with_timeout(YT_DLP_PROGRAM, &full, YT_DLP_TIMEOUT)
         .await
-        .map_err(|e| {
-            MusicError::Resolve(format!("could not run `{YT_DLP_PROGRAM}`: {e}"))
-        })?;
+        .map_err(MusicError::Resolve)?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -186,13 +204,10 @@ async fn run_yt_dlp(args: &[&str]) -> Result<YtDlpOutput> {
 }
 
 pub async fn probe_yt_dlp() -> Result<String> {
-    let output = Command::new(YT_DLP_PROGRAM)
-        .arg("--version")
-        .output()
-        .await
-        .map_err(|e| {
-            MusicError::Internal(format!("could not run `{YT_DLP_PROGRAM}`: {e}"))
-        })?;
+    let output =
+        run_with_timeout(YT_DLP_PROGRAM, &["--version"], YT_DLP_PROBE_TIMEOUT)
+            .await
+            .map_err(MusicError::Internal)?;
 
     if !output.status.success() {
         return Err(MusicError::Internal(format!(
