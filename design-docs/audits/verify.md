@@ -47,7 +47,16 @@ in #2, which the original pass recorded as clean under #4.)_
   [CC-6](_cross-cutting.md#cc-6).
 
 ### 2. `VERIFIED_ROLE` hardcoded, and duplicated across two crates  ·  #4 / #5  ·  med
-- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 882dfec6`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-08-04):** the marker was left at `in-progress` by the session
+  that worked it; the fix is in the tree and committed. `882dfec6` added
+  `migrations/0023_verified_role`, the `verified_role_id` column on
+  `RolesSettingsRow` (`zayden-app/src/config/tables/roles_settings.rs`), the shared
+  `verify::verified_role()` accessor (`bot-modules/verify/src/lib.rs:22-32`) that
+  both the button (`:82`) and `/manverify` (`bot/src/bindings/verify/mod.rs:92`)
+  now call, `VerifyError::RoleNotConfigured`, the dashboard Roles field, and
+  `bot-modules/verify/tests/verified_role.rs`. Verified against the tree, not the
+  record: `grep -rn 1_404_640_603_848_839_299 --include=*.rs .` returns nothing.
 - **Recorded:** 2026-07-31, while closing #1. The original pass (2026-07-17)
   listed #4 as clean; that was wrong — checklist #4 covers hardcoded IDs, not
   just string matching.

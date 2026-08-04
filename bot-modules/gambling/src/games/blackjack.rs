@@ -23,6 +23,7 @@ use serenity::small_fixed_array::FixedString;
 use sqlx::PgPool;
 use zayden_core::{EmojiCache, FormatNum};
 
+use crate::components::BlackjackCustomId;
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::utils::effects_summary;
 use crate::{
@@ -318,35 +319,35 @@ pub fn in_play_text<'a>(
 }
 
 pub fn hit_button<'a>() -> CreateButton<'a> {
-    CreateButton::new("blackjack_hit")
+    CreateButton::new(BlackjackCustomId::Hit.as_str())
         .emoji('🎯')
         .label("Hit")
         .style(ButtonStyle::Secondary)
 }
 
 pub fn stand_button<'a>() -> CreateButton<'a> {
-    CreateButton::new("blackjack_stand")
+    CreateButton::new(BlackjackCustomId::Stand.as_str())
         .emoji('🛑')
         .label("Stand")
         .style(ButtonStyle::Secondary)
 }
 
 pub fn double_button<'a>() -> CreateButton<'a> {
-    CreateButton::new("blackjack_double")
+    CreateButton::new(BlackjackCustomId::Double.as_str())
         .emoji('⏫')
         .label("Double Down")
         .style(ButtonStyle::Secondary)
 }
 
 pub fn split_button<'a>() -> CreateButton<'a> {
-    CreateButton::new("blackjack_split")
+    CreateButton::new(BlackjackCustomId::Split.as_str())
         .emoji(ReactionType::Unicode(FixedString::from_static_trunc("✂️")))
         .label("Split")
         .style(ButtonStyle::Secondary)
 }
 
 pub fn surrender_button<'a>() -> CreateButton<'a> {
-    CreateButton::new("blackjack_surrender")
+    CreateButton::new(BlackjackCustomId::Surrender.as_str())
         .emoji(ReactionType::Unicode(FixedString::from_static_trunc("🏳️")))
         .label("Surrender")
         .style(ButtonStyle::Danger)

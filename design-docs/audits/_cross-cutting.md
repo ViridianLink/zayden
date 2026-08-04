@@ -471,6 +471,32 @@ served by the website — and two `setup` commands already duplicate its writes.
   DB-touching paths can follow once a test-pool harness exists.
 
 ### CC-7. Component `custom_id` string routing (deferred stringly-typing)  ·  #4  ·  low
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fixed 2026-08-04.** `bot-modules/gambling/src/components/custom_id.rs` adds
+  `BlackjackCustomId`, `HigherLowerCustomId`, `PrestigeCustomId` and
+  `TicTacToeCustomId`, each with `as_str`/`Display` + `FromStr`, following the
+  `LevelsCustomId` precedent. All four routers now `parse::<…>()?` instead of
+  matching literals, and all eleven `CreateButton::new` producers build their id
+  from the enum — so producer and consumer are one source. Wire ids are
+  unchanged, so messages already posted in Discord still route. Regression test:
+  `bot-modules/gambling/tests/custom_id.rs`.
+- **Not just hygiene — it was hiding a live defect.** `components/tictactoe.rs`
+  routed cancel as `"ttt_cancel" if metadata.user == interaction.user`. A match
+  guard that fails falls through to the *next* arm, so a **non-owner's cancel
+  click** reached the coordinate catch-all, which stripped `ttt_` and tried to
+  read `"cancel"` as a board position — surfacing as
+  `Internal("row index not parseable")`, which has no `user_message` and so
+  showed the clicker a generic failure. The ownership check now lives *inside*
+  the `Cancel` arm and returns a new `GamblingError::NotYourGame`
+  ("This isn't your game."). Recorded here rather than as its own `DS-#`: the
+  fall-through is only expressible because the ids were untyped, so it is an
+  instance of this class, not a separate one.
+- **Two deliberate behaviour changes** beyond the rename, both making a silent
+  no-op visible: the blackjack binding's `_ => ()` and the higher-lower `_ => {}`
+  arms are gone, so an unroutable id in either namespace is now an error rather
+  than a dropped interaction. Higher-lower's parse also moved **above** the
+  deck-exhaustion branch that credits a gem, so an unroutable click can no longer
+  mint one on its way to doing nothing.
 
 - **Where:** `bot/src/bindings/gambling/{prestige,blackjack}.rs`,
   `bot-modules/gambling/src/components/{tictactoe,higherlower}.rs`,

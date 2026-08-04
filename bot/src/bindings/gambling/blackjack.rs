@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use gambling::Commands;
+use gambling::components::BlackjackCustomId;
 use serenity::all::CreateCommand;
 use tracing::debug;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
@@ -50,8 +51,8 @@ impl ModuleComponent for Blackjack {
             return Ok(());
         }
 
-        match cx.interaction.data.custom_id.as_str() {
-            "blackjack_hit" => {
+        match cx.interaction.data.custom_id.parse::<BlackjackCustomId>()? {
+            BlackjackCustomId::Hit => {
                 gambling::components::Blackjack::hit::<BotState>(
                     cx.ctx,
                     cx.interaction,
@@ -59,7 +60,7 @@ impl ModuleComponent for Blackjack {
                 )
                 .await?;
             },
-            "blackjack_stand" => {
+            BlackjackCustomId::Stand => {
                 gambling::components::Blackjack::stand::<BotState>(
                     cx.ctx,
                     cx.interaction,
@@ -67,7 +68,7 @@ impl ModuleComponent for Blackjack {
                 )
                 .await?;
             },
-            "blackjack_double" => {
+            BlackjackCustomId::Double => {
                 gambling::components::Blackjack::double::<BotState>(
                     cx.ctx,
                     cx.interaction,
@@ -75,7 +76,7 @@ impl ModuleComponent for Blackjack {
                 )
                 .await?;
             },
-            "blackjack_split" => {
+            BlackjackCustomId::Split => {
                 gambling::components::Blackjack::split::<BotState>(
                     cx.ctx,
                     cx.interaction,
@@ -83,7 +84,7 @@ impl ModuleComponent for Blackjack {
                 )
                 .await?;
             },
-            "blackjack_surrender" => {
+            BlackjackCustomId::Surrender => {
                 gambling::components::Blackjack::surrender::<BotState>(
                     cx.ctx,
                     cx.interaction,
@@ -91,7 +92,6 @@ impl ModuleComponent for Blackjack {
                 )
                 .await?;
             },
-            _ => (),
         }
 
         Ok(())

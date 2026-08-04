@@ -34,6 +34,7 @@ pub enum GamblingError {
     ItemNotInInventory,
     InsufficientItemQuantity(i64),
     NotEnoughMiners { required: i64, current: i64 },
+    NotYourGame,
 
     Serenity(serenity::Error),
     Sqlx(sqlx::Error),
@@ -113,6 +114,9 @@ impl std::fmt::Display for GamblingError {
                 required.format(),
                 current.format()
             ),
+            Self::NotYourGame => {
+                write!(f, "This isn't your game.")
+            },
 
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
@@ -147,7 +151,8 @@ impl std::error::Error for GamblingError {
             | Self::TransactionConflict
             | Self::ItemNotInInventory
             | Self::InsufficientItemQuantity(_)
-            | Self::NotEnoughMiners { .. } => None,
+            | Self::NotEnoughMiners { .. }
+            | Self::NotYourGame => None,
         }
     }
 }
@@ -177,7 +182,8 @@ impl Respond for GamblingError {
             | Self::TransactionConflict
             | Self::ItemNotInInventory
             | Self::InsufficientItemQuantity(_)
-            | Self::NotEnoughMiners { .. } => Some(Cow::Owned(self.to_string())),
+            | Self::NotEnoughMiners { .. }
+            | Self::NotYourGame => Some(Cow::Owned(self.to_string())),
         }
     }
 }
@@ -233,7 +239,8 @@ impl From<GamblingError> for HandlerError {
             | GamblingError::TransactionConflict
             | GamblingError::ItemNotInInventory
             | GamblingError::InsufficientItemQuantity(_)
-            | GamblingError::NotEnoughMiners { .. }) => Self::from_respond(e),
+            | GamblingError::NotEnoughMiners { .. }
+            | GamblingError::NotYourGame) => Self::from_respond(e),
         }
     }
 }

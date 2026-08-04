@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use gambling::Commands;
+use gambling::components::PrestigeCustomId;
 use serenity::all::CreateCommand;
-use tracing::warn;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
@@ -34,8 +34,8 @@ impl ModuleComponent for Prestige {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        match cx.interaction.data.custom_id.as_str() {
-            "prestige_confirm" => {
+        match cx.interaction.data.custom_id.parse::<PrestigeCustomId>()? {
+            PrestigeCustomId::Confirm => {
                 Commands::confirm_prestige(
                     cx.ctx,
                     cx.interaction,
@@ -44,11 +44,8 @@ impl ModuleComponent for Prestige {
                 )
                 .await?;
             },
-            "prestige_cancel" => {
+            PrestigeCustomId::Cancel => {
                 Commands::cancel_prestige(cx.ctx, cx.interaction).await?;
-            },
-            _ => {
-                warn!(custom_id = %cx.interaction.data.custom_id, "unknown prestige component");
             },
         }
 

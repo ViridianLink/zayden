@@ -12,6 +12,7 @@ use tokio::sync::RwLock;
 use zayden_core::EmojiCacheData;
 
 use super::Commands;
+use crate::components::HigherLowerCustomId;
 use crate::games::higherlower::create_embed;
 use crate::{
     CARD_DECK,
@@ -57,8 +58,12 @@ impl Commands {
 
         let embed = create_embed(&format!("<:{num}:{emoji}>"), 0, true);
 
-        let higher_btn = CreateButton::new("hol_higher").emoji('☝').label("Higher");
-        let lower_btn = CreateButton::new("hol_lower").emoji('👇').label("Lower");
+        let higher_btn = CreateButton::new(HigherLowerCustomId::Higher.as_str())
+            .emoji('☝')
+            .label("Higher");
+        let lower_btn = CreateButton::new(HigherLowerCustomId::Lower.as_str())
+            .emoji('👇')
+            .label("Lower");
 
         interaction
             .create_response(

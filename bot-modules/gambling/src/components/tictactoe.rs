@@ -24,6 +24,7 @@ use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, as_u64, message_metadata};
 
+use crate::components::TicTacToeCustomId;
 use crate::games::tiktactoe::{EMOJI_P1, EMOJI_P2};
 use crate::{Coins, EffectsManager, GamblingError, GameDelta, GameRow, Result};
 
@@ -50,30 +51,19 @@ impl TicTacToe {
             data.emojis()
         };
 
-        match interaction.data.custom_id.as_str() {
-            "ttt_cancel" if metadata.user == interaction.user => {
+        match interaction.data.custom_id.parse::<TicTacToeCustomId>()? {
+            TicTacToeCustomId::Cancel => {
+                if metadata.user != interaction.user {
+                    return Err(GamblingError::NotYourGame);
+                }
+
                 cancel(&ctx.http, interaction).await?;
             },
-            "ttt_accept" => {
+            TicTacToeCustomId::Accept => {
                 accept(&ctx.http, interaction, pool, &emojis).await?;
             },
-            custom_id => {
-                let Some(pos_str) = custom_id.strip_prefix("ttt_") else {
-                    return Err(GamblingError::internal(
-                        "custom ID doesn't have the 'ttt_' prefix",
-                    ));
-                };
-
-                let mut chars = pos_str.chars();
-                let Some(i) = chars.next().and_then(|c| c.to_digit(10)) else {
-                    return Err(GamblingError::internal("row index not parseable"));
-                };
-                let Some(j) = chars.next().and_then(|c| c.to_digit(10)) else {
-                    return Err(GamblingError::internal("col index not parseable"));
-                };
-
-                make_move(&ctx.http, interaction, pool, i as usize, j as usize)
-                    .await?;
+            TicTacToeCustomId::Cell { row, col } => {
+                make_move(&ctx.http, interaction, pool, row, col).await?;
             },
         }
 
@@ -203,9 +193,11 @@ async fn accept(
         .map(|i| {
             let row = (0..state.size)
                 .map(|j| {
-                    CreateButton::new(format!("ttt_{i}{j}"))
-                        .emoji(blank)
-                        .style(ButtonStyle::Secondary)
+                    CreateButton::new(
+                        TicTacToeCustomId::Cell { row: i, col: j }.to_string(),
+                    )
+                    .emoji(blank)
+                    .style(ButtonStyle::Secondary)
                 })
                 .collect::<Vec<_>>();
 
@@ -415,9 +407,11 @@ fn board_to_components(board: &Board, disabled: bool) -> Vec<CreateComponent<'_>
                 .iter()
                 .enumerate()
                 .map(|(c, cell)| {
-                    let mut btn = CreateButton::new(format!("ttt_{r}{c}"))
-                        .style(ButtonStyle::Secondary)
-                        .disabled(disabled);
+                    let mut btn = CreateButton::new(
+                        TicTacToeCustomId::Cell { row: r, col: c }.to_string(),
+                    )
+                    .style(ButtonStyle::Secondary)
+                    .disabled(disabled);
                     if let Some(emoji) = cell {
                         btn = btn.emoji(emoji.clone());
                     }

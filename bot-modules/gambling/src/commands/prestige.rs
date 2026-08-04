@@ -19,6 +19,7 @@ use zayden_core::{as_i64, message_metadata};
 
 use crate::commands::inventory::InventoryManager;
 use crate::common::shop::LOTTO_TICKET;
+use crate::components::PrestigeCustomId;
 use crate::stamina::MAX_STAMINA;
 use crate::{
     Commands,
@@ -357,11 +358,11 @@ impl Commands {
 
         let embed = CreateEmbed::new().description("Are you sure you want to prestige your mine?\n\nPrestiging will **reset your mine, coins, items and resources**, but you'll unlock powerful upgrades!").colour(Colour::TEAL);
 
-        let confirm = CreateButton::new("prestige_confirm")
+        let confirm = CreateButton::new(PrestigeCustomId::Confirm.as_str())
             .label("Confirm")
             .emoji('✅')
             .style(ButtonStyle::Secondary);
-        let cancel = CreateButton::new("prestige_cancel")
+        let cancel = CreateButton::new(PrestigeCustomId::Cancel.as_str())
             .label("Cancel")
             .emoji('❌')
             .style(ButtonStyle::Secondary);

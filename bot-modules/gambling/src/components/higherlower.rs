@@ -17,6 +17,7 @@ use sqlx::PgPool;
 use tokio::sync::RwLock;
 use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 
+use crate::components::HigherLowerCustomId;
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::higherlower::create_embed;
 use crate::{
@@ -44,6 +45,8 @@ impl HigherLower {
         interaction: &ComponentInteraction,
         pool: &PgPool,
     ) -> Result<()> {
+        let guess = interaction.data.custom_id.parse::<HigherLowerCustomId>()?;
+
         let emojis = {
             let data_lock = ctx.data::<RwLock<Data>>();
             let data = data_lock.read().await;
@@ -65,8 +68,8 @@ impl HigherLower {
             })?
         };
 
-        match interaction.data.custom_id.as_str() {
-            "hol_higher" => {
+        match guess {
+            HigherLowerCustomId::Higher => {
                 Self::higher(
                     &ctx.http,
                     interaction,
@@ -78,7 +81,7 @@ impl HigherLower {
                 )
                 .await?;
             },
-            "hol_lower" => {
+            HigherLowerCustomId::Lower => {
                 Self::lower(
                     &ctx.http,
                     interaction,
@@ -90,7 +93,6 @@ impl HigherLower {
                 )
                 .await?;
             },
-            _ => {},
         }
 
         Ok(())

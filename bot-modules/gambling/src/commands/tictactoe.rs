@@ -17,6 +17,7 @@ use tokio::sync::RwLock;
 use zayden_core::{EmojiCacheData, parse_options};
 
 use super::Commands;
+use crate::components::TicTacToeCustomId;
 use crate::{Coins, EffectsManager, GamblingData, GamblingError, GameRow, Result};
 
 impl Commands {
@@ -66,13 +67,13 @@ impl Commands {
                 EditInteractionResponse::new()
                     .embed(embed.clone())
                     .button(
-                        CreateButton::new("ttt_accept")
+                        CreateButton::new(TicTacToeCustomId::Accept.to_string())
                             .label("Accept")
                             .emoji('✅')
                             .style(ButtonStyle::Secondary),
                     )
                     .button(
-                        CreateButton::new("ttt_cancel")
+                        CreateButton::new(TicTacToeCustomId::Cancel.to_string())
                             .label("Cancel")
                             .emoji('❌')
                             .style(ButtonStyle::Secondary),
