@@ -1,8 +1,11 @@
 use std::collections::HashSet;
+use std::path::Path;
 use std::sync::Arc;
 
 use serde::Deserialize;
 use tracing::warn;
+
+use crate::Result;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Genre {
@@ -130,6 +133,27 @@ impl RadioStation {
     pub fn genre(&self) -> Option<Genre> {
         Genre::from_value(&self.genre)
     }
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct RadioToml {
+    #[serde(default)]
+    stations: Vec<RadioStation>,
+}
+
+pub fn load() -> Result<Vec<RadioStation>> {
+    let path = if Path::new("radio.toml").exists() {
+        Path::new("radio.toml")
+    } else if Path::new("bot/radio.toml").exists() {
+        Path::new("bot/radio.toml")
+    } else {
+        return Ok(Vec::new());
+    };
+
+    let content = std::fs::read_to_string(path)?;
+    let cfg: RadioToml = toml::from_str(&content)?;
+
+    Ok(cfg.stations)
 }
 
 fn is_http_url(url: &str) -> bool {

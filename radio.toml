@@ -1,0 +1,422 @@
+# Pop
+[[stations]]
+id = "poptron"
+name = "PopTron"
+genre = "pop"
+stream_url = "https://ice2.somafm.com/poptron-128-mp3"
+homepage = "https://somafm.com/poptron/"
+
+[[stations]]
+id = "power181"
+name = "Power 181"
+genre = "pop"
+stream_url = "https://listen.181fm.com/181-power_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "star90s"
+name = "Star 90s"
+genre = "pop"
+stream_url = "https://listen.181fm.com/181-star90s_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Rock
+[[stations]]
+id = "indiepop"
+name = "Indie Pop Rocks!"
+genre = "rock"
+stream_url = "https://ice2.somafm.com/indiepop-128-mp3"
+homepage = "https://somafm.com/indiepop/"
+
+[[stations]]
+id = "rp-rock"
+name = "Radio Paradise Rock Mix"
+genre = "rock"
+stream_url = "https://stream.radioparadise.com/rock-192"
+homepage = "https://radioparadise.com/player/rock-mix"
+
+[[stations]]
+id = "eagle181"
+name = "The Eagle"
+genre = "rock"
+stream_url = "https://listen.181fm.com/181-eagle_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Hip-Hop
+[[stations]]
+id = "fluid"
+name = "Fluid"
+genre = "hip-hop"
+stream_url = "https://ice2.somafm.com/fluid-128-mp3"
+homepage = "https://somafm.com/fluid/"
+
+[[stations]]
+id = "thebox181"
+name = "The Box"
+genre = "hip-hop"
+stream_url = "https://listen.181fm.com/181-thebox_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "oldschool181"
+name = "Old School HipHop"
+genre = "hip-hop"
+stream_url = "https://listen.181fm.com/181-oldschool_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Electronic
+[[stations]]
+id = "defcon"
+name = "DEF CON Radio"
+genre = "electronic"
+stream_url = "https://ice2.somafm.com/defcon-128-mp3"
+homepage = "https://somafm.com/defcon/"
+
+[[stations]]
+id = "cliqhop"
+name = "cliqhop idm"
+genre = "electronic"
+stream_url = "https://ice2.somafm.com/cliqhop-128-mp3"
+homepage = "https://somafm.com/cliqhop/"
+
+# Dance
+[[stations]]
+id = "beatblender"
+name = "Beat Blender"
+genre = "dance"
+stream_url = "https://ice2.somafm.com/beatblender-128-mp3"
+homepage = "https://somafm.com/beatblender/"
+
+[[stations]]
+id = "dubstep"
+name = "Dub Step Beyond"
+genre = "dance"
+stream_url = "https://ice2.somafm.com/dubstep-128-mp3"
+homepage = "https://somafm.com/dubstep/"
+
+# Jazz
+[[stations]]
+id = "sonicuniverse"
+name = "Sonic Universe"
+genre = "jazz"
+stream_url = "https://ice2.somafm.com/sonicuniverse-128-mp3"
+homepage = "https://somafm.com/sonicuniverse/"
+
+[[stations]]
+id = "classicjazz181"
+name = "Classic Jazz"
+genre = "jazz"
+stream_url = "https://listen.181fm.com/181-classicaljazz_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Classical
+[[stations]]
+id = "classical181"
+name = "Classical Music"
+genre = "classical"
+stream_url = "https://listen.181fm.com/181-classical_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "veniceclassic"
+name = "Venice Classic Radio"
+genre = "classical"
+stream_url = "https://uk2.streamingpulse.com/ssl/vcr1"
+homepage = "https://www.veniceclassicradio.eu/"
+
+# Metal
+[[stations]]
+id = "metaldetector"
+name = "Metal Detector"
+genre = "metal"
+stream_url = "https://ice2.somafm.com/metal-128-mp3"
+homepage = "https://somafm.com/metal/"
+
+[[stations]]
+id = "doomed"
+name = "Doomed"
+genre = "metal"
+stream_url = "https://ice2.somafm.com/doomed-128-mp3"
+homepage = "https://somafm.com/doomed/"
+
+# Indie
+[[stations]]
+id = "digitalis"
+name = "Digitalis"
+genre = "indie"
+stream_url = "https://ice2.somafm.com/digitalis-128-mp3"
+homepage = "https://somafm.com/digitalis/"
+
+[[stations]]
+id = "folkfwd"
+name = "Folk Forward"
+genre = "indie"
+stream_url = "https://ice2.somafm.com/folkfwd-128-mp3"
+homepage = "https://somafm.com/folkfwd/"
+
+# R&B
+[[stations]]
+id = "rnb181"
+name = "The Rhythm"
+genre = "rnb"
+stream_url = "https://listen.181fm.com/181-rnb_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "soul181"
+name = "Soul"
+genre = "rnb"
+stream_url = "https://listen.181fm.com/181-soul_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Country
+[[stations]]
+id = "bootliquor"
+name = "Boot Liquor"
+genre = "country"
+stream_url = "https://ice2.somafm.com/bootliquor-128-mp3"
+homepage = "https://somafm.com/bootliquor/"
+
+[[stations]]
+id = "highway181"
+name = "Highway 181"
+genre = "country"
+stream_url = "https://listen.181fm.com/181-highway_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Reggae
+[[stations]]
+id = "heavyweightreggae"
+name = "Heavyweight Reggae"
+genre = "reggae"
+stream_url = "https://ice2.somafm.com/reggae-128-mp3"
+homepage = "https://somafm.com/reggae/"
+
+[[stations]]
+id = "reggae181"
+name = "Reggae Roots"
+genre = "reggae"
+stream_url = "https://listen.181fm.com/181-reggae_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Latin
+[[stations]]
+id = "bossa"
+name = "Bossa Beyond"
+genre = "latin"
+stream_url = "https://ice2.somafm.com/bossa-128-mp3"
+homepage = "https://somafm.com/bossa/"
+
+[[stations]]
+id = "salsa181"
+name = "Salsa"
+genre = "latin"
+stream_url = "https://listen.181fm.com/181-salsa_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "rp-global"
+name = "Radio Paradise Global Mix"
+genre = "latin"
+stream_url = "https://stream.radioparadise.com/global-192"
+homepage = "https://radioparadise.com/player/global-mix"
+
+# Funk & Soul
+[[stations]]
+id = "7soul"
+name = "Seven Inch Soul"
+genre = "funk-soul"
+stream_url = "https://ice2.somafm.com/7soul-128-mp3"
+homepage = "https://somafm.com/7soul/"
+
+[[stations]]
+id = "jammin181"
+name = "Jammin 181"
+genre = "funk-soul"
+stream_url = "https://listen.181fm.com/181-jammin_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Lo-Fi
+[[stations]]
+id = "lofi"
+name = "Lofi Hip Hop"
+genre = "lofi"
+stream_url = "https://usa9.fastcast4u.com/proxy/jamz?mp=/1"
+homepage = "https://zeno.fm/radio/lofi-hip-hop/"
+
+[[stations]]
+id = "gsclassic"
+name = "Groove Salad Classic"
+genre = "lofi"
+stream_url = "https://ice2.somafm.com/gsclassic-128-mp3"
+homepage = "https://somafm.com/gsclassic/"
+
+# Oldies
+[[stations]]
+id = "illstreet"
+name = "Illinois Street Lounge"
+genre = "oldies"
+stream_url = "https://ice2.somafm.com/illstreet-128-mp3"
+homepage = "https://somafm.com/illstreet/"
+
+[[stations]]
+id = "insound"
+name = "The In-Sound"
+genre = "oldies"
+stream_url = "https://ice2.somafm.com/insound-128-mp3"
+homepage = "https://somafm.com/insound/"
+
+[[stations]]
+id = "seventies"
+name = "Left Coast 70s"
+genre = "oldies"
+stream_url = "https://ice2.somafm.com/seventies-128-mp3"
+homepage = "https://somafm.com/seventies/"
+
+# Chill
+[[stations]]
+id = "groovesalad"
+name = "Groove Salad"
+genre = "chill"
+stream_url = "https://ice2.somafm.com/groovesalad-128-mp3"
+homepage = "https://somafm.com/groovesalad/"
+
+[[stations]]
+id = "groovesalad2"
+name = "Groove Salad 2"
+genre = "chill"
+stream_url = "https://ice2.somafm.com/groovesalad2-128-mp3"
+homepage = "https://somafm.com/groovesalad2/"
+
+# Relax
+[[stations]]
+id = "deepspaceone"
+name = "Deep Space One"
+genre = "relax"
+stream_url = "https://ice2.somafm.com/deepspaceone-128-mp3"
+homepage = "https://somafm.com/deepspaceone/"
+
+[[stations]]
+id = "rp-mellow"
+name = "Radio Paradise Mellow Mix"
+genre = "relax"
+stream_url = "https://stream.radioparadise.com/mellow-192"
+homepage = "https://radioparadise.com/player/mellow-mix"
+
+# Energy
+[[stations]]
+id = "energy98"
+name = "Energy 98"
+genre = "energy"
+stream_url = "https://listen.181fm.com/181-energy98_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "party181"
+name = "Party 181"
+genre = "energy"
+stream_url = "https://listen.181fm.com/181-party_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "thetrip"
+name = "The Trip"
+genre = "energy"
+stream_url = "https://ice2.somafm.com/thetrip-128-mp3"
+homepage = "https://somafm.com/thetrip/"
+
+# Focus
+[[stations]]
+id = "dronezone"
+name = "Drone Zone"
+genre = "focus"
+stream_url = "https://ice2.somafm.com/dronezone-128-mp3"
+homepage = "https://somafm.com/dronezone/"
+
+[[stations]]
+id = "missioncontrol"
+name = "Mission Control"
+genre = "focus"
+stream_url = "https://ice2.somafm.com/missioncontrol-128-mp3"
+homepage = "https://somafm.com/missioncontrol/"
+
+[[stations]]
+id = "synphaera"
+name = "Synphaera Radio"
+genre = "focus"
+stream_url = "https://ice2.somafm.com/synphaera-128-mp3"
+homepage = "https://somafm.com/synphaera/"
+
+# Party
+[[stations]]
+id = "u80s"
+name = "Underground 80s"
+genre = "party"
+stream_url = "https://ice2.somafm.com/u80s-128-mp3"
+homepage = "https://somafm.com/u80s/"
+
+[[stations]]
+id = "awesome80s"
+name = "Awesome 80s"
+genre = "party"
+stream_url = "https://listen.181fm.com/181-awesome80s_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Sleep
+[[stations]]
+id = "darkzone"
+name = "The Dark Zone"
+genre = "sleep"
+stream_url = "https://ice2.somafm.com/darkzone-128-mp3"
+homepage = "https://somafm.com/darkzone/"
+
+[[stations]]
+id = "dronezone2"
+name = "Drone Zone 2"
+genre = "sleep"
+stream_url = "https://ice2.somafm.com/dz2-128-mp3"
+homepage = "https://somafm.com/dronezone/"
+
+# Romance
+[[stations]]
+id = "lush"
+name = "Lush"
+genre = "romance"
+stream_url = "https://ice2.somafm.com/lush-128-mp3"
+homepage = "https://somafm.com/lush/"
+
+[[stations]]
+id = "lite80s"
+name = "Lite 80s"
+genre = "romance"
+stream_url = "https://listen.181fm.com/181-lite80s_128k.mp3"
+homepage = "https://www.181.fm/"
+
+[[stations]]
+id = "mellowgold"
+name = "Mellow Gold"
+genre = "romance"
+stream_url = "https://listen.181fm.com/181-mellow_128k.mp3"
+homepage = "https://www.181.fm/"
+
+# Feel-Good
+[[stations]]
+id = "covers"
+name = "Covers"
+genre = "feel-good"
+stream_url = "https://ice2.somafm.com/covers-128-mp3"
+homepage = "https://somafm.com/covers/"
+
+[[stations]]
+id = "tikitime"
+name = "Tiki Time"
+genre = "feel-good"
+stream_url = "https://ice2.somafm.com/tikitime-128-mp3"
+homepage = "https://somafm.com/tikitime/"
+
+[[stations]]
+id = "secretagent"
+name = "Secret Agent"
+genre = "feel-good"
+stream_url = "https://ice2.somafm.com/secretagent-128-mp3"
+homepage = "https://somafm.com/secretagent/"

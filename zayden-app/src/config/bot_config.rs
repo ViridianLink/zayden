@@ -185,7 +185,7 @@ impl BotConfig {
             discord_sku_pro: toml_cfg.entitlements.discord.skus.pro,
             discord_sku_ultra: toml_cfg.entitlements.discord.skus.ultra,
 
-            radio_stations: radio::validate_all(toml_cfg.music.stations),
+            radio_stations: radio::validate_all(radio::load()?),
         })
     }
 }
@@ -262,14 +262,6 @@ struct TomlConfig {
     pelican: TomlPelican,
     #[serde(default)]
     entitlements: TomlEntitlements,
-    #[serde(default)]
-    music: TomlMusic,
-}
-
-#[derive(Debug, Default, Deserialize)]
-struct TomlMusic {
-    #[serde(default)]
-    stations: Vec<RadioStation>,
 }
 
 #[derive(Debug, Default, Deserialize)]
