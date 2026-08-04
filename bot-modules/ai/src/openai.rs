@@ -2,19 +2,14 @@ use async_openai::Client;
 use async_openai::config::OpenAIConfig;
 use async_openai::types::chat::CreateChatCompletionRequestArgs;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
+use zayden_app::services::http::ClientBuilderExt;
 
 use crate::chat::Message;
 use crate::error::AiError as Error;
 
-/// Sent to `OpenRouter` so the API dashboard can identify the calling app.
 const HTTP_REFERER: &str = "https://zayden.discord.bot";
 const APP_TITLE: &str = "Zayden";
 
-/// Thin wrapper around `async-openai`'s `Client` pre-configured for
-/// `OpenRouter` (or any `OpenAI`-compatible endpoint).
-///
-/// Injects `http-referer` and `x-title` headers required by `OpenRouter` via
-/// a custom `reqwest::Client` so every chat call carries them automatically.
 #[derive(Debug)]
 pub struct AiClient {
     client: Client<OpenAIConfig>,
@@ -22,11 +17,6 @@ pub struct AiClient {
 }
 
 impl AiClient {
-    /// Build an `AiClient` for the given base URL, API key, and model.
-    ///
-    /// `endpoint` is the base URL of the provider (e.g.
-    /// `https://openrouter.ai/api/v1`).  `model` is the model identifier
-    /// passed verbatim in each request (e.g. `google/gemini-2.5-flash`).
     pub fn new(api_key: &str, endpoint: &str, model: &str) -> Result<Self, Error> {
         let config =
             OpenAIConfig::new().with_api_key(api_key).with_api_base(endpoint);
@@ -41,8 +31,10 @@ impl AiClient {
             HeaderValue::from_static(APP_TITLE),
         );
 
-        let http_client =
-            reqwest::ClientBuilder::new().default_headers(headers).build()?;
+        let http_client = reqwest::ClientBuilder::new()
+            .default_headers(headers)
+            .with_timeouts()
+            .build()?;
 
         Ok(Self {
             client: Client::with_config(config).with_http_client(http_client),
@@ -50,9 +42,6 @@ impl AiClient {
         })
     }
 
-    /// Send `messages` to the model and return the first choice's text.
-    ///
-    /// Returns `Err(AiError::NoContent)` if the response has no text choices.
     pub async fn chat(
         &self,
         messages: Vec<Message>,

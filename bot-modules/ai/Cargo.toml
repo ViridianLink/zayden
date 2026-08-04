@@ -8,10 +8,17 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
+zayden-app = { workspace = true }
 zayden-core = { workspace = true }
 
 async-openai = { workspace = true, features = ["chat-completion"] }
 reqwest = { workspace = true }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "io-util"] }
+tokio = { workspace = true, features = [
+  "rt-multi-thread",
+  "macros",
+  "net",
+  "io-util",
+  "test-util",
+] }

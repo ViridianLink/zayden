@@ -83,6 +83,7 @@ dependencies = [
  "async-openai",
  "reqwest 0.13.4",
  "tokio",
+ "zayden-app",
  "zayden-core",
 ]
 

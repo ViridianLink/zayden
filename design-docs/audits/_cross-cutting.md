@@ -471,7 +471,13 @@ served by the website — and two `setup` commands already duplicate its writes.
   DB-touching paths can follow once a test-pool harness exists.
 
 ### CC-7. Component `custom_id` string routing (deferred stringly-typing)  ·  #4  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — c794fe8f`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-08-04):** the marker was left at `in-review` after the human
+  committed the task as `c794fe8f`. Verified against the tree, not the record:
+  `components/custom_id.rs` declares all four enums (`:7`, `:46`, `:76`, `:106`),
+  `GamblingError::NotYourGame` exists (`error.rs:37`), and a grep for the old
+  literal prefixes (`"ttt_`, `"bj_`, `"hl_`, `"prestige_`) outside `custom_id.rs`
+  and `tests/` returns nothing.
 - **Fixed 2026-08-04.** `bot-modules/gambling/src/components/custom_id.rs` adds
   `BlackjackCustomId`, `HigherLowerCustomId`, `PrestigeCustomId` and
   `TicTacToeCustomId`, each with `as_str`/`Display` + `FromStr`, following the

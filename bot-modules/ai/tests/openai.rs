@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use ai::chat::{Message, Role};
 use ai::error::AiError;
 use ai::openai::AiClient;
@@ -65,6 +67,29 @@ async fn spawn_mock_server(
     Some(format!("http://{addr}"))
 }
 
+/// Accepts the connection, reads the request, then never answers and never
+/// hangs up — the silent upstream an outbound timeout has to defend against.
+async fn spawn_black_hole_server() -> Option<String> {
+    let listener = TcpListener::bind("127.0.0.1:0").await.ok()?;
+    let addr = listener.local_addr().ok()?;
+
+    tokio::spawn(async move {
+        loop {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                break;
+            };
+
+            tokio::spawn(async move {
+                drain_request(&mut socket).await;
+                // Hold the connection open, silently, forever.
+                std::future::pending::<()>().await;
+            });
+        }
+    });
+
+    Some(format!("http://{addr}"))
+}
+
 #[tokio::test]
 async fn chat_parses_a_well_formed_openrouter_completion() {
     let body = r#"{
@@ -119,4 +144,36 @@ async fn chat_surfaces_rate_limit_errors_instead_of_panicking() {
         "expected AiError::OpenAI(ApiError), got {err:?}"
     );
     assert!(err.to_string().contains("Rate limit exceeded"));
+}
+
+/// Regression test for the missing outbound timeout (audit `ai` #1).
+///
+/// Runs on virtual time, so the client's real budget costs the suite nothing:
+/// the client's own timer has to fire before the 60s backstop below. Without a
+/// timeout on the client there is no timer at all, the backstop wins, and this
+/// fails — which is exactly the production symptom, a chat future that never
+/// resolves and wedges the command task holding it.
+#[tokio::test(start_paused = true)]
+async fn chat_gives_up_on_a_hung_upstream_instead_of_waiting_forever() {
+    let base_url = spawn_black_hole_server().await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+
+    let result = tokio::time::timeout(
+        Duration::from_secs(60),
+        client.chat(vec![Message::new(Role::User, "hi")], 16),
+    )
+    .await
+    .expect(
+        "the client must give up on its own; it was still waiting on a silent \
+         upstream after 60s",
+    );
+
+    let err = result.expect_err("a hung upstream must surface as an error");
+
+    assert!(
+        matches!(&err, AiError::OpenAI(OpenAIError::Reqwest(e)) if e.is_timeout()),
+        "expected a reqwest timeout, got {err:?}"
+    );
 }
