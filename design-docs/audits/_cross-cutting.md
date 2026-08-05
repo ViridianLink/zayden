@@ -611,6 +611,40 @@ served by the website — and two `setup` commands already duplicate its writes.
   suggestions/reaction-roles) against the existing `SettingsRegistry`. Treat the
   read-view migrations as UX upgrades, lower priority than de-duplicating writes.
 
+### CC-10. Committed `.sqlx` offline cache is drifted on `main`  ·  #1 / #7  ·  med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Recorded 2026-08-05.** Not a new discovery: [CC-5](#cc-5-runtime-sqlxquery-bypassing-compile-time-macros)
+  hit this on 2026-07-24, judged it out of its own scope ("pre-existing, not
+  CC-5"), and wrote *"worth its own finding"* — which was never opened. Doing so
+  now so it stops being a footnote inside a closed finding. (Numbered after CC-9,
+  which sits in the Deep-sweep section below.)
+- **Where:** `.sqlx/` at the workspace root, against `migrations/`.
+- **What:** `cargo sqlx prepare --workspace -- --all-features --check` fails on a
+  clean tree. CC-5 attributed it to missing/stale `LEFT JOIN` nullability
+  entries and named three: gambling `895e6b8` / `fc6caa8e`, lfg_posts `905f7d2`.
+- **Verification state (be honest about this):** *not* re-confirmed at recording
+  time — `--check` needs a `DATABASE_URL` with the schema applied, and migrating
+  a database is the human's step, not an agent's. What *was* checked offline
+  supports the claim: of the three entries CC-5 named, `query-fc6caa8e…` and
+  `query-905f7d2…` are present in `.sqlx/` but **no entry starts with
+  `query-895e6b8`** — i.e. the missing entry is still missing. Note the cache has
+  been touched since (`cd003007`, `374ec7e5`, `c7605e43`), so incremental
+  per-task regens may have moved the picture; re-run `--check` first.
+- **Why it matters:** The cache is what makes `SQLX_OFFLINE=true` builds
+  trustworthy — CI's `prepare --check` is the gate that proves the committed SQL
+  still matches the schema. While it is red for a *pre-existing* reason, that
+  gate cannot tell anyone whether a *new* change broke something: every task
+  since has had to eyeball its own `.sqlx` delta and revert unrelated drift by
+  hand (the lfg #4 and CC-5 precedents both record doing exactly that).
+- **Suggested fix:** Regenerate the whole cache in one pass —
+  `cargo sqlx prepare --workspace -- --all-features` — against an **empty,
+  freshly-migrated** database, never a populated one: `LEFT JOIN` nullability
+  inference is plan- and statistics-sensitive, so a cache built against a
+  populated DB bakes in different nullability than CI's empty one and the check
+  fails again. Commit the whole `.sqlx/` diff as its own change so the noise is
+  never mixed into a behavioural one. This is a **structural enabler** — it
+  restores the gate every later SQL task depends on.
+
 ## Deep-sweep findings
 
 _Deep sweep pass over the whole workspace, 2026-07-17. These are latent

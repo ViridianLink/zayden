@@ -19,7 +19,12 @@ youtube). No CC-1 (in-memory manager, not DB-generic). Only minor lint debt.
   [CC-3](_cross-cutting.md#cc-3); low priority.
 
 ### 2. Resolver network calls — confirm timeouts  ·  #3  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 33281cd4`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-08-05):** the marker was left at `in-review` after the human
+  committed the task as `33281cd4`. Verified against the tree, not the record:
+  `src/resolve/http.rs` exists with `stream_client()`, both resolvers build
+  through it (`youtube.rs`, `radio.rs`), `tests/resolver_timeouts.rs` is present,
+  and `bot/src/main.rs:95` carries the fallible `RadioResolver::new`.
 - **Confirmed, then fixed (2026-08-04).** Same shape as [ai #1](ai.md), and the
   same outcome: the confirmation failed. Two independent hang surfaces, neither
   budgeted.

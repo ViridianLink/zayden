@@ -54,21 +54,32 @@ impl PalworldUploadSweepCron {
                     },
                 };
 
-                for path in paths {
-                    let target = Path::new(&path);
-                    let removed = target.parent().map_or_else(
-                        || std::fs::remove_file(target),
-                        std::fs::remove_dir_all,
-                    );
-                    if let Err(e) = removed {
-                        warn!(
-                            error = %e,
-                            path,
-                            "palworld: failed to remove expired upload"
-                        );
-                    }
-                }
+                remove_expired_uploads(paths).await;
             })
         })
+    }
+}
+
+pub async fn remove_expired_uploads(paths: Vec<String>) {
+    if paths.is_empty() {
+        return;
+    }
+
+    let removal = tokio::task::spawn_blocking(move || {
+        for path in paths {
+            let target = Path::new(&path);
+            let removed = target.parent().map_or_else(
+                || std::fs::remove_file(target),
+                std::fs::remove_dir_all,
+            );
+            if let Err(e) = removed {
+                warn!(error = %e, path, "palworld: failed to remove expired upload");
+            }
+        }
+    })
+    .await;
+
+    if let Err(e) = removal {
+        error!(error = ?e, "palworld: upload sweep removal task failed");
     }
 }
