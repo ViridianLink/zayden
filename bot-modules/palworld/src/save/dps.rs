@@ -29,6 +29,25 @@ pub fn list_files(save_dir: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
+pub async fn list_files_with_mtime(save_dir: &Path) -> Vec<(PathBuf, u64)> {
+    let save_dir = save_dir.to_path_buf();
+
+    tokio::task::spawn_blocking(move || {
+        list_files(&save_dir)
+            .into_iter()
+            .filter_map(|path| {
+                let meta = std::fs::metadata(&path).ok()?;
+                Some((path, super::mtime_nanos(&meta)))
+            })
+            .collect()
+    })
+    .await
+    .unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "palworld: Pal storage listing task failed");
+        Vec::new()
+    })
+}
+
 pub fn load_file(path: &Path) -> Result<StoredPals> {
     let raw = std::fs::read(path)?;
     parse(&raw)

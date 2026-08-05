@@ -19,7 +19,7 @@ good example of #4 done right. Minor: one inline test module and one blocking
   (the crate already has 12 integration files — harness is established).
 
 ### 2. Confirm `cron.rs` `std::fs::remove_file` is not on the async reactor  ·  #3  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 916dbcbf`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Confirmed, then fixed (2026-08-05).** The third untagged "confirm X" item,
   after [ai #1](ai.md) and [music #2](music.md) — and the third whose
   confirmation **failed**. Its lesson is that a "confirm" finding's cited
@@ -97,7 +97,56 @@ good example of #4 done right. Minor: one inline test module and one blocking
   live server ops in-bot. See [CC-8](_cross-cutting.md#cc-8).
 
 ### 4. `stat`/`read_dir` on the async path in the cache-key lookups  ·  #3  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Confirmed and fixed (2026-08-05).** Both cited sites reproduced exactly as
+  recorded; neither had moved since the finding was written the same day.
+- **Fix — two different shapes, because the two sites are not the same size.**
+  The finding suggested one remedy ("fold the stat into the `spawn_blocking`
+  that already follows it") and named `level_mtime` as a second precedent. Which
+  one applies turns on how much work the key derivation is:
+  - `player_record` (`client.rs:330`) derives its key from **one** stat, and the
+    `spawn_blocking` it precedes is skipped entirely when the save is missing or
+    the cache already holds the record. Folding a single stat into that closure
+    would mean spawning a blocking task to answer a question that decides whether
+    to spawn one. `file_mtime` is now `async` over `tokio::fs::metadata` —
+    `level_mtime` (`:641`), which had the identical job, already did this.
+  - `storage_pals` (`client.rs:403-404`) is the opposite: a `read_dir` plus one
+    stat *per* `*_dps.sav`, an unbounded batch, all of it before the first parse
+    is spawned. That is worth its own hop, and it must be **one** hop for the
+    directory rather than one per file — the same "batch, don't iterate the
+    offload" lesson [#2](#2-confirm-cronrs-stdfsremove_file-is-not-on-the-async-reactor--3--low)
+    recorded. It moved to `save::dps::list_files_with_mtime`, which returns
+    `Vec<(PathBuf, u64)>` from a single `spawn_blocking`; the cache probe and the
+    per-file parse spawns stay on the async side, unchanged.
+- **`mtime_nanos` moved** from `client.rs` to `save/mod.rs` (now `pub`) so the
+  listing helper and the two client-side callers share one definition rather than
+  the key being derivable two ways. `list_files` itself is untouched and stays a
+  pure listing.
+- **Regression test** `tests/cache_key_offload.rs`, 3 tests, **2 fail-before /
+  3 pass-after** in 0.02 s. The guard is `#2`'s: cap the runtime's blocking pool
+  at one thread, occupy it, and assert the subject's **first poll** is `Pending`.
+  A future that stats inline is `Ready` from that poll, having already spent the
+  reactor thread.
+  - `player_record` needed one extra idea to be observable. Its downstream
+    `spawn_blocking` parse would return `Pending` on the first poll either way,
+    masking the defect — so the test asks for a save that **does not exist**,
+    where the lookup short-circuits to `Ok(None)` the moment the mtime comes back
+    empty and nothing downstream can hide the stat. It is the same syscall on the
+    cache-hit and parse paths; this is just the case that isolates it.
+  - The helper deliberately does not re-poll a future that already returned
+    `Ready`: doing so panics with "async fn resumed after completion", which
+    masked the assertion message on the first fails-before run.
+- **Gates:** `cargo +nightly clippy --workspace --all-targets -- -D warnings`
+  clean (exit 0, and bacon's own pass exported an empty `.bacon-locations`);
+  `cargo test --workspace --no-fail-fast` **615 passed / 0 failed** (612 before,
+  plus these 3); `cargo +nightly fmt`. No SQL touched, so no `.sqlx` regen; no
+  `Cargo.toml` change (`tokio`'s `fs` and `rt` features were already on), so no
+  `cargo machete`; no dashboard code, so no feature checks. No new
+  `#[allow]`/`#[expect]`.
+- **Residual:** `local_mtime_secs` (`client.rs:636`) is the crate's third sync
+  `std::fs::metadata`, and it was **checked and is clean** — both call sites
+  (`:540`, `:578`) are already inside `spawn_blocking`. The Pelican refresh path
+  needed no change.
 - **Recorded 2026-08-05** by the [#2](#2-confirm-cronrs-stdfsremove_file-is-not-on-the-async-reactor--3--low)
   close-out. Not part of that finding — #2 named `cron.rs` and `save/mod.rs`, and
   both of those are now resolved — but found while proving its second half.

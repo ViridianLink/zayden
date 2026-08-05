@@ -327,7 +327,7 @@ impl PalworldClient {
         let Some(path) = save::player_save_path(&dir, uid) else {
             return Ok(None);
         };
-        let Some(mtime) = file_mtime(&path) else { return Ok(None) };
+        let Some(mtime) = file_mtime(&path).await else { return Ok(None) };
 
         let key = (source, uid.to_string(), mtime);
         if let Some(cached) = self.record_cache.get(&key).await {
@@ -392,6 +392,8 @@ impl PalworldClient {
     }
 
     async fn storage_pals(&self, dir: &Path) -> StoredPals {
+        let entries = save::dps::list_files_with_mtime(dir).await;
+
         let mut out = StoredPals::new();
         let mut merge = |pals: &StoredPals| {
             for (uid, owned) in pals {
@@ -400,9 +402,7 @@ impl PalworldClient {
         };
 
         let mut pending = Vec::new();
-        for path in save::dps::list_files(dir) {
-            let Some(mtime) = file_mtime(&path) else { continue };
-
+        for (path, mtime) in entries {
             if let Some(cached) = self.dps_cache.get(&(path.clone(), mtime)).await {
                 merge(&cached);
                 continue;
@@ -646,16 +646,9 @@ async fn level_mtime(dir: &Path) -> Result<u64> {
             PalworldError::Io(e)
         }
     })?;
-    Ok(mtime_nanos(&meta))
+    Ok(save::mtime_nanos(&meta))
 }
 
-fn mtime_nanos(meta: &std::fs::Metadata) -> u64 {
-    meta.modified()
-        .ok()
-        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-        .map_or(0, |d| u64::try_from(d.as_nanos()).unwrap_or(u64::MAX))
-}
-
-fn file_mtime(path: &Path) -> Option<u64> {
-    std::fs::metadata(path).ok().map(|m| mtime_nanos(&m))
+async fn file_mtime(path: &Path) -> Option<u64> {
+    tokio::fs::metadata(path).await.ok().map(|m| save::mtime_nanos(&m))
 }
