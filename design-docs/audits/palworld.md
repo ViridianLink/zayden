@@ -97,7 +97,12 @@ good example of #4 done right. Minor: one inline test module and one blocking
   live server ops in-bot. See [CC-8](_cross-cutting.md#cc-8).
 
 ### 4. `stat`/`read_dir` on the async path in the cache-key lookups  ·  #3  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 6d51f6fc`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-08-05):** the marker was left at `in-review` after the human
+  committed the task as `6d51f6fc`. Verified against the tree, not the record:
+  the commit carries `client.rs`, `save/dps.rs`, `save/mod.rs` and
+  `tests/cache_key_offload.rs`, and `client.rs` now has no `std::fs::metadata`
+  on `file_mtime`.
 - **Confirmed and fixed (2026-08-05).** Both cited sites reproduced exactly as
   recorded; neither had moved since the finding was written the same day.
 - **Fix — two different shapes, because the two sites are not the same size.**

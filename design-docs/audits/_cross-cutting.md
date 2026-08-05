@@ -612,7 +612,53 @@ served by the website — and two `setup` commands already duplicate its writes.
   read-view migrations as UX upgrades, lower priority than de-duplicating writes.
 
 ### CC-10. Committed `.sqlx` offline cache is drifted on `main`  ·  #1 / #7  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-05).** Confirmed red, then regenerated. The human stood up a
+  throwaway `postgres:18-alpine` on `:55432`, `sqlx migrate run` applied all **23**
+  migrations to an **empty** `zayden_prepare`, and
+  `cargo sqlx prepare --check --workspace -- --all-features` failed against it —
+  the confirmation the finding admitted it never had. It named **one** file:
+  `query-905f7d2f…` (`lfg::components::edit::EditRow::get`,
+  `bot-modules/lfg/src/components/edit.rs:50-68`). `cargo sqlx prepare --workspace
+  -- --all-features` rewrote exactly that one entry; `--check` then exited 0.
+- **The drift was one inverted `nullable` array, and nothing else.** The committed
+  entry held `[true,true,true,true,true,false]` for
+  `p.owner_id, p.activity, p.start_time, p.description, p.fireteam_size,
+  u.timezone` — i.e. the five `NOT NULL` base-table columns marked nullable and
+  the `LEFT JOIN`ed `timezone` marked non-null, which is backwards on both sides.
+  It is now `[false,false,false,false,false,true]`. Cache total is unchanged at
+  **237** entries: **1 modified, 0 added, 0 deleted**.
+- **Two corrections to this finding's own record, both honest downgrades:**
+  - **The scope was smaller than CC-5 estimated.** CC-5 named three drifted
+    entries; only `905f7d2` was actually drifted. `fc6caa8e` matches the schema
+    today, and the "missing `895e6b8`" this finding cited as offline evidence is
+    **not missing — it no longer exists**: a full regen added zero entries, so the
+    query that once hashed to it was removed from the source by a later refactor.
+    A hash absent from `.sqlx` is only drift if some live `query!` still needs it,
+    which a regen is what proves. Do not read a missing hash as a missing entry.
+  - **No runtime behaviour changed, and could not have.** Every column in this
+    query carries an explicit `!`/`?` override, which is precisely what *overrides*
+    the cached inference — `EditRow`'s field types are byte-identical before and
+    after. This finding's value is entirely the one it claimed: it restores
+    `prepare --check` as a gate that can detect a *future* real drift. It fixed no
+    bug, and should not be recorded as having fixed one.
+- **No regression test, because the gate is the test.** `prepare --check` is a
+  fails-before / passes-after check against the schema itself (red at
+  `6d51f6fc`, exit 0 after), which is strictly stronger than anything a `tests/`
+  file could assert about a JSON cache. A test pinning the `nullable` array would
+  only restate the regenerated file.
+- **Gates (all run with `SQLX_OFFLINE=true`, so they also prove the regenerated
+  cache builds the workspace):** `cargo +nightly clippy --workspace --all-targets
+  -- -D warnings` exit 0 and `.bacon-locations` empty; `cargo test --workspace
+  --no-fail-fast` **615 passed / 0 failed / 7 ignored** (unchanged from the
+  palworld #4 baseline, as expected for a no-behaviour change);
+  `cargo +nightly check -p dashboard --features ssr` exit 0; `cargo +nightly fmt`
+  clean. No `Cargo.toml` change, so no `cargo machete`. No new
+  `#[allow]`/`#[expect]` — no Rust source was touched at all.
+- **Residual:** the regen must be re-run against an **empty** DB, never a
+  populated one — the throwaway was created for this task and dropped after. Also
+  note `.sqlx` now agrees with `migrations/` **as of `0023_verified_role`**; the
+  gate only stays green if future SQL tasks regenerate rather than hand-edit.
 - **Recorded 2026-08-05.** Not a new discovery: [CC-5](#cc-5-runtime-sqlxquery-bypassing-compile-time-macros)
   hit this on 2026-07-24, judged it out of its own scope ("pre-existing, not
   CC-5"), and wrote *"worth its own finding"* — which was never opened. Doing so
