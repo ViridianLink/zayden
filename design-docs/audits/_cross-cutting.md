@@ -612,7 +612,13 @@ served by the website — and two `setup` commands already duplicate its writes.
   read-view migrations as UX upgrades, lower priority than de-duplicating writes.
 
 ### CC-10. Committed `.sqlx` offline cache is drifted on `main`  ·  #1 / #7  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — c294c4b6`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-08-05):** the marker was left at `in-review` after the human
+  committed the task. Verified against the tree, not the record: `c294c4b6`
+  ("fix(query): correct nullable fields in SQL query metadata") touches exactly
+  `.sqlx/query-905f7d2fcb9876da336219551ce67af7fd4a2ac07190806dc8562aebc73742fb.json`
+  — the single entry this fix note names — plus the audit docs, and no Rust
+  source, matching the "1 modified, 0 added, 0 deleted" claim below.
 - **Fix (2026-08-05).** Confirmed red, then regenerated. The human stood up a
   throwaway `postgres:18-alpine` on `:55432`, `sqlx migrate run` applied all **23**
   migrations to an **empty** `zayden_prepare`, and

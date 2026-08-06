@@ -61,6 +61,41 @@ no coverage of the `actions` layer where the M4 permission re-checks live.
   cache, or leave a dated note that manual sync is accepted. Low priority.
 
 ### 4. `actions` layer untested  ·  #6  ·  med
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-06).** `bot-modules/temp-voice/tests/actions_authz.rs` — 15 tests
+  pinning the **gate mapping**: which of the two private guards
+  (`actions/mod.rs:15-29`) each of the 11 mutations uses. Owner-gated: `trust`,
+  `password`, `transfer`, `delete`. Trusted-gated: `kick`, `privacy`, `rename`,
+  `limit`, `bitrate`, `region`. `claim` deliberately uses neither — it is how a
+  non-owner takes over an abandoned channel — so only its own first-statement
+  `UserIsOwner` invariant is covered. Sole non-test change: a `tokio` dev-dep
+  (`macros`, `rt`) on the crate. No `src/` change — **this finding was a missing
+  regression net, not a defect; the gate mapping was already correct.**
+- **The tests assert the exact `PermissionError` variant, not merely "an error."**
+  That is the load-bearing choice. Swapping `require_owner` for `require_trusted`
+  on an owner-only action still rejects an *outsider*, so an outsider-only test
+  would stay green through a real privilege escalation. Each owner-gated action
+  therefore has a **trusted-non-owner** case, which is the only caller that can
+  distinguish the two guards.
+- **Offline by construction.** Every guard returns before its action's first
+  `.await`, so the `Http` (fake-but-well-formed token) and the lazy `PgPool` are
+  constructed and never dialled. No `#[sqlx::test]`, no `DATABASE_URL`, no
+  network — unlike the `gold-star`/`llamad2` CC-6 harnesses.
+- **Verification — guard-removal matrix (CC-6's prescribed substitute for
+  fails-before).** A test written against already-correct code cannot fail first,
+  so each guard was mutated in turn and the suite re-run: **21 mutations, 21
+  caught, 0 survivors.** Both shapes were tried per site — *delete the guard*, and
+  *swap it for the other guard* (the escalation shape). Owner sites are caught by
+  2 tests each, trusted sites by 1.
+  **A correction worth recording:** the first pass scored 21/21 only because it
+  counted 10 **compile errors** as catches. They were not — mutating a guard line
+  alone leaves the other guard un-imported (or the old one unused), so the crate
+  never built and the suite never ran. Those 10 were redone with the `use
+  super::…` line fixed too, so the mutant compiled and the tests genuinely
+  executed; all 10 were then caught for real. **A build error is the compiler
+  rejecting a malformed mutation, not evidence about the test.** Any future
+  mutation-testing verification in this workspace should classify build failures
+  as *invalid mutants to be repaired*, never as passes.
 - **Where:** `src/actions/*` (11 extracted mutations incl. the server-side
   owner/trusted re-checks) vs. `tests/components.rs` (structural button
   assertions only).
