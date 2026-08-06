@@ -12,6 +12,7 @@ workspace = true
 async-trait = { workspace = true }
 base64 = { workspace = true, features = ["std"] }
 dashmap = { workspace = true }
+jiff = { workspace = true }
 jiff-cron = { workspace = true }
 serenity = { workspace = true, features = ["rustls_backend", "gateway"] }
 serde = { workspace = true }

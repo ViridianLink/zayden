@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -10,7 +9,13 @@ use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use tracing::{debug, error, info};
-use zayden_core::{ActionFn, CronJob, CronJobData};
+use zayden_core::{
+    ActionFn,
+    CronJob,
+    CronJobData,
+    earliest_pending,
+    prune_exhausted,
+};
 
 use crate::{BotState, Result};
 
@@ -81,48 +86,12 @@ async fn run_cron_jobs_loop(ctx: Context, pool: PgPool) -> Result<()> {
 }
 
 async fn pending_jobs(ctx: &Context) -> Vec<(Zoned, ActionFn)> {
-    let mut pending_jobs: Vec<(Zoned, ActionFn)> = Vec::new();
-
     let data = ctx.data::<RwLock<BotState>>();
 
     let now = Timestamp::now().to_zoned(TimeZone::UTC);
 
-    let jobs: Vec<(Zoned, ActionFn)> = {
-        let mut data = data.write().await;
-        // TODO(M9-correctness): verify retain predicate - `upcoming().next()`
-        // already returns a future time, so `t > now` may be redundant, and
-        // `includes(t)` on the same schedule's own upcoming result should
-        // always be true.
-        data.jobs_mut().retain(|job| {
-            job.schedule
-                .upcoming(TimeZone::UTC)
-                .next()
-                .is_some_and(|t| t > now && job.schedule.includes(t))
-        });
-        data.jobs()
-            .iter()
-            .filter_map(|job| {
-                job.schedule
-                    .upcoming(TimeZone::UTC)
-                    .next()
-                    .filter(|t| *t > now && job.schedule.includes(t.clone()))
-                    .map(|run_time| (run_time, Arc::clone(&job.action_fn)))
-            })
-            .collect()
-    };
+    let mut state = data.write().await;
 
-    for (run_time, action_fn) in jobs {
-        let cmp = pending_jobs.first().map(|(t, _)| run_time.cmp(t));
-        match cmp {
-            Some(Ordering::Less) | None => {
-                pending_jobs = vec![(run_time, action_fn)];
-            },
-            Some(Ordering::Equal) => {
-                pending_jobs.push((run_time, action_fn));
-            },
-            Some(Ordering::Greater) => {},
-        }
-    }
-
-    pending_jobs
+    prune_exhausted(state.jobs_mut(), &now);
+    earliest_pending(state.jobs(), &now)
 }

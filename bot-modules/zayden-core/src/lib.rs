@@ -19,7 +19,7 @@ pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
 
 pub mod cron;
-pub use cron::{ActionFn, CronJob, CronJobData};
+pub use cron::{ActionFn, CronJob, CronJobData, earliest_pending, prune_exhausted};
 
 pub mod dispatch_map;
 pub use dispatch_map::{DispatchMap, OverlapError};

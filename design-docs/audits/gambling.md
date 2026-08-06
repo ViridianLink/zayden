@@ -125,6 +125,24 @@ use compile-time macros.
   [CC-7](_cross-cutting.md#cc-7).
 
 ### 5. Thin test coverage for size  ·  #6  ·  med
+- **Status:** `complete — closed on sight 2026-08-06 (no fix task)`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Closed on sight (2026-08-06)**, during the bot #4 selection pass's
+  re-derivation of the untagged queue. Verified against the tree, not the record:
+  `bot-modules/gambling/tests/` now holds **11** files, not the one this finding
+  counted — `stamina.rs`, `lotto.rs`, `prestige.rs`, `work.rs`, `dig.rs`,
+  `craft.rs`, `shop_buy.rs`, `shop_sell.rs`, `game_row.rs`, `effects.rs`,
+  `custom_id.rs`. That is the finding's own prescription ("pure-logic `tests/` for
+  payout/odds/stamina math") satisfied item for item, and then some.
+- **Nobody worked this finding** — the coverage is a by-product of the CC-9
+  deep-sweep tasks (DS-9…DS-15) and CC-7, each of which shipped a regression test
+  for the economy path it fixed. Recorded because it is the counter-case to the
+  2026-07-29 "reconcile against the tree" lesson: that lesson caught a fix note
+  claiming work that never happened, and this is the same check finding work that
+  happened without a note. Both directions need the tree, not the record.
+- **Not re-opened as a coverage finding.** The remaining untested surface in this
+  crate is the command/interaction glue, which needs a live `ComponentInteraction`
+  — the same ruling that made [verify #1](verify.md) a `wontfix` under
+  [CC-6](_cross-cutting.md#cc-6).
 - **Where:** one `tests/` file vs. 63 src files of money/economy logic.
 - **Why it matters:** Economy math (payouts, prestige, stamina, lotto odds) is
   exactly the logic that should be pinned by tests before a refactor.

@@ -1,8 +1,10 @@
+use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use jiff::Zoned;
 use jiff_cron::Schedule;
 use serenity::all::Context;
 use sqlx::PgPool;
@@ -66,6 +68,37 @@ impl CronJob {
         self.action_fn = Self::action_fn(f);
         self
     }
+}
+
+fn next_run(job: &CronJob, now: &Zoned) -> Option<Zoned> {
+    job.schedule.after(now.clone()).find(|t| job.schedule.includes(t.clone()))
+}
+
+pub fn prune_exhausted(jobs: &mut Vec<CronJob>, now: &Zoned) {
+    jobs.retain(|job| job.schedule.after(now.clone()).next().is_some());
+}
+
+#[must_use]
+pub fn earliest_pending(jobs: &[CronJob], now: &Zoned) -> Vec<(Zoned, ActionFn)> {
+    let mut pending: Vec<(Zoned, ActionFn)> = Vec::new();
+
+    for job in jobs {
+        let Some(run_time) = next_run(job, now) else {
+            continue;
+        };
+
+        match pending.first().map(|(t, _)| run_time.cmp(t)) {
+            Some(Ordering::Less) | None => {
+                pending = vec![(run_time, Arc::clone(&job.action_fn))];
+            },
+            Some(Ordering::Equal) => {
+                pending.push((run_time, Arc::clone(&job.action_fn)));
+            },
+            Some(Ordering::Greater) => {},
+        }
+    }
+
+    pending
 }
 
 impl Debug for CronJob {

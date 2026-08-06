@@ -61,7 +61,13 @@ no coverage of the `actions` layer where the M4 permission re-checks live.
   cache, or leave a dated note that manual sync is accepted. Low priority.
 
 ### 4. `actions` layer untested  ·  #6  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 2503adc1`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-08-06):** the marker was left at `in-review` after the human
+  committed the task as `2503adc1` ("Add test for temp voice actions"). Verified
+  against the tree, not the record: the commit carries
+  `bot-modules/temp-voice/tests/actions_authz.rs` (315 lines) and the `tokio`
+  dev-dep in `bot-modules/temp-voice/Cargo.toml`, and touches no `src/` file —
+  matching this note's "pure regression net, no `src/` change" claim.
 - **Fix (2026-08-06).** `bot-modules/temp-voice/tests/actions_authz.rs` — 15 tests
   pinning the **gate mapping**: which of the two private guards
   (`actions/mod.rs:15-29`) each of the 11 mutations uses. Owner-gated: `trust`,

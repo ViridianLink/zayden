@@ -61,7 +61,145 @@ tests (no lib target).
 - **Note:** `gold_star.rs` additionally uses runtime SQL — see
   [CC-5](_cross-cutting.md#cc-5) / [gold-star.md](gold-star.md).
 
-### 4. Handful of `unwrap()`/`expect()` + a correctness TODO  ·  #3 / #2  ·  low
+### 4. Handful of `unwrap()`/`expect()` + a correctness TODO  ·  #3 / #2  ·  low → **med in practice**
+- **Status:** `complete — 12f6b01e`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Committed 2026-08-06 as `12f6b01e`** ("Refactored pending_jobs") during the
+  review round, so the code landed before this note was finished. Verified
+  against the tree, not the record: the commit carries the `prune_exhausted`
+  split (`bot/src/cron.rs:93-96` takes the write guard and prunes), all **10**
+  tests in `zayden-core/tests/cron.rs`, and the `bot/src/reset.rs` deletion.
+- **Fix (2026-08-06).** The fifth untagged "confirm X" item, and the fifth to
+  **fail its confirmation** — on both halves, in opposite directions. Neither
+  half was what the finding described.
+- **Half 1 — the 6 `unwrap()`s were not live code.** All six sit in
+  `bot/src/reset.rs`, a file that is **not `mod`-declared** in `main.rs`
+  (`bindings`, `cron`, `error`, `handler`, `registry`, `sqlx_lib`, `state`,
+  `webhook_logger` — no `reset`) and is referenced from nowhere in the
+  workspace. It has never compiled, so there was nothing to "verify the
+  `unwrap()`s are on genuinely-infallible values" *about*: rustc never type-checked
+  them and `-D warnings` never saw the file. It is the same orphaned-tree class as
+  **DS-2** below (`bindings/moderation`, `bot.md:213`), which is why the sweep's
+  per-crate lens missed both.
+  What it actually contained was a hand-run dev DB-reset script whose one
+  uncommented statement is `TRUNCATE TABLE gambling_effects RESTART IDENTITY`
+  — destructive economy SQL, unreviewed because unbuildable. **Deleted.** The
+  2026-07-29 reserved-consts policy does not protect it: that covers reserved
+  *catalogue items* (shop items), not an orphaned script.
+- **Half 2 — the cron TODO was a real defect, not a redundancy.** The TODO
+  guessed that `t > now` and `includes(t)` were both redundant. Half right:
+  - `t > now` **is** redundant. `Schedule::upcoming(tz)` is
+    `after(Zoned::now())`, and the iterator yields times strictly after its start
+    point, which is never earlier than the `now` captured a few lines above.
+  - `includes(t)` is **not**. `jiff_cron 0.3.0`'s `next_after` has a fast path
+    (round the start time up to the next whole second; return it if every field
+    matches) that checks seconds, minutes, hours, day-of-month, month and year —
+    **but not day-of-week** (`schedule.rs:218-241` vs. the `days_of_week` check at
+    `:300-306`, which only guards the slow path). So a `Fri`-only schedule sampled
+    at Thursday 16:59:59.5 proposes **Thursday 17:00:00**, and the same schedule's
+    `includes` correctly rejects it. Reproduced as a test, not reasoned about:
+    `jiff_cron_after_can_propose_a_wrong_weekday`.
+- **Why that mattered:** the old code fed that rejection into
+  `data.jobs_mut().retain(...)` — so a job whose schedule *momentarily*
+  mispredicted was **permanently deleted from `BotState`** for the life of the
+  process, silently, with no log line. Four registered jobs are weekday-restricted
+  and therefore exposed: gambling `lotto` and `higherlower`
+  (`"0 0 17 * * Fri *"`), destiny2 `endgame_analysis_sheet_weekly`
+  (`"0 0 0 * * Mon *"`), marathon `marathon_schedule_announce`
+  (`"0 0 17,18 * * Sun,Thu *"`). A lost `lotto` job means the draw never runs
+  again until restart — the same silent-cron class as the seventh pass's
+  prod findings, which is why this is recorded as **med in practice** against the
+  audit's `low`.
+- **Fix shape — the two predicates are now separate functions, which is the whole
+  point.** The old `retain` conflated *"this candidate is invalid"* with *"this
+  schedule is over"*, and that conflation is the defect. Split in `zayden-core`:
+  - `earliest_pending(&[CronJob], &Zoned)` selects, and takes a **shared slice**,
+    so removing a job is not expressible there at all. Its `includes` guard is
+    kept and **strengthened** from `.next().filter(includes)` to
+    `.find(includes)`, so a wrong-weekday proposal makes the job resolve to its
+    real next occurrence (Friday) instead of vanishing from the tick. At most one
+    candidate is ever skipped — the fast path only fires for a sub-second start
+    time, and every value the iterator yields after that is whole-second.
+  - `prune_exhausted(&mut Vec<CronJob>, &Zoned)` removes, under the *only* safe
+    predicate: `.next().is_none()`, meaning the schedule has no occurrence left
+    at all. Deliberately **not** `next_run` — an `includes` rejection must never
+    remove anything.
+- **The prune is load-bearing, and dropping it was a regression I nearly shipped.**
+  An intermediate version of this fix deleted the `retain` outright and moved
+  `pending_jobs` to a **read** guard. That is wrong: LFG reminders are *one-shot*
+  jobs — `lfg::cron::create_reminders` builds four year-pinned schedules per post
+  (`"0 {min} {hour} {day} {month} * {year}"`, `reminders.rs:28-106`) — and once
+  fired their iterator is empty forever. Verified, not assumed:
+  `Schedule::from_str("0 30 14 3 6 * 2024").after(2026-08-06).next()` is `None`.
+  `jobs_mut()` has exactly two callers in the workspace, both in
+  `reminders.rs:112-113`, and the `retain` there only evicts the post's **own**
+  id before re-adding it — so nothing collects a *fired* reminder. Without the
+  prune every LFG post leaks four `CronJob`s for the process lifetime, and each
+  dead job costs a **failed ordinal search** (the expensive `next_after` path,
+  which walks to the year ceiling before returning `None`) on every tick. Caught
+  by the reviewer, not by the gate — no test covered the lifecycle because none
+  existed.
+- **So `pending_jobs` still takes a write guard**, and the "read guard" win the
+  intermediate version claimed is withdrawn. Two corrections to that claim while
+  it is being withdrawn: the guard is **not** taken every ~5 s — `pending_jobs`
+  runs once per scheduling *cycle*, and a cycle is the gap to the next due job
+  (~2 min with the current set, whose most frequent member is palworld's
+  `save_refresh`; the 5 s is only a floor on the tail sleep). And it is held for
+  microseconds of synchronous work. The contention was never the problem worth
+  trading correctness for.
+- **Why `bot` could host no test, and what changed:** `bot` has no `[lib]` target
+  (the CC-6 / DS-3 constraint). Rather than record another "structurally
+  infeasible", the pure selection logic moved into `zayden-core` — the
+  [CC-2](_cross-cutting.md#cc-2) `DispatchMap` precedent, and llamad2's "reaching
+  the logic may need a small extraction". `bot/src/cron.rs::pending_jobs` is now
+  6 lines of ctx/lock plumbing over a tested function.
+- **Verification.** `bot-modules/zayden-core/tests/cron.rs`, 10 tests. The logic was
+  extracted and fixed in one step so no test can fail against the literal
+  pre-image; the CC-6 guard-removal matrix stands in, and **both** mutations are
+  caught by `weekday_restricted_job_resolves_past_a_wrong_weekday_candidate`:
+  `.find(includes)` → `.next()` (no guard) resolves to Thursday 17:00;
+  `.find(includes)` → `.next().filter(includes)` (the exact old predicate) leaves
+  the job unscheduled (0 pending). Wrong-day *execution* is prevented by that
+  guard; wrong-day *deletion* is prevented **structurally**, by
+  `earliest_pending`'s `&[CronJob]` signature rather than by an assertion — stated
+  plainly rather than claimed as test coverage. The one-shot lifecycle the
+  reviewer surfaced has three of its own: `a_fired_one_shot_is_not_pending`,
+  `fired_one_shots_are_pruned` (fired LFG jobs go, recurring and future ones
+  stay), and `a_recurring_job_survives_the_wrong_weekday_window` — which pins the
+  split predicate directly by pruning all four weekday-restricted schedules in
+  the wrong-weekday window and asserting none is removed.
+- **Gates (`SQLX_OFFLINE=true`):** `cargo +nightly clippy --workspace
+  --all-targets -- -D warnings` exit 0 and `.bacon-locations` empty;
+  `cargo test --workspace --no-fail-fast` **640 passed / 0 failed**, exit 0
+  (630 baseline = CC-10's 615 + temp-voice #4's 15, plus these 10);
+  `cargo machete` clean; `cargo +nightly check -p dashboard --features ssr`
+  exit 0; `cargo +nightly fmt` clean. No new `#[allow]`/`#[expect]`. No SQL
+  touched, so no `.sqlx` regen. `Cargo.toml` delta: `jiff` added to `zayden-core`
+  (`Zoned` is now in its public signature) — machete re-run for it.
+- **Residual / follow-ups:** the `includes` guard works around an **upstream**
+  bug; the real fix belongs in `jiff_cron`. `jiff_cron_after_can_propose_a_wrong_weekday`
+  asserts the upstream behaviour deliberately, so a future `jiff_cron` bump that
+  fixes it turns that test red rather than letting the workaround rot silently —
+  do not delete it without re-reading `next_after`. Not addressed here: the
+  scheduler still runs only the **strictly-earliest** tied jobs per tick and
+  `join_all`s them onto one task (the palworld #2 observation); that is a separate
+  finding if it is ever worth one.
+- **Also left, and arguably the more interesting residual:** a fired LFG reminder
+  is only collected on the **next scheduling tick**, and a *deleted* post's
+  reminders are never collected early at all — `reminder()` handles
+  `sqlx::Error::RowNotFound` by returning (`reminders.rs:120`), so the job still
+  fires, does nothing, and waits for its year to pass before `prune_exhausted`
+  can see it. That is bounded and harmless, but it means the registry's size
+  tracks *scheduled* posts rather than *live* ones. Worth its own finding only if
+  LFG volume ever makes it matter.
+- **Lesson for the workflow:** a self-flagged `TODO` is a **hypothesis, not a
+  finding**. This one named the right line and got the conclusion backwards, and
+  the third deep-sweep pass had already traced the same scheduler "clean" — so
+  two prior records agreed on the wrong answer. Reproducing the predicate against
+  the library (nine lines, one `#[test]`) settled in a minute what neither read
+  had. The corollary bit on the way out: **deleting the thing you proved wrong is
+  not the same as deleting the thing it was doing.** The `retain` was both a
+  broken guard *and* the registry's only garbage collector; removing it wholesale
+  fixed the first and silently broke the second.
 - **Where:** 6 `unwrap()`/`expect()` sites in `src/` (the only crate with a
   cluster); `src/cron.rs:93` — `// TODO(M9-correctness): verify retain predicate
   - upcoming().next()`.
