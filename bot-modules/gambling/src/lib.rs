@@ -46,6 +46,7 @@ pub use error::{GamblingError, Result};
 pub use game_cache::GameCache;
 pub use games::{
     HigherLower,
+    HigherLowerManager,
     Lotto,
     LottoManager,
     LottoRow,

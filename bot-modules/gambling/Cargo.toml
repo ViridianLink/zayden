@@ -27,6 +27,9 @@ serenity = { workspace = true, features = [
   "gateway",
   "collector",
 ] }
-sqlx = { workspace = true, features = ["bigdecimal", "json"] }
+sqlx = { workspace = true, features = ["bigdecimal", "json", "migrate"] }
 tokio = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }

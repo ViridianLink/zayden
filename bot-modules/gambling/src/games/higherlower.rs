@@ -45,7 +45,7 @@ impl HigherLower {
                 let winners = HigherLowerManager::winners(&mut tx).await?;
                 HigherLowerManager::reset(&mut tx).await?;
 
-                let mut lines = Vec::with_capacity(3);
+                let mut lines = Vec::with_capacity(winners.len());
                 for (winner, payout) in winners.into_iter().zip([3, 2, 1]) {
                     GamblingManager::add_gems(&mut tx, winner, payout).await?;
 
@@ -62,6 +62,10 @@ impl HigherLower {
                 }
 
                 tx.commit().await?;
+
+                if lines.is_empty() {
+                    return Ok(());
+                }
 
                 CHANNEL_ID
                     .widen()
