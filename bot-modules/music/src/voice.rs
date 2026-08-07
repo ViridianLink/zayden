@@ -29,8 +29,21 @@ where
         .map_err(|e| MusicError::Songbird(e.to_string()))
 }
 
-pub async fn leave(songbird: &Arc<Songbird>, guild_id: GuildId) -> Result<()> {
-    songbird.leave(guild_id).await.map_err(|e| MusicError::Songbird(e.to_string()))
+pub async fn end_session(
+    songbird: &Arc<Songbird>,
+    music: &MusicManager,
+    guild_id: GuildId,
+) -> Result<()> {
+    let _ = music.remove(guild_id);
+
+    if let Some(call) = get_call(songbird, guild_id) {
+        let mut guard = call.lock().await;
+        guard.stop();
+        guard.remove_all_global_events();
+        drop(guard);
+    }
+
+    songbird.remove(guild_id).await.map_err(|e| MusicError::Songbird(e.to_string()))
 }
 
 #[must_use]

@@ -205,10 +205,11 @@ impl EventHandler for InactivityCheck {
         };
 
         if should_disconnect {
-            if let Err(e) = voice::leave(&self.songbird, self.guild_id).await {
+            if let Err(e) =
+                voice::end_session(&self.songbird, &self.music, self.guild_id).await
+            {
                 warn!(error = ?e, guild_id = %self.guild_id, "failed to auto-disconnect");
             }
-            let _ = self.music.remove(self.guild_id);
             return Some(Event::Cancel);
         }
 

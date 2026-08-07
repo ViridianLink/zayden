@@ -109,9 +109,7 @@ impl ControlPanel {
         let settings = ctx.settings().await?;
         ctx.require_privileged(&settings)?;
 
-        voice::leave(&ctx.songbird, ctx.guild_id).await?;
-        let _ = ctx.music.remove(ctx.guild_id);
-        Ok(())
+        voice::end_session(&ctx.songbird, &ctx.music, ctx.guild_id).await
     }
 
     async fn cycle_loop(ctx: &PanelCtx<'_>) -> Result<()> {

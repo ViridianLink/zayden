@@ -14,8 +14,7 @@ pub(super) async fn run(ctx: &MusicCtx<'_>) -> Result<()> {
     let settings = ctx.settings().await?;
     ctx.require_privileged(&settings)?;
 
-    voice::leave(&ctx.songbird, ctx.guild_id).await?;
-    let _ = ctx.music.remove(ctx.guild_id);
+    voice::end_session(&ctx.songbird, &ctx.music, ctx.guild_id).await?;
 
     ctx.interaction
         .edit_response(
