@@ -1,18 +1,11 @@
 use std::time::Duration;
 
-use serenity::all::{
-    Context,
-    CreateCommand,
-    ErrorResponse,
-    Guild,
-    GuildId,
-    HttpError,
-    StatusCode,
-};
+use serenity::all::{Context, CreateCommand, Guild, GuildId};
 use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tokio::time::sleep;
 use tracing::{info, warn};
+use zayden_core::is_transient;
 
 use super::Handler;
 use crate::{BotState, Result};
@@ -73,15 +66,4 @@ async fn set_commands(
     }
 
     Ok(())
-}
-
-fn is_transient(error: &serenity::Error) -> bool {
-    let serenity::Error::Http(http) = error else { return false };
-
-    if let HttpError::UnsuccessfulRequest(ErrorResponse { status_code, .. }) = http {
-        return status_code.is_server_error()
-            || *status_code == StatusCode::TOO_MANY_REQUESTS;
-    }
-
-    matches!(http, HttpError::Request(_))
 }

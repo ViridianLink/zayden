@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use honeypot::HoneypotHit;
+use honeypot::{HoneypotHit, HoneypotOutcome};
 use serenity::all::{CreateCommand, UserId};
 use zayden_app::state::AppState;
 use zayden_core::ctx::InvocationCtx;
@@ -44,11 +44,16 @@ impl ModuleCommand for Honeypot {
 }
 
 pub async fn record_hit(app: &Arc<AppState>, hit: &HoneypotHit) -> sqlx::Result<()> {
+    let kind = match hit.outcome {
+        HoneypotOutcome::SoftBanned => InfractionKind::SoftBan,
+        HoneypotOutcome::BanStanding => InfractionKind::Ban,
+    };
+
     NewInfraction {
         guild_id: hit.guild_id,
         target_id: hit.user_id,
         target_username: &hit.username,
-        kind: InfractionKind::SoftBan,
+        kind,
         moderator_id: UserId::new(app.zayden_id),
         moderator_username: HONEYPOT_MODERATOR,
         points: HONEYPOT_POINTS,

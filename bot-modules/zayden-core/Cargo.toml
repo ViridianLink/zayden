@@ -22,3 +22,6 @@ tokio = { workspace = true, features = ["time"] }
 tracing = { workspace = true }
 reqwest = { workspace = true }
 zayden-app = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt", "test-util"] }

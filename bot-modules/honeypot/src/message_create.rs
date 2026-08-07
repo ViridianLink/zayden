@@ -5,6 +5,7 @@ use serenity::all::{ChannelId, Context, GuildId, Message, UserId};
 use tracing::{debug, error, warn};
 use zayden_app::config::HoneypotSettingsRow;
 use zayden_core::as_u64;
+use zayden_core::retry::{RetryBudget, retry_transient};
 
 use crate::error::Result;
 use crate::guard::GUARD;
@@ -17,12 +18,21 @@ fn purge_seconds() -> u32 {
     u32::try_from(PURGE_WINDOW.as_secs()).unwrap_or(u32::MAX)
 }
 
+const UNBAN_RETRY: RetryBudget = RetryBudget::new(3, Duration::from_millis(250));
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HoneypotOutcome {
+    SoftBanned,
+    BanStanding,
+}
+
 #[derive(Debug, Clone)]
 pub struct HoneypotHit {
     pub user_id: UserId,
     pub username: String,
     pub guild_id: GuildId,
     pub channel_id: ChannelId,
+    pub outcome: HoneypotOutcome,
 }
 
 pub async fn message_create(
@@ -75,27 +85,41 @@ pub async fn message_create(
         return Err(e.into());
     }
 
-    if let Err(e) = guild_id.unban(&ctx.http, author_id, Some(REASON)).await {
-        error!(
-            %guild_id,
-            %author_id,
-            error = %e,
-            "honeypot soft-ban left a standing ban: unban failed",
-        );
-    }
+    let unban = retry_transient(UNBAN_RETRY, || {
+        guild_id.unban(&ctx.http, author_id, Some(REASON))
+    })
+    .await;
 
-    warn!(
-        %guild_id,
-        %author_id,
-        username = %msg.author.name,
-        %channel_id,
-        "honeypot soft-banned a member",
-    );
+    let outcome = match unban {
+        Ok(()) => {
+            warn!(
+                %guild_id,
+                %author_id,
+                username = %msg.author.name,
+                %channel_id,
+                "honeypot soft-banned a member",
+            );
+            HoneypotOutcome::SoftBanned
+        },
+        Err(e) => {
+            error!(
+                %guild_id,
+                %author_id,
+                username = %msg.author.name,
+                %channel_id,
+                error = %e,
+                attempts = UNBAN_RETRY.attempts,
+                "honeypot unban failed after retries: the ban is still standing",
+            );
+            HoneypotOutcome::BanStanding
+        },
+    };
 
     Ok(Some(HoneypotHit {
         user_id: author_id,
         username: msg.author.name.to_string(),
         guild_id,
         channel_id,
+        outcome,
     }))
 }

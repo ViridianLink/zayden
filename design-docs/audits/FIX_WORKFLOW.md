@@ -255,6 +255,45 @@ plus (2026-07-31) one **new** finding that the CC-6 close-out surfaced:
 > an 8-point pass, and therefore the only place a *new* `DS-#` can come from
 > without re-auditing. Everything else in the queue is a build, not a fix.
 
+> **Intake note (2026-08-07, `7e75cc79`):** the tagged backlog was at **zero
+> `open` findings** again, and this time the untagged list held nothing
+> defect-shaped — the 2026-08-06 note's prediction held exactly. So the pass ran
+> the thing that note pointed at: the **8-point audit of `honeypot`**, the last
+> unaudited crate. That is a [`README.md`](README.md) task, not a FIX_WORKFLOW
+> one, and it is worth recording that the distinction is now load-bearing: **an
+> empty fix queue is a signal to audit, not a signal to stop.** The workspace is
+> now at full 8-point coverage, and the queue has nine `open` findings again.
+>
+> **What the pass found, and what it says about the audit method.** The crate is
+> structurally the cleanest new code in the workspace — no CC-1/CC-2/CC-3/CC-5
+> debt, zero `#[expect]`, settings correctly on the shared `SettingsStore`, and
+> a `tests/policy.rs` whose comments record *why* each exemption case is what it
+> is. It would pass a checklist skim. Both `med` defects
+> ([#1](honeypot.md), [#2](honeypot.md)) sit in the ~40 lines that test file
+> deliberately stops short of: the **action path**. The lesson is the inverse of
+> [bot #4](bot.md)'s — that one showed a self-flagged TODO is a hypothesis; this
+> one shows **a good test file marks its own blind spot.** `tests/policy.rs`
+> covers the decision and not the act, so the act is where two defects lived.
+> Read what a test suite *declines* to cover as the audit's first lead.
+>
+> **Second lesson, on scoping a finding.** [#3](honeypot.md) presents as a
+> honeypot bug (the bot command seeds the `guilds` parent row, the dashboard path
+> does not) but every `*_settings` table FKs `guilds(id)`, so all nine share the
+> hazard — honeypot is merely where the **asymmetry between two writers** makes
+> it visible. Fixing it here would be the low-churn path and would leave eight
+> tables exposed. Where a module finding's root cause is workspace-shaped, open
+> the CC first and let the module finding close with it; the `guilds` seed wants
+> one owner (`SettingsStore` or `guild_create`), which is the CC-5 / ticket #2
+> "one owner for the SQL" pattern again.
+>
+> **Also reconciled:** [bot.md](bot.md) records bot #4 as `complete — 12f6b01e`,
+> a sha not on `main`. The commit was amended into **`7e75cc79`** with identical
+> content (verified: `git show --stat` on both lists the same 11 paths and the
+> same `src/` deltas; only the audit-doc line counts differ). Marker corrected —
+> and note this is the 2026-07-29 "reconcile against the tree, not the record"
+> lesson catching a *sha*, not a claim: a fix note can name a commit that no
+> longer exists without anything being wrong with the fix.
+
 | Finding | Sev | Note |
 |---------|-----|------|
 | ~~[`CC-4`](_cross-cutting.md) — `RIGGED_LUCK` dead const + its `#[expect(dead_code)]`~~ | low | **Done (`a2c6f652`).** `GameState` half died with CC-1 (`83930148`); the `items.rs:192` half was deleted here. Its follow-up [gambling #2b](gambling.md) (`WEAPON_CRATE`) is **`wontfix`** — see the policy note below. |
@@ -271,7 +310,14 @@ plus (2026-07-31) one **new** finding that the CC-6 close-out surfaced:
 | ~~[gambling #5](gambling.md) — thin test coverage for size~~ | med | **Closed on sight (2026-08-06)**, during this pass's queue re-derivation. `tests/` holds **11** files now, not the one the finding counted, covering exactly the payout/odds/stamina math it prescribed. No task worked it — the CC-9 deep-sweep tasks (DS-9…DS-15) and CC-7 each shipped a test with their fix. The counter-case to the 2026-07-29 lesson: that one caught a note claiming work never done, this catches work done without a note. Both need the tree. |
 | [`CC-8`](_cross-cutting.md) — dashboard config pages | med | Largest. The active-duplication half is closed (both `setup` commands removed); what's left is *building* music/ticket/suggestions/reaction-roles pages — feature work, not a defect fix. |
 | [`CC-9`](_cross-cutting.md) umbrella | high | Every enumerated site closed. `in-review` — **the human's call to close**, not an agent task. |
-| [honeypot](README.md) — never audited | ? | Not a fix task: the crate landed after the sweep (`c7605e43`) and has had no 8-point pass. Unknown severity *because* it is unaudited, which is itself the argument for scheduling it. |
+| ~~[honeypot](README.md) — never audited~~ | ? → **known** | **Done (2026-08-07, uncommitted).** The audit pass ran; see [honeypot.md](honeypot.md) and the intake note below. Its nine findings are now the queue's only `open` items and are listed immediately below. |
+| [honeypot #1](honeypot.md) — failed `unban` leaves a permanent ban | med | **Top of the queue.** Only workspace code that bans with no human in the loop; the failure mode is a permanent ban on a real member, recorded as a `SoftBan` and visible only in a log line. Most likely during a raid — the design case. |
+| [honeypot #2](honeypot.md) — `GUARD.claim` non-atomic check-then-act | med | CC-9/double-submit shape on a `moka` cache. Breaks the "act once per offender" invariant its own comment asserts; N× ban+unban pairs under a flood, which widens #1. Has a real fails-before test. |
+| [honeypot #3](honeypot.md) — dashboard settings write can violate the `guilds` FK | med | **Open the cross-cutting finding first.** Every `*_settings` table FKs `guilds(id)`; honeypot is only where the asymmetry is visible (bot command seeds, web path doesn't). A honeypot-scoped fix leaves eight tables exposed. |
+| [honeypot #7](honeypot.md) — action path + authz gate untested | med | The untested surface is exactly where #1 and #2 survived. Sequence it *after* #1/#2, not before — #2 ships its own guard test and #1's fix determines what seam `message_create` can be tested through. |
+| [honeypot #5](honeypot.md) — `/honeypot set` duplicates the dashboard form | med | CC-8 class, same as lfg #4 / temp-voice #5. **Direction finding, needs the owner's ruling** — not an agent task until then. |
+| [honeypot #4](honeypot.md) — ban reason literal duplicated across two crates | low-med | [verify #2](verify.md) class, smaller blast radius (desyncs the Discord audit log from `/logs`, breaks no feature). |
+| [honeypot #6](honeypot.md), [#8](honeypot.md), [#9](honeypot.md) | low | Dead `HoneypotHit.channel_id` (gambling #2b blind spot); `GUARD.forget` clearing the wrong cache; hardcoded 24 h `PURGE_WINDOW`. Batch or fold into adjacent work. |
 
 > **Policy recorded 2026-07-29 (reserved/dead consts):** do **not** delete
 > reserved catalogue items (shop items and the like) — they are planned features.

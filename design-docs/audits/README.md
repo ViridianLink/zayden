@@ -120,8 +120,10 @@ already verified.>
 
 ## Workspace coverage (all 20 crates)
 
-> **Stale as of 2026-07-31:** `bot-modules/` now holds **18** crates — `honeypot`
-> landed after this sweep and has never been audited. See the Progress table.
+> **Corrected 2026-08-07:** `bot-modules/` holds **18** crates — `honeypot`
+> landed after this sweep and was the last unaudited one. It now has a full pass
+> ([honeypot.md](honeypot.md)), so the list below is short by one name but the
+> coverage it describes is complete. See the Progress table.
 
 The real workspace is `bot`, `zayden-app`, `dashboard`, and the 17
 `bot-modules/*` crates. Two coverage corrections vs. the original draft of this
@@ -181,4 +183,4 @@ Then breadth-first across the rest:
 | llamad2 | ☑ | [llamad2.md](llamad2.md) |
 | dashboard | ☑ | [dashboard.md](dashboard.md) |
 | bot | ☑ | [bot.md](bot.md) |
-| **honeypot** | ☐ | — **never audited.** Added after the sweep (crate + `migrations/0022_honeypot`, `c7605e43`, 2026-07-30), so it is absent from the 20-crate coverage list above. Needs a full 8-point pass; note it already ships `tests/policy.rs`. Recorded 2026-07-31. |
+| **honeypot** | ☑ | [honeypot.md](honeypot.md) — audited 2026-08-07 (`7e75cc79`). Added after the sweep (crate + `migrations/0022_honeypot`, `c7605e43`, 2026-07-30), so it is absent from the 20-crate coverage list above; the gap was recorded 2026-07-31 and closed by this pass. **The workspace now has full 8-point coverage.** |

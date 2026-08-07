@@ -27,6 +27,15 @@ pub use dispatch_map::{DispatchMap, OverlapError};
 pub mod modals;
 pub use modals::{parse_modal_components, parse_text_components};
 
+pub mod retry;
+pub use retry::{
+    RetryBudget,
+    is_transient,
+    retry,
+    retry_transient,
+    status_is_transient,
+};
+
 pub mod templates;
 
 pub mod error;

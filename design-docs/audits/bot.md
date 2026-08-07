@@ -62,8 +62,16 @@ tests (no lib target).
   [CC-5](_cross-cutting.md#cc-5) / [gold-star.md](gold-star.md).
 
 ### 4. Handful of `unwrap()`/`expect()` + a correctness TODO  ·  #3 / #2  ·  low → **med in practice**
-- **Status:** `complete — 12f6b01e`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Committed 2026-08-06 as `12f6b01e`** ("Refactored pending_jobs") during the
+- **Status:** `complete — 7e75cc79`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Sha corrected 2026-08-07.** This marker read `complete — 12f6b01e`, which is
+  not on `main`: the commit was amended (the audit-doc hunk grew) and the landed
+  commit is **`7e75cc79`**, same message, identical `src/` content — `git show
+  --stat` on both lists the same 11 paths and the same code deltas, differing
+  only in `bot.md`'s line count. Nothing about the fix changed; the record
+  pointed at a dangling object. Recorded because it is a *new* way for the
+  2026-07-29 "reconcile against the tree" lesson to bite — a sha can go stale
+  without the claim it supports being wrong.
+- **Committed 2026-08-06 as `7e75cc79`** ("Refactored pending_jobs") during the
   review round, so the code landed before this note was finished. Verified
   against the tree, not the record: the commit carries the `prune_exhausted`
   split (`bot/src/cron.rs:93-96` takes the write guard and prunes), all **10**
