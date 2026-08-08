@@ -6,6 +6,7 @@ use serenity::all::{
     CreateCommandOption,
     EditInteractionResponse,
     GenericInteractionChannel,
+    GuildId,
     Permissions,
     ResolvedValue,
 };
@@ -53,33 +54,35 @@ impl Honeypot {
         let (name, sub_options) = parse_subcommand(cx.interaction.data.options())?;
         let options = parse_options(sub_options);
 
+        let guild_id =
+            cx.interaction.guild_id.ok_or(HoneypotError::MissingGuildId)?;
+        require_manage_guild(cx)?;
+
         match name {
-            "set" => set(cx, options).await,
-            "disable" => disable(cx).await,
-            "status" => status(cx).await,
+            "set" => set(cx, guild_id, options).await,
+            "disable" => disable(cx, guild_id).await,
+            "status" => status(cx, guild_id).await,
             _ => Err(HoneypotError::UnknownSubcommand(name.to_string())),
         }
     }
 }
 
-fn require_manage_guild(cx: &InvocationCtx<'_>) -> Result<()> {
-    let privileged = cx
-        .interaction
-        .member
-        .as_ref()
-        .and_then(|member| member.permissions)
-        .is_some_and(Permissions::manage_guild);
+#[must_use]
+pub fn is_privileged(perms: Option<Permissions>) -> bool {
+    perms.is_some_and(Permissions::manage_guild)
+}
 
-    if privileged { Ok(()) } else { Err(HoneypotError::NotPrivileged) }
+fn require_manage_guild(cx: &InvocationCtx<'_>) -> Result<()> {
+    let perms = cx.interaction.member.as_ref().and_then(|member| member.permissions);
+
+    if is_privileged(perms) { Ok(()) } else { Err(HoneypotError::NotPrivileged) }
 }
 
 async fn set(
     cx: &InvocationCtx<'_>,
+    guild_id: GuildId,
     mut options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<()> {
-    let guild_id = cx.interaction.guild_id.ok_or(HoneypotError::MissingGuildId)?;
-    require_manage_guild(cx)?;
-
     let channel: &GenericInteractionChannel =
         required_option(&mut options, "channel")?;
     let channel_id = channel.id().expect_channel();
@@ -106,10 +109,7 @@ async fn set(
     Ok(())
 }
 
-async fn disable(cx: &InvocationCtx<'_>) -> Result<()> {
-    let guild_id = cx.interaction.guild_id.ok_or(HoneypotError::MissingGuildId)?;
-    require_manage_guild(cx)?;
-
+async fn disable(cx: &InvocationCtx<'_>, guild_id: GuildId) -> Result<()> {
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
 
     HoneypotSettings::disarm(&cx.app.settings.honeypot, guild_id).await?;
@@ -126,10 +126,7 @@ async fn disable(cx: &InvocationCtx<'_>) -> Result<()> {
     Ok(())
 }
 
-async fn status(cx: &InvocationCtx<'_>) -> Result<()> {
-    let guild_id = cx.interaction.guild_id.ok_or(HoneypotError::MissingGuildId)?;
-    require_manage_guild(cx)?;
-
+async fn status(cx: &InvocationCtx<'_>, guild_id: GuildId) -> Result<()> {
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
 
     let config = HoneypotSettings::get(&cx.app.settings.honeypot, guild_id).await?;
