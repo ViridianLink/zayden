@@ -4,44 +4,13 @@ _Audited: 2026-07-17 · Commit: `2833ce8`_
 
 ## Summary
 
-Small (~500 LOC), clean `command/` + `reaction/` + manager split. Carries the
-DB-generic `async_trait` pattern (CC-1) and no `tests/`. Otherwise unremarkable.
+Small (~500 LOC), clean `command/` + `reaction/` + manager split with a concrete
+`PgPool` manager and a `tests/` directory. Otherwise unremarkable.
 
 ## Findings
 
-### 1. DB-generic `async_trait` manager  ·  #1  ·  med
-- **Status:** `complete — 52bee6bc`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Fix (2026-07-23):** CC-1 concrete-`PgPool` migration (third module after the
-  `gold-star`/`levels` pilots). Dropped the `#[async_trait] trait
-  ReactionRolesManager<Db: Database>` and its lone `impl … for ReactionRolesTable`
-  binding. The four queries (`create`/`rows`/`row`/`delete`) are now concrete
-  `PgPool` associated functions on `ReactionRole`, with the `query!`/`query_as!`
-  bodies living in the crate (`reaction_roles_manager.rs` renamed to `manager.rs`,
-  matching the pilots). `ReactionRoleCommand::run`/`add`/`remove` and
-  `ReactionRoleReaction::reaction_add`/`reaction_remove` lost their
-  `<Db, Manager>` generics and now take `&PgPool` directly.
-  `bot/src/bindings/reaction_roles` is reduced to `register` + the `ModuleCommand`
-  shim (`ReactionRolesTable` deleted); the two `bot/src/handler/reaction_*`
-  call-sites drop their turbofish. **Behaviour-preserving:** every query string was
-  moved byte-identically (the `create` `query_file!` inlined verbatim, so
-  `bot/sql/reaction_roles/create.sql` was removed), so the `.sqlx` cache is reused
-  unchanged (`git status .sqlx` clean — no regeneration). No `Cargo.toml` dep
-  change (the crate used `serenity::async_trait`, not a direct `async-trait` dep;
-  `cargo machete` clean). Added `tests/manager.rs` pinning the snowflake accessor
-  column-mapping. `reaction-roles`/`suggestions` were the next-smallest; only
-  `suggestions` and the larger generic managers (`gambling`, `family`, `lfg`,
-  `temp-voice`, plus the `zayden-core` traits) now remain on CC-1.
-- **Where:** `src/reaction_roles_manager.rs`, `src/command/*`, `src/reaction/mod.rs`.
-- **What / Why / Fix:** See [CC-1](_cross-cutting.md#cc-1). Small surface — a
-  good early migration.
-
-### 2. No integration tests  ·  #6  ·  low
-- **Where:** no `tests/` directory.
-- **What / Why / Fix:** Add coverage for the emoji→role mapping resolution. See
-  [CC-6](_cross-cutting.md#cc-6).
-
 ### 3. `add`/`remove` mapping CRUD belongs on the dashboard  ·  #8  ·  med
-- **Status:** `complete — eaf63161`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Scope decision (owner, 2026-07-25):** *Partial* move, not the wholesale
   migration the finding proposed — the same per-field lens the music [#3](music.md)
   ruling established, applied to per-*operation*. **`/reaction_role add` stays in
@@ -77,8 +46,7 @@ DB-generic `async_trait` pattern (CC-1) and no `tests/`. Otherwise unremarkable.
     This was reachable before by re-running `/reaction_role add`, and is a
     double-click away now that a web form exists, so both the command
     (`ReactionRoleError::DuplicateMapping`) and `add_reaction_role` reject it.
-  - **No new SQL.** The three existing concrete-`PgPool` queries from the
-    [#1](#1-db-generic-async_trait-manager--1--med) CC-1 migration
+  - **No new SQL.** The three existing concrete-`PgPool` queries
     (`rows`/`create`/`delete`) are reused as-is, so `.sqlx` is untouched.
   - **Emoji normalisation** is the one real hazard: the reaction handler looks
     a mapping up by `reaction.emoji.to_string()`, so anything the dashboard
@@ -126,30 +94,3 @@ DB-generic `async_trait` pattern (CC-1) and no `tests/`. Otherwise unremarkable.
 - #2 Dead code: none found.
 - #3 Async: no blocking I/O; no locks across `.await`.
 - #4 Stringly typing: none of note.
-
-## Deep-sweep findings
-
-_Deep sweep (sixth pass): 2026-07-17 · lenses: silent-failure, state/orphan._
-
-### DS-1. Reaction handler never skips the bot's own reaction → bot is granted every reaction-role  ·  Pass 7 (state) / #8  ·  low
-- **Status:** `complete — 82f308a2`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Fix (2026-07-19):** `reaction_add`/`reaction_remove` now early-return when the
-  reactor is a bot (`reaction.member.user.bot`) before any DB lookup, so the
-  seed-reaction from `/reaction-roles add` no longer grants the role to the bot.
-- **Where:** `src/reaction/mod.rs:9-36` (`reaction_add`); seeded by
-  `src/command/add.rs:66` (`message.react(http, reaction)`).
-- **What:** After `/reaction-roles add` writes the mapping, the bot reacts to the
-  panel message to seed the emoji. That `ReactionAdd` fires with the **bot** as the
-  reactor; `reaction_add` looks the mapping up (now present), takes
-  `reaction.member` (the bot's member, populated on guild reactions) and
-  `add_role`s the reaction-role **to the bot**. There is no
-  `if reaction.member…user.bot { return }` guard, unlike the usual reaction-role
-  pattern.
-- **Failure scenario:** admin runs `/reaction-roles add role:@Verified emoji:✅`.
-  The bot posts the panel, reacts ✅, and immediately grants itself `@Verified`.
-  Repeat for each mapping → the bot accumulates every reaction-role. Harmless in
-  most setups but pollutes the bot's roles and can hand it roles above its intended
-  scope.
-- **Confidence:** confirmed (`add` seeds the reaction; handler has no bot filter).
-- **Suggested fix:** early-return in `reaction_add`/`reaction_remove` when the
-  reactor is a bot (or specifically the current user).

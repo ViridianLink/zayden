@@ -9,83 +9,18 @@ adds its module-specific detail (e.g. exact `path:line`).
 ## Summary
 
 The workspace is in good overall health: compile-time `query!`/`query_as!` is the
-norm, `unwrap()`/`expect()` on live paths is rare, and the newer crates
-(`destiny2`, `ticket`, `marathon`, `palworld`) follow the concrete-`PgPool`
-convention. The dominant residual issue is an **architectural split**: roughly
-half the modules still carry the DB-generic `async_trait` manager pattern that
-the implementation spec deliberately removed from `ticket` and never used in
-`destiny2`. Secondary themes: inline `#[cfg(test)]` modules violating the
-`tests/`-only convention, a cluster of `#[expect(...)]` lint escape-hatches, and
-three genuine runtime-SQL bypasses. A newer, forward-looking theme (**CC-8**):
-now that the web dashboard is live and already owns much of the settings surface,
-a swath of in-bot config/`setup` commands and data-dense displays would be better
-served by the website — and two `setup` commands already duplicate its writes.
+norm across every crate, `unwrap()`/`expect()` on live paths is rare, and every
+module now follows the concrete-`PgPool` convention. Residual themes: inline
+`#[cfg(test)]` modules violating the `tests/`-only convention, a cluster of
+`#[expect(...)]` lint escape-hatches, and recurring `.sqlx` offline-cache drift.
+A forward-looking theme (**CC-8**): now that the web dashboard is live and
+already owns much of the settings surface, a swath of in-bot config/`setup`
+commands and data-dense displays would be better served by the website.
 
 ## Findings
 
-### CC-1. DB-generic `async_trait` manager pattern (should be concrete `PgPool`)  ·  #1  ·  high
-- **Status:** `complete — per-module, see below`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Reconciled (2026-07-29):** No fix was performed by this task — CC-1 was
-  **already fully closed** by the per-module migrations that each cited it, and
-  never had its umbrella status tag set. All eight enumerated modules went
-  concrete:
-
-  | Module | Commit |
-  |--------|--------|
-  | `gambling` | `83930148` |
-  | `family` | `5ac30447` |
-  | `lfg` | `240b47e5` |
-  | `temp-voice` | `611d350b` |
-  | `levels` | `04a8ab2b` |
-  | `reaction-roles` | `c7c535de` |
-  | `suggestions` | `b4bb8582` |
-  | `gold-star` | `c2b4c4cf` |
-
-  **Verified against `bf0d90ff`:** a workspace grep for `<Db`, `Db:`,
-  `Database>`, and `Pool<` (non-`PgPool`) returns **zero** hits in `src/` — the
-  only matches are a doc-comment in `family/tests/manager.rs` describing the
-  migration, and two unrelated field initialisers (`MarathonDb`, `PalDb`).
-  `levels/src/sqlx_lib.rs` is gone, `gold-star/src/manager.rs` is a plain
-  `PgPool` + `FromRow` module, and `zayden-core/src/` carries no manager traits.
-  `async-trait` remains a dependency of only `bot`, `zayden-core`, `music` and
-  `zayden-app`; all eight module crates dropped it.
-- **Not part of this finding (correctly left alone):** the surviving
-  `#[async_trait]` sites are the `ModuleCommand` / `ModuleComponent` /
-  `ModuleModal` / `ModuleAutocomplete` impls in `bot/src/bindings/*`, declared in
-  `zayden-core/src/module.rs`. Those **must** stay boxed — they are consumed as
-  trait objects (`Arc<dyn ModuleCommand>`, `DispatchMap<dyn ModuleComponent>` at
-  `bot/src/registry/mod.rs:31-34`), which native `async fn` in traits does not
-  support. They are the manual serenity routing framework `CLAUDE.md` mandates,
-  not the DB-generic manager pattern this finding describes. Likewise the
-  non-DB `async_trait` traits in `music/src/resolve/` and
-  `zayden-app/src/entitlement/provider/`.
-- **Where:** manager traits declared `<Db: Database>` / `Pool<Db>` and only ever
-  implemented for `Postgres`. Present in: `gambling` (pervasive — `models/*`,
-  `commands/*`, `games/*`), `family` (`family_manager.rs` + all commands),
-  `lfg` (`guild_manager.rs`, `models/*`, all commands/components),
-  `temp-voice` (`voice_channel_manager.rs`, `guild_manager.rs`, actions,
-  components), `levels` (`sqlx_lib.rs`), `reaction-roles`
-  (`reaction_roles_manager.rs`), `suggestions` (`guild_manager.rs`),
-  `gold-star` (`manager.rs`), and the `zayden-core` traits that generalise them.
-- **What:** The manager traits are generic over the sqlx `Database` and take
-  `Pool<Db>`, forcing `#[async_trait]` (heap-boxed futures) and splitting each
-  trait's SQL into a separate `impl … for XxxTable` in `bot/src/bindings/*`. The
-  DB is always Postgres — there is exactly one impl per trait.
-- **Why it matters:** This is the precise indirection the spec removed from
-  `ticket` in Milestone 1 ("removed both generic traits and moved the DB/sqlx
-  code concrete into the ticket module") and never introduced in `destiny2`. The
-  workspace is now split between two conventions for the same job. The generic
-  form costs an allocation per call (`async_trait`), scatters a module's SQL away
-  from the module, and buys nothing — there is no second database.
-- **Suggested fix:** Migrate the remaining generic managers to concrete `PgPool`
-  inherent methods (or non-generic traits) with the `query!`/`query_as!` bodies
-  living in the module crate, mirroring `ticket::TicketRow` /
-  `destiny2::db`. Drop `async_trait` as each one is converted (native
-  `async fn` in traits is stable). Do it one module per PR — `gold-star` and
-  `levels` are the smallest starting points; `gambling` is the largest.
-
 ### CC-2. Inline `#[cfg(test)] mod tests` in `src/` (convention violation)  ·  #6  ·  med
-- **Status:** `complete — de1238d8`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** Relocated the **7 surviving** inline `#[cfg(test)]` modules
   (the original list's `gambling/components/tictactoe.rs` and `family/family_manager.rs`
   sites were already deleted/renamed by the CC-1 migrations) to `tests/` integration
@@ -132,7 +67,7 @@ served by the website — and two `setup` commands already duplicate its writes.
   logic into a lib crate.
 
 ### CC-3. `#[expect(...)]` lint escape-hatches  ·  #7 / #2  ·  low–med
-- **Status:** `complete — 3d787146`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-28):** Triaged **all** sites. The inventory had grown from 22 to
   **27** by fix time (the CC-1 migrations moved SQL into the module crates and
   carried their suppressions with them — the `bot/src/bindings/*` sites in the list
@@ -277,7 +212,7 @@ served by the website — and two `setup` commands already duplicate its writes.
     a suppression (removed by an earlier task); the inventory above is corrected.
 
 ### CC-4. `tictactoe` dead `GameState` stub  ·  #2  ·  low
-- **Status:** `complete — a2c6f652`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Reconciled (2026-07-29):** the marker below was left at `in-review` after the
   human committed the fix; `a2c6f652` ("remove dead code for RIGGED_LUCK and
   update audit findings") is that commit, so the status is now `complete`.
@@ -343,50 +278,8 @@ served by the website — and two `setup` commands already duplicate its writes.
   for the correct end state, not the low-churn path") favours deletion until the
   feature is actually built.
 
-### CC-5. Runtime `sqlx::query(...)` bypassing compile-time macros  ·  #1  ·  med
-- **Status:** `complete — 6049775d`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Fix (2026-07-24):** Converted every remaining runtime-SQL site to compile-time
-  macros. The audit's `gold_star.rs:83` site is already gone (folded into gold-star's
-  CC-1 migration), but a full re-grep found the theme had **grown to 14 sites in 6
-  files across 2 crates**, all now converted:
-  `zayden-app/src/entitlement/service.rs` (6: `revoke_all_by_scope` DELETE,
-  `revoke` DELETE…RETURNING, `refresh_expired_cache_rows` SELECT, `load_tier_from_db`,
-  `aggregate_tier_from_db` MAX, `refresh_cache_row` upsert),
-  `zayden-app/src/config/bot_config.rs:234` (`DbConfigRow` SELECT — dropped its now-dead
-  `#[derive(sqlx::FromRow)]`), and dashboard `middleware/auth.rs`, `server/auth.rs` (×3),
-  `server/tier.rs`, `server/guild.rs`, `web/routes_kofi.rs`. Single-column reads use
-  `query_scalar!`, multi-column use `query!`/`query_as!` — matching the pre-existing
-  `routes_kofi.rs` idiom; the untyped `.get::<T,_>("col")` / `sqlx::Row` accessors and
-  their imports were removed. **`.sqlx`:** regenerated with
-  `cargo sqlx prepare --workspace -- --all-features` against a throwaway **empty,
-  freshly-migrated** Postgres 18 (12 new entries — 14 sites dedup to 12 distinct
-  queries). Following the lfg #4 precedent, unrelated pre-existing drift the full
-  regen surfaced was reverted so the diff is CC-5-only (see **Residual** below).
-  Verified against that DB: `cargo +nightly clippy --workspace --all-targets -D warnings`
-  clean, `-p dashboard --features ssr` clean, `cargo test` green. No new
-  `#[allow]`/`#[expect]`. No test added — a runtime→compile-time-macro conversion has no
-  runtime-behaviour delta; the guarantee *is* the build-time schema check (a wrong column
-  now fails `cargo check` instead of at runtime).
-  **Residual (pre-existing, not CC-5):** `cargo sqlx prepare --check` fails on **clean
-  `main`** — the committed `.sqlx` is already drifted (missing/stale LEFT-JOIN entries:
-  gambling `895e6b8`/`fc6caa8e`, lfg_posts `905f7d2` nullability). This predates and is
-  independent of CC-5; worth its own finding (regenerate the whole cache against an empty
-  DB), left untouched here.
-- **Where:** `bot/src/bindings/gold_star.rs:83` (and the `SELECT` above it),
-  `zayden-app/src/entitlement/service.rs:111,309`,
-  `dashboard/src/middleware/auth.rs:35`.
-- **What:** Hand-written `sqlx::query("…").bind(…)` instead of `query!` /
-  `query_as!`.
-- **Why it matters:** `CLAUDE.md` mandates compile-time macros so SQL is checked
-  against the schema at build. These three sites lose that guarantee (and the
-  `.sqlx/` offline cache coverage). Note these are the *only* genuine runtime-SQL
-  sites — the CC-1 generic-trait modules still use macros in their concrete
-  impls, so they are not part of this finding.
-- **Suggested fix:** Convert to `query!`/`query_as!` and regenerate `.sqlx/`.
-  `gold-star` also has CC-1, so fold this into its concrete-`PgPool` migration.
-
 ### CC-6. Test-coverage gaps  ·  #6  ·  med
-- **Status:** `in-review — all 3 remaining crates worked (gold-star 9a7b8795; llamad2 b5cc3faf; verify wontfix)`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Closing pass (2026-07-31).** All three named crates are now resolved:
   [`gold-star`](gold-star.md#3-no-integration-tests--6--low) closed (`9a7b8795`),
   [`llamad2`](llamad2.md) closed (`b5cc3faf`), and
@@ -470,53 +363,8 @@ served by the website — and two `setup` commands already duplicate its writes.
   (relationship resolution, LFG slot/alt bookkeeping, ticket state transitions).
   DB-touching paths can follow once a test-pool harness exists.
 
-### CC-7. Component `custom_id` string routing (deferred stringly-typing)  ·  #4  ·  low
-- **Status:** `complete — c794fe8f`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Reconciled (2026-08-04):** the marker was left at `in-review` after the human
-  committed the task as `c794fe8f`. Verified against the tree, not the record:
-  `components/custom_id.rs` declares all four enums (`:7`, `:46`, `:76`, `:106`),
-  `GamblingError::NotYourGame` exists (`error.rs:37`), and a grep for the old
-  literal prefixes (`"ttt_`, `"bj_`, `"hl_`, `"prestige_`) outside `custom_id.rs`
-  and `tests/` returns nothing.
-- **Fixed 2026-08-04.** `bot-modules/gambling/src/components/custom_id.rs` adds
-  `BlackjackCustomId`, `HigherLowerCustomId`, `PrestigeCustomId` and
-  `TicTacToeCustomId`, each with `as_str`/`Display` + `FromStr`, following the
-  `LevelsCustomId` precedent. All four routers now `parse::<…>()?` instead of
-  matching literals, and all eleven `CreateButton::new` producers build their id
-  from the enum — so producer and consumer are one source. Wire ids are
-  unchanged, so messages already posted in Discord still route. Regression test:
-  `bot-modules/gambling/tests/custom_id.rs`.
-- **Not just hygiene — it was hiding a live defect.** `components/tictactoe.rs`
-  routed cancel as `"ttt_cancel" if metadata.user == interaction.user`. A match
-  guard that fails falls through to the *next* arm, so a **non-owner's cancel
-  click** reached the coordinate catch-all, which stripped `ttt_` and tried to
-  read `"cancel"` as a board position — surfacing as
-  `Internal("row index not parseable")`, which has no `user_message` and so
-  showed the clicker a generic failure. The ownership check now lives *inside*
-  the `Cancel` arm and returns a new `GamblingError::NotYourGame`
-  ("This isn't your game."). Recorded here rather than as its own `DS-#`: the
-  fall-through is only expressible because the ids were untyped, so it is an
-  instance of this class, not a separate one.
-- **Two deliberate behaviour changes** beyond the rename, both making a silent
-  no-op visible: the blackjack binding's `_ => ()` and the higher-lower `_ => {}`
-  arms are gone, so an unroutable id in either namespace is now an error rather
-  than a dropped interaction. Higher-lower's parse also moved **above** the
-  deck-exhaustion branch that credits a gem, so an unroutable click can no longer
-  mint one on its way to doing nothing.
-
-- **Where:** `bot/src/bindings/gambling/{prestige,blackjack}.rs`,
-  `bot-modules/gambling/src/components/{tictactoe,higherlower}.rs`,
-  `bot-modules/levels/src/components/levels.rs:36`.
-- **What:** Interaction routing on `custom_id.as_str()` string matches. The M2
-  milestone explicitly logged the "component-`custom_id` enum for
-  gambling/levels" as an optional deferral.
-- **Why it matters:** Guessable string ids scattered across match arms; a typo
-  compiles. Lower priority than CC-1 because these are local routing switches,
-  not domain data.
-- **Suggested fix:** Introduce a per-component `CustomId` enum with
-  `as_str`/`FromStr`, following the temp-voice/LFG namespaced-id approach.
-
 ### CC-8. Features better served by the (now-live) web dashboard  ·  #8  ·  med
+- **Status:** `unclear`
 
 - **Where:** config/`setup` commands and data-dense displays across `lfg`,
   `temp-voice`, `music`, `ticket`, `suggestions`, `reaction-roles`, `gambling`,
@@ -612,15 +460,46 @@ served by the website — and two `setup` commands already duplicate its writes.
   read-view migrations as UX upgrades, lower priority than de-duplicating writes.
 
 ### CC-11. `.sqlx` drifted again — `SQLX_OFFLINE` builds are broken on `main`  ·  #1 / #7  ·  **high**  ·  confirmed
-- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-07).** Regenerated against an empty, freshly-migrated
+  `postgres:18-alpine` (throwaway on `:55432`, all **23** migrations, no
+  application data — the only populated tables are the ones `0008_destiny2_seed`
+  and `0021_web_user_roles` seed, so CI would see the same baseline).
+  `cargo sqlx prepare --check --workspace -- --all-features` was **red first**
+  (*".sqlx is missing one or more queries"*), then
+  `cargo sqlx prepare --workspace -- --all-features` and `--check` exited 0.
+  **Cache total unchanged at 237: 1 added, 1 deleted, 0 modified** —
+  `query-3c493f67…` retired, `query-86485e16…` added.
+- **The mechanism was not what this finding first claimed — corrected here.**
+  The original text said `c76ea93c` "did not regenerate the cache". **It did:**
+  `git show --stat c76ea93c` lists the `.json` as *renamed*, i.e. that commit ran
+  a regen and committed the result. The two entries are also **semantically
+  identical** — same query, same single `Int8` non-null `user_id` column. They
+  differ only in whitespace: the cached text ends `LIMIT\n    3;\n`, the
+  committed `.sql` ends `LIMIT 3;\n\n`. So the real mechanism is a **regen that
+  raced the final edit**: the cache was generated while `winners.sql` still had
+  the old `LIMIT` formatting, the file was then reformatted, and both were
+  committed together — disagreeing. sqlx hashes the raw query *text*, so a
+  whitespace-only reformat is a cache miss.
+  **Lesson: `cargo sqlx prepare` must be the last step before commit**, after
+  formatting, not somewhere in the middle of the task. "I regenerated" is not
+  the same claim as "the committed cache matches the committed SQL", and only
+  `--check` distinguishes them. This also means the defect class is *not*
+  carelessness about running the regen — a task can do everything the workflow
+  asks and still land this.
+- **No behaviour changed, and could not have.** The retired and added entries
+  describe the same result shape, so nothing about `HigherLowerManager::winners`
+  compiles or runs differently. Like [CC-10](#cc-10), the deliverable is the
+  restored gate, not a fixed bug — with the difference that here the broken gate
+  was also a **broken build**.
 - **Where:** `bot-modules/gambling/sql/HigherLowerManager/winners.sql`, consumed
   at `bot-modules/gambling/src/games/higherlower.rs:23`
   (`sqlx::query_file_scalar!`); no matching entry in `.sqlx/`.
 - **What:** `SQLX_OFFLINE=true cargo check -p gambling` fails with *"there is no
   cached data for this query"*. `c76ea93c` ("Fix weekly higher-or-lower payout
-  logic") edited `winners.sql` **after** [CC-10](#cc-10)'s regen (`c294c4b6`) and
-  did not regenerate the cache, so the query's hash changed and its entry no
-  longer exists.
+  logic") changed `winners.sql` **after** [CC-10](#cc-10)'s regen (`c294c4b6`),
+  and the entry it committed does not match the file it committed (see the
+  mechanism note above), so the query's current hash has no entry.
 - **Why it is `high`, where CC-10 was `med`:** CC-10 was a *wrong* cached entry
   whose explicit `!`/`?` overrides meant nothing built differently — it degraded
   a gate. This is a *missing* entry on the release path: `gambling` is a `bot`
@@ -646,17 +525,33 @@ served by the website — and two `setup` commands already duplicate its writes.
   task.
 - **Suggested fix:** Regenerate against an **empty, freshly-migrated** database
   per CC-10's procedure (`cargo sqlx prepare --workspace -- --all-features`),
-  commit the `.sqlx` diff on its own. Then close the loop that let it regress:
-  CC-10's residual already warned *"the gate only stays green if future SQL tasks
-  regenerate rather than hand-edit"*, and one commit later it did not. Consider
-  making the offline build a checked gate (`SQLX_OFFLINE=true cargo check
-  --workspace`) rather than a convention, since nothing currently runs
-  `prepare --check` — the repo has one workflow, `docker-publish.yml`, and it
-  does not.
+  commit the `.sqlx` diff on its own. **Done** — see the fix note above.
+- **Residual / follow-up (the important half, deliberately not fixed here).**
+  Regenerating fixes today's breakage but not the reason it reached `main`
+  undetected, and CC-10's residual already predicted this exact regression
+  (*"the gate only stays green if future SQL tasks regenerate rather than
+  hand-edit"*). **Nothing in this repo checks it.** There is one workflow,
+  `.github/workflows/docker-publish.yml`, and it runs neither
+  `sqlx prepare --check` nor an offline build — the first thing that would have
+  noticed is a failed image publish. Two candidate gates, both cheap:
+  `SQLX_OFFLINE=true cargo check --workspace --all-targets` (needs no database,
+  catches exactly this class) and `cargo sqlx prepare --check` (needs a migrated
+  DB, catches stale-but-present entries too). Worth its own finding; recorded
+  here rather than opened blind because which one to add — and whether CI grows
+  a Postgres service — is a call for the owner.
+- **A second gap this exposed, in the workflow rather than the code.** The
+  mandated gate in [`CLAUDE.md`](../../CLAUDE.md) —
+  `cargo +nightly clippy --workspace --all-targets -- -D warnings` — says
+  nothing about `SQLX_OFFLINE`, and `bacon` runs it *online* against `.env`'s
+  `DATABASE_URL`. So the project's continuous gate structurally **cannot** see an
+  offline-only breakage, and a developer running the mandated command by hand
+  inherits `bacon`'s warm fingerprints and gets a 0.2 s green that never
+  recompiled anything. That is how this survived from `c76ea93c` to `4c9e7154`.
+  Consider adding `SQLX_OFFLINE=true` to a `bacon` job so the offline
+  configuration is exercised continuously alongside the online one.
 
 ### CC-10. Committed `.sqlx` offline cache is drifted on `main`  ·  #1 / #7  ·  med
-- **Status:** `complete — c294c4b6` — **but see [CC-11](#cc-11): it regressed one
-  commit later.**            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Reconciled (2026-08-05):** the marker was left at `in-review` after the human
   committed the task. Verified against the tree, not the record: `c294c4b6`
   ("fix(query): correct nullable fields in SQL query metadata") touches exactly
@@ -742,7 +637,7 @@ served by the website — and two `setup` commands already duplicate its writes.
   restores the gate every later SQL task depends on.
 
 ### CC-11. `.sqlx` entry hand-edited instead of regenerated → `SQLX_OFFLINE` builds are broken on `main`  ·  #1 / #7  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `.sqlx/query-3c493f672abe71417f07dadf9eaba248c9011f8e333077c1861b2deaa0eaec90.json`
   against `bot-modules/gambling/sql/HigherLowerManager/winners.sql`, consumed by
   `bot-modules/gambling/src/games/higherlower.rs:23`
@@ -798,7 +693,7 @@ first-pass structural findings only hinted at. Per-module detail lives in the
 cross-cutting theme plus an index._
 
 ### CC-9. Read-modify-write on economy/counter rows with **absolute** overwrite (race class)  ·  #3  ·  high
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
   Umbrella — every enumerated site is now closed; the umbrella itself is the
   human's call to close. Each site was its own task.
   - **Closed:** [gambling DS-1…DS-5, DS-7](gambling.md),
