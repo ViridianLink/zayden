@@ -9,17 +9,11 @@ use serenity::all::{
     Permissions,
     ResolvedValue,
 };
-use zayden_core::{
-    InvocationCtx,
-    as_i64,
-    as_u64,
-    parse_options,
-    parse_subcommand,
-    required_option,
-};
+use zayden_core::{InvocationCtx, parse_options, parse_subcommand, required_option};
 
 use crate::error::{HoneypotError, Result};
 use crate::guard::GUARD;
+use crate::settings::HoneypotSettings;
 
 pub struct Honeypot;
 
@@ -92,15 +86,7 @@ async fn set(
 
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
 
-    let guild_id_i64 = as_i64(guild_id.get());
-
-    cx.app
-        .settings
-        .honeypot
-        .update(guild_id_i64, |row| {
-            row.channel_id = Some(as_i64(channel_id.get()));
-        })
-        .await?;
+    HoneypotSettings::arm(&cx.app.settings.honeypot, guild_id, channel_id).await?;
 
     GUARD.forget(guild_id).await;
 
@@ -126,13 +112,7 @@ async fn disable(cx: &InvocationCtx<'_>) -> Result<()> {
 
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
 
-    cx.app
-        .settings
-        .honeypot
-        .update(as_i64(guild_id.get()), |row| {
-            row.channel_id = None;
-        })
-        .await?;
+    HoneypotSettings::disarm(&cx.app.settings.honeypot, guild_id).await?;
 
     GUARD.forget(guild_id).await;
 
@@ -152,23 +132,22 @@ async fn status(cx: &InvocationCtx<'_>) -> Result<()> {
 
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
 
-    let settings = cx.app.settings.honeypot.get(as_i64(guild_id.get())).await?;
+    let config = HoneypotSettings::get(&cx.app.settings.honeypot, guild_id).await?;
 
-    let content = settings.channel_id.map_or_else(
+    let content = config.channel_id.map_or_else(
         || "Honeypot is disabled. Use `/honeypot set` to arm it.".to_string(),
         |channel_id| {
             let mut exemptions = vec!["the server owner".to_string()];
-            if settings.exempt_admins {
+            if config.exempt_admins {
                 exemptions.push("admins and Manage Server holders".to_string());
             }
-            if let Some(role_id) = settings.exempt_role_id {
-                exemptions.push(format!("<@&{}>", as_u64(role_id)));
+            if let Some(role_id) = config.exempt_role_id {
+                exemptions.push(format!("<@&{role_id}>"));
             }
 
             format!(
-                "Honeypot is armed on <#{}>.\n**Exempt:** {}\n\n\
+                "Honeypot is armed on <#{channel_id}>.\n**Exempt:** {}\n\n\
                  Change the exemptions from the dashboard.",
-                as_u64(channel_id),
                 exemptions.join(", "),
             )
         },

@@ -45,7 +45,69 @@ duplication of `/honeypot set`, and the untested action path.
   records the hit, not what the trap does — so leave them.
 
 ### 5. `/honeypot set` duplicates the dashboard's honeypot form  ·  #8  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Ruling (2026-08-08): keep both surfaces, converge the write.** The owner
+  chose the reaction-roles #3 shape over this finding's own recommendation
+  (retire `set`/`disable`) and over deleting the command outright. Recording the
+  divergence because the finding argued the other way: the audit reasoned from
+  "honeypot has no live-tweak field, so all of it is admin setup", which is the
+  music #3 lens. That lens ranks *when a field is edited*; it does not weigh
+  **whether an admin can reach the web at all** to turn off a feature that
+  auto-bans. Arming is setup, but *dis*arming is incident response — and the
+  in-Discord path to it is worth keeping even though it duplicates a form.
+- **Fix (2026-08-08).** New `bot-modules/honeypot/src/settings.rs` is the single
+  owner. `HoneypotConfig` carries the configuration in domain types
+  (`Option<ChannelId>` / `bool` / `Option<RoleId>`), `HoneypotSettings::{get,
+  arm, disarm, save}` are the operations, and both editors now call them:
+  `/honeypot set|disable|status` (`commands/mod.rs:89`, `:115`, `:135`) and the
+  dashboard's `save_honeypot_settings` (`dashboard/src/server/guild.rs:383`).
+  Neither caller touches `HoneypotSettingsRow`'s columns any more, so the
+  snowflake↔column mapping exists once. The dashboard gained a `honeypot`
+  optional dep, gated into its `ssr` feature beside `ticket`/`reaction-roles`.
+- **The dedupe uncovered a real defect, which is what made this more than
+  hygiene.** The two writers did not merely duplicate the write — they
+  *disagreed*. The dashboard parsed its form fields with
+  `parse_id` (`s.trim().parse().ok()`), which maps **both** "the admin cleared
+  this field" and "this field is garbage" to `None`. So a garbled `channel_id`
+  **silently disarmed the trap and reported success** — an anti-spam feature
+  failing to "off" with a green checkmark. The shared owner's `from_form` splits
+  those: blank clears, malformed is `HoneypotError::InvalidSnowflake`. It also
+  parses as `u64` rather than `i64`, so a negative id is rejected instead of
+  stored. **A CC-8 de-duplication is not always behaviour-neutral** — when two
+  writers exist, check whether they *agree* before assuming the only prize is
+  one fewer code path.
+- **Why `arm`/`disarm` stay field-scoped.** They write `channel_id` only, and
+  two tests pin that. If Discord wrote a whole `HoneypotConfig` it would clobber
+  the exemptions the dashboard owns — recreating the divergence one layer up.
+  That asymmetry (Discord edits one field, the web owns the form) is precisely
+  what lets both editors coexist, so it is the invariant to guard, not an
+  implementation detail.
+- **Verification.** `bot-modules/honeypot/tests/settings.rs`, 10 tests, offline
+  (`HoneypotConfig` is a pure value type — no `DATABASE_URL`). Fails-before
+  established by mutation, since the API is new and could not fail against the
+  old tree:
+  - Reverting `parse_optional_id` to the old `.ok()` semantics → **4 of 10 fail**,
+    and the failure output is the defect itself: `HoneypotConfig { channel_id:
+    None, … }` for input `"not-a-snowflake"`.
+  - Making `arm_row` write the whole config → **1 fails**
+    (`arming_preserves_the_exemption_policy`).
+  - Both mutants were checked to *compile* first — per temp-voice #4's lesson, a
+    build error is an invalid mutant, not a catch. The first attempt at mutant 1
+    failed `-D unused-imports` and was repaired before it counted.
+- **Gates:** `cargo +nightly clippy --workspace --all-targets -- -D warnings`
+  exit 0, no new `#[allow]`/`#[expect]` (the one lint it raised,
+  `missing_const_for_fn` on a test helper, was fixed by making the fn `const`);
+  `cargo test --workspace --no-fail-fast` **674 passed / 0 failed / 7 ignored**
+  (all 7 are pre-existing live-API tests); `-p dashboard --features ssr` and
+  `--target wasm32-unknown-unknown --features hydrate` both clean;
+  `cargo +nightly fmt` applied; `cargo machete` clean. **No `.sqlx` delta** — the
+  change adds no `query!`, and `git status .sqlx` is empty.
+- **Residual:** finding #8 (`GUARD.forget` clearing the wrong cache) sits in the
+  two command handlers this task touched and was deliberately **not** folded in —
+  it is its own finding and the `forget` calls are unchanged. Also note the
+  dashboard still cannot reach `GUARD` at all (separate process), so a web-side
+  exemption edit remains subject to the 5-minute `facts` TTL; that is #8's
+  territory, recorded there as intended behaviour.
 - **Where:** `bot-modules/honeypot/src/commands/mod.rs:82-128` (`set`) and
   `:130-154` (`disable`) vs. `dashboard/src/server/guild.rs:383-402`
   (`save_honeypot_settings`) + `dashboard/src/ui/pages/guild_settings.rs:363-380`

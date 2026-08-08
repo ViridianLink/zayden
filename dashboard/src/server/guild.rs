@@ -9,6 +9,7 @@ use {
         guild_admin_context,
         server_err,
     },
+    honeypot::{HoneypotConfig, HoneypotSettings},
     leptos_axum::{extract, redirect},
     std::sync::Arc,
     suggestions::ReviewThresholds,
@@ -388,18 +389,21 @@ pub async fn save_honeypot_settings(
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
-    let exempt_admins = exempt_admins.trim() == "true";
+    let config = HoneypotConfig::from_form(
+        &channel_id,
+        exempt_admins.trim() == "true",
+        &exempt_role_id,
+    )
+    .map_err(server_err)?;
 
-    app.settings
-        .honeypot
-        .update(guild_id, |p| {
-            p.channel_id = parse_id(&channel_id);
-            p.exempt_admins = exempt_admins;
-            p.exempt_role_id = parse_id(&exempt_role_id);
-        })
-        .await
-        .map(|_| ())
-        .map_err(server_err)
+    HoneypotSettings::save(
+        &app.settings.honeypot,
+        GuildId::new(guild_id.cast_unsigned()),
+        config,
+    )
+    .await
+    .map(|_| ())
+    .map_err(server_err)
 }
 
 #[server]

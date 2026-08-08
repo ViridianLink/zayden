@@ -36,6 +36,7 @@ ssr = [
   "leptos_router/ssr",
   "dep:axum",
   "dep:dotenvy",
+  "dep:honeypot",
   "dep:jiff",
   "dep:jiff-sqlx",
   "dep:moka",
@@ -76,6 +77,7 @@ axum = { version = "*", optional = true, default-features = true, features = [
   "macros",
 ] }
 dotenvy = { workspace = true, optional = true }
+honeypot = { workspace = true, optional = true }
 jiff = { workspace = true, optional = true }
 jiff-sqlx = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"], optional = true }

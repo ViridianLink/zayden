@@ -1209,6 +1209,7 @@ version = "1.0.0"
 dependencies = [
  "axum",
  "dotenvy",
+ "honeypot",
  "jiff",
  "jiff-sqlx",
  "leptos",

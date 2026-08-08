@@ -16,6 +16,10 @@ pub enum HoneypotError {
     NotPrivileged,
     #[error("Unknown honeypot subcommand: {0}")]
     UnknownSubcommand(String),
+    #[error(
+        "`{value}` is not a valid {field} id. Leave the field blank to clear it."
+    )]
+    InvalidSnowflake { field: &'static str, value: String },
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -25,7 +29,8 @@ impl Respond for HoneypotError {
         match self {
             Self::MissingGuildId
             | Self::NotPrivileged
-            | Self::UnknownSubcommand(_) => Some(Cow::Owned(self.to_string())),
+            | Self::UnknownSubcommand(_)
+            | Self::InvalidSnowflake { .. } => Some(Cow::Owned(self.to_string())),
             Self::Discord(_) | Self::Database(_) | Self::Internal(_) => None,
         }
     }
