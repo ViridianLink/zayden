@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n    user_id\nFROM\n    gambling_stats\nWHERE\n    weekly_higher_or_lower_score > 0\nORDER BY\n    weekly_higher_or_lower_score DESC,\n    user_id\nLIMIT\n    3;\n",
+  "query": "SELECT\n    user_id\nFROM\n    gambling_stats\nWHERE\n    weekly_higher_or_lower_score > 0\nORDER BY\n    weekly_higher_or_lower_score DESC,\n    user_id\nLIMIT 3;\n\n",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "3c493f672abe71417f07dadf9eaba248c9011f8e333077c1861b2deaa0eaec90"
+  "hash": "86485e1685f62c33f057a1585519b7cd5bb77c2558a2d504e4da0382d7c37408"
 }
