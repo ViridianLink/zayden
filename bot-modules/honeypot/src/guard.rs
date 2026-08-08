@@ -56,15 +56,11 @@ impl HoneypotGuard {
     }
 
     pub async fn claim(&self, guild_id: GuildId, user_id: UserId) -> bool {
-        let key = (guild_id, user_id);
-
-        if self.recent.get(&key).await.is_some() {
-            return false;
-        }
-
-        self.recent.insert(key, ()).await;
-
-        true
+        self.recent
+            .entry((guild_id, user_id))
+            .or_insert_with(async {})
+            .await
+            .is_fresh()
     }
 
     pub async fn release(&self, guild_id: GuildId, user_id: UserId) {

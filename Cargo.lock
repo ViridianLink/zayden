@@ -2399,6 +2399,7 @@ dependencies = [
  "serenity",
  "sqlx",
  "thiserror 2.0.19",
+ "tokio",
  "tracing",
  "zayden-app",
  "zayden-core",

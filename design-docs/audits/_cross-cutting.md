@@ -697,6 +697,54 @@ served by the website — and two `setup` commands already duplicate its writes.
   never mixed into a behavioural one. This is a **structural enabler** — it
   restores the gate every later SQL task depends on.
 
+### CC-11. `.sqlx` entry hand-edited instead of regenerated → `SQLX_OFFLINE` builds are broken on `main`  ·  #1 / #7  ·  med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `.sqlx/query-3c493f672abe71417f07dadf9eaba248c9011f8e333077c1861b2deaa0eaec90.json`
+  against `bot-modules/gambling/sql/HigherLowerManager/winners.sql`, consumed by
+  `bot-modules/gambling/src/games/higherlower.rs:23`
+  (`query_file_scalar!("sql/HigherLowerManager/winners.sql")`). Introduced by
+  `046e4461` ("Fix weekly higher-or-lower payout logic", 2026-08-07).
+- **What:** `SQLX_OFFLINE=true cargo test --workspace` fails to compile
+  `gambling`: *"there is no cached data for this query"*. The cache entry exists
+  and is **internally consistent** — its `hash` field is a correct SHA-256 of
+  its own `query` string — but that string is not the one on disk. They differ
+  by whitespace only:
+  - cached: `… weekly_higher_or_lower_score DESC,\n    user_id\nLIMIT\n    3;\n`
+  - on disk: `… weekly_higher_or_lower_score DESC,\n    user_id\nLIMIT 3;\n\n`
+
+  sqlx keys the cache on the exact query text, so the on-disk file hashes to
+  `86485e1685f62c33…`, for which there is no entry. The commit's diff shows the
+  JSON was **renamed and two lines edited by hand** to carry the new `WHERE` and
+  tiebreak while preserving the *old* file's `LIMIT` formatting; a
+  `cargo sqlx prepare` would have emitted `86485e16…`.
+- **Why it matters:** This breaks every offline build and therefore every
+  workspace `cargo test` run — the honeypot #2 task hit it as a hard blocker and
+  could not run the gate. It is also **CC-10's recorded residual coming true one
+  commit later**: CC-10 closed on `c294c4b6` with the warning *"the gate only
+  stays green if future SQL tasks regenerate rather than hand-edit."* That is
+  exactly what happened, which is the argument for a new finding rather than a
+  footnote — the warning existed and was not enough.
+- **Why no gate caught it — the important part.** `bacon.toml`'s default
+  `clippy-workspace` job runs **without** `SQLX_OFFLINE`, so the `query!` macros
+  resolve against the live `.env` database and the lint gate stays green with a
+  broken cache. `.bacon-locations` was empty throughout. So the workspace's
+  routine validation loop is structurally blind to cache drift: **only an
+  offline build or `cargo sqlx prepare --check` can see this class**, and
+  neither is in the default loop. Worth fixing the loop, not just the entry.
+- **Suggested fix:** Regenerate rather than patch —
+  `cargo sqlx prepare --workspace -- --all-features` against an **empty,
+  freshly-migrated** database (CC-10's constraint: `LEFT JOIN` nullability is
+  plan- and statistics-sensitive, so never a populated one). Commit the `.sqlx`
+  diff as its own change, per CC-10. Then close the blind spot so this cannot
+  recur silently — add a `bacon.toml` job that builds with `SQLX_OFFLINE=true`,
+  or wire `prepare --check` into CI, so a hand-edited entry fails something
+  before it fails a contributor.
+- **Note on scope:** the *behavioural* half of `046e4461` (the `WHERE
+  weekly_higher_or_lower_score > 0` filter and the `user_id` tiebreak) is not in
+  question here and looks correct — it is accompanied by
+  `gambling/tests/higher_lower_winners.rs` and a fixture. This finding is only
+  about the cache entry being written by hand.
+
 ## Deep-sweep findings
 
 _Deep sweep pass over the whole workspace, 2026-07-17. These are latent

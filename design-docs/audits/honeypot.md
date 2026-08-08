@@ -28,7 +28,18 @@ deliberately stops short of.
 ## Findings
 
 ### 1. A failed `unban` leaves a permanent ban, recorded only as a log line  ·  #3  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 9b034aa6`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Reconciled (2026-08-07):** the marker was left at `in-review` after the
+  human committed the fix as `9b034aa6` ("Add retry mechanism for transient
+  failures") — the same commit that landed this audit file. Verified against the
+  tree, not the record: `zayden-core/src/retry.rs` declares all five items the
+  fix note names, `message_create.rs:21` sets
+  `UNBAN_RETRY = RetryBudget::new(3, Duration::from_millis(250))` with the unban
+  behind `retry_transient` at `:88`, `HoneypotOutcome` is declared at `:24` and
+  carried on `HoneypotHit` at `:35`, and `bot/src/bindings/honeypot/mod.rs:47-52`
+  maps `BanStanding` → `InfractionKind::Ban`. `zayden-core/tests/retry.rs` is
+  present (226 lines). `bot/src/handler/guild_create.rs` is in the commit's
+  stat, confirming the extraction rather than a second copy.
 - **Fix (2026-08-07).** Two halves, because the defect had two: the unban was
   not retried, *and* the outcome was recorded as if it had succeeded.
   - **Retry.** `zayden-core/src/retry.rs` is new — `RetryBudget`,
@@ -118,7 +129,37 @@ deliberately stops short of.
   more.
 
 ### 2. `HoneypotGuard::claim` is a non-atomic check-then-act → the "act once per offender" invariant does not hold  ·  #3  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-07).** `claim` is now a single atomic per-key operation:
+  `recent.entry(key).or_insert_with(async {}).await.is_fresh()`. `moka` 0.12
+  documents the exact guarantee this needs — *"concurrent calls on the same
+  not-existing entry are coalesced into one evaluation of the `init` future.
+  Only one of the calls evaluates its future (thus returned entry's `is_fresh`
+  method returns `true`), and other calls wait"* — so the check and the insert
+  happen under that key's lock and unrelated guilds stay uncontended. The
+  doc-comment on `claim` now records why it must not go back to a `get`/`insert`
+  pair. `release` and `forget` are unchanged.
+- **Verification — the race is real and wide, not theoretical.**
+  `bot-modules/honeypot/tests/guard.rs` races `RACERS = 16` concurrent claimers
+  over `KEYS = 128` independent keys on a `multi_thread` runtime, gated by a
+  `tokio::sync::Barrier` so they arrive together, and asserts exactly one winner
+  per key. **Fails-before: 221 winners across 128 floods** (worst key: 3) — a
+  73 % overshoot, so the window was not a narrow one. **Passes-after: 128/128**,
+  re-run 10× consecutively to confirm it is a property and not a lucky
+  schedule. The four accompanying tests (second claim refused, `release`
+  re-arms, distinct users and distinct guilds do not share a key) pass against
+  **both** implementations by design — they pin existing behaviour so the fix
+  cannot silently trade the race away for a broken guard.
+- **Two notes for whoever writes the next cache test.** (1) The tests run
+  against the production `GUARD` static rather than a widened constructor, so
+  the fix adds **no** API surface; the cost is that key disjointness becomes the
+  test file's invariant, which is why every test owns its own guild id. (2) A
+  current-thread runtime cannot reproduce this — `moka`'s `get` usually
+  completes without yielding, so `join_all` polls each racer to completion in
+  turn and the buggy code passes. The `multi_thread` flavour is load-bearing,
+  not decoration.
+- **Residual:** the guard's *other* cache (`facts`) is untouched here; its
+  5-minute staleness window is finding #8, and remains deliberate.
 - **Where:** `bot-modules/honeypot/src/guard.rs:58-68`, claimed at
   `bot-modules/honeypot/src/message_create.rs:48-52`
 - **What:** `claim` is `self.recent.get(&key).await` followed by
