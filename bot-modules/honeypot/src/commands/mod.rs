@@ -94,13 +94,6 @@ async fn set(
 
     let guild_id_i64 = as_i64(guild_id.get());
 
-    sqlx::query!(
-        "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
-        guild_id_i64
-    )
-    .execute(&cx.app.db)
-    .await?;
-
     cx.app
         .settings
         .honeypot

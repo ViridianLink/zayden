@@ -63,6 +63,17 @@ impl<Row: SettingsRow> SettingsStore<Row> {
             .unwrap_or_else(|| Arc::new(Row::empty(guild_id))))
     }
 
+    async fn seed_guild(&self, guild_id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query!(
+            "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+            guild_id
+        )
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn update<F>(
         &self,
         guild_id: i64,
@@ -76,6 +87,8 @@ impl<Row: SettingsRow> SettingsStore<Row> {
             .await?
             .map_or_else(|| Row::empty(guild_id), |arc| (*arc).clone());
         f(&mut row);
+
+        self.seed_guild(guild_id).await?;
 
         let saved = row.upsert(&self.db).await?;
 

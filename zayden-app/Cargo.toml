@@ -16,6 +16,7 @@ reqwest = { workspace = true, features = ["rustls", "json"] }
 serde = { workspace = true, features = ["derive"] }
 sqlx = { workspace = true, features = [
   "derive",
+  "migrate",
   "postgres",
   "runtime-tokio",
   "tls-rustls-aws-lc-rs",
@@ -28,3 +29,4 @@ tracing = { workspace = true }
 [dev-dependencies]
 jiff = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

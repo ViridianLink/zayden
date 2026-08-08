@@ -197,7 +197,53 @@ deliberately stops short of.
   observation as #7 but is the one piece of it that can be written first.
 
 ### 3. Dashboard `save_honeypot_settings` can violate the `guilds` FK; the bot command seeds the row, the web path does not  ·  #1  ·  med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-07).** Seeded in **one** place: a private
+  `SettingsStore::seed_guild` (`zayden-app/src/config/settings_store.rs:66-90`)
+  called from `update` immediately before `Row::upsert`. `update` is the store's
+  only mutation path, and both writers — every bot config command and every
+  dashboard `save_*_settings` server fn — go through it, so no caller has to
+  remember the seed. The ad-hoc `INSERT` in `commands/mod.rs` was then deleted,
+  leaving a single owner per the CC-5 / ticket #2 precedent. **This closes the
+  hazard for all ten settings tables, not just honeypot** — which is why the fix
+  is 12 lines in `zayden-app` and a deletion in `honeypot`, rather than anything
+  shaped like a honeypot patch.
+- **Deliberately not transactional.** The seed and the upsert are two
+  statements. `guilds` is a bare `id` column, so an orphan left by a failed
+  upsert is indistinguishable from the row `guild_create` would have written
+  anyway — while threading a transaction through would mean changing the
+  `SettingsRow` trait signature for all ten implementors to buy nothing. Noted
+  in the doc comment so the next reader does not "fix" it.
+- **Verification — fails-before confirmed by disabling the call**, not by
+  argument. With `self.seed_guild(..)` commented out, 3 of the 4 new tests fail
+  with exactly the finding's error: `23503 … violates foreign key constraint
+  "honeypot_settings_guild_id_fkey"` / `"lfg_settings_guild_id_fkey"`,
+  `Key (guild_id)=(1234567890) is not present in table "guilds"`. Restored: 4/4
+  pass. The fourth test (`an_already_seeded_guild_still_updates`) passes in both
+  states **by design** — it is the control that proves the other three fail for
+  the FK and not for a broken fixture.
+- **Test placement note.** `zayden-app/tests/settings_guild_seed.rs`, using
+  `#[sqlx::test(migrations = "../migrations")]` per the CC-6 harness. It needed
+  `sqlx`'s `migrate` feature and a `tokio` dev-dep on `zayden-app`. The tests
+  assert the *observable consequence* (the write lands; earlier writes survive)
+  rather than `SELECT count(*) FROM guilds`, specifically so every statement
+  stays on SQL already present in `.sqlx` — a test-only query would have gone
+  uncached, and the release build (`SQLX_OFFLINE=true cargo build --bin bot`,
+  `docker/Dockerfile.bot:19-25`) never regenerates the cache. **Second lesson,
+  which cost the first draft:** `the_seed_belongs_to_the_store_not_the_row` is
+  the load-bearing test. Testing only through `HoneypotSettingsRow` would pass
+  just as well against a honeypot-scoped fix; exercising a *second* row type
+  (`LfgSettingsRow`) through the same `update` is what pins the seed to the
+  store, and it is the assertion that breaks if someone later moves it back into
+  a command.
+- **`.sqlx`: zero delta, and that is checkable offline.** The added `query!` is
+  byte-identical to the string `levels/src/manager.rs:430` and
+  `ticket/src/support_guild_manager.rs:93` already use, so it resolves to the
+  existing `query-42dca49d…json`; `SQLX_OFFLINE=true cargo check -p zayden-app -p
+  honeypot` passing after the fix *is* the proof the new call site needs no new
+  entry. Removing honeypot's copy retires no entry either, since those two src
+  callers keep it live. `prepare --check` was **not** run — it needs a migrated
+  database, which is the human's step.
 - **Where:** `bot-modules/honeypot/src/commands/mod.rs:97-102` (seeds) vs.
   `dashboard/src/server/guild.rs:383-402` (does not);
   `migrations/0022_honeypot.up.sql:2` (`guild_id … REFERENCES guilds(id)`)

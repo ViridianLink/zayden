@@ -611,8 +611,52 @@ served by the website — and two `setup` commands already duplicate its writes.
   suggestions/reaction-roles) against the existing `SettingsRegistry`. Treat the
   read-view migrations as UX upgrades, lower priority than de-duplicating writes.
 
+### CC-11. `.sqlx` drifted again — `SQLX_OFFLINE` builds are broken on `main`  ·  #1 / #7  ·  **high**  ·  confirmed
+- **Status:** `in-progress`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `bot-modules/gambling/sql/HigherLowerManager/winners.sql`, consumed
+  at `bot-modules/gambling/src/games/higherlower.rs:23`
+  (`sqlx::query_file_scalar!`); no matching entry in `.sqlx/`.
+- **What:** `SQLX_OFFLINE=true cargo check -p gambling` fails with *"there is no
+  cached data for this query"*. `c76ea93c` ("Fix weekly higher-or-lower payout
+  logic") edited `winners.sql` **after** [CC-10](#cc-10)'s regen (`c294c4b6`) and
+  did not regenerate the cache, so the query's hash changed and its entry no
+  longer exists.
+- **Why it is `high`, where CC-10 was `med`:** CC-10 was a *wrong* cached entry
+  whose explicit `!`/`?` overrides meant nothing built differently — it degraded
+  a gate. This is a *missing* entry on the release path: `gambling` is a `bot`
+  dependency, so **`docker/Dockerfile.bot` cannot build.** That file sets
+  `SQLX_OFFLINE=true` (`:19`) and runs `cargo build --release --bin bot` (`:25`),
+  which is exactly the command that fails. This is not a latent risk; the
+  published image build is broken right now.
+- **How it was found (worth recording):** during the honeypot #3 task, whose
+  gate run under `SQLX_OFFLINE=true` hit it. **It also exposed a false-green in
+  the gate procedure itself:** the first `clippy --workspace --all-targets` run
+  exited 0 in 0.19 s because every crate was fingerprint-fresh from `bacon`,
+  which runs *online* against `.env`'s `DATABASE_URL`. A cached clippy pass
+  cannot detect an offline-only breakage — the two configurations have different
+  fingerprints, and the green one was reused. `touch`ing the crate forced the
+  real result. **Lesson: a gate that finished suspiciously fast has not run.**
+  Verify offline breakage with a forced rebuild, and note that the mandated
+  `cargo +nightly clippy --workspace --all-targets -- -D warnings` in
+  [`CLAUDE.md`](../../CLAUDE.md) says nothing about `SQLX_OFFLINE`, so passing it
+  locally never proved the Docker build works. That gap is the finding's real
+  scope.
+- **Verified pre-existing:** reproduced on a clean tree (`git stash` of the
+  honeypot #3 changes, re-run, same failure), so it is not an artefact of that
+  task.
+- **Suggested fix:** Regenerate against an **empty, freshly-migrated** database
+  per CC-10's procedure (`cargo sqlx prepare --workspace -- --all-features`),
+  commit the `.sqlx` diff on its own. Then close the loop that let it regress:
+  CC-10's residual already warned *"the gate only stays green if future SQL tasks
+  regenerate rather than hand-edit"*, and one commit later it did not. Consider
+  making the offline build a checked gate (`SQLX_OFFLINE=true cargo check
+  --workspace`) rather than a convention, since nothing currently runs
+  `prepare --check` — the repo has one workflow, `docker-publish.yml`, and it
+  does not.
+
 ### CC-10. Committed `.sqlx` offline cache is drifted on `main`  ·  #1 / #7  ·  med
-- **Status:** `complete — c294c4b6`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — c294c4b6` — **but see [CC-11](#cc-11): it regressed one
+  commit later.**            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Reconciled (2026-08-05):** the marker was left at `in-review` after the human
   committed the task. Verified against the tree, not the record: `c294c4b6`
   ("fix(query): correct nullable fields in SQL query metadata") touches exactly
