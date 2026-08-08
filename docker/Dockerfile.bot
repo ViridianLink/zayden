@@ -24,16 +24,35 @@ RUN cargo chef cook --release --recipe-path recipe.json --bin bot
 COPY . .
 RUN cargo build --release --bin bot
 
-# Stage 3: runtime
+# Stage 3: fetch yt-dlp
+FROM debian:trixie-slim AS ytdlp
+ARG YTDLP_VERSION=2026.07.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    base="https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}"; \
+    curl -fsSL "$base/yt-dlp_linux" -o /yt-dlp; \
+    curl -fsSL "$base/SHA2-256SUMS" -o /SHA2-256SUMS; \
+    expected="$(awk '$2 == "yt-dlp_linux" { print $1 }' /SHA2-256SUMS)"; \
+    test -n "$expected"; \
+    echo "${expected}  /yt-dlp" | sha256sum -c -; \
+    rm /SHA2-256SUMS; \
+    chmod a+rx /yt-dlp
+
+# Stage 4: runtime
 FROM debian:trixie-slim AS runtime
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates libssl3 ffmpeg \
     && rm -rf /var/lib/apt/lists/*
-ADD https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux \
-    /usr/local/bin/yt-dlp
-RUN chmod a+rx /usr/local/bin/yt-dlp
+
+COPY --from=ytdlp /yt-dlp /usr/local/bin/yt-dlp
+# Fail the build here rather than at runtime if the binary can't execute.
+RUN yt-dlp --version
 
 RUN groupadd --system zayden && useradd --system --gid zayden zayden \
     && mkdir -p /app/palworld_uploads \

@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  schedule:
+    - cron: "0 5 * * 1"
   workflow_dispatch:
 
 concurrency:
@@ -24,9 +26,11 @@ jobs:
           - name: bot
             dockerfile: docker/Dockerfile.bot
             image: zayden-bot
+            needs_ytdlp: true
           - name: dashboard
             dockerfile: docker/Dockerfile.dashboard
             image: zayden-dashboard
+            needs_ytdlp: false
 
     steps:
       - name: Checkout
@@ -63,12 +67,28 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,format=short
 
+      - name: Resolve latest yt-dlp release
+        id: ytdlp
+        if: matrix.needs_ytdlp
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="$(gh release view --repo yt-dlp/yt-dlp --json tagName -q .tagName)"
+          if [ -z "$tag" ]; then
+            echo "could not resolve the latest yt-dlp release" >&2
+            exit 1
+          fi
+          echo "Using yt-dlp $tag"
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
       - name: Build & push ${{ matrix.name }}
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
+          build-args: ${{ matrix.needs_ytdlp && format('YTDLP_VERSION={0}', steps.ytdlp.outputs.version) || '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=${{ steps.img.outputs.ref }}:buildcache
