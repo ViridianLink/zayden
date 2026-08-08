@@ -17,7 +17,7 @@ fn new_persistent_registers_caller_as_owner_of_an_open_channel() {
     assert!(row.is_owner(owner_id));
     assert!(row.is_persistent());
     assert!(matches!(row.mode, VoiceChannelMode::Open));
-    assert!(row.trusted_ids.is_empty());
-    assert!(row.invites.is_empty());
+    assert_eq!(row.trusted_ids, Vec::<i64>::new());
+    assert_eq!(row.invites, Vec::<i64>::new());
     assert!(row.password.is_none());
 }

@@ -38,11 +38,14 @@ fn parses_weapon_from_mobalytics_fixture() {
     assert_eq!(weapon.reload_speed.as_deref(), Some("2.69s"));
     assert_eq!(weapon.range.as_deref(), Some("29m"));
     assert!(weapon.description.is_some());
-    assert!(!weapon.stats.is_empty());
+    assert_ne!(weapon.stats, Vec::<marathon::model::Stat>::new());
 
     // The fixture's "Compatible Mods" section is a "Coming soon..." placeholder -
     // this must degrade to an empty Vec rather than fabricating attachment data.
-    assert!(weapon.attachment_slots.is_empty());
+    assert_eq!(
+        weapon.attachment_slots,
+        Vec::<marathon::model::AttachmentSlot>::new()
+    );
 }
 
 #[test]
@@ -55,7 +58,7 @@ fn parses_runner_from_mobalytics_fixture() {
 
     assert_eq!(runner.slug, "assassin");
     assert!(runner.name.contains("Assassin"));
-    assert!(!runner.stats.is_empty());
+    assert_ne!(runner.stats, Vec::<marathon::model::Stat>::new());
     assert!(
         runner.stats.iter().any(|s| s.name == "Heat Capacity" && s.value == "10")
     );
@@ -96,8 +99,11 @@ fn parses_faction_listing_from_mobalytics_fixture() {
     assert_eq!(cyberacme.name, "Cyberacme");
     // The listing page only has name/slug - contract/upgrade data lives on the
     // per-faction page.
-    assert!(cyberacme.priority_contracts.is_empty());
-    assert!(cyberacme.upgrades.is_empty());
+    assert_eq!(
+        cyberacme.priority_contracts,
+        Vec::<marathon::model::Contract>::new()
+    );
+    assert_eq!(cyberacme.upgrades, Vec::<marathon::model::Upgrade>::new());
 }
 
 #[test]
@@ -112,7 +118,7 @@ fn parses_map_from_mobalytics_fixture() {
     assert_eq!(map.name, "Perimeter");
     // Confirmed absent from the source - see Design §Unverified Assumptions 5.
     assert_eq!(map.status, None::<MapStatus>);
-    assert!(!map.extractions.is_empty());
+    assert_ne!(map.extractions, Vec::<marathon::model::Location>::new());
     assert!(map.extractions.iter().any(|l| l.name.contains("Exfil")));
     assert!(
         map.map_image_url
@@ -153,7 +159,10 @@ fn marathondb_weapon_fallback_maps_known_fields() {
     assert_eq!(weapon.weapon_type.as_deref(), Some("Standard Pistol"));
     assert_eq!(weapon.damage.as_deref(), Some("16"));
     assert_eq!(weapon.magazine_size.as_deref(), Some("21"));
-    assert!(weapon.attachment_slots.is_empty());
+    assert_eq!(
+        weapon.attachment_slots,
+        Vec::<marathon::model::AttachmentSlot>::new()
+    );
 }
 
 #[test]
@@ -166,7 +175,7 @@ fn marathondb_runner_fallback_maps_known_fields() {
     assert_eq!(runner.name, "Assassin");
     assert_eq!(runner.role.as_deref(), Some("Shadow Agent"));
     assert_eq!(runner.abilities.len(), 5);
-    assert!(runner.cores.is_empty());
+    assert_eq!(runner.cores, Vec::<String>::new());
 }
 
 #[test]
@@ -186,7 +195,7 @@ fn marathondb_contracts_fallback_groups_by_faction() {
         .find(|f| f.slug == "nucaloric")
         .expect("Nucaloric faction should be present");
     assert_eq!(nucaloric.priority_contracts.len(), 1);
-    assert!(nucaloric.upgrades.is_empty());
+    assert_eq!(nucaloric.upgrades, Vec::<marathon::model::Upgrade>::new());
 }
 
 #[test]
@@ -207,12 +216,12 @@ fn marathondb_map_maps_layout_and_categorised_pois() {
     );
 
     // `zones` become the general points of interest.
-    assert!(!map.pois.is_empty());
+    assert_ne!(map.pois, Vec::<marathon::model::Poi>::new());
 
     // POIs are split by MarathonDB's `category` field.
-    assert!(!map.extractions.is_empty());
+    assert_ne!(map.extractions, Vec::<marathon::model::Location>::new());
     assert!(map.extractions.iter().any(|l| l.name.contains("Exfil")));
-    assert!(!map.event_spawns.is_empty());
+    assert_ne!(map.event_spawns, Vec::<marathon::model::Location>::new());
 
     // Keycard rooms are the `*_key` loot POIs (e.g. Lockbox / Hazard Override).
     assert!(map.keycard_rooms.iter().any(|r| r.name.to_lowercase().contains("key")));
@@ -246,10 +255,10 @@ fn parses_map_from_mapgenie_fixtures() {
     // Locations are sorted into sections by their MapGenie category:
     // Exfil-family -> extractions, Access Card / Locked Room -> keycard rooms,
     // Spawn Point / Activity / Contract -> event spawns, the rest -> POIs.
-    assert!(!map.extractions.is_empty());
-    assert!(!map.keycard_rooms.is_empty());
-    assert!(!map.event_spawns.is_empty());
-    assert!(!map.pois.is_empty());
+    assert_ne!(map.extractions, Vec::<marathon::model::Location>::new());
+    assert_ne!(map.keycard_rooms, Vec::<marathon::model::LootRoom>::new());
+    assert_ne!(map.event_spawns, Vec::<marathon::model::Location>::new());
+    assert_ne!(map.pois, Vec::<marathon::model::Poi>::new());
 
     // Upper-case MapGenie titles are rendered in title case for Discord (allow
     // short all-caps acronyms like "TAD" through).

@@ -50,7 +50,7 @@ fn maps_runner_identity_and_stats() {
     // baseStats camelCase keys are humanized.
     assert!(runner.stats.iter().any(|s| s.name == "Melee Damage"));
     // abilities are flattened out of the nested frame variants.
-    assert!(!runner.abilities.is_empty());
+    assert_ne!(runner.abilities, Vec::<marathon::model::Ability>::new());
     assert!(runner.abilities.iter().all(|a| !a.name.is_empty()));
 }
 
@@ -62,7 +62,7 @@ fn maps_faction_identity() {
     assert_eq!(faction.slug, "mida");
     assert_eq!(faction.name, "MIDA");
     // Contracts/upgrades are unpopulated pre-launch but must not panic.
-    assert!(faction.priority_contracts.is_empty());
+    assert_eq!(faction.priority_contracts, Vec::<marathon::model::Contract>::new());
 }
 
 /// Opt-in: `TAUCETI_FLARESOLVERR=http://10.0.3.119:8191/v1 \

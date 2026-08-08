@@ -94,7 +94,7 @@ fn maps_runner_abilities_and_summary_tags() {
             .as_deref()
             .is_some_and(|u| u.ends_with("/portraits/rook-150x230.png"))
     );
-    assert!(runner.cores.is_empty());
+    assert_eq!(runner.cores, Vec::<String>::new());
 
     // Prime and Tactical abilities carry their type and description.
     let prime = runner
@@ -168,14 +168,14 @@ fn faction_tolerates_a_missing_sub_page() {
     let faction =
         parse::marathonguide_html_to_faction("cyberacme", Some(&contracts), None);
     assert_eq!(faction.name, "CyberAcme");
-    assert!(!faction.priority_contracts.is_empty());
-    assert!(faction.upgrades.is_empty());
+    assert_ne!(faction.priority_contracts, Vec::<marathon::model::Contract>::new());
+    assert_eq!(faction.upgrades, Vec::<marathon::model::Upgrade>::new());
 
     // Neither page available: name degrades to the slug, lists are empty.
     let empty = parse::marathonguide_html_to_faction("cyberacme", None, None);
     assert_eq!(empty.name, "cyberacme");
-    assert!(empty.priority_contracts.is_empty());
-    assert!(empty.upgrades.is_empty());
+    assert_eq!(empty.priority_contracts, Vec::<marathon::model::Contract>::new());
+    assert_eq!(empty.upgrades, Vec::<marathon::model::Upgrade>::new());
 }
 
 /// Opt-in live check:

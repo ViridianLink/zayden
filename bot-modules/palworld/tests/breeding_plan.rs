@@ -42,7 +42,7 @@ fn breeds_target_from_owned_parents_for_free() {
     let step = plan.steps.first().expect("one step");
     assert_eq!(step.child, "C");
     assert!(step.ready, "opposite-gender owned pair is ready now");
-    assert!(plan.leaves_to_obtain.is_empty());
+    assert_eq!(plan.leaves_to_obtain, Vec::<String>::new());
 
     let p = &step.pair;
     assert!((p.a == "A" && p.b == "B") || (p.a == "B" && p.b == "A"));
@@ -79,7 +79,7 @@ fn catch_only_target_has_no_breeding_step() {
     let plan = index.plan(&[], "C", &base).expect("catchable");
 
     assert_eq!(plan.total_cost, 3);
-    assert!(plan.steps.is_empty());
+    assert_eq!(plan.steps, Vec::<palworld::model::BreedStep>::new());
     assert_eq!(plan.catch_cost, None);
     assert_eq!(plan.leaves_to_obtain, vec!["C".to_string()]);
 }
@@ -105,7 +105,7 @@ fn builds_multi_hop_tree_in_dependency_order() {
     let d_step = plan.steps.get(1).expect("D step");
     assert!(c_step.ready, "C breeds from owned opposite-gender parents");
     assert!(!d_step.ready, "D needs the bred C in hand first");
-    assert!(plan.leaves_to_obtain.is_empty());
+    assert_eq!(plan.leaves_to_obtain, Vec::<String>::new());
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn same_species_pair_ready_needs_both_genders() {
     let plan = index.plan(&same_gender, "C", &base).expect("reachable");
     assert_eq!(plan.total_cost, 1);
     assert!(!plan.steps.first().expect("one step").ready);
-    assert!(plan.leaves_to_obtain.is_empty());
+    assert_eq!(plan.leaves_to_obtain, Vec::<String>::new());
 }
 
 #[test]
@@ -173,7 +173,7 @@ fn owned_target_both_genders_breeds_from_itself() {
     assert_eq!(step.child, "C");
     assert_eq!([step.pair.a.as_str(), step.pair.b.as_str()], ["C", "C"]);
     assert!(step.ready, "own both genders - the self-pair is ready");
-    assert!(plan.leaves_to_obtain.is_empty());
+    assert_eq!(plan.leaves_to_obtain, Vec::<String>::new());
 }
 
 #[test]
@@ -195,7 +195,7 @@ fn owned_target_single_gender_uses_another_combination() {
     let got = [step.pair.a.as_str(), step.pair.b.as_str()];
     assert!(got == ["A", "B"] || got == ["B", "A"], "chose {got:?}");
     assert!(step.ready, "opposite-gender A + B are ready");
-    assert!(plan.leaves_to_obtain.is_empty());
+    assert_eq!(plan.leaves_to_obtain, Vec::<String>::new());
 }
 
 #[test]
@@ -211,5 +211,5 @@ fn owned_target_single_gender_self_pair_only_is_pending() {
     let step = plan.steps.first().expect("one step");
     assert_eq!([step.pair.a.as_str(), step.pair.b.as_str()], ["C", "C"]);
     assert!(!step.ready, "single gender can't self-breed yet");
-    assert!(plan.leaves_to_obtain.is_empty());
+    assert_eq!(plan.leaves_to_obtain, Vec::<String>::new());
 }

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use jiff::{SignedDuration, Timestamp};
 use serenity::all::{
     Attachment,
@@ -29,6 +31,7 @@ pub(super) const MODAL_ID: &str = "palworld_save_upload";
 const FILE_ID: &str = "save";
 
 const MAX_FILES: u8 = 8;
+const FILE_TYPES: &[Cow<'static, str>] = &[Cow::Borrowed(".sav")];
 
 pub(super) async fn open_modal(cx: &InvocationCtx<'_>, pool: &PgPool) -> Result<()> {
     let discord_id = as_i64(cx.interaction.user.id.get());
@@ -56,8 +59,10 @@ pub(super) async fn open_modal(cx: &InvocationCtx<'_>, pool: &PgPool) -> Result<
         return Ok(());
     }
 
-    let file_upload =
-        CreateFileUpload::new(FILE_ID).max_values(MAX_FILES).required(true);
+    let file_upload = CreateFileUpload::new(FILE_ID)
+        .max_values(MAX_FILES)
+        .required(true)
+        .file_types(FILE_TYPES);
     let modal =
         CreateModal::new(MODAL_ID, "Upload your world save").components(vec![
             CreateModalComponent::Label(CreateLabel::file_upload(

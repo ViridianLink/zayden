@@ -63,7 +63,7 @@ fn forward_breed_is_deterministic_and_order_independent() {
 fn reverse_breed_lists_known_pair() {
     let index = index();
     let pairs = index.breed_for("SheepBall");
-    assert!(!pairs.is_empty());
+    assert_ne!(pairs, Vec::<palworld::model::ParentPair>::new());
     assert!(pairs.iter().any(|p| {
         (p.a == "YakushimaMonster001" && p.b == "NegativeKoala")
             || (p.a == "NegativeKoala" && p.b == "YakushimaMonster001")
@@ -110,7 +110,7 @@ fn type_chart_relationships_are_consistent() {
     assert!(strong_against(Element::Fire).contains(&Element::Grass));
     assert!(strong_against(Element::Water).contains(&Element::Fire));
     assert_eq!(weak_to(Element::Fire), vec![Element::Water]);
-    assert!(strong_against(Element::Neutral).is_empty());
+    assert_eq!(strong_against(Element::Neutral), []);
     assert_eq!(weak_to(Element::Neutral), vec![Element::Dark]);
 }
 

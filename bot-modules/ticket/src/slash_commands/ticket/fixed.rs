@@ -39,11 +39,7 @@ impl Ticket {
             .channel_id()
             .ok_or(TicketError::NotInSupportChannel)?;
 
-        let Some(channel) = interaction.channel.as_ref() else {
-            return Err(TicketError::Internal(
-                "Ticket::fixed: interaction has no associated channel".into(),
-            ));
-        };
+        let channel = &interaction.channel;
 
         if let GenericInteractionChannel::Thread(c) = channel
             && c.parent_id != support_channel_id

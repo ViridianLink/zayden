@@ -26,5 +26,5 @@ fn collect_sibling_ids_excludes_only_self() {
 
     let siblings = collect_sibling_ids(&[parent], user_id);
 
-    assert!(siblings.is_empty());
+    assert_eq!(siblings, Vec::<i64>::new());
 }

@@ -110,7 +110,8 @@ impl EventHandler for Handler {
             | Event::MessagePollVoteRemove(_)
             | Event::ShardStageUpdate(_)
             | Event::ChannelInfo(_)
-            | Event::VoiceChannelStartTimeUpdate(_) => None,
+            | Event::VoiceChannelStartTimeUpdate(_)
+            | Event::VoiceChannelEffectSend(_) => None,
             event => {
                 error!(?event, "unhandled event type");
                 None

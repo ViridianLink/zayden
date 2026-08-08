@@ -71,7 +71,7 @@ fn builder_seeds_the_fireteam_with_the_owner() {
     let row = builder().build();
 
     assert_eq!(row.fireteam, vec![as_i64(OWNER)]);
-    assert!(row.alternatives.is_empty());
+    assert_eq!(row.alternatives, Vec::<i64>::new());
 }
 
 #[test]

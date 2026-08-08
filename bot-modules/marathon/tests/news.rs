@@ -18,7 +18,7 @@ fn item(id: &str) -> NewsItem {
 fn new_since_returns_nothing_on_cold_start() {
     let items = vec![item("3"), item("2"), item("1")];
 
-    assert!(news::new_since(&items, None).is_empty());
+    assert_eq!(news::new_since(&items, None), []);
 }
 
 #[test]
@@ -34,7 +34,7 @@ fn new_since_returns_items_newer_than_last_id() {
 fn new_since_returns_nothing_when_last_id_is_newest() {
     let items = vec![item("3"), item("2"), item("1")];
 
-    assert!(news::new_since(&items, Some("3")).is_empty());
+    assert_eq!(news::new_since(&items, Some("3")), []);
 }
 
 #[test]

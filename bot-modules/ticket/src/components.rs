@@ -39,12 +39,7 @@ impl TicketComponent {
         http: &Http,
         interaction: &ComponentInteraction,
     ) -> Result<()> {
-        let Some(channel) = interaction.channel.as_ref() else {
-            return Err(TicketError::Internal(
-                "TicketComponent::support_close: interaction has no associated channel"
-                    .into(),
-            ));
-        };
+        let channel = &interaction.channel;
 
         let new_channel_name: String = format!(
             "[Closed] - {}",

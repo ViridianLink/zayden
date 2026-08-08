@@ -41,13 +41,13 @@ fn maps_faction_contracts() {
     let faction = parse::cyberacme_faction_to_model("cyberacme", &envelope);
 
     assert_eq!(faction.slug, "cyberacme");
-    assert!(!faction.name.is_empty());
+    assert_ne!(faction.name, "");
     assert!(
         !faction.priority_contracts.is_empty(),
         "cyberacme faction fixture has contracts"
     );
     let first = faction.priority_contracts.first().unwrap();
-    assert!(!first.name.is_empty());
+    assert_ne!(first.name, "");
     assert!(first.description.is_some());
 }
 
@@ -60,7 +60,7 @@ fn maps_runner_identity() {
     let runner = parse::cyberacme_runner_to_model(slug, first);
 
     assert_eq!(runner.slug, slug);
-    assert!(!runner.name.is_empty());
+    assert_ne!(runner.name, "");
     assert!(runner.portrait_url.is_some());
 }
 
