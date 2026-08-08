@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use honeypot::{HoneypotHit, HoneypotOutcome};
+use honeypot::{BAN_REASON, HoneypotHit, HoneypotOutcome};
 use serenity::all::{CreateCommand, UserId};
 use zayden_app::state::AppState;
 use zayden_core::ctx::InvocationCtx;
@@ -13,8 +13,6 @@ use crate::RegistryBuilder;
 use crate::bindings::moderation::{InfractionKind, NewInfraction};
 
 const HONEYPOT_POINTS: i32 = 0;
-
-const HONEYPOT_REASON: &str = "Honeypot: posted in the honeypot channel";
 const HONEYPOT_MODERATOR: &str = "Zayden (Honeypot)";
 
 pub fn register(builder: &mut RegistryBuilder) {
@@ -57,7 +55,7 @@ pub async fn record_hit(app: &Arc<AppState>, hit: &HoneypotHit) -> sqlx::Result<
         moderator_id: UserId::new(app.zayden_id),
         moderator_username: HONEYPOT_MODERATOR,
         points: HONEYPOT_POINTS,
-        reason: HONEYPOT_REASON,
+        reason: BAN_REASON,
     }
     .record(&app.db)
     .await

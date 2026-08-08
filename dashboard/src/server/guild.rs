@@ -136,6 +136,7 @@ pub async fn get_guild_settings(
         honeypot_channel_id: opt_str(honeypot.channel_id),
         honeypot_exempt_admins: honeypot.exempt_admins,
         honeypot_exempt_role_id: opt_str(honeypot.exempt_role_id),
+        honeypot_purge_seconds: honeypot.purge_seconds.to_string(),
     })
 }
 
@@ -386,6 +387,7 @@ pub async fn save_honeypot_settings(
     channel_id: String,
     exempt_admins: String,
     exempt_role_id: String,
+    purge_seconds: String,
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
@@ -393,6 +395,7 @@ pub async fn save_honeypot_settings(
         &channel_id,
         exempt_admins.trim() == "true",
         &exempt_role_id,
+        &purge_seconds,
     )
     .map_err(server_err)?;
 

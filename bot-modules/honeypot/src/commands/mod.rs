@@ -13,7 +13,6 @@ use serenity::all::{
 use zayden_core::{InvocationCtx, parse_options, parse_subcommand, required_option};
 
 use crate::error::{HoneypotError, Result};
-use crate::guard::GUARD;
 use crate::settings::HoneypotSettings;
 
 pub struct Honeypot;
@@ -91,8 +90,6 @@ async fn set(
 
     HoneypotSettings::arm(&cx.app.settings.honeypot, guild_id, channel_id).await?;
 
-    GUARD.forget(guild_id).await;
-
     cx.interaction
         .edit_response(
             &cx.ctx.http,
@@ -113,8 +110,6 @@ async fn disable(cx: &InvocationCtx<'_>, guild_id: GuildId) -> Result<()> {
     cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
 
     HoneypotSettings::disarm(&cx.app.settings.honeypot, guild_id).await?;
-
-    GUARD.forget(guild_id).await;
 
     cx.interaction
         .edit_response(

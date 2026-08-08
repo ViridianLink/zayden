@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO honeypot_settings\n                (guild_id, channel_id, exempt_admins, exempt_role_id)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                channel_id = EXCLUDED.channel_id,\n                exempt_admins = EXCLUDED.exempt_admins,\n                exempt_role_id = EXCLUDED.exempt_role_id,\n                updated_at = now()\n            RETURNING guild_id, channel_id, exempt_admins, exempt_role_id\n            ",
+  "query": "\n            INSERT INTO honeypot_settings\n                (guild_id, channel_id, exempt_admins, exempt_role_id,\n                 purge_seconds)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                channel_id = EXCLUDED.channel_id,\n                exempt_admins = EXCLUDED.exempt_admins,\n                exempt_role_id = EXCLUDED.exempt_role_id,\n                purge_seconds = EXCLUDED.purge_seconds,\n                updated_at = now()\n            RETURNING guild_id, channel_id, exempt_admins, exempt_role_id,\n                      purge_seconds\n            ",
   "describe": {
     "columns": [
       {
@@ -46,6 +46,17 @@
             "name": "exempt_role_id"
           }
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "purge_seconds",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "purge_seconds"
+          }
+        }
       }
     ],
     "parameters": {
@@ -53,15 +64,17 @@
         "Int8",
         "Int8",
         "Bool",
-        "Int8"
+        "Int8",
+        "Int4"
       ]
     },
     "nullable": [
       false,
       true,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "d45a8cd56736f098e81bcc552852b29a2593679736f30101b073453096c7f20a"
+  "hash": "5a8d29e3889d3099b630f91cf76a016594e74cfea7761c74babe6783e24924bd"
 }

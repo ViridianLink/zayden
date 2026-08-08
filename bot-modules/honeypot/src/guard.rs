@@ -66,10 +66,6 @@ impl HoneypotGuard {
     pub async fn release(&self, guild_id: GuildId, user_id: UserId) {
         self.recent.invalidate(&(guild_id, user_id)).await;
     }
-
-    pub async fn forget(&self, guild_id: GuildId) {
-        self.facts.invalidate(&guild_id).await;
-    }
 }
 
 pub static GUARD: LazyLock<HoneypotGuard> = LazyLock::new(HoneypotGuard::new);

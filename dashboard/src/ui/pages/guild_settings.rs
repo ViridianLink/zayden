@@ -388,6 +388,11 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                                 selected=sel(s.honeypot_exempt_role_id.as_deref())
                                                 roles=roles
                                             />
+                                            <SettingField
+                                                label="Purge Window (seconds)"
+                                                name="purge_seconds"
+                                                value=s.honeypot_purge_seconds
+                                            />
                                             <SaveButton/>
                                         </ActionForm>
                                         <p class="page-lead">
@@ -396,6 +401,12 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             "server-wide \u{2014} and then immediately unbanned, "
                                             "so a recovered account can rejoin. Leave the "
                                             "channel unset to turn the trap off."
+                                        </p>
+                                        <p class="page-lead">
+                                            "The purge window is how far back the ban deletes "
+                                            "the offender's messages, across every channel. "
+                                            "Defaults to 86400 (24 hours); 0 keeps their "
+                                            "history and Discord caps it at 604800 (7 days)."
                                         </p>
                                         <p class="page-lead">
                                             "The server owner is always exempt. Keep the channel "

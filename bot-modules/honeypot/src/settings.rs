@@ -6,11 +6,23 @@ use crate::error::{HoneypotError, Result};
 
 pub type HoneypotStore = SettingsStore<HoneypotSettingsRow>;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HoneypotConfig {
     pub channel_id: Option<ChannelId>,
     pub exempt_admins: bool,
     pub exempt_role_id: Option<RoleId>,
+    pub purge_seconds: i32,
+}
+
+impl Default for HoneypotConfig {
+    fn default() -> Self {
+        Self {
+            channel_id: None,
+            exempt_admins: false,
+            exempt_role_id: None,
+            purge_seconds: HoneypotSettingsRow::DEFAULT_PURGE_SECONDS,
+        }
+    }
 }
 
 impl From<&HoneypotSettingsRow> for HoneypotConfig {
@@ -19,6 +31,7 @@ impl From<&HoneypotSettingsRow> for HoneypotConfig {
             channel_id: row.channel_id.map(|id| ChannelId::new(as_u64(id))),
             exempt_admins: row.exempt_admins,
             exempt_role_id: row.exempt_role_id.map(|id| RoleId::new(as_u64(id))),
+            purge_seconds: row.purge_seconds,
         }
     }
 }
@@ -33,6 +46,7 @@ impl HoneypotConfig {
         channel_id: &str,
         exempt_admins: bool,
         exempt_role_id: &str,
+        purge_seconds: &str,
     ) -> Result<Self> {
         Ok(Self {
             channel_id: parse_optional_id("channel", channel_id)?
@@ -40,7 +54,16 @@ impl HoneypotConfig {
             exempt_admins,
             exempt_role_id: parse_optional_id("exempt role", exempt_role_id)?
                 .map(RoleId::new),
+            purge_seconds: HoneypotSettingsRow::parse_purge_seconds(purge_seconds),
         })
+    }
+
+    #[must_use]
+    pub fn purge_seconds_u32(&self) -> u32 {
+        u32::try_from(
+            self.purge_seconds.clamp(0, HoneypotSettingsRow::MAX_PURGE_SECONDS),
+        )
+        .unwrap_or(0)
     }
 
     pub const fn apply(self, row: &mut HoneypotSettingsRow) {
@@ -53,6 +76,7 @@ impl HoneypotConfig {
             Some(id) => Some(as_i64(id.get())),
             None => None,
         };
+        row.purge_seconds = self.purge_seconds;
     }
 
     pub const fn arm_row(row: &mut HoneypotSettingsRow, channel_id: ChannelId) {

@@ -25,7 +25,22 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
 ## Findings
 
 ### 4. Ban reason is a literal duplicated across two crates  ·  #4  ·  low-med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-08).** Worked as a batch with #6, #8 and #9 on the owner's
+  instruction. One owner: `honeypot::BAN_REASON` (`message_create.rs`, re-exported
+  from `lib.rs`) is now the single declaration, used for the `ban` reason, the
+  `unban` reason and the infraction's `reason` column. `HONEYPOT_REASON` is
+  deleted from `bot/src/bindings/honeypot/mod.rs`, which now imports the
+  constant; `HONEYPOT_MODERATOR` and `HONEYPOT_POINTS` stayed local exactly as
+  this finding directed, with a comment recording why the split falls there.
+- **No regression test, and the reason matters.** After the fix there is only
+  one declaration, so the desynchronisation this finding describes is no longer
+  *expressible* — a test asserting `BAN_REASON == BAN_REASON` would pass before
+  and after and pin nothing. `bot` has no lib target, so the binding cannot be
+  reached from a `tests/` file to assert the pairing from the outside either.
+  This is the [CC-4](_cross-cutting.md#cc-4) precedent: where a fix removes the
+  ability to express the defect, the compiler is the check. Recorded rather than
+  padded with trivia, per checklist #6.
 - **Where:** `bot-modules/honeypot/src/message_create.rs:14`
   (`const REASON`) and `bot/src/bindings/honeypot/mod.rs:17`
   (`const HONEYPOT_REASON`) — byte-identical strings, declared independently.
@@ -142,7 +157,25 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   owner's ruling before any code moves.**
 
 ### 6. `HoneypotHit.channel_id` is constructed and never read  ·  #2  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-08): deleted, not consumed** — the opposite of what this
+  finding leaned toward, and the reason is worth recording. "Put the channel on
+  the infraction" is a schema change to `infractions`, a **shared** moderation
+  table that `/infraction` and `/logs` also read; dragging it into a `low`
+  finding would have meant a migration and a new column for every infraction
+  kind in the workspace to carry one honeypot detail. The information is not
+  lost either way: both the `warn!` (soft-banned) and the `error!` (ban standing)
+  arms already log `%channel_id` from the local binding, which is where an admin
+  chasing a specific hit actually looks. So the field went, the local stayed.
+- **Not a behaviour change, and the compiler proves it.** The field had exactly
+  one producer and zero readers, so removing it cannot alter what any caller
+  sees; `record_hit` (`bot/src/bindings/honeypot/mod.rs`) never named it. No
+  regression test for the same reason as #4 — there is no observable behaviour
+  to pin, and an assertion that a deleted field is absent does not compile.
+- **The blind spot this finding named is still open in general.** A `pub` field
+  on a `pub` struct stays invisible to `dead_code`; nothing about this fix makes
+  the *next* one detectable. That remains a workspace-level gap ([gambling
+  #2b](gambling.md) is the other instance), not something closed here.
 - **Where:** `bot-modules/honeypot/src/message_create.rs:25` (field),
   `:99` (populated); sole consumer is
   `bot/src/bindings/honeypot/mod.rs:46-59`, which reads `guild_id`, `user_id`
@@ -248,7 +281,31 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   speculatively — let the coverage follow a refactor rather than drive it.
 
 ### 8. `GUARD.forget` invalidates a cache the settings change cannot affect  ·  #2  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-08): dropped both calls and the method.** The finding offered
+  "drop the calls **or** repoint them at `recent`"; the first is correct and the
+  second was a red herring on re-reading. Repointing would exist to let an admin
+  re-arm and immediately re-test the trap on themselves — but `recent` is keyed
+  `(guild, user)` with a 1-minute TTL, so an admin who has not just been actioned
+  has no entry to clear. It would have been a no-op dressed as an invalidation,
+  which is the exact fault this finding is about.
+- **`HoneypotGuard::forget` is deleted too, not just unused.** With both call
+  sites gone it had zero callers, and leaving it would have reproduced #6's
+  blind spot one line down: a `pub` method on a `pub` struct raises no
+  `dead_code` warning, so the gate could not have told anyone it was orphaned.
+  If a future `GuildRoleUpdate`/`GuildUpdate` listener wants to invalidate
+  `facts` on a real permission change, it can reintroduce the method against
+  that caller — which is the point, since that is the invalidation hook this
+  never was.
+- **Recorded the staleness window as intended, per the finding's own ask.**
+  `FACTS_TTL` and `ACTION_TTL` now carry doc comments; `FACTS_TTL`'s states the
+  trade explicitly — a member promoted into an exempt role is not exempt for up
+  to five minutes, there is no invalidation hook because the dashboard is a
+  separate process and cannot reach `GUARD`, so the TTL is the only lever.
+- **No regression test.** Deleting a method with no callers has no runtime
+  behaviour to pin, and the compiler is the check: any surviving caller fails
+  the build. The behaviour that *does* change — one fewer `to_partial_guild`
+  refetch after `/honeypot set` — is a performance detail, not an invariant.
 - **Where:** `bot-modules/honeypot/src/commands/mod.rs:114` and `:137`, against
   `bot-modules/honeypot/src/guard.rs:74-76` (cites refreshed 2026-08-08 — #7's
   gate hoist shifted them; the `forget` calls themselves are unchanged)
@@ -276,7 +333,41 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   a line to `guard.rs` recording the 5-minute exemption staleness as intended.
 
 ### 9. `PURGE_WINDOW` is a hardcoded 24 h  ·  #5  ·  low
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-08).** `migrations/0024_honeypot_purge` adds
+  `honeypot_settings.purge_seconds integer NOT NULL DEFAULT 86400`, so every
+  existing row keeps today's behaviour exactly, with a `CHECK (purge_seconds
+  BETWEEN 0 AND 604800)` pinning Discord's own range at the schema. The const
+  and its `purge_seconds()` helper are gone from `message_create.rs`, which now
+  reads `settings.purge_seconds_u32()`.
+- **Made `NOT NULL` with a default, not nullable as this finding proposed.** The
+  nullable design would have meant "NULL means fall back to a constant", i.e.
+  the hardcoded value survives in Rust and the column only sometimes owns the
+  answer. `MusicSettingsRow::auto_disconnect_secs` is the established shape here
+  (`NOT NULL` + a `DEFAULT_*` const used by `empty()`), and it was followed.
+- **The clamp has one owner, reached by both writers.**
+  `HoneypotSettingsRow::parse_purge_seconds` (dashboard form → value) and
+  `purge_seconds_u32` (row → serenity's `ban`) are the only two conversions, and
+  both clamp — mirroring `parse_auto_disconnect_secs`, and the CC-5 / ticket #2
+  "one owner for the contract" pattern. `purge_seconds_u32` deliberately
+  re-clamps rather than trusting the column, because the `CHECK` only landed
+  with this migration and a pre-existing row is not covered by it.
+- **Garbage falls back to the default; garbage in a *snowflake* field is still
+  an error.** The two rules differ on purpose and the tests say so: an
+  unparseable channel id must fail loudly (it would silently disarm the trap —
+  the regression `tests/settings.rs` already guards), whereas an unparseable
+  *window* means "the admin did not mean to change this", and failing the whole
+  save over it would be worse than keeping the default.
+- **Regression test:** 8 new cases in
+  `bot-modules/honeypot/tests/settings.rs` — default-on-unset, parse + trim,
+  `0` preserved as a real choice, over-large clamped to the 7-day ceiling,
+  negative not becoming a huge `u32` (the failure this fix most needs to
+  prevent: an unclamped cast would ask Discord to purge ~136 years), the
+  accessor re-clamping a pre-`CHECK` row, garbage falling back, and a
+  form→row→config round trip. Offline; no `DATABASE_URL` needed.
+- **`HoneypotConfig::default()` is now hand-written rather than derived**, with
+  its own test: a derived `Default` gives `purge_seconds: 0`, which silently
+  means "purge nothing" — a wrong default that would not have failed anything.
 - **Where:** `bot-modules/honeypot/src/message_create.rs:13`, applied at `:72`
 - **What:** The ban's `delete_message_seconds` is a compile-time constant.
 - **Why it matters:** Checklist #5 — it is the crate's most destructive

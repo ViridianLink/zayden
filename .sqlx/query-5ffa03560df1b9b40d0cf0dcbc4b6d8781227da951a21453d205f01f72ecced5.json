@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT guild_id, channel_id, exempt_admins, exempt_role_id\n            FROM honeypot_settings\n            WHERE guild_id = $1\n            ",
+  "query": "\n            SELECT guild_id, channel_id, exempt_admins, exempt_role_id,\n                   purge_seconds\n            FROM honeypot_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -46,6 +46,17 @@
             "name": "exempt_role_id"
           }
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "purge_seconds",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "honeypot_settings",
+            "name": "purge_seconds"
+          }
+        }
       }
     ],
     "parameters": {
@@ -57,8 +68,9 @@
       false,
       true,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "f6b819f4d4ea2d7cb1dbbd8a75a0e55c9501dcb3f645dd0ed24a79cd63583ac4"
+  "hash": "5ffa03560df1b9b40d0cf0dcbc4b6d8781227da951a21453d205f01f72ecced5"
 }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use serenity::all::{ChannelId, Context, GuildId, Message, UserId};
+use serenity::all::{Context, GuildId, Message, UserId};
 use tracing::{debug, error, warn};
 use zayden_app::config::HoneypotSettingsRow;
 use zayden_core::as_u64;
@@ -11,13 +11,7 @@ use crate::error::Result;
 use crate::guard::GUARD;
 use crate::policy::{self, ExemptionPolicy};
 
-const PURGE_WINDOW: Duration = Duration::from_hours(24);
-const REASON: &str = "Honeypot: posted in the honeypot channel";
-
-fn purge_seconds() -> u32 {
-    u32::try_from(PURGE_WINDOW.as_secs()).unwrap_or(u32::MAX)
-}
-
+pub const BAN_REASON: &str = "Honeypot: posted in the honeypot channel";
 const UNBAN_RETRY: RetryBudget = RetryBudget::new(3, Duration::from_millis(250));
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +25,6 @@ pub struct HoneypotHit {
     pub user_id: UserId,
     pub username: String,
     pub guild_id: GuildId,
-    pub channel_id: ChannelId,
     pub outcome: HoneypotOutcome,
 }
 
@@ -78,15 +71,17 @@ pub async fn message_create(
         return Ok(None);
     }
 
+    let purge_seconds = settings.purge_seconds_u32();
+
     if let Err(e) =
-        guild_id.ban(&ctx.http, author_id, purge_seconds(), Some(REASON)).await
+        guild_id.ban(&ctx.http, author_id, purge_seconds, Some(BAN_REASON)).await
     {
         GUARD.release(guild_id, author_id).await;
         return Err(e.into());
     }
 
     let unban = retry_transient(UNBAN_RETRY, || {
-        guild_id.unban(&ctx.http, author_id, Some(REASON))
+        guild_id.unban(&ctx.http, author_id, Some(BAN_REASON))
     })
     .await;
 
@@ -119,7 +114,6 @@ pub async fn message_create(
         user_id: author_id,
         username: msg.author.name.to_string(),
         guild_id,
-        channel_id,
         outcome,
     }))
 }
