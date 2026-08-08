@@ -10,27 +10,59 @@ use zayden_app::entitlement::{EntitlementScope, EntitlementService, Tier};
 
 use crate::manager::MusicManager;
 use crate::resolve::{next_retry_count, should_reconnect, station_track};
+use crate::track::{ResolvedTrack, TrackSource};
 use crate::voice::Playback;
 use crate::{embeds, voice};
 
 pub struct TrackErrorNotifier {
     pub guild_id: GuildId,
-    pub title: String,
+    pub track: ResolvedTrack,
+    pub playback: Playback,
 }
 
 #[async_trait]
 impl EventHandler for TrackErrorNotifier {
     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
-        if let EventContext::Track(states) = ctx {
-            for (state, _) in *states {
-                if let PlayMode::Errored(err) = &state.playing {
-                    error!(
-                        guild_id = %self.guild_id,
-                        title = %self.title,
-                        "track playback failed: {err}"
-                    );
-                }
+        let EventContext::Track(states) = ctx else {
+            return None;
+        };
+
+        let mut failed = false;
+        for (state, _) in *states {
+            if let PlayMode::Errored(err) = &state.playing {
+                error!(
+                    guild_id = %self.guild_id,
+                    title = %self.track.title,
+                    "track playback failed: {err}"
+                );
+                failed = true;
             }
+        }
+
+        if !failed || self.track.source == TrackSource::Radio {
+            return None;
+        }
+
+        let player = self.playback.music.get(self.guild_id)?;
+        let announce_to = {
+            let guard = player.lock().await;
+            guard.announce_target()
+        };
+
+        if let Some(channel) = announce_to
+            && let Err(e) = channel
+                .send_message(
+                    &self.playback.http,
+                    CreateMessage::new()
+                        .embed(embeds::track_failed_embed(&self.track)),
+                )
+                .await
+        {
+            warn!(
+                error = ?e,
+                guild_id = %self.guild_id,
+                "failed to announce track failure"
+            );
         }
 
         None

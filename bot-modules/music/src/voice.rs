@@ -155,7 +155,8 @@ pub async fn start_playback(
     handle
         .add_event(Event::Track(TrackEvent::Error), TrackErrorNotifier {
             guild_id,
-            title: track.title.clone(),
+            track: track.clone(),
+            playback: playback.clone(),
         })
         .map_err(|e| MusicError::Songbird(e.to_string()))?;
 

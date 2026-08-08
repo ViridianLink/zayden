@@ -135,6 +135,17 @@ pub fn track_announcement_embed(track: &ResolvedTrack) -> CreateEmbed<'static> {
     }
 }
 
+pub fn track_failed_embed(track: &ResolvedTrack) -> CreateEmbed<'static> {
+    CreateEmbed::new()
+        .title("Playback Failed")
+        .description(format!(
+            "Couldn't play [{}]({}), so it was skipped.",
+            track.title, track.url
+        ))
+        .colour(Colour::RED)
+        .field("Requested by", requested_by_mention(track), true)
+}
+
 pub fn queued_embed(track: &ResolvedTrack, position: usize) -> CreateEmbed<'static> {
     CreateEmbed::new()
         .title("Queued")
