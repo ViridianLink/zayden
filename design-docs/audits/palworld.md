@@ -13,13 +13,13 @@ good example of #4 done right. Minor: one inline test module remains.
 ## Findings
 
 ### 1. Inline `#[cfg(test)]` module  ·  #6  ·  med
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/commands/breed_plan.rs:147`.
 - **What / Why / Fix:** See [CC-2](_cross-cutting.md#cc-2). Move to `tests/`
   (the crate already has 12 integration files — harness is established).
 
 ### 3. Breed-plan / Paldex displays are better as dashboard read-views  ·  #8  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/commands/breed_plan.rs`, `src/commands/breed_for.rs`, Paldex
   display paths.
 - **What:** Breeding-path and Paldex output is data-dense and better browsed on a

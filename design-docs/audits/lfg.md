@@ -11,12 +11,12 @@ under `tests/`. Structurally the best migration reference alongside temp-voice.
 ## Findings
 
 ### 3. `#[expect]` escape-hatches  ·  #7  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/actions/leave.rs:19`, `src/cron/reminders.rs:20`.
 - **What / Why / Fix:** See [CC-3](_cross-cutting.md#cc-3).
 
 ### 4. `setup` duplicates the dashboard; `tags` CRUD belongs on the web  ·  #8  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** Removed the duplicate editor. The dashboard's
   `save_lfg_settings` (`dashboard/src/server/guild.rs:229`) already writes a
   **superset** of the same `lfg_settings` row (channel + role + scheduled-thread),

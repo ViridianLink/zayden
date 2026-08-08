@@ -13,7 +13,7 @@ housekeeping notes.
 ## Findings
 
 ### 1. Fixture regeneration must stay documented  ·  #6  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `tests/fixtures/*.json`, transport parsers in `src/transport/`,
   `src/news.rs`.
 - **What:** Fixtures are captured from live endpoints + FlareSolverr; there is a

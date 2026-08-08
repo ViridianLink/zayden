@@ -12,7 +12,7 @@ and five integration test files including `actions_authz.rs`.
 ## Findings
 
 ### 3. Region list hardcoded, flagged for API sync  ·  #4 / #5  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/components/mod.rs:43` — `// TODO: Can regions be pulled from
   Discord API to avoid future drift`.
 - **What:** The voice-region option set is a hardcoded constant list that can

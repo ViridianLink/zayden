@@ -14,7 +14,7 @@ inability to host integration tests (no lib target).
 ## Findings
 
 ### 1. `#[expect]` cluster across bindings  ·  #7  ·  med
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/handler/mod.rs:121`,
   `src/bindings/gambling/{goals,daily,dig,work}.rs`,
   `src/bindings/lfg/mod.rs:159,189`, `src/bindings/levels/mod.rs:105`,
@@ -44,7 +44,7 @@ per-crate audit could see, because they live in the glue between a module crate
 and its binding — exactly the blind spot CC-1/CC-9 describe._
 
 ### DS-1. Level-up coin reward is a second transaction after XP is already committed → reward silently lost  ·  Pass 1 (silent failure) / SQL atomicity  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-19):** Pulled `levels::message_create` out of the `try_join!` and
   run it (plus the `add_coins` reward) **before** the fallible siblings
   (`Ai`/`support`/`llamad2`). Since the level is committed inside

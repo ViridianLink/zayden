@@ -23,7 +23,7 @@ _None outstanding._
 _Deep sweep: 2026-07-17 · lenses: numeric/boundary, duplication/drift, Discord rate-limit._
 
 ### DS-1. Flipped subtraction in the demote threshold → downvoted suggestions never leave the review channel (+ per-reaction full-channel scan)  ·  Pass 9+5+3  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/suggestions/src/reaction.rs:83,124`.
 - **What:** Promotion uses the delta `pos_count - neg_count`:
   `if (pos_count - neg_count) >= 20 { …create/update review post… }`. The demote

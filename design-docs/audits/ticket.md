@@ -15,7 +15,7 @@ regression coverage.
 ## Findings
 
 ### 1. No integration tests  ·  #6  ·  med
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** crate has no `tests/` directory (`ticket_manager.rs`,
   `support_guild_manager.rs`, `slash_commands/ticket/{open,close,remove,create}.rs`).
 - **What:** The ticket lifecycle (open → fixed → close → remove, support-guild

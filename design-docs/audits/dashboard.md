@@ -13,12 +13,12 @@ structurally awkward (noted, not blamed).
 ## Findings
 
 ### 2. `#[expect]` in login route  ·  #7  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/web/routes_login.rs:94`.
 - **What / Why / Fix:** See [CC-3](_cross-cutting.md#cc-3).
 
 ### 3. Natural home for the bot's config/CRUD/display surface (CC-8 receiving end)  ·  #8  ·  med
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/server/*` (mutation surface today: support/channels/roles/
   temp-voice/lfg settings, module toggles, tier), `src/ui/pages/*`.
 - **What:** This crate is the destination for [CC-8](_cross-cutting.md#cc-8). The

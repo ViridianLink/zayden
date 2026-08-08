@@ -14,13 +14,13 @@ debt is in the newer **entitlement** subsystem.
 ## Findings
 
 ### 3. `#[expect]` in entitlement service  ·  #7  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/entitlement/service.rs:78`.
 - **What / Why / Fix:** One CC-3 escape-hatch; triage per
   [CC-3](_cross-cutting.md#cc-3).
 
 ### 4. `SettingsRegistry` is the shared bot/web backend — the key CC-8 enabler  ·  #8  ·  info
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/config/registry.rs`, `src/config/tables/*`,
   `src/state/app_state.rs`.
 - **What:** Both the bot and the dashboard write settings through this one

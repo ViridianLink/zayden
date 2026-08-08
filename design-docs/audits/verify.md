@@ -12,7 +12,7 @@ that coverage is low-priority. _(Re-read 2026-07-31 while closing
 ## Findings
 
 ### 1. No integration tests  ·  #6  ·  low
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Ruling (2026-07-31, CC-6's last crate).** Accepted as-is, per this finding's
   own "otherwise accept as-is" and [CC-6](_cross-cutting.md#cc-6)'s requirement
   that the judgement be made explicitly rather than by writing trivia. The whole

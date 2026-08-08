@@ -15,7 +15,7 @@ yet on the DB. Does not exhibit CC-1 (already concrete).
 ## Findings
 
 ### 1. Raid-guide render pipeline still fully `const`  ·  #5  ·  med
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/raid_guides/mod.rs`, `raid_guides/weapons.rs`,
   `raid_guides/{last_wish,desert_perpetual}.rs`.
 - **What:** #4's data-to-DB move seeded `destiny2_raid_weapons`, but the render
@@ -29,7 +29,7 @@ yet on the DB. Does not exhibit CC-1 (already concrete).
   tables. Small (2 rows) but closes the #4 loop.
 
 ### 2. `const fn` builders panic on invariant, behind `#[expect]`  ·  #2 / #7  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/raid_guides/mod.rs:61-87,197-201` — `add_weapon` etc. use
   `#[expect(clippy::indexing_slicing)]` + `#[expect(clippy::panic)]` with
   `panic!("Encounter list is full")`.
@@ -41,7 +41,7 @@ yet on the DB. Does not exhibit CC-1 (already concrete).
   builder.
 
 ### 3. Two archetype representations (intentional, document it)  ·  #4  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/loadouts/domain.rs:129` (`Archetype` `sqlx::Type` enum) vs.
   `src/endgame_analysis/sheet/weapon.rs` (archetype kept as free-text `String`).
 - **What:** The TODO (M3 3b) records the deliberate decision not to unify these:
@@ -53,7 +53,7 @@ yet on the DB. Does not exhibit CC-1 (already concrete).
 - **Suggested fix:** Add the explanatory comment; no code change.
 
 ### 4. Tier-list / loadout browsing are better as dashboard read-views  ·  #8  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/endgame_analysis/tierlist.rs`, `src/loadouts/*` render paths.
 - **What:** Loadout *editing* already moved to the website (M3 3c). The read side
   — tier lists and browsable loadouts — is data-dense catalog content that a web

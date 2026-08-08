@@ -19,12 +19,13 @@ This crate is the only code in the workspace that **bans a user with no human
 in the loop**, so its failure modes are asymmetric: a false negative lets one
 spam message through, a false positive permanently removes a real member. The
 residual findings are the duplicated ban-reason literal, the two-editor
-duplication of `/honeypot set`, and the untested action path.
+duplication of `/honeypot set`, and the untested action path — of which the
+authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
 
 ## Findings
 
 ### 4. Ban reason is a literal duplicated across two crates  ·  #4  ·  low-med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/honeypot/src/message_create.rs:14`
   (`const REASON`) and `bot/src/bindings/honeypot/mod.rs:17`
   (`const HONEYPOT_REASON`) — byte-identical strings, declared independently.
@@ -141,7 +142,7 @@ duplication of `/honeypot set`, and the untested action path.
   owner's ruling before any code moves.**
 
 ### 6. `HoneypotHit.channel_id` is constructed and never read  ·  #2  ·  low
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/honeypot/src/message_create.rs:25` (field),
   `:99` (populated); sole consumer is
   `bot/src/bindings/honeypot/mod.rs:46-59`, which reads `guild_id`, `user_id`
@@ -160,9 +161,72 @@ duplication of `/honeypot set`, and the untested action path.
   rather than a deletion. Either resolution is fine; leaving it as-is is not.
 
 ### 7. Only `policy.rs` is tested — the action path and the authz gate are not  ·  #6  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Where:** `bot-modules/honeypot/tests/{policy,guard}.rs`; untested:
-  `message_create.rs`, `commands/mod.rs:71-80` (`require_manage_guild`).
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Re-pinned (2026-08-08, `cf132327`):** confirmed still live, but **narrower
+  than recorded**. `tests/guard.rs` (5 tests, including the flood case) landed
+  with #2 and `tests/settings.rs` (10 tests) with `cf132327`, so the coverage
+  debt was exactly two items: `require_manage_guild`, unchanged and moved to
+  `commands/mod.rs:65-73`, and `message_create`'s ban/unban sequencing.
+- **Fix (2026-08-08) — the authz half.** Two changes to `commands/mod.rs`:
+  - **Extracted the decision.** `is_privileged(Option<Permissions>) -> bool` is
+    the judgement; `require_manage_guild(cx)` is now a two-line adapter that
+    reads `member.permissions` off the context and calls it. Necessary because
+    `InvocationCtx` holds a `&CommandInteraction` a test cannot construct — the
+    verify #1 fabrication problem. Checked first whether temp-voice #4's
+    `tests/actions_authz.rs` harness generalised: it does **not**, and the
+    reason is instructive — its guards already took `(&VoiceChannelRow, UserId)`,
+    plain data, so it never had this problem. The extraction is the llamad2/CC-6
+    "reaching the logic needs a small extraction" precedent.
+  - **Hoisted the gate.** `require_manage_guild` was called by all three
+    subcommands; it is now called once in `Honeypot::run` above the `match`,
+    with `guild_id` hoisted alongside it (all three are guild-scoped and
+    privileged, so the three duplicated pairs collapse to one).
+- **The hoist is the actual fix, and it is stronger than a test.** The finding's
+  scenario was "delete the gate from one subcommand and nothing notices". With
+  one call site, deleting it orphans `require_manage_guild` → `dead_code` →
+  `-D warnings` fails the build. The invariant moved from untested to
+  **compiler-enforced**, and a fourth subcommand cannot be added that forgets it.
+  **Lesson: for a *mapping* invariant — "is the guard actually called" — cutting
+  the call sites to one can beat covering them.** A test asserts the mapping is
+  right today; a single call site makes a wrong mapping unrepresentable. Reach
+  for coverage when the *decision* can be wrong, for structure when the *wiring*
+  can be.
+- **Verification.** `tests/authz.rs`, 6 tests, offline. Fails-before was
+  established two ways rather than asserted:
+  - **The scenario, reproduced.** Restored HEAD's three-call-site version,
+    deleted `status`'s `require_manage_guild(cx)?`, and ran the gate:
+    `clippy --all-targets -D warnings` **clean**, all 5 test suites green — the
+    removal is invisible, exactly as the finding claimed. The same deletion
+    against the fixed tree fails to compile.
+  - **Mutation matrix** on `is_privileged` (mutate → verify it builds → run →
+    revert): `is_none_or` (fail-open on a missing member) → caught by
+    `absent_permissions_are_not_privileged`; `is_some()` (any permission at all)
+    → caught by 3; `manage_messages` (wrong bit) → caught by 3. The `is_some()`
+    mutant **first came back as a build error** (`missing_const_for_fn` — the
+    simpler body is const-callable), which is an invalid mutant, not a catch;
+    repaired to `const fn` and re-run before counting it. That is temp-voice #4's
+    lesson firing again, and `cf132327` hit the same lint — worth expecting from
+    this crate specifically.
+- **Gates.** `cargo +nightly clippy --workspace --all-targets -- -D warnings`
+  exit 0; `cargo test --workspace --no-fail-fast` **680 passed / 0 failed / 7
+  ignored** (`cf132327`'s 674 plus these 6; the 7 ignored are the pre-existing
+  live-API tests); `cargo +nightly fmt` applied; bacon's `.bacon-locations`
+  empty. No new `#[allow]`/`#[expect]`. **No `.sqlx` and no `Cargo.toml` delta**,
+  so neither `sqlx prepare` nor `machete` applies. Tests ran against a throwaway
+  `postgres:18-alpine` on `:55432`, created for the run and removed after —
+  never the live `.env` database.
+- **Two findings recorded, not fixed here.** [#10](#10-the-config-gate-tests-a-single-bit-where-the-workspaces-other-two-sites-test-two) (the
+  gate ignores `Administrator`) surfaced from writing the tests and is a
+  behaviour change, so it is not smuggled into a coverage task;
+  [#11](#11-message_creates-ban-unban-sequence-has-no-seam-to-test-through) carries
+  the untested `message_create` half, which needs a decision/effect split rather
+  than a test.
+- **Residual.** The gate *mapping* is now structural, not covered — no test
+  reaches `Honeypot::run`, and none can without a fabricated
+  `CommandInteraction`. That is a deliberate trade recorded here so a re-audit
+  does not read the compiler's enforcement as test coverage.
+- **Where:** `bot-modules/honeypot/tests/{policy,guard,settings}.rs`; untested:
+  `message_create.rs`, `commands/mod.rs:65-73` (`require_manage_guild`).
 - **What:** The existing test file is good and should be said so plainly — it
   pins the exemption matrix, and its comments record *why* each case is the way
   it is ("The user chose 'guild owner only by default'…", `:75-77`), which is
@@ -184,9 +248,10 @@ duplication of `/honeypot set`, and the untested action path.
   speculatively — let the coverage follow a refactor rather than drive it.
 
 ### 8. `GUARD.forget` invalidates a cache the settings change cannot affect  ·  #2  ·  low
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Where:** `bot-modules/honeypot/src/commands/mod.rs:112` and `:144`, against
-  `bot-modules/honeypot/src/guard.rs:74-76`
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Where:** `bot-modules/honeypot/src/commands/mod.rs:114` and `:137`, against
+  `bot-modules/honeypot/src/guard.rs:74-76` (cites refreshed 2026-08-08 — #7's
+  gate hoist shifted them; the `forget` calls themselves are unchanged)
 - **What:** `HoneypotGuard` holds two independent caches: `facts` (guild owner +
   role→permission map, 5 min TTL) and `recent` (the per-offender action guard,
   1 min TTL). `forget` clears **`facts` only**. Both `/honeypot set` and
@@ -211,7 +276,7 @@ duplication of `/honeypot set`, and the untested action path.
   a line to `guard.rs` recording the 5-minute exemption staleness as intended.
 
 ### 9. `PURGE_WINDOW` is a hardcoded 24 h  ·  #5  ·  low
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `bot-modules/honeypot/src/message_create.rs:13`, applied at `:72`
 - **What:** The ban's `delete_message_seconds` is a compile-time constant.
 - **Why it matters:** Checklist #5 — it is the crate's most destructive
@@ -225,6 +290,58 @@ duplication of `/honeypot set`, and the untested action path.
   Clamp to Discord's 0–604800 range at the boundary. Low priority — the current
   value is a reasonable default and no one has asked; recorded because #5 asks
   for it and because it is cheap to add alongside #5's dashboard work.
+
+### 10. The config gate tests a single bit where the workspace's other two sites test two  ·  #4  ·  low-med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Recorded 2026-08-08** by [#7](#7-only-policyrs-is-tested--the-action-path-and-the-authz-gate-are-not);
+  writing the gate's tests is what exposed it.
+- **Where:** `bot-modules/honeypot/src/commands/mod.rs:91` (`is_privileged` →
+  `Permissions::manage_guild`) vs. `bot-modules/honeypot/src/policy.rs:47`
+  (`is_staff` → `administrator() || manage_guild()`) vs. the dashboard's
+  guild-admin gate (`ADMINISTRATOR | MANAGE_GUILD`).
+- **What:** Three sites answer "may this member administer the guild" and the
+  honeypot **config gate** is the only one testing one bit. serenity's
+  `Permissions::manage_guild()` is `contains(MANAGE_GUILD)` — a plain bitflag
+  test (verified in `serenity/src/model/permissions.rs:89-118`, the
+  `generate_permissions!` macro) — so an `Administrator`-only bitfield does not
+  satisfy it. The crate's *own* exemption check handles the pair; its config
+  gate does not.
+- **Why it matters, and why it may be nothing:** the failure direction is a
+  **lockout, not an escalation** — a server Administrator without an explicit
+  Manage Server bit could not configure the honeypot. That benign direction is
+  why it would go unreported. Whether it is reachable at all turns on whether
+  Discord expands `Administrator` to a full bitfield in an interaction's
+  computed `member.permissions`, **which cannot be settled from this
+  repository** — so this is recorded as an inconsistency with a plausible
+  consequence, not a confirmed defect. Do not close it by reasoning; close it by
+  checking Discord's behaviour.
+- **Suggested fix:** If confirmed, `perms.is_some_and(policy::is_staff)` — one
+  owner for the pair, and it collapses three definitions to two. Note the
+  coupling risk that argues against doing it blindly: `is_staff` currently means
+  "exempt from the trap", and reusing it would make a future tuning of *who the
+  trap spares* silently change *who may arm it*. If they are reused, say so at
+  both sites. `tests/authz.rs` pins the present behaviour as a characterization
+  test and is **expected to fail** when this is fixed.
+
+### 11. `message_create`'s ban/unban sequence has no seam to test through  ·  #6  ·  low-med
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Recorded 2026-08-08**, carrying the half of [#7](#7-only-policyrs-is-tested--the-action-path-and-the-authz-gate-are-not)
+  that #7 deliberately did not take.
+- **Where:** `bot-modules/honeypot/src/message_create.rs:38-125`
+- **What:** The trap's decision sequence — claim → facts → exempt → ban →
+  retried unban → `HoneypotOutcome` — has no test. Its *parts* now do
+  (`policy.rs` via `tests/policy.rs`, the claim via `tests/guard.rs`, the retry
+  via `zayden-core/tests/retry.rs`); the order they run in, and the outcome
+  mapping #1 added, do not.
+- **Why it matters:** this is the function that bans people. #1 established that
+  its two halves can disagree (a ban landing while the record says `SoftBanned`),
+  and nothing would catch a regression that re-introduced that.
+- **Why it is its own finding:** covering it needs a decision/effect split —
+  a pure `fn decide(...) -> Action` plus a thin executor — because serenity's
+  `Http` is a concrete type with no trait seam to inject. That is a refactor of
+  the crate's core path, and #7's own guidance was not to let a coverage finding
+  drive one. Sequence it *after* #10, which touches the same crate's authz story
+  and is cheaper.
 
 ## Clean
 

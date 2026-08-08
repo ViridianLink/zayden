@@ -20,7 +20,7 @@ commands and data-dense displays would be better served by the website.
 ## Findings
 
 ### CC-2. Inline `#[cfg(test)] mod tests` in `src/` (convention violation)  ·  #6  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-24):** Relocated the **7 surviving** inline `#[cfg(test)]` modules
   (the original list's `gambling/components/tictactoe.rs` and `family/family_manager.rs`
   sites were already deleted/renamed by the CC-1 migrations) to `tests/` integration
@@ -67,7 +67,7 @@ commands and data-dense displays would be better served by the website.
   logic into a lib crate.
 
 ### CC-3. `#[expect(...)]` lint escape-hatches  ·  #7 / #2  ·  low–med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-28):** Triaged **all** sites. The inventory had grown from 22 to
   **27** by fix time (the CC-1 migrations moved SQL into the module crates and
   carried their suppressions with them — the `bot/src/bindings/*` sites in the list
@@ -212,7 +212,7 @@ commands and data-dense displays would be better served by the website.
     a suppression (removed by an earlier task); the inventory above is corrected.
 
 ### CC-4. `tictactoe` dead `GameState` stub  ·  #2  ·  low
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Reconciled (2026-07-29):** the marker below was left at `in-review` after the
   human committed the fix; `a2c6f652` ("remove dead code for RIGGED_LUCK and
   update audit findings") is that commit, so the status is now `complete`.
@@ -279,7 +279,7 @@ commands and data-dense displays would be better served by the website.
   feature is actually built.
 
 ### CC-6. Test-coverage gaps  ·  #6  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Closing pass (2026-07-31).** All three named crates are now resolved:
   [`gold-star`](gold-star.md#3-no-integration-tests--6--low) closed (`9a7b8795`),
   [`llamad2`](llamad2.md) closed (`b5cc3faf`), and
@@ -364,7 +364,7 @@ commands and data-dense displays would be better served by the website.
   DB-touching paths can follow once a test-pool harness exists.
 
 ### CC-8. Features better served by the (now-live) web dashboard  ·  #8  ·  med
-- **Status:** `unclear`
+- **Status:** `open`
 
 - **Where:** config/`setup` commands and data-dense displays across `lfg`,
   `temp-voice`, `music`, `ticket`, `suggestions`, `reaction-roles`, `gambling`,
@@ -460,7 +460,7 @@ commands and data-dense displays would be better served by the website.
   read-view migrations as UX upgrades, lower priority than de-duplicating writes.
 
 ### CC-11. `.sqlx` drifted again — `SQLX_OFFLINE` builds are broken on `main`  ·  #1 / #7  ·  **high**  ·  confirmed
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-08-07).** Regenerated against an empty, freshly-migrated
   `postgres:18-alpine` (throwaway on `:55432`, all **23** migrations, no
   application data — the only populated tables are the ones `0008_destiny2_seed`
@@ -551,7 +551,7 @@ commands and data-dense displays would be better served by the website.
   configuration is exercised continuously alongside the online one.
 
 ### CC-10. Committed `.sqlx` offline cache is drifted on `main`  ·  #1 / #7  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Reconciled (2026-08-05):** the marker was left at `in-review` after the human
   committed the task. Verified against the tree, not the record: `c294c4b6`
   ("fix(query): correct nullable fields in SQL query metadata") touches exactly
@@ -637,7 +637,7 @@ commands and data-dense displays would be better served by the website.
   restores the gate every later SQL task depends on.
 
 ### CC-11. `.sqlx` entry hand-edited instead of regenerated → `SQLX_OFFLINE` builds are broken on `main`  ·  #1 / #7  ·  med
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Where:** `.sqlx/query-3c493f672abe71417f07dadf9eaba248c9011f8e333077c1861b2deaa0eaec90.json`
   against `bot-modules/gambling/sql/HigherLowerManager/winners.sql`, consumed by
   `bot-modules/gambling/src/games/higherlower.rs:23`
@@ -693,7 +693,7 @@ first-pass structural findings only hinted at. Per-module detail lives in the
 cross-cutting theme plus an index._
 
 ### CC-9. Read-modify-write on economy/counter rows with **absolute** overwrite (race class)  ·  #3  ·  high
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
   Umbrella — every enumerated site is now closed; the umbrella itself is the
   human's call to close. Each site was its own task.
   - **Closed:** [gambling DS-1…DS-5, DS-7](gambling.md),

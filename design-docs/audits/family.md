@@ -24,7 +24,7 @@ _None outstanding._
 _Deep sweep: 2026-07-17 · lenses: silent-failure, state-machine/invariant, concurrency._
 
 ### DS-2. `marry`/`adopt` accept handlers re-run no invariant checks → `MAX_PARTNERS`/already-adopted bypass  ·  Pass 7  ·  low
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-07-22):** Both `accept` handlers now re-validate the invariants
   against the *freshly-read* rows, before the write:
   `components/marry.rs::accept` rejects with `AlreadyRelated` if the pair is

@@ -12,7 +12,7 @@ one reserved shop-item const, and the dashboard read-view direction.
 ## Findings
 
 ### 2b. `WEAPON_CRATE` is the same dead stub, hidden by `pub` instead of `#[expect]`  ·  #2  ·  low
-- **Status:** `unclear`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Ruling (2026-07-29):** Do **not** delete reserved shop items — they are
   planned features. The standing rule the owner set here: *comment the const out
   only when it is flagged by an `#[expect]`; if it is already commented out,
@@ -55,7 +55,7 @@ one reserved shop-item const, and the dashboard read-view direction.
   Fits [CC-6](_cross-cutting.md#cc-6).
 
 ### 3. `#[expect]` cluster  ·  #7  ·  med
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/utils.rs:85`, `src/models/mod.rs:74` (`cast_sign_loss`),
   `src/commands/tictactoe.rs:136,151`, `src/commands/gift.rs:37`,
   `src/common/shop/items.rs:47`, `src/games/lotto.rs:118`.
@@ -64,7 +64,7 @@ one reserved shop-item const, and the dashboard read-view direction.
   stamina type) rather than a cast suppression.
 
 ### 6. Leaderboard / profile are better as dashboard read-views  ·  #8  ·  low
-- **Status:** `unclear`
+- **Status:** `open`
 - **Where:** `src/commands/leaderboard.rs`, `src/commands/profile.rs` (+ their
   `components/*` pagers).
 - **What:** Data-dense, paged displays that a Discord embed renders poorly
