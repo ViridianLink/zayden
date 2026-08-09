@@ -54,5 +54,4 @@ tokio = { workspace = true, features = [
     "net",
     "io-util",
     "process",
-    "test-util",
 ] }

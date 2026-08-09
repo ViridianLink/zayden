@@ -61,6 +61,7 @@ pub use resolve::{
     should_reconnect,
     station_track,
     stream_client,
+    stream_client_with,
 };
 pub use track::{LoopMode, ResolvedTrack, TrackSource};
 pub use zayden_app::config::{Genre, MusicSettingsRow, RadioStation};

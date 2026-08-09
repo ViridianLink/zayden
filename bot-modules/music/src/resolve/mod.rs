@@ -15,7 +15,7 @@ pub mod spotify;
 pub mod spotify_embed;
 pub mod youtube;
 
-pub use http::{STREAM_READ_TIMEOUT, stream_client};
+pub use http::{STREAM_READ_TIMEOUT, stream_client, stream_client_with};
 pub use radio::{RadioResolver, next_retry_count, should_reconnect, station_track};
 pub use spotify::{
     CompositeResolver,

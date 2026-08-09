@@ -90,59 +90,115 @@ async fn spawn_dribbling_server(body_len: usize, gap: Duration) -> Option<String
     Some(format!("http://{addr}"))
 }
 
-/// Fails-before: `Client::new()` carries no timeout, so the request sits on the
-/// silent upstream until the backstop fires — in production that is a track
-/// that never starts, never errors, and never advances the queue.
+/// The budgets the two socket tests below run the real client at.
 ///
-/// Virtual time, so the client's real 20s budget costs the suite nothing.
-#[tokio::test(start_paused = true)]
+/// **These tests must not use a paused clock.** They drive a real `reqwest`
+/// client over a real loopback socket, and under `start_paused` tokio
+/// auto-advances virtual time whenever the runtime goes idle — which is exactly
+/// what it does while the OS completes the TCP handshake. The connect budget
+/// then elapses in virtual time before the connect finishes in real time, and
+/// the assertion never reaches the read budget it exists to measure. So the
+/// clock is real and the budgets are scaled down to milliseconds instead
+/// (`music::stream_client_with`), which keeps both tests under a second.
+const TEST_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+const TEST_READ_TIMEOUT: Duration = Duration::from_millis(300);
+
+/// Fails-before: `Client::new()` carried no timeout, so the request sat on the
+/// silent upstream until the backstop fired — in production that is a track
+/// that never starts, never errors, and never advances the queue.
+#[tokio::test]
 async fn stream_client_gives_up_on_a_silent_upstream_instead_of_waiting_forever() {
     let url = spawn_black_hole_server().await.expect("start mock server");
 
-    let client = music::stream_client().expect("build streaming client");
+    let client = music::stream_client_with(TEST_CONNECT_TIMEOUT, TEST_READ_TIMEOUT)
+        .expect("build streaming client");
 
-    let result =
-        tokio::time::timeout(Duration::from_secs(120), client.get(&url).send())
-            .await
-            .expect(
-                "the client must give up on its own; it was still waiting on a \
-                 silent upstream after 120s",
-            );
+    let started = Instant::now();
+
+    let result = tokio::time::timeout(
+        TEST_CONNECT_TIMEOUT + TEST_READ_TIMEOUT * 10,
+        client.get(&url).send(),
+    )
+    .await
+    .expect("the client must give up on its own rather than wait forever");
 
     let err = result.expect_err("a silent upstream must surface as an error");
+    let elapsed = started.elapsed();
 
     assert!(err.is_timeout(), "expected a timeout error, got {err:?}");
+    // A loopback connect that succeeded and then went silent is the scenario;
+    // if this ever fires as a *connect* timeout the test has stopped measuring
+    // the read budget — which is precisely how the paused-clock version of this
+    // suite went red (audit `music` #4).
+    assert!(
+        !err.is_connect(),
+        "the upstream accepted the connection, so this must be the read budget \
+         firing, not the connect budget: {err:?}",
+    );
+    assert!(
+        elapsed < TEST_CONNECT_TIMEOUT,
+        "gave up after {elapsed:?}, which is the connect budget rather than the \
+         {TEST_READ_TIMEOUT:?} read budget",
+    );
 }
 
 /// The guard against the *wrong* fix. Chaining `zayden_app`'s
 /// `ClientBuilderExt::with_timeouts()` here would look like the obvious
-/// symmetry with the `ai` #1 fix, but its 30s cap is a **total request** budget
-/// and songbird streams the whole track body through this client — every track
-/// longer than 30s would be cut off mid-playback. This stream stays healthy for
-/// 50 virtual seconds; a total-request cap fails it, a per-read cap does not.
-#[tokio::test(start_paused = true)]
+/// symmetry with the `ai` #1 fix, but its cap is a **total request** budget and
+/// songbird streams the whole track body through this client — every track
+/// longer than the cap would be cut off mid-playback.
+///
+/// So the body here takes longer to arrive *in total* than the read budget,
+/// while no single read ever exceeds it: a per-read cap passes this, a
+/// total-request cap of the same size fails it. That relationship is the
+/// property under test, which is why it holds at millisecond scale exactly as
+/// it does at the production constants.
+#[tokio::test]
 async fn stream_client_does_not_cap_a_slow_but_healthy_stream() {
-    const BODY_LEN: usize = 5;
-    const GAP: Duration = Duration::from_secs(10);
+    const BODY_LEN: usize = 10;
+    const GAP: Duration = Duration::from_millis(50);
 
     assert!(
-        GAP < music::STREAM_READ_TIMEOUT,
+        GAP < TEST_READ_TIMEOUT,
         "the dribble gap must stay inside the per-read budget, or this test \
          stops measuring what it claims to"
+    );
+    assert!(
+        GAP * u32::try_from(BODY_LEN).expect("body length fits a u32")
+            > TEST_READ_TIMEOUT,
+        "the whole body must take longer than the read budget, or a \
+         total-request cap would pass this test too"
     );
 
     let url = spawn_dribbling_server(BODY_LEN, GAP).await.expect("start server");
 
-    let client = music::stream_client().expect("build streaming client");
+    let client = music::stream_client_with(TEST_CONNECT_TIMEOUT, TEST_READ_TIMEOUT)
+        .expect("build streaming client");
 
-    let body = tokio::time::timeout(Duration::from_secs(300), async {
+    let body = tokio::time::timeout(TEST_CONNECT_TIMEOUT, async {
         client.get(&url).send().await?.bytes().await
     })
     .await
-    .expect("the 50s stream must not stall the test")
+    .expect("the dribbling stream must not stall the test")
     .expect("a healthy slow stream must not be cut off by the client");
 
     assert_eq!(body.len(), BODY_LEN, "the whole body must arrive");
+}
+
+/// The production entry point still builds, and still carries the constants the
+/// two tests above stand in for. `reqwest` exposes no getter for a built
+/// client's timeouts, so this pins what is observable: the real budgets are a
+/// per-read one, and the read budget is the larger of the two — the ordering
+/// that makes a silent upstream fail on the read rather than the connect.
+#[tokio::test]
+async fn production_stream_client_builds_with_a_read_budget() {
+    music::stream_client().expect("build the production streaming client");
+
+    assert!(
+        music::STREAM_READ_TIMEOUT
+            > zayden_app::services::http::HTTP_CONNECT_TIMEOUT,
+        "the read budget must outlast the connect budget",
+    );
 }
 
 /// Fails-before: `Command::output()` was awaited with no budget, so a `yt-dlp`
