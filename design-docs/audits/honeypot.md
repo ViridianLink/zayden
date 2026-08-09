@@ -383,7 +383,46 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   for it and because it is cheap to add alongside #5's dashboard work.
 
 ### 10. The config gate tests a single bit where the workspace's other two sites test two  ·  #4  ·  low-med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 1f06667d`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-09, `1f06667d`).** Confirmed reachable — the owner settled the
+  open question the finding said only Discord could: an interaction's computed
+  `member.permissions` does **not** expand `Administrator` into a full bitfield,
+  so a server Administrator without an explicit Manage Server bit really was
+  locked out of `/honeypot`. `is_privileged` (`commands/mod.rs:70`) now delegates
+  to `policy::is_staff` (`perms.is_some_and(is_staff)`), so the crate's config
+  gate, its exemption check, and the dashboard's guild-admin gate all answer
+  "may this member administer the guild" as `administrator() || manage_guild()`.
+  Three definitions collapse to two. The human reviewed and committed the fix
+  during the task's gate run (`1f06667d`); marker reconciled `in-progress` →
+  `complete` here against the tree, per the workflow's concurrent-review path.
+- **The coupling risk the finding flagged is real and is the residual.** Reusing
+  `is_staff` means it now drives *both* "who may arm the trap" and "who the trap
+  spares"; a future narrowing of the exemption meaning would silently change who
+  may configure it. The finding asked this be documented "at both sites" — a
+  doc-comment on `is_privileged` and one on `is_staff`. Both were dropped before
+  the commit landed (`1f06667d` keeps the functional change and the test's
+  rationale but neither function-level coupling comment; `policy.rs` is untouched
+  by the commit). The behaviour is correct and covered; only the in-code warning
+  about the shared meaning is missing. **Follow-up: re-add the two coupling
+  comments** (or split `is_staff` into a config-gate predicate and an exemption
+  predicate if the shared meaning is ever unwanted).
+- **Verification.** `tests/authz.rs`'s `administrator_alone_...` characterization
+  test — which #7 wrote expecting exactly this flip — was converted to the
+  regression `administrator_alone_satisfies_the_gate`. Fails-before reproduced by
+  restoring the old `perms.is_some_and(Permissions::manage_guild)` body: the new
+  test failed with *"honeypot #10: Administrator may configure the honeypot"*
+  while the other 5 authz tests (unchanged `MANAGE_GUILD` behaviour) stayed green;
+  passes-after with the fix restored.
+- **Gates.** `SQLX_OFFLINE=true cargo +nightly clippy --workspace --all-targets
+  -- -D warnings` exit 0; `SQLX_OFFLINE=true cargo test --workspace --no-run`
+  exit 0 (whole suite compiles offline); `cargo test -p honeypot` **40 passed / 0
+  failed** (authz 6, guard 5, policy 10, settings 19). No new
+  `#[allow]`/`#[expect]`. No `.sqlx` delta (no `query!` added/changed) and no
+  `Cargo.toml` delta, so neither `sqlx prepare` nor `machete` applies. The
+  DB-backed `#[sqlx::test]` suites elsewhere in the workspace were **not run** —
+  the only reachable Postgres is the live `.env` one and no throwaway server was
+  available; the change touches no SQL and no DB path, so nothing DB-backed is in
+  its blast radius.
 - **Recorded 2026-08-08** by [#7](#7-only-policyrs-is-tested--the-action-path-and-the-authz-gate-are-not);
   writing the gate's tests is what exposed it.
 - **Where:** `bot-modules/honeypot/src/commands/mod.rs:91` (`is_privileged` →

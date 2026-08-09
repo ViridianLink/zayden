@@ -13,6 +13,7 @@ use serenity::all::{
 use zayden_core::{InvocationCtx, parse_options, parse_subcommand, required_option};
 
 use crate::error::{HoneypotError, Result};
+use crate::policy::is_staff;
 use crate::settings::HoneypotSettings;
 
 pub struct Honeypot;
@@ -68,7 +69,7 @@ impl Honeypot {
 
 #[must_use]
 pub fn is_privileged(perms: Option<Permissions>) -> bool {
-    perms.is_some_and(Permissions::manage_guild)
+    perms.is_some_and(is_staff)
 }
 
 fn require_manage_guild(cx: &InvocationCtx<'_>) -> Result<()> {

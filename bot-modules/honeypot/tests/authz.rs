@@ -63,27 +63,29 @@ fn manage_guild_alongside_other_permissions_is_privileged() {
     assert!(is_privileged(Some(Permissions::all())));
 }
 
-/// **Characterization test, not an endorsement — see honeypot #10.**
+/// **Regression test for honeypot #10.**
 ///
-/// `Permissions::manage_guild()` is `contains(MANAGE_GUILD)`, a plain bitflag
-/// test, so an `Administrator`-only bitfield does not satisfy this gate. The
-/// crate's own `policy::is_staff` answers the same question as
-/// `administrator() || manage_guild()`, and the dashboard gates guild
-/// administration on that same pair — this predicate is the workspace's third
-/// site and the only one testing a single bit.
+/// The gate now answers the same "may this member administer the guild" question
+/// as `policy::is_staff` (`administrator() || manage_guild()`) and the dashboard,
+/// rather than testing `MANAGE_GUILD` alone. A server `Administrator` without an
+/// explicit Manage Server bit could previously not configure the honeypot — a
+/// lockout the crate's own exemption check and the dashboard did not share, and
+/// which was confirmed reachable because Discord does not expand `Administrator`
+/// in an interaction's computed `member.permissions`.
 ///
-/// Whether that is reachable depends on whether Discord expands `Administrator`
-/// to a full bitfield in the interaction's computed `member.permissions`, which
-/// cannot be settled from this repository. It is pinned here so the divergence
-/// is visible rather than assumed. **If honeypot #10 widens the gate, this test
-/// is expected to fail and should be updated, not deleted.**
+/// Fails-before: against the pre-fix `perms.is_some_and(Permissions::manage_guild)`
+/// body, `is_privileged(Some(ADMINISTRATOR))` was `false` and this assertion
+/// tripped.
 #[test]
-fn administrator_alone_does_not_satisfy_the_gate_but_does_satisfy_is_staff() {
+fn administrator_alone_satisfies_the_gate() {
     let admin = Permissions::ADMINISTRATOR;
 
     assert!(
-        !is_privileged(Some(admin)),
-        "honeypot #10: the gate ignores Administrator"
+        is_privileged(Some(admin)),
+        "honeypot #10: Administrator may configure the honeypot"
     );
-    assert!(is_staff(admin), "honeypot #10: the exemption check does not");
+    assert!(
+        is_staff(admin),
+        "honeypot #10: the gate and the exemption check now agree"
+    );
 }
