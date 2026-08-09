@@ -454,7 +454,66 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   test and is **expected to fail** when this is fixed.
 
 ### 11. `message_create`'s ban/unban sequence has no seam to test through  ·  #6  ·  low-med
-- **Status:** `open`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-09) — the decision/effect split, as prescribed.** Confirmed
+  still live first: `message_create` ran the whole `claim → facts → exempt →
+  ban → unban → outcome` sequence inline against `ctx.http` with no seam and no
+  test. Extracted the three branch points into pure functions in
+  `message_create.rs`, leaving the executor a thin straight-line caller:
+  - `is_decoy_hit(channel, honeypot_channel) -> bool` — the arm gate (was the
+    `settings.channel_id` + channel-equality early returns). Takes resolved ids,
+    not a `Message`, so it is testable without fabricating a serenity event.
+  - `decide(author, roles, facts, policy, purge_seconds) -> Action` — the pure
+    verdict the finding names. `Action::{Spare, Ban { purge_seconds }}`. It
+    composes the already-tested `policy::is_exempt`, so the exempt-shortcircuit
+    that must precede any ban is now a covered function rather than executor glue.
+  - `outcome_of(&unban) -> HoneypotOutcome` — the honeypot #1 pin: `Ok → SoftBanned`,
+    `Err → BanStanding`. The executor **calls** it to set the recorded outcome
+    (logging keeps its own match for `%e`), so the record and the mapping cannot
+    diverge.
+  The claim short-circuit stays in the executor on purpose: it must precede the
+  `facts` I/O (don't `to_partial_guild` for a flood message we've already
+  actioned), so folding it into `decide` would force the fetch. That branch is
+  trivial and `tests/guard.rs` already pins the claim's atomicity.
+- **Behaviour is identical.** Same early-return order, same releases on
+  facts-error / exempt / ban-error, same `warn!`/`error!` sites verbatim. The
+  only structural change is that `expect_channel()` (a no-panic id retype) now
+  runs one line earlier, before the arm gate.
+- **This is #7's structure-over-coverage lesson applied again**, not abandoned:
+  serenity's `Http` has no trait seam, so the sequence is not driven end-to-end
+  from a test. Instead every *decision* is a pure, covered function and the
+  *effects* are an obvious straight-line executor. Reach for coverage where the
+  decision can be wrong (done), for structure where the wiring can be (#7's
+  hoisted authz gate).
+- **Verification.** `bot-modules/honeypot/tests/decision.rs`, 7 tests, offline
+  (pure value types — no `DATABASE_URL`). Fails-before by mutation, since the
+  functions are new and extracted from working code (the CC-6 / temp-voice #4
+  pattern; each mutant checked to *compile* first, all three were valid):
+  - `outcome_of` arms swapped → **2 fail** (`a_successful_unban_...`,
+    `a_failed_unban_...`) — the #1 disagreement, caught.
+  - `decide` exempt branch inverted → **3 fail** (exempt→Ban, stranger→Spare).
+  - `is_decoy_hit` `==` → `!=` → **1 fail** (`only_the_armed_channel_...`; the
+    disarmed test correctly stays green — inverting the match does not affect the
+    `None` arm).
+- **Gates.** `SQLX_OFFLINE=true cargo +nightly clippy --workspace --all-targets
+  -- -D warnings` exit 0 (1m31s — a real recompile, not a warm-fingerprint
+  false-green per CC-11); `SQLX_OFFLINE=true cargo test --workspace --no-run`
+  exit 0 (whole suite compiles offline); `cargo test -p honeypot` **47 passed /
+  0 failed** (authz 6, decision 7, guard 5, policy 10, settings 19);
+  `cargo +nightly fmt` applied. Two `pub`-widening lints fixed properly, no
+  `#[allow]`/`#[expect]`: `missing_const_for_fn` (`outcome_of` → `const fn`; a
+  test helper → `const fn`) and `too_long_first_doc_paragraph` (split two doc
+  first-paragraphs). **No `.sqlx` and no `Cargo.toml` delta** — the change adds
+  no `query!` and no dependency — so neither `sqlx prepare` nor `machete`
+  applies. The DB-backed `#[sqlx::test]` suites elsewhere were **compiled** but
+  not **run** (no throwaway Postgres available, only the live `.env`); the change
+  touches no SQL and no DB path, so nothing DB-backed is in its blast radius —
+  the #7 / #10 precedent.
+- **Residual.** The executor's *ordering* (claim before facts, releases on each
+  early return) remains structural, not covered — no test reaches
+  `message_create` itself, and none can without a fabricated `Http`. That is the
+  deliberate trade this finding always described; the decisions inside the order
+  are now covered, and the order itself is a short, obvious straight line.
 - **Recorded 2026-08-08**, carrying the half of [#7](#7-only-policyrs-is-tested--the-action-path-and-the-authz-gate-are-not)
   that #7 deliberately did not take.
 - **Where:** `bot-modules/honeypot/src/message_create.rs:38-125`
