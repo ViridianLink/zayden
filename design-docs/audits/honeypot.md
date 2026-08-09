@@ -25,7 +25,7 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
 ## Findings
 
 ### 4. Ban reason is a literal duplicated across two crates  ·  #4  ·  low-med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 5a5bd682`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-08-08).** Worked as a batch with #6, #8 and #9 on the owner's
   instruction. One owner: `honeypot::BAN_REASON` (`message_create.rs`, re-exported
   from `lib.rs`) is now the single declaration, used for the `ban` reason, the
@@ -61,7 +61,7 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   records the hit, not what the trap does — so leave them.
 
 ### 5. `/honeypot set` duplicates the dashboard's honeypot form  ·  #8  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — cf132327`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Ruling (2026-08-08): keep both surfaces, converge the write.** The owner
   chose the reaction-roles #3 shape over this finding's own recommendation
   (retire `set`/`disable`) and over deleting the command outright. Recording the
@@ -157,7 +157,7 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   owner's ruling before any code moves.**
 
 ### 6. `HoneypotHit.channel_id` is constructed and never read  ·  #2  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 5a5bd682`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-08-08): deleted, not consumed** — the opposite of what this
   finding leaned toward, and the reason is worth recording. "Put the channel on
   the infraction" is a schema change to `infractions`, a **shared** moderation
@@ -194,7 +194,7 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   rather than a deletion. Either resolution is fine; leaving it as-is is not.
 
 ### 7. Only `policy.rs` is tested — the action path and the authz gate are not  ·  #6  ·  med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 44b9e0e9`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Re-pinned (2026-08-08, `cf132327`):** confirmed still live, but **narrower
   than recorded**. `tests/guard.rs` (5 tests, including the flood case) landed
   with #2 and `tests/settings.rs` (10 tests) with `cf132327`, so the coverage
@@ -281,7 +281,7 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   speculatively — let the coverage follow a refactor rather than drive it.
 
 ### 8. `GUARD.forget` invalidates a cache the settings change cannot affect  ·  #2  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 5a5bd682`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-08-08): dropped both calls and the method.** The finding offered
   "drop the calls **or** repoint them at `recent`"; the first is correct and the
   second was a red herring on re-reading. Repointing would exist to let an admin
@@ -333,7 +333,7 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   a line to `guard.rs` recording the 5-minute exemption staleness as intended.
 
 ### 9. `PURGE_WINDOW` is a hardcoded 24 h  ·  #5  ·  low
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 5a5bd682`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-08-08).** `migrations/0024_honeypot_purge` adds
   `honeypot_settings.purge_seconds integer NOT NULL DEFAULT 86400`, so every
   existing row keeps today's behaviour exactly, with a `CHECK (purge_seconds
@@ -383,8 +383,13 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   for it and because it is cheap to add alongside #5's dashboard work.
 
 ### 10. The config gate tests a single bit where the workspace's other two sites test two  ·  #4  ·  low-med
-- **Status:** `complete — 1f06667d`            <!-- open | in-progress | in-review | complete | wontfix -->
-- **Fix (2026-08-09, `1f06667d`).** Confirmed reachable — the owner settled the
+- **Status:** `complete — f6ccd11b`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Fix (2026-08-09, `f6ccd11b`).** **Sha corrected 2026-08-09:** this note
+  originally named `1f06667d`, which is not on `main` — the commit was amended
+  into `f6ccd11b`, whose 3 paths and `src/` delta match exactly. Same situation
+  as [bot #4](bot.md)'s `12f6b01e`→`7e75cc79`; recorded rather than silently
+  swapped, since a fix note naming a dead sha is not a sign the fix is wrong.
+  Confirmed reachable — the owner settled the
   open question the finding said only Discord could: an interaction's computed
   `member.permissions` does **not** expand `Administrator` into a full bitfield,
   so a server Administrator without an explicit Manage Server bit really was
@@ -393,14 +398,14 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   gate, its exemption check, and the dashboard's guild-admin gate all answer
   "may this member administer the guild" as `administrator() || manage_guild()`.
   Three definitions collapse to two. The human reviewed and committed the fix
-  during the task's gate run (`1f06667d`); marker reconciled `in-progress` →
+  during the task's gate run (`f6ccd11b`); marker reconciled `in-progress` →
   `complete` here against the tree, per the workflow's concurrent-review path.
 - **The coupling risk the finding flagged is real and is the residual.** Reusing
   `is_staff` means it now drives *both* "who may arm the trap" and "who the trap
   spares"; a future narrowing of the exemption meaning would silently change who
   may configure it. The finding asked this be documented "at both sites" — a
   doc-comment on `is_privileged` and one on `is_staff`. Both were dropped before
-  the commit landed (`1f06667d` keeps the functional change and the test's
+  the commit landed (`f6ccd11b` keeps the functional change and the test's
   rationale but neither function-level coupling comment; `policy.rs` is untouched
   by the commit). The behaviour is correct and covered; only the in-code warning
   about the shared meaning is missing. **Follow-up: re-add the two coupling
@@ -454,7 +459,7 @@ authz gate half is now closed (#7), leaving the ban/unban sequence (#11).
   test and is **expected to fail** when this is fixed.
 
 ### 11. `message_create`'s ban/unban sequence has no seam to test through  ·  #6  ·  low-med
-- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Status:** `complete — 95ad9efc`            <!-- open | in-progress | in-review | complete | wontfix -->
 - **Fix (2026-08-09) — the decision/effect split, as prescribed.** Confirmed
   still live first: `message_create` ran the whole `claim → facts → exempt →
   ban → unban → outcome` sequence inline against `ctx.http` with no seam and no

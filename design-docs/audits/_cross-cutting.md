@@ -684,6 +684,135 @@ commands and data-dense displays would be better served by the website.
   `gambling/tests/higher_lower_winners.rs` and a fixture. This finding is only
   about the cache entry being written by hand.
 
+### CC-12. Nothing checks the `.sqlx` cache — the offline configuration is ungated  ·  #1 / #7  ·  **high**  ·  confirmed
+- **Status:** `in-review`            <!-- open | in-progress | in-review | complete | wontfix -->
+- **Scope ruling (2026-08-09): local gate only; the CI job is declined.** The
+  task first built `.github/workflows/sqlx-offline.yml` alongside the `bacon`
+  jobs. The human reviewed **mid-run** (the workflow's concurrent-review path),
+  committed the `bacon` half as `b1170b19`, and ruled the CI job out. **So this
+  finding closes with the blind spot narrowed, not removed:** a developer or
+  agent who runs the offline commands is now covered, and a developer who does
+  not is exactly as exposed as before. Recorded plainly because the honest
+  version matters more than a tidy close — this finding was opened about a
+  *missing gate*, and what landed is a *runnable check*.
+  **Do not re-open it by re-adding CI without asking.** The ruling is the
+  owner's, it is deliberate, and the next pass will otherwise read the absent
+  workflow as the oversight this finding described.
+- **Opened 2026-08-09** as the residual [CC-11](#cc-11) deliberately did not fix
+  and explicitly asked to be raised on its own (*"Worth its own finding; recorded
+  here rather than opened blind because which one to add — and whether CI grows a
+  Postgres service — is a call for the owner"*). The owner's ruling: **the
+  offline check**, in CI and in `bacon`, not `prepare --check`.
+- **Where:** `.github/workflows/` (one workflow, `docker-publish.yml`),
+  `bacon.toml` (four jobs, none offline), and
+  [`CLAUDE.md`](../../CLAUDE.md)'s mandated gate.
+- **What:** No gate anywhere in this repo verifies that the committed `.sqlx/`
+  cache matches the committed SQL. `bacon`'s default `clippy-workspace` job and
+  the `CLAUDE.md` gate both run **without** `SQLX_OFFLINE`, so the `query!`
+  macros resolve against `.env`'s live `DATABASE_URL` and pass with a broken
+  cache; the only CI workflow builds and *publishes* Docker images, so the first
+  thing that notices is a failed publish — after the commit is on `main`.
+- **Failure scenario, reproduced (this is the fails-before):** applied CC-11's
+  exact mechanism — reformatted `LIMIT 3;` to `LIMIT\n    3;` in
+  `bot-modules/gambling/sql/HigherLowerManager/winners.sql` with no regen, which
+  is a whitespace-only change to a query whose behaviour is unaltered. Then, on
+  that same tree, forcing a real recompile each time:
+  - `cargo +nightly clippy -p gambling --all-targets -- -D warnings` (the
+    mandated gate, online, as `bacon` runs it) → **exit 0, green in 16.95 s.**
+    A real compile, not a warm-fingerprint false-green.
+  - `SQLX_OFFLINE=true cargo check --workspace --all-targets` (the proposed
+    gate) → **red**: *"`SQLX_OFFLINE=true` but there is no cached data for this
+    query"*, failing `gambling` lib and lib-test.
+
+  So the class is invisible to every gate the project mandates and visible to the
+  one it lacked. Reverted after; `git diff` clean.
+- **Why it is `high`:** this is the *third* record of the same class in nine days
+  ([CC-10](#cc-10), [CC-11](#cc-11)) and the second time it broke
+  `docker/Dockerfile.bot` on `main`. CC-11 also established that the class is not
+  carelessness — *"a task can do everything the workflow asks and still land
+  this"* — which is precisely the argument for a mechanical gate rather than
+  another warning in a doc. CC-10's residual predicted CC-11 in writing and the
+  prediction was not enough.
+- **Fix (2026-08-09).** Two parts, both mechanical:
+  - **`bacon.toml`** — new `check-offline` / `check-offline-ssr` jobs carrying
+    `env.SQLX_OFFLINE = "true"` (`bacon` supports a per-job `env` map), so the
+    offline configuration is exercisable in the dev loop rather than not at all.
+    `clippy-workspace` stays the default job; the online loop is not disturbed.
+    Both jobs need **no database**, which is why this was chosen over
+    `prepare --check`. Landed comment-free to match the file's existing style —
+    the rationale lives here and in `CLAUDE.md`.
+  - **[`CLAUDE.md`](../../CLAUDE.md)** — see the doc correction below.
+- **The `ssr` leg is load-bearing, not belt-and-braces.** All **16** of the
+  dashboard's compile-time queries live in `server/`, `web/` and `middleware/`,
+  reachable only under the `ssr` feature (`dashboard/src/main.rs` is
+  `required-features = ["ssr"]`, and `web`/`middleware` are binary-only modules).
+  A workspace `--all-targets` check with no features **never compiles a single
+  dashboard query**, so a one-leg gate would have shipped a hole exactly the size
+  of the crate CLAUDE.md already warns about. `--all-features` is not the
+  alternative: `dashboard/Cargo.toml:19-21` records that exactly one of
+  `ssr`/`hydrate` may be active per compilation. The `hydrate` target has no SQL
+  and needs no leg.
+  **This was proven, not reasoned:** drifting a dashboard query
+  (`middleware/auth.rs:34`'s `query_scalar!`) left leg 1 **green** and turned
+  leg 2 **red**, on the same tree. Worth the two minutes — the one-leg version
+  would have looked correct and tested nothing in the crate with the most
+  queries.
+- **A documentation defect found on the way, and fixed here.**
+  [`CLAUDE.md`](../../CLAUDE.md) told every contributor and agent that
+  *"CI (`.github/workflows/sqlx-check.yml`) intentionally verifies with
+  `--features ssr`"*. **That file has never existed** — `.github/workflows/`
+  contains only `docker-publish.yml`. So the project's own instructions asserted
+  the gate whose absence is this finding, which is the most likely reason the
+  gap survived two incidents: anyone reasoning about cache drift from the docs
+  would conclude CI had it covered. The paragraph now says plainly that the
+  offline check is **local only and no CI job runs it**, which is the true state
+  after the scope ruling above. Also folded in: the *"prepare last, after `fmt`"* rule (CC-11's
+  mechanism), *"never hand-edit a `.sqlx/*.json`"* (this finding's own mechanism),
+  and CC-11's *"a gate that finished suspiciously fast has not run"* lesson, since
+  online and offline configurations fingerprint separately.
+  **Lesson: a doc that describes a gate is not a gate, and a wrong one is worse
+  than a missing one.** Reconcile `CLAUDE.md`'s claims against the tree the same
+  way the 2026-07-29 lesson says to reconcile fix notes against it.
+- **What this deliberately does not do.** It does not catch a **stale-but-present**
+  entry — one whose text still matches but whose inferred types no longer match
+  the schema (CC-10's class: an inverted `nullable` array). Only
+  `cargo sqlx prepare --check` against a migrated database catches that, which
+  needs CI to grow a Postgres service and a migration step — moot for now, since
+  the owner declined a CI job at all. The offline check covers both incidents
+  actually recorded (CC-11 and this finding's reproduction) at zero
+  infrastructure cost. **Recorded as the residual, not as covered** — if a
+  CC-10-shaped drift recurs, the answer is `prepare --check` beside this, not
+  instead of it.
+- **Second residual, and the largest: no automated gate exists.** Per the scope
+  ruling, the check is a `bacon` job and a pair of documented commands — both of
+  which a contributor must choose to run. Nothing fails on push, on PR, or before
+  the image publish. **The mechanism that produced CC-10 and CC-11 is therefore
+  still live**, and CC-11's own conclusion applies unchanged: *"a task can do
+  everything the workflow asks and still land this."* If this class recurs a
+  fourth time, that is the evidence for revisiting the CI decision — and it
+  should be raised as such rather than re-litigated now.
+- **Third residual:** the check runs `check`, not `clippy`, and not `test`. It
+  proves the cache resolves; it is not a second lint gate. Keep it that way.
+- **Fourth residual, and it is the uncomfortable one: `CLAUDE.md` is not tracked
+  by git.** `.gitignore:16` blanket-ignores `*.md`, and unlike the audit docs
+  (force-added, hence in `git ls-files`) `CLAUDE.md` was never added —
+  `git ls-files --error-unmatch CLAUDE.md` errors. So the file that governs every
+  contributor and every agent in this repo has **no history, no diff, and no
+  review**. That is very likely how the phantom `sqlx-check.yml` claim survived:
+  no commit ever showed it being written, and no reviewer ever saw it change.
+  It also means **this task's `CLAUDE.md` correction does not appear in the
+  working-tree diff** the human reviews — it is on disk only. **Ruled
+  2026-08-09: leave it untracked**, the owner's call, revisitable outside this
+  workflow. Recorded so a later pass knows the CC-12 `CLAUDE.md` edit exists
+  despite appearing in no commit — `git log` will never show it.
+- **Gate result to be explicit about: `cargo test` is red on `main`, for an
+  unrelated reason.** `bot-modules/music/tests/resolver_timeouts.rs`'s
+  `stream_client_does_not_cap_a_slow_but_healthy_stream` fails deterministically
+  (695 passed / **1 failed** / 7 ignored). It is a paused-clock-plus-real-socket
+  harness defect, pre-existing, and this task touches no Rust — recorded as
+  [music #4](music.md) rather than fixed, per one-finding-one-task. Not narrated
+  as green.
+
 ## Deep-sweep findings
 
 _Deep sweep pass over the whole workspace, 2026-07-17. These are latent

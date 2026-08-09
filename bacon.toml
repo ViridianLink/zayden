@@ -49,6 +49,34 @@ need_stdout = false
 command = ["cargo", "+nightly", "test", "--color", "always"]
 need_stdout = true
 
+[jobs.check-offline]
+command = [
+    "cargo",
+    "+nightly",
+    "check",
+    "--workspace",
+    "--all-targets",
+    "--color",
+    "always",
+]
+need_stdout = false
+env.SQLX_OFFLINE = "true"
+
+[jobs.check-offline-ssr]
+command = [
+    "cargo",
+    "+nightly",
+    "check",
+    "-p",
+    "dashboard",
+    "--features",
+    "ssr",
+    "--color",
+    "always",
+]
+need_stdout = false
+env.SQLX_OFFLINE = "true"
+
 [exports.locations]
 auto = true
 path = ".bacon-locations"
