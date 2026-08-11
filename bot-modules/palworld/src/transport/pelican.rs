@@ -4,8 +4,8 @@ use serde::Deserialize;
 use crate::error::{PalworldError, Result};
 
 const MAX_SAVE_BYTES: u64 = 64 * 1024 * 1024;
-
 const MAX_PLAYER_SAVE_BYTES: u64 = 4 * 1024 * 1024;
+const MAX_ERROR_BODY_CHARS: usize = 400;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RemotePlayerSave {
@@ -50,6 +50,22 @@ struct SignedUrlAttributes {
     url: String,
 }
 
+async fn panel_ok(resp: reqwest::Response, what: &str) -> Result<reqwest::Response> {
+    let status = resp.status();
+    if status.is_success() {
+        return Ok(resp);
+    }
+
+    let body = resp.text().await.unwrap_or_default();
+    let detail = body.trim().chars().take(MAX_ERROR_BODY_CHARS).collect::<String>();
+
+    Err(PalworldError::Pelican(if detail.is_empty() {
+        format!("{what}: panel returned HTTP {status}")
+    } else {
+        format!("{what}: panel returned HTTP {status}: {detail}")
+    }))
+}
+
 pub fn parse_modified_at(raw: &str) -> Result<i64> {
     let ts: jiff::Timestamp = raw.parse().map_err(|e| {
         PalworldError::Pelican(format!("bad modified_at timestamp: {e}"))
@@ -85,11 +101,9 @@ impl Pelican {
             .bearer_auth(&self.api_key)
             .header(reqwest::header::ACCEPT, "application/json")
             .send()
-            .await?
-            .error_for_status()?
-            .json()
             .await?;
-        Ok(resp)
+
+        Ok(panel_ok(resp, &format!("listing {directory}")).await?.json().await?)
     }
 
     pub async fn level_modified(&self) -> Result<i64> {
@@ -147,24 +161,23 @@ impl Pelican {
     }
 
     async fn download(&self, file: &str, max_bytes: u64) -> Result<Vec<u8>> {
-        let signed: SignedUrlResponse = self
+        let resp = self
             .client
             .get(self.endpoint("files/download"))
             .query(&[("file", file)])
             .bearer_auth(&self.api_key)
             .header(reqwest::header::ACCEPT, "application/json")
             .send()
-            .await?
-            .error_for_status()?
-            .json()
             .await?;
 
-        let resp = self
-            .client
-            .get(&signed.attributes.url)
-            .send()
-            .await?
-            .error_for_status()?;
+        let signed: SignedUrlResponse =
+            panel_ok(resp, &format!("signing download of {file}"))
+                .await?
+                .json()
+                .await?;
+
+        let resp = self.client.get(&signed.attributes.url).send().await?;
+        let resp = panel_ok(resp, &format!("downloading {file}")).await?;
 
         let too_large = |len: u64| {
             PalworldError::Pelican(format!("remote save too large: {len} bytes"))

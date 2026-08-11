@@ -33,6 +33,9 @@ pub use queue::{ClearMode, Queue};
 pub use radio::RADIO_TIER;
 pub use resolve::{
     CompositeResolver,
+    EMBED_TRACK_LIMIT,
+    EmbedPlaylist,
+    EmbedTrack,
     PlaylistOrigin,
     RadioResolver,
     Resolution,
@@ -45,8 +48,12 @@ pub use resolve::{
     YT_DLP_PROBE_TIMEOUT,
     YT_DLP_TIMEOUT,
     YouTubeResolver,
+    embed_resolution,
+    embed_url,
+    fetch_embed_playlist,
     has_playlist,
     next_retry_count,
+    parse_embed_playlist,
     parse_spotify_url,
     playlist_start_index,
     probe_yt_dlp,

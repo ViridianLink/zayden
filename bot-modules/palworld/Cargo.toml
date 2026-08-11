@@ -34,4 +34,4 @@ gvas = "0.11"
 oozextract = "=0.5.0"
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt"] }

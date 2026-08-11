@@ -1,15 +1,11 @@
 use std::time::Duration as StdDuration;
 
 use async_trait::async_trait;
-use futures::{StreamExt, TryStreamExt};
 use rspotify::clients::BaseClient;
 use rspotify::model::{
     AlbumId,
     FullAlbum,
     FullTrack,
-    PlayableItem,
-    PlaylistId,
-    PlaylistItem,
     SimplifiedArtist,
     SimplifiedTrack,
     TrackId,
@@ -17,9 +13,12 @@ use rspotify::model::{
 use rspotify::{ClientCredsSpotify, Credentials};
 use serenity::all::UserId;
 use songbird::input::Input;
+use songbird_reqwest::Client;
 use url::Url;
 
+use super::http::stream_client;
 use super::radio::RadioResolver;
+use super::spotify_embed::{embed_resolution, fetch_embed_playlist};
 use super::{
     LazyTail,
     PlaylistOrigin,
@@ -43,6 +42,7 @@ pub enum SpotifyKind {
 
 pub struct SpotifyResolver {
     client: ClientCredsSpotify,
+    http: Client,
 }
 
 impl SpotifyResolver {
@@ -57,7 +57,7 @@ impl SpotifyResolver {
             .await
             .map_err(|e| MusicError::Resolve(e.to_string()))?;
 
-        Ok(Self { client })
+        Ok(Self { client, http: stream_client()? })
     }
 
     async fn resolve_track(
@@ -111,45 +111,9 @@ impl SpotifyResolver {
         id: &str,
         requested_by: UserId,
     ) -> Result<Resolution> {
-        let head_id = PlaylistId::from_id(id.to_string())
-            .map_err(|e| MusicError::Resolve(e.to_string()))?;
+        let playlist = fetch_embed_playlist(&self.http, id).await?;
 
-        let head_items: Vec<PlaylistItem> = self
-            .client
-            .playlist_items(head_id, None, None)
-            .take(1)
-            .try_collect()
-            .await
-            .map_err(|e| MusicError::Resolve(e.to_string()))?;
-
-        let first = head_items.into_iter().next().ok_or(MusicError::NoResults)?;
-        let head = vec![from_playable_item(&first, requested_by)?];
-
-        let client = self.client.clone();
-        let id = id.to_string();
-        let tail: LazyTail = Box::pin(async move {
-            let playlist_id = PlaylistId::from_id(id)
-                .map_err(|e| MusicError::Resolve(e.to_string()))?;
-
-            let items: Vec<PlaylistItem> = client
-                .playlist_items(playlist_id, None, None)
-                .skip(1)
-                .take(PLAYLIST_CAP - 1)
-                .try_collect()
-                .await
-                .map_err(|e| MusicError::Resolve(e.to_string()))?;
-
-            Ok(items
-                .iter()
-                .filter_map(|item| from_playable_item(item, requested_by).ok())
-                .collect())
-        });
-
-        Ok(Resolution {
-            head,
-            tail: Some(tail),
-            origin: PlaylistOrigin::SpotifyPlaylist,
-        })
+        Ok(embed_resolution(playlist, requested_by))
     }
 }
 
@@ -292,15 +256,5 @@ fn from_simplified_track(
             .and_then(|a| a.images.first())
             .map(|i| i.url.clone()),
         requested_by,
-    }
-}
-
-fn from_playable_item(
-    item: &PlaylistItem,
-    requested_by: UserId,
-) -> Result<ResolvedTrack> {
-    match &item.item {
-        Some(PlayableItem::Track(track)) => Ok(from_full_track(track, requested_by)),
-        _ => Err(MusicError::NoResults),
     }
 }

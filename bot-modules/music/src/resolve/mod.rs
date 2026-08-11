@@ -12,6 +12,7 @@ use crate::track::ResolvedTrack;
 pub mod http;
 pub mod radio;
 pub mod spotify;
+pub mod spotify_embed;
 pub mod youtube;
 
 pub use http::{STREAM_READ_TIMEOUT, stream_client};
@@ -21,6 +22,15 @@ pub use spotify::{
     SpotifyKind,
     SpotifyResolver,
     parse_spotify_url,
+};
+pub use spotify_embed::{
+    EMBED_TRACK_LIMIT,
+    EmbedPlaylist,
+    EmbedTrack,
+    embed_resolution,
+    embed_url,
+    fetch_embed_playlist,
+    parse_embed_playlist,
 };
 pub use youtube::{
     YT_DLP_PROBE_TIMEOUT,
