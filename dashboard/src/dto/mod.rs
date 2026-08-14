@@ -1,4 +1,5 @@
 pub mod discord;
+pub mod greetings;
 pub mod guild;
 pub mod levels;
 pub mod modules;
@@ -7,6 +8,7 @@ pub mod reaction_roles;
 pub mod tier;
 
 pub use discord::{ChannelInfo, RoleInfo};
+pub use greetings::{GreetingImageInfo, GreetingsView};
 pub use guild::{GuildInfo, GuildSettings};
 pub use levels::LeaderboardEntry;
 pub use modules::ModuleView;

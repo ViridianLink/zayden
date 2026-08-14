@@ -94,6 +94,7 @@ pub(crate) fn module_icon(id: &str) -> &'static str {
         "family" => "heart",
         "ticket" => "ticket",
         "honeypot" => "shield",
+        "greetings" => "message",
         _ => "sparkles",
     }
 }
@@ -107,6 +108,7 @@ pub(crate) fn module_tint(id: &str) -> &'static str {
         "family" => "#fb7185",
         "ticket" => "#38bdf8",
         "honeypot" => "#fbbf24",
+        "greetings" => "#818cf8",
         _ => "#94a3b8",
     }
 }

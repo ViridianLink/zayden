@@ -1,0 +1,54 @@
+.greet-legend {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1.6;
+  list-style: disc;
+}
+
+.greet-legend code {
+  color: var(--text-secondary);
+}
+
+.greet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.greet-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background-color: var(--bg-card);
+  overflow: hidden;
+}
+
+.greet-thumb {
+  width: 100%;
+  height: 9rem;
+  object-fit: cover;
+  border-radius: var(--radius-2xl);
+  background-color: var(--overlay-1);
+}
+
+.greet-url {
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.greet-url:hover {
+  color: var(--text-primary);
+}
+
+.greet-remove {
+  align-self: flex-start;
+}

@@ -1,3 +1,4 @@
+pub mod greetings;
 pub mod guild_settings;
 pub mod guilds;
 pub mod landing;

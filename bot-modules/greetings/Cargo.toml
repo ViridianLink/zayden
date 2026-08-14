@@ -1,0 +1,19 @@
+[package]
+name = "greetings"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+zayden-app = { workspace = true }
+zayden-core = { workspace = true }
+
+rand = { workspace = true }
+serenity = { workspace = true }
+sqlx = { workspace = true, features = ["migrate"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }

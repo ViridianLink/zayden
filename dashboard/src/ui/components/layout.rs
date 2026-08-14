@@ -97,6 +97,7 @@ fn GuildSidebar(guild_id: String) -> impl IntoView {
     let settings_href = format!("/guild/{guild_id}/settings");
     let levels_href = format!("/guild/{guild_id}/levels");
     let reaction_roles_href = format!("/guild/{guild_id}/reaction-roles");
+    let greetings_href = format!("/guild/{guild_id}/greetings");
 
     view! {
         <aside class="app-sidebar">
@@ -105,6 +106,7 @@ fn GuildSidebar(guild_id: String) -> impl IntoView {
             <SidebarLink href=overview_href icon="grid" label="Modules" exact=true/>
             <SidebarLink href=settings_href icon="settings" label="Settings"/>
             <SidebarLink href=reaction_roles_href icon="sparkles" label="Reaction Roles"/>
+            <SidebarLink href=greetings_href icon="message" label="Greetings"/>
             <SidebarLink href=levels_href icon="trophy" label="Levels"/>
             <div class="app-sidebar-spacer"></div>
             <SidebarLink href="/guilds".to_string() icon="server" label="All servers" exact=true/>

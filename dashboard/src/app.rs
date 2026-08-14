@@ -3,6 +3,7 @@ use leptos_meta::{Stylesheet, provide_meta_context};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
+use crate::ui::pages::greetings::GreetingsPage;
 use crate::ui::pages::guild_settings::GuildSettingsPage;
 use crate::ui::pages::guilds::GuildListPage;
 use crate::ui::pages::landing::LandingPage;
@@ -56,6 +57,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/guild/:id/settings") view=GuildSettingsPage/>
                 <Route path=path!("/guild/:id/levels") view=LevelsPage/>
                 <Route path=path!("/guild/:id/reaction-roles") view=ReactionRolesPage/>
+                <Route path=path!("/guild/:id/greetings") view=GreetingsPage/>
                 <Route path=path!("/admin/palworld/save") view=PalworldSavePage/>
             </Routes>
         </Router>

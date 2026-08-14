@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod discord;
+pub mod greetings;
 pub mod guild;
 pub mod kofi;
 pub mod levels;

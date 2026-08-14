@@ -8,6 +8,7 @@ pub mod destiny2;
 pub mod family;
 pub mod gambling;
 pub mod gold_star;
+pub mod greetings;
 pub mod honeypot;
 pub mod levels;
 pub mod lfg;
@@ -31,6 +32,7 @@ pub fn build_registry(
     family::register(&mut builder)?;
     gambling::register(&mut builder)?;
     gold_star::register(&mut builder);
+    greetings::register(&mut builder);
     honeypot::register(&mut builder);
     lfg::register(&mut builder)?;
     levels::register(&mut builder)?;

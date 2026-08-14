@@ -13,6 +13,7 @@ destiny2 = { workspace = true }
 family = { workspace = true }
 gambling = { workspace = true }
 gold-star = { workspace = true }
+greetings = { workspace = true }
 honeypot = { workspace = true }
 levels = { workspace = true }
 lfg = { workspace = true }

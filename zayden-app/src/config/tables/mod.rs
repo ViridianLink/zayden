@@ -1,5 +1,6 @@
 pub mod channels_settings;
 pub mod family;
+pub mod greetings;
 pub mod honeypot;
 pub mod lfg_settings;
 pub mod music;
@@ -11,6 +12,7 @@ pub mod ticket;
 
 pub use channels_settings::ChannelsSettingsRow;
 pub use family::FamilySettingsRow;
+pub use greetings::GreetingsSettingsRow;
 pub use honeypot::HoneypotSettingsRow;
 pub use lfg_settings::LfgSettingsRow;
 pub use music::MusicSettingsRow;
