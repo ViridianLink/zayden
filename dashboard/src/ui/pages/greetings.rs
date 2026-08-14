@@ -172,12 +172,12 @@ fn PlaceholderLegend() -> impl IntoView {
         <ul class="greet-legend">
             <li>
                 <code>"{user}"</code>
-                " \u{2014} mentions the person being greeted, or the sender when "
+                " - mentions the person being greeted, or the sender when "
                 "the command is run without a user."
             </li>
             <li>
                 <code>"{author}"</code>
-                " \u{2014} mentions whoever ran the command."
+                " - mentions whoever ran the command."
             </li>
             <li>"Leave a message blank to post just the image."</li>
         </ul>
@@ -230,7 +230,7 @@ fn ChannelSection(
             <p class="page-lead">
                 "With nothing listed, "<code>"/good"</code>" works in every channel. "
                 "Add one or more and Discord hides the command everywhere else "
-                "\u{2014} it never even shows up in the picker. Adding a category "
+                "- it never even shows up in the picker. Adding a category "
                 "covers every channel inside it."
             </p>
             <p class="page-lead">
@@ -296,8 +296,7 @@ fn CooldownSection(
                 "The per-member cooldown stops one person spamming "<code>"/good"</code>
                 "; the server-wide one stops a crowd doing it between them. Both are "
                 "in seconds, and both must stay at or above the minimum for this "
-                "server's plan \u{2014} a low server-wide cooldown is the setting that "
-                "actually costs the bot work."
+                "server's plan."
             </p>
             {move || result.get().map(save_feedback)}
             <ActionForm action=save>
@@ -393,7 +392,7 @@ fn ImageGrid(
     if images.is_empty() {
         return view! {
             <div class="empty">
-                "No images yet \u{2014} the command will reply with just the "
+                "No images yet - the command will reply with just the "
                 "message until you add one."
             </div>
         }

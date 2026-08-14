@@ -48,7 +48,7 @@ pub(crate) fn UpgradePage() -> impl IntoView {
                         <strong>"Lower greeting cooldowns"</strong>
                         <span>
                             "Drop the per-member and server-wide limits on "
-                            <code>"/good"</code>" \u{2014} for servers busy enough "
+                            <code>"/good"</code>" - for servers busy enough "
                             "to hit them."
                         </span>
                     </li>

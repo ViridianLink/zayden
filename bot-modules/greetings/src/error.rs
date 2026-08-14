@@ -56,7 +56,7 @@ impl Display for GreetingsError {
             ),
             Self::UserCooldown(secs) => write!(
                 f,
-                "You're greeting a little fast \u{2014} try `/good` again in {secs}s."
+                "You're greeting a little fast - try `/good` again in {secs}s."
             ),
             Self::GuildCooldown(secs) => {
                 write!(f, "Someone just used `/good` here. Try again in {secs}s.")

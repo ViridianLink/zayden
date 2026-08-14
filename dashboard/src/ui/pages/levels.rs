@@ -59,7 +59,7 @@ pub(crate) fn LevelsPage() -> impl IntoView {
                                 } else if global.get() {
                                     "No one has earned global XP yet."
                                 } else {
-                                    "No one has chatted here yet \u{2014} the board fills as members talk."
+                                    "No one has chatted here yet - the board fills as members talk."
                                 }}
                             </div>
                         }.into_any(),

@@ -136,7 +136,7 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                                         "Leave the message ID blank and Zayden posts a new "
                                         "panel message in the chosen channel. Give an ID to "
                                         "attach the mapping to a message that already exists "
-                                        "\u{2014} several emoji can share one message."
+                                        "- several emoji can share one message."
                                     </p>
                                 </fieldset>
                             }.into_any()
@@ -159,7 +159,7 @@ fn MappingTable(
     if maps.is_empty() {
         return view! {
             <div class="empty">
-                "No reaction roles yet \u{2014} add one below and Zayden will seed the "
+                "No reaction roles yet - add one below and Zayden will seed the "
                 "reaction for members to click."
             </div>
         }

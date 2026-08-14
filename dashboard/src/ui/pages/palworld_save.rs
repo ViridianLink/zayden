@@ -93,7 +93,7 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
                                             <summary>
                                                 {player.name.clone()}
                                                 <span class="save-count">
-                                                    {format!(" \u{2014} {} pals", player.pals.len())}
+                                                    {format!(" - {} pals", player.pals.len())}
                                                 </span>
                                             </summary>
                                             <label class="save-field">
@@ -138,7 +138,7 @@ pub(crate) fn PalworldSavePage() -> impl IntoView {
                                     <summary>
                                         "Base and unowned pals"
                                         <span class="save-count">
-                                            {format!(" \u{2014} {}", view_model.roster.base_pals.len())}
+                                            {format!(" - {}", view_model.roster.base_pals.len())}
                                         </span>
                                     </summary>
                                     {view_model.roster.base_pals.into_iter().map(|pal| {

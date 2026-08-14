@@ -168,7 +168,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             "its \u{1F44D} minus \u{1F44E} count reaches the promote "
                                             "threshold, and removed again if it falls to or below "
                                             "the demote threshold. Tune both to your server size "
-                                            "\u{2014} demote must stay below promote."
+                                            "- demote must stay below promote."
                                         </p>
                                         {support_role_views}
                                     </fieldset>
@@ -354,7 +354,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                         </p>
                                         <p class="page-lead">
                                             "Default volume, 24/7 mode and autoplay change "
-                                            "while music is playing \u{2014} set those in Discord "
+                                            "while music is playing - set those in Discord "
                                             "with /music settings."
                                         </p>
                                     </fieldset>
@@ -397,8 +397,8 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                         </ActionForm>
                                         <p class="page-lead">
                                             "Anyone who posts in the honeypot channel is "
-                                            "banned \u{2014} which purges their recent messages "
-                                            "server-wide \u{2014} and then immediately unbanned, "
+                                            "banned - which purges their recent messages "
+                                            "server-wide - and then immediately unbanned, "
                                             "so a recovered account can rejoin. Leave the "
                                             "channel unset to turn the trap off."
                                         </p>
@@ -410,7 +410,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                         </p>
                                         <p class="page-lead">
                                             "The server owner is always exempt. Keep the channel "
-                                            "postable by @everyone \u{2014} the trap only catches "
+                                            "postable by @everyone - the trap only catches "
                                             "spam bots that can actually reach it."
                                         </p>
                                     </fieldset>
