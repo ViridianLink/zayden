@@ -549,7 +549,7 @@ async fn post(
             .await
         {
             Ok(_) => return Ok("Rules message updated.".to_string()),
-            // Stored message/channel is gone — fall through and post a fresh one.
+            // Stored message/channel is gone
             Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
                 ErrorResponse {
                     error:

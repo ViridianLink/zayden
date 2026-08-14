@@ -108,7 +108,7 @@ impl GoalHandler {
                 .await
             {
                 Ok(_)
-                // Missing "Send Message" permission, ignore error
+                // Missing "Send Message" permission
                 | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
                     error:
                         DiscordJsonError {

@@ -39,7 +39,7 @@ pub fn locale_to_timezone(locale: &str) -> &'static str {
         "ja" => "Asia/Tokyo",
         "zh-TW" => "Asia/Taipei",
         "ko" => "Asia/Seoul",
-        _ => "UTC", // Default fallback
+        _ => "UTC",
     }
 }
 

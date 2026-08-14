@@ -356,8 +356,6 @@ fn patch_characters(
     Ok(deltas)
 }
 
-/// Applies one character's changes and reports the level delta, which is zero
-/// unless the level actually moved.
 fn apply_change(
     save_param: &mut HashableIndexMap<String, Vec<Property>>,
     change: &Change,

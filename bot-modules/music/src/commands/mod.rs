@@ -354,8 +354,6 @@ impl Command {
         let (name, sub_options) =
             parse_subcommand(options).map_err(MusicError::from)?;
 
-        // `radio` is a subcommand *group*, so its payload needs a second
-        // `parse_subcommand` rather than being flattened into an option map.
         if name == "radio" {
             return radio::run(ctx, sub_options).await;
         }

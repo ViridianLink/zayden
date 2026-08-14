@@ -191,9 +191,6 @@ pub async fn set_module_enabled(
             continue;
         };
 
-        // Read-modify-write rather than overwrite: a command may also carry the
-        // channel restriction set on its own settings page, and toggling the
-        // module must not quietly drop it.
         let current = fetch(&ctx, *cmd_id).await;
         let updated = with_everyone_denied(ctx.guild_id, &current, !enabled);
 

@@ -72,7 +72,7 @@ pub fn marathondb_runner_to_model(slug: &str, data: &Value) -> Runner {
         description,
         portrait_url,
         abilities,
-        cores: Vec::new(), // not exposed by the MarathonDB runner endpoint
+        cores: Vec::new(),
         stats,
     }
 }

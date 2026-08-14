@@ -150,26 +150,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app: Router = Router::new()
         .route("/invite", get(invite_handler))
-        // /auth/discord starts the OAuth2 flow; /login is now the Leptos page.
         .route("/auth/discord", get(login_handler))
         .merge(web::routes(web_state.clone()))
-        .leptos_routes_with_context(&web_state, routes, {
-            let db = web_state.app.db.clone();
-            let app = Arc::clone(&web_state.app);
-            let upgrade_url = web_state.upgrade_url.clone();
-            let discord_http = Arc::clone(&discord_http);
-            let palworld = Arc::clone(&web_state.palworld);
-            move || {
-                provide_context(db.clone());
-                provide_context(Arc::clone(&app));
-                provide_context(UpgradeUrl(upgrade_url.clone()));
-                provide_context(Arc::clone(&discord_http));
-                provide_context(Arc::clone(&palworld));
-            }
-        }, {
-            let lo = web_state.leptos_options.clone();
-            move || shell(lo.clone())
-        })
+        .leptos_routes_with_context(
+            &web_state,
+            routes,
+            {
+                let db = web_state.app.db.clone();
+                let app = Arc::clone(&web_state.app);
+                let upgrade_url = web_state.upgrade_url.clone();
+                let discord_http = Arc::clone(&discord_http);
+                let palworld = Arc::clone(&web_state.palworld);
+                move || {
+                    provide_context(db.clone());
+                    provide_context(Arc::clone(&app));
+                    provide_context(UpgradeUrl(upgrade_url.clone()));
+                    provide_context(Arc::clone(&discord_http));
+                    provide_context(Arc::clone(&palworld));
+                }
+            },
+            {
+                let lo = web_state.leptos_options.clone();
+                move || shell(lo.clone())
+            },
+        )
         .fallback(leptos_axum::file_and_error_handler::<WebState, _>(shell))
         .layer(CookieManagerLayer::new())
         .with_state(web_state);

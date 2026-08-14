@@ -27,7 +27,7 @@ use {
     twilight_model::id::marker::ChannelMarker,
 };
 
-#[cfg(feature = "ssr")
+#[cfg(feature = "ssr")]
 const COMMAND: &str = "good";
 
 use crate::dto::GreetingsView;
@@ -61,11 +61,6 @@ fn parse_channel(raw: &str) -> Result<Id<ChannelMarker>, ServerFnError> {
         .ok_or_else(|| invalid("channel id"))
 }
 
-/// Apply `edit` to `/good`'s current channel allowlist and write it back.
-///
-/// The whole overwrite array is read and rewritten, because Discord accepts
-/// nothing less; [`with_channel_allowlist`] is what keeps the role and user
-/// entries on it intact.
 #[cfg(feature = "ssr")]
 async fn edit_allowlist<F>(guild: &str, edit: F) -> Result<(), ServerFnError>
 where
@@ -107,17 +102,13 @@ pub async fn get_greetings(guild: String) -> Result<GreetingsView, ServerFnError
     let next_tier = tier.next_paid();
     let next_floor = next_tier.map_or(floor, floors_for);
 
-    // The allowlist is Discord's own, not ours: read it back from the command's
-    // overwrites so an admin editing the Integrations panel by hand shows up
-    // here too.
     let ctx = guild_context(&guild).await?;
     let allowed_channels = match command_id(&ctx, COMMAND).await {
         Ok(cmd) => channel_allowlist(ctx.guild_id, &fetch(&ctx, cmd).await)
             .into_iter()
             .map(|id| id.to_string())
             .collect(),
-        // The command is not registered for this guild yet, so it carries no
-        // overwrites. Nothing to show, and nothing worth failing the page over.
+        // The command is not registered for this guild yet
         Err(_e) => Vec::new(),
     };
 

@@ -210,7 +210,6 @@ fn flag_keys(
         MapProperty::Properties { value, .. } => {
             truthy(value.0.iter().filter_map(|(k, v)| Some((key_string(k)?, v))))
         },
-        // Numeric and string-valued maps carry no flags.
         MapProperty::EnumInt { .. }
         | MapProperty::NameInt { .. }
         | MapProperty::StrInt { .. }

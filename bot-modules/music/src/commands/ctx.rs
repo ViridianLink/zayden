@@ -24,7 +24,6 @@ pub struct MusicServices {
 
 pub struct MusicCtx<'a> {
     pub http: &'a Http,
-    /// Owned handle for the lazy playlist-tail background task.
     pub http_owned: Arc<Http>,
     pub interaction: &'a CommandInteraction,
     pub guild_id: GuildId,

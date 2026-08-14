@@ -44,7 +44,6 @@ pub struct BotConfig {
     pub discord_token: String,
     pub bungie_api_key: String,
     pub ai_provider_key: String,
-    /// Google Sheets API key for endgame analysis / destiny2 compendium.
     pub google_api_key: String,
     pub discord_client_secret: String,
     pub spotify: Option<SpotifyCredentials>,

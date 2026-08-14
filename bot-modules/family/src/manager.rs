@@ -300,7 +300,7 @@ impl FamilyRow {
         .execute(pool)
         .await?;
 
-        // Sync partners. The schema enforces user_id < partner_id via CHECK.
+        // Sync partners.
         for &partner_id in &self.partner_ids {
             ensure_family_member(pool, gid, partner_id).await?;
             let (uid, pid) = if self.id < partner_id {

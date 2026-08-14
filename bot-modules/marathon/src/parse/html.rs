@@ -27,13 +27,6 @@ pub fn text_of(doc: &Html, css: &str) -> Result<Option<String>> {
     }))
 }
 
-/// For every element matching `row_css`, pair the text of its first two
-/// descendant `<span>` elements as `(label, value)`.
-///
-/// This suits the common "stat row" shape used by server-rendered dashboards
-/// (`<div><span>Label</span><span>Value</span>…</div>`); a trailing third span
-/// such as a tooltip is ignored. Rows without two spans, or whose label or
-/// value is blank, are skipped.
 pub fn span_pairs(doc: &Html, row_css: &str) -> Result<Vec<(String, String)>> {
     let rows = selector(row_css)?;
     let span = selector("span")?;

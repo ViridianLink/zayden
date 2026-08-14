@@ -9,8 +9,6 @@ use crate::scope::{CommandMetadata, CommandScope, IdMatch};
 
 #[async_trait]
 pub trait ModuleCommand: Send + Sync {
-    /// The command name, acquired at runtime so the same trait can be reused
-    /// across multiple bot applications without hard-coding.
     fn name(&self) -> Cow<'static, str> {
         let command = self.definition();
         let name = serde_json::to_value(command).map_or_else(

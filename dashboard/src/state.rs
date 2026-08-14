@@ -14,8 +14,6 @@ use zayden_app::config::BotConfig;
 const DISCORD_OAUTH_AUTH_URL: &str = "https://discord.com/oauth2/authorize";
 const DISCORD_OAUTH_TOKEN_URL: &str = "https://discord.com/api/oauth2/token";
 
-/// Construct an `OAuth2` client pointed at Discord's stable authorization and
-/// token endpoints using deployment-specific settings from `config`.
 pub(crate) fn build_oauth_client(
     config: &BotConfig,
 ) -> Result<

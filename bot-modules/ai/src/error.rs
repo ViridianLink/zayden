@@ -6,9 +6,7 @@ use zayden_core::error::{HandlerError, Respond};
 #[derive(Debug)]
 pub enum AiError {
     OpenAI(OpenAIError),
-    /// Custom `reqwest::Client` construction failed (TLS / DNS misconfiguration).
     Reqwest(reqwest::Error),
-    /// The provider returned a response with no text content in any choice.
     NoContent,
 }
 

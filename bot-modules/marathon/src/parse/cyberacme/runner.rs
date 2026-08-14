@@ -10,7 +10,6 @@ pub fn cyberacme_runner_to_model(slug: &str, value: &Value) -> Runner {
         .and_then(Value::as_str)
         .map_or_else(|| slug.to_string(), str::to_string);
 
-    // "Unknown" taglines are placeholders, not a real role.
     let role = value
         .get("tagline")
         .and_then(scalar)

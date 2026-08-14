@@ -185,7 +185,6 @@ impl Respond for FamilyError {
             | Self::NoPartners(_)
             | Self::SelfNoSiblings
             | Self::NoSiblings(_) => Some(Cow::Owned(self.to_string())),
-            // Internal errors - no actionable message to show the user.
             Self::Internal(_)
             | Self::NoInteraction
             | Self::SerenityTimestamp(_)

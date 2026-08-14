@@ -6,20 +6,9 @@ use tracing::warn;
 use super::AppEvent;
 use crate::entitlement::EntitlementScope;
 
-/// Postgres `LISTEN/NOTIFY` listener that forwards `config_changed` and
-/// `entitlement_changed` payloads onto the in-process `AppEvent` broadcast channel.
-///
-/// Wraps `sqlx::postgres::PgListener`, which reconnects automatically on
-/// transient network interruptions. Only a fatal connection error will cause
-/// the loop to exit.
 pub struct EventListener;
 
 impl EventListener {
-    /// Connect to Postgres, subscribe to both notification channels, and forward
-    /// each notification as the appropriate `AppEvent` variant.
-    ///
-    /// Runs indefinitely; intended to be spawned with `tokio::spawn` or via
-    /// [`Self::spawn`].
     pub async fn listen(pool: &PgPool, events: broadcast::Sender<AppEvent>) {
         let mut listener = match PgListener::connect_with(pool).await {
             Ok(l) => l,
@@ -76,7 +65,6 @@ impl EventListener {
         }
     }
 
-    /// Spawn the listener as a background `tokio` task.
     pub fn spawn(pool: PgPool, events: broadcast::Sender<AppEvent>) {
         tokio::spawn(async move {
             Self::listen(&pool, events).await;

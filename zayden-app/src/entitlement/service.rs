@@ -122,8 +122,6 @@ impl EntitlementService {
         Ok(())
     }
 
-    /// Remove an entitlement by `provider` + `external_id` and refresh the
-    /// cache row.
     pub async fn revoke(
         &self,
         provider: &str,
@@ -148,8 +146,6 @@ impl EntitlementService {
         Ok(())
     }
 
-    /// Spawn a background task that evicts cache entries when it receives
-    /// `AppEvent::EntitlementChanged` on the broadcast bus.
     pub fn spawn_invalidator(
         this: Arc<Self>,
         mut rx: broadcast::Receiver<AppEvent>,
@@ -218,7 +214,7 @@ impl EntitlementService {
         Ok(demoted)
     }
 
-    // ── private helpers ──────────────────────────────────────────────────────
+    // Private helpers
 
     async fn tier_for_scope(&self, scope: EntitlementScope) -> Tier {
         if let Some(tier) = self.cache.get(&scope).await {

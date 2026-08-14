@@ -377,7 +377,6 @@ impl ModuleCommand for RelationshipCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        // Relationship::run defers the interaction internally.
         let resp =
             Relationship::run(&cx.ctx.http, cx.interaction, &cx.app.db).await?;
 
@@ -507,7 +506,6 @@ fn format_tree(tree: &HashMap<i32, Vec<FamilyRow>>, root_id: UserId) -> String {
     }
 
     let text = lines.join("\n");
-    // Discord message limit is 2000 characters.
     if text.len() > 1990 {
         let truncated: String = text.chars().take(1997).collect();
         format!("{truncated}...")

@@ -16,12 +16,8 @@ pub trait Respond: std::error::Error {
 
 #[derive(Debug)]
 pub enum HandlerError {
-    /// A database error from sqlx.
     Database(sqlx::Error),
-    /// A Discord API error from serenity.
     Discord(serenity::Error),
-    /// An error originating from a module handler, with an optional
-    /// user-visible message extracted from a [`Respond`] impl.
     Module {
         source: Box<dyn std::error::Error + Send + Sync>,
         user_message: Option<String>,

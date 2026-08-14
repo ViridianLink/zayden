@@ -21,7 +21,7 @@ pub(crate) fn Icon(name: &'static str) -> AnyView {
 
 fn icon_paths(name: &str) -> &'static str {
     match name {
-        // --- UI
+        // UI
         "server" => {
             r#"<rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>"#
         },
@@ -59,7 +59,7 @@ fn icon_paths(name: &str) -> &'static str {
             r#"<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>"#
         },
 
-        // --- Modules
+        // Modules
         "music" => {
             r#"<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>"#
         },

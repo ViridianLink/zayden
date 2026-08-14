@@ -32,8 +32,6 @@ pub struct AppState {
     pub ai_api_endpoint: String,
     pub ai_model: String,
     pub ai_model_pro: String,
-    /// Google Sheets API key for the destiny2 endgame-analysis sheet and
-    /// compendium.
     pub google_api_key: String,
     pub error_log_webhook: String,
     pub normal_log_webhook: String,

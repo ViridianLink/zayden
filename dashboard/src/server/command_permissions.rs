@@ -21,28 +21,18 @@ use {
     twilight_model::id::marker::CommandMarker,
 };
 
-/// Discord caps a command at 100 overwrites. One is spent on the "deny every
-/// channel" sentinel and one may be spent on the module switch, so the
-/// allowlist stops short of the limit rather than at it.
 pub const MAX_ALLOWED_CHANNELS: usize = 90;
 
-/// Discord's sentinel for "every channel in this guild": the `@everyone` role
-/// id — which equals the guild id — minus one.
-///
-/// Returns `None` only for a guild id of 1, which no real snowflake is.
 #[must_use]
 pub const fn all_channels(guild_id: Id<GuildMarker>) -> Option<Id<ChannelMarker>> {
     Id::new_checked(guild_id.get().saturating_sub(1))
 }
 
-/// The `@everyone` role id, which Discord defines as the guild id.
 #[must_use]
 pub const fn everyone(guild_id: Id<GuildMarker>) -> Id<RoleMarker> {
     guild_id.cast()
 }
 
-/// Whether `permissions` denies the command to `@everyone` — the modules page's
-/// on/off switch.
 #[must_use]
 pub fn everyone_denied(
     guild_id: Id<GuildMarker>,
@@ -54,11 +44,6 @@ pub fn everyone_denied(
     })
 }
 
-/// Rewrite the `@everyone` entry, leaving every channel and user entry in
-/// place.
-///
-/// Without the preservation, turning a module off and on again would silently
-/// discard the channel restriction configured on its own settings page.
 #[must_use]
 pub fn with_everyone_denied(
     guild_id: Id<GuildMarker>,
@@ -83,11 +68,6 @@ pub fn with_everyone_denied(
     out
 }
 
-/// The channels the command is limited to, or empty for "anywhere".
-///
-/// The individual allows only mean anything alongside the deny-all sentinel;
-/// without it the command already runs everywhere, so the list is reported as
-/// empty rather than as a restriction that is not in force.
 #[must_use]
 pub fn channel_allowlist(
     guild_id: Id<GuildMarker>,
@@ -121,11 +101,6 @@ pub fn channel_allowlist(
         .collect()
 }
 
-/// Rewrite the channel entries so the command is limited to `allowlist`,
-/// leaving role and user entries in place.
-///
-/// An empty `allowlist` drops the restriction entirely — including the deny-all
-/// sentinel — rather than leaving a command nobody can run anywhere.
 #[must_use]
 pub fn with_channel_allowlist(
     guild_id: Id<GuildMarker>,
@@ -165,11 +140,6 @@ pub fn with_channel_allowlist(
     out
 }
 
-/// The authenticated context every permission read or write needs.
-///
-/// Writes go through the admin's own OAuth token rather than the bot token,
-/// because Discord only accepts command-permission updates on a Bearer
-/// credential belonging to someone who could make the change by hand.
 #[cfg(feature = "ssr")]
 pub(crate) struct GuildContext {
     pub(crate) guild_id: Id<GuildMarker>,
@@ -234,10 +204,6 @@ pub(crate) async fn command_id(
     })
 }
 
-/// The overwrites currently set on one command.
-///
-/// Discord answers 404 when a command has never had any, which is not an error
-/// — it is the empty list.
 #[cfg(feature = "ssr")]
 pub(crate) async fn fetch(
     ctx: &GuildContext,

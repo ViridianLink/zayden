@@ -159,7 +159,6 @@ pub fn radio_embed(genre: Genre, station: &RadioStation) -> CreateEmbed<'static>
         .title("📻 Now Streaming")
         .description(format!("**{}**", genre.label()))
         .colour(Colour::BLURPLE)
-        // `display_url` keeps the raw stream URL out of the embed.
         .field(
             "Station",
             format!("[{}]({})", station.name, station.display_url()),

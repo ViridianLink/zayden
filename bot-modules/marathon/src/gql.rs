@@ -1,10 +1,6 @@
 use serde_json::Value;
 
-/// `queryKey[0]` for a structured-document ("ST") page, e.g. `weapons/<slug>`,
-/// `runners/<slug>`.
 pub const ST_DOCUMENT_QUERY_KEY: &str = "ngf-st-document-page";
-/// `queryKey[0]` for a user-generated / featured document page, e.g.
-/// `builds/<slug>`.
 pub const UG_FEATURED_DOCUMENT_QUERY_KEY: &str = "ngf-ug-featured-document-page";
 
 fn key_str(key: &[Value], index: usize) -> Option<&str> {
