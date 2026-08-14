@@ -3,35 +3,58 @@ use std::borrow::Cow;
 use rand::rng;
 use rand::seq::IndexedRandom;
 use serenity::all::{
-    CommandInteraction,
     CommandOptionType,
     CreateCommand,
     CreateCommandOption,
     CreateEmbed,
     EditInteractionResponse,
-    Http,
-    ResolvedOption,
     User,
 };
-use sqlx::PgPool;
-use zayden_core::{optional_option, parse_options, parse_subcommand};
+use zayden_app::config::GreetingsSettingsRow;
+use zayden_core::{
+    InvocationCtx,
+    optional_option,
+    parse_options,
+    parse_subcommand,
+    server_tier,
+};
 
+use crate::cooldown::{COOLDOWNS, Verdict};
 use crate::error::{GreetingsError, Result};
 use crate::images::GreetingImage;
 use crate::kind::GreetingKind;
-use crate::settings::{GreetingsSettings, GreetingsStore, render};
+use crate::settings::{GreetingsConfig, GreetingsSettings, GreetingsStore, render};
 
-pub async fn run(
-    http: &Http,
-    interaction: &CommandInteraction,
-    options: Vec<ResolvedOption<'_>>,
-    pool: &PgPool,
-    store: &GreetingsStore,
+async fn check_cooldown(
+    cx: &InvocationCtx<'_>,
+    config: &GreetingsConfig,
 ) -> Result<()> {
+    let Some(guild_id) = cx.interaction.guild_id else {
+        return Err(GreetingsError::GuildOnly);
+    };
+
+    let tier = server_tier(&cx.ctx.http, &cx.app.entitlements, guild_id).await;
+    let limits = config.cooldowns.clamp_to(GreetingsSettingsRow::floors_for(tier));
+
+    match COOLDOWNS.check_and_record(guild_id, cx.interaction.user.id, limits).await
+    {
+        Verdict::Allowed => Ok(()),
+        Verdict::UserWait(secs) => Err(GreetingsError::UserCooldown(secs)),
+        Verdict::GuildWait(secs) => Err(GreetingsError::GuildCooldown(secs)),
+    }
+}
+
+pub async fn run(cx: &InvocationCtx<'_>, store: &GreetingsStore) -> Result<()> {
+    let interaction = cx.interaction;
+    let http = &cx.ctx.http;
     let guild_id = interaction.guild_id.ok_or(GreetingsError::GuildOnly)?;
 
-    let (name, sub_options) = parse_subcommand(options)?;
+    let (name, sub_options) = parse_subcommand(interaction.data.options())?;
     let kind = GreetingKind::parse(name)?;
+
+    let config = GreetingsSettings::get(store, guild_id).await?;
+
+    check_cooldown(cx, &config).await?;
 
     interaction.defer(http).await?;
 
@@ -40,8 +63,7 @@ pub async fn run(
     let target = optional_option::<(&User, _), _>(&mut options, "user")
         .map_or(&interaction.user, |(user, _)| user);
 
-    let config = GreetingsSettings::get(store, guild_id).await?;
-    let images = GreetingImage::list(pool, guild_id, kind).await?;
+    let images = GreetingImage::list(&cx.app.db, guild_id, kind).await?;
 
     let image = {
         let mut rng = rng();

@@ -8,7 +8,7 @@ pub mod reaction_roles;
 pub mod tier;
 
 pub use discord::{ChannelInfo, RoleInfo};
-pub use greetings::{GreetingImageInfo, GreetingsView};
+pub use greetings::{CooldownView, GreetingImageInfo, GreetingsView};
 pub use guild::{GuildInfo, GuildSettings};
 pub use levels::LeaderboardEntry;
 pub use modules::ModuleView;

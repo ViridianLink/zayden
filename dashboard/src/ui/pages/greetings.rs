@@ -2,19 +2,32 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
+use twilight_model::channel::ChannelType;
 
-use crate::dto::{GreetingImageInfo, GreetingsView};
+use crate::dto::{ChannelInfo, CooldownView, GreetingImageInfo, GreetingsView};
+use crate::server::discord::list_guild_channels;
 use crate::server::greetings::{
+    AddGreetingChannel,
     AddGreetingImage,
+    RemoveGreetingChannel,
     RemoveGreetingImage,
+    SaveGreetingCooldowns,
     SaveGreetingMessages,
     get_greetings,
 };
 use crate::ui::components::icons::Icon;
 use crate::ui::components::layout::AppShell;
+use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 
 const ANY_TEXT: &str = ".*";
+
+const GATE_KINDS: &[ChannelType] = &[
+    ChannelType::GuildText,
+    ChannelType::GuildAnnouncement,
+    ChannelType::GuildForum,
+    ChannelType::GuildCategory,
+];
 
 #[component]
 pub(crate) fn GreetingsPage() -> impl IntoView {
@@ -24,6 +37,9 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
     let save = ServerAction::<SaveGreetingMessages>::new();
     let add = ServerAction::<AddGreetingImage>::new();
     let remove = ServerAction::<RemoveGreetingImage>::new();
+    let save_cooldowns = ServerAction::<SaveGreetingCooldowns>::new();
+    let add_channel = ServerAction::<AddGreetingChannel>::new();
+    let remove_channel = ServerAction::<RemoveGreetingChannel>::new();
 
     let data = Resource::new_blocking(
         move || {
@@ -32,9 +48,16 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                 save.version().get(),
                 add.version().get(),
                 remove.version().get(),
+                save_cooldowns.version().get(),
+                add_channel.version().get(),
+                remove_channel.version().get(),
             )
         },
-        |(gid, ..)| async move { get_greetings(gid).await },
+        |(gid, ..)| async move {
+            let view = get_greetings(gid.clone()).await?;
+            let channels = list_guild_channels(gid).await.unwrap_or_default();
+            Ok::<(GreetingsView, Vec<ChannelInfo>), ServerFnError>((view, channels))
+        },
     );
 
     let save_result = save.value();
@@ -63,16 +86,20 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                         Err(e) => view! {
                             <p class="error">"Failed to load greetings: " {e.to_string()}</p>
                         }.into_any(),
-                        Ok(view) => {
+                        Ok((view, channels)) => {
                             let GreetingsView {
                                 morning_message,
                                 night_message,
                                 morning,
                                 night,
+                                allowed_channels,
+                                cooldowns,
                             } = view;
                             let gid = guild_id();
                             let form_gid = gid.clone();
                             let morning_gid = gid.clone();
+                            let channel_gid = gid.clone();
+                            let cooldown_gid = gid.clone();
 
                             view! {
                                 <fieldset class="settings-section">
@@ -96,6 +123,20 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                                         <SaveButton/>
                                     </ActionForm>
                                 </fieldset>
+
+                                <ChannelSection
+                                    guild_id=channel_gid
+                                    allowed=allowed_channels
+                                    channels=channels
+                                    add=add_channel
+                                    remove=remove_channel
+                                />
+
+                                <CooldownSection
+                                    guild_id=cooldown_gid
+                                    cooldowns=cooldowns
+                                    save=save_cooldowns
+                                />
 
                                 {move || add_result.get().map(save_feedback)}
                                 {move || remove_result.get().map(save_feedback)}
@@ -140,6 +181,161 @@ fn PlaceholderLegend() -> impl IntoView {
             </li>
             <li>"Leave a message blank to post just the image."</li>
         </ul>
+    }
+}
+
+#[component]
+fn ChannelSection(
+    guild_id: String,
+    allowed: Vec<String>,
+    channels: Vec<ChannelInfo>,
+    add: ServerAction<AddGreetingChannel>,
+    remove: ServerAction<RemoveGreetingChannel>,
+) -> impl IntoView {
+    let add_result = add.value();
+    let remove_result = remove.value();
+    let add_gid = guild_id.clone();
+
+    let unconfigured = channels
+        .iter()
+        .filter(|c| !allowed.contains(&c.id))
+        .cloned()
+        .collect::<Vec<_>>();
+
+    let chips = allowed
+        .into_iter()
+        .map(|id| {
+            let name = channels.iter().find(|c| c.id == id).map_or_else(
+                || format!("#unknown ({id})"),
+                |c| format!("#{}", c.name),
+            );
+            let gid = guild_id.clone();
+
+            view! {
+                <ActionForm action=remove attr:class="chip">
+                    <input type="hidden" name="guild" value=gid/>
+                    <input type="hidden" name="channel_id" value=id/>
+                    <span class="chip-label">{name}</span>
+                    <button type="submit" class="chip-remove" title="Remove">
+                        <Icon name="x"/>
+                    </button>
+                </ActionForm>
+            }
+        })
+        .collect_view();
+
+    view! {
+        <fieldset class="settings-section">
+            <legend><Icon name="grid"/>"Where /good works"</legend>
+            <p class="page-lead">
+                "With nothing listed, "<code>"/good"</code>" works in every channel. "
+                "Add one or more and Discord hides the command everywhere else "
+                "\u{2014} it never even shows up in the picker. Adding a category "
+                "covers every channel inside it."
+            </p>
+            <p class="page-lead">
+                "This writes the same command permissions as Discord's own "
+                "Server Settings \u{2192} Integrations panel, so changes made "
+                "either way show up in both."
+            </p>
+            <div class="chip-list">{chips}</div>
+            {move || remove_result.get().map(save_feedback)}
+            {move || add_result.get().map(save_feedback)}
+            <ActionForm action=add attr:class="chip-add">
+                <input type="hidden" name="guild" value=add_gid/>
+                <ChannelSelect
+                    label="Allow a channel"
+                    name="channel_id"
+                    selected=String::new()
+                    channels=unconfigured
+                    kinds=GATE_KINDS
+                />
+                <button type="submit" class="btn btn-ghost">"Add channel"</button>
+            </ActionForm>
+        </fieldset>
+    }
+}
+
+#[component]
+fn CooldownSection(
+    guild_id: String,
+    cooldowns: CooldownView,
+    save: ServerAction<SaveGreetingCooldowns>,
+) -> impl IntoView {
+    let result = save.value();
+
+    let user_label =
+        format!("Per-member cooldown (seconds, min {})", cooldowns.floor_user_secs);
+    let guild_label = format!(
+        "Server-wide cooldown (seconds, min {})",
+        cooldowns.floor_guild_secs
+    );
+
+    let upgrade = cooldowns.next_tier.map(|next| {
+        let pitch = format!(
+            "On {} these floors drop to {}s and {}s.",
+            next.label(),
+            cooldowns.next_floor_user_secs,
+            cooldowns.next_floor_guild_secs,
+        );
+
+        view! {
+            <p class="page-lead">
+                {pitch}
+                " "
+                <a href="/upgrade">"See plans"</a>
+                "."
+            </p>
+        }
+    });
+
+    view! {
+        <fieldset class="settings-section">
+            <legend><Icon name="gauge"/>"Cooldowns"</legend>
+            <p class="page-lead">
+                "The per-member cooldown stops one person spamming "<code>"/good"</code>
+                "; the server-wide one stops a crowd doing it between them. Both are "
+                "in seconds, and both must stay at or above the minimum for this "
+                "server's plan \u{2014} a low server-wide cooldown is the setting that "
+                "actually costs the bot work."
+            </p>
+            {move || result.get().map(save_feedback)}
+            <ActionForm action=save>
+                <input type="hidden" name="guild" value=guild_id/>
+                <DynamicSettingField
+                    label=user_label
+                    name="user_cooldown"
+                    value=cooldowns.user_secs.to_string()
+                />
+                <DynamicSettingField
+                    label=guild_label
+                    name="guild_cooldown"
+                    value=cooldowns.guild_secs.to_string()
+                />
+                <SaveButton/>
+            </ActionForm>
+            {upgrade}
+        </fieldset>
+    }
+}
+
+#[component]
+fn DynamicSettingField(
+    label: String,
+    name: &'static str,
+    value: String,
+) -> impl IntoView {
+    view! {
+        <div class="setting-field">
+            <label>{label}</label>
+            <input
+                type="text"
+                name=name
+                value=value
+                placeholder="(not set)"
+                pattern="[0-9]*"
+            />
+        </div>
     }
 }
 

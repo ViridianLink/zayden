@@ -11,6 +11,11 @@ pub enum Tier {
 impl Tier {
     pub(crate) const PAID_LADDER: [Self; 1] = [Self::Pro];
 
+    #[cfg(feature = "ssr")]
+    pub(crate) fn next_paid(self) -> Option<Self> {
+        Self::PAID_LADDER.into_iter().find(|plan| *plan > self)
+    }
+
     pub(crate) const fn label(self) -> &'static str {
         match self {
             Self::Free => "Free",
@@ -48,6 +53,15 @@ impl Tier {
             Self::Free => "free",
             Self::Pro => "pro",
             Self::Ultra => "ultra",
+        }
+    }
+
+    #[cfg(feature = "ssr")]
+    pub(crate) const fn as_entitlement(self) -> zayden_app::entitlement::Tier {
+        match self {
+            Self::Free => zayden_app::entitlement::Tier::Free,
+            Self::Pro => zayden_app::entitlement::Tier::Pro,
+            Self::Ultra => zayden_app::entitlement::Tier::Ultra,
         }
     }
 

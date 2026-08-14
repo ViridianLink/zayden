@@ -14,6 +14,10 @@ pub enum GreetingsError {
     UnknownKind(String),
     MessageTooLong(usize),
 
+    InvalidCooldown(String),
+    UserCooldown(i64),
+    GuildCooldown(i64),
+
     Internal(String),
 
     Serenity(serenity::Error),
@@ -45,6 +49,18 @@ impl Display for GreetingsError {
                 "Greeting messages are limited to {max} characters so the reply \
                  still fits once mentions are filled in."
             ),
+            Self::InvalidCooldown(raw) => write!(
+                f,
+                "`{raw}` isn't a usable cooldown. Enter a whole number of \
+                 seconds between 0 and 86400."
+            ),
+            Self::UserCooldown(secs) => write!(
+                f,
+                "You're greeting a little fast \u{2014} try `/good` again in {secs}s."
+            ),
+            Self::GuildCooldown(secs) => {
+                write!(f, "Someone just used `/good` here. Try again in {secs}s.")
+            },
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
@@ -63,6 +79,9 @@ impl std::error::Error for GreetingsError {
             | Self::DuplicateImage
             | Self::UnknownKind(_)
             | Self::MessageTooLong(_)
+            | Self::InvalidCooldown(_)
+            | Self::UserCooldown(_)
+            | Self::GuildCooldown(_)
             | Self::Internal(_) => None,
         }
     }
@@ -77,7 +96,10 @@ impl Respond for GreetingsError {
             | Self::TooManyImages(_)
             | Self::DuplicateImage
             | Self::UnknownKind(_)
-            | Self::MessageTooLong(_) => Some(Cow::Owned(self.to_string())),
+            | Self::MessageTooLong(_)
+            | Self::InvalidCooldown(_)
+            | Self::UserCooldown(_)
+            | Self::GuildCooldown(_) => Some(Cow::Owned(self.to_string())),
         }
     }
 }

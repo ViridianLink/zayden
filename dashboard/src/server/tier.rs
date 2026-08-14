@@ -3,11 +3,31 @@ use leptos::prelude::*;
 use {
     crate::app::UpgradeUrl,
     crate::dto::Tier,
-    crate::server::auth::{app_state, db_pool, server_err},
+    crate::server::auth::{app_state, db_pool, discord_client, server_err},
     tower_cookies::Cookies,
 };
 
 use crate::dto::UserTierInfo;
+
+#[cfg(feature = "ssr")]
+pub(crate) async fn guild_server_tier(guild_id: u64) -> Result<Tier, ServerFnError> {
+    use twilight_model::id::Id;
+
+    let app = app_state()?;
+
+    let owner = discord_client()?
+        .guild(Id::new(guild_id))
+        .await
+        .map_err(server_err)?
+        .model()
+        .await
+        .map_err(server_err)?
+        .owner_id;
+
+    let tier = app.entitlements.server_tier(guild_id, owner.get()).await;
+
+    Ok(Tier::from_key(tier.as_str()).unwrap_or(Tier::Free))
+}
 
 #[server]
 pub async fn get_user_tier() -> Result<UserTierInfo, ServerFnError> {

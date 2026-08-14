@@ -2170,6 +2170,8 @@ dependencies = [
 name = "greetings"
 version = "1.0.0"
 dependencies = [
+ "jiff",
+ "moka",
  "rand 0.10.2",
  "serde_json",
  "serenity",
@@ -8068,6 +8070,7 @@ dependencies = [
  "dashmap",
  "jiff",
  "jiff-cron",
+ "moka",
  "reqwest 0.13.4",
  "serde",
  "serde_json",

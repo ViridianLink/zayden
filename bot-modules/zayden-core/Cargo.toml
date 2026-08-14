@@ -14,6 +14,7 @@ base64 = { workspace = true, features = ["std"] }
 dashmap = { workspace = true }
 jiff = { workspace = true }
 jiff-cron = { workspace = true }
+moka = { workspace = true, features = ["future"] }
 serenity = { workspace = true, features = ["rustls_backend", "gateway"] }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -12,7 +12,7 @@ pub mod ticket;
 
 pub use channels_settings::ChannelsSettingsRow;
 pub use family::FamilySettingsRow;
-pub use greetings::GreetingsSettingsRow;
+pub use greetings::{Cooldowns, GreetingsSettingsRow};
 pub use honeypot::HoneypotSettingsRow;
 pub use lfg_settings::LfgSettingsRow;
 pub use music::MusicSettingsRow;

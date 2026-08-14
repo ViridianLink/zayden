@@ -47,6 +47,9 @@ pub use format_num::FormatNum;
 pub mod scope;
 pub use scope::{CommandMetadata, CommandScope, IdMatch};
 
+pub mod tier;
+pub use tier::{guild_owner, invalidate_guild_owner, server_tier};
+
 pub mod snowflake;
 pub use snowflake::{as_i64, as_u64};
 

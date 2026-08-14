@@ -43,6 +43,15 @@ pub(crate) fn UpgradePage() -> impl IntoView {
                         <strong>"Faster & longer Palworld uploads"</strong>
                         <span>"Shorter upload cooldown and larger save quota."</span>
                     </li>
+                    <li class="pro-feature">
+                        <Icon name="message"/>
+                        <strong>"Lower greeting cooldowns"</strong>
+                        <span>
+                            "Drop the per-member and server-wide limits on "
+                            <code>"/good"</code>" \u{2014} for servers busy enough "
+                            "to hit them."
+                        </span>
+                    </li>
                 </ul>
 
                 <Suspense fallback=|| ()>

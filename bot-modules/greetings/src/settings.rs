@@ -1,5 +1,5 @@
 use serenity::all::{GuildId, Mentionable, UserId};
-use zayden_app::config::{GreetingsSettingsRow, SettingsStore};
+use zayden_app::config::{Cooldowns, GreetingsSettingsRow, SettingsStore};
 use zayden_core::as_i64;
 
 use crate::error::{GreetingsError, Result};
@@ -9,10 +9,11 @@ pub type GreetingsStore = SettingsStore<GreetingsSettingsRow>;
 
 pub const MAX_MESSAGE_LEN: usize = 1500;
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GreetingsConfig {
     pub morning_message: Option<String>,
     pub night_message: Option<String>,
+    pub cooldowns: Cooldowns,
 }
 
 impl From<&GreetingsSettingsRow> for GreetingsConfig {
@@ -20,6 +21,7 @@ impl From<&GreetingsSettingsRow> for GreetingsConfig {
         Self {
             morning_message: row.morning_message.clone(),
             night_message: row.night_message.clone(),
+            cooldowns: Cooldowns::from(row),
         }
     }
 }
@@ -31,18 +33,6 @@ impl GreetingsConfig {
             GreetingKind::Morning => self.morning_message.as_deref(),
             GreetingKind::Night => self.night_message.as_deref(),
         }
-    }
-
-    pub fn from_form(morning: &str, night: &str) -> Result<Self> {
-        Ok(Self {
-            morning_message: parse_message(morning)?,
-            night_message: parse_message(night)?,
-        })
-    }
-
-    pub fn apply(self, row: &mut GreetingsSettingsRow) {
-        row.morning_message = self.morning_message;
-        row.night_message = self.night_message;
     }
 }
 
@@ -58,6 +48,24 @@ fn parse_message(raw: &str) -> Result<Option<String>> {
     }
 
     Ok(Some(trimmed.to_string()))
+}
+
+pub fn parse_cooldown(raw: &str, floor: i32) -> Result<i32> {
+    let trimmed = raw.trim();
+
+    if trimmed.is_empty() {
+        return Ok(floor);
+    }
+
+    let secs = trimmed
+        .parse::<i32>()
+        .map_err(|_e| GreetingsError::InvalidCooldown(trimmed.to_string()))?;
+
+    if !(0..=GreetingsSettingsRow::MAX_COOLDOWN_SECS).contains(&secs) {
+        return Err(GreetingsError::InvalidCooldown(trimmed.to_string()));
+    }
+
+    Ok(secs)
 }
 
 #[must_use]
@@ -79,14 +87,40 @@ impl GreetingsSettings {
         Ok(GreetingsConfig::from(row.as_ref()))
     }
 
-    pub async fn save(
+    pub async fn save_messages(
         store: &GreetingsStore,
         guild_id: GuildId,
-        config: GreetingsConfig,
-    ) -> Result<GreetingsConfig> {
-        let row =
-            store.update(as_i64(guild_id.get()), |row| config.apply(row)).await?;
+        morning: &str,
+        night: &str,
+    ) -> Result<()> {
+        let morning = parse_message(morning)?;
+        let night = parse_message(night)?;
 
-        Ok(GreetingsConfig::from(row.as_ref()))
+        store
+            .update(as_i64(guild_id.get()), |row| {
+                row.morning_message = morning;
+                row.night_message = night;
+            })
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn save_cooldowns(
+        store: &GreetingsStore,
+        guild_id: GuildId,
+        requested: Cooldowns,
+        floor: Cooldowns,
+    ) -> Result<Cooldowns> {
+        let clamped = requested.clamp_to(floor);
+
+        store
+            .update(as_i64(guild_id.get()), |row| {
+                row.user_cooldown_secs = clamped.user_secs;
+                row.guild_cooldown_secs = clamped.guild_secs;
+            })
+            .await?;
+
+        Ok(clamped)
     }
 }

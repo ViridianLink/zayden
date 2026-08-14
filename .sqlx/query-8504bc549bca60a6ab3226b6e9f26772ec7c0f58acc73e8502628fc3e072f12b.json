@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                guild_id,\n                morning_message,\n                night_message\n            FROM greetings_settings\n            WHERE guild_id = $1\n            ",
+  "query": "\n            SELECT\n                guild_id,\n                morning_message,\n                night_message,\n                user_cooldown_secs,\n                guild_cooldown_secs\n            FROM greetings_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,28 @@
             "name": "night_message"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "user_cooldown_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "greetings_settings",
+            "name": "user_cooldown_secs"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "guild_cooldown_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "greetings_settings",
+            "name": "guild_cooldown_secs"
+          }
+        }
       }
     ],
     "parameters": {
@@ -45,8 +67,10 @@
     "nullable": [
       false,
       true,
-      true
+      true,
+      false,
+      false
     ]
   },
-  "hash": "b65958ebe834001628f24e95fd69b8af12f6448efc7a29c114b59078421c73fb"
+  "hash": "8504bc549bca60a6ab3226b6e9f26772ec7c0f58acc73e8502628fc3e072f12b"
 }

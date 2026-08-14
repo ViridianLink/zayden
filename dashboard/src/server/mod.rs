@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod command_permissions;
 pub mod discord;
 pub mod greetings;
 pub mod guild;

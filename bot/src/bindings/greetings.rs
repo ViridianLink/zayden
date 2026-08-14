@@ -28,14 +28,7 @@ impl ModuleCommand for GoodCmd {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        run(
-            &cx.ctx.http,
-            cx.interaction,
-            cx.interaction.data.options(),
-            &cx.app.db,
-            &cx.app.settings.greetings,
-        )
-        .await?;
+        run(cx, &cx.app.settings.greetings).await?;
         Ok(())
     }
 }

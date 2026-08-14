@@ -10,8 +10,6 @@ use tracing::{info, warn};
 use super::types::{EntitlementScope, Tier};
 use crate::events::AppEvent;
 
-/// Premium entitlement gate, backed by the `entitlements` table and an
-/// in-memory cache.
 pub struct EntitlementService {
     db: PgPool,
     cache: Cache<EntitlementScope, Tier>,
@@ -28,22 +26,22 @@ impl EntitlementService {
         Self { db, cache, events }
     }
 
-    /// Return the highest active tier for the given user across all scopes.
     pub async fn user_tier(&self, user_id: u64) -> Tier {
         let scope = EntitlementScope::User(user_id);
         self.tier_for_scope(scope).await
     }
 
-    /// Return the highest active tier for the given guild.
     pub async fn guild_tier(&self, guild_id: u64) -> Tier {
         let scope = EntitlementScope::Guild(guild_id);
         self.tier_for_scope(scope).await
     }
 
-    /// Return `true` if the principal described by `scope` meets `required`.
-    ///
-    /// For `UserInGuild`, the effective tier is the maximum of the user and
-    /// guild tiers.
+    pub async fn server_tier(&self, guild_id: u64, owner_id: u64) -> Tier {
+        let guild = self.guild_tier(guild_id).await;
+        let owner = self.user_tier(owner_id).await;
+        guild.max(owner)
+    }
+
     pub async fn allows(&self, scope: EntitlementScope, required: Tier) -> bool {
         if required == Tier::Free {
             return true;

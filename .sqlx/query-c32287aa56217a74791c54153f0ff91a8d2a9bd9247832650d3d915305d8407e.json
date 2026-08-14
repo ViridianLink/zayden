@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO greetings_settings (\n                guild_id, morning_message, night_message,\n                user_cooldown_secs, guild_cooldown_secs\n            )\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                morning_message = EXCLUDED.morning_message,\n                night_message = EXCLUDED.night_message,\n                user_cooldown_secs = EXCLUDED.user_cooldown_secs,\n                guild_cooldown_secs = EXCLUDED.guild_cooldown_secs,\n                updated_at = now()\n            RETURNING\n                guild_id,\n                morning_message,\n                night_message,\n                user_cooldown_secs,\n                guild_cooldown_secs\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "greetings_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "morning_message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "greetings_settings",
+            "name": "morning_message"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "night_message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "greetings_settings",
+            "name": "night_message"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "user_cooldown_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "greetings_settings",
+            "name": "user_cooldown_secs"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "guild_cooldown_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "greetings_settings",
+            "name": "guild_cooldown_secs"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "c32287aa56217a74791c54153f0ff91a8d2a9bd9247832650d3d915305d8407e"
+}
