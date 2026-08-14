@@ -14,7 +14,7 @@ use serenity::all::{
     User,
 };
 use sqlx::PgPool;
-use zayden_core::{optional_option, parse_options};
+use zayden_core::{optional_option, parse_options, parse_subcommand};
 
 use crate::error::{GreetingsError, Result};
 use crate::images::GreetingImage;
@@ -27,13 +27,15 @@ pub async fn run(
     options: Vec<ResolvedOption<'_>>,
     pool: &PgPool,
     store: &GreetingsStore,
-    kind: GreetingKind,
 ) -> Result<()> {
     let guild_id = interaction.guild_id.ok_or(GreetingsError::GuildOnly)?;
 
+    let (name, sub_options) = parse_subcommand(options)?;
+    let kind = GreetingKind::parse(name)?;
+
     interaction.defer(http).await?;
 
-    let mut options = parse_options(options);
+    let mut options = parse_options(sub_options);
 
     let target = optional_option::<(&User, _), _>(&mut options, "user")
         .map_or(&interaction.user, |(user, _)| user);
@@ -70,12 +72,22 @@ pub async fn run(
     Ok(())
 }
 
-pub fn register<'a>(kind: GreetingKind) -> CreateCommand<'a> {
-    CreateCommand::new(kind.command_name())
-        .description(kind.command_description())
-        .add_option(CreateCommandOption::new(
-            CommandOptionType::User,
-            "user",
-            "Who to greet (defaults to you)",
-        ))
+fn subcommand<'a>(kind: GreetingKind) -> CreateCommandOption<'a> {
+    CreateCommandOption::new(
+        CommandOptionType::SubCommand,
+        kind.subcommand_name(),
+        kind.subcommand_description(),
+    )
+    .add_sub_option(CreateCommandOption::new(
+        CommandOptionType::User,
+        "user",
+        "Who to greet (defaults to you)",
+    ))
+}
+
+pub fn register<'a>() -> CreateCommand<'a> {
+    CreateCommand::new("good")
+        .description("Wish someone a good morning or good night")
+        .add_option(subcommand(GreetingKind::Morning))
+        .add_option(subcommand(GreetingKind::Night))
 }

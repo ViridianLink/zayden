@@ -16,4 +16,5 @@ serenity = { workspace = true }
 sqlx = { workspace = true, features = ["migrate"] }
 
 [dev-dependencies]
+serde_json = { workspace = true, features = ["std"] }
 tokio = { workspace = true, features = ["macros"] }

@@ -112,7 +112,7 @@ const MODULES: &[ModuleDef] = &[
         id: "greetings",
         label: "Greetings",
         description: "Good morning / good night images and messages.",
-        commands: &["goodmorning", "goodnight"],
+        commands: &["good"],
     },
     ModuleDef {
         id: "misc",

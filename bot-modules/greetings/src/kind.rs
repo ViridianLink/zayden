@@ -18,15 +18,12 @@ impl GreetingKind {
     }
 
     #[must_use]
-    pub const fn command_name(self) -> &'static str {
-        match self {
-            Self::Morning => "goodmorning",
-            Self::Night => "goodnight",
-        }
+    pub const fn subcommand_name(self) -> &'static str {
+        self.as_str()
     }
 
     #[must_use]
-    pub const fn command_description(self) -> &'static str {
+    pub const fn subcommand_description(self) -> &'static str {
         match self {
             Self::Morning => "Wish someone a good morning",
             Self::Night => "Wish someone a good night",

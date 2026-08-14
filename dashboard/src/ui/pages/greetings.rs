@@ -49,8 +49,8 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                     <div>
                         <h1>"Greetings"</h1>
                         <p class="page-lead">
-                            "What Zayden posts for "<code>"/goodmorning"</code>" and "
-                            <code>"/goodnight"</code>". Each command replies with one "
+                            "What Zayden posts for "<code>"/good morning"</code>" and "
+                            <code>"/good night"</code>". Each subcommand replies with one "
                             "image picked at random from its list, plus the message "
                             "below if you set one."
                         </p>
