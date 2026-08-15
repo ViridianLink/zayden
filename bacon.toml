@@ -3,7 +3,6 @@ default_job = "clippy-workspace"
 [jobs.clippy-workspace]
 command = [
     "cargo",
-    "+nightly",
     "clippy",
     "--workspace",
     "--all-targets",
@@ -18,7 +17,6 @@ need_stdout = false
 [jobs.check-ssr]
 command = [
     "cargo",
-    "+nightly",
     "check",
     "-p",
     "dashboard",
@@ -32,7 +30,6 @@ need_stdout = false
 [jobs.check-hydrate]
 command = [
     "cargo",
-    "+nightly",
     "check",
     "-p",
     "dashboard",
@@ -46,26 +43,17 @@ command = [
 need_stdout = false
 
 [jobs.test-workspace]
-command = ["cargo", "+nightly", "test", "--color", "always"]
+command = ["cargo", "test", "--color", "always"]
 need_stdout = true
 
 [jobs.check-offline]
-command = [
-    "cargo",
-    "+nightly",
-    "check",
-    "--workspace",
-    "--all-targets",
-    "--color",
-    "always",
-]
+command = ["cargo", "check", "--workspace", "--all-targets", "--color", "always"]
 need_stdout = false
 env.SQLX_OFFLINE = "true"
 
 [jobs.check-offline-ssr]
 command = [
     "cargo",
-    "+nightly",
     "check",
     "-p",
     "dashboard",

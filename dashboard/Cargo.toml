@@ -17,8 +17,8 @@ required-features = ["ssr"]
 
 # Exactly one of ssr / hydrate should be active during any given compilation.
 # cargo-leptos handles this automatically.  For manual cargo check:
-#   cargo +nightly check -p dashboard --features ssr
-#   cargo +nightly check -p dashboard --target wasm32-unknown-unknown --features hydrate
+#   cargo check -p dashboard --features ssr
+#   cargo check -p dashboard --target wasm32-unknown-unknown --features hydrate
 [features]
 default = []
 

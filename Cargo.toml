@@ -1,3 +1,6 @@
+# NOTE: everything in this file must parse on **stable** cargo -- the Docker
+# release images build on stable. Nightly-only build settings (cranelift,
+# -Zthreads) live in .cargo/config.toml, which .dockerignore excludes.
 [workspace]
 resolver = "3"
 members = ["bot", "bot-modules/*", "dashboard", "zayden-app"]
@@ -194,19 +197,24 @@ tracing-subscriber = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 
 [profile.dev]
-debug = "line-tables-only"
-split-debuginfo = "unpacked"
-
-[profile.dev.package."*"]
+opt-level = 0
 debug = false
+incremental = true
+codegen-units = 256
+lto = false
 
 [profile.dev.build-override]
 opt-level = 3
 debug = false
 
 [profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
 panic = "abort"
-strip = true
+strip = "symbols"
+debug = false
+incremental = false
 
 [profile.wasm-release]
 inherits = "release"
