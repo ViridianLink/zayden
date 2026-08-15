@@ -14,8 +14,10 @@ zayden-core = { workspace = true }
 jiff = { workspace = true }
 moka = { workspace = true, features = ["future"] }
 rand = { workspace = true }
+reqwest = { workspace = true }
 serenity = { workspace = true }
 sqlx = { workspace = true, features = ["migrate"] }
+tracing = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true, features = ["std"] }

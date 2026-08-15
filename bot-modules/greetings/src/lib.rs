@@ -1,3 +1,4 @@
+pub mod attachment;
 pub mod commands;
 pub mod cooldown;
 pub mod error;

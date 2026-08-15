@@ -1,12 +1,9 @@
-use std::borrow::Cow;
-
 use rand::rng;
 use rand::seq::IndexedRandom;
 use serenity::all::{
     CommandOptionType,
     CreateCommand,
     CreateCommandOption,
-    CreateEmbed,
     EditInteractionResponse,
     User,
 };
@@ -19,6 +16,7 @@ use zayden_core::{
     server_tier,
 };
 
+use crate::attachment;
 use crate::cooldown::{COOLDOWNS, Verdict};
 use crate::error::{GreetingsError, Result};
 use crate::images::GreetingImage;
@@ -70,7 +68,22 @@ pub async fn run(cx: &InvocationCtx<'_>, store: &GreetingsStore) -> Result<()> {
         images.choose(&mut rng).map(|image| image.url.clone())
     };
 
-    let template = match (config.message_for(kind), image.as_deref()) {
+    let attachment = match image.as_deref() {
+        None => None,
+        Some(url) => match attachment::fetch(&cx.app.http, url, kind).await {
+            Ok(attachment) => Some(attachment),
+            Err(error) => {
+                tracing::warn!(
+                    url,
+                    %error,
+                    "greeting image could not be attached; sending text only"
+                );
+                None
+            },
+        },
+    };
+
+    let template = match (config.message_for(kind), attachment.as_ref()) {
         (Some(message), _) => Some(message),
         (None, None) => Some(kind.default_message()),
         (None, Some(_)) => None,
@@ -83,10 +96,8 @@ pub async fn run(cx: &InvocationCtx<'_>, store: &GreetingsStore) -> Result<()> {
             response.content(render(template, target.id, interaction.user.id));
     }
 
-    if let Some(url) = image {
-        response = response.embed(
-            CreateEmbed::new().image(url, Some(Cow::Borrowed(kind.image_alt()))),
-        );
+    if let Some(attachment) = attachment {
+        response = response.new_attachment(attachment);
     }
 
     interaction.edit_response(http, response).await?;

@@ -20,8 +20,11 @@ pub enum GreetingsError {
 
     Internal(String),
 
+    ImageUnusable(String),
+
     Serenity(serenity::Error),
     Sqlx(sqlx::Error),
+    Http(reqwest::Error),
 }
 
 impl Display for GreetingsError {
@@ -62,8 +65,12 @@ impl Display for GreetingsError {
                 write!(f, "Someone just used `/good` here. Try again in {secs}s.")
             },
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
+            Self::ImageUnusable(reason) => {
+                write!(f, "greeting image unusable: {reason}")
+            },
             Self::Serenity(e) => write!(f, "serenity: {e:?}"),
             Self::Sqlx(e) => write!(f, "sqlx: {e:?}"),
+            Self::Http(e) => write!(f, "http: {e:?}"),
         }
     }
 }
@@ -73,6 +80,7 @@ impl std::error::Error for GreetingsError {
         match self {
             Self::Serenity(e) => Some(e),
             Self::Sqlx(e) => Some(e),
+            Self::Http(e) => Some(e),
             Self::GuildOnly
             | Self::InvalidUrl(_)
             | Self::TooManyImages(_)
@@ -82,7 +90,8 @@ impl std::error::Error for GreetingsError {
             | Self::InvalidCooldown(_)
             | Self::UserCooldown(_)
             | Self::GuildCooldown(_)
-            | Self::Internal(_) => None,
+            | Self::Internal(_)
+            | Self::ImageUnusable(_) => None,
         }
     }
 }
@@ -90,7 +99,11 @@ impl std::error::Error for GreetingsError {
 impl Respond for GreetingsError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::Internal(_) | Self::Serenity(_) | Self::Sqlx(_) => None,
+            Self::Internal(_)
+            | Self::ImageUnusable(_)
+            | Self::Serenity(_)
+            | Self::Sqlx(_)
+            | Self::Http(_) => None,
             Self::GuildOnly
             | Self::InvalidUrl(_)
             | Self::TooManyImages(_)
@@ -113,6 +126,12 @@ impl From<serenity::Error> for GreetingsError {
 impl From<sqlx::Error> for GreetingsError {
     fn from(value: sqlx::Error) -> Self {
         Self::Sqlx(value)
+    }
+}
+
+impl From<reqwest::Error> for GreetingsError {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Http(value)
     }
 }
 

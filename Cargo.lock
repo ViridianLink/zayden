@@ -2173,10 +2173,12 @@ dependencies = [
  "jiff",
  "moka",
  "rand 0.10.2",
+ "reqwest 0.13.4",
  "serde_json",
  "serenity",
  "sqlx",
  "tokio",
+ "tracing",
  "zayden-app",
  "zayden-core",
 ]
