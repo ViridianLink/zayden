@@ -15,7 +15,6 @@ target/
 *.ps1
 *.md
 *.sav
-.claude/
 skills-lock.json
 .bacon-locations
 
