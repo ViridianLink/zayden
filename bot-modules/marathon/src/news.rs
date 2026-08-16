@@ -1,13 +1,18 @@
-use reqwest::Client;
-use serde_json::Value;
+use std::time::Duration;
 
-use crate::error::Result;
+use reqwest::{Client, RequestBuilder, StatusCode};
+use serde_json::Value;
+use zayden_core::{RetryBudget, retry};
+
+use crate::error::{MarathonError, Result};
 use crate::model::NewsItem;
 
 const BUNGIE_NEWS_URL: &str =
     "https://www.bungie.net/Platform/Content/Rss/NewsArticles/0/";
-const BUNGIE_NEWS_SOURCE: &str = "bungie_news";
+pub const BUNGIE_NEWS_SOURCE: &str = "bungie_news";
 
+pub const BLUESKY_FEED_URL: &str =
+    "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed";
 pub const BLUESKY_ACTORS: [&str; 3] = [
     "marathonthegame.bungie.net",
     "marathonteam.bungie.net",
@@ -15,17 +20,55 @@ pub const BLUESKY_ACTORS: [&str; 3] = [
 ];
 const BLUESKY_ITEMS_PER_ACTOR: usize = 5;
 
+pub const NEWS_TIMEOUT: Duration = Duration::from_secs(10);
+pub const NEWS_RETRY: RetryBudget = RetryBudget::new(3, Duration::from_millis(500));
+
+fn is_transient(error: &MarathonError) -> bool {
+    let MarathonError::Reqwest(error) = error else { return false };
+
+    error.is_timeout()
+        || error.is_connect()
+        || error.is_request()
+        || error.status().is_some_and(|status| {
+            status.is_server_error() || status == StatusCode::TOO_MANY_REQUESTS
+        })
+}
+
+async fn fetch_json<F>(build: F) -> Result<Value>
+where
+    F: Fn() -> RequestBuilder + Send + Sync,
+{
+    fetch_json_with(build, NEWS_TIMEOUT, NEWS_RETRY).await
+}
+
+pub async fn fetch_json_with<F>(
+    build: F,
+    timeout: Duration,
+    budget: RetryBudget,
+) -> Result<Value>
+where
+    F: Fn() -> RequestBuilder + Send + Sync,
+{
+    retry(budget, is_transient, || {
+        let request = build().timeout(timeout);
+
+        async move {
+            let body =
+                request.send().await?.error_for_status()?.json::<Value>().await?;
+
+            Ok(body)
+        }
+    })
+    .await
+}
+
 pub struct BungieNewsFeed;
 
 impl BungieNewsFeed {
     pub async fn fetch(client: &Client, api_key: &str) -> Result<Vec<NewsItem>> {
-        let body: Value = client
-            .get(BUNGIE_NEWS_URL)
-            .header("X-API-Key", api_key)
-            .send()
-            .await?
-            .json()
-            .await?;
+        let body =
+            fetch_json(|| client.get(BUNGIE_NEWS_URL).header("X-API-Key", api_key))
+                .await?;
 
         Ok(find_articles(&body)
             .into_iter()
@@ -86,22 +129,13 @@ fn article_to_news_item(article: &Value) -> Option<NewsItem> {
 pub struct BlueskyFeed;
 
 impl BlueskyFeed {
-    pub async fn fetch(client: &Client) -> Result<Vec<NewsItem>> {
-        let mut items = Vec::new();
-        for actor in BLUESKY_ACTORS {
-            items.extend(Self::fetch_actor(client, actor).await?);
-        }
-        Ok(items)
-    }
-
-    pub async fn fetch_actor(client: &Client, actor: &str) -> Result<Vec<NewsItem>> {
-        let body: Value = client
-            .get("https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed")
-            .query(&[("actor", actor)])
-            .send()
-            .await?
-            .json()
-            .await?;
+    pub async fn fetch_actor(
+        client: &Client,
+        endpoint: &str,
+        actor: &str,
+    ) -> Result<Vec<NewsItem>> {
+        let body =
+            fetch_json(|| client.get(endpoint).query(&[("actor", actor)])).await?;
 
         Ok(body
             .get("feed")

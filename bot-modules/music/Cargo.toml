@@ -16,7 +16,6 @@ zayden-core = { workspace = true }
 
 async-trait = { workspace = true }
 dashmap = { workspace = true }
-futures = { workspace = true }
 rand = { version = "0.10", default-features = false, features = ["thread_rng"] }
 songbird-reqwest = { package = "reqwest", version = "0.12", default-features = false, features = [
     "rustls-tls",

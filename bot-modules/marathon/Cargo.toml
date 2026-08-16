@@ -10,6 +10,7 @@ workspace = true
 [dependencies]
 zayden-core = { workspace = true }
 
+futures = { workspace = true }
 jiff = { workspace = true, features = ["std"] }
 jiff-cron = { workspace = true }
 moka = { workspace = true, features = ["future"] }
@@ -25,4 +26,5 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt"] }
+tokio = { workspace = true, features = ["macros", "rt", "net", "io-util"] }
+zayden-app = { workspace = true }

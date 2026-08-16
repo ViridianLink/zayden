@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use futures::future;
 use reqwest::Client;
 use serenity::all::{ChannelId, CreateMessage, MessageFlags};
 use sqlx::PgPool;
@@ -10,7 +11,14 @@ use crate::announce::{MarathonAnnounceRow, NewsSeenRow};
 use crate::client::MarathonClient;
 use crate::embeds;
 use crate::model::NewsItem;
-use crate::news::{self, BLUESKY_ACTORS, BlueskyFeed, BungieNewsFeed};
+use crate::news::{
+    self,
+    BLUESKY_ACTORS,
+    BLUESKY_FEED_URL,
+    BUNGIE_NEWS_SOURCE,
+    BlueskyFeed,
+    BungieNewsFeed,
+};
 
 pub struct MarathonAnnounceCron;
 
@@ -98,6 +106,63 @@ async fn diff_and_seed(
     Ok(new_items)
 }
 
+async fn collect_feed(
+    pool: &PgPool,
+    feed_key: &str,
+    fetched: crate::error::Result<Vec<NewsItem>>,
+    out: &mut Vec<NewsItem>,
+) {
+    let items = match fetched {
+        Ok(items) => items,
+        Err(e) => {
+            error!(error = ?e, feed_key, "marathon: failed to fetch news feed");
+            return;
+        },
+    };
+
+    match diff_and_seed(pool, feed_key, &items).await {
+        Ok(mut new) => out.append(&mut new),
+        Err(e) => {
+            error!(error = ?e, feed_key, "marathon: failed to diff news feed");
+        },
+    }
+}
+
+async fn poll_feeds(
+    pool: &PgPool,
+    client: &Client,
+    bungie_api_key: Option<&str>,
+) -> Vec<NewsItem> {
+    let bungie = async {
+        match bungie_api_key {
+            Some(api_key) => Some(BungieNewsFeed::fetch(client, api_key).await),
+            None => {
+                debug!("marathon: BUNGIE_API_KEY unset, skipping Tier 1 news feed");
+                None
+            },
+        }
+    };
+    let bluesky = future::join_all(
+        BLUESKY_ACTORS
+            .map(|actor| BlueskyFeed::fetch_actor(client, BLUESKY_FEED_URL, actor)),
+    );
+
+    let (bungie, bluesky) = future::join(bungie, bluesky).await;
+
+    let mut new_items = Vec::new();
+
+    if let Some(fetched) = bungie {
+        collect_feed(pool, BUNGIE_NEWS_SOURCE, fetched, &mut new_items).await;
+    }
+
+    for (actor, fetched) in BLUESKY_ACTORS.iter().zip(bluesky) {
+        collect_feed(pool, &format!("bluesky:{actor}"), fetched, &mut new_items)
+            .await;
+    }
+
+    new_items
+}
+
 pub struct MarathonNewsCron;
 
 impl MarathonNewsCron {
@@ -110,38 +175,8 @@ impl MarathonNewsCron {
                 let client = client.clone();
                 let bungie_api_key = bungie_api_key.clone();
                 async move {
-                    let mut new_items: Vec<NewsItem> = Vec::new();
-
-                    if let Some(api_key) = bungie_api_key.as_deref() {
-                        match BungieNewsFeed::fetch(&client, api_key).await {
-                            Ok(items) => match diff_and_seed(&pool, "bungie_news", &items).await {
-                                Ok(mut new) => new_items.append(&mut new),
-                                Err(e) => {
-                                    error!(error = ?e, "marathon: failed to diff bungie news");
-                                }
-                            },
-                            Err(e) => error!(error = ?e, "marathon: failed to fetch bungie news"),
-                        }
-                    } else {
-                        debug!("marathon: BUNGIE_API_KEY unset, skipping Tier 1 news feed");
-                    }
-
-                    for actor in BLUESKY_ACTORS {
-                        match BlueskyFeed::fetch_actor(&client, actor).await {
-                            Ok(items) => {
-                                let feed_key = format!("bluesky:{actor}");
-                                match diff_and_seed(&pool, &feed_key, &items).await {
-                                    Ok(mut new) => new_items.append(&mut new),
-                                    Err(e) => {
-                                        error!(error = ?e, actor, "marathon: failed to diff bluesky feed");
-                                    }
-                                }
-                            }
-                            Err(e) => {
-                                error!(error = ?e, actor, "marathon: failed to fetch bluesky feed");
-                            }
-                        }
-                    }
+                    let new_items =
+                        poll_feeds(&pool, &client, bungie_api_key.as_deref()).await;
 
                     if new_items.is_empty() {
                         return;

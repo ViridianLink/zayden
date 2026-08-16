@@ -3644,6 +3644,7 @@ dependencies = [
 name = "marathon"
 version = "1.0.0"
 dependencies = [
+ "futures",
  "jiff",
  "jiff-cron",
  "moka",
@@ -3657,6 +3658,7 @@ dependencies = [
  "thiserror 2.0.20",
  "tokio",
  "tracing",
+ "zayden-app",
  "zayden-core",
 ]
 
@@ -3799,7 +3801,6 @@ version = "1.0.0"
 dependencies = [
  "async-trait",
  "dashmap",
- "futures",
  "rand 0.10.2",
  "reqwest 0.12.28",
  "rspotify",
