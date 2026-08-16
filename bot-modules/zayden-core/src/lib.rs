@@ -18,6 +18,9 @@ use serenity::small_fixed_array::FixedArray;
 pub mod cache;
 pub use cache::{EmojiCache, EmojiCacheData, EmojiResult, GuildMembersCache};
 
+pub mod cdn;
+pub use cdn::{is_discord_cdn, refresh_attachment_url};
+
 pub mod cron;
 pub use cron::{ActionFn, CronJob, CronJobData, earliest_pending, prune_exhausted};
 

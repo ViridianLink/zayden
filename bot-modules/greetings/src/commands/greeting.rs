@@ -2,6 +2,7 @@ use rand::rng;
 use rand::seq::IndexedRandom;
 use serenity::all::{
     CommandOptionType,
+    CreateAttachment,
     CreateCommand,
     CreateCommandOption,
     EditInteractionResponse,
@@ -42,6 +43,24 @@ async fn check_cooldown(
     }
 }
 
+async fn attach(
+    cx: &InvocationCtx<'_>,
+    url: &str,
+    kind: GreetingKind,
+) -> Option<CreateAttachment<'static>> {
+    match attachment::fetch(&cx.app.http, &cx.app.discord_token, url, kind).await {
+        Ok(attachment) => Some(attachment),
+        Err(error) => {
+            tracing::warn!(
+                url,
+                %error,
+                "greeting image could not be attached; sending text only"
+            );
+            None
+        },
+    }
+}
+
 pub async fn run(cx: &InvocationCtx<'_>, store: &GreetingsStore) -> Result<()> {
     let interaction = cx.interaction;
     let http = &cx.ctx.http;
@@ -70,17 +89,7 @@ pub async fn run(cx: &InvocationCtx<'_>, store: &GreetingsStore) -> Result<()> {
 
     let attachment = match image.as_deref() {
         None => None,
-        Some(url) => match attachment::fetch(&cx.app.http, url, kind).await {
-            Ok(attachment) => Some(attachment),
-            Err(error) => {
-                tracing::warn!(
-                    url,
-                    %error,
-                    "greeting image could not be attached; sending text only"
-                );
-                None
-            },
-        },
+        Some(url) => attach(cx, url, kind).await,
     };
 
     let template = match (config.message_for(kind), attachment.as_ref()) {

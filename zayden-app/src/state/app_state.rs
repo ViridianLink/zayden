@@ -28,6 +28,7 @@ pub struct AppState {
 
     pub events: Sender<AppEvent>,
     pub http: reqwest::Client,
+    pub discord_token: String,
     pub ai_provider_key: String,
     pub ai_api_endpoint: String,
     pub ai_model: String,
@@ -72,6 +73,7 @@ impl AppState {
             entitlements,
             events,
             http: http_client(),
+            discord_token: config.discord_token.clone(),
             ai_provider_key: config.ai_provider_key.clone(),
             ai_api_endpoint: config.ai_api_endpoint.clone(),
             ai_model: config.ai_model.clone(),

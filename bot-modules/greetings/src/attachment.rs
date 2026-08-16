@@ -1,5 +1,6 @@
 use reqwest::header::CONTENT_TYPE;
 use serenity::all::CreateAttachment;
+use zayden_core::refresh_attachment_url;
 
 use crate::error::{GreetingsError, Result};
 use crate::kind::GreetingKind;
@@ -10,9 +11,13 @@ const DEFAULT_EXTENSION: &str = "png";
 
 pub async fn fetch(
     http: &reqwest::Client,
+    token: &str,
     url: &str,
     kind: GreetingKind,
 ) -> Result<CreateAttachment<'static>> {
+    let url = refresh_attachment_url(http, token, url).await;
+    let url = url.as_str();
+
     let response = http.get(url).send().await?.error_for_status()?;
 
     let too_large = || {
