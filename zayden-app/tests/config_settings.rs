@@ -9,7 +9,11 @@
 //! by manual checks against a live Postgres (see `tests/entitlement.rs`).
 
 use zayden_app::config::SettingsRow;
-use zayden_app::config::tables::{FamilySettingsRow, MusicSettingsRow};
+use zayden_app::config::tables::{
+    AiSettingsRow,
+    FamilySettingsRow,
+    MusicSettingsRow,
+};
 
 #[test]
 fn family_settings_empty_default_matches_enforcement() {
@@ -88,4 +92,45 @@ fn music_settings_empty_announces_to_the_command_channel() {
 
     assert!(row.announce_now_playing);
     assert_eq!(row.announce_channel_id, None);
+}
+
+// `ai_settings` replaced a hardcoded channel constant in the AI binding, so
+// `responds_in` is now the only thing standing between a mention and a paid
+// model call. Every reply costs money, so the off states matter more than the
+// on state.
+
+#[test]
+fn ai_settings_empty_is_off_everywhere() {
+    let row = AiSettingsRow::empty(123);
+
+    assert_eq!(row.guild_id, 123);
+    // Must match the `ai_settings.enabled` column DEFAULT (FALSE): a guild that
+    // has never touched the dashboard gets no AI replies and no model spend.
+    assert!(!row.enabled);
+    assert_eq!(row.channel_id, None);
+    assert!(!row.responds_in(456));
+    assert_eq!(AiSettingsRow::TABLE, "ai_settings");
+}
+
+#[test]
+fn ai_disabled_ignores_its_configured_channel() {
+    let row = AiSettingsRow { guild_id: 123, enabled: false, channel_id: Some(456) };
+
+    assert!(!row.responds_in(456));
+}
+
+#[test]
+fn ai_enabled_without_a_channel_answers_anywhere() {
+    let row = AiSettingsRow { guild_id: 123, enabled: true, channel_id: None };
+
+    assert!(row.responds_in(456));
+    assert!(row.responds_in(789));
+}
+
+#[test]
+fn ai_enabled_with_a_channel_answers_only_there() {
+    let row = AiSettingsRow { guild_id: 123, enabled: true, channel_id: Some(456) };
+
+    assert!(row.responds_in(456));
+    assert!(!row.responds_in(789));
 }

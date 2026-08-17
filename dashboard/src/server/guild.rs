@@ -109,6 +109,7 @@ pub async fn get_guild_settings(
     let family = s.family.get(guild_id).await.map_err(server_err)?;
     let music = s.music.get(guild_id).await.map_err(server_err)?;
     let honeypot = s.honeypot.get(guild_id).await.map_err(server_err)?;
+    let ai = s.ai.get(guild_id).await.map_err(server_err)?;
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
@@ -137,6 +138,8 @@ pub async fn get_guild_settings(
         honeypot_exempt_admins: honeypot.exempt_admins,
         honeypot_exempt_role_id: opt_str(honeypot.exempt_role_id),
         honeypot_purge_seconds: honeypot.purge_seconds.to_string(),
+        ai_enabled: ai.enabled,
+        ai_channel_id: opt_str(ai.channel_id),
     })
 }
 
@@ -407,6 +410,28 @@ pub async fn save_honeypot_settings(
     .await
     .map(|_| ())
     .map_err(server_err)
+}
+
+#[server]
+pub async fn save_ai_settings(
+    guild: String,
+    enabled: String,
+    channel_id: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let enabled = enabled.trim() == "true";
+    let channel_id = parse_id(&channel_id);
+
+    app.settings
+        .ai
+        .update(guild_id, |p| {
+            p.enabled = enabled;
+            p.channel_id = channel_id;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
 }
 
 #[server]

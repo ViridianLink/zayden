@@ -109,6 +109,7 @@ pub(crate) fn module_tint(id: &str) -> &'static str {
         "ticket" => "#38bdf8",
         "honeypot" => "#fbbf24",
         "greetings" => "#818cf8",
+        "ai" => "#22d3ee",
         _ => "#94a3b8",
     }
 }

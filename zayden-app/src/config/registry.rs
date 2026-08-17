@@ -5,6 +5,7 @@ use tokio::sync::broadcast;
 
 use super::SettingsStore;
 use super::tables::{
+    AiSettingsRow,
     ChannelsSettingsRow,
     FamilySettingsRow,
     GreetingsSettingsRow,
@@ -31,6 +32,7 @@ pub struct SettingsRegistry {
     pub family: Arc<SettingsStore<FamilySettingsRow>>,
     pub honeypot: Arc<SettingsStore<HoneypotSettingsRow>>,
     pub greetings: Arc<SettingsStore<GreetingsSettingsRow>>,
+    pub ai: Arc<SettingsStore<AiSettingsRow>>,
 }
 
 impl SettingsRegistry {
@@ -46,7 +48,8 @@ impl SettingsRegistry {
         let ticket = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let family = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let honeypot = Arc::new(SettingsStore::new(db.clone(), events.clone()));
-        let greetings = Arc::new(SettingsStore::new(db, events.clone()));
+        let greetings = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let ai = Arc::new(SettingsStore::new(db, events.clone()));
 
         SettingsStore::spawn_invalidator(Arc::clone(&support), events.subscribe());
         SettingsStore::spawn_invalidator(
@@ -65,6 +68,7 @@ impl SettingsRegistry {
         SettingsStore::spawn_invalidator(Arc::clone(&family), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&honeypot), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&greetings), events.subscribe());
+        SettingsStore::spawn_invalidator(Arc::clone(&ai), events.subscribe());
 
         Self {
             support,
@@ -78,6 +82,7 @@ impl SettingsRegistry {
             family,
             honeypot,
             greetings,
+            ai,
         }
     }
 }

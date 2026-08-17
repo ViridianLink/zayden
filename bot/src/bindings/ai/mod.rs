@@ -1,9 +1,10 @@
 use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
-use serenity::all::{Context, GenericChannelId, Message};
+use serenity::all::{Context, Message};
 use tracing::debug;
 use zayden_app::entitlement::Tier;
 use zayden_app::state::AppState;
+use zayden_core::as_i64;
 
 use crate::{BotError, Result};
 
@@ -131,11 +132,20 @@ impl Ai {
         message: &Message,
         app: &AppState,
     ) -> Result<()> {
-        const GAMBLING_CHANNEL: GenericChannelId =
-            GenericChannelId::new(1_281_440_730_820_116_582);
+        let Some(guild_id) = message.guild_id else {
+            debug!(channel_id = %message.channel_id, "message is not in a guild; ignoring");
+            return Ok(());
+        };
 
-        if message.channel_id != GAMBLING_CHANNEL {
-            debug!(channel_id = %message.channel_id, "message not in the AI channel; ignoring");
+        let settings = app.settings.ai.get(as_i64(guild_id.get())).await?;
+
+        if !settings.responds_in(as_i64(message.channel_id.get())) {
+            debug!(
+                guild_id = %guild_id,
+                channel_id = %message.channel_id,
+                enabled = settings.enabled,
+                "AI is off for this channel; ignoring"
+            );
             return Ok(());
         }
 

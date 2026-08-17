@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::bearer_client,
+    crate::server::auth::{app_state, bearer_client, server_err},
     crate::server::command_permissions::{
         GuildContext,
         everyone_denied,
@@ -19,11 +19,17 @@ use {
 use crate::dto::ModuleView;
 
 #[cfg(feature = "ssr")]
+enum Backing {
+    Commands(&'static [&'static str]),
+    Settings,
+}
+
+#[cfg(feature = "ssr")]
 struct ModuleDef {
     id: &'static str,
     label: &'static str,
     description: &'static str,
-    commands: &'static [&'static str],
+    backing: Backing,
 }
 
 #[cfg(feature = "ssr")]
@@ -32,25 +38,25 @@ const MODULES: &[ModuleDef] = &[
         id: "music",
         label: "Music",
         description: "Voice playback, queue, and 24/7 (Pro).",
-        commands: &["music"],
+        backing: Backing::Commands(&["music"]),
     },
     ModuleDef {
         id: "palworld",
         label: "Palworld",
         description: "Save parsing, breeding solver, and world sync.",
-        commands: &["palworld"],
+        backing: Backing::Commands(&["palworld"]),
     },
     ModuleDef {
         id: "marathon",
         label: "Marathon",
         description: "Marathon wiki lookups and news.",
-        commands: &["marathon"],
+        backing: Backing::Commands(&["marathon"]),
     },
     ModuleDef {
         id: "gambling",
         label: "Gambling & Economy",
         description: "Currency games, shop, and leaderboards.",
-        commands: &[
+        backing: Backing::Commands(&[
             "blackjack",
             "coinflip",
             "craft",
@@ -71,13 +77,13 @@ const MODULES: &[ModuleDef] = &[
             "shop",
             "tictactoe",
             "work",
-        ],
+        ]),
     },
     ModuleDef {
         id: "family",
         label: "Family",
         description: "Marriage, adoption, and family tree commands.",
-        commands: &[
+        backing: Backing::Commands(&[
             "marry",
             "divorce",
             "adopt",
@@ -90,51 +96,72 @@ const MODULES: &[ModuleDef] = &[
             "relationship",
             "resetfamily",
             "tree",
-        ],
+        ]),
     },
     ModuleDef {
         id: "ticket",
         label: "Tickets & Support",
         description: "Support tickets and FAQ panels.",
-        commands: &["ticket", "support"],
+        backing: Backing::Commands(&["ticket", "support"]),
     },
     ModuleDef {
         id: "honeypot",
         label: "Honeypot",
         description: "Decoy channel that soft-bans spam bots on sight.",
-        commands: &["honeypot"],
+        backing: Backing::Commands(&["honeypot"]),
     },
     ModuleDef {
         id: "greetings",
         label: "Greetings",
         description: "Good morning / good night images and messages.",
-        commands: &["good"],
+        backing: Backing::Commands(&["good"]),
+    },
+    ModuleDef {
+        id: "ai",
+        label: "AI Chat",
+        description: "Zayden replies in character when he's mentioned.",
+        backing: Backing::Settings,
     },
     ModuleDef {
         id: "misc",
         label: "Misc",
         description: "Miscellaneous utility commands.",
-        commands: &["random", "custom_msg"],
+        backing: Backing::Commands(&["random", "custom_msg"]),
     },
 ];
 
 #[cfg(feature = "ssr")]
 impl ModuleDef {
+    const fn commands(&self) -> &'static [&'static str] {
+        match self.backing {
+            Backing::Commands(names) => names,
+            Backing::Settings => &[],
+        }
+    }
+
     fn view(
         &self,
         name_to_id: &HashMap<String, Id<CommandMarker>>,
         denied: &HashSet<Id<CommandMarker>>,
+        settings_flags: &HashMap<&'static str, bool>,
     ) -> ModuleView {
-        let known: Vec<_> =
-            self.commands.iter().filter_map(|c| name_to_id.get(*c)).collect();
-        let enabled =
-            known.is_empty() || known.iter().any(|id| !denied.contains(*id));
+        let enabled = match self.backing {
+            Backing::Commands(names) => {
+                let known: Vec<_> =
+                    names.iter().filter_map(|c| name_to_id.get(*c)).collect();
+
+                known.is_empty() || known.iter().any(|id| !denied.contains(*id))
+            },
+            Backing::Settings => {
+                settings_flags.get(self.id).copied().unwrap_or(false)
+            },
+        };
 
         ModuleView {
             id: self.id.to_string(),
             label: self.label.to_string(),
             description: self.description.to_string(),
-            commands: self.commands.iter().map(|c| (*c).to_string()).collect(),
+            commands: self.commands().iter().map(|c| (*c).to_string()).collect(),
             enabled,
         }
     }
@@ -161,6 +188,15 @@ async fn denied_commands(ctx: &GuildContext) -> HashSet<Id<CommandMarker>> {
         .unwrap_or_default()
 }
 
+#[cfg(feature = "ssr")]
+async fn settings_flags(
+    guild_id: i64,
+) -> Result<HashMap<&'static str, bool>, ServerFnError> {
+    let ai = app_state()?.settings.ai.get(guild_id).await.map_err(server_err)?;
+
+    Ok(HashMap::from([("ai", ai.enabled)]))
+}
+
 #[server]
 pub async fn list_guild_modules(
     guild: String,
@@ -169,8 +205,29 @@ pub async fn list_guild_modules(
 
     let name_to_id = fetch_command_ids(&ctx).await;
     let denied = denied_commands(&ctx).await;
+    let flags = settings_flags(ctx.guild_id.get().cast_signed()).await?;
 
-    Ok(MODULES.iter().map(|m| m.view(&name_to_id, &denied)).collect())
+    Ok(MODULES.iter().map(|m| m.view(&name_to_id, &denied, &flags)).collect())
+}
+
+#[cfg(feature = "ssr")]
+async fn set_settings_enabled(
+    module_id: &str,
+    guild_id: i64,
+    enabled: bool,
+) -> Result<(), ServerFnError> {
+    match module_id {
+        "ai" => app_state()?
+            .settings
+            .ai
+            .update(guild_id, |row| row.enabled = enabled)
+            .await
+            .map(|_row| ())
+            .map_err(server_err),
+        _ => Err(ServerFnError::ServerError(format!(
+            "module {module_id} has no settings switch"
+        ))),
+    }
 }
 
 #[server]
@@ -184,9 +241,22 @@ pub async fn set_module_enabled(
     };
 
     let ctx = guild_context(&guild).await?;
+
+    let names = match module.backing {
+        Backing::Settings => {
+            return set_settings_enabled(
+                module.id,
+                ctx.guild_id.get().cast_signed(),
+                enabled,
+            )
+            .await;
+        },
+        Backing::Commands(names) => names,
+    };
+
     let name_to_id = fetch_command_ids(&ctx).await;
 
-    for name in module.commands {
+    for name in names {
         let Some(cmd_id) = name_to_id.get(*name) else {
             continue;
         };

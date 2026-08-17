@@ -35,4 +35,6 @@ pub struct GuildSettings {
     pub(crate) honeypot_exempt_admins: bool,
     pub(crate) honeypot_exempt_role_id: Option<String>,
     pub(crate) honeypot_purge_seconds: String,
+    pub(crate) ai_enabled: bool,
+    pub(crate) ai_channel_id: Option<String>,
 }

@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod channels_settings;
 pub mod family;
 pub mod greetings;
@@ -10,6 +11,7 @@ pub mod support_settings;
 pub mod temp_voice_settings;
 pub mod ticket;
 
+pub use ai::AiSettingsRow;
 pub use channels_settings::ChannelsSettingsRow;
 pub use family::FamilySettingsRow;
 pub use greetings::{Cooldowns, GreetingsSettingsRow};

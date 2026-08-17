@@ -9,6 +9,7 @@ pub use radio::{Genre, RadioStation};
 pub use registry::SettingsRegistry;
 pub use settings_store::{SettingsRow, SettingsStore};
 pub use tables::{
+    AiSettingsRow,
     Cooldowns,
     GreetingsSettingsRow,
     HoneypotSettingsRow,
