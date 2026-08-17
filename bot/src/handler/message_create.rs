@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use futures::FutureExt;
-use gambling::GamblingManager;
+use gambling::{GamblingManager, level_up_reward};
 use serenity::all::{Context, Message};
 use sqlx::PgPool;
 use ticket::TicketStores;
@@ -42,16 +42,15 @@ impl Handler {
         };
 
         if let Some(level) = levels::message_create(msg, pool).await? {
-            let mut tx = pool.begin().await?;
+            let reward = level_up_reward(i64::from(level));
 
-            GamblingManager::add_coins(
-                &mut tx,
-                msg.author.id,
-                i64::from(level) * 1000,
-            )
-            .await?;
+            if reward > 0 {
+                let mut tx = pool.begin().await?;
 
-            tx.commit().await?;
+                GamblingManager::add_coins(&mut tx, msg.author.id, reward).await?;
+
+                tx.commit().await?;
+            }
         }
 
         let (..) = tokio::try_join!(

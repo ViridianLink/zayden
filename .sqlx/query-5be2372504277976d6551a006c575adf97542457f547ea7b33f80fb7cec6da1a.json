@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                COALESCE(l.level, 0) AS \"level!: i32\",\n                COALESCE(m.prestige, 0) AS \"prestige!: i64\"\n            FROM\n                (SELECT $1::BIGINT AS user_id) u\n            LEFT JOIN\n                levels l ON l.user_id = u.user_id\n            LEFT JOIN\n                gambling_mine m ON m.user_id = u.user_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "level!: i32",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "prestige!: i64",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "5be2372504277976d6551a006c575adf97542457f547ea7b33f80fb7cec6da1a"
+}

@@ -353,9 +353,9 @@ pub trait MaxBet: Prestige {
     fn level(&self) -> i32;
 
     fn max_bet(&self) -> i64 {
-        let base_amount = (self.level() * 10_000).max(10_000);
+        let base_amount = (i64::from(self.level()) * 10_000).max(10_000);
 
-        (i64::from(base_amount) * self.prestige_mult_10()) / 10
+        (base_amount * self.prestige_mult_10()) / 10
     }
 
     fn max_bet_str(&self) -> String {

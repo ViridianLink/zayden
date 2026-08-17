@@ -3,6 +3,25 @@ use sqlx::postgres::PgQueryResult;
 use sqlx::{PgConnection, PgPool};
 use zayden_core::as_i64;
 
+use super::{MaxBet, Prestige};
+
+struct BetLimits {
+    level: i32,
+    prestige: i64,
+}
+
+impl Prestige for BetLimits {
+    fn prestige(&self) -> i64 {
+        self.prestige
+    }
+}
+
+impl MaxBet for BetLimits {
+    fn level(&self) -> i32 {
+        self.level
+    }
+}
+
 pub struct GamblingManager;
 
 impl GamblingManager {
@@ -13,25 +32,25 @@ impl GamblingManager {
     }
 
     pub async fn max_bet(conn: &mut PgConnection, id: UserId) -> sqlx::Result<i64> {
-        sqlx::query_scalar!(
+        let limits = sqlx::query_as!(
+            BetLimits,
             r#"
             SELECT
-                (
-                    GREATEST(l.level * 10000, 10000)
-                    * (COALESCE(m.prestige, 0) + 10)
-                ) / 10
+                COALESCE(l.level, 0) AS "level!: i32",
+                COALESCE(m.prestige, 0) AS "prestige!: i64"
             FROM
-                levels l
+                (SELECT $1::BIGINT AS user_id) u
             LEFT JOIN
-                gambling_mine m ON l.user_id = m.user_id
-            WHERE
-                l.user_id = $1
+                levels l ON l.user_id = u.user_id
+            LEFT JOIN
+                gambling_mine m ON m.user_id = u.user_id
             "#,
             as_i64(id.get())
         )
         .fetch_one(conn)
-        .await?
-        .ok_or(sqlx::Error::RowNotFound)
+        .await?;
+
+        Ok(limits.max_bet())
     }
 
     // region: Update

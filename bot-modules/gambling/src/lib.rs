@@ -85,6 +85,17 @@ pub use stamina::{StaminaCron, StaminaManager};
 const START_AMOUNT: i64 = 1000;
 const GEM: char = '💎';
 
+#[must_use]
+pub const fn level_up_reward(level: i64) -> i64 {
+    const PER_LEVEL: i64 = 100;
+
+    if level <= 0 {
+        return 0;
+    }
+
+    level.saturating_mul(PER_LEVEL)
+}
+
 pub static CARD_DECK: OnceLock<Vec<EmojiId>> = OnceLock::new();
 
 pub fn card_deck(emojis: &EmojiCache) -> Result<Vec<EmojiId>> {
