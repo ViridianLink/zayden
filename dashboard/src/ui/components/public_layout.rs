@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 
 use super::icons::Icon;
+use crate::dto::SessionUser;
+use crate::server::auth::current_session_user;
 
 #[component]
 pub(crate) fn PublicLayout(children: Children) -> impl IntoView {
@@ -15,6 +17,8 @@ pub(crate) fn PublicLayout(children: Children) -> impl IntoView {
 
 #[component]
 fn PublicNav() -> AnyView {
+    let session_user = Resource::new_blocking(|| (), |()| current_session_user());
+
     view! {
         <header class="public-nav">
             <div class="public-nav-inner">
@@ -25,7 +29,18 @@ fn PublicNav() -> AnyView {
                 <nav class="public-nav-links">
                     <a href="#features">"Features"</a>
                     <a href="/upgrade">"Pricing"</a>
-                    <a href="/auth/discord" rel="external">"Login"</a>
+                    <Suspense fallback=|| ()>
+                        {move || {
+                            session_user.get().and_then(Result::ok).map(|user| {
+                                user.map_or_else(
+                                    || view! {
+                                        <a href="/auth/discord" rel="external">"Login"</a>
+                                    }.into_any(),
+                                    |user| view! { <PublicUser user=user/> }.into_any(),
+                                )
+                            })
+                        }}
+                    </Suspense>
                     <a href="/invite" rel="external" class="btn btn-primary">
                         <Icon name="plus"/>
                         "Add to Discord"
@@ -35,6 +50,26 @@ fn PublicNav() -> AnyView {
         </header>
     }
     .into_any()
+}
+
+#[component]
+fn PublicUser(user: SessionUser) -> impl IntoView {
+    let avatar = user.avatar_url().map_or_else(
+        || view! { <span class="public-user-avatar placeholder">{user.initial()}</span> }
+            .into_any(),
+        |url| view! { <img src=url alt="" class="public-user-avatar"/> }.into_any(),
+    );
+
+    view! {
+        <span class="public-user">
+            {avatar}
+            <span class="public-user-name">{user.name}</span>
+        </span>
+        <a href="/guilds" class="btn btn-secondary">
+            <Icon name="server"/>
+            "My Servers"
+        </a>
+    }
 }
 
 #[component]

@@ -45,6 +45,43 @@
   color: var(--text-primary);
 }
 
+.public-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0.75rem 0.3rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--overlay-1);
+}
+
+.public-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.public-user-avatar.placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.public-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 12ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;

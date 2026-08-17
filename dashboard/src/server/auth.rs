@@ -11,6 +11,8 @@ use {
     zayden_app::state::AppState,
 };
 
+use crate::dto::SessionUser;
+
 #[cfg(feature = "ssr")]
 pub(crate) fn server_err<E: std::fmt::Display>(e: E) -> ServerFnError {
     ServerFnError::ServerError(e.to_string())
@@ -175,4 +177,50 @@ pub async fn check_session() -> Result<bool, ServerFnError> {
     .is_some();
 
     Ok(logged_in)
+}
+
+#[server]
+pub async fn current_session_user() -> Result<Option<SessionUser>, ServerFnError> {
+    let pool = db_pool()?;
+
+    let cookies: Cookies = extract().await.map_err(server_err)?;
+
+    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
+        return Ok(None);
+    };
+
+    let access_token = sqlx::query_scalar!(
+        "SELECT discord_access_token FROM web_sessions \
+         WHERE token = $1 AND expires_at > now()",
+        &token,
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(server_err)?;
+
+    let Some(access_token) = access_token else {
+        return Ok(None);
+    };
+
+    let user = match bearer_client(&access_token).current_user().await {
+        Ok(response) => response.model().await,
+        Err(e) => {
+            tracing::warn!(error = ?e, "request to Discord /users/@me failed");
+            return Ok(None);
+        },
+    };
+
+    let user = match user {
+        Ok(u) => u,
+        Err(e) => {
+            tracing::warn!(error = ?e, "failed to parse Discord /users/@me response");
+            return Ok(None);
+        },
+    };
+
+    Ok(Some(SessionUser {
+        id: user.id.to_string(),
+        name: user.global_name.unwrap_or(user.name),
+        avatar: user.avatar.map(|hash| hash.to_string()),
+    }))
 }
