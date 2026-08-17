@@ -47,24 +47,24 @@
 
 .public-user {
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.3rem 0.75rem 0.3rem 0.35rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  background: var(--overlay-1);
+  gap: 0.5rem;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .public-user-avatar {
-  width: 26px;
-  height: 26px;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
 }
 
 .public-user-avatar.placeholder {
-  display: grid;
+  display: inline-grid;
   place-items: center;
   background: var(--accent-gradient);
   color: #fff;
@@ -76,7 +76,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  max-width: 12ch;
+  max-width: 14ch;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

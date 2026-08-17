@@ -57,7 +57,10 @@ fn PublicUser(user: SessionUser) -> impl IntoView {
     let avatar = user.avatar_url().map_or_else(
         || view! { <span class="public-user-avatar placeholder">{user.initial()}</span> }
             .into_any(),
-        |url| view! { <img src=url alt="" class="public-user-avatar"/> }.into_any(),
+        |url| view! {
+            <img src=url alt="" width="24" height="24" class="public-user-avatar"/>
+        }
+        .into_any(),
     );
 
     view! {
