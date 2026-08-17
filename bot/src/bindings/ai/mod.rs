@@ -4,7 +4,7 @@ use serenity::all::{Context, Message};
 use tracing::debug;
 use zayden_app::entitlement::Tier;
 use zayden_app::state::AppState;
-use zayden_core::as_i64;
+use zayden_core::{as_i64, server_tier};
 
 use crate::{BotError, Result};
 
@@ -170,10 +170,16 @@ impl Ai {
             return Ok(());
         }
 
-        let tier = app.entitlements.user_tier(message.author.id.get()).await;
+        let author_tier = app.entitlements.user_tier(message.author.id.get()).await;
+        let server_tier = server_tier(&ctx.http, &app.entitlements, guild_id).await;
+        let tier = author_tier.max(server_tier);
+
         let params = ChatParams::for_tier(app, tier);
         debug!(
             author_id = %message.author.id,
+            %guild_id,
+            author_tier = author_tier.as_str(),
+            server_tier = server_tier.as_str(),
             tier = tier.as_str(),
             model = params.model,
             "generating AI reply"
