@@ -26,7 +26,7 @@ use crate::games::blackjack::{
     game_end_blackjack,
     game_end_draw,
     hit_button,
-    in_play_text,
+    in_play_board,
     split_button,
     stand_button,
     sum_cards,
@@ -143,19 +143,23 @@ impl Commands {
             return Ok(());
         }
 
-        let text = in_play_text(&emojis, bet, game.player_hand(), dealer_hand[0])?;
+        let cannot_stake_again = coins < bet * 2;
 
         let action_row =
             CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
                 hit_button(),
                 stand_button(),
-                double_button().disabled(coins < bet * 2),
-                split_button().disabled(true), //.disabled(coins < bet * 2),
+                double_button().disabled(cannot_stake_again),
+                split_button()
+                    .disabled(cannot_stake_again || !game.can_split(&emojis)?),
                 surrender_button(),
             ]));
 
+        let mut components = in_play_board(&emojis, &game)?;
+        components.push(action_row);
+
         let container = CreateComponent::Container(
-            CreateContainer::new(vec![text, action_row]).accent_colour(Colour::TEAL),
+            CreateContainer::new(components).accent_colour(Colour::TEAL),
         );
 
         interaction

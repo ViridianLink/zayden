@@ -334,7 +334,7 @@ const SOLAR_SYSTEM: ShopItem<'static> = ShopItem::new(
     "Solar System",
     Emoji::None,
     "Allows you to buy 10 extra planets per solar system",
-    5_000_000,
+    25_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -346,8 +346,8 @@ const GALAXY: ShopItem<'static> = ShopItem::new(
     "galaxy",
     "Galaxy",
     Emoji::None,
-    "Allows you to buy 10 extra planets per solar system",
-    25_000_000,
+    "Allows you to buy 10 extra solar systems per galaxy",
+    250_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )
@@ -360,7 +360,7 @@ const UNIVERSE: ShopItem<'static> = ShopItem::new(
     "Universe",
     Emoji::None,
     "Allows you to buy 10 extra galaxies per universe",
-    50_000_000,
+    2_500_000_000,
     ShopCurrency::Coins,
     ShopPage::Mine2,
 )

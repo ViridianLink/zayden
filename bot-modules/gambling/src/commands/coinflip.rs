@@ -28,6 +28,10 @@ use crate::{
     Result,
 };
 
+pub const WIN_MULTIPLIER: i64 = 2;
+pub const JACKPOT_MULTIPLIER: i64 = 1000;
+pub const JACKPOT_ODDS: u32 = 10_000;
+
 impl Commands {
     pub async fn coinflip<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
@@ -66,11 +70,11 @@ impl Commands {
 
         let heads = rand::random_bool(0.5);
         let winner = matches!(prediction, CoinSide::Heads) == heads;
-        let edge = rand::random_bool(1.0 / 5000.0);
+        let edge = rand::random_ratio(1, JACKPOT_ODDS);
 
         let mut payout = match (winner, edge) {
-            (true, true) => bet * 1000,
-            (true, false) => bet * 2,
+            (true, true) => bet * JACKPOT_MULTIPLIER,
+            (true, false) => bet * WIN_MULTIPLIER,
             _ => 0,
         };
 

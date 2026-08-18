@@ -28,6 +28,7 @@ use std::str::FromStr;
 
 use gambling::components::{
     BlackjackCustomId,
+    HandState,
     HigherLowerCustomId,
     PrestigeCustomId,
     TicTacToeCustomId,
@@ -98,7 +99,7 @@ fn unit_variants_round_trip_and_keep_their_wire_ids() {
     ];
 
     for (variant, wire) in blackjack {
-        assert_eq!(variant.as_str(), wire);
+        assert_eq!(variant.to_string(), wire);
         assert_eq!(BlackjackCustomId::from_str(wire).unwrap(), variant);
     }
 
@@ -135,4 +136,82 @@ fn ids_do_not_cross_namespaces() {
     assert!(BlackjackCustomId::from_str("").is_err());
     assert!(HigherLowerCustomId::from_str("hol_").is_err());
     assert!(PrestigeCustomId::from_str("prestige").is_err());
+}
+
+/// The blackjack board marks the live hand with a badge in each section's
+/// accessory slot rather than with a marker character in the heading, so these
+/// ids *are* the round's state. A hand whose badge does not round-trip is a hand
+/// the next button press cannot find.
+#[test]
+fn hand_badge_ids_round_trip() {
+    let badges = [
+        (
+            BlackjackCustomId::Hand { index: 0, state: HandState::Active },
+            "blackjack_hand_0_active",
+        ),
+        (
+            BlackjackCustomId::Hand { index: 1, state: HandState::Waiting },
+            "blackjack_hand_1_waiting",
+        ),
+        (
+            BlackjackCustomId::Hand { index: 1, state: HandState::Done },
+            "blackjack_hand_1_done",
+        ),
+        (
+            BlackjackCustomId::Dealer { state: HandState::Waiting },
+            "blackjack_dealer_waiting",
+        ),
+        (
+            BlackjackCustomId::Dealer { state: HandState::Done },
+            "blackjack_dealer_done",
+        ),
+    ];
+
+    for (variant, wire) in badges {
+        assert_eq!(variant.to_string(), wire);
+        assert_eq!(BlackjackCustomId::from_str(wire).unwrap(), variant);
+    }
+}
+
+/// Discord requires every custom id in a message to be unique, so two hands on
+/// the same board must not collide — which is the whole reason the index is in
+/// the id rather than the state alone.
+#[test]
+fn hand_badges_on_one_board_stay_distinct() {
+    let split_board = [
+        BlackjackCustomId::Hand { index: 0, state: HandState::Done },
+        BlackjackCustomId::Hand { index: 1, state: HandState::Done },
+        BlackjackCustomId::Dealer { state: HandState::Done },
+    ]
+    .map(|id| id.to_string());
+
+    let mut unique = split_board.to_vec();
+    unique.sort_unstable();
+    unique.dedup();
+
+    assert_eq!(
+        unique.len(),
+        split_board.len(),
+        "duplicate custom id on one board: {split_board:?}"
+    );
+}
+
+/// A badge id has to survive the same namespace guard as the action buttons —
+/// it is disabled, but the router still matches on the `blackjack` prefix.
+#[test]
+fn malformed_badge_ids_do_not_parse() {
+    for bad in [
+        "blackjack_hand_0",
+        "blackjack_hand__active",
+        "blackjack_hand_x_active",
+        "blackjack_hand_0_playing",
+        "blackjack_dealer",
+        "blackjack_dealer_x",
+        "blackjack_hand_999999_active",
+    ] {
+        assert!(
+            BlackjackCustomId::from_str(bad).is_err(),
+            "`{bad}` should not parse as a blackjack component id"
+        );
+    }
 }

@@ -25,7 +25,14 @@ impl ModuleCommand for HigherLower {
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
-        Commands::higher_lower::<BotState>(cx.ctx, cx.interaction).await?;
+        let options = cx.interaction.data.options();
+        Commands::higher_lower::<BotState>(
+            cx.ctx,
+            cx.interaction,
+            options,
+            &cx.app.db,
+        )
+        .await?;
         Ok(())
     }
 }

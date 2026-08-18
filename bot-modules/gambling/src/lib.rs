@@ -24,7 +24,7 @@ pub use commands::Commands;
 pub use commands::craft::{CraftCommit, CraftDelta, CraftManager, CraftRow};
 pub use commands::dig::{DigCommit, DigDelta, DigRow};
 pub use commands::goals::GoalsManager;
-pub use commands::prestige::{PrestigeManager, PrestigeRow};
+pub use commands::prestige::{PrestigeManager, PrestigeRow, miner_cap_without};
 pub use commands::work::{WorkCommit, WorkDelta};
 pub use common::{
     MineCommit,
@@ -69,6 +69,7 @@ pub use models::{
     GameRow,
     Gems,
     ItemInventory,
+    MAX_SCALING_PRESTIGE,
     MaxBet,
     MaxValues,
     MineHourly,

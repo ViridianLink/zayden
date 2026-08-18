@@ -235,6 +235,16 @@ impl EmojiCache {
     }
 }
 
+impl<S: AsRef<str>> FromIterator<(S, EmojiId)> for EmojiCache {
+    fn from_iter<T: IntoIterator<Item = (S, EmojiId)>>(iter: T) -> Self {
+        Self(
+            iter.into_iter()
+                .map(|(name, id)| (FixedString::from_str_trunc(name.as_ref()), id))
+                .collect(),
+        )
+    }
+}
+
 impl Deref for EmojiCache {
     type Target = HashMap<FixedString<u8>, EmojiId>;
 

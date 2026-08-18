@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 
-use crate::shop::LOTTO_TICKET;
-use crate::{ItemInventory, SHOP_ITEMS, ShopItem};
+use crate::{ItemInventory, ShopItem};
 
 #[derive(Debug, Clone, Deserialize, Serialize, FromRow)]
 pub struct InventoryRow {
@@ -26,17 +25,6 @@ impl From<&ShopItem<'_>> for GamblingItem {
 
 pub struct GamblingItems(pub Vec<GamblingItem>);
 
-impl GamblingItems {
-    pub fn do_prestige(&mut self) {
-        self.0.retain(|item| {
-            let is_sellable = SHOP_ITEMS
-                .get(&item.item_id)
-                .is_some_and(|shop_item_data| shop_item_data.sellable);
-
-            item.item_id != LOTTO_TICKET.id && !is_sellable
-        });
-    }
-}
 impl ItemInventory for GamblingItems {
     fn inventory(&self) -> &[GamblingItem] {
         &self.0

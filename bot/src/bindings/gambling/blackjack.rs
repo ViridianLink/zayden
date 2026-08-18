@@ -92,6 +92,12 @@ impl ModuleComponent for Blackjack {
                 )
                 .await?;
             },
+            BlackjackCustomId::Hand { .. } | BlackjackCustomId::Dealer { .. } => {
+                debug!(
+                    custom_id = %cx.interaction.data.custom_id,
+                    "ignoring click on a blackjack status badge"
+                );
+            },
         }
 
         Ok(())

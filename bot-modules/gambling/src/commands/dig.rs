@@ -348,7 +348,9 @@ impl Commands {
             ("emeralds", 0),
         ]);
 
-        let miners = (row.miners() * 10) * row.prestige_mult_10() / 10;
+        let miners =
+            row.miners().saturating_mul(10).saturating_mul(row.prestige_mult_10())
+                / 10;
 
         for (&resource, chance) in CHANCES.iter() {
             let ore = as_i64(

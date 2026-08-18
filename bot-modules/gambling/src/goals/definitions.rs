@@ -77,7 +77,7 @@ const GIFT: GoalDefinition = GoalDefinition::new("gift")
         true
     });
 
-const WIN_10: GoalDefinition = GoalDefinition::new("gift")
+const WIN_10: GoalDefinition = GoalDefinition::new("win_10")
     .set_target(|_| rand::random_range(7..=10))
     .set_description(|t| format!("Win {t} times"))
     .set_update_fn(|goal: &mut GamblingGoalsRow, event: &Event| {

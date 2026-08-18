@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fmt::Write as _;
 
 use serenity::all::{
@@ -12,7 +13,7 @@ use serenity::all::{
     CreateContainerComponent,
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
-    CreateTextDisplay,
+    EmojiId,
     MessageFlags,
 };
 use sqlx::PgPool;
@@ -22,10 +23,13 @@ use zayden_core::{EmojiCache, EmojiCacheData, FormatNum};
 use crate::events::{Dispatch, Event, GameEvent};
 use crate::games::blackjack::{
     GameDetails,
+    HandOutcome,
+    SettledHand,
     card_values,
     double_button,
+    final_board,
     hit_button,
-    in_play_text,
+    in_play_board,
     split_button,
     stand_button,
     sum_cards,
@@ -58,47 +62,17 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game =
-            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
+        let mut game = GameDetails::from_components(&emojis, board(interaction))?;
 
         game.add_card()?;
 
-        if game.player_value(&emojis)? > 21 {
+        if game.player_value(&emojis)? > 21 && !game.advance_hand() {
             game_end(ctx, interaction, pool, &emojis, game).await?;
 
             return Ok(());
         }
 
-        let dealer_card = game.dealer_card();
-
-        let text =
-            in_play_text(&emojis, game.bet(), game.player_hand(), dealer_card)?;
-
-        let action_row =
-            CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
-                hit_button(),
-                stand_button(),
-                split_button().disabled(true),
-                double_button().disabled(true),
-                surrender_button().disabled(true),
-            ]));
-
-        let container = CreateComponent::Container(
-            CreateContainer::new(vec![text, action_row]).accent_colour(Colour::TEAL),
-        );
-
-        interaction
-            .create_response(
-                &ctx.http,
-                CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::new()
-                        .flags(MessageFlags::IS_COMPONENTS_V2)
-                        .components(vec![container]),
-                ),
-            )
-            .await?;
-
-        Ok(())
+        continue_round(ctx, interaction, &emojis, &game).await
     }
 
     pub async fn stand<Data: GamblingData + EmojiCacheData>(
@@ -112,14 +86,13 @@ impl Blackjack {
             data.emojis()
         };
 
-        game_end(
-            ctx,
-            interaction,
-            pool,
-            &emojis,
-            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?,
-        )
-        .await?;
+        let mut game = GameDetails::from_components(&emojis, board(interaction))?;
+
+        if game.advance_hand() {
+            return continue_round(ctx, interaction, &emojis, &game).await;
+        }
+
+        game_end(ctx, interaction, pool, &emojis, game).await?;
 
         Ok(())
     }
@@ -135,8 +108,7 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game =
-            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
+        let mut game = GameDetails::from_components(&emojis, board(interaction))?;
 
         if !GamblingManager::bet(pool, interaction.user.id, game.bet()).await? {
             return Err(GamblingError::InsufficientFunds {
@@ -156,19 +128,32 @@ impl Blackjack {
     pub async fn split<Data: GamblingData + EmojiCacheData>(
         ctx: &Context,
         interaction: &ComponentInteraction,
-        _pool: &PgPool,
+        pool: &PgPool,
     ) -> Result<()> {
-        interaction
-            .create_response(
-                &ctx.http,
-                CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new()
-                        .content("Blackjack split is not yet available.")
-                        .ephemeral(true),
-                ),
-            )
-            .await?;
-        Ok(())
+        let emojis = {
+            let data_lock = ctx.data::<RwLock<Data>>();
+            let data = data_lock.read().await;
+            data.emojis()
+        };
+
+        let mut game = GameDetails::from_components(&emojis, board(interaction))?;
+
+        if !game.can_split(&emojis)? {
+            return Err(GamblingError::Internal(
+                "hand cannot be split - component state is stale".to_string(),
+            ));
+        }
+
+        if !GamblingManager::bet(pool, interaction.user.id, game.bet()).await? {
+            return Err(GamblingError::InsufficientFunds {
+                required: game.bet(),
+                currency: ShopCurrency::Coins,
+            });
+        }
+
+        game.split()?;
+
+        continue_round(ctx, interaction, &emojis, &game).await
     }
 
     pub async fn surrender<Data: GamblingData + EmojiCacheData>(
@@ -182,8 +167,7 @@ impl Blackjack {
             data.emojis()
         };
 
-        let mut game =
-            GameDetails::from_str(&emojis, text(interaction).unwrap_or_default())?;
+        let mut game = GameDetails::from_components(&emojis, board(interaction))?;
 
         let player_value = game.player_value(&emojis)?;
 
@@ -239,58 +223,109 @@ impl Blackjack {
         dealer_hand.push(game.next_card()?);
         let dealer_value = sum_cards(&emojis, &dealer_hand)?;
 
-        let player_hand_str = game.player_hand_str(&emojis)?;
-        let card_to_num = card_values(&emojis)?;
-        let mut dealer_hand_str = String::new();
-        for id in &dealer_hand {
-            let num = card_to_num.get(id).ok_or_else(|| {
-                GamblingError::Internal("card ID not in CARD_VALUES".to_string())
-            })?;
-            let _ = write!(dealer_hand_str, "<:{num}:{id}> ");
-        }
-
-        let desc = format!(
-            "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}",
-            game.bet().format(),
+        let board = final_board(
+            "Surrender!",
+            &format!("Your bet: {} <:coin:{coin}>", game.bet().format()),
+            &[SettledHand {
+                cards: game.player_hand_str(&emojis)?,
+                value: player_value,
+                outcome: HandOutcome::Lost,
+            }],
+            (&hand_str(&emojis, &dealer_hand)?, dealer_value),
+            &format!(
+                "You surrender!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
+                (payout - game.bet()).format(),
+                coins.format(),
+                effects_summary(&emojis, &payout_result.effects),
+            ),
         );
 
-        interaction
-            .create_response(
-                &ctx.http,
-                CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::new()
-                        .flags(MessageFlags::IS_COMPONENTS_V2)
-                        .components(vec![CreateComponent::Container(CreateContainer::new(
-                            vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-                                format!(
-                                    "### Blackjack - Surrender!\n{desc}\n\nYou surrender!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
-                                    (payout - game.bet()).format(),
-                                    coins.format(),
-                                    effects_summary(&emojis, &payout_result.effects),
-                                ),
-                            ))],
-                        ).accent_colour(Colour::RED))])
-                ),
-            )
-            .await?;
-
-        Ok(())
+        update(ctx, interaction, board, Colour::RED).await
     }
 }
 
-fn text(interaction: &ComponentInteraction) -> Option<&str> {
+fn hand_str(emojis: &EmojiCache, hand: &[EmojiId]) -> Result<String> {
+    let card_to_num = card_values(emojis)?;
+
+    let mut s = String::new();
+    for id in hand {
+        let num = card_to_num.get(id).ok_or_else(|| {
+            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
+        })?;
+        let _ = write!(s, "<:{num}:{id}> ");
+    }
+
+    Ok(s)
+}
+
+async fn update(
+    ctx: &Context,
+    interaction: &ComponentInteraction,
+    components: Vec<CreateContainerComponent<'_>>,
+    colour: Colour,
+) -> Result<()> {
+    interaction
+        .create_response(
+            &ctx.http,
+            CreateInteractionResponse::UpdateMessage(
+                CreateInteractionResponseMessage::new()
+                    .flags(MessageFlags::IS_COMPONENTS_V2)
+                    .components(vec![CreateComponent::Container(
+                        CreateContainer::new(components).accent_colour(colour),
+                    )]),
+            ),
+        )
+        .await?;
+
+    Ok(())
+}
+
+fn board(interaction: &ComponentInteraction) -> &[ContainerComponent] {
     let Some(Component::Container(container)) =
         interaction.message.as_ref().components.first()
     else {
-        return None;
+        return &[];
     };
 
-    let Some(ContainerComponent::TextDisplay(text)) = container.components.first()
-    else {
-        return None;
-    };
+    &container.components
+}
 
-    Some(text.content.as_str())
+async fn continue_round(
+    ctx: &Context,
+    interaction: &ComponentInteraction,
+    emojis: &EmojiCache,
+    game: &GameDetails,
+) -> Result<()> {
+    let first_action = game.player_hand().len() == 2;
+
+    let action_row =
+        CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
+            hit_button(),
+            stand_button(),
+            split_button().disabled(!game.can_split(emojis)?),
+            double_button().disabled(!first_action),
+            surrender_button().disabled(!first_action || game.is_split()),
+        ]));
+
+    let mut components = in_play_board(emojis, game)?;
+    components.push(action_row);
+
+    let container = CreateComponent::Container(
+        CreateContainer::new(components).accent_colour(Colour::TEAL),
+    );
+
+    interaction
+        .create_response(
+            &ctx.http,
+            CreateInteractionResponse::UpdateMessage(
+                CreateInteractionResponseMessage::new()
+                    .flags(MessageFlags::IS_COMPONENTS_V2)
+                    .components(vec![container]),
+            ),
+        )
+        .await?;
+
+    Ok(())
 }
 
 async fn game_end(
@@ -300,7 +335,11 @@ async fn game_end(
     emojis: &EmojiCache,
     mut game: GameDetails,
 ) -> Result<()> {
-    let player_value = game.player_value(emojis)?;
+    let hand_values = (0..game.hands().len())
+        .map(|index| game.hand_value(emojis, index))
+        .collect::<Result<Vec<_>>>()?;
+
+    let all_bust = hand_values.iter().all(|&value| value > 21);
 
     let mut row = GameRow::get(pool, interaction.user.id)
         .await?
@@ -310,48 +349,31 @@ async fn game_end(
 
     let dispatch = Dispatch::new(&ctx.http, pool, emojis);
 
-    if player_value > 21 {
-        let desc =
-            bust(interaction, pool, emojis, game, player_value, row, dispatch)
-                .await?;
-
-        interaction
-            .create_response(
-                &ctx.http,
-                CreateInteractionResponse::UpdateMessage(
-                    CreateInteractionResponseMessage::new().components(vec![
-                        CreateComponent::Container(
-                            CreateContainer::new(vec![
-                                CreateContainerComponent::TextDisplay(
-                                    CreateTextDisplay::new(format!(
-                                        "### Blackjack - You Lost!\n{desc}"
-                                    )),
-                                ),
-                            ])
-                            .accent_colour(Colour::RED),
-                        ),
-                    ]),
-                ),
-            )
-            .await?;
-
-        return Ok(());
-    }
-
     let mut dealer_hand = vec![game.dealer_card()];
-    let mut dealer_value = sum_cards(emojis, &dealer_hand)?;
-
-    while dealer_value < 17 {
+    if all_bust {
         dealer_hand.push(game.next_card()?);
-        dealer_value = sum_cards(emojis, &dealer_hand)?;
+    } else {
+        while sum_cards(emojis, &dealer_hand)? < 17 {
+            dealer_hand.push(game.next_card()?);
+        }
     }
 
-    let (win, mut payout) = if dealer_value > 21 || player_value > dealer_value {
-        (Some(true), game.bet() * 2)
-    } else if player_value == dealer_value {
-        (None, game.bet())
-    } else {
-        (Some(false), 0)
+    let dealer_value = sum_cards(emojis, &dealer_hand)?;
+
+    let bet = game.bet();
+    let total_bet = game.total_bet();
+
+    let outcomes = hand_values
+        .iter()
+        .map(|&value| HandOutcome::settle(value, dealer_value))
+        .collect::<Vec<_>>();
+
+    let mut payout = outcomes.iter().map(|outcome| outcome.payout(bet)).sum::<i64>();
+
+    let win = match payout.cmp(&total_bet) {
+        Ordering::Greater => Some(true),
+        Ordering::Equal => None,
+        Ordering::Less => Some(false),
     };
 
     dispatch
@@ -361,7 +383,7 @@ async fn game_end(
             Event::Game(GameEvent::new(
                 "blackjack",
                 interaction.user.id,
-                game.bet(),
+                total_bet,
                 payout,
                 win == Some(true),
             )),
@@ -372,7 +394,7 @@ async fn game_end(
         pool,
         interaction.user.id,
         "blackjack",
-        game.bet(),
+        total_bet,
         payout,
         win,
     )
@@ -388,126 +410,60 @@ async fn game_end(
         .ok_or(GamblingError::TransactionConflict)?
         .coins;
 
-    let card_to_num = card_values(emojis)?;
     let coin = emojis
         .emoji("heads")
         .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
 
-    let player_hand_str = game.player_hand_str(emojis)?;
-    let mut dealer_hand_str = String::new();
-    for id in &dealer_hand {
-        let num = card_to_num.get(id).ok_or_else(|| {
-            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
-        })?;
-        let _ = write!(dealer_hand_str, "<:{num}:{id}> ");
-    }
+    let hands = outcomes
+        .iter()
+        .enumerate()
+        .map(|(index, &outcome)| {
+            Ok(SettledHand {
+                cards: game.hand_str(emojis, index)?,
+                value: hand_values.get(index).copied().unwrap_or_default(),
+                outcome,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
 
-    let desc = format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}",
-        game.bet().format(),
-    );
-
-    let container = if win == Some(true) {
-        CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-            format!("### Blackjack - You Won!\n{desc}\n\nProfit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}", (payout - game.bet()).format(), coins.format(), effects_summary(emojis, &payout_result.effects)),
-        ))])
-        .accent_colour(Colour::DARK_GREEN)
-    } else if win == Some(false) {
-        CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-            format!("### Blackjack - You Lost!\n{desc}\n\nDealer wins!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}", (payout - game.bet()).format(), coins.format(), effects_summary(emojis, &payout_result.effects)),
-        ))])
-        .accent_colour(Colour::RED)
-    } else {
-        CreateContainer::new(vec![CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-            format!("### Blackjack - Draw!\n{desc}\n\nDraw! Have your money back.\n\nYour coins: {} <:coin:{coin}>", coins.format()),
-        ))])
-        .accent_colour(Colour::DARKER_GREY)
+    let (title, summary, colour) = match win {
+        Some(true) => (
+            "You Won!",
+            format!(
+                "Profit: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
+                (payout - total_bet).format(),
+                coins.format(),
+                effects_summary(emojis, &payout_result.effects)
+            ),
+            Colour::DARK_GREEN,
+        ),
+        Some(false) => (
+            "You Lost!",
+            format!(
+                "Dealer wins!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
+                (payout - total_bet).format(),
+                coins.format(),
+                effects_summary(emojis, &payout_result.effects)
+            ),
+            Colour::RED,
+        ),
+        None => (
+            "Draw!",
+            format!(
+                "Draw! Have your money back.\n\nYour coins: {} <:coin:{coin}>",
+                coins.format()
+            ),
+            Colour::DARKER_GREY,
+        ),
     };
 
-    interaction
-        .create_response(
-            &ctx.http,
-            CreateInteractionResponse::UpdateMessage(
-                CreateInteractionResponseMessage::new()
-                    .flags(MessageFlags::IS_COMPONENTS_V2)
-                    .components(vec![CreateComponent::Container(container)]),
-            ),
-        )
-        .await?;
+    let board = final_board(
+        title,
+        &format!("Your bet: {} <:coin:{coin}>", total_bet.format()),
+        &hands,
+        (&hand_str(emojis, &dealer_hand)?, dealer_value),
+        &summary,
+    );
 
-    Ok(())
-}
-
-async fn bust(
-    interaction: &ComponentInteraction,
-    pool: &PgPool,
-    emojis: &EmojiCache,
-    mut game: GameDetails,
-    player_value: u8,
-    mut row: GameRow,
-    dispatch: Dispatch<'_>,
-) -> Result<String> {
-    let before = row.clone();
-
-    dispatch
-        .fire(
-            interaction.channel_id,
-            &mut row,
-            Event::Game(GameEvent::new(
-                "blackjack",
-                interaction.user.id,
-                game.bet(),
-                0,
-                false,
-            )),
-        )
-        .await?;
-
-    let payout_result = EffectsManager::payout(
-        pool,
-        interaction.user.id,
-        "blackjack",
-        game.bet(),
-        0,
-        Some(false),
-    )
-    .await;
-    let payout = payout_result.payout;
-
-    row.add_coins(payout);
-
-    let delta = GameDelta::between(&before, &row);
-
-    let coins = GameRow::commit(pool, interaction.user.id, &delta)
-        .await?
-        .ok_or(GamblingError::TransactionConflict)?
-        .coins;
-
-    let mut dealer_hand = vec![game.dealer_card()];
-    dealer_hand.push(game.next_card()?);
-
-    let dealer_value = sum_cards(emojis, &dealer_hand)?;
-
-    let card_to_num = card_values(emojis)?;
-    let mut dealer_hand_str = String::new();
-    for id in &dealer_hand {
-        let num = card_to_num.get(id).ok_or_else(|| {
-            GamblingError::Internal("card ID not in CARD_VALUES".to_string())
-        })?;
-        let _ = write!(dealer_hand_str, "<:{num}:{id}> ");
-    }
-
-    let coin = emojis
-        .emoji("heads")
-        .map_err(|n| GamblingError::Internal(format!("emoji '{n}' not in cache")))?;
-
-    let player_hand_str = game.player_hand_str(emojis)?;
-
-    Ok(format!(
-        "Your bet: {} <:coin:{coin}>\n\n**Your Hand**\n{player_hand_str}- {player_value}\n\n**Dealer Hand**\n{dealer_hand_str} - {dealer_value}\n\nBust!\n\nLost: {} <:coin:{coin}>\nYour coins: {} <:coin:{coin}>{}",
-        game.bet().format(),
-        (payout - game.bet()).format(),
-        coins.format(),
-        effects_summary(emojis, &payout_result.effects)
-    ))
+    update(ctx, interaction, board, colour).await
 }

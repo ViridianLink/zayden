@@ -197,29 +197,22 @@ pub struct PrestigeRow {
     pub production: i64,
 }
 
+#[must_use]
+pub fn miner_cap_without(rungs_above: u32) -> i64 {
+    let per_rung = <PrestigeRow as MaxValues>::miners_per_mine();
+
+    (0..rungs_above).fold(per_rung, |cap, _| per_rung * (cap + 1))
+}
+
 impl PrestigeRow {
     #[must_use]
     pub fn req_miners(&self) -> i64 {
-        let prestige = self.prestige();
-
-        let mut required_miners = Self::plants_per_solar_system()
-            * Self::continents_per_plant()
-            * Self::countries_per_continent()
-            * Self::land_per_country()
-            * Self::mines_per_land()
-            * Self::miners_per_mine();
-
-        if prestige >= 5 {
-            required_miners *= Self::solar_system_per_galaxies();
+        match self.prestige() {
+            ..=4 => 1_000_000,
+            5..=9 => 2_000_000,
+            10..=14 => 20_000_000,
+            _ => 200_000_000,
         }
-        if prestige >= 10 {
-            required_miners *= Self::galaxies_per_universe();
-        }
-        if prestige >= 15 {
-            required_miners *= self.universes;
-        }
-
-        required_miners
     }
 
     #[must_use]

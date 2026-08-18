@@ -33,10 +33,23 @@ use crate::{
     card_to_num,
 };
 
+pub const REWARD_NUMERATOR: i64 = 28;
+pub const REWARD_DENOMINATOR: i64 = 100;
+
 pub struct HigherLower {
     seq: Vec<String>,
     deck: Vec<EmojiId>,
     payout: i64,
+    bet: i64,
+    score: i64,
+}
+
+impl HigherLower {
+    const fn win_guess(&mut self) {
+        self.payout +=
+            self.bet.saturating_mul(REWARD_NUMERATOR) / REWARD_DENOMINATOR;
+        self.score += 1;
+    }
 }
 
 impl HigherLower {
@@ -110,7 +123,7 @@ impl HigherLower {
         let winner = next.1 >= prev;
 
         if winner {
-            details.payout += 1000;
+            details.win_guess();
         }
 
         details.seq.push('☝'.into());
@@ -127,7 +140,13 @@ impl HigherLower {
             return Ok(());
         }
 
-        let embed = create_embed(&details.seq.join(" "), details.payout, winner);
+        let embed = create_embed(
+            &details.seq.join(" "),
+            details.payout,
+            details.bet,
+            details.score,
+            winner,
+        );
 
         let msg = if winner {
             CreateInteractionResponseMessage::new().embed(embed)
@@ -156,7 +175,7 @@ impl HigherLower {
         let winner = next.1 <= prev;
 
         if winner {
-            details.payout += 1000;
+            details.win_guess();
         }
 
         details.seq.push('👇'.into());
@@ -173,7 +192,13 @@ impl HigherLower {
             return Ok(());
         }
 
-        let embed = create_embed(&details.seq.join(" "), details.payout, winner);
+        let embed = create_embed(
+            &details.seq.join(" "),
+            details.payout,
+            details.bet,
+            details.score,
+            winner,
+        );
 
         let msg = if winner {
             CreateInteractionResponseMessage::new().embed(embed)
@@ -252,7 +277,8 @@ impl HigherLower {
 
         row.add_coins(self.payout);
 
-        let colour = if self.payout > 0 { Colour::DARK_GREEN } else { Colour::RED };
+        let colour =
+            if self.payout > self.bet { Colour::DARK_GREEN } else { Colour::RED };
 
         Dispatch::new(http, pool, emojis)
             .fire(
@@ -261,9 +287,9 @@ impl HigherLower {
                 Event::Game(GameEvent::new(
                     "higherorlower",
                     interaction.user.id,
-                    0,
+                    self.bet,
                     self.payout,
-                    self.payout != 0,
+                    self.payout > self.bet,
                 )),
             )
             .await?;
@@ -281,7 +307,7 @@ impl HigherLower {
         StatsManager::higherlower(
             &mut tx,
             interaction.user.id,
-            i32::try_from(self.payout / 1000).unwrap_or(i32::MAX),
+            i32::try_from(self.score).unwrap_or(i32::MAX),
         )
         .await?;
 
@@ -294,7 +320,7 @@ impl HigherLower {
             .description(format!(
                 "{}\n\nYou guessed wrong! Final score: `{}`\n\n{result}\nYour coins: {coins}",
                 self.seq.join(" "),
-                self.payout / 1000
+                self.score
             ))
             .colour(colour);
 
@@ -338,6 +364,11 @@ impl TryFrom<&ComponentInteraction> for HigherLower {
                 "higher-lower message missing payout line".to_string(),
             )
         })?;
+        let stake_line = lines.nth(1).ok_or_else(|| {
+            GamblingError::Internal(
+                "higher-lower message missing stake line".to_string(),
+            )
+        })?;
 
         let seq = seq_line
             .get(2..)
@@ -357,6 +388,28 @@ impl TryFrom<&ComponentInteraction> for HigherLower {
                 GamblingError::Internal("payout parse failed".to_string())
             })?;
 
+        let parse_field = |field: &str, prefix: &str| -> Result<i64> {
+            field
+                .trim()
+                .strip_prefix(prefix)
+                .ok_or_else(|| {
+                    GamblingError::Internal(format!("missing '{prefix}' prefix"))
+                })?
+                .replace(',', "")
+                .parse()
+                .map_err(|_e| {
+                    GamblingError::Internal(format!("{prefix} parse failed"))
+                })
+        };
+
+        let (bet_field, score_field) =
+            stake_line.split_once('|').ok_or_else(|| {
+                GamblingError::Internal("stake line missing separator".to_string())
+            })?;
+
+        let bet = parse_field(bet_field, "Bet: ")?;
+        let score = parse_field(score_field, "Streak: ")?;
+
         let used_cards = seq
             .iter()
             .filter_map(|s| parse_emoji(s))
@@ -374,6 +427,6 @@ impl TryFrom<&ComponentInteraction> for HigherLower {
             .collect::<Vec<_>>();
         deck.shuffle(&mut rng());
 
-        Ok(Self { seq, deck, payout })
+        Ok(Self { seq, deck, payout, bet, score })
     }
 }

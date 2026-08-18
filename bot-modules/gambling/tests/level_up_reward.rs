@@ -91,9 +91,18 @@ fn max_bet_has_a_floor_and_scales_with_level() {
     assert_eq!(Player { level: 10, prestige: 0 }.max_bet(), 100_000);
 }
 
+/// The prestige term compounds at 1.5x per level rather than adding 10%, so ten
+/// prestiges are worth ~55x on the ceiling instead of 2x. That growth is what
+/// pays for the upper mine rungs; see `tests/prestige_progression.rs` for the
+/// curve itself.
 #[test]
 fn prestige_multiplies_the_bet_ceiling() {
-    assert_eq!(Player { level: 10, prestige: 10 }.max_bet(), 200_000);
+    let base = Player { level: 10, prestige: 0 }.max_bet();
+    let prestiged = Player { level: 10, prestige: 10 }.max_bet();
+
+    assert_eq!(base, 100_000);
+    assert_eq!(prestiged, 5_490_000);
+    assert!(prestiged > base * 50, "ten prestiges should compound, not add");
 }
 
 /// `level * 10_000` was an `i32 * i32` product, wrapping (or panicking in debug)

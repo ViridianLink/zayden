@@ -4,23 +4,63 @@ use std::str::FromStr;
 use crate::GamblingError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HandState {
+    Active,
+    Waiting,
+    Done,
+}
+
+impl HandState {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Waiting => "waiting",
+            Self::Done => "done",
+        }
+    }
+}
+
+impl FromStr for HandState {
+    type Err = GamblingError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "active" => Ok(Self::Active),
+            "waiting" => Ok(Self::Waiting),
+            "done" => Ok(Self::Done),
+            state => Err(GamblingError::internal(format!(
+                "unrecognized blackjack hand state: {state}"
+            ))),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BlackjackCustomId {
     Hit,
     Stand,
     Double,
     Split,
     Surrender,
+    Hand { index: u8, state: HandState },
+    Dealer { state: HandState },
 }
 
-impl BlackjackCustomId {
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
+impl fmt::Display for BlackjackCustomId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Hit => "blackjack_hit",
-            Self::Stand => "blackjack_stand",
-            Self::Double => "blackjack_double",
-            Self::Split => "blackjack_split",
-            Self::Surrender => "blackjack_surrender",
+            Self::Hit => f.write_str("blackjack_hit"),
+            Self::Stand => f.write_str("blackjack_stand"),
+            Self::Double => f.write_str("blackjack_double"),
+            Self::Split => f.write_str("blackjack_split"),
+            Self::Surrender => f.write_str("blackjack_surrender"),
+            Self::Hand { index, state } => {
+                write!(f, "blackjack_hand_{index}_{}", state.as_str())
+            },
+            Self::Dealer { state } => {
+                write!(f, "blackjack_dealer_{}", state.as_str())
+            },
         }
     }
 }
@@ -30,15 +70,34 @@ impl FromStr for BlackjackCustomId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "blackjack_hit" => Ok(Self::Hit),
-            "blackjack_stand" => Ok(Self::Stand),
-            "blackjack_double" => Ok(Self::Double),
-            "blackjack_split" => Ok(Self::Split),
-            "blackjack_surrender" => Ok(Self::Surrender),
-            id => Err(GamblingError::internal(format!(
-                "unrecognized blackjack component id: {id}"
-            ))),
+            "blackjack_hit" => return Ok(Self::Hit),
+            "blackjack_stand" => return Ok(Self::Stand),
+            "blackjack_double" => return Ok(Self::Double),
+            "blackjack_split" => return Ok(Self::Split),
+            "blackjack_surrender" => return Ok(Self::Surrender),
+            _ => {},
         }
+
+        let unrecognized = || {
+            GamblingError::internal(format!(
+                "unrecognized blackjack component id: {s}"
+            ))
+        };
+
+        if let Some(state) = s.strip_prefix("blackjack_dealer_") {
+            return Ok(Self::Dealer { state: state.parse()? });
+        }
+
+        let (index, state) = s
+            .strip_prefix("blackjack_hand_")
+            .ok_or_else(unrecognized)?
+            .rsplit_once('_')
+            .ok_or_else(unrecognized)?;
+
+        Ok(Self::Hand {
+            index: index.parse().map_err(|_e| unrecognized())?,
+            state: state.parse()?,
+        })
     }
 }
 

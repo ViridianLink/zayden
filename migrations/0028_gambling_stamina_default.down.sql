@@ -1,0 +1,3 @@
+ALTER TABLE gambling
+    ALTER COLUMN stamina SET DEFAULT 1;
+

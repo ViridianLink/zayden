@@ -38,7 +38,7 @@ pub struct HigherLower;
 
 impl HigherLower {
     pub fn cron_job() -> Result<CronJob, jiff_cron::error::Error> {
-        Ok(CronJob::new("lotto", "0 0 17 * * Fri *")?.set_action(|ctx, pool| async move {
+        Ok(CronJob::new("higher_lower", "0 0 17 * * Fri *")?.set_action(|ctx, pool| async move {
             if let Err(e) = (async {
                 let mut tx: Transaction<'_, Postgres> = pool.begin().await?;
 
@@ -82,13 +82,23 @@ impl HigherLower {
     }
 }
 
-pub fn create_embed<'a>(seq: &str, payout: i64, winner: bool) -> CreateEmbed<'a> {
-    let payout = payout.format();
+pub fn create_embed<'a>(
+    seq: &str,
+    payout: i64,
+    bet: i64,
+    score: i64,
+    winner: bool,
+) -> CreateEmbed<'a> {
+    let payout_str = payout.format();
 
     let desc = if winner {
-        format!("# {seq}\n\nCurrent Payout: {payout}\n\nGuess the next number!")
+        format!(
+            "# {seq}\n\nCurrent Payout: {payout_str}\n\nBet: {} | Streak: {}\n\nGuess the next number!",
+            bet.format(),
+            score.format()
+        )
     } else {
-        format!("{seq}\n\nFinal Payout: {payout}")
+        format!("{seq}\n\nFinal Payout: {payout_str}")
     };
 
     CreateEmbed::new()

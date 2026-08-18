@@ -8,6 +8,7 @@ pub mod tictactoe;
 pub use blackjack::Blackjack;
 pub use custom_id::{
     BlackjackCustomId,
+    HandState,
     HigherLowerCustomId,
     PrestigeCustomId,
     TicTacToeCustomId,

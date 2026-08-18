@@ -220,15 +220,23 @@ pub trait Mining {
     }
 }
 
+pub const MAX_SCALING_PRESTIGE: i64 = 30;
+
+fn geometric_mult(scale: i64, num: i64, den: i64, prestige: i64) -> i64 {
+    let steps = prestige.clamp(0, MAX_SCALING_PRESTIGE);
+
+    (0..steps).fold(scale, |value, _| value.saturating_mul(num) / den)
+}
+
 pub trait Prestige {
     fn prestige(&self) -> i64;
 
     fn prestige_mult_100(&self) -> i64 {
-        100 + self.prestige()
+        geometric_mult(100, 5, 4, self.prestige())
     }
 
     fn prestige_mult_10(&self) -> i64 {
-        10 + self.prestige()
+        geometric_mult(10, 3, 2, self.prestige())
     }
 }
 
@@ -345,7 +353,7 @@ pub trait MineHourly: Prestige {
             return 0;
         }
 
-        (miners * self.prestige_mult_100()) / 100
+        miners.saturating_mul(self.prestige_mult_100()) / 100
     }
 }
 
@@ -355,7 +363,7 @@ pub trait MaxBet: Prestige {
     fn max_bet(&self) -> i64 {
         let base_amount = (i64::from(self.level()) * 10_000).max(10_000);
 
-        (base_amount * self.prestige_mult_10()) / 10
+        base_amount.saturating_mul(self.prestige_mult_10()) / 10
     }
 
     fn max_bet_str(&self) -> String {
