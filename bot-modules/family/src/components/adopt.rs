@@ -2,6 +2,7 @@ use serenity::all::{ComponentInteraction, UserId};
 use sqlx::PgPool;
 use zayden_core::message_metadata;
 
+use crate::components::{AcceptAuth, accept_auth};
 use crate::relationships::Relationships;
 use crate::{FamilyError, FamilyRow, Result};
 
@@ -13,10 +14,14 @@ pub async fn accept(
 
     let child_user = &interaction.user;
 
-    if !interaction.message.mentions.contains(child_user)
-        && child_user != parent_user
-    {
-        return Err(FamilyError::UnauthorisedUser);
+    match accept_auth(
+        parent_user.id,
+        child_user.id,
+        interaction.message.mentions.contains(child_user),
+    ) {
+        AcceptAuth::Allowed => {},
+        AcceptAuth::SelfAccept => return Err(FamilyError::UserSelfAdopt),
+        AcceptAuth::Unauthorised => return Err(FamilyError::UnauthorisedUser),
     }
 
     let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
