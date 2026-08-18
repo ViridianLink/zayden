@@ -1,4 +1,4 @@
-use ai::chat::{Message as ChatMessage, Role};
+use ai::chat::{Message as ChatMessage, Role, strip_speaker_prefix};
 use ai::openai::AiClient;
 use serenity::all::{Context, Message};
 use tracing::debug;
@@ -77,6 +77,25 @@ impl Ai {
         }
     }
 
+    fn speakers(message: &Message) -> Vec<&str> {
+        let mut names = Vec::new();
+        let mut next = Some(message);
+
+        while let Some(message) = next {
+            if !message.author.bot() {
+                let name = message.author.display_name();
+
+                if !names.contains(&name) {
+                    names.push(name);
+                }
+            }
+
+            next = message.referenced_message.as_deref();
+        }
+
+        names
+    }
+
     fn parse_mentions(message: &Message) -> String {
         let mut parsed_content = message.content.to_string();
 
@@ -121,7 +140,9 @@ impl Ai {
             AiClient::new(api_key, endpoint, params.model).map_err(BotError::Ai)?;
         let text = client.chat(messages, params.max_tokens).await?;
 
-        message.reply(&ctx.http, &text).await?;
+        let speakers = Self::speakers(message);
+
+        message.reply(&ctx.http, strip_speaker_prefix(&text, &speakers)).await?;
         Ok(())
     }
 

@@ -35,3 +35,35 @@ impl From<Message> for ChatCompletionRequestMessage {
         }
     }
 }
+
+#[must_use]
+pub fn strip_speaker_prefix<'a>(reply: &'a str, speakers: &[&str]) -> &'a str {
+    let mut stripped = reply.trim();
+
+    while let Some(rest) =
+        speakers.iter().find_map(|speaker| strip_one(stripped, speaker))
+    {
+        if rest.is_empty() {
+            break;
+        }
+
+        stripped = rest;
+    }
+
+    stripped
+}
+
+fn strip_one<'a>(reply: &'a str, speaker: &str) -> Option<&'a str> {
+    if speaker.is_empty() {
+        return None;
+    }
+
+    let head = reply.get(..speaker.len())?;
+    if !head.eq_ignore_ascii_case(speaker) {
+        return None;
+    }
+
+    let rest = reply.get(speaker.len()..)?.strip_prefix(':')?;
+
+    Some(rest.trim_start())
+}
