@@ -8,9 +8,18 @@ rust-version.workspace = true
 workspace = true
 
 [dependencies]
+zayden-app = { workspace = true }
 zayden-core = { workspace = true }
+zayden-graphics = { workspace = true }
 
-sqlx = { workspace = true }
 futures = { workspace = true }
-charming = { workspace = true }
+moka = { workspace = true, features = ["future"] }
+reqwest = { workspace = true }
 serenity = { workspace = true }
+sqlx = { workspace = true, features = ["migrate"] }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+zayden-graphics = { workspace = true }
