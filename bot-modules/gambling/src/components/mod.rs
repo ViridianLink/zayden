@@ -14,4 +14,5 @@ pub use custom_id::{
     TicTacToeCustomId,
 };
 pub use higherlower::HigherLower;
+pub use shop::Shop;
 pub use tictactoe::TicTacToe;

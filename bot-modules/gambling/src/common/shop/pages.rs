@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ShopPage {
     Item,
     Boost1,
@@ -14,6 +14,22 @@ impl ShopPage {
     #[must_use]
     pub const fn pages() -> [Self; 5] {
         [Self::Item, Self::Boost1, Self::Boost2, Self::Mine1, Self::Mine2]
+    }
+
+    #[must_use]
+    pub fn step(self, page_change: i8) -> Self {
+        let pages = Self::pages();
+
+        let last = pages.len().saturating_sub(1);
+
+        let idx = pages
+            .iter()
+            .position(|page| *page == self)
+            .unwrap_or(0)
+            .saturating_add_signed(isize::from(page_change))
+            .min(last);
+
+        pages.get(idx).copied().unwrap_or(Self::Item)
     }
 }
 

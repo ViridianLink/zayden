@@ -67,6 +67,7 @@ pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
         .add_command(RockPaperScissors)
         .add_command(Send)
         .add_command(Shop)
+        .add_component(Shop)?
         .add_command(TicTacToe)
         .add_component(TicTacToe)?
         .add_command(Work);

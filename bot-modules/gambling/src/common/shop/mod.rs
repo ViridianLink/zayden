@@ -556,8 +556,6 @@ pub fn shop_response<'a>(
     title: Option<&str>,
     page_change: i8,
 ) -> Result<(CreateEmbed<'a>, CreateComponent<'a>)> {
-    let page_change = usize::try_from(page_change).unwrap_or_default();
-
     let current_cat = match title {
         None => ShopPage::Item,
         Some(title) => title
@@ -571,13 +569,7 @@ pub fn shop_response<'a>(
             .unwrap_or(ShopPage::Item),
     };
 
-    let category_idx =
-        ShopPage::pages().iter().position(|cat| *cat == current_cat).unwrap_or(0);
-
-    let category = ShopPage::pages()
-        .get(category_idx + page_change)
-        .copied()
-        .unwrap_or(ShopPage::Item);
+    let category = current_cat.step(page_change);
 
     let embed = create_embed(emojis, category, row, inventory)?;
 
