@@ -83,6 +83,7 @@ fn every_prompt_carries_its_own_character_and_the_shared_rules() {
         );
         assert!(prompt.contains("YOUR FAMILY"));
         assert!(prompt.contains("YOUR SIBLINGS"));
+        assert!(prompt.contains("WHERE YOU ARE"));
         assert!(prompt.contains("STAY IN CHARACTER"));
     }
 }
@@ -98,5 +99,35 @@ fn sibling_notes_are_written_from_each_point_of_view() {
         for (j, other) in prompts.iter().enumerate() {
             assert!(i == j || prompt != other);
         }
+    }
+}
+
+/// Self-awareness is not optional flavour: whoever is speaking has to recognise
+/// the server's own features when someone brings one up, rather than treating a
+/// complaint about a lost bet as a story about somewhere else.
+#[test]
+fn every_prompt_knows_what_the_server_does() {
+    for persona in Persona::ALL {
+        let prompt = persona.system_prompt(100);
+
+        for command in ["/blackjack", "/daily", "/prestige", "/rank", "/marry"] {
+            assert!(
+                prompt.contains(command),
+                "{persona} was not told about {command}"
+            );
+        }
+    }
+}
+
+/// Knowing the features must not turn anyone into a help page, and must not let
+/// them claim access to state the chat handler never reads.
+#[test]
+fn knowing_the_features_comes_with_its_limits() {
+    for persona in Persona::ALL {
+        let prompt = persona.system_prompt(100);
+
+        assert!(prompt.contains("never a list"));
+        assert!(prompt.contains("You cannot run any of it for anyone"));
+        assert!(prompt.contains("Never invent a command"));
     }
 }
