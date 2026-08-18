@@ -1,6 +1,9 @@
+use std::sync::OnceLock;
+
 use ai::chat::{Message as ChatMessage, Role, strip_speaker_prefix};
 use ai::openai::AiClient;
-use serenity::all::{Context, Message};
+use ai::persona::Persona;
+use serenity::all::{Context, CurrentUser, Message, UserId};
 use tracing::debug;
 use zayden_app::entitlement::Tier;
 use zayden_app::state::AppState;
@@ -8,14 +11,12 @@ use zayden_core::{as_i64, server_tier};
 
 use crate::{BotError, Result};
 
-pub mod persona;
+static IDENTITY: OnceLock<Identity> = OnceLock::new();
 
-fn system_prompt(word_limit: u32) -> String {
-    format!(
-        "[Word Limit: {word_limit} words]\n{}\n\n{}",
-        persona::ZAYDEN,
-        persona::SHARED
-    )
+#[derive(Debug, Clone, Copy)]
+struct Identity {
+    persona: Persona,
+    user_id: UserId,
 }
 
 struct ChatParams<'a> {
@@ -49,40 +50,67 @@ impl<'a> ChatParams<'a> {
 pub struct Ai;
 
 impl Ai {
-    fn process_referenced_messages(msg: &Message) -> Vec<(bool, String)> {
+    pub fn identify(user: &CurrentUser) {
+        let persona = Persona::from_name(&user.name).unwrap_or_default();
+
+        if IDENTITY.set(Identity { persona, user_id: user.id }).is_ok() {
+            debug!(account = %user.name, %persona, "AI persona bound to this bot");
+        }
+    }
+
+    fn identity() -> Option<Identity> {
+        IDENTITY.get().copied()
+    }
+
+    fn is_own(message: &Message, me: Option<UserId>) -> bool {
+        message.author.bot() && me.is_none_or(|id| message.author.id == id)
+    }
+
+    fn process_referenced_messages(
+        msg: &Message,
+        me: Option<UserId>,
+    ) -> Vec<(Role, String)> {
         let mut contents = Vec::new();
 
         if let Some(referenced_message) = &msg.referenced_message {
             contents.push((
-                referenced_message.author.bot(),
-                Self::attributed_content(referenced_message),
+                if Self::is_own(referenced_message, me) {
+                    Role::Assistant
+                } else {
+                    Role::User
+                },
+                Self::attributed_content(referenced_message, me),
             ));
 
             let nested_contents =
-                Self::process_referenced_messages(referenced_message);
+                Self::process_referenced_messages(referenced_message, me);
             contents.extend(nested_contents);
         }
 
         contents
     }
 
-    fn attributed_content(message: &Message) -> String {
+    fn attributed_content(message: &Message, me: Option<UserId>) -> String {
         let parsed = Self::parse_mentions(message);
         let content = parsed.trim();
 
-        if message.author.bot() {
+        if Self::is_own(message, me) {
             content.to_owned()
         } else {
             format!("{}: {content}", message.author.display_name())
         }
     }
 
-    fn speakers(message: &Message) -> Vec<&str> {
-        let mut names = Vec::new();
+    fn speakers(
+        persona: Persona,
+        message: &Message,
+        me: Option<UserId>,
+    ) -> Vec<&str> {
+        let mut names = vec![persona.name()];
         let mut next = Some(message);
 
         while let Some(message) = next {
-            if !message.author.bot() {
+            if !Self::is_own(message, me) {
                 let name = message.author.display_name();
 
                 if !names.contains(&name) {
@@ -121,26 +149,31 @@ impl Ai {
         endpoint: &str,
         params: &ChatParams<'_>,
     ) -> Result<()> {
-        let mut messages =
-            vec![ChatMessage::new(Role::System, system_prompt(params.word_limit))];
+        let identity = Self::identity();
+        let persona = identity.map_or_else(Persona::default, |id| id.persona);
+        let me = identity.map(|id| id.user_id);
 
-        let mut history = Self::process_referenced_messages(message);
+        let mut messages = vec![ChatMessage::new(
+            Role::System,
+            persona.system_prompt(params.word_limit),
+        )];
+
+        let mut history = Self::process_referenced_messages(message, me);
         history.reverse();
 
-        for (bot, content) in history {
-            messages.push(ChatMessage::new(
-                if bot { Role::Assistant } else { Role::User },
-                content,
-            ));
+        for (role, content) in history {
+            messages.push(ChatMessage::new(role, content));
         }
-        messages
-            .push(ChatMessage::new(Role::User, Self::attributed_content(message)));
+        messages.push(ChatMessage::new(
+            Role::User,
+            Self::attributed_content(message, me),
+        ));
 
         let client =
             AiClient::new(api_key, endpoint, params.model).map_err(BotError::Ai)?;
         let text = client.chat(messages, params.max_tokens).await?;
 
-        let speakers = Self::speakers(message);
+        let speakers = Self::speakers(persona, message, me);
 
         message.reply(&ctx.http, strip_speaker_prefix(&text, &speakers)).await?;
         Ok(())

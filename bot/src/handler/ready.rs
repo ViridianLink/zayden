@@ -4,6 +4,7 @@ use std::sync::Arc;
 use serenity::all::{Context, OnlineStatus, Ready};
 use tracing::info;
 
+use crate::bindings::ai::Ai;
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
 use crate::{BotState, Result};
@@ -16,6 +17,8 @@ impl Handler {
             ready.shard.map_or(NonZeroU16::MIN, |info| info.total),
             ready.guilds.len()
         );
+
+        Ai::identify(&ready.user);
 
         ctx.set_presence(None, OnlineStatus::Online);
 
