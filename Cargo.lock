@@ -82,7 +82,10 @@ version = "1.0.0"
 dependencies = [
  "async-openai",
  "reqwest 0.13.4",
+ "serde",
+ "serde_json",
  "tokio",
+ "tracing",
  "zayden-app",
  "zayden-core",
 ]

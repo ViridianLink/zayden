@@ -1,3 +1,5 @@
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use ai::chat::{Message, Role};
@@ -65,6 +67,44 @@ async fn spawn_mock_server(
     });
 
     Some(format!("http://{addr}"))
+}
+
+/// Answers each request with the next response in `responses`, repeating the
+/// last one once the list runs out. Returns the base URL and the counter of
+/// requests actually served.
+async fn spawn_sequenced_mock_server(
+    responses: Vec<(&'static str, &'static str)>,
+) -> Option<(String, Arc<AtomicUsize>)> {
+    let listener = TcpListener::bind("127.0.0.1:0").await.ok()?;
+    let addr = listener.local_addr().ok()?;
+    let served = Arc::new(AtomicUsize::new(0));
+    let counter = Arc::clone(&served);
+
+    tokio::spawn(async move {
+        loop {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                break;
+            };
+
+            drain_request(&mut socket).await;
+
+            let index = counter.fetch_add(1, Ordering::SeqCst);
+            let Some((status_line, body)) =
+                responses.get(index).or_else(|| responses.last())
+            else {
+                break;
+            };
+
+            let response = format!(
+                "{status_line}\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = socket.write_all(response.as_bytes()).await;
+            let _ = socket.shutdown().await;
+        }
+    });
+
+    Some((format!("http://{addr}"), served))
 }
 
 /// Accepts the connection, reads the request, then never answers and never
@@ -149,10 +189,11 @@ async fn chat_surfaces_rate_limit_errors_instead_of_panicking() {
 /// Regression test for the missing outbound timeout (audit `ai` #1).
 ///
 /// Runs on virtual time, so the client's real budget costs the suite nothing:
-/// the client's own timer has to fire before the 60s backstop below. Without a
+/// the client's own timer has to fire before the backstop below. Without a
 /// timeout on the client there is no timer at all, the backstop wins, and this
 /// fails — which is exactly the production symptom, a chat future that never
-/// resolves and wedges the command task holding it.
+/// resolves and wedges the command task holding it. The backstop allows for
+/// every attempt the retry policy makes, each with its own timeout.
 #[tokio::test(start_paused = true)]
 async fn chat_gives_up_on_a_hung_upstream_instead_of_waiting_forever() {
     let base_url = spawn_black_hole_server().await.expect("start mock server");
@@ -161,7 +202,7 @@ async fn chat_gives_up_on_a_hung_upstream_instead_of_waiting_forever() {
         AiClient::new("test-key", &base_url, "test-model").expect("build client");
 
     let result = tokio::time::timeout(
-        Duration::from_secs(60),
+        Duration::from_secs(180),
         client.chat(vec![Message::new(Role::User, "hi")], 16),
     )
     .await
@@ -176,4 +217,91 @@ async fn chat_gives_up_on_a_hung_upstream_instead_of_waiting_forever() {
         matches!(&err, AiError::OpenAI(OpenAIError::Reqwest(e)) if e.is_timeout()),
         "expected a reqwest timeout, got {err:?}"
     );
+}
+
+/// The body `OpenRouter` actually returns when the upstream model gives up: a
+/// `200 OK`, a long stretch of keep-alive padding, then an error object. The
+/// padding means the request never trips our own timeout, and the `200` means
+/// the client library never reaches its error path — so before this was
+/// handled it surfaced as `JSONDeserialize("missing field `id`")`.
+const ABORTED_UPSTREAM_BODY: &str = "\n         \n\n         \n\n         \n\n         \n{\"error\":{\"message\":\"The operation was aborted\",\"code\":504}}";
+
+const COMPLETION_BODY: &str = r#"{
+    "id": "chatcmpl-test123",
+    "object": "chat.completion",
+    "created": 1700000000,
+    "model": "test-model",
+    "choices": [
+        {
+            "index": 0,
+            "message": { "role": "assistant", "content": "Hello there!" },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": null
+}"#;
+
+#[tokio::test]
+async fn a_padded_gateway_error_reads_as_a_provider_error() {
+    // Every attempt fails, so the caller sees the classified error rather than
+    // an opaque deserialization failure.
+    let (base_url, _served) = spawn_sequenced_mock_server(vec![(
+        "HTTP/1.1 200 OK",
+        ABORTED_UPSTREAM_BODY,
+    )])
+    .await
+    .expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let err = client
+        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .await
+        .expect_err("a gateway error body must surface as an error");
+
+    assert!(
+        matches!(&err, AiError::Provider { code: Some(504), message } if message == "The operation was aborted"),
+        "expected AiError::Provider(504), got {err:?}"
+    );
+}
+
+#[tokio::test]
+async fn an_aborted_upstream_is_retried() {
+    let (base_url, served) = spawn_sequenced_mock_server(vec![
+        ("HTTP/1.1 200 OK", ABORTED_UPSTREAM_BODY),
+        ("HTTP/1.1 200 OK", COMPLETION_BODY),
+    ])
+    .await
+    .expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let content = client
+        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .await
+        .expect("the second attempt should succeed");
+
+    assert_eq!(content, "Hello there!");
+    assert_eq!(served.load(Ordering::SeqCst), 2, "expected exactly one retry");
+}
+
+#[tokio::test]
+async fn a_rejected_request_is_not_retried() {
+    // A 400 is the model refusing the request as written; asking again only
+    // burns the user's time and the provider's quota.
+    let body = r#"{"error":{"message":"Invalid model","code":400}}"#;
+    let (base_url, served) =
+        spawn_sequenced_mock_server(vec![("HTTP/1.1 400 Bad Request", body)])
+            .await
+            .expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let err = client
+        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .await
+        .expect_err("a 400 response must surface as an error");
+
+    assert!(!err.is_transient(), "a 400 must not be treated as transient");
+    assert_eq!(served.load(Ordering::SeqCst), 1, "a 400 must not be retried");
 }

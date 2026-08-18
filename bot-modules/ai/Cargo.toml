@@ -13,6 +13,10 @@ zayden-core = { workspace = true }
 
 async-openai = { workspace = true, features = ["chat-completion"] }
 reqwest = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+tokio = { workspace = true, features = ["time"] }
+tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = [
