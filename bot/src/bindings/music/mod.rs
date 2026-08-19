@@ -1,8 +1,10 @@
 mod command;
 mod components;
+mod resolver;
 
 pub use command::Music;
 pub use components::{ControlPanel, QueuePager};
+pub use resolver::build_resolver;
 
 use crate::RegistryBuilder;
 use crate::registry::OverlapError;

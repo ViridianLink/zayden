@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::process::Output;
+use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -12,6 +13,7 @@ use tokio::process::Command;
 use tracing::warn;
 use url::Url;
 
+use super::cookies::{CookieJar, cookie_warning};
 use super::http::stream_client;
 use super::{
     LazyTail,
@@ -34,14 +36,33 @@ pub const YT_DLP_STREAM_TIMEOUT: Duration = Duration::from_secs(20);
 pub const STREAM_FORMAT: &str = "ba[abr>0][vcodec=none]/ba/best";
 pub const STREAM_CLIENTS: &[&str] =
     &["android_vr", "web_embedded", "mweb", "tv_simply"];
+pub const AUTHED_STREAM_CLIENTS: &[&str] =
+    &["web_embedded", "tv_downgraded", "web", "mweb"];
+pub const COOKIE_UNSUPPORTED_CLIENTS: &[&str] =
+    &["android", "android_vr", "ios", "visionos", "tv_simply"];
+
+#[must_use]
+pub const fn stream_clients(authenticated: bool) -> &'static [&'static str] {
+    if authenticated { AUTHED_STREAM_CLIENTS } else { STREAM_CLIENTS }
+}
 
 pub struct YouTubeResolver {
     http: Client,
+    cookies: Option<Arc<CookieJar>>,
 }
 
 impl YouTubeResolver {
     pub fn new() -> Result<Self> {
-        Ok(Self { http: stream_client()? })
+        Ok(Self { http: stream_client()?, cookies: None })
+    }
+
+    #[must_use]
+    pub fn with_cookies(self, jar: Arc<CookieJar>) -> Self {
+        Self { cookies: Some(jar), ..self }
+    }
+
+    fn jar(&self) -> Option<&CookieJar> {
+        self.cookies.as_deref()
     }
 
     async fn resolve_single(
@@ -49,7 +70,7 @@ impl YouTubeResolver {
         url: &str,
         requested_by: UserId,
     ) -> Result<ResolvedTrack> {
-        let output = run_yt_dlp(&["--no-playlist", url]).await?;
+        let output = run_yt_dlp(self.jar(), &["--no-playlist", url]).await?;
         output.into_track(requested_by).ok_or(MusicError::NoResults)
     }
 
@@ -59,7 +80,7 @@ impl YouTubeResolver {
         requested_by: UserId,
     ) -> Result<ResolvedTrack> {
         let target = format!("ytsearch1:{query}");
-        let output = run_yt_dlp(&["--flat-playlist", &target]).await?;
+        let output = run_yt_dlp(self.jar(), &["--flat-playlist", &target]).await?;
         output
             .entries
             .into_iter()
@@ -75,7 +96,7 @@ impl YouTubeResolver {
     ) -> Result<Resolution> {
         let start = playlist_start_index(url);
 
-        let head_output = run_yt_dlp(&[
+        let head_output = run_yt_dlp(self.jar(), &[
             "--flat-playlist",
             "--playlist-items",
             &start.to_string(),
@@ -91,15 +112,20 @@ impl YouTubeResolver {
         let head = vec![first];
 
         let url = url.to_string();
+        let cookies = self.cookies.clone();
         let tail: LazyTail = Box::pin(async move {
             let items = format!(
                 "{}:{}",
                 start.saturating_add(1),
                 start.saturating_add(PLAYLIST_CAP - 1)
             );
-            let output =
-                run_yt_dlp(&["--flat-playlist", "--playlist-items", &items, &url])
-                    .await?;
+            let output = run_yt_dlp(cookies.as_deref(), &[
+                "--flat-playlist",
+                "--playlist-items",
+                &items,
+                &url,
+            ])
+            .await?;
             Ok(output
                 .entries
                 .into_iter()
@@ -116,7 +142,7 @@ impl YouTubeResolver {
 
     async fn prepare_stream(&self, url: &str, client: &str) -> Result<Input> {
         let player_client = format!("youtube:player_client={client}");
-        let output = run_yt_dlp_within(YT_DLP_STREAM_TIMEOUT, &[
+        let output = run_yt_dlp_within(self.jar(), YT_DLP_STREAM_TIMEOUT, &[
             "--format",
             STREAM_FORMAT,
             "--no-playlist",
@@ -206,7 +232,7 @@ impl TrackResolver for YouTubeResolver {
     async fn stream(&self, track: &ResolvedTrack) -> Result<Input> {
         let mut last = None;
 
-        for client in STREAM_CLIENTS {
+        for client in stream_clients(self.cookies.is_some()) {
             match self.prepare_stream(&track.url, client).await {
                 Ok(input) => return Ok(input),
                 Err(e) => {
@@ -261,20 +287,46 @@ pub async fn run_with_timeout(
     }
 }
 
-async fn run_yt_dlp(args: &[&str]) -> Result<YtDlpOutput> {
-    run_yt_dlp_within(YT_DLP_TIMEOUT, args).await
+async fn run_yt_dlp(
+    cookies: Option<&CookieJar>,
+    args: &[&str],
+) -> Result<YtDlpOutput> {
+    run_yt_dlp_within(cookies, YT_DLP_TIMEOUT, args).await
 }
 
-async fn run_yt_dlp_within(budget: Duration, args: &[&str]) -> Result<YtDlpOutput> {
-    let mut full = vec!["--dump-single-json", "--no-warnings"];
+async fn run_yt_dlp_within(
+    cookies: Option<&CookieJar>,
+    budget: Duration,
+    args: &[&str],
+) -> Result<YtDlpOutput> {
+    let lease = match cookies {
+        Some(jar) => Some(jar.lease().await?),
+        None => None,
+    };
+
+    let mut full = vec!["--dump-single-json"];
+    match &lease {
+        Some(lease) => full.extend_from_slice(&["--cookies", lease.arg()]),
+        None => full.push("--no-warnings"),
+    }
     full.extend_from_slice(args);
 
     let output = run_with_timeout(YT_DLP_PROGRAM, &full, budget)
         .await
         .map_err(MusicError::Resolve)?;
 
+    let stderr = String::from_utf8_lossy(&output.stderr);
+
+    if lease.is_some()
+        && let Some(warning) = cookie_warning(&stderr)
+    {
+        warn!(
+            "the configured YouTube cookie file is no longer signing in; \
+             re-export it from a logged-in browser session: {warning}"
+        );
+    }
+
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
         return Err(MusicError::Resolve(format!(
             "`{YT_DLP_PROGRAM}` failed: {}",
             stderr.trim()

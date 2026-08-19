@@ -63,6 +63,8 @@ pub struct BotConfig {
 
     pub flaresolverr_url: Option<String>,
 
+    pub youtube_cookies: Option<PathBuf>,
+
     pub palworld_paldex_url: Option<String>,
 
     pub palworld_palcalc_url: Option<String>,
@@ -154,6 +156,8 @@ impl BotConfig {
 
             flaresolverr_url: env::var("FLARESOLVERR_URL").ok(),
 
+            youtube_cookies: youtube_cookies_path(),
+
             palworld_save_dir: Some(
                 toml_cfg.pelican.save_path.as_deref().map_or_else(
                     || PathBuf::from(DEFAULT_PALWORLD_SAVE_DIR),
@@ -187,6 +191,26 @@ impl BotConfig {
             radio_stations: radio::validate_all(radio::load()?),
         })
     }
+}
+
+fn youtube_cookies_path() -> Option<PathBuf> {
+    let raw = env::var("YOUTUBE_COOKIES_FILE").ok()?;
+    let path = PathBuf::from(raw.trim());
+
+    if path.as_os_str().is_empty() {
+        return None;
+    }
+
+    if path.is_file() {
+        return Some(path);
+    }
+
+    warn!(
+        "YOUTUBE_COOKIES_FILE points at {}, which is not a readable file; \
+         YouTube playback will fall back to anonymous requests",
+        path.display()
+    );
+    None
 }
 
 fn require_env(var: &str) -> Result<String> {

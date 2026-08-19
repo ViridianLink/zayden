@@ -9,12 +9,23 @@ use url::Url;
 use crate::error::Result;
 use crate::track::ResolvedTrack;
 
+pub mod cookies;
 pub mod http;
 pub mod radio;
 pub mod spotify;
 pub mod spotify_embed;
 pub mod youtube;
 
+pub use cookies::{
+    Cookie,
+    CookieJar,
+    CookieLease,
+    JarStatus,
+    cookie_warning,
+    has_netscape_header,
+    jar_status,
+    parse_netscape,
+};
 pub use http::{STREAM_READ_TIMEOUT, stream_client, stream_client_with};
 pub use radio::{RadioResolver, next_retry_count, should_reconnect, station_track};
 pub use spotify::{
@@ -33,6 +44,8 @@ pub use spotify_embed::{
     parse_embed_playlist,
 };
 pub use youtube::{
+    AUTHED_STREAM_CLIENTS,
+    COOKIE_UNSUPPORTED_CLIENTS,
     STREAM_CLIENTS,
     STREAM_FORMAT,
     StreamFormat,
@@ -45,6 +58,7 @@ pub use youtube::{
     probe_stream,
     probe_yt_dlp,
     run_with_timeout,
+    stream_clients,
 };
 
 #[async_trait]

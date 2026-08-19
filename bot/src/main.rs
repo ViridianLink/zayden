@@ -2,19 +2,10 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
-use music::{
-    CompositeResolver,
-    Genre,
-    RadioResolver,
-    SpotifyResolver,
-    TrackResolver,
-    YouTubeResolver,
-    probe_yt_dlp,
-};
 use serenity::all::{ClientBuilder, GatewayIntents, Http, Token};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
-use tracing::{error, info};
+use tracing::info;
 
 pub mod bindings;
 pub mod cron;
@@ -47,56 +38,6 @@ async fn zayden_token(pool: &PgPool) -> sqlx::Result<String> {
         .await
 }
 
-async fn build_music_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolver>> {
-    let youtube = YouTubeResolver::new().map_err(BotError::from)?;
-
-    match probe_yt_dlp().await {
-        Ok(version) => info!("yt-dlp available (version {version})"),
-        Err(e) => error!(
-            "yt-dlp is unavailable ({e}); YouTube playback will NOT work. \
-             Install yt-dlp on this host (and ideally a JS runtime such as \
-             deno) and restart."
-        ),
-    }
-
-    let spotify = match &config.spotify {
-        Some(creds) => {
-            let resolver = SpotifyResolver::new(
-                creds.client_id.clone(),
-                creds.client_secret.clone(),
-            )
-            .await
-            .map_err(BotError::from)?;
-            Some(resolver)
-        },
-        None => {
-            warn!(
-                "Spotify credentials not configured; Spotify links will be unsupported"
-            );
-            None
-        },
-    };
-
-    let stations = Arc::clone(&config.radio_stations);
-    if stations.is_empty() {
-        warn!("no radio stations configured; /music radio will be unavailable");
-    } else {
-        info!("loaded {} radio station(s)", stations.len());
-
-        let unbacked = zayden_app::config::radio::unbacked(&stations);
-        if !unbacked.is_empty() {
-            let names: Vec<&str> = unbacked.into_iter().map(Genre::label).collect();
-            warn!(
-                "no radio stations configured for: {}; those choices will error",
-                names.join(", ")
-            );
-        }
-    }
-    let radio = RadioResolver::new(stations).map_err(BotError::from)?;
-
-    Ok(Arc::new(CompositeResolver::new(youtube, spotify, radio)))
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     if rustls::crypto::aws_lc_rs::default_provider().install_default().is_err() {
@@ -123,7 +64,7 @@ async fn main() -> Result<()> {
 
     EventListener::spawn(pool.clone(), app_state.events.clone());
 
-    let music_resolver = build_music_resolver(&bot_config).await?;
+    let music_resolver = bindings::music::build_resolver(&bot_config).await?;
 
     let bot_state_inner =
         BotState::new(Arc::clone(&app_state), &bot_config, music_resolver)?;

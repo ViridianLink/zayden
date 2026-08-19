@@ -42,7 +42,12 @@ symphonia = { version = "0.5", default-features = false, features = [
     "mp3",
 ] }
 thiserror = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = [
+    "fs",
+    "io-util",
+    "process",
+    "time",
+] }
 tracing = { workspace = true }
 url = { workspace = true }
 

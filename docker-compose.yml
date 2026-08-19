@@ -41,6 +41,7 @@ services:
     volumes:
       - ./bot/config.toml:/app/config.toml:ro
       - palworld_uploads:/app/palworld_uploads
+      # - ./secrets/youtube-cookies.txt:/app/secrets/youtube-cookies.txt:ro
     mem_reservation: 1g
     deploy:
       resources:

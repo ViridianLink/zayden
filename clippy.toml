@@ -3,3 +3,5 @@ allow-expect-in-tests = true
 allow-panic-in-tests = true
 allow-dbg-in-tests = true
 allow-print-in-tests = true
+
+doc-valid-idents = ["YouTube", "HttpOnly", ".."]
