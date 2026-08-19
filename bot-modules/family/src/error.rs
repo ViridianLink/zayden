@@ -57,6 +57,12 @@ pub enum FamilyError {
     NoPartners(UserId),
     // endregion
 
+    // region tree
+    TreeEmpty(UserId),
+    TreeRender(zayden_graphics::GraphicsError),
+    TreeCooldown { retry_at: i64 },
+    // endregion
+
     // region siblings
     SelfNoSiblings,
     NoSiblings(UserId),
@@ -70,8 +76,6 @@ pub enum FamilyError {
     // Cron(cron::error::Error),
     ParseIntError(std::num::ParseIntError),
     ReactionConversionError(serenity::all::ReactionConversionError),
-    // JoinError(tokio::task::JoinError),
-    // CharmingError(charming::EchartsError),
     // endregion
 }
 
@@ -145,6 +149,18 @@ impl Display for FamilyError {
             Self::NoSiblings(user_id) => {
                 write!(f, "{} has no siblings.", user_id.mention())
             },
+            Self::TreeEmpty(user_id) => write!(
+                f,
+                "{} has no family yet. Try `/marry` or `/adopt` to start one.",
+                user_id.mention()
+            ),
+            Self::TreeRender(_) => {
+                write!(f, "I couldn't draw that family tree right now.")
+            },
+            Self::TreeCooldown { retry_at } => write!(
+                f,
+                "You've drawn a tree recently. Try again <t:{retry_at}:R>."
+            ),
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::NoInteraction
             | Self::SerenityTimestamp(_)
@@ -184,7 +200,10 @@ impl Respond for FamilyError {
             | Self::SelfNoPartners
             | Self::NoPartners(_)
             | Self::SelfNoSiblings
-            | Self::NoSiblings(_) => Some(Cow::Owned(self.to_string())),
+            | Self::NoSiblings(_)
+            | Self::TreeEmpty(_)
+            | Self::TreeRender(_)
+            | Self::TreeCooldown { .. } => Some(Cow::Owned(self.to_string())),
             Self::Internal(_)
             | Self::NoInteraction
             | Self::SerenityTimestamp(_)
@@ -204,6 +223,7 @@ impl std::error::Error for FamilyError {
             Self::Sqlx(e) => Some(e),
             Self::ParseIntError(e) => Some(e),
             Self::ReactionConversionError(e) => Some(e),
+            Self::TreeRender(e) => Some(e),
             Self::UserSelfMarry
             | Self::MaxPartners
             | Self::NotPartners(_)
@@ -231,7 +251,9 @@ impl std::error::Error for FamilyError {
             | Self::SelfNoPartners
             | Self::NoPartners(_)
             | Self::SelfNoSiblings
-            | Self::NoSiblings(_) => None,
+            | Self::NoSiblings(_)
+            | Self::TreeEmpty(_)
+            | Self::TreeCooldown { .. } => None,
         }
     }
 }
@@ -263,6 +285,12 @@ impl From<std::num::ParseIntError> for FamilyError {
 impl From<serenity::all::ReactionConversionError> for FamilyError {
     fn from(e: serenity::all::ReactionConversionError) -> Self {
         Self::ReactionConversionError(e)
+    }
+}
+
+impl From<zayden_graphics::GraphicsError> for FamilyError {
+    fn from(e: zayden_graphics::GraphicsError) -> Self {
+        Self::TreeRender(e)
     }
 }
 

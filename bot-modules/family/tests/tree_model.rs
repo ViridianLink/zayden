@@ -19,10 +19,7 @@ macro_rules! graph {
     (people: $people:expr, partners: $partners:expr, parents: $parents:expr, focus: $focus:expr $(,)?) => {{
         let mut people: Vec<RawPerson> = $people
             .iter()
-            .map(|id: &i64| RawPerson {
-                id: *id,
-                username: format!("user{id}"),
-            })
+            .map(|id: &i64| RawPerson { id: *id, username: format!("user{id}") })
             .collect();
         people.sort_by_key(|p| p.id);
 
@@ -136,8 +133,7 @@ fn children_by_different_partners_produce_separate_unions() {
 
     assert_eq!(graph.unions.len(), 2, "two distinct parent sets");
 
-    let sizes: Vec<usize> =
-        graph.unions.iter().map(|u| u.children.len()).collect();
+    let sizes: Vec<usize> = graph.unions.iter().map(|u| u.children.len()).collect();
     assert_eq!(sizes, vec![1, 1]);
 }
 
@@ -167,9 +163,8 @@ fn generations_run_from_parents_down_to_children() {
     );
 
     let placed = layout(&graph);
-    let generation = |id: i64| {
-        placed.generation.get(node!(graph, id)).copied().unwrap_or(-1)
-    };
+    let generation =
+        |id: i64| placed.generation.get(node!(graph, id)).copied().unwrap_or(-1);
 
     assert_eq!(generation(1), 0, "grandparent at the top");
     assert_eq!(generation(2), 1);
@@ -189,9 +184,8 @@ fn partners_always_share_a_generation() {
     );
 
     let placed = layout(&graph);
-    let generation = |id: i64| {
-        placed.generation.get(node!(graph, id)).copied().unwrap_or(-1)
-    };
+    let generation =
+        |id: i64| placed.generation.get(node!(graph, id)).copied().unwrap_or(-1);
 
     assert_eq!(generation(2), generation(3), "partners share a row");
     assert!(generation(1) < generation(3), "the parent stays above");

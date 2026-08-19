@@ -11,20 +11,20 @@ use std::sync::Arc;
 
 use zayden_graphics::error::GraphicsError;
 use zayden_graphics::renderer::{
-    Canvas, Overlay, RENDER_BUDGET_MP, RasterLimits, Renderer,
+    Canvas,
+    Overlay,
+    RENDER_BUDGET_MP,
+    RasterLimits,
+    Renderer,
 };
 use zayden_graphics::tiny_skia::{Color, Pixmap};
 use zayden_graphics::usvg::fontdb;
 
 /// Generous ceilings, so a test only trips a budget when it means to.
-const OPEN: RasterLimits =
-    RasterLimits { max_pixels: 4_000_000, max_dim: 4_000 };
+const OPEN: RasterLimits = RasterLimits { max_pixels: 4_000_000, max_dim: 4_000 };
 
 fn renderer() -> Renderer {
-    Renderer::with_fonts(
-        Arc::new(fontdb::Database::new()),
-        "sans-serif".to_string(),
-    )
+    Renderer::with_fonts(Arc::new(fontdb::Database::new()), "sans-serif".to_string())
 }
 
 fn svg(width: u32, height: u32, body: &str) -> String {
@@ -44,8 +44,7 @@ macro_rules! decode {
     ($bytes:expr) => {{
         let decoder = png::Decoder::new(Cursor::new($bytes));
         let mut reader = decoder.read_info().expect("PNG header should parse");
-        let size =
-            reader.output_buffer_size().expect("buffer size should be known");
+        let size = reader.output_buffer_size().expect("buffer size should be known");
         let mut buf = vec![0u8; size];
         let info = reader.next_frame(&mut buf).expect("frame should decode");
         buf.truncate(info.buffer_size());
@@ -69,8 +68,7 @@ macro_rules! pixel {
 
 #[tokio::test]
 async fn renders_a_text_free_svg_to_a_png_of_the_requested_size() {
-    let markup =
-        svg(40, 30, r##"<rect width="40" height="30" fill="#ff0000"/>"##);
+    let markup = svg(40, 30, r##"<rect width="40" height="30" fill="#ff0000"/>"##);
     let canvas = Canvas { width: 40, height: 30 };
 
     let png = renderer()
@@ -91,8 +89,7 @@ async fn renders_a_text_free_svg_to_a_png_of_the_requested_size() {
 
 #[tokio::test]
 async fn overlays_are_composited_over_the_rasterised_svg() {
-    let markup =
-        svg(16, 16, r##"<rect width="16" height="16" fill="#000000"/>"##);
+    let markup = svg(16, 16, r##"<rect width="16" height="16" fill="#000000"/>"##);
 
     let mut patch = Pixmap::new(4, 4).expect("4x4 pixmap should allocate");
     patch.fill(Color::from_rgba8(0, 255, 0, 255));
@@ -196,12 +193,7 @@ async fn a_canvas_beyond_the_global_render_budget_is_refused_not_hung() {
 #[tokio::test]
 async fn a_canvas_disagreeing_with_the_svg_is_refused() {
     let err = renderer()
-        .render(
-            svg(40, 30, ""),
-            Canvas { width: 80, height: 60 },
-            Vec::new(),
-            OPEN,
-        )
+        .render(svg(40, 30, ""), Canvas { width: 80, height: 60 }, Vec::new(), OPEN)
         .await
         .expect_err("declared SVG size and canvas size must agree");
 

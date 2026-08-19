@@ -1,3 +1,6 @@
+pub mod avatar;
+pub mod compose;
+pub mod cooldown;
 pub mod fetch;
 pub mod layout;
 pub mod model;
@@ -5,6 +8,7 @@ pub mod prune;
 pub mod quota;
 pub mod svg;
 
+pub use compose::{Composed, compose};
 pub use fetch::{RawGraph, RawPerson};
 pub use layout::{Layout, layout};
 pub use model::{Block, FamilyGraph, NodeIdx, Person, Union};
@@ -28,3 +32,6 @@ pub const ORDER_SWEEPS: usize = 4;
 pub const GEN_RELAX_PASSES: usize = 8;
 
 pub const AVATAR_FETCH_CONCURRENCY: usize = 6;
+
+pub const MIN_LEGIBLE_SCALE: f32 = 0.55;
+pub const MIN_NODE_BUDGET: usize = 12;

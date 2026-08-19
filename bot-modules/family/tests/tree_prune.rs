@@ -115,10 +115,7 @@ fn a_graph_that_collapses_on_free_can_render_whole_on_ultra() {
 
     assert!(free.is_collapsed(), "120 people should not fit the free budget");
     assert!(!ultra.is_collapsed(), "120 people should fit the ultra budget");
-    assert_eq!(
-        ultra.shown(),
-        usize::try_from(people).expect("count fits usize"),
-    );
+    assert_eq!(ultra.shown(), usize::try_from(people).expect("count fits usize"),);
 }
 
 #[test]
@@ -128,8 +125,7 @@ fn dropped_neighbours_are_counted_against_the_node_that_kept_them() {
 
     let hidden = pruned.hidden.get(&1).copied().unwrap_or(0);
     let kept_children = pruned.shown() - 1;
-    let expected =
-        u32::try_from(199 - kept_children).expect("count fits u32");
+    let expected = u32::try_from(199 - kept_children).expect("count fits u32");
 
     assert_eq!(
         hidden, expected,

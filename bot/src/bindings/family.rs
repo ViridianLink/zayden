@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::fmt::Write as _;
 
 use async_trait::async_trait;
 use family::commands::{
@@ -13,28 +13,30 @@ use family::commands::{
     Relationship,
     ResetFamily,
     Siblings,
+    Tree,
+    TreeImage,
     Unblock,
 };
-use family::{FamilyError, FamilyRow};
+use family::{FamilyError, TreeQuota};
 use serenity::all::{
     ButtonStyle,
     CreateActionRow,
+    CreateAttachment,
     CreateButton,
     CreateCommand,
     CreateComponent,
+    CreateEmbed,
+    CreateEmbedFooter,
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     EditInteractionResponse,
     Mentionable,
-    ResolvedOption,
-    ResolvedValue,
-    UserId,
 };
-use zayden_core::as_i64;
 use zayden_core::ctx::{ComponentCtx, InvocationCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleCommand, ModuleComponent};
 use zayden_core::scope::IdMatch;
+use zayden_core::server_tier;
 
 use crate::RegistryBuilder;
 use crate::registry::OverlapError;
@@ -436,7 +438,7 @@ impl ModuleCommand for TreeCmd {
     }
 
     fn definition(&self) -> CreateCommand<'static> {
-        family::commands::Tree::register()
+        Tree::register()
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {
@@ -444,25 +446,32 @@ impl ModuleCommand for TreeCmd {
 
         let guild_id = cx.interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        let user = match cx.interaction.data.options().first() {
-            Some(ResolvedOption { value: ResolvedValue::User(user, _), .. }) => {
-                *user
-            },
-            _ => &cx.interaction.user,
-        };
+        let tier = server_tier(&cx.ctx.http, &cx.app.entitlements, guild_id).await;
 
-        let row = FamilyRow::get(&cx.app.db, guild_id, user.id)
-            .await?
-            .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
+        let image =
+            Tree::run(cx.interaction, &cx.app.db, &cx.app.http, tier).await?;
 
-        let tree = row.tree(&cx.app.db).await?;
+        let file = CreateAttachment::bytes(image.png.clone(), TREE_FILENAME);
 
-        let content = format_tree(&tree, user.id);
+        let mut embed = CreateEmbed::new()
+            .title(format!("{}'s family tree", image.target_name))
+            .colour(TREE_COLOUR)
+            .image(
+                format!("attachment://{TREE_FILENAME}"),
+                Some(Cow::Owned(format!(
+                    "A family tree diagram showing {} members related to {}.",
+                    image.shown, image.target_name,
+                ))),
+            );
+
+        if let Some(footer) = tree_footer(&image, cx.app.upgrade_url.as_deref()) {
+            embed = embed.footer(CreateEmbedFooter::new(footer));
+        }
 
         cx.interaction
             .edit_response(
                 &cx.ctx.http,
-                EditInteractionResponse::new().content(content),
+                EditInteractionResponse::new().new_attachment(file).embed(embed),
             )
             .await?;
 
@@ -470,48 +479,36 @@ impl ModuleCommand for TreeCmd {
     }
 }
 
-fn format_tree(tree: &HashMap<i32, Vec<FamilyRow>>, root_id: UserId) -> String {
-    if tree.is_empty() {
-        return "Your family tree is empty.".to_string();
+const TREE_COLOUR: u32 = 0x0058_65f2;
+const TREE_FILENAME: &str = "family-tree.png";
+
+fn tree_footer(image: &TreeImage, upgrade_url: Option<&str>) -> Option<String> {
+    if !image.is_collapsed() {
+        return None;
     }
 
-    let mut keys: Vec<i32> = tree.keys().copied().collect();
-    keys.sort_unstable();
-
-    let root_signed = as_i64(root_id.get());
-    let mut lines = Vec::new();
-
-    for depth in keys {
-        let Some(members) = tree.get(&depth) else {
-            continue;
-        };
-        let prefix = match depth.cmp(&0) {
-            std::cmp::Ordering::Less => "⬆",
-            std::cmp::Ordering::Greater => "⬇",
-            std::cmp::Ordering::Equal => "◆",
-        };
-        let names: Vec<&str> = members.iter().map(|r| r.username.as_str()).collect();
-
-        let label = if depth == 0 {
-            let root_name = members
-                .iter()
-                .find(|r| r.id == root_signed)
-                .map_or("You", |r| r.username.as_str());
-            format!("{prefix} **{root_name}** (+ partners)")
-        } else {
-            format!("{prefix} {}", names.join(", "))
-        };
-
-        lines.push(label);
-    }
-
-    let text = lines.join("\n");
-    if text.len() > 1990 {
-        let truncated: String = text.chars().take(1997).collect();
-        format!("{truncated}...")
+    let total = if image.truncated {
+        format!("{}+", image.total)
     } else {
-        text
+        image.total.to_string()
+    };
+
+    let mut footer = format!("Showing {} of {total} members", image.shown);
+
+    if let Some((next, quota)) = TreeQuota::next_tier(image.tier) {
+        let _ = write!(
+            footer,
+            " \u{00b7} {} renders up to {}",
+            next.as_str(),
+            quota.node_budget,
+        );
+
+        if let Some(url) = upgrade_url {
+            let _ = write!(footer, " \u{00b7} {url}");
+        }
     }
+
+    Some(footer)
 }
 
 pub struct MarryAccept;

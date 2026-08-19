@@ -19,4 +19,4 @@ pub use information::{
 };
 pub use marry::Marry;
 pub use moderation::ResetFamily;
-pub use tree::Tree;
+pub use tree::{Tree, TreeImage};

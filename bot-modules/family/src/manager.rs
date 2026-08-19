@@ -1,9 +1,7 @@
-use std::collections::HashMap;
-
 use futures::TryStreamExt;
 use serenity::all::{GuildId, User, UserId};
 use sqlx::{FromRow, PgPool};
-use zayden_core::{as_i64, as_u64};
+use zayden_core::as_i64;
 
 use crate::relationships::Relationships;
 
@@ -184,90 +182,6 @@ impl FamilyRow {
             children_ids,
             blocked_ids,
         }))
-    }
-
-    async fn build_tree(
-        pool: &PgPool,
-        guild_id: GuildId,
-        user_id: UserId,
-        mut tree: HashMap<i32, Vec<Self>>,
-        depth: i32,
-        add_parents: bool,
-        add_partners: bool,
-    ) -> sqlx::Result<HashMap<i32, Vec<Self>>> {
-        let signed_id = as_i64(user_id.get());
-
-        // Cycle prevention: skip if already in tree.
-        if tree.values().flatten().any(|row| row.id == signed_id) {
-            return Ok(tree);
-        }
-
-        let Some(row) = Self::get(pool, guild_id, user_id).await? else {
-            return Ok(tree);
-        };
-
-        let partner_ids = row.partner_ids.clone();
-        let parent_ids = row.parent_ids.clone();
-        let children_ids = row.children_ids.clone();
-
-        tree.entry(depth).or_default().push(row);
-
-        if add_parents {
-            for parent_id in parent_ids {
-                let pid = UserId::new(as_u64(parent_id));
-                tree = Box::pin(Self::build_tree(
-                    pool,
-                    guild_id,
-                    pid,
-                    tree,
-                    depth - 1,
-                    true,
-                    add_partners,
-                ))
-                .await?;
-            }
-        }
-
-        if add_partners {
-            for partner_id in partner_ids {
-                let pid = UserId::new(as_u64(partner_id));
-                // Don't recurse into partners' partners to prevent runaway
-                // expansion.
-                tree = Box::pin(Self::build_tree(
-                    pool, guild_id, pid, tree, depth, false, false,
-                ))
-                .await?;
-            }
-        }
-
-        for child_id in children_ids {
-            let cid = UserId::new(as_u64(child_id));
-            tree = Box::pin(Self::build_tree(
-                pool,
-                guild_id,
-                cid,
-                tree,
-                depth + 1,
-                false,
-                add_partners,
-            ))
-            .await?;
-        }
-
-        Ok(tree)
-    }
-
-    pub async fn tree(self, pool: &PgPool) -> sqlx::Result<HashMap<i32, Vec<Self>>> {
-        Self::build_tree(
-            pool,
-            GuildId::new(as_u64(self.guild_id)),
-            UserId::new(as_u64(self.id)),
-            HashMap::new(),
-            0,
-            true,
-            true,
-        )
-        .await
     }
 
     pub async fn reset(pool: &PgPool, guild_id: GuildId) -> sqlx::Result<()> {

@@ -162,7 +162,6 @@ async-trait = { version = "*", default-features = false }
 dashmap = { version = "*", default-features = false }
 base64 = { version = "*", default-features = false }
 bigdecimal = { version = "*", default-features = false }
-charming = { version = "*", default-features = false }
 dotenvy = { version = "*", default-features = false }
 futures = { version = "*", default-features = false }
 jiff = { version = "*", default-features = false }

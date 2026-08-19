@@ -113,7 +113,8 @@ fn budget_never_exceeds_what_the_render_semaphore_can_grant() {
 #[test]
 fn the_dimension_ceiling_leaves_room_for_the_pixel_ceiling() {
     for (tier, quota) in TIERS {
-        let widest = u64::from(quota.max_canvas_dim) * u64::from(quota.max_canvas_dim);
+        let widest =
+            u64::from(quota.max_canvas_dim) * u64::from(quota.max_canvas_dim);
         assert!(
             widest >= u64::from(quota.max_canvas_pixels),
             "{}: max_dim {} cannot reach max_canvas_pixels {}",

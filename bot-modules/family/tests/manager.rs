@@ -4,7 +4,7 @@
 //! in-memory relationship/limit predicates the command layer relies on, so the
 //! refactor is proven behaviour-preserving without a live DB.
 //!
-//! DB-touching paths (`FamilyRow::get`/`save`/`tree`, `FamilySettings::get`)
+//! DB-touching paths (`FamilyRow::get`/`save`, `FamilySettings::get`)
 //! need a test-pool harness and are deferred to CC-6.
 
 use family::{FamilyRow, FamilySettings, Relationships};

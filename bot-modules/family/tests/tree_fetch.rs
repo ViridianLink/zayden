@@ -21,10 +21,9 @@ macro_rules! ids {
 
 #[sqlx::test(migrations = "../../migrations", fixtures("family_graph"))]
 async fn walks_the_whole_component_in_every_direction(pool: PgPool) {
-    let graph =
-        RawGraph::fetch(&pool, GUILD, UserId::new(10), TreeQuota::FREE)
-            .await
-            .expect("fetch should succeed");
+    let graph = RawGraph::fetch(&pool, GUILD, UserId::new(10), TreeQuota::FREE)
+        .await
+        .expect("fetch should succeed");
 
     // 15 is the partner's parent: reachable only by going sideways to 11 and
     // then upwards. The walk this replaced stopped at partners.
@@ -34,10 +33,9 @@ async fn walks_the_whole_component_in_every_direction(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../migrations", fixtures("family_graph"))]
 async fn a_disjoint_family_in_the_same_guild_is_excluded(pool: PgPool) {
-    let graph =
-        RawGraph::fetch(&pool, GUILD, UserId::new(10), TreeQuota::FREE)
-            .await
-            .expect("fetch should succeed");
+    let graph = RawGraph::fetch(&pool, GUILD, UserId::new(10), TreeQuota::FREE)
+        .await
+        .expect("fetch should succeed");
 
     for stranger in [20, 21, 30, 31] {
         assert!(
@@ -66,20 +64,18 @@ async fn the_component_is_scoped_to_one_guild(pool: PgPool) {
 /// this from spinning forever.
 #[sqlx::test(migrations = "../../migrations", fixtures("family_graph"))]
 async fn a_parent_cycle_terminates(pool: PgPool) {
-    let graph =
-        RawGraph::fetch(&pool, GUILD, UserId::new(30), TreeQuota::FREE)
-            .await
-            .expect("a cycle must not hang the walk");
+    let graph = RawGraph::fetch(&pool, GUILD, UserId::new(30), TreeQuota::FREE)
+        .await
+        .expect("a cycle must not hang the walk");
 
     assert_eq!(ids!(graph), vec![30, 31]);
 }
 
 #[sqlx::test(migrations = "../../migrations", fixtures("family_graph"))]
 async fn edges_are_returned_only_for_the_component(pool: PgPool) {
-    let graph =
-        RawGraph::fetch(&pool, GUILD, UserId::new(10), TreeQuota::FREE)
-            .await
-            .expect("fetch should succeed");
+    let graph = RawGraph::fetch(&pool, GUILD, UserId::new(10), TreeQuota::FREE)
+        .await
+        .expect("fetch should succeed");
 
     assert_eq!(graph.partners, vec![(10, 11)]);
     assert_eq!(graph.parents, vec![(10, 12), (13, 10), (14, 13), (15, 11)]);
@@ -101,10 +97,9 @@ async fn hitting_the_fetch_limit_is_reported(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../migrations", fixtures("family_graph"))]
 async fn a_user_with_no_family_yields_an_empty_graph(pool: PgPool) {
-    let graph =
-        RawGraph::fetch(&pool, GUILD, UserId::new(9_999), TreeQuota::FREE)
-            .await
-            .expect("fetch should succeed");
+    let graph = RawGraph::fetch(&pool, GUILD, UserId::new(9_999), TreeQuota::FREE)
+        .await
+        .expect("fetch should succeed");
 
     assert!(graph.is_empty());
 }

@@ -31,7 +31,7 @@ pub struct AvatarSlot {
     pub size: u32,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TreeSvg {
     pub markup: String,
     pub canvas: Canvas,
@@ -43,7 +43,7 @@ pub struct TreeSvg {
     clippy::cast_sign_loss,
     reason = "clamped to 1.0..=u32::MAX as f32 first, so the cast is in range"
 )]
-fn device_px(value: f32) -> u32 {
+const fn device_px(value: f32) -> u32 {
     value.clamp(1.0, 16_777_216.0).round() as u32
 }
 
@@ -51,12 +51,16 @@ fn device_px(value: f32) -> u32 {
     clippy::cast_possible_truncation,
     reason = "clamped to i32-safe bounds first, so the cast is in range"
 )]
-fn device_offset(value: f32) -> i32 {
+const fn device_offset(value: f32) -> i32 {
     value.clamp(-16_777_216.0, 16_777_216.0).round() as i32
 }
 
 #[must_use]
 pub fn sanitise(name: &str, id: i64) -> String {
+    escape_xml(&clean(name, id))
+}
+
+fn clean(name: &str, id: i64) -> String {
     let cleaned: String = name
         .chars()
         .filter(|c| !is_control_or_bidi(*c) && !is_pictographic(*c))
@@ -70,15 +74,17 @@ pub fn sanitise(name: &str, id: i64) -> String {
         collapsed
     };
 
-    let truncated = if usable.chars().count() > MAX_NAME_CHARS {
+    if usable.chars().count() > MAX_NAME_CHARS {
         let kept: String =
             usable.chars().take(MAX_NAME_CHARS.saturating_sub(1)).collect();
         format!("{kept}\u{2026}")
     } else {
         usable
-    };
+    }
+}
 
-    escape_xml(&truncated)
+fn label(name: &str, id: i64, room: f32) -> String {
+    escape_xml(&fit(&clean(name, id), room))
 }
 
 fn is_control_or_bidi(c: char) -> bool {
@@ -141,7 +147,7 @@ fn fit(text: &str, max_width: f32) -> String {
     }
 
     let mut kept = String::new();
-    let budget = max_width - advance_ems("\u{2026}") * FONT_SIZE;
+    let budget = advance_ems("\u{2026}").mul_add(-FONT_SIZE, max_width);
 
     for c in text.chars() {
         let mut candidate = kept.clone();
@@ -290,7 +296,7 @@ fn draw_unions(
             continue;
         };
 
-        let bus = (parent_bottom + child_top) / 2.0;
+        let bus = parent_bottom.midpoint(child_top);
 
         let _ = write!(
             out,
@@ -341,11 +347,11 @@ fn draw_back_edges(
             continue;
         };
 
-        let bend = (px + cx) / 2.0;
+        let bend = px.midpoint(cx);
         let _ = write!(
             out,
             r#"<path d="M{px:.2} {py:.2}Q{bend:.2} {:.2} {cx:.2} {cy:.2}" stroke="{COLOUR_EDGE}" stroke-width="2" stroke-dasharray="6 4" fill="none"/>"#,
-            (py + cy) / 2.0 - 40.0,
+            py.midpoint(cy) - 40.0,
         );
     }
 }
@@ -399,14 +405,14 @@ fn draw_nodes(
                 size: device_px(AVATAR_BOX * scale),
             });
 
-            let start = left + NODE_PAD * 2.0 + AVATAR_BOX;
-            (start, "start", NODE_W - (AVATAR_BOX + NODE_PAD * 3.0))
+            let start = NODE_PAD.mul_add(2.0, left) + AVATAR_BOX;
+            (start, "start", NODE_W - NODE_PAD.mul_add(3.0, AVATAR_BOX))
         } else {
-            (left + NODE_W / 2.0, "middle", NODE_W - NODE_PAD * 2.0)
+            (left + NODE_W / 2.0, "middle", NODE_PAD.mul_add(-2.0, NODE_W))
         };
 
-        let label = fit(&sanitise(&person.name, person.id), room);
-        let baseline = top + NODE_H / 2.0 + FONT_SIZE * 0.35;
+        let label = label(&person.name, person.id, room);
+        let baseline = FONT_SIZE.mul_add(0.35, top + NODE_H / 2.0);
 
         let _ = write!(
             out,
