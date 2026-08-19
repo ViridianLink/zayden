@@ -9,36 +9,32 @@ pub struct TreeQuota {
     pub fetch_limit: i64,
     pub max_canvas_pixels: u32,
     pub max_canvas_dim: u32,
-    pub avatars: usize,
     pub cooldown: Option<Duration>,
 }
 
 impl TreeQuota {
     pub const FREE: Self = Self {
-        node_budget: 60,
+        node_budget: 15,
         generation_span: 2,
-        fetch_limit: 500,
+        fetch_limit: 300,
         max_canvas_pixels: 2_400_000,
         max_canvas_dim: 2_400,
-        avatars: 1,
         cooldown: Some(Duration::from_secs(60)),
     };
     pub const PRO: Self = Self {
-        node_budget: 140,
+        node_budget: 40,
         generation_span: 3,
-        fetch_limit: 1_200,
+        fetch_limit: 800,
         max_canvas_pixels: 5_000_000,
         max_canvas_dim: 3_200,
-        avatars: 12,
         cooldown: Some(Duration::from_secs(20)),
     };
     pub const ULTRA: Self = Self {
-        node_budget: 300,
+        node_budget: 120,
         generation_span: 4,
-        fetch_limit: 2_500,
+        fetch_limit: 2_000,
         max_canvas_pixels: 9_000_000,
         max_canvas_dim: 4_096,
-        avatars: 60,
         cooldown: None,
     };
 

@@ -5,48 +5,17 @@ use serenity::all::UserId;
 use tracing::warn;
 use zayden_graphics::{AVATAR_MAX_BYTES, Overlay, decode_avatar};
 
+use crate::tree::AVATAR_FETCH_CONCURRENCY;
 use crate::tree::model::{FamilyGraph, NodeIdx};
 use crate::tree::svg::AvatarSlot;
-use crate::tree::{AVATAR_FETCH_CONCURRENCY, TreeQuota};
 
 #[must_use]
-pub fn selection(graph: &FamilyGraph, quota: TreeQuota) -> BTreeSet<NodeIdx> {
-    if quota.avatars == 0 || graph.is_empty() {
+pub fn selection(graph: &FamilyGraph) -> BTreeSet<NodeIdx> {
+    if graph.is_empty() {
         return BTreeSet::new();
     }
 
-    let mut ordered: Vec<NodeIdx> = vec![graph.focus];
-
-    let push = |node: NodeIdx, ordered: &mut Vec<NodeIdx>| {
-        if !ordered.contains(&node) {
-            ordered.push(node);
-        }
-    };
-
-    for &(a, b) in &graph.partner_edges {
-        if a == graph.focus {
-            push(b, &mut ordered);
-        } else if b == graph.focus {
-            push(a, &mut ordered);
-        }
-    }
-
-    for &(parent, child) in &graph.parent_edges {
-        if child == graph.focus {
-            push(parent, &mut ordered);
-        }
-    }
-    for &(parent, child) in &graph.parent_edges {
-        if parent == graph.focus {
-            push(child, &mut ordered);
-        }
-    }
-
-    for node in 0..graph.len() {
-        push(node, &mut ordered);
-    }
-
-    ordered.into_iter().take(quota.avatars).collect()
+    BTreeSet::from([graph.focus])
 }
 
 fn avatar_url(user_id: UserId, hash: Option<&str>, size: u32) -> String {

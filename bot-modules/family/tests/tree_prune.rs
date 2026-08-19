@@ -35,11 +35,11 @@ fn brood(count: i64) -> RawGraph {
 
 #[test]
 fn a_component_within_budget_is_returned_untouched() {
-    let raw = brood(10);
+    let raw = brood(8);
     let pruned = prune(raw, 1, TreeQuota::FREE);
 
-    assert_eq!(pruned.shown(), 10);
-    assert_eq!(pruned.total, 10);
+    assert_eq!(pruned.shown(), 8);
+    assert_eq!(pruned.total, 8);
     assert!(!pruned.is_collapsed(), "nothing was cut, so nothing to announce");
     assert!(pruned.hidden.is_empty(), "no chips on an uncut tree");
 }

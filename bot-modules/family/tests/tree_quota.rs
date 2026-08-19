@@ -47,9 +47,6 @@ fn every_expensive_axis_widens_with_tier() {
 
     assert!(free.max_canvas_dim < pro.max_canvas_dim);
     assert!(pro.max_canvas_dim < ultra.max_canvas_dim);
-
-    assert!(free.avatars < pro.avatars);
-    assert!(pro.avatars < ultra.avatars);
 }
 
 #[test]
@@ -62,17 +59,43 @@ fn cooldown_shortens_with_tier_and_ultra_has_none() {
     assert!(free > Duration::ZERO, "a zero cooldown is not a cooldown");
 }
 
-/// The free tier has to be genuinely usable on its own, not a teaser.
+/// The free tier has to be a working feature, not a teaser.
+///
+/// Comparable bots top out around 20 people in one connected family, and the
+/// median is far smaller. The free budget is sized so an ordinary family
+/// renders whole while the largest ones are where premium starts to pay --
+/// which is only meaningful if the budget sits *below* that observed ceiling
+/// but comfortably above a typical household.
 #[test]
-fn the_free_tier_is_a_working_feature() {
+fn the_free_tier_covers_an_ordinary_family() {
     let free = TreeQuota::FREE;
 
     assert!(
-        free.node_budget >= 50,
-        "a free tree should comfortably cover an ordinary server",
+        free.node_budget >= 12,
+        "a couple, their parents and a few children must fit on free",
     );
-    assert!(free.avatars >= 1, "the focus user always gets an avatar");
+    assert!(
+        free.node_budget < 20,
+        "a budget at or above the largest observed family would never bind, \
+         leaving premium with nothing to offer on this axis",
+    );
     assert!(free.generation_span >= 2, "grandparents should be reachable");
+}
+
+/// Premium has to actually engage at real family sizes. A budget nobody
+/// reaches is a dead knob, which is what the first cut of these numbers was.
+#[test]
+fn premium_engages_at_realistic_family_sizes() {
+    let largest_observed = 20;
+
+    assert!(
+        TreeQuota::FREE.node_budget < largest_observed,
+        "free must collapse the largest real families, or premium is decorative",
+    );
+    assert!(
+        TreeQuota::PRO.node_budget > largest_observed,
+        "pro must render the largest real families whole",
+    );
 }
 
 /// `fetch_limit` bounds the SQL blast radius, `node_budget` bounds the render.

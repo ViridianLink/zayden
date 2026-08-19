@@ -332,6 +332,10 @@ fn dump_sample_pngs() {
     for (people, quota, tier) in [
         (2i64, TreeQuota::FREE, "free"),
         (12, TreeQuota::FREE, "free"),
+        // The realistic ceiling: comparable bots top out around 20 people in
+        // one connected family, so this is the case that actually ships.
+        (20, TreeQuota::FREE, "free"),
+        (20, TreeQuota::PRO, "pro"),
         (200, TreeQuota::FREE, "free"),
         (200, TreeQuota::ULTRA, "ultra"),
     ] {

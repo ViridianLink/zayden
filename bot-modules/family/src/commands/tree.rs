@@ -68,7 +68,7 @@ impl Tree {
         let composed = compose(&raw, as_i64(target.id.get()), quota)
             .ok_or(FamilyError::TreeEmpty(target.id))?;
 
-        let wanted = avatar::selection(&composed.graph, quota);
+        let wanted = avatar::selection(&composed.graph);
         let svg = render(&composed.graph, &composed.layout, quota, &wanted);
 
         let overlays = avatars(http, &svg.avatars, &composed, target).await;
