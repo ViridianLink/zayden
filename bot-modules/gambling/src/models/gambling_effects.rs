@@ -54,7 +54,7 @@ impl EffectsManager {
         let duration = item
             .effect_duration
             .map(|d| {
-                PgInterval::try_from(d)
+                PgInterval::try_from(d.unsigned_abs())
                     .map_err(|e| sqlx::Error::Protocol(e.to_string()))
             })
             .transpose()?;

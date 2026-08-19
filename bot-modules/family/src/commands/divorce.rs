@@ -1,64 +1,69 @@
+use std::collections::HashMap;
+
 use serenity::all::{
-    CommandInteraction,
     CommandOptionType,
-    Context,
-    CreateCommand,
     CreateCommandOption,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    Mentionable,
     ResolvedValue,
-    UserId,
+    User,
 };
-use sqlx::PgPool;
-use zayden_core::as_i64;
+use zayden_core::{InvocationCtx, as_i64};
 
 use crate::{FamilyError, FamilyRow, Result};
 
-pub struct Divorce;
+pub(super) fn register() -> CreateCommandOption<'static> {
+    CreateCommandOption::new(
+        CommandOptionType::SubCommand,
+        "divorce",
+        "Divorce your partner",
+    )
+    .add_sub_option(super::user_option("The partner to divorce", true))
+}
 
-impl Divorce {
-    pub async fn run(
-        _ctx: &Context,
-        interaction: &CommandInteraction,
-        pool: &PgPool,
-    ) -> Result<UserId> {
-        let options = interaction.data.options();
-        let option = options.first().ok_or(FamilyError::InvalidUserId)?;
-        let ResolvedValue::User(target_user, _) = option.value else {
-            return Err(FamilyError::InvalidUserId);
-        };
+pub(super) async fn run(
+    cx: &InvocationCtx<'_>,
+    mut options: HashMap<&str, ResolvedValue<'_>>,
+) -> Result<()> {
+    let target_user: &User = super::required_user(&mut options, "user")?;
 
-        if interaction.user.id == target_user.id {
-            return Err(FamilyError::UserSelfMarry);
-        }
+    let interaction = cx.interaction;
 
-        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+    if interaction.user.id == target_user.id {
+        return Err(FamilyError::UserSelfMarry);
+    }
 
-        let row = FamilyRow::get(pool, guild_id, interaction.user.id)
-            .await?
-            .ok_or(FamilyError::SelfNoPartners)?;
+    let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        if !row.partner_ids.contains(&as_i64(target_user.id.get())) {
-            return Err(FamilyError::NotPartners(target_user.id));
-        }
+    let row = FamilyRow::get(&cx.app.db, guild_id, interaction.user.id)
+        .await?
+        .ok_or(FamilyError::SelfNoPartners)?;
 
-        FamilyRow::remove_partner(
-            pool,
-            guild_id,
-            interaction.user.id,
-            target_user.id,
+    if !row.partner_ids.contains(&as_i64(target_user.id.get())) {
+        return Err(FamilyError::NotPartners(target_user.id));
+    }
+
+    FamilyRow::remove_partner(
+        &cx.app.db,
+        guild_id,
+        interaction.user.id,
+        target_user.id,
+    )
+    .await?;
+
+    let content = format!("You have divorced {}.", target_user.id.mention());
+
+    interaction
+        .create_response(
+            &cx.ctx.http,
+            CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new()
+                    .content(content)
+                    .ephemeral(true),
+            ),
         )
         .await?;
 
-        Ok(target_user.id)
-    }
-
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("divorce").description("Divorce your partner").add_option(
-            CreateCommandOption::new(
-                CommandOptionType::User,
-                "user",
-                "The partner to divorce",
-            )
-            .required(true),
-        )
-    }
+    Ok(())
 }

@@ -5,9 +5,8 @@
 //! would otherwise fail as a hang rather than an error -- see
 //! `budget_never_exceeds_what_the_render_semaphore_can_grant`.
 
-use std::time::Duration;
-
 use family::TreeQuota;
+use jiff::SignedDuration;
 use zayden_app::entitlement::Tier;
 use zayden_graphics::RENDER_BUDGET_MP;
 
@@ -56,7 +55,7 @@ fn cooldown_shortens_with_tier_and_ultra_has_none() {
 
     assert!(pro < free, "pro should wait less than free");
     assert_eq!(TreeQuota::ULTRA.cooldown, None, "ultra is not rate limited");
-    assert!(free > Duration::ZERO, "a zero cooldown is not a cooldown");
+    assert!(free > SignedDuration::ZERO, "a zero cooldown is not a cooldown");
 }
 
 /// The free tier has to be a working feature, not a teaser.

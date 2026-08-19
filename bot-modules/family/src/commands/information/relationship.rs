@@ -1,81 +1,66 @@
-use serenity::all::{
-    CommandInteraction,
-    CommandOptionType,
-    CreateCommand,
-    CreateCommandOption,
-    Http,
-    ResolvedValue,
-    UserId,
-};
-use sqlx::PgPool;
-use zayden_core::parse_options;
+use std::collections::HashMap;
 
-use crate::relationships::Relationships;
+use serenity::all::{
+    CommandOptionType,
+    CreateCommandOption,
+    EditInteractionResponse,
+    Mentionable,
+    ResolvedValue,
+    User,
+};
+use zayden_core::{InvocationCtx, optional_option};
+
 use crate::{FamilyError, FamilyRow, Result};
 
-pub struct RelationshipResponse {
-    pub other_id: UserId,
-    pub user_id: UserId,
-    pub relationship: Relationships,
+pub(in crate::commands) fn register() -> CreateCommandOption<'static> {
+    CreateCommandOption::new(
+        CommandOptionType::SubCommand,
+        "relationship",
+        "View the relationship between two users",
+    )
+    .add_sub_option(super::user_option(
+        "The user you want to view the relationship of",
+        true,
+    ))
+    .add_sub_option(CreateCommandOption::new(
+        CommandOptionType::User,
+        "other",
+        "The other user. Leave blank to compare against yourself",
+    ))
 }
 
-pub struct Relationship;
+pub(in crate::commands) async fn run(
+    cx: &InvocationCtx<'_>,
+    mut options: HashMap<&str, ResolvedValue<'_>>,
+) -> Result<()> {
+    cx.interaction.defer(&cx.ctx.http).await?;
 
-impl Relationship {
-    pub async fn run(
-        http: &Http,
-        interaction: &CommandInteraction,
-        pool: &PgPool,
-    ) -> Result<RelationshipResponse> {
-        interaction.defer(http).await?;
+    let user: &User = super::super::required_user(&mut options, "user")?;
 
-        let options = interaction.data.options();
-        let options = parse_options(options);
+    let other: &User =
+        optional_option(&mut options, "other").unwrap_or(&cx.interaction.user);
 
-        let Some(ResolvedValue::User(user, _)) = options.get("user") else {
-            return Err(FamilyError::InvalidUserId);
-        };
-        let user = *user;
-
-        let other = match options.get("other") {
-            Some(ResolvedValue::User(user, _)) => *user,
-            _ => &interaction.user,
-        };
-
-        if user == other {
-            return Err(FamilyError::SameUser(user.id));
-        }
-
-        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
-
-        let user_info = FamilyRow::get(pool, guild_id, user.id)
-            .await?
-            .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
-
-        let relationship = user_info.relationship(other.id);
-
-        Ok(RelationshipResponse {
-            other_id: other.id,
-            user_id: user.id,
-            relationship,
-        })
+    if user == other {
+        return Err(FamilyError::SameUser(user.id));
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("relationship")
-            .description("View the relationship between two users.")
-            .add_option(
-                CreateCommandOption::new(
-                    CommandOptionType::User,
-                    "user",
-                    "The user you want to view the relationship of.",
-                )
-                .required(true),
-            )
-            .add_option(CreateCommandOption::new(
-                CommandOptionType::User,
-                "other",
-                "The other user you want to view the relationship of.",
-            ))
-    }
+    let guild_id = cx.interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+
+    let user_info = FamilyRow::get(&cx.app.db, guild_id, user.id)
+        .await?
+        .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
+
+    let relationship = user_info.relationship(other.id);
+
+    let content = format!(
+        "{} and {} are: **{relationship}**",
+        user.id.mention(),
+        other.id.mention(),
+    );
+
+    cx.interaction
+        .edit_response(&cx.ctx.http, EditInteractionResponse::new().content(content))
+        .await?;
+
+    Ok(())
 }

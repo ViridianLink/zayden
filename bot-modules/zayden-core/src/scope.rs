@@ -1,6 +1,6 @@
 use std::borrow::Cow;
-use std::time::Duration;
 
+use jiff::SignedDuration;
 use serenity::all::{GuildId, Permissions};
 use zayden_app::entitlement::Tier;
 
@@ -16,7 +16,7 @@ pub enum CommandScope {
 pub struct CommandMetadata {
     pub required_tier: Tier,
     pub required_perms: Permissions,
-    pub cooldown: Option<Duration>,
+    pub cooldown: Option<SignedDuration>,
 }
 
 impl Default for CommandMetadata {

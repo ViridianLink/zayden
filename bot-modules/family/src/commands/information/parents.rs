@@ -1,69 +1,60 @@
+use std::collections::HashMap;
+
 use futures::{StreamExt, TryStreamExt, stream};
 use serenity::all::{
-    CommandInteraction,
     CommandOptionType,
-    Context,
-    CreateCommand,
     CreateCommandOption,
     Mentionable,
-    ResolvedOption,
     ResolvedValue,
     UserId,
 };
-use sqlx::PgPool;
-use zayden_core::as_u64;
+use zayden_core::{InvocationCtx, as_u64};
 
 use crate::{FamilyError, FamilyRow, Result};
 
-pub struct Parents;
+pub(in crate::commands) fn register() -> CreateCommandOption<'static> {
+    CreateCommandOption::new(
+        CommandOptionType::SubCommand,
+        "parents",
+        "List a user's parents",
+    )
+    .add_sub_option(super::user_option(
+        "The user to check. Leave blank to check yourself",
+        false,
+    ))
+}
 
-impl Parents {
-    pub async fn run(
-        ctx: &Context,
-        interaction: &CommandInteraction,
-        pool: &PgPool,
-    ) -> Result<(UserId, Vec<String>)> {
-        let user = match interaction.data.options().first() {
-            Some(ResolvedOption { value: ResolvedValue::User(user, _), .. }) => {
-                *user
-            },
-            _ => &interaction.user,
-        };
+pub(in crate::commands) async fn run(
+    cx: &InvocationCtx<'_>,
+    mut options: HashMap<&str, ResolvedValue<'_>>,
+) -> Result<()> {
+    cx.interaction.defer(&cx.ctx.http).await?;
 
-        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+    let user = super::target(&mut options, cx.interaction);
 
-        let row = FamilyRow::get(pool, guild_id, user.id)
-            .await?
-            .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
+    let guild_id = cx.interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        if row.parent_ids.is_empty() {
-            if user == &interaction.user {
-                return Err(FamilyError::SelfNoParents);
-            }
+    let row = FamilyRow::get(&cx.app.db, guild_id, user.id)
+        .await?
+        .unwrap_or_else(|| FamilyRow::from_user(guild_id, user));
 
-            return Err(FamilyError::NoParents(user.id));
+    if row.parent_ids.is_empty() {
+        if user == &cx.interaction.user {
+            return Err(FamilyError::SelfNoParents);
         }
 
-        let parents: Vec<String> = stream::iter(row.parent_ids)
-            .then(|id| async move {
-                let user_id = UserId::new(as_u64(id));
-                let user = user_id.to_user(ctx).await?;
-
-                Ok::<String, serenity::Error>(user.mention().to_string())
-            })
-            .try_collect()
-            .await?;
-
-        Ok((user.id, parents))
+        return Err(FamilyError::NoParents(user.id));
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("parents")
-            .description("List who your siblings are.")
-            .add_option(CreateCommandOption::new(
-                CommandOptionType::User,
-                "user",
-                "The user to check. Leave blank to check yourself.",
-            ))
-    }
+    let names: Vec<String> = stream::iter(row.parent_ids)
+        .then(|id| async move {
+            let user_id = UserId::new(as_u64(id));
+            let user = user_id.to_user(cx.ctx).await?;
+
+            Ok::<String, serenity::Error>(user.mention().to_string())
+        })
+        .try_collect()
+        .await?;
+
+    super::respond_list(cx, user.id, "parents", &names).await
 }

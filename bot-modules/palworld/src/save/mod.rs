@@ -12,7 +12,8 @@ pub mod player;
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::path::{Path, PathBuf};
-use std::time::UNIX_EPOCH;
+
+use jiff::Timestamp;
 
 use crate::error::{PalworldError, Result};
 use crate::model::{OwnedPal, PlayerName, PlayerRoster, WorldRoster};
@@ -24,8 +25,8 @@ pub const GLOBAL_STORAGE_UID: &str = "00000000000000000000000001000000";
 pub fn mtime_nanos(meta: &std::fs::Metadata) -> u64 {
     meta.modified()
         .ok()
-        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-        .map_or(0, |d| u64::try_from(d.as_nanos()).unwrap_or(u64::MAX))
+        .and_then(|t| Timestamp::try_from(t).ok())
+        .map_or(0, |ts| u64::try_from(ts.as_nanosecond()).unwrap_or(u64::MAX))
 }
 
 pub fn validate_level(raw: &[u8]) -> Result<()> {

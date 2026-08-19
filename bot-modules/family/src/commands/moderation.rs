@@ -1,26 +1,48 @@
-use serenity::all::{CommandInteraction, Context, CreateCommand, Permissions};
-use sqlx::PgPool;
+use serenity::all::{
+    CommandOptionType,
+    CreateCommandOption,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    Permissions,
+};
+use zayden_core::InvocationCtx;
 
 use crate::{FamilyError, FamilyRow, Result};
 
-pub struct ResetFamily;
+pub(super) fn register() -> CreateCommandOption<'static> {
+    CreateCommandOption::new(
+        CommandOptionType::SubCommand,
+        "reset",
+        "Reset every family tree in this server (Administrator)",
+    )
+}
 
-impl ResetFamily {
-    pub async fn run(
-        _ctx: &Context,
-        interaction: &CommandInteraction,
-        pool: &PgPool,
-    ) -> Result<()> {
-        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+pub(super) async fn run(cx: &InvocationCtx<'_>) -> Result<()> {
+    let guild_id = cx.interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        FamilyRow::reset(pool, guild_id).await?;
+    let privileged = cx
+        .interaction
+        .member
+        .as_ref()
+        .and_then(|member| member.permissions)
+        .is_some_and(Permissions::administrator);
 
-        Ok(())
+    if !privileged {
+        return Err(FamilyError::NotPrivileged);
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("resetfamily")
-            .description("Resets the family tree(s) in guild")
-            .default_member_permissions(Permissions::ADMINISTRATOR)
-    }
+    FamilyRow::reset(&cx.app.db, guild_id).await?;
+
+    cx.interaction
+        .create_response(
+            &cx.ctx.http,
+            CreateInteractionResponse::Message(
+                CreateInteractionResponseMessage::new()
+                    .content("Family trees have been reset.")
+                    .ephemeral(true),
+            ),
+        )
+        .await?;
+
+    Ok(())
 }

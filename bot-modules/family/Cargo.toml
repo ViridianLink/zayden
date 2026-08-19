@@ -13,6 +13,7 @@ zayden-core = { workspace = true }
 zayden-graphics = { workspace = true }
 
 futures = { workspace = true }
+jiff = { workspace = true, features = ["std"] }
 moka = { workspace = true, features = ["future"] }
 reqwest = { workspace = true }
 serenity = { workspace = true }
@@ -21,5 +22,7 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
+jiff = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["std"] }
 tokio = { workspace = true, features = ["macros", "rt"] }
 zayden-graphics = { workspace = true }

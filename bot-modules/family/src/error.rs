@@ -21,6 +21,8 @@ pub enum FamilyError {
     NoInteraction,
     Internal(String),
     SameUser(UserId),
+    NotPrivileged,
+    UnknownSubcommand(String),
     NoData(UserId),
     // endregion
 
@@ -95,7 +97,7 @@ impl Display for FamilyError {
             Self::MaxPartners => {
                 write!(
                     f,
-                    "You're already at your partner limit! Use `/divorce` to break up with someone."
+                    "You're already at your partner limit! Use `/family divorce` to break up with someone."
                 )
             },
             Self::NotPartners(user_id) => {
@@ -151,7 +153,7 @@ impl Display for FamilyError {
             },
             Self::TreeEmpty(user_id) => write!(
                 f,
-                "{} has no family yet. Try `/marry` or `/adopt` to start one.",
+                "{} has no family yet. Try `/family marry` or `/family adopt` to start one.",
                 user_id.mention()
             ),
             Self::TreeRender(_) => {
@@ -161,6 +163,12 @@ impl Display for FamilyError {
                 f,
                 "You've drawn a tree recently. Try again <t:{retry_at}:R>."
             ),
+            Self::NotPrivileged => {
+                write!(f, "You need the Administrator permission to use this.")
+            },
+            Self::UnknownSubcommand(name) => {
+                write!(f, "Unknown subcommand: {name}")
+            },
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::NoInteraction
             | Self::SerenityTimestamp(_)
@@ -203,8 +211,10 @@ impl Respond for FamilyError {
             | Self::NoSiblings(_)
             | Self::TreeEmpty(_)
             | Self::TreeRender(_)
-            | Self::TreeCooldown { .. } => Some(Cow::Owned(self.to_string())),
+            | Self::TreeCooldown { .. }
+            | Self::NotPrivileged => Some(Cow::Owned(self.to_string())),
             Self::Internal(_)
+            | Self::UnknownSubcommand(_)
             | Self::NoInteraction
             | Self::SerenityTimestamp(_)
             | Self::Sqlx(_)
@@ -253,6 +263,8 @@ impl std::error::Error for FamilyError {
             | Self::SelfNoSiblings
             | Self::NoSiblings(_)
             | Self::TreeEmpty(_)
+            | Self::NotPrivileged
+            | Self::UnknownSubcommand(_)
             | Self::TreeCooldown { .. } => None,
         }
     }

@@ -1,19 +1,24 @@
+use std::collections::HashMap;
+
+use jiff::{SignedDuration, Timestamp};
 use serenity::all::{
-    CommandInteraction,
     CommandOptionType,
-    CreateCommand,
+    CreateAttachment,
     CreateCommandOption,
+    EditInteractionResponse,
+    ResolvedValue,
     User,
     UserId,
 };
-use sqlx::PgPool;
 use zayden_app::entitlement::Tier;
-use zayden_core::{as_i64, optional_option, parse_options};
+use zayden_core::{InvocationCtx, as_i64, optional_option, server_tier};
 use zayden_graphics::Renderer;
 
 use crate::tree::svg::render;
 use crate::tree::{RawGraph, TreeQuota, avatar, compose, cooldown};
 use crate::{FamilyError, Result};
+
+const TREE_FILENAME: &str = "family-tree.png";
 
 #[derive(Debug, Clone)]
 pub struct TreeImage {
@@ -33,72 +38,97 @@ impl TreeImage {
     }
 }
 
-pub struct Tree;
+pub(super) fn register() -> CreateCommandOption<'static> {
+    CreateCommandOption::new(
+        CommandOptionType::SubCommand,
+        "tree",
+        "Display a family tree",
+    )
+    .add_sub_option(super::user_option(
+        "The user whose family tree to display. Leave blank for your own",
+        false,
+    ))
+}
 
-impl Tree {
-    pub async fn run(
-        interaction: &CommandInteraction,
-        pool: &PgPool,
-        http: &reqwest::Client,
-        tier: Tier,
-    ) -> Result<TreeImage> {
-        let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
+pub(super) async fn run(
+    cx: &InvocationCtx<'_>,
+    mut options: HashMap<&str, ResolvedValue<'_>>,
+) -> Result<()> {
+    cx.interaction.defer(&cx.ctx.http).await?;
 
-        let options = interaction.data.options();
-        let mut options = parse_options(options);
-        let target: &User =
-            optional_option(&mut options, "user").unwrap_or(&interaction.user);
+    let target: &User =
+        optional_option(&mut options, "user").unwrap_or(&cx.interaction.user);
 
-        let quota = TreeQuota::for_tier(tier);
+    let guild_id = cx.interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        if let Some(left) =
-            cooldown::remaining(guild_id, interaction.user.id, quota.cooldown).await
-        {
-            return Err(FamilyError::TreeCooldown {
-                retry_at: retry_timestamp(left),
-            });
-        }
+    let tier = server_tier(&cx.ctx.http, &cx.app.entitlements, guild_id).await;
 
-        let raw = RawGraph::fetch(pool, guild_id, target.id, quota).await?;
+    let image = build(cx, target, tier).await?;
 
-        if raw.len() < 2 {
-            return Err(FamilyError::TreeEmpty(target.id));
-        }
+    let file = CreateAttachment::bytes(image.png.clone(), TREE_FILENAME);
 
-        let composed = compose(&raw, as_i64(target.id.get()), quota)
-            .ok_or(FamilyError::TreeEmpty(target.id))?;
+    let alt = format!(
+        "A family tree diagram showing {} members related to {}.",
+        image.shown, image.target_name,
+    );
 
-        let wanted = avatar::selection(&composed.graph);
-        let svg = render(&composed.graph, &composed.layout, quota, &wanted);
+    cx.interaction
+        .edit_response(
+            &cx.ctx.http,
+            EditInteractionResponse::new().new_attachment(file),
+        )
+        .await?;
 
-        let overlays = avatars(http, &svg.avatars, &composed, target).await;
+    Ok(())
+}
 
-        let png = Renderer::shared()?
-            .render(svg.markup, svg.canvas, overlays, quota.raster_limits())
-            .await?;
+async fn build(
+    cx: &InvocationCtx<'_>,
+    target: &User,
+    tier: Tier,
+) -> Result<TreeImage> {
+    let interaction = cx.interaction;
+    let pool = &cx.app.db;
 
-        cooldown::record(guild_id, interaction.user.id).await;
+    let guild_id = interaction.guild_id.ok_or(FamilyError::MissingGuildId)?;
 
-        Ok(TreeImage {
-            png,
-            target: target.id,
-            target_name: target.display_name().to_string(),
-            shown: composed.shown,
-            total: composed.total,
-            tier,
-            truncated: composed.truncated,
-        })
+    let quota = TreeQuota::for_tier(tier);
+
+    if let Some(left) =
+        cooldown::remaining(guild_id, interaction.user.id, quota.cooldown).await
+    {
+        return Err(FamilyError::TreeCooldown { retry_at: retry_timestamp(left) });
     }
 
-    pub fn register<'a>() -> CreateCommand<'a> {
-        CreateCommand::new("tree")
-            .description("Display your family tree.")
-            .add_option(CreateCommandOption::new(
-                CommandOptionType::User,
-                "user",
-                "The user whose family tree to display.",
-            ))
+    let raw = RawGraph::fetch(pool, guild_id, target.id, quota).await?;
+
+    if raw.len() < 2 {
+        return Err(FamilyError::TreeEmpty(target.id));
     }
+
+    let composed = compose(&raw, as_i64(target.id.get()), quota)
+        .ok_or(FamilyError::TreeEmpty(target.id))?;
+
+    let wanted = avatar::selection(&composed.graph);
+    let svg = render(&composed.graph, &composed.layout, quota, &wanted);
+
+    let overlays = avatars(&cx.app.http, &svg.avatars, &composed, target).await;
+
+    let png = Renderer::shared()?
+        .render(svg.markup, svg.canvas, overlays, quota.raster_limits())
+        .await?;
+
+    cooldown::record(guild_id, interaction.user.id).await;
+
+    Ok(TreeImage {
+        png,
+        target: target.id,
+        target_name: target.display_name().to_string(),
+        shown: composed.shown,
+        total: composed.total,
+        tier,
+        truncated: composed.truncated,
+    })
 }
 
 async fn avatars(
@@ -129,10 +159,6 @@ async fn avatars(
     avatar::fetch(http, slots, &hashes).await
 }
 
-fn retry_timestamp(left: std::time::Duration) -> i64 {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |since| i64::try_from(since.as_secs()).unwrap_or(0));
-
-    now.saturating_add(i64::try_from(left.as_secs()).unwrap_or(0))
+fn retry_timestamp(left: SignedDuration) -> i64 {
+    Timestamp::now().as_second().saturating_add(left.as_secs())
 }

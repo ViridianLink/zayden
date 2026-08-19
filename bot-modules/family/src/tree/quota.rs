@@ -1,4 +1,4 @@
-use std::time::Duration;
+use jiff::SignedDuration;
 
 use zayden_app::entitlement::Tier;
 
@@ -9,7 +9,7 @@ pub struct TreeQuota {
     pub fetch_limit: i64,
     pub max_canvas_pixels: u32,
     pub max_canvas_dim: u32,
-    pub cooldown: Option<Duration>,
+    pub cooldown: Option<SignedDuration>,
 }
 
 impl TreeQuota {
@@ -19,7 +19,7 @@ impl TreeQuota {
         fetch_limit: 300,
         max_canvas_pixels: 2_400_000,
         max_canvas_dim: 2_400,
-        cooldown: Some(Duration::from_secs(60)),
+        cooldown: Some(SignedDuration::from_secs(60)),
     };
     pub const PRO: Self = Self {
         node_budget: 40,
@@ -27,7 +27,7 @@ impl TreeQuota {
         fetch_limit: 800,
         max_canvas_pixels: 5_000_000,
         max_canvas_dim: 3_200,
-        cooldown: Some(Duration::from_secs(20)),
+        cooldown: Some(SignedDuration::from_secs(20)),
     };
     pub const ULTRA: Self = Self {
         node_budget: 120,

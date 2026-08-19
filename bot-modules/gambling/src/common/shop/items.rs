@@ -1,6 +1,6 @@
 use std::ops::Deref;
-use std::time::Duration;
 
+use jiff::SignedDuration;
 use zayden_core::EmojiCache;
 
 use super::{ShopCurrency, ShopPage};
@@ -18,7 +18,7 @@ pub struct ShopItem<'a> {
     pub category: ShopPage,
     pub sellable: bool,
     pub useable: bool,
-    pub effect_duration: Option<Duration>,
+    pub effect_duration: Option<SignedDuration>,
 }
 
 impl<'a> ShopItem<'a> {
@@ -72,7 +72,7 @@ impl<'a> ShopItem<'a> {
         self
     }
 
-    const fn duration(mut self, d: Duration) -> Self {
+    const fn duration(mut self, d: SignedDuration) -> Self {
         self.effect_duration = Some(d);
         self
     }
@@ -187,7 +187,7 @@ pub const ALL_INS: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost1,
 )
 .useable(true)
-.duration(Duration::from_mins(2));
+.duration(SignedDuration::from_mins(2));
 
 // const RIGGED_LUCK: ShopItem<'static> = ShopItem::new(
 //     "riggedluck",
@@ -209,7 +209,7 @@ const PAYOUT_X2: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.duration(Duration::from_mins(15));
+.duration(SignedDuration::from_mins(15));
 
 const PAYOUT_X5: ShopItem<'static> = ShopItem::new(
     "payout5x",
@@ -221,7 +221,7 @@ const PAYOUT_X5: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.duration(Duration::from_mins(10));
+.duration(SignedDuration::from_mins(10));
 
 const PAYOUT_X10: ShopItem<'static> = ShopItem::new(
     "payout10x",
@@ -233,7 +233,7 @@ const PAYOUT_X10: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.duration(Duration::from_mins(5));
+.duration(SignedDuration::from_mins(5));
 
 const PAYOUT_X50: ShopItem<'static> = ShopItem::new(
     "payout50x",
@@ -245,7 +245,7 @@ const PAYOUT_X50: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.duration(Duration::from_mins(2));
+.duration(SignedDuration::from_mins(2));
 
 const PAYOUT_X100: ShopItem<'static> = ShopItem::new(
     "payout100x",
@@ -257,7 +257,7 @@ const PAYOUT_X100: ShopItem<'static> = ShopItem::new(
     ShopPage::Boost2,
 )
 .useable(true)
-.duration(Duration::from_mins(1));
+.duration(SignedDuration::from_mins(1));
 
 // region: Mine
 pub const MINER: ShopItem<'static> = ShopItem::new(

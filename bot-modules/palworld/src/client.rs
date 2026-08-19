@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::{Duration, Instant, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
+use jiff::Timestamp;
 use moka::future::Cache;
 use reqwest::Client;
 use tokio::sync::Mutex;
@@ -634,8 +635,8 @@ fn local_mtime_secs(level_path: &Path) -> i64 {
     std::fs::metadata(level_path)
         .and_then(|m| m.modified())
         .ok()
-        .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
-        .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(i64::MAX))
+        .and_then(|t| Timestamp::try_from(t).ok())
+        .map_or(0, Timestamp::as_second)
 }
 
 async fn level_mtime(dir: &Path) -> Result<u64> {

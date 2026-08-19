@@ -1,6 +1,5 @@
-use std::time::Duration;
-
 use async_trait::async_trait;
+use jiff::SignedDuration;
 use serenity::all::{
     CommandOptionType,
     Context,
@@ -97,9 +96,9 @@ impl ModuleCommand for Infraction {
 
         let embed = match infraction_count {
             ..=1 => warn(&case).await?,
-            2 => mute(&case, Duration::from_hours(1)).await?,
-            3 => mute(&case, Duration::from_hours(8)).await?,
-            4 => mute(&case, Duration::from_hours(28 * 24)).await?,
+            2 => mute(&case, SignedDuration::from_hours(1)).await?,
+            3 => mute(&case, SignedDuration::from_hours(8)).await?,
+            4 => mute(&case, SignedDuration::from_hours(28 * 24)).await?,
             _ => ban(&case).await?,
         };
 
@@ -159,14 +158,12 @@ async fn warn(case: &Case<'_>) -> Result<CreateEmbed<'static>, HandlerError> {
 
 async fn mute(
     case: &Case<'_>,
-    duration: Duration,
+    duration: SignedDuration,
 ) -> Result<CreateEmbed<'static>, HandlerError> {
     let mut member = case.guild_id.member(&case.ctx.http, case.target.id).await?;
 
     let until = Timestamp::from_unix_timestamp(
-        Timestamp::now()
-            .unix_timestamp()
-            .saturating_add(i64::try_from(duration.as_secs()).unwrap_or(i64::MAX)),
+        jiff::Timestamp::now().as_second().saturating_add(duration.as_secs()),
     )
     .map_err(|e| CoreError::Other(e.to_string()))?;
     member.disable_communication_until(&case.ctx.http, until).await?;
@@ -247,9 +244,9 @@ fn action_embed(
     embed
 }
 
-fn format_duration(duration: Duration) -> String {
-    const HOUR: u64 = 60 * 60;
-    const DAY: u64 = 24 * HOUR;
+fn format_duration(duration: SignedDuration) -> String {
+    const HOUR: i64 = 60 * 60;
+    const DAY: i64 = 24 * HOUR;
 
     let secs = duration.as_secs();
 

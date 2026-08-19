@@ -32,8 +32,8 @@ pub async fn get_save_roster() -> Result<SaveRosterView, ServerFnError> {
         let modified = std::fs::metadata(&level_path)?
             .modified()
             .ok()
-            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-            .map_or(0, |d| i64::try_from(d.as_secs()).unwrap_or(0));
+            .and_then(|t| jiff::Timestamp::try_from(t).ok())
+            .map_or(0, jiff::Timestamp::as_second);
         let bytes = std::fs::read(&level_path)?;
         read_roster(&bytes, modified)
     })

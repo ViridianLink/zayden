@@ -1,6 +1,7 @@
 use std::fmt::{Display, Write as _};
 use std::num::ParseIntError;
 
+use jiff::Timestamp;
 use serenity::all::{
     CommandInteraction,
     CommandOptionType,
@@ -513,7 +514,8 @@ async fn use_item<Data: EmojiCacheData>(
     let mut description =
         format!("Successfully activated item:\n**{}**", item.as_str(&emojis)?);
     if let Some(duration) = item.effect_duration {
-        let _ = write!(description, "(<t:{}:R>)", duration.as_secs());
+        let expiry = Timestamp::now().as_second().saturating_add(duration.as_secs());
+        let _ = write!(description, "(<t:{expiry}:R>)");
     }
 
     let embed = CreateEmbed::new()
