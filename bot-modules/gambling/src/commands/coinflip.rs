@@ -30,7 +30,7 @@ use crate::{
 
 pub const WIN_MULTIPLIER: i64 = 2;
 pub const JACKPOT_MULTIPLIER: i64 = 1000;
-pub const JACKPOT_ODDS: u32 = 10_000;
+pub const JACKPOT_ODDS: u32 = 25_000;
 
 impl Commands {
     pub async fn coinflip<Data: GamblingData + EmojiCacheData>(

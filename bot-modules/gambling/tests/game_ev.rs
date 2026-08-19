@@ -12,6 +12,10 @@
 //! deducted and no coupling to level or prestige — an unbounded faucet rather
 //! than a game.
 //!
+//! Coinflip is now tuned to sit exactly on the 2% ceiling: the jackpot roll is
+//! 1-in-24,950, which makes the edge `499 / 24_950` = 2.000%. See the
+//! derivation on `JACKPOT_ODDS`.
+//!
 //! These pin the payout constants against the arithmetic that justifies them,
 //! so a later tweak to a multiplier cannot quietly move a game out of band.
 
