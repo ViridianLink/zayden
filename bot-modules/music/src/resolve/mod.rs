@@ -33,11 +33,15 @@ pub use spotify_embed::{
     parse_embed_playlist,
 };
 pub use youtube::{
+    STREAM_CLIENTS,
+    STREAM_FORMAT,
+    StreamFormat,
     YT_DLP_PROBE_TIMEOUT,
     YT_DLP_TIMEOUT,
     YouTubeResolver,
     has_playlist,
     playlist_start_index,
+    probe_stream,
     probe_yt_dlp,
     run_with_timeout,
 };

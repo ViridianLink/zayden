@@ -27,9 +27,10 @@ RUN cargo build --release --bin bot
 # Stage 3: fetch yt-dlp
 FROM debian:trixie-slim AS ytdlp
 ARG YTDLP_VERSION=2026.07.04
+ARG DENO_VERSION=v2.9.5
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates \
+    curl ca-certificates unzip \
     && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
@@ -42,6 +43,19 @@ RUN set -eux; \
     rm /SHA2-256SUMS; \
     chmod a+rx /yt-dlp
 
+# x86_64 only, matching the `yt-dlp_linux` build fetched above.
+RUN set -eux; \
+    asset="deno-x86_64-unknown-linux-gnu.zip"; \
+    base="https://github.com/denoland/deno/releases/download/${DENO_VERSION}"; \
+    curl -fsSL "$base/$asset" -o "/$asset"; \
+    curl -fsSL "$base/${asset}.sha256sum" -o /deno.sha256sum; \
+    expected="$(awk '{ print $1 }' /deno.sha256sum)"; \
+    test -n "$expected"; \
+    echo "${expected}  /$asset" | sha256sum -c -; \
+    unzip -q "/$asset" -d /; \
+    rm "/$asset" /deno.sha256sum; \
+    chmod a+rx /deno
+
 # Stage 4: runtime
 FROM debian:trixie-slim AS runtime
 WORKDIR /app
@@ -52,11 +66,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ytdlp /yt-dlp /usr/local/bin/yt-dlp
-# Fail the build here rather than at runtime if the binary can't execute.
-RUN yt-dlp --version
+COPY --from=ytdlp /deno /usr/local/bin/deno
+RUN yt-dlp --version && deno --version
+
+ENV DENO_DIR=/app/.deno
 
 RUN groupadd --system zayden && useradd --system --gid zayden zayden \
-    && mkdir -p /app/palworld_uploads \
+    && mkdir -p /app/palworld_uploads /app/.deno \
     && chown -R zayden:zayden /app
 
 COPY --from=builder /app/target/release/bot /usr/local/bin/zayden-bot

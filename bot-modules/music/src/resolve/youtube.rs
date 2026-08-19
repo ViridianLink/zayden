@@ -1,12 +1,15 @@
+use std::collections::HashMap;
 use std::process::Output;
 use std::time::Duration;
 
 use async_trait::async_trait;
 use serde::Deserialize;
 use serenity::all::UserId;
-use songbird::input::{Input, YoutubeDl};
+use songbird::input::{HlsRequest, HttpRequest, Input};
 use songbird_reqwest::Client;
+use songbird_reqwest::header::{HeaderMap, HeaderName, HeaderValue, RANGE};
 use tokio::process::Command;
+use tracing::warn;
 use url::Url;
 
 use super::http::stream_client;
@@ -26,6 +29,10 @@ const PLAYLIST_CAP: u64 = 500;
 pub const YT_DLP_PROGRAM: &str = "yt-dlp";
 pub const YT_DLP_TIMEOUT: Duration = Duration::from_secs(60);
 pub const YT_DLP_PROBE_TIMEOUT: Duration = Duration::from_secs(10);
+
+pub const STREAM_FORMAT: &str = "ba[abr>0][vcodec=none]/ba/best";
+pub const STREAM_CLIENTS: &[&str] =
+    &["android_vr", "web_embedded", "mweb", "tv_simply"];
 
 pub struct YouTubeResolver {
     http: Client,
@@ -105,6 +112,61 @@ impl YouTubeResolver {
             origin: PlaylistOrigin::YouTubePlaylist,
         })
     }
+
+    async fn prepare_stream(&self, url: &str, client: &str) -> Result<Input> {
+        let player_client = format!("youtube:player_client={client}");
+        let output = run_yt_dlp(&[
+            "--format",
+            STREAM_FORMAT,
+            "--no-playlist",
+            "--extractor-args",
+            &player_client,
+            url,
+        ])
+        .await?;
+
+        let format = output.into_stream_format().ok_or(MusicError::NoResults)?;
+
+        if format.is_hls() {
+            return Ok(HlsRequest::new_with_headers(
+                self.http.clone(),
+                format.url,
+                format.headers,
+            )
+            .into());
+        }
+
+        probe_stream(&self.http, &format).await?;
+
+        Ok(HttpRequest {
+            client: self.http.clone(),
+            request: format.url,
+            headers: format.headers,
+            content_length: format.filesize,
+        }
+        .into())
+    }
+}
+
+pub async fn probe_stream(http: &Client, format: &StreamFormat) -> Result<()> {
+    let mut request = http.get(&format.url).headers(format.headers.clone());
+
+    if let Some(range) = format.range_header() {
+        request = request.header(RANGE, range);
+    }
+
+    let response = request.send().await.map_err(|e| {
+        MusicError::Resolve(format!("could not reach the audio host: {e}"))
+    })?;
+
+    if !response.status().is_success() {
+        return Err(MusicError::Resolve(format!(
+            "the audio host rejected the stream URL: {}",
+            response.status()
+        )));
+    }
+
+    Ok(())
 }
 
 #[async_trait]
@@ -141,7 +203,23 @@ impl TrackResolver for YouTubeResolver {
     }
 
     async fn stream(&self, track: &ResolvedTrack) -> Result<Input> {
-        Ok(YoutubeDl::new(self.http.clone(), track.url.clone()).into())
+        let mut last = None;
+
+        for client in STREAM_CLIENTS {
+            match self.prepare_stream(&track.url, client).await {
+                Ok(input) => return Ok(input),
+                Err(e) => {
+                    warn!(
+                        player_client = client,
+                        url = %track.url,
+                        "no playable stream from this YouTube client: {e}"
+                    );
+                    last = Some(e);
+                },
+            }
+        }
+
+        Err(last.unwrap_or(MusicError::NoResults))
     }
 }
 
@@ -241,6 +319,12 @@ struct YtDlpOutput {
     is_live: Option<bool>,
     #[serde(default)]
     entries: Vec<Self>,
+    #[serde(default)]
+    http_headers: HashMap<String, String>,
+    #[serde(default)]
+    filesize: Option<u64>,
+    #[serde(default)]
+    protocol: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -248,7 +332,48 @@ struct Thumbnail {
     url: String,
 }
 
+pub struct StreamFormat {
+    pub url: String,
+    pub headers: HeaderMap,
+    pub filesize: Option<u64>,
+    pub protocol: Option<String>,
+}
+
+impl StreamFormat {
+    #[must_use]
+    pub fn is_hls(&self) -> bool {
+        self.protocol.as_deref().is_some_and(|p| p.starts_with("m3u8"))
+    }
+
+    #[must_use]
+    pub fn range_header(&self) -> Option<String> {
+        self.filesize.map(|max| format!("bytes=0-{}", max.saturating_sub(1)))
+    }
+}
+
 impl YtDlpOutput {
+    fn into_stream_format(self) -> Option<StreamFormat> {
+        let url = self.url?;
+
+        let headers = self
+            .http_headers
+            .iter()
+            .filter_map(|(name, value)| {
+                Some((
+                    HeaderName::from_bytes(name.as_bytes()).ok()?,
+                    HeaderValue::from_str(value).ok()?,
+                ))
+            })
+            .collect();
+
+        Some(StreamFormat {
+            url,
+            headers,
+            filesize: self.filesize,
+            protocol: self.protocol,
+        })
+    }
+
     fn into_track(self, requested_by: UserId) -> Option<ResolvedTrack> {
         let id = self.id?;
 
