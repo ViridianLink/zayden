@@ -49,6 +49,7 @@ pub use resolve::{
     StreamFormat,
     TrackResolver,
     YT_DLP_PROBE_TIMEOUT,
+    YT_DLP_STREAM_TIMEOUT,
     YT_DLP_TIMEOUT,
     YouTubeResolver,
     embed_resolution,

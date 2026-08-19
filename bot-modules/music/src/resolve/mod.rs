@@ -37,6 +37,7 @@ pub use youtube::{
     STREAM_FORMAT,
     StreamFormat,
     YT_DLP_PROBE_TIMEOUT,
+    YT_DLP_STREAM_TIMEOUT,
     YT_DLP_TIMEOUT,
     YouTubeResolver,
     has_playlist,

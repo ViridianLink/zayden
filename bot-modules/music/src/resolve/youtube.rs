@@ -29,6 +29,7 @@ const PLAYLIST_CAP: u64 = 500;
 pub const YT_DLP_PROGRAM: &str = "yt-dlp";
 pub const YT_DLP_TIMEOUT: Duration = Duration::from_secs(60);
 pub const YT_DLP_PROBE_TIMEOUT: Duration = Duration::from_secs(10);
+pub const YT_DLP_STREAM_TIMEOUT: Duration = Duration::from_secs(20);
 
 pub const STREAM_FORMAT: &str = "ba[abr>0][vcodec=none]/ba/best";
 pub const STREAM_CLIENTS: &[&str] =
@@ -115,7 +116,7 @@ impl YouTubeResolver {
 
     async fn prepare_stream(&self, url: &str, client: &str) -> Result<Input> {
         let player_client = format!("youtube:player_client={client}");
-        let output = run_yt_dlp(&[
+        let output = run_yt_dlp_within(YT_DLP_STREAM_TIMEOUT, &[
             "--format",
             STREAM_FORMAT,
             "--no-playlist",
@@ -261,10 +262,14 @@ pub async fn run_with_timeout(
 }
 
 async fn run_yt_dlp(args: &[&str]) -> Result<YtDlpOutput> {
+    run_yt_dlp_within(YT_DLP_TIMEOUT, args).await
+}
+
+async fn run_yt_dlp_within(budget: Duration, args: &[&str]) -> Result<YtDlpOutput> {
     let mut full = vec!["--dump-single-json", "--no-warnings"];
     full.extend_from_slice(args);
 
-    let output = run_with_timeout(YT_DLP_PROGRAM, &full, YT_DLP_TIMEOUT)
+    let output = run_with_timeout(YT_DLP_PROGRAM, &full, budget)
         .await
         .map_err(MusicError::Resolve)?;
 

@@ -178,3 +178,16 @@ fn stream_format_prefers_audio_only() {
         "the first choice must be audio-only, got {first}"
     );
 }
+
+/// Every client in the chain is tried in turn before a track is given up on,
+/// so the chain's total budget is what whoever queued the track waits through.
+#[test]
+fn the_whole_client_chain_fits_inside_a_sane_wait() {
+    let clients = u32::try_from(music::STREAM_CLIENTS.len()).unwrap_or(u32::MAX);
+    let worst_case = music::YT_DLP_STREAM_TIMEOUT.saturating_mul(clients);
+
+    assert!(
+        worst_case <= Duration::from_secs(90),
+        "a fully broken chain would stall playback for {worst_case:?}"
+    );
+}
