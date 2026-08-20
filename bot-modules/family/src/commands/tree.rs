@@ -67,11 +67,6 @@ pub(super) async fn run(
 
     let file = CreateAttachment::bytes(image.png.clone(), TREE_FILENAME);
 
-    let alt = format!(
-        "A family tree diagram showing {} members related to {}.",
-        image.shown, image.target_name,
-    );
-
     cx.interaction
         .edit_response(
             &cx.ctx.http,
