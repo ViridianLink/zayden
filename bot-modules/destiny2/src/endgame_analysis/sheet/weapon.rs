@@ -1,3 +1,4 @@
+use core::fmt::NumBuffer;
 use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::ops::Deref;
@@ -426,80 +427,75 @@ impl Weapon {
             })
             .filter_map(|item| item.sockets.as_ref().map(|sockets| (item, sockets)))
             .map(|(item, sockets)| {
-                let plug_items =
-                    sockets.socket_entries.iter().map(|socket| {
-                        match (
-                            socket.randomized_plug_set_hash,
-                            socket.reusable_plug_set_hash,
-                            socket.reusable_plug_items.as_slice(),
-                        ) {
-                            (Some(hash), None, items) => {
-                                let reusable = plug_manifest
-                                    .get(&hash.to_string())
-                                    .map(|s| {
-                                        s.reusable_plug_items
-                                            .iter()
-                                            .map(|i| i.plug_item_hash)
-                                            .collect::<Vec<_>>()
-                                    })
-                                    .unwrap_or_default();
-                                reusable
-                                    .into_iter()
-                                    .chain(
-                                        items.iter().map(|item| item.plug_item_hash),
-                                    )
-                                    .collect::<Vec<_>>()
-                            },
-                            (None, Some(hash), items) => {
-                                let reusable = plug_manifest
-                                    .get(&hash.to_string())
-                                    .map(|s| {
-                                        s.reusable_plug_items
-                                            .iter()
-                                            .map(|i| i.plug_item_hash)
-                                            .collect::<Vec<_>>()
-                                    })
-                                    .unwrap_or_default();
-                                reusable
-                                    .into_iter()
-                                    .chain(
-                                        items.iter().map(|item| item.plug_item_hash),
-                                    )
-                                    .collect::<Vec<_>>()
-                            },
-                            (Some(random_hash), Some(reusable_hash), items) => {
-                                let random_hashes = plug_manifest
-                                    .get(&random_hash.to_string())
-                                    .map(|s| {
-                                        s.reusable_plug_items
-                                            .iter()
-                                            .map(|i| i.plug_item_hash)
-                                            .collect::<Vec<_>>()
-                                    })
-                                    .unwrap_or_default();
-                                let reusable_hashes = plug_manifest
-                                    .get(&reusable_hash.to_string())
-                                    .map(|s| {
-                                        s.reusable_plug_items
-                                            .iter()
-                                            .map(|i| i.plug_item_hash)
-                                            .collect::<Vec<_>>()
-                                    })
-                                    .unwrap_or_default();
-                                random_hashes
-                                    .into_iter()
-                                    .chain(reusable_hashes)
-                                    .chain(
-                                        items.iter().map(|item| item.plug_item_hash),
-                                    )
-                                    .collect::<Vec<_>>()
-                            },
-                            (None, None, items) => items
-                                .iter()
-                                .map(|item| item.plug_item_hash)
-                                .collect::<Vec<_>>(),
-                        }
-                    });
+                let plug_items = sockets.socket_entries.iter().map(|socket| {
+                    let mut buf = NumBuffer::<u32>::new();
+
+                    match (
+                        socket.randomized_plug_set_hash,
+                        socket.reusable_plug_set_hash,
+                        socket.reusable_plug_items.as_slice(),
+                    ) {
+                        (Some(hash), None, items) => {
+                            let reusable = plug_manifest
+                                .get(hash.format_into(&mut buf))
+                                .map(|s| {
+                                    s.reusable_plug_items
+                                        .iter()
+                                        .map(|i| i.plug_item_hash)
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_default();
+                            reusable
+                                .into_iter()
+                                .chain(items.iter().map(|item| item.plug_item_hash))
+                                .collect::<Vec<_>>()
+                        },
+                        (None, Some(hash), items) => {
+                            let reusable = plug_manifest
+                                .get(hash.format_into(&mut buf))
+                                .map(|s| {
+                                    s.reusable_plug_items
+                                        .iter()
+                                        .map(|i| i.plug_item_hash)
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_default();
+                            reusable
+                                .into_iter()
+                                .chain(items.iter().map(|item| item.plug_item_hash))
+                                .collect::<Vec<_>>()
+                        },
+                        (Some(random_hash), Some(reusable_hash), items) => {
+                            let random_hashes = plug_manifest
+                                .get(random_hash.format_into(&mut buf))
+                                .map(|s| {
+                                    s.reusable_plug_items
+                                        .iter()
+                                        .map(|i| i.plug_item_hash)
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_default();
+                            let reusable_hashes = plug_manifest
+                                .get(reusable_hash.format_into(&mut buf))
+                                .map(|s| {
+                                    s.reusable_plug_items
+                                        .iter()
+                                        .map(|i| i.plug_item_hash)
+                                        .collect::<Vec<_>>()
+                                })
+                                .unwrap_or_default();
+                            random_hashes
+                                .into_iter()
+                                .chain(reusable_hashes)
+                                .chain(items.iter().map(|item| item.plug_item_hash))
+                                .collect::<Vec<_>>()
+                        },
+                        (None, None, items) => items
+                            .iter()
+                            .map(|item| item.plug_item_hash)
+                            .collect::<Vec<_>>(),
+                    }
+                });
 
                 (item, plug_items)
             })
@@ -511,10 +507,13 @@ impl Weapon {
             .map(|(item, plug_items)| {
                 let perks = plug_items
                     .map(|traits| {
+                        let mut buf = NumBuffer::<u32>::new();
+
                         traits
                             .iter()
-                            .map(ToString::to_string)
-                            .filter_map(|hash| item_manifest.get(&hash))
+                            .filter_map(|hash| {
+                                item_manifest.get(hash.format_into(&mut buf))
+                            })
                             .filter(|item| !item.display_properties.name.is_empty())
                             .filter(|perk_item| {
                                 self.perks().0.iter().flatten().any(|perk| {
@@ -695,13 +694,19 @@ fn generate_combinations_iterative(
         if !output.is_empty() {
             output.push('\n');
         }
-        let _ = write!(output, "dimwishlist:item={item_hash}&perks=");
-        let perks = current_combination
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
-        output.push_str(&perks);
+        let mut buf = NumBuffer::<u32>::new();
+
+        output.push_str("dimwishlist:item=");
+        output.push_str(item_hash.format_into(&mut buf));
+        output.push_str("&perks=");
+
+        for (i, num) in current_combination.iter().enumerate() {
+            if i != 0 {
+                output.push(',');
+            }
+            output.push_str(num.format_into(&mut buf));
+        }
+
         return;
     }
 

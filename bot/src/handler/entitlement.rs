@@ -1,3 +1,5 @@
+use core::fmt::NumBuffer;
+
 use serenity::all::{Context, Entitlement, GuildId, UserId};
 use tracing::{debug, warn};
 use zayden_app::entitlement::{DiscordProvider, EntitlementProvider};
@@ -44,8 +46,10 @@ pub(super) async fn entitlement_delete(
     entitlement: &Entitlement,
     app: &AppState,
 ) -> Result<()> {
+    let mut buf = NumBuffer::<u64>::new();
+
     DiscordProvider
-        .revoke(&app.entitlements, &entitlement.id.get().to_string())
+        .revoke(&app.entitlements, entitlement.id.get().format_into(&mut buf))
         .await
         .map_err(|e| {
             warn!(?e, "failed to revoke Discord entitlement");

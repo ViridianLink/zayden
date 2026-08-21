@@ -1,3 +1,4 @@
+use core::fmt::NumBuffer;
 use std::collections::HashMap;
 use std::process::Output;
 use std::sync::Arc;
@@ -96,10 +97,11 @@ impl YouTubeResolver {
     ) -> Result<Resolution> {
         let start = playlist_start_index(url);
 
+        let mut buf = NumBuffer::<u64>::new();
         let head_output = run_yt_dlp(self.jar(), &[
             "--flat-playlist",
             "--playlist-items",
-            &start.to_string(),
+            start.format_into(&mut buf),
             url,
         ])
         .await?;

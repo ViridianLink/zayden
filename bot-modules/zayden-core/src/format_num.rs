@@ -1,3 +1,5 @@
+use core::fmt::NumBuffer;
+
 pub trait FormatNum {
     #[must_use]
     fn format(&self) -> String;
@@ -16,23 +18,23 @@ impl FormatNum for i32 {
 }
 
 fn format_with_commas(n: i64) -> String {
-    let is_negative = n < 0;
-    let abs = n.unsigned_abs();
-    let s = abs.to_string();
-    let len = s.len();
-    let commas = len.saturating_sub(1) / 3;
-    let mut result = String::with_capacity(len + commas + usize::from(is_negative));
+    let mut buf = NumBuffer::<u64>::new();
+    let digits = n.unsigned_abs().format_into(&mut buf);
 
-    for (i, c) in s.chars().rev().enumerate() {
-        if i != 0 && i % 3 == 0 {
+    let len = digits.len();
+    let commas = len.saturating_sub(1) / 3;
+    let mut result = String::with_capacity(len + commas + usize::from(n < 0));
+
+    if n < 0 {
+        result.push('-');
+    }
+
+    for (i, c) in digits.chars().enumerate() {
+        if i != 0 && (len - i).is_multiple_of(3) {
             result.push(',');
         }
         result.push(c);
     }
 
-    if is_negative {
-        result.push('-');
-    }
-
-    result.chars().rev().collect()
+    result
 }
