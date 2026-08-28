@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::{app_state, server_err},
+    crate::server::auth::{GuildAccess, app_state, server_err},
     crate::server::command_permissions::{
         GuildContext,
         everyone_denied,
@@ -128,11 +128,19 @@ impl ModuleDef {
         }
     }
 
+    const fn locked_for(&self, access: GuildAccess) -> bool {
+        match self.backing {
+            Backing::Commands(_) => !access.can_write_command_permissions(),
+            Backing::Settings => false,
+        }
+    }
+
     fn view(
         &self,
         name_to_id: &HashMap<String, Id<CommandMarker>>,
         denied: &HashSet<Id<CommandMarker>>,
         settings_flags: &HashMap<&'static str, bool>,
+        access: GuildAccess,
     ) -> ModuleView {
         let enabled = match self.backing {
             Backing::Commands(names) => {
@@ -152,6 +160,7 @@ impl ModuleDef {
             description: self.description.to_string(),
             commands: self.commands().iter().map(|c| (*c).to_string()).collect(),
             enabled,
+            locked: self.locked_for(access),
         }
     }
 }
@@ -191,7 +200,10 @@ pub async fn list_guild_modules(
     let denied = denied_commands(ctx.guild_id, &permissions);
     let flags = flags?;
 
-    Ok(MODULES.iter().map(|m| m.view(&name_to_id, &denied, &flags)).collect())
+    Ok(MODULES
+        .iter()
+        .map(|m| m.view(&name_to_id, &denied, &flags, ctx.access))
+        .collect())
 }
 
 #[cfg(feature = "ssr")]

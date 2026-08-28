@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use {
     crate::dto::GreetingImageInfo,
     crate::dto::{CooldownView, Tier},
-    crate::server::auth::{app_state, db_pool, guild_admin_context, server_err},
+    crate::server::auth::{admin_guild_id, app_state, db_pool, server_err},
     crate::server::command_permissions::{
         MAX_ALLOWED_CHANNELS,
         channel_allowlist,
@@ -87,7 +87,7 @@ const fn floors_for(tier: Tier) -> Cooldowns {
 
 #[server]
 pub async fn get_greetings(guild: String) -> Result<GreetingsView, ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let app = app_state()?;
     let pool = db_pool()?;
 
@@ -118,6 +118,7 @@ pub async fn get_greetings(guild: String) -> Result<GreetingsView, ServerFnError
         morning: images(&pool, guild_id, GreetingKind::Morning).await?,
         night: images(&pool, guild_id, GreetingKind::Night).await?,
         allowed_channels,
+        channels_locked: !ctx.access.can_write_command_permissions(),
         cooldowns: CooldownView {
             user_secs: config.cooldowns.user_secs,
             guild_secs: config.cooldowns.guild_secs,
@@ -137,7 +138,7 @@ pub async fn save_greeting_messages(
     morning_message: String,
     night_message: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let app = app_state()?;
 
     GreetingsSettings::save_messages(
@@ -179,7 +180,7 @@ pub async fn save_greeting_cooldowns(
     user_cooldown: String,
     guild_cooldown: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let app = app_state()?;
 
     let guild_id = GuildId::new(guild_id.cast_unsigned());
@@ -276,7 +277,7 @@ pub async fn add_greeting_image(
     kind: String,
     url: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     let kind = GreetingKind::parse(&kind).map_err(server_err)?;
@@ -292,7 +293,7 @@ pub async fn remove_greeting_image(
     guild: String,
     id: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     let id = id.trim().parse::<i32>().map_err(|_e| invalid("image id"))?;

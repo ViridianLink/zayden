@@ -1,12 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::{
-        db_pool,
-        discord_client,
-        guild_admin_context,
-        server_err,
-    },
+    crate::server::auth::{admin_guild_id, db_pool, discord_client, server_err},
     reaction_roles::{
         GenericChannelId,
         GuildId,
@@ -53,7 +48,7 @@ fn request_reaction(
 pub async fn list_reaction_roles(
     guild: String,
 ) -> Result<Vec<ReactionRoleInfo>, ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     let mut rows = ReactionRole::rows(&pool, GuildId::new(guild_id.cast_unsigned()))
@@ -86,7 +81,7 @@ pub async fn add_reaction_role(
     role_id: String,
     emoji: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
     let http = discord_client()?;
 
@@ -152,7 +147,7 @@ pub async fn remove_reaction_role(
     message_id: String,
     emoji: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
     let http = discord_client()?;
 

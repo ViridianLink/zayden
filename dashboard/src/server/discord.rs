@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::{discord_client, guild_admin_context, server_err},
+    crate::server::auth::{admin_guild_id, discord_client, server_err},
     std::sync::Arc,
     twilight_http::Client,
     twilight_model::id::Id,
@@ -11,7 +11,7 @@ use crate::dto::{ChannelInfo, RoleInfo};
 
 #[cfg(feature = "ssr")]
 async fn admin_discord(guild: &str) -> Result<(u64, Arc<Client>), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(guild).await?;
+    let guild_id = admin_guild_id(guild).await?;
     Ok((guild_id.cast_unsigned(), discord_client()?))
 }
 

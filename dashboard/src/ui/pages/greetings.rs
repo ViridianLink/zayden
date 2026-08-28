@@ -93,6 +93,7 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                                 morning,
                                 night,
                                 allowed_channels,
+                                channels_locked,
                                 cooldowns,
                             } = view;
                             let gid = guild_id();
@@ -128,6 +129,7 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                                     guild_id=channel_gid
                                     allowed=allowed_channels
                                     channels=channels
+                                    locked=channels_locked
                                     add=add_channel
                                     remove=remove_channel
                                 />
@@ -189,6 +191,7 @@ fn ChannelSection(
     guild_id: String,
     allowed: Vec<String>,
     channels: Vec<ChannelInfo>,
+    locked: bool,
     add: ServerAction<AddGreetingChannel>,
     remove: ServerAction<RemoveGreetingChannel>,
 ) -> impl IntoView {
@@ -209,6 +212,14 @@ fn ChannelSection(
                 || format!("#unknown ({id})"),
                 |c| format!("#{}", c.name),
             );
+
+            if locked {
+                return view! {
+                    <span class="chip"><span class="chip-label">{name}</span></span>
+                }
+                .into_any();
+            }
+
             let gid = guild_id.clone();
 
             view! {
@@ -221,8 +232,36 @@ fn ChannelSection(
                     </button>
                 </ActionForm>
             }
+            .into_any()
         })
         .collect_view();
+
+    let editor = if locked {
+        view! {
+            <p class="module-locked">
+                "Read-only: Discord only lets a member with Manage Server \
+                 change which channels a command is allowed in."
+            </p>
+        }
+        .into_any()
+    } else {
+        view! {
+            {move || remove_result.get().map(save_feedback)}
+            {move || add_result.get().map(save_feedback)}
+            <ActionForm action=add attr:class="chip-add">
+                <input type="hidden" name="guild" value=add_gid/>
+                <ChannelSelect
+                    label="Allow a channel"
+                    name="channel_id"
+                    selected=String::new()
+                    channels=unconfigured
+                    kinds=GATE_KINDS
+                />
+                <button type="submit" class="btn btn-ghost">"Add channel"</button>
+            </ActionForm>
+        }
+        .into_any()
+    };
 
     view! {
         <fieldset class="settings-section">
@@ -239,19 +278,7 @@ fn ChannelSection(
                 "either way show up in both."
             </p>
             <div class="chip-list">{chips}</div>
-            {move || remove_result.get().map(save_feedback)}
-            {move || add_result.get().map(save_feedback)}
-            <ActionForm action=add attr:class="chip-add">
-                <input type="hidden" name="guild" value=add_gid/>
-                <ChannelSelect
-                    label="Allow a channel"
-                    name="channel_id"
-                    selected=String::new()
-                    channels=unconfigured
-                    kinds=GATE_KINDS
-                />
-                <button type="submit" class="btn btn-ghost">"Add channel"</button>
-            </ActionForm>
+            {editor}
         </fieldset>
     }
 }

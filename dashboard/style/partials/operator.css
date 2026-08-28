@@ -1,0 +1,80 @@
+/* Operator access: the all-servers list and the "this isn't your server" cues */
+
+.operator-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.operator-tools input {
+  padding: 0.6rem 0.8rem;
+  background-color: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s var(--ease-spring);
+}
+
+.operator-tools input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.operator-tools input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.operator-tools > input[type="search"] {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.operator-jump {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.operator-jump input {
+  width: 13rem;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+}
+
+.operator-count {
+  margin: 0 0 1rem;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* Shown in the guild sidebar when the settings on screen were reached by
+   bypassing permissions rather than holding them. */
+
+.operator-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.6rem 0 0;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--warning);
+}
+
+.operator-badge .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.module-locked {
+  margin: 0 0 1rem;
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}

@@ -1,3 +1,4 @@
+pub mod guild_grid;
 pub mod icons;
 pub mod layout;
 pub mod module_card;

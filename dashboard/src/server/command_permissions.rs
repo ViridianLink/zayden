@@ -7,6 +7,7 @@ use twilight_model::id::marker::{ChannelMarker, GuildMarker, RoleMarker};
 #[cfg(feature = "ssr")]
 use {
     crate::server::auth::{
+        GuildAccess,
         app_state,
         bearer_client,
         discord_client,
@@ -146,20 +147,30 @@ pub(crate) struct GuildContext {
     pub(crate) access_token: String,
     pub(crate) http: Arc<twilight_http::Client>,
     pub(crate) app_id: u64,
+    pub(crate) access: GuildAccess,
 }
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn guild_context(
     guild: &str,
 ) -> Result<GuildContext, ServerFnError> {
-    let (guild_id, _user, access_token) = guild_admin_context(guild).await?;
+    let ctx = guild_admin_context(guild).await?;
 
     Ok(GuildContext {
-        guild_id: Id::new(guild_id.cast_unsigned()),
-        access_token,
+        guild_id: Id::new(ctx.guild_id.cast_unsigned()),
+        access_token: ctx.access_token,
         http: discord_client()?,
         app_id: app_state()?.zayden_id,
+        access: ctx.access,
     })
+}
+
+#[cfg(feature = "ssr")]
+fn read_client(ctx: &GuildContext) -> Arc<twilight_http::Client> {
+    match ctx.access {
+        GuildAccess::Member => Arc::new(bearer_client(&ctx.access_token)),
+        GuildAccess::Operator => Arc::clone(&ctx.http),
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -209,7 +220,7 @@ pub(crate) async fn fetch(
     ctx: &GuildContext,
     command: Id<CommandMarker>,
 ) -> Vec<CommandPermission> {
-    let resp = bearer_client(&ctx.access_token)
+    let resp = read_client(ctx)
         .interaction(Id::new(ctx.app_id))
         .command_permissions(ctx.guild_id, command)
         .await;
@@ -225,7 +236,7 @@ pub(crate) async fn fetch(
 pub(crate) async fn guild_permissions(
     ctx: &GuildContext,
 ) -> HashMap<Id<CommandMarker>, Vec<CommandPermission>> {
-    let resp = bearer_client(&ctx.access_token)
+    let resp = read_client(ctx)
         .interaction(Id::new(ctx.app_id))
         .guild_command_permissions(ctx.guild_id)
         .await;
@@ -247,6 +258,13 @@ pub(crate) async fn store(
     name: &str,
     permissions: &[CommandPermission],
 ) -> Result<(), ServerFnError> {
+    if !ctx.access.can_write_command_permissions() {
+        return Err(ServerFnError::ServerError(format!(
+            "Discord only lets a member with Manage Server change command \
+             permissions, so /{name} can't be changed through operator access."
+        )));
+    }
+
     bearer_client(&ctx.access_token)
         .interaction(Id::new(ctx.app_id))
         .update_command_permissions(ctx.guild_id, command, permissions)

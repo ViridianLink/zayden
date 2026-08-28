@@ -6,6 +6,7 @@ use super::icons::Icon;
 use super::server_switcher::ServerSwitcher;
 use super::tier_badge::TierBadge;
 use crate::server::auth::check_session;
+use crate::server::operator::{guild_operator_access, is_operator};
 use crate::ui::nav::MODULES;
 
 #[derive(Clone, Copy)]
@@ -100,12 +101,55 @@ fn GuildSidebar(guild_id: String) -> impl IntoView {
     view! {
         <aside class="app-sidebar">
             <ServerSwitcher guild_id=guild_id.clone()/>
+            <OperatorBadge guild_id=guild_id.clone()/>
             <div class="app-sidebar-heading">"Manage"</div>
             <ModulesGroup guild_id=guild_id/>
             <div class="app-sidebar-spacer"></div>
             <SidebarLink href="/guilds".to_string() icon="server" label="All servers" exact=true/>
+            <OperatorLink/>
             <SidebarLink href="/upgrade".to_string() icon="zap" label="Upgrade to Pro"/>
         </aside>
+    }
+}
+
+#[component]
+fn OperatorBadge(guild_id: String) -> impl IntoView {
+    let access =
+        Resource::new_blocking(move || guild_id.clone(), guild_operator_access);
+
+    view! {
+        <Suspense fallback=|| ()>
+            {move || access.get()
+                .and_then(Result::ok)
+                .unwrap_or(false)
+                .then(|| view! {
+                    <div class="operator-badge">
+                        <Icon name="shield"/>
+                        <span>"Operator access"</span>
+                    </div>
+                })}
+        </Suspense>
+    }
+}
+
+#[component]
+fn OperatorLink() -> impl IntoView {
+    let operator = Resource::new_blocking(|| (), |()| is_operator());
+
+    view! {
+        <Suspense fallback=|| ()>
+            {move || operator.get()
+                .and_then(Result::ok)
+                .unwrap_or(false)
+                .then(|| view! {
+                    <SidebarLink
+                        href="/admin/servers".to_string()
+                        icon="shield"
+                        label="All bot servers"
+                        exact=true
+                    />
+                })}
+        </Suspense>
     }
 }
 
@@ -187,6 +231,7 @@ fn TopSidebar() -> impl IntoView {
         <aside class="app-sidebar">
             <div class="app-sidebar-heading">"Dashboard"</div>
             <SidebarLink href="/guilds".to_string() icon="server" label="Servers" exact=true/>
+            <OperatorLink/>
             <SidebarLink href="/upgrade".to_string() icon="zap" label="Upgrade to Pro"/>
         </aside>
     }

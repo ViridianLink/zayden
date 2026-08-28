@@ -1,12 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::{
-        db_pool,
-        discord_client,
-        guild_admin_context,
-        server_err,
-    },
+    crate::server::auth::{admin_guild_id, db_pool, discord_client, server_err},
     twilight_model::id::Id,
 };
 
@@ -29,7 +24,7 @@ pub async fn get_leaderboard(
     global: bool,
     page: i32,
 ) -> Result<Vec<LeaderboardEntry>, ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     let page = i64::from(page).max(1);

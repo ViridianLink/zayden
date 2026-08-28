@@ -6,6 +6,7 @@ pub mod guild;
 pub mod kofi;
 pub mod levels;
 pub mod modules;
+pub mod operator;
 pub mod palworld_save;
 pub mod reaction_roles;
 #[cfg(feature = "ssr")]

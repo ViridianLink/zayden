@@ -2,11 +2,11 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     crate::server::auth::{
+        admin_guild_id,
         app_state,
         bearer_client,
         db_pool,
         discord_client,
-        guild_admin_context,
         server_err,
     },
     honeypot::{HoneypotConfig, HoneypotSettings},
@@ -26,7 +26,7 @@ use crate::dto::{GuildInfo, GuildSettings};
 
 #[cfg(feature = "ssr")]
 async fn admin_app(guild: &str) -> Result<(i64, Arc<AppState>), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(guild).await?;
+    let guild_id = admin_guild_id(guild).await?;
     Ok((guild_id, app_state()?))
 }
 
@@ -183,7 +183,7 @@ pub async fn save_support_settings(
 pub async fn list_support_roles(
     guild: String,
 ) -> Result<Vec<String>, ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     Ok(SupportRoles::ids(&pool, GuildId::new(guild_id.cast_unsigned()))
@@ -199,7 +199,7 @@ pub async fn add_support_role(
     guild: String,
     role_id: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     let role = parse_role(&role_id)?;
@@ -223,7 +223,7 @@ pub async fn remove_support_role(
     guild: String,
     role_id: String,
 ) -> Result<(), ServerFnError> {
-    let (guild_id, _user, _token) = guild_admin_context(&guild).await?;
+    let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     let role = parse_role(&role_id)?;

@@ -9,7 +9,7 @@ use crate::ui::nav;
 
 #[component]
 pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView {
-    let ModuleView { id, label, description, enabled, commands: _ } = module;
+    let ModuleView { id, label, description, enabled, locked, commands: _ } = module;
     let icon = module_icon(&id);
     let tint_style = format!("--tint: {}", module_tint(&id));
 
@@ -29,6 +29,10 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
     let error = RwSignal::new(None::<String>);
 
     let on_click = move |_| {
+        if locked {
+            return;
+        }
+
         error.set(None);
         desired.update(|v| *v = !*v);
 
@@ -86,6 +90,15 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
         }
     };
 
+    let lock_note = locked.then(|| {
+        view! {
+            <p class="module-locked">
+                "Read-only: Discord only lets a member with Manage Server \
+                 change which commands are enabled."
+            </p>
+        }
+    });
+
     view! {
         <div class="module-card">
             <div class="module-card-head">
@@ -96,11 +109,13 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
                     class=toggle_cls
                     aria-label="Toggle module"
                     aria-pressed=move || desired.get().to_string()
+                    disabled=locked
                     on:click=on_click
                 />
             </div>
             <div class="module-name">{label}</div>
             <p class="module-desc">{description}</p>
+            {lock_note}
             {move || error.get().map(|e| view! {
                 <p class="module-error">{e}</p>
             })}
