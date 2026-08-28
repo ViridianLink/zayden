@@ -1,19 +1,21 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
-    crate::server::auth::{app_state, bearer_client, server_err},
+    crate::server::auth::{app_state, server_err},
     crate::server::command_permissions::{
         GuildContext,
         everyone_denied,
-        fetch,
         fetch_command_ids,
         guild_context,
+        guild_permissions,
         store,
         with_everyone_denied,
     },
+    crate::server::supersede,
     std::collections::{HashMap, HashSet},
+    twilight_model::application::command::permissions::CommandPermission,
     twilight_model::id::Id,
-    twilight_model::id::marker::CommandMarker,
+    twilight_model::id::marker::{CommandMarker, GuildMarker},
 };
 
 use crate::dto::ModuleView;
@@ -155,24 +157,15 @@ impl ModuleDef {
 }
 
 #[cfg(feature = "ssr")]
-async fn denied_commands(ctx: &GuildContext) -> HashSet<Id<CommandMarker>> {
-    let resp = bearer_client(&ctx.access_token)
-        .interaction(Id::new(ctx.app_id))
-        .guild_command_permissions(ctx.guild_id)
-        .await;
-    let Ok(resp) = resp else {
-        return HashSet::new();
-    };
-
-    resp.models()
-        .await
-        .map(|list| {
-            list.into_iter()
-                .filter(|cp| everyone_denied(ctx.guild_id, &cp.permissions))
-                .map(|cp| cp.id)
-                .collect()
-        })
-        .unwrap_or_default()
+fn denied_commands(
+    guild_id: Id<GuildMarker>,
+    permissions: &HashMap<Id<CommandMarker>, Vec<CommandPermission>>,
+) -> HashSet<Id<CommandMarker>> {
+    permissions
+        .iter()
+        .filter(|(_id, perms)| everyone_denied(guild_id, perms))
+        .map(|(id, _perms)| *id)
+        .collect()
 }
 
 #[cfg(feature = "ssr")]
@@ -190,9 +183,13 @@ pub async fn list_guild_modules(
 ) -> Result<Vec<ModuleView>, ServerFnError> {
     let ctx = guild_context(&guild).await?;
 
-    let name_to_id = fetch_command_ids(&ctx).await;
-    let denied = denied_commands(&ctx).await;
-    let flags = settings_flags(ctx.guild_id.get().cast_signed()).await?;
+    let (name_to_id, permissions, flags) = tokio::join!(
+        fetch_command_ids(&ctx),
+        guild_permissions(&ctx),
+        settings_flags(ctx.guild_id.get().cast_signed()),
+    );
+    let denied = denied_commands(ctx.guild_id, &permissions);
+    let flags = flags?;
 
     Ok(MODULES.iter().map(|m| m.view(&name_to_id, &denied, &flags)).collect())
 }
@@ -217,6 +214,40 @@ async fn set_settings_enabled(
     }
 }
 
+#[cfg(feature = "ssr")]
+async fn set_commands_enabled(
+    ctx: &GuildContext,
+    claim: &supersede::Claim,
+    names: &[&str],
+    enabled: bool,
+) -> Result<(), ServerFnError> {
+    let (name_to_id, mut permissions) =
+        tokio::join!(fetch_command_ids(ctx), guild_permissions(ctx));
+
+    for name in names {
+        if claim.superseded() {
+            return Ok(());
+        }
+
+        let Some(cmd_id) = name_to_id.get(*name) else {
+            continue;
+        };
+
+        let current = permissions.remove(cmd_id).unwrap_or_default();
+
+        // Skip the ones that already read the way the toggle wants them.
+        if everyone_denied(ctx.guild_id, &current) == !enabled {
+            continue;
+        }
+
+        let updated = with_everyone_denied(ctx.guild_id, &current, !enabled);
+
+        store(ctx, *cmd_id, name, &updated).await?;
+    }
+
+    Ok(())
+}
+
 #[server]
 pub async fn set_module_enabled(
     guild: String,
@@ -229,30 +260,24 @@ pub async fn set_module_enabled(
 
     let ctx = guild_context(&guild).await?;
 
-    let names = match module.backing {
+    let claim = supersede::claim(ctx.guild_id, module.id);
+    let _turn = claim.wait_for_turn().await;
+
+    if claim.superseded() {
+        return Ok(());
+    }
+
+    match module.backing {
         Backing::Settings => {
-            return set_settings_enabled(
+            set_settings_enabled(
                 module.id,
                 ctx.guild_id.get().cast_signed(),
                 enabled,
             )
-            .await;
+            .await
         },
-        Backing::Commands(names) => names,
-    };
-
-    let name_to_id = fetch_command_ids(&ctx).await;
-
-    for name in names {
-        let Some(cmd_id) = name_to_id.get(*name) else {
-            continue;
-        };
-
-        let current = fetch(&ctx, *cmd_id).await;
-        let updated = with_everyone_denied(ctx.guild_id, &current, !enabled);
-
-        store(&ctx, *cmd_id, name, &updated).await?;
+        Backing::Commands(names) => {
+            set_commands_enabled(&ctx, &claim, names, enabled).await
+        },
     }
-
-    Ok(())
 }

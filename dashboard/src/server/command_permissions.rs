@@ -222,6 +222,25 @@ pub(crate) async fn fetch(
 }
 
 #[cfg(feature = "ssr")]
+pub(crate) async fn guild_permissions(
+    ctx: &GuildContext,
+) -> HashMap<Id<CommandMarker>, Vec<CommandPermission>> {
+    let resp = bearer_client(&ctx.access_token)
+        .interaction(Id::new(ctx.app_id))
+        .guild_command_permissions(ctx.guild_id)
+        .await;
+
+    let Ok(resp) = resp else {
+        return HashMap::new();
+    };
+
+    resp.models()
+        .await
+        .map(|list| list.into_iter().map(|cp| (cp.id, cp.permissions)).collect())
+        .unwrap_or_default()
+}
+
+#[cfg(feature = "ssr")]
 pub(crate) async fn store(
     ctx: &GuildContext,
     command: Id<CommandMarker>,

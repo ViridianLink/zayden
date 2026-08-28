@@ -9,6 +9,10 @@
     clippy::must_use_candidate,
     reason = "Leptos #[component] functions return `impl IntoView` which is consumed by the view macro, never a must_use value"
 )]
+#![expect(
+    clippy::empty_enums,
+    reason = "Leptos #[component] derives TypedBuilder, which generates an uninhabited marker enum per component"
+)]
 
 pub mod app;
 pub mod dto;

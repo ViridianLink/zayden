@@ -3,7 +3,7 @@ use leptos_meta::Title;
 use leptos_router::components::A;
 use leptos_router::hooks::use_params_map;
 
-use crate::server::modules::{SetModuleEnabled, list_guild_modules};
+use crate::server::modules::list_guild_modules;
 use crate::ui::components::layout::AppShell;
 use crate::ui::components::module_card::ModuleCard;
 
@@ -12,11 +12,7 @@ pub(crate) fn GuildOverviewPage() -> impl IntoView {
     let params = use_params_map();
     let guild_id = move || params.with(|p| p.get("id").unwrap_or_default());
 
-    let toggle = ServerAction::<SetModuleEnabled>::new();
-    let modules = Resource::new(
-        move || (guild_id(), toggle.version().get()),
-        |(gid, _)| list_guild_modules(gid),
-    );
+    let modules = Resource::new(guild_id, list_guild_modules);
 
     let settings_href = move || format!("/guild/{}/settings", guild_id());
 
@@ -34,10 +30,7 @@ pub(crate) fn GuildOverviewPage() -> impl IntoView {
                     </div>
                     <A href=settings_href attr:class="btn btn-secondary">"Server settings"</A>
                 </div>
-                {move || toggle.value().get().and_then(Result::err).map(|e| view! {
-                    <p class="error">{e.to_string()}</p>
-                })}
-                <Suspense fallback=|| view! { <p class="loading">"Loading modules\u{2026}"</p> }>
+                <Transition fallback=|| view! { <p class="loading">"Loading modules\u{2026}"</p> }>
                     {move || modules.get().map(|result| match result {
                         Err(e) => view! {
                             <p class="error">"Failed to load modules: " {e.to_string()}</p>
@@ -48,18 +41,14 @@ pub(crate) fn GuildOverviewPage() -> impl IntoView {
                                 <div class="module-grid">
                                     {list.into_iter().map(|m| {
                                         view! {
-                                            <ModuleCard
-                                                module=m
-                                                guild_id=gid.clone()
-                                                toggle=toggle
-                                            />
+                                            <ModuleCard module=m guild_id=gid.clone()/>
                                         }
                                     }).collect_view()}
                                 </div>
                             }.into_any()
                         },
                     })}
-                </Suspense>
+                </Transition>
             </div>
         </AppShell>
     }

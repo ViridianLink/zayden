@@ -100,7 +100,10 @@ sqlx = { workspace = true, features = [
 ], optional = true }
 suggestions = { workspace = true, optional = true }
 ticket = { workspace = true, optional = true }
-tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
+tokio = { workspace = true, features = [
+  "rt-multi-thread",
+  "sync",
+], optional = true }
 zip = { version = "*", default-features = false, features = [
   "deflate",
 ], optional = true }

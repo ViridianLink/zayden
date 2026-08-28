@@ -75,3 +75,17 @@
 .module-status.on {
   color: var(--success);
 }
+
+.module-status.saving {
+  color: var(--warning);
+}
+
+.module-status.failed {
+  color: var(--error);
+}
+
+.module-error {
+  margin: 0 0 1rem;
+  font-size: 12.5px;
+  color: var(--error);
+}
