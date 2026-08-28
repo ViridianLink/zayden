@@ -80,7 +80,7 @@ where
 }
 
 #[cfg(feature = "ssr")]
-fn floors_for(tier: Tier) -> Cooldowns {
+const fn floors_for(tier: Tier) -> Cooldowns {
     let tier = tier.as_entitlement();
     GreetingsSettingsRow::floors_for(tier)
 }

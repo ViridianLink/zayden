@@ -1,6 +1,8 @@
 use std::collections::HashMap;
+use std::future::Future;
 use std::hash::Hash;
 use std::path::{Path, PathBuf};
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -26,6 +28,12 @@ const LEVEL_SAVE: &str = "Level.sav";
 pub enum SourceKey {
     Shared,
     User(i64),
+}
+
+fn cached<'a, T>(
+    fut: impl Future<Output = T> + Send + 'a,
+) -> Pin<Box<dyn Future<Output = T> + Send + 'a>> {
+    Box::pin(fut)
 }
 
 fn ttl_cache<K, V>() -> Cache<K, V>
@@ -102,48 +110,44 @@ impl PalworldClient {
     }
 
     pub async fn pals_basic(&self) -> Result<Arc<[Pal]>> {
-        self.pal_basic_cache
-            .try_get_with((), async {
-                let raw = self.palcalc.pals().await?;
-                Ok::<_, PalworldError>(
-                    raw.into_iter().map(parse::pal_from_palcalc).collect(),
-                )
-            })
-            .await
-            .map_err(|e| PalworldError::from_shared(&e))
+        cached(self.pal_basic_cache.try_get_with((), async {
+            let raw = self.palcalc.pals().await?;
+            Ok::<_, PalworldError>(
+                raw.into_iter().map(parse::pal_from_palcalc).collect(),
+            )
+        }))
+        .await
+        .map_err(|e| PalworldError::from_shared(&e))
     }
 
     pub async fn elements(&self) -> Option<Arc<HashMap<String, Vec<Element>>>> {
-        self.elements_cache
-            .try_get_with((), async {
-                self.palworldgg
-                    .elements_index()
-                    .await
-                    .map(Arc::new)
-                    .ok_or(PalworldError::SourceUnavailable)
-            })
-            .await
-            .ok()
+        cached(self.elements_cache.try_get_with((), async {
+            self.palworldgg
+                .elements_index()
+                .await
+                .map(Arc::new)
+                .ok_or(PalworldError::SourceUnavailable)
+        }))
+        .await
+        .ok()
     }
 
     pub async fn pals(&self) -> Result<Arc<[Pal]>> {
-        self.pal_list_cache
-            .try_get_with((), async {
-                let mut pals: Vec<Pal> = self.pals_basic().await?.to_vec();
+        cached(self.pal_list_cache.try_get_with((), async {
+            let mut pals: Vec<Pal> = self.pals_basic().await?.to_vec();
 
-                if let Some(index) = self.elements().await {
-                    for pal in &mut pals {
-                        if let Some(elements) = index.get(&parse::gg_slug(&pal.name))
-                        {
-                            pal.elements.clone_from(elements);
-                        }
+            if let Some(index) = self.elements().await {
+                for pal in &mut pals {
+                    if let Some(elements) = index.get(&parse::gg_slug(&pal.name)) {
+                        pal.elements.clone_from(elements);
                     }
                 }
+            }
 
-                Ok::<_, PalworldError>(pals.into())
-            })
-            .await
-            .map_err(|e| PalworldError::from_shared(&e))
+            Ok::<_, PalworldError>(pals.into())
+        }))
+        .await
+        .map_err(|e| PalworldError::from_shared(&e))
     }
 
     pub async fn pal(&self, key: &str) -> Result<Arc<Pal>> {

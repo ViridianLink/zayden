@@ -9,7 +9,7 @@ use tracing::warn;
 use crate::WebState;
 use crate::middleware::auth::AuthUser;
 
-pub(crate) async fn export_handler(
+pub(super) async fn export_handler(
     State(state): State<WebState>,
     Extension(user): Extension<AuthUser>,
     Json(edits): Json<dashboard::dto::SaveEdits>,
@@ -114,10 +114,10 @@ fn build_export(
                 path.display()
             ))
         })?;
-        let stem = path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or_else(|| format!("{uid}.sav"));
+        let stem = path.file_name().map_or_else(
+            || format!("{uid}.sav"),
+            |n| n.to_string_lossy().to_string(),
+        );
         players.push((stem, grant_tech_points(&raw, *delta)?));
     }
 

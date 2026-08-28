@@ -236,7 +236,7 @@ async fn set_commands_enabled(
         let current = permissions.remove(cmd_id).unwrap_or_default();
 
         // Skip the ones that already read the way the toggle wants them.
-        if everyone_denied(ctx.guild_id, &current) == !enabled {
+        if everyone_denied(ctx.guild_id, &current) != enabled {
             continue;
         }
 
