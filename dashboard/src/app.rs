@@ -12,12 +12,15 @@ use crate::ui::pages::levels::LevelsPage;
 use crate::ui::pages::login::LoginPage;
 use crate::ui::pages::modules::GuildOverviewPage;
 use crate::ui::pages::not_found::NotFound;
+use crate::ui::pages::operator_servers::OperatorServersPage;
 use crate::ui::pages::palworld_save::PalworldSavePage;
 use crate::ui::pages::reaction_roles::ReactionRolesPage;
 use crate::ui::pages::upgrade::UpgradePage;
 
 #[derive(Clone)]
 pub struct UpgradeUrl(pub Option<String>);
+
+const STYLESHEET_HREF: &str = concat!("/pkg/dashboard.css?v=", env!("STYLE_HASH"));
 
 #[cfg(feature = "ssr")]
 #[must_use]
@@ -48,7 +51,7 @@ pub fn App() -> impl IntoView {
     provide_context(ModulesOpen(RwSignal::new(true)));
 
     view! {
-        <Stylesheet id="leptos" href="/pkg/dashboard.css"/>
+        <Stylesheet id="leptos" href=STYLESHEET_HREF/>
         <Router>
             <Routes fallback=|| view! { <NotFound/> }>
                 <Route path=path!("/") view=LandingPage/>
@@ -61,6 +64,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/guild/:id/levels") view=LevelsPage/>
                 <Route path=path!("/guild/:id/reaction-roles") view=ReactionRolesPage/>
                 <Route path=path!("/guild/:id/greetings") view=GreetingsPage/>
+                <Route path=path!("/admin/servers") view=OperatorServersPage/>
                 <Route path=path!("/admin/palworld/save") view=PalworldSavePage/>
             </Routes>
         </Router>
