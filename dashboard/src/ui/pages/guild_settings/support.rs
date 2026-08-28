@@ -26,7 +26,6 @@ pub(crate) fn SupportTab(
 
     view! {
         <fieldset class="settings-section">
-            <legend><Icon name="message"/>"Support"</legend>
             {move || result.get().map(save_feedback)}
             <ActionForm action=save_support>
                 <input type="hidden" name="guild" value=gid/>

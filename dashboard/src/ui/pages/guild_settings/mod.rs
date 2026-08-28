@@ -9,8 +9,7 @@ pub mod temp_voice;
 
 use leptos::prelude::*;
 use leptos_meta::Title;
-use leptos_router::components::A;
-use leptos_router::hooks::{use_params_map, use_query_map};
+use leptos_router::hooks::use_params_map;
 use twilight_model::channel::ChannelType;
 
 use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
@@ -22,8 +21,8 @@ use crate::server::guild::{
     get_guild_settings,
     list_support_roles,
 };
-use crate::ui::components::icons::Icon;
 use crate::ui::components::layout::AppShell;
+use crate::ui::nav;
 
 pub(super) const TEXT_KINDS: &[ChannelType] = &[
     ChannelType::GuildText,
@@ -35,82 +34,16 @@ pub(super) fn sel(value: Option<&str>) -> String {
     value.unwrap_or_default().to_owned()
 }
 
-struct Tab {
-    slug: &'static str,
-    label: &'static str,
-    icon: &'static str,
-    lead: &'static str,
-}
-
-const GENERAL: Tab = Tab {
-    slug: "general",
-    label: "General",
-    icon: "grid",
-    lead: "Server-wide channels and roles the rest of Zayden points at.",
-};
-
-const TABS: &[Tab] = &[
-    GENERAL,
-    Tab {
-        slug: "support",
-        label: "Support",
-        icon: "ticket",
-        lead: "Tickets, FAQ and suggestions - where they live and who gets pinged.",
-    },
-    Tab {
-        slug: "temp-voice",
-        label: "Temp Voice",
-        icon: "mic",
-        lead: "On-demand voice channels created from a join-to-create channel.",
-    },
-    Tab {
-        slug: "music",
-        label: "Music",
-        icon: "music",
-        lead: "Playback permissions and now-playing announcements.",
-    },
-    Tab {
-        slug: "lfg",
-        label: "LFG",
-        icon: "gamepad",
-        lead: "Where looking-for-group posts go and who they ping.",
-    },
-    Tab {
-        slug: "family",
-        label: "Family",
-        icon: "heart",
-        lead: "Limits for the family and relationship commands.",
-    },
-    Tab {
-        slug: "ai",
-        label: "AI Chat",
-        icon: "sparkles",
-        lead: "Whether Zayden answers when mentioned, and where.",
-    },
-    Tab {
-        slug: "honeypot",
-        label: "Honeypot",
-        icon: "shield",
-        lead: "The spam trap: a bait channel that bans whoever posts in it.",
-    },
-];
-
-fn tab_def(slug: &str) -> &'static Tab {
-    TABS.iter().find(|t| t.slug == slug).unwrap_or(&GENERAL)
-}
-
 #[component]
 pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let params = use_params_map();
-    let query = use_query_map();
     let guild_id = move || params.with(|p| p.get("id").unwrap_or_default());
 
+    // Which module's panel to show. An unknown or missing section falls back to
+    // General rather than rendering an empty page.
     let active = Memo::new(move |_| {
-        query.with(|q| {
-            q.get("tab")
-                .and_then(|slug| TABS.iter().find(|t| t.slug == slug))
-                .map_or(GENERAL.slug, |t| t.slug)
-        })
+        let slug = params.with(|p| p.get("section").unwrap_or_default());
+        nav::section(&slug)
     });
 
     let create_creator = ServerAction::<CreateTempVoiceCreatorChannel>::new();
@@ -141,18 +74,17 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     );
 
     view! {
-        <Title text="Settings - Zayden Dashboard"/>
+        <Title text=move || {
+            format!("{} settings - Zayden Dashboard", active.get().label)
+        }/>
         <AppShell>
             <div class="page">
                 <div class="page-header">
                     <div>
-                        <h1>"Server Settings"</h1>
-                        <p class="page-lead">
-                            {move || tab_def(active.get()).lead}
-                        </p>
+                        <h1>{move || active.get().label}</h1>
+                        <p class="page-lead">{move || active.get().lead()}</p>
                     </div>
                 </div>
-                <SettingsTabs active=active/>
                 <Suspense fallback=|| view! {
                     <p class="loading">"Loading settings\u{2026}"</p>
                 }>
@@ -162,6 +94,8 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                         }.into_any(),
                         Ok((s, support_roles, channels, roles)) => {
                             let gid = guild_id();
+                            // Re-runs on section change only; the resource above
+                            // is untouched, so switching modules never refetches.
                             (move || {
                                 let guild_id = gid.clone();
                                 let s = s.clone();
@@ -169,8 +103,8 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                 let channels = channels.clone();
                                 let roles = roles.clone();
 
-                                match active.get() {
-                                    "support" => view! {
+                                match active.get().slug() {
+                                    Some("support") => view! {
                                         <support::SupportTab
                                             guild_id=guild_id
                                             settings=s
@@ -181,7 +115,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             remove=remove_support_role
                                         />
                                     }.into_any(),
-                                    "temp-voice" => view! {
+                                    Some("temp-voice") => view! {
                                         <temp_voice::TempVoiceTab
                                             guild_id=guild_id
                                             settings=s
@@ -189,7 +123,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             create=create_creator
                                         />
                                     }.into_any(),
-                                    "music" => view! {
+                                    Some("music") => view! {
                                         <music::MusicTab
                                             guild_id=guild_id
                                             settings=s
@@ -197,7 +131,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             roles=roles
                                         />
                                     }.into_any(),
-                                    "lfg" => view! {
+                                    Some("lfg") => view! {
                                         <lfg::LfgTab
                                             guild_id=guild_id
                                             settings=s
@@ -205,17 +139,17 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                             roles=roles
                                         />
                                     }.into_any(),
-                                    "family" => view! {
+                                    Some("family") => view! {
                                         <family::FamilyTab guild_id=guild_id settings=s/>
                                     }.into_any(),
-                                    "ai" => view! {
+                                    Some("ai") => view! {
                                         <ai::AiTab
                                             guild_id=guild_id
                                             settings=s
                                             channels=channels
                                         />
                                     }.into_any(),
-                                    "honeypot" => view! {
+                                    Some("honeypot") => view! {
                                         <honeypot::HoneypotTab
                                             guild_id=guild_id
                                             settings=s
@@ -238,43 +172,5 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                 </Suspense>
             </div>
         </AppShell>
-    }
-}
-
-#[component]
-fn SettingsTabs(active: Memo<&'static str>) -> impl IntoView {
-    let params = use_params_map();
-    let guild_id = move || params.with(|p| p.get("id").unwrap_or_default());
-
-    let links = TABS
-        .iter()
-        .map(|tab| {
-            let href =
-                move || format!("/guild/{}/settings?tab={}", guild_id(), tab.slug);
-            let class = move || {
-                if active.get() == tab.slug {
-                    "settings-tab active"
-                } else {
-                    "settings-tab"
-                }
-            };
-
-            view! {
-                <A
-                    href=href
-                    attr:class=class
-                    attr:aria-current=move || {
-                        (active.get() == tab.slug).then_some("page")
-                    }
-                >
-                    <Icon name=tab.icon/>
-                    <span>{tab.label}</span>
-                </A>
-            }
-        })
-        .collect_view();
-
-    view! {
-        <nav class="settings-tabs" aria-label="Settings sections">{links}</nav>
     }
 }

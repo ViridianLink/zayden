@@ -4,7 +4,6 @@ use leptos::prelude::*;
 use super::{TEXT_KINDS, sel};
 use crate::dto::{ChannelInfo, GuildSettings};
 use crate::server::guild::SaveAiSettings;
-use crate::ui::components::icons::Icon;
 use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, ToggleField, save_feedback};
 
@@ -20,7 +19,6 @@ pub(crate) fn AiTab(
 
     view! {
         <fieldset class="settings-section">
-            <legend><Icon name="sparkles"/>"AI Chat"</legend>
             {move || result.get().map(save_feedback)}
             <ActionForm action=save_ai>
                 <input type="hidden" name="guild" value=guild_id/>

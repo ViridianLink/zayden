@@ -4,7 +4,6 @@ use twilight_model::channel::ChannelType;
 
 use crate::dto::{ChannelInfo, GuildSettings};
 use crate::server::guild::{CreateTempVoiceCreatorChannel, SaveTempVoiceSettings};
-use crate::ui::components::icons::Icon;
 use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, create_feedback, save_feedback};
 
@@ -30,7 +29,6 @@ pub(crate) fn TempVoiceTab(
 
     view! {
         <fieldset class="settings-section">
-            <legend><Icon name="mic"/>"Temp Voice"</legend>
             {move || save_result.get().map(save_feedback)}
             <ActionForm action=save_temp_voice>
                 <input type="hidden" name="guild" value=gid/>

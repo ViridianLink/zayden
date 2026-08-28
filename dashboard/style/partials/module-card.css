@@ -89,3 +89,50 @@
   font-size: 12.5px;
   color: var(--error);
 }
+
+.module-configure {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.34rem 0.5rem 0.34rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background-color: var(--overlay-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    background-color 0.2s var(--ease-spring),
+    border-color 0.2s var(--ease-spring),
+    color 0.2s var(--ease-spring);
+}
+
+.module-configure .icon {
+  font-size: 15px;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+/* Hovering anywhere on the card hints that the button is there; hovering the
+   button itself commits to the accent fill. */
+.module-card:hover .module-configure {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.module-configure:hover {
+  background-color: var(--accent-weak);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.module-configure:hover .icon {
+  transform: translateX(2px);
+}
+
+.module-configure:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}

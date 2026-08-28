@@ -14,7 +14,7 @@ pub(crate) fn GuildOverviewPage() -> impl IntoView {
 
     let modules = Resource::new(guild_id, list_guild_modules);
 
-    let settings_href = move || format!("/guild/{}/settings", guild_id());
+    let settings_href = move || format!("/guild/{}/settings/general", guild_id());
 
     view! {
         <Title text="Modules - Zayden Dashboard"/>

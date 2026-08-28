@@ -200,3 +200,90 @@
 .server-switcher-option.current {
   color: var(--accent);
 }
+
+/* Collapsible sidebar group (Modules) */
+
+.app-sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.app-sidebar-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.app-sidebar-group-head .app-sidebar-link {
+  flex: 1;
+  min-width: 0;
+}
+
+.app-sidebar-caret {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 17px;
+  cursor: pointer;
+  transition:
+    background-color 0.18s var(--ease-spring),
+    color 0.18s var(--ease-spring);
+}
+
+.app-sidebar-caret:hover {
+  background-color: var(--overlay-2);
+  color: var(--text-primary);
+}
+
+.app-sidebar-caret .icon {
+  transition: transform 0.18s var(--ease-spring);
+}
+
+.app-sidebar-caret.open .icon {
+  transform: rotate(180deg);
+}
+
+.app-sidebar-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.15rem 0 0.25rem;
+  margin-left: 1.1rem;
+  border-left: 1px solid var(--border);
+  animation: fade-up 0.18s var(--ease-spring);
+}
+
+.app-sidebar-sublink {
+  display: block;
+  padding: 0.42rem 0.75rem;
+  margin-left: 0.35rem;
+  border-radius: var(--radius-lg);
+  color: var(--text-tertiary);
+  font-size: 13.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    background-color 0.18s var(--ease-spring),
+    color 0.18s var(--ease-spring);
+}
+
+.app-sidebar-sublink:hover {
+  background-color: var(--overlay-2);
+  color: var(--text-primary);
+}
+
+.app-sidebar-sublink.active {
+  background-color: var(--accent-weak);
+  color: var(--accent);
+  font-weight: 600;
+}

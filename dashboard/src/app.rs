@@ -3,6 +3,7 @@ use leptos_meta::{Stylesheet, provide_meta_context};
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
 
+use crate::ui::components::layout::ModulesOpen;
 use crate::ui::pages::greetings::GreetingsPage;
 use crate::ui::pages::guild_settings::GuildSettingsPage;
 use crate::ui::pages::guilds::GuildListPage;
@@ -44,6 +45,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
+    provide_context(ModulesOpen(RwSignal::new(true)));
 
     view! {
         <Stylesheet id="leptos" href="/pkg/dashboard.css"/>
@@ -55,6 +57,7 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/guilds") view=GuildListPage/>
                 <Route path=path!("/guild/:id") view=GuildOverviewPage/>
                 <Route path=path!("/guild/:id/settings") view=GuildSettingsPage/>
+                <Route path=path!("/guild/:id/settings/:section") view=GuildSettingsPage/>
                 <Route path=path!("/guild/:id/levels") view=LevelsPage/>
                 <Route path=path!("/guild/:id/reaction-roles") view=ReactionRolesPage/>
                 <Route path=path!("/guild/:id/greetings") view=GreetingsPage/>

@@ -4,7 +4,6 @@ use leptos::prelude::*;
 use super::{TEXT_KINDS, sel};
 use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
 use crate::server::guild::SaveMusicSettings;
-use crate::ui::components::icons::Icon;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{
     SaveButton,
@@ -26,7 +25,6 @@ pub(crate) fn MusicTab(
 
     view! {
         <fieldset class="settings-section">
-            <legend><Icon name="music"/>"Music"</legend>
             {move || result.get().map(save_feedback)}
             <ActionForm action=save_music>
                 <input type="hidden" name="guild" value=guild_id/>

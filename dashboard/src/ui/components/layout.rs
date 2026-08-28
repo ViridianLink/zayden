@@ -6,6 +6,10 @@ use super::icons::Icon;
 use super::server_switcher::ServerSwitcher;
 use super::tier_badge::TierBadge;
 use crate::server::auth::check_session;
+use crate::ui::nav::MODULES;
+
+#[derive(Clone, Copy)]
+pub struct ModulesOpen(pub RwSignal<bool>);
 
 #[component]
 pub(crate) fn AppShell(children: Children) -> impl IntoView {
@@ -93,25 +97,87 @@ fn SidebarLink(
 
 #[component]
 fn GuildSidebar(guild_id: String) -> impl IntoView {
-    let overview_href = format!("/guild/{guild_id}");
-    let settings_href = format!("/guild/{guild_id}/settings");
-    let levels_href = format!("/guild/{guild_id}/levels");
-    let reaction_roles_href = format!("/guild/{guild_id}/reaction-roles");
-    let greetings_href = format!("/guild/{guild_id}/greetings");
-
     view! {
         <aside class="app-sidebar">
-            <ServerSwitcher guild_id=guild_id/>
+            <ServerSwitcher guild_id=guild_id.clone()/>
             <div class="app-sidebar-heading">"Manage"</div>
-            <SidebarLink href=overview_href icon="grid" label="Modules" exact=true/>
-            <SidebarLink href=settings_href icon="settings" label="Settings"/>
-            <SidebarLink href=reaction_roles_href icon="sparkles" label="Reaction Roles"/>
-            <SidebarLink href=greetings_href icon="message" label="Greetings"/>
-            <SidebarLink href=levels_href icon="trophy" label="Levels"/>
+            <ModulesGroup guild_id=guild_id/>
             <div class="app-sidebar-spacer"></div>
             <SidebarLink href="/guilds".to_string() icon="server" label="All servers" exact=true/>
             <SidebarLink href="/upgrade".to_string() icon="zap" label="Upgrade to Pro"/>
         </aside>
+    }
+}
+
+#[component]
+fn ModulesGroup(guild_id: String) -> impl IntoView {
+    let location = use_location();
+    let open = use_context::<ModulesOpen>()
+        .map_or_else(|| RwSignal::new(true), |ctx| ctx.0);
+
+    let overview_href = format!("/guild/{guild_id}");
+    let overview_target = overview_href.clone();
+    let overview_class = move || {
+        if location.pathname.get() == overview_target {
+            "app-sidebar-link active"
+        } else {
+            "app-sidebar-link"
+        }
+    };
+
+    let bare_settings = format!("/guild/{guild_id}/settings");
+    let canonical_settings = format!("/guild/{guild_id}/settings/general");
+    let current = Memo::new(move |_| {
+        let path = location.pathname.get();
+        if path == bare_settings { canonical_settings.clone() } else { path }
+    });
+
+    let caret_class = move || {
+        if open.get() { "app-sidebar-caret open" } else { "app-sidebar-caret" }
+    };
+
+    let sublist = move || {
+        open.get().then(|| {
+            let links = MODULES
+                .iter()
+                .map(|module| {
+                    let href = module.href(&guild_id);
+                    let target = href.clone();
+                    let class = move || {
+                        if current.get() == target {
+                            "app-sidebar-sublink active"
+                        } else {
+                            "app-sidebar-sublink"
+                        }
+                    };
+
+                    view! { <A href=href attr:class=class>{module.label}</A> }
+                })
+                .collect_view();
+
+            view! { <div class="app-sidebar-sublist">{links}</div> }
+        })
+    };
+
+    view! {
+        <div class="app-sidebar-group">
+            <div class="app-sidebar-group-head">
+                <A href=overview_href attr:class=overview_class>
+                    <Icon name="grid"/>
+                    <span>"Modules"</span>
+                </A>
+                <button
+                    type="button"
+                    class=caret_class
+                    aria-label="Toggle module list"
+                    aria-expanded=move || open.get().to_string()
+                    on:click=move |_| open.update(|v| *v = !*v)
+                >
+                    <Icon name="chevron-down"/>
+                </button>
+            </div>
+            {sublist}
+        </div>
     }
 }
 

@@ -1,15 +1,27 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
+use leptos_router::components::A;
 
 use super::icons::{Icon, module_icon, module_tint};
 use crate::dto::ModuleView;
 use crate::server::modules::set_module_enabled;
+use crate::ui::nav;
 
 #[component]
 pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView {
     let ModuleView { id, label, description, enabled, commands: _ } = module;
     let icon = module_icon(&id);
     let tint_style = format!("--tint: {}", module_tint(&id));
+
+    let configure = nav::for_module(&id).map(|entry| {
+        let href = entry.href(&guild_id);
+        view! {
+            <A href=href attr:class="module-configure">
+                "Configure"
+                <Icon name="chevron-right"/>
+            </A>
+        }
+    });
 
     let desired = RwSignal::new(enabled);
     let synced = RwSignal::new(enabled);
@@ -94,6 +106,7 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
             })}
             <div class="module-card-foot">
                 <span class=move || status().0>{move || status().1}</span>
+                {configure}
             </div>
         </div>
     }

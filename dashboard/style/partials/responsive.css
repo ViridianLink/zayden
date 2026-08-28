@@ -23,6 +23,12 @@
     margin-bottom: 0;
   }
 
+  /* The sidebar turns into a wrapping row here; keep the Modules dropdown on
+     its own line so the module list stays a single column. */
+  .app-sidebar-group {
+    width: 100%;
+  }
+
   .app-main {
     padding: 1.5rem 1.25rem;
   }

@@ -4,7 +4,6 @@ use leptos::prelude::*;
 use super::{TEXT_KINDS, sel};
 use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
 use crate::server::guild::SaveLfgSettings;
-use crate::ui::components::icons::Icon;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 
@@ -21,7 +20,6 @@ pub(crate) fn LfgTab(
 
     view! {
         <fieldset class="settings-section">
-            <legend><Icon name="gamepad"/>"LFG"</legend>
             {move || result.get().map(save_feedback)}
             <ActionForm action=save_lfg>
                 <input type="hidden" name="guild" value=guild_id/>
