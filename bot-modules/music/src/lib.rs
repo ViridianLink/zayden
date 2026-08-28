@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 pub mod commands;
 pub mod components;
 pub mod embeds;

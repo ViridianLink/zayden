@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
