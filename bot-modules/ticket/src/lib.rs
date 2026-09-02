@@ -10,6 +10,7 @@ use serenity::all::{
 pub use serenity::all::{GuildId, RoleId, UserId};
 
 pub mod components;
+pub mod donation;
 pub mod error;
 pub mod helper_links;
 pub mod message_command;

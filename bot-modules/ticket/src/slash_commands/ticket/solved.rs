@@ -1,9 +1,6 @@
-use std::collections::HashMap;
-use std::fmt::Write as _;
 use std::sync::Arc;
 use std::time::Duration;
 
-use futures::{StreamExt, TryStreamExt};
 use jiff::Timestamp;
 use serenity::all::{
     ChannelType,
@@ -15,22 +12,16 @@ use serenity::all::{
     GenericInteractionChannel,
     GuildId,
     Http,
-    Mentionable,
-    RoleId,
+    HttpError,
+    JsonErrorCode,
     ThreadId,
-    UserId,
 };
 use sqlx::PgPool;
 use tokio::time::sleep;
 use tracing::warn;
 use zayden_app::config::ARCHIVE_NEVER;
 
-use crate::helper_links::HelperLinks;
-use crate::{Result, Ticket, TicketError, TicketGuildRow, TicketStores};
-
-/// Bounds the REST pagination cost of scanning a thread for helpers. Long
-/// threads are truncated rather than paged to completion.
-const HELPER_SCAN_LIMIT: usize = 500;
+use crate::{Result, Ticket, TicketError, TicketGuildRow, TicketStores, donation};
 
 impl Ticket {
     pub(super) async fn solved(
@@ -92,7 +83,7 @@ impl Ticket {
 
         if let Some(helper_role) = row.helper_role_id()
             && let Some(message) =
-                donation_message(http, pool, thread.id, guild_id, helper_role)
+                donation::message(http, pool, thread.id, guild_id, helper_role)
                     .await?
         {
             interaction
@@ -129,9 +120,6 @@ async fn apply_solved_tag(
     Ok(())
 }
 
-/// Archiving is deferred rather than awaited so the interaction handler is not
-/// held for the configured delay. A restart inside the window drops the
-/// archive; the thread stays tagged either way.
 fn schedule_archive(http: Arc<Http>, thread_id: ThreadId, secs: i32) {
     if secs == ARCHIVE_NEVER {
         return;
@@ -142,58 +130,12 @@ fn schedule_archive(http: Arc<Http>, thread_id: ThreadId, secs: i32) {
     tokio::spawn(async move {
         sleep(delay).await;
 
-        if let Err(e) = thread_id.edit(&http, EditThread::new().archived(true)).await
-        {
-            warn!(?thread_id, "failed to archive solved thread: {e}");
+        match thread_id.edit(&http, EditThread::new().archived(true)).await {
+            Ok(_) => {},
+            // The thread can be deleted while the archive is pending.
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if resp.error.code == JsonErrorCode::UnknownChannel => {},
+            Err(e) => warn!(?thread_id, "failed to archive solved thread: {e}"),
         }
     });
-}
-
-async fn donation_message(
-    http: &Http,
-    pool: &PgPool,
-    thread_id: ThreadId,
-    guild_id: GuildId,
-    helper_role: RoleId,
-) -> Result<Option<String>> {
-    let links = HelperLinks::map(pool, guild_id).await?;
-
-    if links.is_empty() {
-        return Ok(None);
-    }
-
-    let helpers: HashMap<UserId, String> = thread_id
-        .widen()
-        .messages_iter(http)
-        .take(HELPER_SCAN_LIMIT)
-        .try_fold(HashMap::new(), async |mut helpers, m| {
-            let Some(member) = m.member else { return Ok(helpers) };
-
-            if !member.roles.contains(&helper_role) {
-                return Ok(helpers);
-            }
-
-            if let Some(link) = links.get(&m.author.id) {
-                helpers.insert(m.author.id, link.clone());
-            }
-
-            Ok(helpers)
-        })
-        .await?;
-
-    if helpers.is_empty() {
-        return Ok(None);
-    }
-
-    let mut helpers = helpers.into_iter().collect::<Vec<_>>();
-    helpers.sort_unstable_by_key(|(id, _)| *id);
-
-    let mut reply =
-        String::from("If this helped, consider supporting the people who did:");
-
-    for (id, link) in helpers {
-        let _ = write!(reply, "\n{}: {link}", id.mention());
-    }
-
-    Ok(Some(reply))
 }
