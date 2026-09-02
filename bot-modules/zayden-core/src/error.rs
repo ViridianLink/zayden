@@ -1,12 +1,6 @@
 use std::borrow::Cow;
 
-use serenity::all::{
-    DiscordJsonError,
-    ErrorResponse,
-    HttpError,
-    JsonErrorCode,
-    StatusCode,
-};
+use serenity::all::{HttpError, JsonErrorCode, StatusCode};
 
 pub trait Respond: std::error::Error {
     fn user_message(&self) -> Option<Cow<'_, str>> {
@@ -145,23 +139,21 @@ impl std::fmt::Display for CoreError {
             Self::MissingData(ctx) => write!(f, "missing data: {ctx}"),
 
             Self::Serenity(serenity::Error::Http(
-                HttpError::UnsuccessfulRequest(ErrorResponse {
-                    status_code:
-                        StatusCode::INTERNAL_SERVER_ERROR
-                        | StatusCode::SERVICE_UNAVAILABLE,
-                    ..
-                }),
-            )) => write!(
-                f,
-                "It looks like Discord is currently experiencing some server issues. Please try your request again shortly. If the problem persists, please contact OscarSix for more details."
-            ),
+                HttpError::UnsuccessfulRequest(resp),
+            )) if matches!(
+                resp.status_code,
+                StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE
+            ) =>
+            {
+                write!(
+                    f,
+                    "It looks like Discord is currently experiencing some server issues. Please try your request again shortly. If the problem persists, please contact OscarSix for more details."
+                )
+            },
 
             Self::Serenity(serenity::Error::Http(
-                HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error: DiscordJsonError { code, .. },
-                    ..
-                }),
-            )) => match *code {
+                HttpError::UnsuccessfulRequest(resp),
+            )) => match resp.error.code {
                 JsonErrorCode::UnknownChannel => {
                     write!(f, "Channel already deleted")
                 },
@@ -226,22 +218,21 @@ impl Respond for CoreError {
         match self {
             Self::MissingGuildId
             | Self::NotInteractionAuthor
-            | Self::MessageConflict
-            | Self::Serenity(serenity::Error::Http(
-                HttpError::UnsuccessfulRequest(ErrorResponse {
-                    status_code:
-                        StatusCode::INTERNAL_SERVER_ERROR
-                        | StatusCode::SERVICE_UNAVAILABLE,
-                    ..
-                }),
-            )) => Some(Cow::Owned(self.to_string())),
+            | Self::MessageConflict => Some(Cow::Owned(self.to_string())),
 
             Self::Serenity(serenity::Error::Http(
-                HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error: DiscordJsonError { code, .. },
-                    ..
-                }),
-            )) => match *code {
+                HttpError::UnsuccessfulRequest(resp),
+            )) if matches!(
+                resp.status_code,
+                StatusCode::INTERNAL_SERVER_ERROR | StatusCode::SERVICE_UNAVAILABLE
+            ) =>
+            {
+                Some(Cow::Owned(self.to_string()))
+            },
+
+            Self::Serenity(serenity::Error::Http(
+                HttpError::UnsuccessfulRequest(resp),
+            )) => match resp.error.code {
                 JsonErrorCode::UnknownChannel
                 | JsonErrorCode::UnknownMessage
                 | JsonErrorCode::UnknownWebhook

@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use serenity::all::{
     ChannelType,
     CreateChannel,
-    DiscordJsonError,
     EditInteractionResponse,
-    ErrorResponse,
     GuildId,
     Http,
     HttpError,
@@ -105,16 +103,9 @@ pub(super) async fn create(
         .await?;
 
     // Target user is not connected to voice.
-    if let Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-        ErrorResponse {
-            error:
-                DiscordJsonError {
-                    code: JsonErrorCode::TargetUserNotConnectedToVoice,
-                    ..
-                },
-            ..
-        },
-    ))) = move_result
+    if let Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp))) =
+        &move_result
+        && resp.error.code == JsonErrorCode::TargetUserNotConnectedToVoice
         && delete_voice_channel_if_inactive(http, guild_id, interaction.user.id, &vc)
             .await
     {

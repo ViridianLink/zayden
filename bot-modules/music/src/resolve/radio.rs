@@ -2,9 +2,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use reqwest::Client;
 use serenity::all::UserId;
 use songbird::input::{HttpRequest, Input};
-use songbird_reqwest::Client;
 use zayden_app::config::{RadioStation, radio};
 
 use super::http::stream_client;

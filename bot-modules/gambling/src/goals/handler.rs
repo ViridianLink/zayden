@@ -2,8 +2,6 @@ use serenity::all::{
     Colour,
     CreateEmbed,
     CreateMessage,
-    DiscordJsonError,
-    ErrorResponse,
     GenericChannelId,
     Http,
     HttpError,
@@ -107,16 +105,10 @@ impl GoalHandler {
                 )
                 .await
             {
-                Ok(_)
+                Ok(_) => {}
                 // Missing "Send Message" permission
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code: JsonErrorCode::MissingAccess,
-                            ..
-                        },
-                    ..
-                }))) => {}
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                    if resp.error.code == JsonErrorCode::MissingAccess => {}
                 Err(e) => return Err(e.into()),
             }
         }

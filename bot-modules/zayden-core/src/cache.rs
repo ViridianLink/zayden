@@ -19,10 +19,8 @@ use serenity::all::{
     ApplicationId,
     Context,
     DataUri,
-    DiscordJsonError,
     Emoji,
     EmojiId,
-    ErrorResponse,
     Guild,
     GuildId,
     HttpError,
@@ -113,11 +111,10 @@ impl EmojiCache {
                 Ok(emoji) => {
                     emojis.insert(emoji.name, emoji.id);
                 },
-                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                    ErrorResponse { error: DiscordJsonError { errors, .. }, .. },
-                ))) if errors.first().is_some_and(|e| {
-                    e.code == "APPLICATION_EMOJI_NAME_ALREADY_TAKEN"
-                }) => {},
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                    if resp.error.errors.first().is_some_and(|e| {
+                        e.code == "APPLICATION_EMOJI_NAME_ALREADY_TAKEN"
+                    }) => {},
 
                 Err(e) => return Err(e),
             }
@@ -166,11 +163,10 @@ impl EmojiCache {
                 self.0.insert(emoji.name, emoji.id);
             },
             // Emoji already uploaded
-            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse { error: DiscordJsonError { errors, .. }, .. },
-            ))) if errors.first().is_some_and(|e| {
-                e.code == "APPLICATION_EMOJI_NAME_ALREADY_TAKEN"
-            }) =>
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if resp.error.errors.first().is_some_and(|e| {
+                    e.code == "APPLICATION_EMOJI_NAME_ALREADY_TAKEN"
+                }) =>
             {
                 self.0.insert(FixedString::from_str_trunc(name), emoji_id);
             },

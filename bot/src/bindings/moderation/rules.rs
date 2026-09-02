@@ -7,10 +7,8 @@ use serenity::all::{
     CreateCommandOption,
     CreateEmbed,
     CreateMessage,
-    DiscordJsonError,
     EditInteractionResponse,
     EditMessage,
-    ErrorResponse,
     GenericChannelId,
     GenericInteractionChannel,
     GuildId,
@@ -550,18 +548,11 @@ async fn post(
         {
             Ok(_) => return Ok("Rules message updated.".to_string()),
             // Stored message/channel is gone
-            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code:
-                                JsonErrorCode::UnknownMessage
-                                | JsonErrorCode::UnknownChannel,
-                            ..
-                        },
-                    ..
-                },
-            ))) => {},
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if matches!(
+                    resp.error.code,
+                    JsonErrorCode::UnknownMessage | JsonErrorCode::UnknownChannel
+                ) => {},
             Err(e) => return Err(e.into()),
         }
     }

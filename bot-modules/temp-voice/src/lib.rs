@@ -14,8 +14,6 @@ pub use error::{Result, TempVoiceError};
 pub use guild_manager::TempVoiceRow;
 use serenity::all::{
     ChannelId,
-    DiscordJsonError,
-    ErrorResponse,
     Guild,
     GuildChannel,
     GuildId,
@@ -119,16 +117,9 @@ pub async fn delete_voice_channel_if_inactive(
         Ok(voice_state) if voice_state.channel_id == Some(vc.id) => false,
         _ => {
             match vc.delete(http, Some("Empty and inactive channel")).await {
-                Ok(_)
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                    ErrorResponse {
-                        error:
-                            DiscordJsonError {
-                                code: JsonErrorCode::UnknownChannel, ..
-                            },
-                        ..
-                    },
-                ))) => {},
+                Ok(_) => {},
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                    if resp.error.code == JsonErrorCode::UnknownChannel => {},
                 Err(e) => tracing::error!(
                     error = ?e,
                     channel_id = %vc.id,

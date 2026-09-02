@@ -3,9 +3,7 @@ use std::fmt::Display;
 use serenity::all::{
     CreateEmbed,
     CreateMessage,
-    DiscordJsonError,
     EditMessage,
-    ErrorResponse,
     Http,
     HttpError,
     JsonErrorCode,
@@ -36,14 +34,9 @@ pub async fn update_embeds<'a, T: Template>(
             .edit_message(http, message, EditMessage::new().embed(embed))
             .await
         {
-            Ok(_)
-            | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error:
-                        DiscordJsonError { code: JsonErrorCode::UnknownMessage, .. },
-                    ..
-                },
-            ))) => {},
+            Ok(_) => {},
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if resp.error.code == JsonErrorCode::UnknownMessage => {},
             Err(e) => return Err(e.into()),
         }
     }

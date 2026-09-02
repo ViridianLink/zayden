@@ -1,6 +1,7 @@
 use std::time::Duration as StdDuration;
 
 use async_trait::async_trait;
+use reqwest::Client;
 use rspotify::clients::BaseClient;
 use rspotify::model::{
     AlbumId,
@@ -13,7 +14,6 @@ use rspotify::model::{
 use rspotify::{ClientCredsSpotify, Credentials};
 use serenity::all::UserId;
 use songbird::input::Input;
-use songbird_reqwest::Client;
 use url::Url;
 
 use super::http::stream_client;

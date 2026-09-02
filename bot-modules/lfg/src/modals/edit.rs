@@ -1,10 +1,8 @@
 use serenity::all::{
     Context,
     CreateInteractionResponse,
-    DiscordJsonError,
     EditMessage,
     EditThread,
-    ErrorResponse,
     HttpError,
     JsonErrorCode,
     ModalInteraction,
@@ -83,13 +81,9 @@ impl Edit {
             .await
         {
             Ok(_) => {},
-            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error:
-                        DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
-                    ..
-                },
-            ))) => {
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if resp.error.code == JsonErrorCode::UnknownChannel =>
+            {
                 debug!(thread_id = %thread, "lfg thread no longer exists; skipping edit");
                 return Ok(());
             },

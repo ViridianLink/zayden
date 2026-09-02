@@ -2,9 +2,7 @@ use jiff::tz::TimeZone;
 use jiff::{Span, Timestamp};
 use serenity::all::{
     Context,
-    DiscordJsonError,
     EditThread,
-    ErrorResponse,
     Guild,
     Http,
     HttpError,
@@ -52,17 +50,12 @@ pub async fn guild_create<Data: CronJobData>(
         .await
     {
         Ok(threads) => threads,
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-            ErrorResponse {
-                error:
-                    DiscordJsonError {
-                        code:
-                            JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess,
-                        ..
-                    },
-                ..
-            },
-        ))) => {
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+            if matches!(
+                resp.error.code,
+                JsonErrorCode::UnknownChannel | JsonErrorCode::MissingAccess
+            ) =>
+        {
             debug!("bot lacks channel access to LFG channel");
             return Ok(());
         },
@@ -92,36 +85,20 @@ pub async fn guild_create<Data: CronJobData>(
         let created_at = created_at.to_zoned(TimeZone::UTC);
 
         if created_at < month_ago {
-            match thread
-                .delete(&ctx.http, Some("Thread older than 30 days"))
-                .await
-            {
-                Ok(_)
+            match thread.delete(&ctx.http, Some("Thread older than 30 days")).await {
+                Ok(_) => {},
                 // Channel already removed
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code: JsonErrorCode::UnknownChannel,
-                            ..
-                        },
-                    ..
-                }))) => {}
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                    if resp.error.code == JsonErrorCode::UnknownChannel => {},
                 Err(e) => return Err(e.into()),
             }
         }
 
         if created_at < week_ago {
             match thread.edit(&ctx.http, EditThread::new().archived(true)).await {
-                Ok(())
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                    ErrorResponse {
-                        error:
-                            DiscordJsonError {
-                                code: JsonErrorCode::UnknownChannel, ..
-                            },
-                        ..
-                    },
-                ))) => {},
+                Ok(()) => {},
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                    if resp.error.code == JsonErrorCode::UnknownChannel => {},
                 Err(e) => return Err(e.into()),
             }
         }
@@ -144,19 +121,13 @@ pub async fn guild_create<Data: CronJobData>(
                 .delete_message(&ctx.http, message, Some("Expired LFG post"))
                 .await
             {
-                Ok(())
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                    ErrorResponse {
-                        error:
-                            DiscordJsonError {
-                                code:
-                                    JsonErrorCode::UnknownMessage
-                                    | JsonErrorCode::UnknownChannel,
-                                ..
-                            },
-                        ..
-                    },
-                ))) => {},
+                Ok(()) => {},
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                    if matches!(
+                        resp.error.code,
+                        JsonErrorCode::UnknownMessage
+                            | JsonErrorCode::UnknownChannel
+                    ) => {},
                 Err(e) => return Err(e.into()),
             }
         }
@@ -167,16 +138,9 @@ pub async fn guild_create<Data: CronJobData>(
                 .edit(&ctx.http, EditThread::new().archived(true))
                 .await
             {
-                Ok(_)
-                | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                    ErrorResponse {
-                        error:
-                            DiscordJsonError {
-                                code: JsonErrorCode::UnknownChannel, ..
-                            },
-                        ..
-                    },
-                ))) => {},
+                Ok(_) => {},
+                Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                    if resp.error.code == JsonErrorCode::UnknownChannel => {},
                 Err(e) => return Err(e.into()),
             }
         }

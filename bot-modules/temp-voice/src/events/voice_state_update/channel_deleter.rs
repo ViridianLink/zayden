@@ -1,10 +1,4 @@
-use serenity::all::{
-    Context,
-    DiscordJsonError,
-    ErrorResponse,
-    HttpError,
-    JsonErrorCode,
-};
+use serenity::all::{Context, HttpError, JsonErrorCode};
 use sqlx::PgPool;
 use tracing::debug;
 
@@ -70,12 +64,9 @@ pub async fn channel_deleter(
     }
 
     let channel = match channel_id.to_guild_channel(ctx, Some(old.guild_id)).await {
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-            ErrorResponse {
-                error: DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
-                ..
-            },
-        ))) => {
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+            if resp.error.code == JsonErrorCode::UnknownChannel =>
+        {
             return Ok(());
         },
         r => r?,
@@ -112,14 +103,9 @@ pub async fn channel_deleter(
             .await
         {
             // Channel already deleted, ignore this error
-            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error:
-                        DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
-                    ..
-                },
-            )))
-            | Ok(_) => {},
+            Ok(_) => {},
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if resp.error.code == JsonErrorCode::UnknownChannel => {},
             Err(e) => return Err(e.into()),
         }
     }

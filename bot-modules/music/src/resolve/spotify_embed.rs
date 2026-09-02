@@ -1,8 +1,9 @@
 use std::time::Duration;
 
+use reqwest::Client;
+use reqwest::header::USER_AGENT;
 use serde::Deserialize;
 use serenity::all::UserId;
-use songbird_reqwest::Client;
 
 use super::{LazyTail, PlaylistOrigin, Resolution};
 use crate::error::{MusicError, Result};
@@ -41,7 +42,7 @@ pub async fn fetch_embed_playlist(
 ) -> Result<EmbedPlaylist> {
     let response = client
         .get(embed_url(playlist_id))
-        .header(songbird_reqwest::header::USER_AGENT, EMBED_USER_AGENT)
+        .header(USER_AGENT, EMBED_USER_AGENT)
         .send()
         .await
         .map_err(|e| {

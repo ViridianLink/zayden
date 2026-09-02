@@ -7,8 +7,6 @@ use serenity::all::{
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     CreateMessage,
-    DiscordJsonError,
-    ErrorResponse,
     GenericChannelId,
     HttpError,
     JsonErrorCode,
@@ -147,16 +145,9 @@ impl Create {
             .await
         {
             Ok(thread) => thread,
-            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code: JsonErrorCode::TagRequiredForForumPost,
-                            ..
-                        },
-                    ..
-                },
-            ))) => {
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if resp.error.code == JsonErrorCode::TagRequiredForForumPost =>
+            {
                 return Err(LfgError::TagRequired);
             },
             r => r?,

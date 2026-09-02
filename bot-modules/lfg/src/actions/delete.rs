@@ -1,11 +1,4 @@
-use serenity::all::{
-    DiscordJsonError,
-    ErrorResponse,
-    GenericChannelId,
-    Http,
-    HttpError,
-    JsonErrorCode,
-};
+use serenity::all::{GenericChannelId, Http, HttpError, JsonErrorCode};
 use sqlx::PgPool;
 
 use crate::templates::TemplateInfo;
@@ -23,13 +16,9 @@ pub async fn delete(
     };
 
     match post.thread().widen().delete(http, Some("Lfg post deleted")).await {
-        Ok(_)
-        | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-            ErrorResponse {
-                error: DiscordJsonError { code: JsonErrorCode::UnknownChannel, .. },
-                ..
-            },
-        ))) => {},
+        Ok(_) => {},
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+            if resp.error.code == JsonErrorCode::UnknownChannel => {},
         Err(e) => return Err(e.into()),
     }
 
@@ -37,19 +26,12 @@ pub async fn delete(
         (post.schedule_channel(), post.alt_message())
     {
         match channel.delete_message(http, message, Some("Lfg post deleted")).await {
-            Ok(())
-            | Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-                ErrorResponse {
-                    error:
-                        DiscordJsonError {
-                            code:
-                                JsonErrorCode::UnknownMessage
-                                | JsonErrorCode::UnknownChannel,
-                            ..
-                        },
-                    ..
-                },
-            ))) => {},
+            Ok(()) => {},
+            Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+                if matches!(
+                    resp.error.code,
+                    JsonErrorCode::UnknownMessage | JsonErrorCode::UnknownChannel
+                ) => {},
             Err(e) => return Err(e.into()),
         }
     }

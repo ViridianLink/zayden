@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use songbird_reqwest::Client;
+use reqwest::Client;
 use zayden_app::services::http::HTTP_CONNECT_TIMEOUT;
 
 use crate::error::{MusicError, Result};

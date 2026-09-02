@@ -1,7 +1,7 @@
 use std::future::Future;
 use std::time::Duration;
 
-use serenity::all::{ErrorResponse, HttpError, StatusCode};
+use serenity::all::{HttpError, StatusCode};
 use tokio::time::sleep;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,8 +28,8 @@ pub fn is_transient(error: &serenity::Error) -> bool {
         return false;
     };
 
-    if let HttpError::UnsuccessfulRequest(ErrorResponse { status_code, .. }) = http {
-        return status_is_transient(*status_code);
+    if let HttpError::UnsuccessfulRequest(resp) = http {
+        return status_is_transient(resp.status_code);
     }
 
     matches!(http, HttpError::Request(_))

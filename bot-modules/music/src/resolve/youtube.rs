@@ -5,11 +5,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use reqwest::Client;
+use reqwest::header::{HeaderMap, HeaderName, HeaderValue, RANGE};
 use serde::Deserialize;
 use serenity::all::UserId;
 use songbird::input::{HlsRequest, HttpRequest, Input};
-use songbird_reqwest::Client;
-use songbird_reqwest::header::{HeaderMap, HeaderName, HeaderValue, RANGE};
 use tokio::process::Command;
 use tracing::warn;
 use url::Url;

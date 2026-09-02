@@ -3,8 +3,6 @@ use serenity::all::{
     CreateChannel,
     CreateComponent,
     CreateMessage,
-    DiscordJsonError,
-    ErrorResponse,
     Http,
     HttpError,
     JsonErrorCode,
@@ -64,12 +62,9 @@ pub async fn channel_creator(
                 "creator channel {creator_channel_id} has no parent category"
             )));
         },
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-            ErrorResponse {
-                error: DiscordJsonError { code: JsonErrorCode::MissingAccess, .. },
-                ..
-            },
-        ))) => {
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+            if resp.error.code == JsonErrorCode::MissingAccess =>
+        {
             debug!(
                 %creator_channel_id,
                 "missing access to creator channel's category; skipping channel creation"
@@ -98,16 +93,9 @@ pub async fn channel_creator(
 
     match guild_id.move_member(http, member.user.id, vc.id).await {
         Ok(_) => {},
-        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(
-            ErrorResponse {
-                error:
-                    DiscordJsonError {
-                        code: JsonErrorCode::TargetUserNotConnectedToVoice,
-                        ..
-                    },
-                ..
-            },
-        ))) => {
+        Err(serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)))
+            if resp.error.code == JsonErrorCode::TargetUserNotConnectedToVoice =>
+        {
             member
                 .user
                 .id
