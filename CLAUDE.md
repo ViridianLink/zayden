@@ -127,18 +127,3 @@ narration, and summaries of work the user just watched you do.
 - `.claude/memory/` — accumulated project and preference notes, indexed in
   `MEMORY.md`.
 - `README.md` — layout, full command list, Docker and CI notes.
-
-## Relationship to the Rust template
-
-Tracks `~/Documents/Personal/rust-template`. Keep `Cargo.toml` lint tables,
-`clippy.toml`, `rustfmt.toml`, `rust-toolchain.toml`, `.cargo/config.toml`,
-`deny.toml`, `bacon.toml`, `.dockerignore` and `.github/workflows/ci.yml` in
-step with it; port template changes over rather than letting the two drift.
-Four divergences are deliberate:
-
-| Divergence                       | Why                                                                  |
-| -------------------------------- | -------------------------------------------------------------------- |
-| No `--all-features` anywhere     | `dashboard`'s `ssr`/`hydrate` are mutually exclusive                 |
-| `release` uses `opt-level = "z"` | the VPS bills on memory, not CPU                                     |
-| Per-member feature selection     | modules opt into minimal feature sets to keep compile times down     |
-| Two Dockerfiles, not one         | bot needs ffmpeg/yt-dlp/deno; dashboard needs the leptos site bundle |
