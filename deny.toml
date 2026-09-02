@@ -1,0 +1,73 @@
+[graph]
+all-features = true
+
+[advisories]
+db-urls = ["https://github.com/rustsec/advisory-db"]
+yanked = "deny"
+unmaintained = "workspace"
+unsound = "workspace"
+unused-ignored-advisory = "warn"
+ignore = [
+    { id = "RUSTSEC-2026-0207", reason = "unreachable: incremental squeeze API unused by ML-KEM path" },
+    { id = "RUSTSEC-2026-0208", reason = "unreachable: AVX2 SHAKE-256 buffer lengths are always /8 in ML-KEM" },
+    { id = "RUSTSEC-2026-0212", reason = "unreachable: aarch64-only, and the VPS target is x86_64" },
+]
+
+[licenses]
+unused-allowed-license = "warn"
+confidence-threshold = 0.9
+private = { ignore = true }
+allow = [
+    "LicenseRef-Proprietary",
+
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "MPL-2.0",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "CC0-1.0",
+    "OpenSSL",
+    "Unlicense",
+    "0BSD",
+    "OFL-1.1",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+]
+
+[[licenses.clarify]]
+name = "bungie-api"
+expression = "LicenseRef-Proprietary"
+license-files = []
+
+[[licenses.clarify]]
+name = "google-sheets-api"
+expression = "LicenseRef-Proprietary"
+license-files = []
+
+[bans]
+# serenity's `next` branch drags a second major of several crates (reqwest 0.12
+# via songbird, rand 0.8/0.9 via transitive deps). Warn, do not fail.
+multiple-versions = "warn"
+# Workspace deps use `*`; switch to "deny" once versions are pinned.
+wildcards = "allow"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = [
+    "https://github.com/rust-lang/crates.io-index",
+    "sparse+https://index.crates.io/",
+]
+
+allow-git = [
+    "https://github.com/serenity-rs/serenity",
+    "https://github.com/serenity-rs/songbird",
+    "https://github.com/ViridianLink/bungie-api.git",
+    "https://github.com/ViridianLink/google-sheets-api.git",
+]

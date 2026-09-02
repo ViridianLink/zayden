@@ -3,6 +3,9 @@ name = "dashboard"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [lints]
 workspace = true
@@ -59,39 +62,29 @@ ssr = [
 ]
 
 [dependencies]
-# Leptos versions are pinned (not "*") for a reproducible 1.0 build.
-leptos = { version = "=0.8.20", default-features = false }
-leptos_meta = { version = "=0.8.6", default-features = false }
-leptos_router = { version = "=0.8.14", default-features = false }
+leptos = { workspace = true }
+leptos_meta = { workspace = true }
+leptos_router = { workspace = true }
 
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 
-leptos_axum = { version = "=0.8.10", optional = true }
+leptos_axum = { workspace = true, optional = true }
 
-axum = { version = "*", optional = true, default-features = true, features = [
-  "query",
-  "tokio",
-  "http2",
-  "json",
-  "macros",
-] }
+axum = { workspace = true, optional = true }
 dotenvy = { workspace = true, optional = true }
 greetings = { workspace = true, optional = true }
 honeypot = { workspace = true, optional = true }
 jiff = { workspace = true, optional = true }
 jiff-sqlx = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"], optional = true }
-oauth2 = { version = "*", default-features = false, features = [
-  "reqwest",
-  "rustls-tls",
-], optional = true }
+oauth2 = { workspace = true, optional = true }
 palworld = { workspace = true, optional = true }
 rand = { workspace = true, features = ["thread_rng"], optional = true }
 reaction-roles = { workspace = true, optional = true }
 rustls = { workspace = true, features = ["aws-lc-rs"], optional = true }
-sha2 = { version = "*", default-features = false, optional = true }
+sha2 = { workspace = true, optional = true }
 sqlx = { workspace = true, features = [
   "postgres",
   "runtime-tokio",
@@ -104,28 +97,21 @@ tokio = { workspace = true, features = [
   "rt-multi-thread",
   "sync",
 ], optional = true }
-zip = { version = "*", default-features = false, features = [
-  "deflate",
-], optional = true }
-tower-cookies = { version = "*", default-features = false, features = [
-  "axum-core",
-], optional = true }
+zip = { workspace = true, features = ["deflate"], optional = true }
+tower-cookies = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, features = [
   "ansi",
   "fmt",
 ], optional = true }
-twilight-http = { version = "=0.17.1", default-features = false, features = [
-  "decompression",
-  "rustls-webpki-roots",
-], optional = true }
-twilight-model = { version = "=0.17.1" }
+twilight-http = { workspace = true, optional = true }
+twilight-model = { workspace = true }
 zayden-app = { workspace = true, optional = true }
 
-# ── Hydrate-only ─────────────────────────────────────────────────────────────
+# -- Hydrate-only
 
-wasm-bindgen = { version = "*", optional = true }
-wasm-bindgen-futures = { version = "*", optional = true }
-web-sys = { version = "*", optional = true, features = [
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true, features = [
   "Blob",
   "Document",
   "Headers",

@@ -3,6 +3,9 @@ name = "music"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [package.metadata.cargo-machete]
 ignored = ["symphonia"]
@@ -16,10 +19,8 @@ zayden-core = { workspace = true }
 
 async-trait = { workspace = true }
 dashmap = { workspace = true }
-rand = { version = "0.10", default-features = false, features = ["thread_rng"] }
-songbird-reqwest = { package = "reqwest", version = "0.12", default-features = false, features = [
-    "rustls-tls",
-] }
+rand = { workspace = true, features = ["thread_rng"] }
+reqwest = { workspace = true }
 rspotify = { workspace = true, features = [
     "client-reqwest",
     "reqwest-rustls-tls",
@@ -35,12 +36,7 @@ songbird = { workspace = true, features = [
     "tungstenite",
 ] }
 sqlx = { workspace = true }
-symphonia = { version = "0.5", default-features = false, features = [
-    "mkv",
-    "isomp4",
-    "aac",
-    "mp3",
-] }
+symphonia = { workspace = true, features = ["mkv", "isomp4", "aac", "mp3"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = [
     "fs",

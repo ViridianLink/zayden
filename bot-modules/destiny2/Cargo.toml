@@ -3,6 +3,9 @@ name = "destiny2"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [lints]
 workspace = true
@@ -10,7 +13,8 @@ workspace = true
 [dependencies]
 bungie-api = { workspace = true }
 futures = { workspace = true }
-google-sheets-api = { git = "https://github.com/ViridianLink/google-sheets-api.git", branch = "main" }
+google-sheets-api = { workspace = true }
+itertools = { workspace = true }
 jiff-cron = { workspace = true }
 serenity = { workspace = true }
 sqlx = { workspace = true }

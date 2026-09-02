@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use gvas::properties::Property;
 use gvas::properties::array_property::ArrayProperty;
 use gvas::properties::struct_property::StructPropertyValue;
+use rayon::prelude::*;
 
 use super::decompress;
 use super::extract::{field, owned_pal, owner_uid, struct_fields};
@@ -55,31 +56,29 @@ pub fn load_file(path: &Path) -> Result<StoredPals> {
 
 #[must_use]
 pub fn load_all(save_dir: &Path) -> StoredPals {
-    let paths = list_files(save_dir);
+    let parsed: Vec<(PathBuf, Result<StoredPals>)> = list_files(save_dir)
+        .into_par_iter()
+        .map(|path| {
+            let pals = load_file(&path);
+            (path, pals)
+        })
+        .collect();
+
     let mut out = StoredPals::new();
-
-    std::thread::scope(|scope| {
-        let handles: Vec<_> = paths
-            .iter()
-            .map(|path| scope.spawn(move || (path, load_file(path))))
-            .collect();
-
-        for handle in handles {
-            let Ok((path, parsed)) = handle.join() else { continue };
-            match parsed {
-                Ok(pals) => {
-                    for (uid, mut owned) in pals {
-                        out.entry(uid).or_default().append(&mut owned);
-                    }
-                },
-                Err(e) => tracing::warn!(
-                    error = %e,
-                    file = %path.display(),
-                    "palworld: skipping unreadable Pal storage save",
-                ),
-            }
+    for (path, result) in parsed {
+        match result {
+            Ok(pals) => {
+                for (uid, mut owned) in pals {
+                    out.entry(uid).or_default().append(&mut owned);
+                }
+            },
+            Err(e) => tracing::warn!(
+                error = %e,
+                file = %path.display(),
+                "palworld: skipping unreadable Pal storage save",
+            ),
         }
-    });
+    }
 
     out
 }

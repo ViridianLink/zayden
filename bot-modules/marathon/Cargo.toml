@@ -3,6 +3,9 @@ name = "marathon"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [lints]
 workspace = true
@@ -11,6 +14,7 @@ workspace = true
 zayden-core = { workspace = true }
 
 futures = { workspace = true }
+itertools = { workspace = true }
 jiff = { workspace = true, features = ["std"] }
 jiff-cron = { workspace = true }
 moka = { workspace = true, features = ["future"] }
@@ -26,5 +30,10 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt", "net", "io-util"] }
 zayden-app = { workspace = true }
+
+[[bench]]
+name = "merge"
+harness = false

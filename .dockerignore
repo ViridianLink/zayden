@@ -1,20 +1,43 @@
 # Build artifacts
 target/
 **/target/
+debug/
+**/*.rs.bk
+*.pdb
 
-# VCS & CI
-.git/
-.github/
-.vscode/
-
+rust-toolchain.toml
 .cargo/
 
-# Docs / logs / scratch 
+# Secrets and local config
+.env
+.env.*
+!.env.example
+!.env.docker.example
+*.pem
+*.key
+*.p12
+*.keystore.json
+
+# VCS, CI and agent config -- no build stage reads these
+.git/
+.github/
+.gitignore
+.claude/
+skills-lock.json
+
+# Docs and tooling
 *.md
-!README.md
-*.log
-log.txt
-logs/
+design-docs/
+deny.toml
+clippy.toml
+rustfmt.toml
+bacon.toml
+.bacon-locations
+
+# Docker meta: compose orchestrates the images, it is never read from inside one
+docker-compose*.yml
+docker/
+.dockerignore
 
 # Local runtime data that must not leak into images
 palworld_uploads/
@@ -22,13 +45,20 @@ multipler-client-files/
 056C426C55974CFCA115EB695A224F67/
 *.sav
 *.ps1
+*.log
+log.txt
+logs/
 
-# Secrets
-.env
-.env.*
-!.env.example
-!.env.docker.example
+# Editor and OS noise
+.vscode/
+.idea/
+*.sw?
+.DS_Store
+__pycache__/
+.venv/
 
-# Docker meta
-docker-compose*.yml
-docker/
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+build/

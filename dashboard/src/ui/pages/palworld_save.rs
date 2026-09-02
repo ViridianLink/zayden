@@ -360,6 +360,11 @@ fn disposition_filename(raw: &str) -> Option<String> {
 }
 
 #[cfg(feature = "hydrate")]
+#[expect(
+    clippy::future_not_send,
+    reason = "web_sys/JsFuture are !Send by construction; the hydrate bundle \
+              only ever runs on wasm32's single-threaded runtime"
+)]
 async fn download_export(edits: &SaveEdits) -> Result<String, String> {
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;

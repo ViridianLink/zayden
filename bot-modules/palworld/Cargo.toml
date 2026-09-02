@@ -3,6 +3,9 @@ name = "palworld"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
 
 [lints]
 workspace = true
@@ -11,10 +14,12 @@ workspace = true
 zayden-app = { workspace = true }
 zayden-core = { workspace = true }
 
+itertools = { workspace = true }
 jiff = { workspace = true, features = ["std"] }
 jiff-cron = { workspace = true }
 jiff-sqlx = { workspace = true }
 moka = { workspace = true, features = ["future"] }
+rayon = { workspace = true }
 reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
 scraper = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
@@ -29,9 +34,18 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["fs", "rt", "sync"] }
 tracing = { workspace = true }
 
-flate2 = "1"
-gvas = "0.11"
-oozextract = "=0.5.0"
+flate2 = { workspace = true }
+gvas = { workspace = true }
+oozextract = { workspace = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 tokio = { workspace = true, features = ["io-util", "macros", "net", "rt"] }
+
+[[bench]]
+name = "save"
+harness = false
+
+[[bench]]
+name = "breeding"
+harness = false

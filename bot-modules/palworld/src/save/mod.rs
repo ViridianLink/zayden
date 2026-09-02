@@ -116,14 +116,23 @@ pub fn load_player_names(save_dir: &Path) -> Result<Vec<PlayerName>> {
 }
 
 pub fn load_world(save_dir: &Path) -> Result<WorldRoster> {
-    load_world_with(save_dir, dps::load_all(save_dir))
+    let (stored, level) =
+        rayon::join(|| dps::load_all(save_dir), || read_level(save_dir));
+    Ok(world_roster(save_dir, level?, stored))
 }
 
 pub fn load_world_with<S: BuildHasher>(
     save_dir: &Path,
     stored: HashMap<String, Vec<OwnedPal>, S>,
 ) -> Result<WorldRoster> {
-    let (extracted, guilds) = read_level(save_dir)?;
+    Ok(world_roster(save_dir, read_level(save_dir)?, stored))
+}
+
+fn world_roster<S: BuildHasher>(
+    save_dir: &Path,
+    (extracted, guilds): (extract::ExtractedWorld, guild::GuildData),
+    stored: HashMap<String, Vec<OwnedPal>, S>,
+) -> WorldRoster {
     let extract::ExtractedWorld { players: info, mut pals, base_pals } = extracted;
 
     pals.remove(GLOBAL_STORAGE_UID);
@@ -172,7 +181,7 @@ pub fn load_world_with<S: BuildHasher>(
 
     players.sort_by_key(|p| p.name.to_lowercase());
 
-    Ok(WorldRoster { players })
+    WorldRoster { players }
 }
 
 fn player_dir_uids(save_dir: &Path) -> Vec<String> {

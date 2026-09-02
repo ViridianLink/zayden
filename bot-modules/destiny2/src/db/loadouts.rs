@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use itertools::Itertools;
 use sqlx::PgPool;
 
 use crate::endgame_analysis::sheet::Affinity;
@@ -64,13 +65,10 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut fragments_by_aspect: HashMap<i32, Vec<String>> = HashMap::new();
-    for row in fragment_rows {
-        fragments_by_aspect
-            .entry(row.aspect_id)
-            .or_default()
-            .push(row.fragment_emoji);
-    }
+    let mut fragments_by_aspect: HashMap<i32, Vec<String>> = fragment_rows
+        .into_iter()
+        .map(|row| (row.aspect_id, row.fragment_emoji))
+        .into_group_map();
 
     let aspect_rows = sqlx::query!(
         "SELECT id, loadout_id, aspect_emoji
@@ -79,13 +77,15 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut aspects_by_loadout: HashMap<i32, Vec<AspectRecord>> = HashMap::new();
-    for row in aspect_rows {
-        aspects_by_loadout.entry(row.loadout_id).or_default().push(AspectRecord {
-            emoji: row.aspect_emoji,
-            fragments: fragments_by_aspect.remove(&row.id).unwrap_or_default(),
-        });
-    }
+    let mut aspects_by_loadout: HashMap<i32, Vec<AspectRecord>> = aspect_rows
+        .into_iter()
+        .map(|row| {
+            (row.loadout_id, AspectRecord {
+                emoji: row.aspect_emoji,
+                fragments: fragments_by_aspect.remove(&row.id).unwrap_or_default(),
+            })
+        })
+        .into_group_map();
 
     let weapon_perk_rows = sqlx::query!(
         "SELECT lwp.loadout_weapon_id, p.name AS perk
@@ -95,10 +95,10 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut perks_by_weapon: HashMap<i32, Vec<String>> = HashMap::new();
-    for row in weapon_perk_rows {
-        perks_by_weapon.entry(row.loadout_weapon_id).or_default().push(row.perk);
-    }
+    let mut perks_by_weapon: HashMap<i32, Vec<String>> = weapon_perk_rows
+        .into_iter()
+        .map(|row| (row.loadout_weapon_id, row.perk))
+        .into_group_map();
 
     let weapon_rows = sqlx::query!(
         r#"SELECT
@@ -114,16 +114,18 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut weapons_by_loadout: HashMap<i32, Vec<WeaponRecord>> = HashMap::new();
-    for row in weapon_rows {
-        weapons_by_loadout.entry(row.loadout_id).or_default().push(WeaponRecord {
-            name: row.name,
-            affinity: row.affinity,
-            archetype: row.archetype,
-            icon_url: row.icon_url,
-            perks: perks_by_weapon.remove(&row.id).unwrap_or_default(),
-        });
-    }
+    let mut weapons_by_loadout: HashMap<i32, Vec<WeaponRecord>> = weapon_rows
+        .into_iter()
+        .map(|row| {
+            (row.loadout_id, WeaponRecord {
+                name: row.name,
+                affinity: row.affinity,
+                archetype: row.archetype,
+                icon_url: row.icon_url,
+                perks: perks_by_weapon.remove(&row.id).unwrap_or_default(),
+            })
+        })
+        .into_group_map();
 
     let armour_mod_rows = sqlx::query!(
         "SELECT armour_id, mod_emoji
@@ -132,10 +134,10 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut mods_by_armour: HashMap<i32, Vec<String>> = HashMap::new();
-    for row in armour_mod_rows {
-        mods_by_armour.entry(row.armour_id).or_default().push(row.mod_emoji);
-    }
+    let mut mods_by_armour: HashMap<i32, Vec<String>> = armour_mod_rows
+        .into_iter()
+        .map(|row| (row.armour_id, row.mod_emoji))
+        .into_group_map();
 
     let armour_rows = sqlx::query!(
         r#"SELECT
@@ -149,15 +151,17 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut armour_by_loadout: HashMap<i32, Vec<ArmourRecord>> = HashMap::new();
-    for row in armour_rows {
-        armour_by_loadout.entry(row.loadout_id).or_default().push(ArmourRecord {
-            slot: row.slot,
-            name: row.name,
-            icon_url: row.icon_url,
-            mods: mods_by_armour.remove(&row.id).unwrap_or_default(),
-        });
-    }
+    let mut armour_by_loadout: HashMap<i32, Vec<ArmourRecord>> = armour_rows
+        .into_iter()
+        .map(|row| {
+            (row.loadout_id, ArmourRecord {
+                slot: row.slot,
+                name: row.name,
+                icon_url: row.icon_url,
+                mods: mods_by_armour.remove(&row.id).unwrap_or_default(),
+            })
+        })
+        .into_group_map();
 
     let stat_rows = sqlx::query!(
         r#"SELECT loadout_id, stat AS "stat!: StatKind", value
@@ -166,13 +170,10 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut stats_by_loadout: HashMap<i32, Vec<(StatKind, i16)>> = HashMap::new();
-    for row in stat_rows {
-        stats_by_loadout
-            .entry(row.loadout_id)
-            .or_default()
-            .push((row.stat, row.value));
-    }
+    let mut stats_by_loadout: HashMap<i32, Vec<(StatKind, i16)>> = stat_rows
+        .into_iter()
+        .map(|row| (row.loadout_id, (row.stat, row.value)))
+        .into_group_map();
 
     let tag_rows = sqlx::query!(
         "SELECT loadout_id, tag
@@ -181,10 +182,8 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut tags_by_loadout: HashMap<i32, Vec<String>> = HashMap::new();
-    for row in tag_rows {
-        tags_by_loadout.entry(row.loadout_id).or_default().push(row.tag);
-    }
+    let mut tags_by_loadout: HashMap<i32, Vec<String>> =
+        tag_rows.into_iter().map(|row| (row.loadout_id, row.tag)).into_group_map();
 
     let artifact_rows = sqlx::query!(
         "SELECT loadout_id, perk_emoji
@@ -193,10 +192,10 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     )
     .fetch_all(pool)
     .await?;
-    let mut artifact_by_loadout: HashMap<i32, Vec<String>> = HashMap::new();
-    for row in artifact_rows {
-        artifact_by_loadout.entry(row.loadout_id).or_default().push(row.perk_emoji);
-    }
+    let mut artifact_by_loadout: HashMap<i32, Vec<String>> = artifact_rows
+        .into_iter()
+        .map(|row| (row.loadout_id, row.perk_emoji))
+        .into_group_map();
 
     let records = bases
         .into_iter()

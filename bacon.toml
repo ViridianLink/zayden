@@ -1,6 +1,6 @@
-default_job = "clippy-workspace"
+default_job = "clippy"
 
-[jobs.clippy-workspace]
+[jobs.clippy]
 command = [
     "cargo",
     "clippy",
@@ -12,6 +12,32 @@ command = [
     "-D",
     "warnings",
 ]
+need_stdout = false
+
+[jobs.fmt]
+command = ["cargo", "fmt", "--all", "--check"]
+need_stdout = true
+
+[jobs.test]
+command = ["cargo", "test", "--workspace", "--all-targets", "--color", "always"]
+need_stdout = true
+
+[jobs.nextest]
+command = [
+    "cargo",
+    "nextest",
+    "run",
+    "--workspace",
+    "--all-targets",
+    "--hide-progress-bar",
+    "--failure-output",
+    "final",
+]
+analyzer = "nextest"
+need_stdout = true
+
+[jobs.build]
+command = ["cargo", "build", "--workspace", "--all-targets", "--color", "always"]
 need_stdout = false
 
 [jobs.check-ssr]
@@ -42,9 +68,23 @@ command = [
 ]
 need_stdout = false
 
-[jobs.test-workspace]
-command = ["cargo", "test", "--color", "always"]
-need_stdout = true
+[jobs.clippy-hydrate]
+command = [
+    "cargo",
+    "clippy",
+    "-p",
+    "dashboard",
+    "--target",
+    "wasm32-unknown-unknown",
+    "--features",
+    "hydrate",
+    "--color",
+    "always",
+    "--",
+    "-D",
+    "warnings",
+]
+need_stdout = false
 
 [jobs.check-offline]
 command = ["cargo", "check", "--workspace", "--all-targets", "--color", "always"]

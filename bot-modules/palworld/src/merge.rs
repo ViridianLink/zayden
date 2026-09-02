@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+use itertools::Itertools;
+
 use crate::model::{Item, Pal, PassiveSkill};
 use crate::source::{Category, SourceId};
 
@@ -11,16 +13,10 @@ pub fn nonempty(value: Option<String>) -> Option<String> {
 
 pub fn dedup<T, K, F>(items: impl IntoIterator<Item = T>, key: F) -> Vec<T>
 where
-    K: PartialEq,
-    F: Fn(&T) -> K,
+    K: Hash + Eq,
+    F: FnMut(&T) -> K,
 {
-    let mut out: Vec<T> = Vec::new();
-    for item in items {
-        if !out.iter().any(|existing| key(existing) == key(&item)) {
-            out.push(item);
-        }
-    }
-    out
+    items.into_iter().unique_by(key).collect()
 }
 
 #[must_use]
@@ -77,7 +73,7 @@ fn union_by_precedence<T, K>(
     key: impl Fn(&T) -> K,
 ) -> Vec<T>
 where
-    K: PartialEq,
+    K: Hash + Eq,
 {
     let mut ordered: Vec<&(SourceId, Pal)> = candidates.iter().collect();
     ordered.sort_by_key(|(source, _)| cat.rank(*source));
