@@ -7,10 +7,20 @@ pub struct GuildInfo {
     pub(crate) icon: Option<String>,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct HelperLinkInfo {
+    pub(crate) user_id: String,
+    pub(crate) name: String,
+    pub(crate) link: String,
+}
+
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct GuildSettings {
     pub(crate) support_channel_id: Option<String>,
     pub(crate) faq_channel_id: Option<String>,
+    pub(crate) solved_tag_id: Option<String>,
+    pub(crate) helper_role_id: Option<String>,
+    pub(crate) solved_archive_secs: String,
     pub(crate) suggestions_channel_id: Option<String>,
     pub(crate) review_channel_id: Option<String>,
     pub(crate) suggestions_promote_threshold: String,

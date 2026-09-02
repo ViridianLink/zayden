@@ -13,16 +13,18 @@ use {
     leptos_axum::{extract, redirect},
     std::sync::Arc,
     suggestions::ReviewThresholds,
-    ticket::{GuildId, RoleId, SupportRoles},
+    ticket::{GuildId, HelperLinks, RoleId, SupportRoles, UserId},
     tower_cookies::Cookies,
+    twilight_http::Client,
     twilight_model::channel::ChannelType,
     twilight_model::guild::Permissions,
     twilight_model::id::Id,
-    zayden_app::config::MusicSettingsRow,
+    url::Url,
+    zayden_app::config::{ARCHIVE_NEVER, MusicSettingsRow},
     zayden_app::state::AppState,
 };
 
-use crate::dto::{GuildInfo, GuildSettings};
+use crate::dto::{GuildInfo, GuildSettings, HelperLinkInfo};
 
 #[cfg(feature = "ssr")]
 async fn admin_app(guild: &str) -> Result<(i64, Arc<AppState>), ServerFnError> {
@@ -114,6 +116,9 @@ pub async fn get_guild_settings(
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
         faq_channel_id: opt_str(support.faq_channel_id),
+        solved_tag_id: opt_str(support.solved_tag_id),
+        helper_role_id: opt_str(support.helper_role_id),
+        solved_archive_secs: support.solved_archive_secs.to_string(),
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
         review_channel_id: opt_str(suggestions.review_channel_id),
         suggestions_promote_threshold: suggestions.promote_threshold.to_string(),
@@ -148,6 +153,31 @@ pub async fn save_support_settings(
     guild: String,
     support_channel_id: String,
     faq_channel_id: String,
+    solved_tag_id: String,
+    helper_role_id: String,
+    solved_archive_secs: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let archive_secs = parse_archive_secs(&solved_archive_secs);
+
+    app.settings
+        .support
+        .update(guild_id, |p| {
+            p.support_channel_id = parse_id(&support_channel_id);
+            p.faq_channel_id = parse_id(&faq_channel_id);
+            p.solved_tag_id = parse_id(&solved_tag_id);
+            p.helper_role_id = parse_id(&helper_role_id);
+            p.solved_archive_secs = archive_secs;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_suggestions_settings(
+    guild: String,
     suggestions_channel_id: String,
     review_channel_id: String,
     promote_threshold: String,
@@ -156,15 +186,6 @@ pub async fn save_support_settings(
     let (guild_id, app) = admin_app(&guild).await?;
 
     let thresholds = ReviewThresholds::parse(&promote_threshold, &demote_threshold);
-
-    app.settings
-        .support
-        .update(guild_id, |p| {
-            p.support_channel_id = parse_id(&support_channel_id);
-            p.faq_channel_id = parse_id(&faq_channel_id);
-        })
-        .await
-        .map_err(server_err)?;
 
     app.settings
         .suggestions
@@ -229,6 +250,131 @@ pub async fn remove_support_role(
     let role = parse_role(&role_id)?;
 
     SupportRoles::remove(&pool, GuildId::new(guild_id.cast_unsigned()), role)
+        .await
+        .map_err(server_err)?;
+
+    Ok(())
+}
+
+#[cfg(feature = "ssr")]
+fn parse_archive_secs(s: &str) -> i32 {
+    // -1 disables archiving; anything else clamps to a non-negative delay.
+    match s.trim().parse::<i32>() {
+        Ok(n) if n < 0 => ARCHIVE_NEVER,
+        Ok(n) => n,
+        Err(_e) => 60,
+    }
+}
+
+#[cfg(feature = "ssr")]
+fn parse_user(s: &str) -> Result<UserId, ServerFnError> {
+    s.trim()
+        .parse::<u64>()
+        .map(UserId::new)
+        .map_err(|_e| ServerFnError::ServerError("invalid user id".to_string()))
+}
+
+#[cfg(feature = "ssr")]
+fn parse_link(s: &str) -> Result<String, ServerFnError> {
+    let url = match Url::parse(s.trim()) {
+        Ok(url) => url,
+        Err(e) => {
+            return Err(ServerFnError::ServerError(format!("invalid link: {e}")));
+        },
+    };
+
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err(ServerFnError::ServerError(
+            "link must be an http:// or https:// address".to_string(),
+        ));
+    }
+
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err(ServerFnError::ServerError(
+            "link must not embed credentials".to_string(),
+        ));
+    }
+
+    let link = url.to_string();
+
+    if link.len() > 200 {
+        return Err(ServerFnError::ServerError("link is too long".to_string()));
+    }
+
+    Ok(link)
+}
+
+#[server]
+pub async fn list_helper_links(
+    guild: String,
+) -> Result<Vec<HelperLinkInfo>, ServerFnError> {
+    let guild_id = admin_guild_id(&guild).await?;
+    let pool = db_pool()?;
+    let http = discord_client()?;
+
+    let links = HelperLinks::list(&pool, GuildId::new(guild_id.cast_unsigned()))
+        .await
+        .map_err(server_err)?;
+
+    let mut out = Vec::with_capacity(links.len());
+
+    for l in links {
+        let user_id = l.user_id.get();
+        let name = display_name(&http, guild_id.cast_unsigned(), user_id).await;
+
+        out.push(HelperLinkInfo {
+            user_id: user_id.to_string(),
+            name,
+            link: l.link,
+        });
+    }
+
+    Ok(out)
+}
+
+#[cfg(feature = "ssr")]
+async fn display_name(http: &Client, guild_id: u64, user_id: u64) -> String {
+    let member = async {
+        let resp =
+            http.guild_member(Id::new(guild_id), Id::new(user_id)).await.ok()?;
+        resp.model().await.ok()
+    }
+    .await;
+
+    member.map_or_else(
+        || format!("unknown ({user_id})"),
+        |m| m.nick.unwrap_or_else(|| m.user.global_name.unwrap_or(m.user.name)),
+    )
+}
+
+#[server]
+pub async fn add_helper_link(
+    guild: String,
+    user_id: String,
+    link: String,
+) -> Result<(), ServerFnError> {
+    let guild_id = admin_guild_id(&guild).await?;
+    let pool = db_pool()?;
+
+    let user = parse_user(&user_id)?;
+    let link = parse_link(&link)?;
+
+    HelperLinks::set(&pool, GuildId::new(guild_id.cast_unsigned()), user, &link)
+        .await
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn remove_helper_link(
+    guild: String,
+    user_id: String,
+) -> Result<(), ServerFnError> {
+    let guild_id = admin_guild_id(&guild).await?;
+    let pool = db_pool()?;
+
+    let user = parse_user(&user_id)?;
+
+    HelperLinks::remove(&pool, GuildId::new(guild_id.cast_unsigned()), user)
         .await
         .map_err(server_err)?;
 

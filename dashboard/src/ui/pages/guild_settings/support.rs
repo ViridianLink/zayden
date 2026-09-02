@@ -2,10 +2,17 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 
 use super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
-use crate::server::guild::{AddSupportRole, RemoveSupportRole, SaveSupportSettings};
+use crate::dto::{ChannelInfo, GuildSettings, HelperLinkInfo, RoleInfo};
+use crate::server::guild::{
+    AddHelperLink,
+    AddSupportRole,
+    RemoveHelperLink,
+    RemoveSupportRole,
+    SaveSuggestionsSettings,
+    SaveSupportSettings,
+};
 use crate::ui::components::icons::Icon;
-use crate::ui::components::select::{ChannelSelect, RoleSelect};
+use crate::ui::components::select::{ChannelSelect, ForumTagSelect, RoleSelect};
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 
 #[component]
@@ -13,16 +20,24 @@ pub(crate) fn SupportTab(
     guild_id: String,
     settings: GuildSettings,
     support_roles: Vec<String>,
+    helper_links: Vec<HelperLinkInfo>,
     channels: Vec<ChannelInfo>,
     roles: Vec<RoleInfo>,
     add: ServerAction<AddSupportRole>,
     remove: ServerAction<RemoveSupportRole>,
+    add_link: ServerAction<AddHelperLink>,
+    remove_link: ServerAction<RemoveHelperLink>,
 ) -> impl IntoView {
     let save_support = ServerAction::<SaveSupportSettings>::new();
     let result = save_support.value();
+    let save_suggestions = ServerAction::<SaveSuggestionsSettings>::new();
+    let suggestions_result = save_suggestions.value();
 
     let s = settings;
     let gid = guild_id.clone();
+    let suggestions_gid = guild_id.clone();
+    let suggestions_channels = channels.clone();
+    let form_roles = roles.clone();
 
     view! {
         <fieldset class="settings-section">
@@ -43,18 +58,47 @@ pub(crate) fn SupportTab(
                     channels=channels.clone()
                     kinds=TEXT_KINDS
                 />
+                <ForumTagSelect
+                    label="Solved Tag"
+                    name="solved_tag_id"
+                    selected=sel(s.solved_tag_id.as_deref())
+                    channels=channels
+                />
+                <RoleSelect
+                    label="Helper Role"
+                    name="helper_role_id"
+                    selected=sel(s.helper_role_id.as_deref())
+                    roles=form_roles
+                />
+                <SettingField
+                    label="Archive solved posts after (seconds)"
+                    name="solved_archive_secs"
+                    value=s.solved_archive_secs
+                    pattern="-?[0-9]*"
+                />
+                <SaveButton/>
+            </ActionForm>
+            <p class="page-lead">
+                "\"/ticket solved\" applies the solved tag when the support "
+                "channel is a forum, and otherwise renames the thread. Archive "
+                "after 0 seconds to close immediately, or -1 to leave the post "
+                "open."
+            </p>
+            {move || suggestions_result.get().map(save_feedback)}
+            <ActionForm action=save_suggestions>
+                <input type="hidden" name="guild" value=suggestions_gid/>
                 <ChannelSelect
                     label="Suggestions Channel"
                     name="suggestions_channel_id"
                     selected=sel(s.suggestions_channel_id.as_deref())
-                    channels=channels.clone()
+                    channels=suggestions_channels.clone()
                     kinds=TEXT_KINDS
                 />
                 <ChannelSelect
                     label="Review Channel"
                     name="review_channel_id"
                     selected=sel(s.review_channel_id.as_deref())
-                    channels=channels
+                    channels=suggestions_channels
                     kinds=TEXT_KINDS
                 />
                 <SettingField
@@ -78,13 +122,77 @@ pub(crate) fn SupportTab(
                 "- demote must stay below promote."
             </p>
             <SupportRoleField
-                guild_id=guild_id
+                guild_id=guild_id.clone()
                 support_roles=support_roles
                 roles=roles
                 add=add
                 remove=remove
             />
+            <HelperLinkField
+                guild_id=guild_id
+                helper_links=helper_links
+                add=add_link
+                remove=remove_link
+            />
         </fieldset>
+    }
+}
+
+#[component]
+fn HelperLinkField(
+    guild_id: String,
+    helper_links: Vec<HelperLinkInfo>,
+    add: ServerAction<AddHelperLink>,
+    remove: ServerAction<RemoveHelperLink>,
+) -> impl IntoView {
+    let add_result = add.value();
+    let remove_result = remove.value();
+
+    let chips = helper_links
+        .into_iter()
+        .map(|l| {
+            let gid = guild_id.clone();
+            let label = format!("{} \u{2192} {}", l.name, l.link);
+
+            view! {
+                <ActionForm action=remove attr:class="chip">
+                    <input type="hidden" name="guild" value=gid/>
+                    <input type="hidden" name="user_id" value=l.user_id/>
+                    <span class="chip-label">{label}</span>
+                    <button type="submit" class="chip-remove" title="Remove">
+                        <Icon name="x"/>
+                    </button>
+                </ActionForm>
+            }
+        })
+        .collect_view();
+
+    view! {
+        <div class="setting-field">
+            <label>"Helper Donation Links"</label>
+            <p class="page-lead">
+                "When a post is solved, anyone with the helper role who posted "
+                "in it and has a link here gets credited in a follow-up message."
+            </p>
+            <div class="chip-list">{chips}</div>
+            {move || remove_result.get().map(save_feedback)}
+            {move || add_result.get().map(save_feedback)}
+            <ActionForm action=add attr:class="chip-add">
+                <input type="hidden" name="guild" value=guild_id/>
+                <SettingField
+                    label="Helper user ID"
+                    name="user_id"
+                    value=String::new()
+                />
+                <SettingField
+                    label="Donation link"
+                    name="link"
+                    value=String::new()
+                    pattern=".*"
+                />
+                <button type="submit" class="btn btn-ghost">"Add link"</button>
+            </ActionForm>
+        </div>
     }
 }
 

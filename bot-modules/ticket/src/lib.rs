@@ -6,12 +6,12 @@ use serenity::all::{
     Mention,
     Mentionable,
     ThreadId,
-    UserId,
 };
-pub use serenity::all::{GuildId, RoleId};
+pub use serenity::all::{GuildId, RoleId, UserId};
 
 pub mod components;
 pub mod error;
+pub mod helper_links;
 pub mod message_command;
 pub mod modal;
 pub mod slash_commands;
@@ -21,6 +21,7 @@ pub mod ticket_manager;
 pub use components::TicketComponent;
 use error::Result;
 pub use error::TicketError;
+pub use helper_links::{HelperLink, HelperLinks};
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
 pub use support_guild_manager::{SupportRoles, TicketGuildRow, TicketStores};

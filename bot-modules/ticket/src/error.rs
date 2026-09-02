@@ -9,6 +9,8 @@ pub type Result<T> = std::result::Result<T, TicketError>;
 pub enum TicketError {
     NotInSupportChannel,
     SupportNotFound,
+    SolvedTagNotConfigured,
+    SolvedTagMissing,
     Internal(String),
 
     ZaydenCore(ZaydenError),
@@ -21,6 +23,16 @@ impl std::fmt::Display for TicketError {
                 write!(f, "This command only works in the support channel.")
             },
             Self::SupportNotFound => write!(f, "Support message not found"),
+            Self::SolvedTagNotConfigured => write!(
+                f,
+                "No solved tag is configured for this server. Set one in the \
+                 dashboard under Support."
+            ),
+            Self::SolvedTagMissing => write!(
+                f,
+                "The configured solved tag no longer exists in this forum. \
+                 Pick a new one in the dashboard under Support."
+            ),
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::ZaydenCore(e) => e.fmt(f),
         }
@@ -33,6 +45,8 @@ impl std::error::Error for TicketError {
             Self::ZaydenCore(e) => Some(e),
             Self::NotInSupportChannel
             | Self::SupportNotFound
+            | Self::SolvedTagNotConfigured
+            | Self::SolvedTagMissing
             | Self::Internal(_) => None,
         }
     }
@@ -41,9 +55,10 @@ impl std::error::Error for TicketError {
 impl Respond for TicketError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {
-            Self::NotInSupportChannel | Self::SupportNotFound => {
-                Some(Cow::Owned(self.to_string()))
-            },
+            Self::NotInSupportChannel
+            | Self::SupportNotFound
+            | Self::SolvedTagNotConfigured
+            | Self::SolvedTagMissing => Some(Cow::Owned(self.to_string())),
             Self::Internal(_) => None,
             Self::ZaydenCore(e) => e.user_message(),
         }

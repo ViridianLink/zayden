@@ -6,6 +6,13 @@ pub struct ChannelInfo {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) kind: ChannelType,
+    pub(crate) tags: Vec<ForumTagInfo>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ForumTagInfo {
+    pub(crate) id: String,
+    pub(crate) name: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]

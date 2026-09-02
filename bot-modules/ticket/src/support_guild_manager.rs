@@ -1,5 +1,5 @@
 use futures::TryStreamExt;
-use serenity::all::{ChannelId, GuildId, RoleId};
+use serenity::all::{ChannelId, ForumTagId, GuildId, RoleId};
 use sqlx::PgPool;
 use zayden_app::config::{SettingsStore, SupportSettingsRow, TicketSettingsRow};
 use zayden_core::{as_i64, as_u64};
@@ -17,6 +17,9 @@ pub struct TicketGuildRow {
     pub support_channel_id: Option<i64>,
     pub support_role_ids: Vec<RoleId>,
     pub faq_channel_id: Option<i64>,
+    pub solved_tag_id: Option<i64>,
+    pub helper_role_id: Option<i64>,
+    pub solved_archive_secs: i32,
 }
 
 impl TicketGuildRow {
@@ -33,6 +36,16 @@ impl TicketGuildRow {
     #[must_use]
     pub fn faq_channel_id(&self) -> Option<ChannelId> {
         self.faq_channel_id.map(|id| ChannelId::new(as_u64(id)))
+    }
+
+    #[must_use]
+    pub fn solved_tag_id(&self) -> Option<ForumTagId> {
+        self.solved_tag_id.map(|id| ForumTagId::new(as_u64(id)))
+    }
+
+    #[must_use]
+    pub fn helper_role_id(&self) -> Option<RoleId> {
+        self.helper_role_id.map(|id| RoleId::new(as_u64(id)))
     }
 
     pub async fn get(
@@ -56,6 +69,9 @@ impl TicketGuildRow {
             support_channel_id: support.support_channel_id,
             support_role_ids,
             faq_channel_id: support.faq_channel_id,
+            solved_tag_id: support.solved_tag_id,
+            helper_role_id: support.helper_role_id,
+            solved_archive_secs: support.solved_archive_secs,
         }))
     }
 

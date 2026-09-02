@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
+    crate::dto::ForumTagInfo,
     crate::server::auth::{admin_guild_id, discord_client, server_err},
     std::sync::Arc,
     twilight_http::Client,
@@ -36,6 +37,12 @@ pub async fn list_guild_channels(
             id: c.id.to_string(),
             name: c.name.unwrap_or_default(),
             kind: c.kind,
+            tags: c
+                .available_tags
+                .unwrap_or_default()
+                .into_iter()
+                .map(|t| ForumTagInfo { id: t.id.to_string(), name: t.name })
+                .collect(),
         })
         .collect())
 }

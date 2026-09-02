@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT guild_id, support_channel_id, faq_channel_id, solved_tag_id,\n                   helper_role_id, solved_archive_secs\n            FROM support_settings\n            WHERE guild_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "support_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "support_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "faq_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "faq_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "solved_tag_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "solved_tag_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "helper_role_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "helper_role_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "solved_archive_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "solved_archive_secs"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "edffe01b6aa761608c392776bf1f6ef662e84629a78890faa3e67af28769cf0e"
+}

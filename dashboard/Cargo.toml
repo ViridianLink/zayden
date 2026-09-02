@@ -58,6 +58,7 @@ ssr = [
   "dep:tower-cookies",
   "dep:tracing-subscriber",
   "dep:twilight-http",
+  "dep:url",
   "dep:zayden-app",
 ]
 
@@ -105,6 +106,7 @@ tracing-subscriber = { workspace = true, features = [
 ], optional = true }
 twilight-http = { workspace = true, optional = true }
 twilight-model = { workspace = true }
+url = { workspace = true, optional = true }
 zayden-app = { workspace = true, optional = true }
 
 # -- Hydrate-only

@@ -3,6 +3,9 @@ mod create;
 mod fixed;
 mod open;
 mod remove;
+mod solved;
+
+use std::sync::Arc;
 
 use serenity::all::{
     CommandInteraction,
@@ -20,7 +23,7 @@ use crate::{Result, Ticket, TicketError, TicketStores};
 
 impl Ticket {
     pub async fn run(
-        http: &Http,
+        http: &Arc<Http>,
         interaction: &CommandInteraction,
         stores: TicketStores<'_>,
         pool: &PgPool,
@@ -46,6 +49,9 @@ impl Ticket {
             },
             "remove" => {
                 Self::remove(http, interaction, pool, options).await?;
+            },
+            "solved" => {
+                Self::solved(http, interaction, stores, pool, guild_id).await?;
             },
             name => {
                 return Err(TicketError::Internal(format!(
@@ -113,6 +119,12 @@ impl Ticket {
             "Open the ticket",
         );
 
+        let solved = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "solved",
+            "Mark the ticket as solved",
+        );
+
         CreateCommand::new("ticket")
             .description("Ticket management commands")
             .default_member_permissions(Permissions::MANAGE_MESSAGES)
@@ -120,6 +132,7 @@ impl Ticket {
             .add_option(create)
             .add_option(fixed)
             .add_option(open)
+            .add_option(solved)
 
         // CreateCommand::new("Ticket Remove").kind(CommandType::Message),
     }

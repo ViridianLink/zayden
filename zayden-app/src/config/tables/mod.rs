@@ -20,6 +20,6 @@ pub use lfg_settings::LfgSettingsRow;
 pub use music::MusicSettingsRow;
 pub use roles_settings::RolesSettingsRow;
 pub use suggestions_settings::SuggestionsSettingsRow;
-pub use support_settings::SupportSettingsRow;
+pub use support_settings::{ARCHIVE_NEVER, SupportSettingsRow};
 pub use temp_voice_settings::TempVoiceSettingsRow;
 pub use ticket::TicketSettingsRow;

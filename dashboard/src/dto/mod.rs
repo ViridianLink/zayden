@@ -7,9 +7,9 @@ pub mod palworld_save;
 pub mod reaction_roles;
 pub mod tier;
 
-pub use discord::{ChannelInfo, RoleInfo, SessionUser};
+pub use discord::{ChannelInfo, ForumTagInfo, RoleInfo, SessionUser};
 pub use greetings::{CooldownView, GreetingImageInfo, GreetingsView};
-pub use guild::{GuildInfo, GuildSettings};
+pub use guild::{GuildInfo, GuildSettings, HelperLinkInfo};
 pub use levels::LeaderboardEntry;
 pub use modules::ModuleView;
 pub use palworld_save::{

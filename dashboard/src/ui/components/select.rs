@@ -100,3 +100,23 @@ pub(crate) fn RoleSelect(
 
     view! { <SelectField label=label name=name selected=selected options=options/> }
 }
+
+#[component]
+pub(crate) fn ForumTagSelect(
+    label: &'static str,
+    name: &'static str,
+    selected: String,
+    channels: Vec<ChannelInfo>,
+) -> impl IntoView {
+    let options = channels
+        .into_iter()
+        .flat_map(|c| {
+            c.tags.into_iter().map(move |t| SelectOption {
+                label: format!("#{} / {}", c.name, t.name),
+                value: t.id,
+            })
+        })
+        .collect();
+
+    view! { <SelectField label=label name=name selected=selected options=options/> }
+}

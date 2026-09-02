@@ -1264,6 +1264,7 @@ dependencies = [
  "tracing-subscriber",
  "twilight-http",
  "twilight-model",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -6864,8 +6865,10 @@ name = "ticket"
 version = "1.0.0"
 dependencies = [
  "futures",
+ "jiff",
  "serenity",
  "sqlx",
+ "tokio",
  "tracing",
  "zayden-app",
  "zayden-core",
