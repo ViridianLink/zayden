@@ -6996,6 +6996,8 @@ dependencies = [
  "cynic-codegen",
  "futures",
  "jiff",
+ "jiff-sqlx",
+ "regex",
  "reqwest 0.13.4",
  "scraper",
  "serde",

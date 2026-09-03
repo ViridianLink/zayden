@@ -1,14 +1,21 @@
-use serenity::all::{CreateEmbed, CreateEmbedFooter};
+use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 
+use crate::faq::article::FaqArticle;
+use crate::faq::hit::{FaqHit, FaqSource};
 use crate::faq::markdown::{self, DESCRIPTION_LIMIT};
-use crate::wiki::{Page, SearchResult, WikiConfig};
+use crate::wiki::{Page, WikiConfig};
 
 const FOOTER: &str = "Source: wiki";
+const LOCAL_FOOTER: &str = "Source: server FAQ";
+const CREATED_FOOTER: &str =
+    "Staff can edit or remove this in the dashboard under Support, FAQ.";
 const NO_RESULTS: &str =
     "Nothing in the wiki matched that. Try a different app or service name.";
 const RESULTS_TITLE: &str = "Possible matches";
+pub(crate) const CREATED_TITLE: &str = "FAQ article created";
+const CREATED_COLOUR: Colour = Colour::new(0x00_99_ff);
 
-pub fn answer(
+pub(crate) fn answer(
     config: &WikiConfig,
     page: &Page,
     answer: &str,
@@ -17,7 +24,7 @@ pub fn answer(
         .description(markdown::truncate(answer, DESCRIPTION_LIMIT))
 }
 
-pub fn page(config: &WikiConfig, page: &Page) -> CreateEmbed<'static> {
+pub(crate) fn page(config: &WikiConfig, page: &Page) -> CreateEmbed<'static> {
     let content = markdown::for_discord(&page.content, config);
 
     let embed = article(config, &page.title, &page.path)
@@ -29,22 +36,35 @@ pub fn page(config: &WikiConfig, page: &Page) -> CreateEmbed<'static> {
     }
 }
 
-pub fn results(
-    config: &WikiConfig,
-    results: &[SearchResult],
+pub(crate) fn local_answer(
+    stored: &FaqArticle,
+    answer: &str,
 ) -> CreateEmbed<'static> {
-    if results.is_empty() {
+    local(stored).description(markdown::truncate(answer, DESCRIPTION_LIMIT))
+}
+
+pub(crate) fn stored(stored: &FaqArticle) -> CreateEmbed<'static> {
+    local(stored).description(markdown::truncate(&stored.content, DESCRIPTION_LIMIT))
+}
+
+pub(crate) fn created(stored: &FaqArticle) -> CreateEmbed<'static> {
+    CreateEmbed::new()
+        .title(CREATED_TITLE)
+        .colour(CREATED_COLOUR)
+        .description(format!("**{}**\n{}", stored.title, stored.summary))
+        .footer(CreateEmbedFooter::new(CREATED_FOOTER))
+}
+
+pub(crate) fn results(config: &WikiConfig, hits: &[FaqHit]) -> CreateEmbed<'static> {
+    if hits.is_empty() {
         return CreateEmbed::new()
             .title(RESULTS_TITLE)
             .description(NO_RESULTS)
             .footer(CreateEmbedFooter::new(FOOTER));
     }
 
-    let body = results
-        .iter()
-        .map(|result| link_line(config, result))
-        .collect::<Vec<_>>()
-        .join("\n");
+    let body =
+        hits.iter().map(|hit| link_line(config, hit)).collect::<Vec<_>>().join("\n");
 
     CreateEmbed::new()
         .title(RESULTS_TITLE)
@@ -52,13 +72,16 @@ pub fn results(
         .footer(CreateEmbedFooter::new(FOOTER))
 }
 
-pub(super) fn link_line(config: &WikiConfig, result: &SearchResult) -> String {
-    match config.article_url(&result.path) {
-        Ok(url) => {
-            format!("\u{1f539} [{}]({url})\n> {}", result.title, result.description)
+pub(crate) fn link_line(config: &WikiConfig, hit: &FaqHit) -> String {
+    let heading = match hit.source {
+        FaqSource::Local { .. } => format!("**{}**", hit.title),
+        FaqSource::Wiki => match config.article_url(&hit.path) {
+            Ok(url) => format!("[{}]({url})", hit.title),
+            Err(_e) => hit.title.clone(),
         },
-        Err(_e) => format!("\u{1f539} {}\n> {}", result.title, result.description),
-    }
+    };
+
+    format!("\u{1f539} {heading}\n> {}", hit.description)
 }
 
 fn article(config: &WikiConfig, title: &str, path: &str) -> CreateEmbed<'static> {
@@ -70,4 +93,15 @@ fn article(config: &WikiConfig, title: &str, path: &str) -> CreateEmbed<'static>
         Ok(url) => embed.url(url.to_string()),
         Err(_e) => embed,
     }
+}
+
+fn local(stored: &FaqArticle) -> CreateEmbed<'static> {
+    let footer = match stored.tags.as_slice() {
+        [] => LOCAL_FOOTER.to_owned(),
+        tags => format!("{LOCAL_FOOTER} | {}", tags.join(", ")),
+    };
+
+    CreateEmbed::new()
+        .title(stored.title.clone())
+        .footer(CreateEmbedFooter::new(footer))
 }

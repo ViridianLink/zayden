@@ -9,6 +9,7 @@ pub type Result<T> = std::result::Result<T, TicketError>;
 pub enum TicketError {
     NotInSupportChannel,
     SupportNotFound,
+    ArticleNotFound,
     SolvedTagNotConfigured,
     SolvedTagMissing,
     MissingPermissions,
@@ -26,6 +27,11 @@ impl std::fmt::Display for TicketError {
                 write!(f, "This command only works in the support channel.")
             },
             Self::SupportNotFound => write!(f, "Support message not found"),
+            Self::ArticleNotFound => write!(
+                f,
+                "That FAQ article no longer exists. Run the command again for \
+                 an up to date list."
+            ),
             Self::SolvedTagNotConfigured => write!(
                 f,
                 "No solved tag is configured for this server. Set one in the \
@@ -58,6 +64,7 @@ impl std::error::Error for TicketError {
             Self::ZaydenCore(e) => Some(e),
             Self::NotInSupportChannel
             | Self::SupportNotFound
+            | Self::ArticleNotFound
             | Self::SolvedTagNotConfigured
             | Self::SolvedTagMissing
             | Self::MissingPermissions
@@ -73,6 +80,7 @@ impl Respond for TicketError {
         match self {
             Self::NotInSupportChannel
             | Self::SupportNotFound
+            | Self::ArticleNotFound
             | Self::SolvedTagNotConfigured
             | Self::SolvedTagMissing
             | Self::MissingPermissions

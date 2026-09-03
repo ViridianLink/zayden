@@ -1,5 +1,4 @@
 mod ask;
-mod get;
 mod list;
 
 use serenity::all::{
@@ -14,13 +13,12 @@ use sqlx::PgPool;
 use zayden_app::state::AppState;
 use zayden_core::{parse_options, parse_subcommand};
 
-use crate::{Result, Ticket, TicketError, TicketStores};
+use crate::{Result, Ticket, TicketError};
 
 impl Ticket {
     pub(super) async fn faq(
         http: &Http,
         interaction: &CommandInteraction,
-        stores: TicketStores<'_>,
         pool: &PgPool,
         app: &AppState,
         options: impl IntoIterator<Item = ResolvedOption<'_>>,
@@ -31,13 +29,7 @@ impl Ticket {
 
         match name {
             "ask" => Self::faq_ask(http, interaction, app, options, guild_id).await,
-            "get" => {
-                Self::faq_get(http, interaction, stores, pool, options, guild_id)
-                    .await
-            },
-            "list" => {
-                Self::faq_list(http, interaction, stores, pool, guild_id).await
-            },
+            "list" => Self::faq_list(http, interaction, pool, guild_id).await,
             name => Err(TicketError::Internal(format!(
                 "unrecognized faq subcommand: {name}"
             ))),
@@ -48,7 +40,7 @@ impl Ticket {
         let ask = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "ask",
-            "Ask the wiki a question",
+            "Ask the FAQ a question",
         )
         .add_sub_option(
             CreateCommandOption::new(
@@ -59,24 +51,10 @@ impl Ticket {
             .required(true),
         );
 
-        let get = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "get",
-            "Get a saved FAQ entry",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::String,
-                "id",
-                "The ID of the FAQ entry",
-            )
-            .required(true),
-        );
-
         let list = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "list",
-            "List the saved FAQ entries",
+            "List this server's FAQ articles",
         );
 
         CreateCommandOption::new(
@@ -85,7 +63,6 @@ impl Ticket {
             "Look up an answer",
         )
         .add_sub_option(ask)
-        .add_sub_option(get)
         .add_sub_option(list)
     }
 }

@@ -7,6 +7,7 @@ pub struct FaqSettingsRow {
     pub guild_id: i64,
     pub enabled: bool,
     pub auto_triage: bool,
+    pub auto_generate: bool,
     pub wiki_url: Option<String>,
     pub wiki_api_key: Option<String>,
     pub wiki_locale: String,
@@ -23,6 +24,7 @@ impl SettingsRow for FaqSettingsRow {
             guild_id,
             enabled: false,
             auto_triage: false,
+            auto_generate: false,
             wiki_url: None,
             wiki_api_key: None,
             wiki_locale: String::from("en"),
@@ -39,8 +41,9 @@ impl SettingsRow for FaqSettingsRow {
         sqlx::query_as!(
             Self,
             r#"
-            SELECT guild_id, enabled, auto_triage, wiki_url, wiki_api_key,
-                   wiki_locale, max_results, answer_max_tokens, answer_temperature
+            SELECT guild_id, enabled, auto_triage, auto_generate, wiki_url,
+                   wiki_api_key, wiki_locale, max_results, answer_max_tokens,
+                   answer_temperature
             FROM faq_settings
             WHERE guild_id = $1
             "#,
@@ -54,13 +57,15 @@ impl SettingsRow for FaqSettingsRow {
         sqlx::query_as!(
             Self,
             r#"
-            INSERT INTO faq_settings (guild_id, enabled, auto_triage, wiki_url,
-                                      wiki_api_key, wiki_locale, max_results,
-                                      answer_max_tokens, answer_temperature)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO faq_settings (guild_id, enabled, auto_triage, auto_generate,
+                                      wiki_url, wiki_api_key, wiki_locale,
+                                      max_results, answer_max_tokens,
+                                      answer_temperature)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             ON CONFLICT (guild_id) DO UPDATE SET
                 enabled = EXCLUDED.enabled,
                 auto_triage = EXCLUDED.auto_triage,
+                auto_generate = EXCLUDED.auto_generate,
                 wiki_url = EXCLUDED.wiki_url,
                 wiki_api_key = EXCLUDED.wiki_api_key,
                 wiki_locale = EXCLUDED.wiki_locale,
@@ -68,13 +73,14 @@ impl SettingsRow for FaqSettingsRow {
                 answer_max_tokens = EXCLUDED.answer_max_tokens,
                 answer_temperature = EXCLUDED.answer_temperature,
                 updated_at = now()
-            RETURNING guild_id, enabled, auto_triage, wiki_url, wiki_api_key,
-                      wiki_locale, max_results, answer_max_tokens,
+            RETURNING guild_id, enabled, auto_triage, auto_generate, wiki_url,
+                      wiki_api_key, wiki_locale, max_results, answer_max_tokens,
                       answer_temperature
             "#,
             self.guild_id,
             self.enabled,
             self.auto_triage,
+            self.auto_generate,
             self.wiki_url.as_deref(),
             self.wiki_api_key.as_deref(),
             self.wiki_locale,

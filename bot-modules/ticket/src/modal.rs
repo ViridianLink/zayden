@@ -147,6 +147,7 @@ impl TicketModal {
                 Arc::clone(app),
                 context,
                 thread.id,
+                guild_id,
                 interaction.user.id,
                 content.into_owned(),
             ),

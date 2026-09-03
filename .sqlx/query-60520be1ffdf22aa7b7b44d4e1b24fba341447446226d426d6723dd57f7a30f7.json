@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO faq_settings (guild_id, enabled, auto_triage, wiki_url,\n                                      wiki_api_key, wiki_locale, max_results,\n                                      answer_max_tokens, answer_temperature)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                enabled = EXCLUDED.enabled,\n                auto_triage = EXCLUDED.auto_triage,\n                wiki_url = EXCLUDED.wiki_url,\n                wiki_api_key = EXCLUDED.wiki_api_key,\n                wiki_locale = EXCLUDED.wiki_locale,\n                max_results = EXCLUDED.max_results,\n                answer_max_tokens = EXCLUDED.answer_max_tokens,\n                answer_temperature = EXCLUDED.answer_temperature,\n                updated_at = now()\n            RETURNING guild_id, enabled, auto_triage, wiki_url, wiki_api_key,\n                      wiki_locale, max_results, answer_max_tokens,\n                      answer_temperature\n            ",
+  "query": "\n            INSERT INTO faq_settings (guild_id, enabled, auto_triage, auto_generate,\n                                      wiki_url, wiki_api_key, wiki_locale,\n                                      max_results, answer_max_tokens,\n                                      answer_temperature)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                enabled = EXCLUDED.enabled,\n                auto_triage = EXCLUDED.auto_triage,\n                auto_generate = EXCLUDED.auto_generate,\n                wiki_url = EXCLUDED.wiki_url,\n                wiki_api_key = EXCLUDED.wiki_api_key,\n                wiki_locale = EXCLUDED.wiki_locale,\n                max_results = EXCLUDED.max_results,\n                answer_max_tokens = EXCLUDED.answer_max_tokens,\n                answer_temperature = EXCLUDED.answer_temperature,\n                updated_at = now()\n            RETURNING guild_id, enabled, auto_triage, auto_generate, wiki_url,\n                      wiki_api_key, wiki_locale, max_results, answer_max_tokens,\n                      answer_temperature\n            ",
   "describe": {
     "columns": [
       {
@@ -38,6 +38,17 @@
       },
       {
         "ordinal": 3,
+        "name": "auto_generate",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "auto_generate"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "wiki_url",
         "type_info": "Text",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "wiki_api_key",
         "type_info": "Text",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "wiki_locale",
         "type_info": "Text",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "max_results",
         "type_info": "Int4",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "answer_max_tokens",
         "type_info": "Int4",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "answer_temperature",
         "type_info": "Float4",
         "origin": {
@@ -108,6 +119,7 @@
         "Int8",
         "Bool",
         "Bool",
+        "Bool",
         "Text",
         "Text",
         "Text",
@@ -120,6 +132,7 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       false,
@@ -128,5 +141,5 @@
       false
     ]
   },
-  "hash": "3230536bd529a0985cf65f5f4e2f476c679d4f07541f9da9d3cf3fbecbd74e1c"
+  "hash": "60520be1ffdf22aa7b7b44d4e1b24fba341447446226d426d6723dd57f7a30f7"
 }

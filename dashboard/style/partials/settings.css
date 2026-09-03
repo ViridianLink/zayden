@@ -39,7 +39,8 @@
   color: var(--text-secondary);
 }
 
-.setting-field input {
+.setting-field input,
+.setting-field textarea {
   padding: 0.6rem 0.8rem;
   background-color: var(--bg-base);
   border: 1px solid var(--border);
@@ -50,14 +51,34 @@
   transition: border-color 0.2s var(--ease-spring);
 }
 
-.setting-field input:focus {
+.setting-field textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.setting-field input:focus,
+.setting-field textarea:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-weak);
 }
 
-.setting-field input::placeholder {
+.setting-field input::placeholder,
+.setting-field textarea::placeholder {
   color: var(--text-tertiary);
+}
+
+/* FAQ article rows collapse to their title until opened. */
+.setting-field > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.setting-field .field-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 /* Styled native select (channel/role picker). */

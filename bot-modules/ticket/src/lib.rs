@@ -24,6 +24,7 @@ pub mod wiki;
 pub use components::TicketComponent;
 use error::Result;
 pub use error::TicketError;
+pub use faq::{FaqArticle, NewArticle};
 pub use helper_links::{HelperLink, HelperLinks};
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;

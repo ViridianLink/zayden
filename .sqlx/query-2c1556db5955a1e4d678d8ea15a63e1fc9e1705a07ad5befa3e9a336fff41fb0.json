@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT ts_rank(search, websearch_to_tsquery('english', $2))\n                       AS \"rank!\"\n            FROM faq_articles\n            WHERE guild_id = $1\n              AND search @@ websearch_to_tsquery('english', $2)\n            ORDER BY 1 DESC\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rank!",
+        "type_info": "Float4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2c1556db5955a1e4d678d8ea15a63e1fc9e1705a07ad5befa3e9a336fff41fb0"
+}

@@ -38,7 +38,7 @@ impl Ticket {
     pub async fn run(
         http: &Arc<Http>,
         interaction: &CommandInteraction,
-        app: &AppState,
+        app: &Arc<AppState>,
         options: Vec<ResolvedOption<'_>>,
     ) -> Result<()> {
         let stores = TicketStores::from_app(app);
@@ -49,16 +49,7 @@ impl Ticket {
         let (name, options) = parse_subcommand(options)?;
 
         if name == "faq" {
-            return Self::faq(
-                http,
-                interaction,
-                stores,
-                pool,
-                app,
-                options,
-                guild_id,
-            )
-            .await;
+            return Self::faq(http, interaction, pool, app, options, guild_id).await;
         }
 
         require_manage(interaction)?;
@@ -72,7 +63,7 @@ impl Ticket {
             },
             "create" => Self::create(http, interaction, options).await?,
             "fixed" => {
-                Self::fixed(http, interaction, stores, pool, options, guild_id)
+                Self::fixed(http, interaction, stores, app, options, guild_id)
                     .await?;
             },
             "open" => {
@@ -82,7 +73,7 @@ impl Ticket {
                 Self::remove(http, interaction, pool, options).await?;
             },
             "solved" => {
-                Self::solved(http, interaction, stores, pool, guild_id).await?;
+                Self::solved(http, interaction, stores, app, guild_id).await?;
             },
             name => {
                 return Err(TicketError::Internal(format!(

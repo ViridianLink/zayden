@@ -1,13 +1,21 @@
 mod answer;
+pub mod article;
 mod auto;
-pub mod embed;
+pub(crate) mod embed;
+mod generate;
+pub(crate) mod hit;
 mod keywords;
 mod lookup;
 pub mod markdown;
+pub mod scrub;
+pub mod transcript;
 mod triage;
 mod tuning;
+mod writer;
 
+pub use article::{FaqArticle, NewArticle};
 pub(crate) use auto::on_ticket_opened;
+pub(crate) use generate::on_ticket_solved;
 use serenity::all::GuildId;
 use zayden_app::config::{FaqSettingsRow, SettingsStore};
 use zayden_core::as_i64;
@@ -21,6 +29,7 @@ pub struct FaqContext {
     pub wiki: WikiConfig,
     pub tuning: AnswerTuning,
     pub auto_triage: bool,
+    pub auto_generate: bool,
 }
 
 impl FaqContext {
@@ -38,6 +47,7 @@ impl FaqContext {
             wiki,
             tuning: AnswerTuning::from_settings(&row),
             auto_triage: row.auto_triage,
+            auto_generate: row.auto_generate,
         }))
     }
 }

@@ -18,15 +18,20 @@ zayden-core = { workspace = true }
 cynic = { workspace = true }
 futures = { workspace = true }
 jiff = { workspace = true, features = ["std"] }
+jiff-sqlx = { workspace = true }
+regex = { workspace = true, features = ["std", "unicode-perl"] }
 reqwest = { workspace = true, features = ["rustls", "http2", "json"] }
 scraper = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
-sqlx = { workspace = true, features = ["macros"] }
+sqlx = { workspace = true, features = ["macros", "migrate"] }
 serenity = { workspace = true }
 tokio = { workspace = true, features = ["rt", "time"] }
 tracing = { workspace = true }
 url = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }

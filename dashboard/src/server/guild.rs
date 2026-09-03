@@ -27,7 +27,9 @@ use {
 use crate::dto::{GuildInfo, GuildSettings, HelperLinkInfo};
 
 #[cfg(feature = "ssr")]
-async fn admin_app(guild: &str) -> Result<(i64, Arc<AppState>), ServerFnError> {
+pub(crate) async fn admin_app(
+    guild: &str,
+) -> Result<(i64, Arc<AppState>), ServerFnError> {
     let guild_id = admin_guild_id(guild).await?;
     Ok((guild_id, app_state()?))
 }
@@ -141,7 +143,6 @@ pub async fn get_guild_settings(
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
-        faq_channel_id: opt_str(support.faq_channel_id),
         solved_tag_id: opt_str(support.solved_tag_id),
         helper_role_id: opt_str(support.helper_role_id),
         solved_archive_secs: support.solved_archive_secs.to_string(),
@@ -173,6 +174,7 @@ pub async fn get_guild_settings(
         ai_channel_id: opt_str(ai.channel_id),
         faq_enabled: faq.enabled,
         faq_auto_triage: faq.auto_triage,
+        faq_auto_generate: faq.auto_generate,
         faq_wiki_url: faq.wiki_url.clone().unwrap_or_default(),
         faq_wiki_api_key: faq.wiki_api_key.clone().unwrap_or_default(),
         faq_wiki_locale: faq.wiki_locale.clone(),
@@ -187,6 +189,7 @@ pub async fn save_faq_settings(
     guild: String,
     enabled: String,
     auto_triage: String,
+    auto_generate: String,
     wiki_url: String,
     wiki_api_key: String,
     wiki_locale: String,
@@ -195,6 +198,7 @@ pub async fn save_faq_settings(
 
     let enabled = enabled.trim() == "true";
     let auto_triage = auto_triage.trim() == "true";
+    let auto_generate = auto_generate.trim() == "true";
     let url = parse_wiki_url(&wiki_url)?;
     let key = parse_optional(&wiki_api_key);
     let locale = match wiki_locale.trim() {
@@ -207,6 +211,7 @@ pub async fn save_faq_settings(
         .update(guild_id, |p| {
             p.enabled = enabled;
             p.auto_triage = auto_triage;
+            p.auto_generate = auto_generate;
             p.wiki_url = url;
             p.wiki_api_key = key;
             p.wiki_locale = locale;
@@ -247,7 +252,6 @@ pub async fn save_faq_tuning(
 pub async fn save_support_settings(
     guild: String,
     support_channel_id: String,
-    faq_channel_id: String,
     solved_tag_id: String,
     helper_role_id: String,
     solved_archive_secs: String,
@@ -260,7 +264,6 @@ pub async fn save_support_settings(
         .support
         .update(guild_id, |p| {
             p.support_channel_id = parse_id(&support_channel_id);
-            p.faq_channel_id = parse_id(&faq_channel_id);
             p.solved_tag_id = parse_id(&solved_tag_id);
             p.helper_role_id = parse_id(&helper_role_id);
             p.solved_archive_secs = archive_secs;

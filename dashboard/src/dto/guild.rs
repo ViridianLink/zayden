@@ -17,7 +17,6 @@ pub struct HelperLinkInfo {
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct GuildSettings {
     pub(crate) support_channel_id: Option<String>,
-    pub(crate) faq_channel_id: Option<String>,
     pub(crate) solved_tag_id: Option<String>,
     pub(crate) helper_role_id: Option<String>,
     pub(crate) solved_archive_secs: String,
@@ -49,6 +48,7 @@ pub struct GuildSettings {
     pub(crate) ai_channel_id: Option<String>,
     pub(crate) faq_enabled: bool,
     pub(crate) faq_auto_triage: bool,
+    pub(crate) faq_auto_generate: bool,
     pub(crate) faq_wiki_url: String,
     pub(crate) faq_wiki_api_key: String,
     pub(crate) faq_wiki_locale: String,

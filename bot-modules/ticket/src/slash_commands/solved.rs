@@ -16,11 +16,12 @@ use serenity::all::{
     JsonErrorCode,
     ThreadId,
 };
-use sqlx::PgPool;
 use tokio::time::sleep;
 use tracing::warn;
 use zayden_app::config::ARCHIVE_NEVER;
+use zayden_app::state::AppState;
 
+use crate::faq::on_ticket_solved;
 use crate::{Result, Ticket, TicketError, TicketGuildRow, TicketStores, donation};
 
 impl Ticket {
@@ -28,9 +29,11 @@ impl Ticket {
         http: &Arc<Http>,
         interaction: &CommandInteraction,
         stores: TicketStores<'_>,
-        pool: &PgPool,
+        app: &Arc<AppState>,
         guild_id: GuildId,
     ) -> Result<()> {
+        let pool = &app.db;
+
         interaction.defer(http).await?;
 
         let row = TicketGuildRow::get(stores, pool, guild_id)
@@ -95,6 +98,8 @@ impl Ticket {
         }
 
         schedule_archive(Arc::clone(http), thread.id, row.solved_archive_secs);
+
+        on_ticket_solved(http, app, stores, thread.id, guild_id).await;
 
         Ok(())
     }

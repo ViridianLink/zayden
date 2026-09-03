@@ -1,4 +1,3 @@
-use futures::StreamExt;
 use serenity::all::{
     CommandInteraction,
     CreateSelectMenu,
@@ -9,58 +8,60 @@ use serenity::all::{
     Http,
 };
 use sqlx::PgPool;
+use zayden_core::as_i64;
 
-use crate::{Result, Ticket, TicketError, TicketGuildRow, TicketStores};
+use crate::faq::FaqArticle;
+use crate::{Result, Ticket};
+
+/// Discord's per-menu option budget.
+const MENU_LIMIT: i64 = 25;
+
+const DESCRIPTION_LIMIT: usize = 100;
+const EMPTY: &str = "There are no FAQ entries to list yet.";
 
 impl Ticket {
     pub(super) async fn faq_list(
         http: &Http,
         interaction: &CommandInteraction,
-        stores: TicketStores<'_>,
         pool: &PgPool,
         guild_id: GuildId,
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        let faq_channel_id = TicketGuildRow::get(stores, pool, guild_id)
-            .await?
-            .ok_or(TicketError::SupportNotFound)?
-            .faq_channel_id()
-            .ok_or(TicketError::SupportNotFound)?;
+        let articles =
+            FaqArticle::list(pool, as_i64(guild_id.get()), MENU_LIMIT).await?;
 
-        let menu_options = faq_channel_id
-            .widen()
-            .messages_iter(http)
-            .enumerate()
-            .filter_map(|(index, msg_result)| async move {
-                let msg = msg_result.ok()?;
-                let id = msg.content.lines().next()?.trim().to_owned();
-                let label =
-                    id.get(2..id.len().saturating_sub(2)).unwrap_or(&id).to_string();
-                Some(CreateSelectMenuOption::new(label, index.to_string()))
-            })
-            .take(25)
-            .collect::<Vec<_>>()
-            .await;
-
-        if menu_options.is_empty() {
+        if articles.is_empty() {
             interaction
-                .edit_response(
-                    http,
-                    EditInteractionResponse::new()
-                        .content("There are no FAQ entries to list yet."),
-                )
+                .edit_response(http, EditInteractionResponse::new().content(EMPTY))
                 .await?;
 
             return Ok(());
         }
+
+        let options = articles
+            .iter()
+            .map(|article| {
+                CreateSelectMenuOption::new(
+                    article.title.clone(),
+                    article.id.to_string(),
+                )
+                .description(
+                    article
+                        .summary
+                        .chars()
+                        .take(DESCRIPTION_LIMIT)
+                        .collect::<String>(),
+                )
+            })
+            .collect::<Vec<_>>();
 
         interaction
             .edit_response(
                 http,
                 EditInteractionResponse::new().select_menu(CreateSelectMenu::new(
                     "support_faq",
-                    CreateSelectMenuKind::String { options: menu_options.into() },
+                    CreateSelectMenuKind::String { options: options.into() },
                 )),
             )
             .await?;

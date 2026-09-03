@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT guild_id, enabled, auto_triage, wiki_url, wiki_api_key,\n                   wiki_locale, max_results, answer_max_tokens, answer_temperature\n            FROM faq_settings\n            WHERE guild_id = $1\n            ",
+  "query": "\n            SELECT guild_id, enabled, auto_triage, auto_generate, wiki_url,\n                   wiki_api_key, wiki_locale, max_results, answer_max_tokens,\n                   answer_temperature\n            FROM faq_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -38,6 +38,17 @@
       },
       {
         "ordinal": 3,
+        "name": "auto_generate",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "auto_generate"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "wiki_url",
         "type_info": "Text",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "wiki_api_key",
         "type_info": "Text",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "wiki_locale",
         "type_info": "Text",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "max_results",
         "type_info": "Int4",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "answer_max_tokens",
         "type_info": "Int4",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "answer_temperature",
         "type_info": "Float4",
         "origin": {
@@ -112,6 +123,7 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       false,
@@ -120,5 +132,5 @@
       false
     ]
   },
-  "hash": "0ef603706d2e8a8fe9a26296c55f79e1c87f3de6bea8b6b1fe840cea3edd2293"
+  "hash": "eee225c0e6bd87095251163df43a98784764e1ec2dbe122f3341f71466537c6d"
 }

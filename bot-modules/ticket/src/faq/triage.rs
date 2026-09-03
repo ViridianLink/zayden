@@ -5,8 +5,9 @@ use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use zayden_app::state::AppState;
 
 use crate::faq::embed::link_line;
+use crate::faq::hit::FaqHit;
 use crate::faq::markdown::{self, DESCRIPTION_LIMIT};
-use crate::wiki::{SearchResult, WikiConfig};
+use crate::wiki::WikiConfig;
 
 const SYSTEM_PROMPT: &str = "You are a Discord support-ticket triage assistant \
 for a self-hosted documentation wiki. A new support ticket has just been opened \
@@ -28,12 +29,12 @@ const SCHEMA_NAME: &str = "triage_synthesis";
 const MAX_TOKENS: u32 = 400;
 const TEMPERATURE: f32 = 0.3;
 
-const EMBED_TITLE: &str = "Automated Support Triage";
+pub(crate) const EMBED_TITLE: &str = "Automated Support Triage";
 const EMBED_COLOUR: Colour = Colour::new(0x00_99_ff);
 const EMBED_FOOTER: &str =
     "Please reply to this channel with the requested information.";
 const ARTICLES_FIELD: &str = "Recommended Reading";
-const QUESTIONS_FIELD: &str = "Action Required: Please Reply With";
+pub(crate) const QUESTIONS_FIELD: &str = "Action Required: Please Reply With";
 
 /// Discord's per-field value budget.
 const FIELD_LIMIT: usize = 1024;
@@ -62,15 +63,15 @@ fn schema() -> serde_json::Value {
 pub(crate) async fn synthesize(
     app: &AppState,
     message: &str,
-    results: &[SearchResult],
+    hits: &[FaqHit],
 ) -> Result<Triage, ai::Error> {
-    let candidates = results
+    let candidates = hits
         .iter()
-        .map(|result| {
+        .map(|hit| {
             serde_json::json!({
-                "title": result.title,
-                "description": result.description,
-                "path": result.path,
+                "title": hit.title,
+                "description": hit.description,
+                "path": hit.path,
             })
         })
         .collect::<Vec<_>>();
@@ -99,7 +100,7 @@ pub(crate) async fn synthesize(
 pub(crate) fn embed(
     config: &WikiConfig,
     triage: &Triage,
-    results: &[SearchResult],
+    hits: &[FaqHit],
 ) -> CreateEmbed<'static> {
     let mut embed = CreateEmbed::new()
         .title(EMBED_TITLE)
@@ -110,8 +111,8 @@ pub(crate) fn embed(
     let articles = triage
         .relevant_paths
         .iter()
-        .filter_map(|path| results.iter().find(|result| &result.path == path))
-        .map(|result| link_line(config, result))
+        .filter_map(|path| hits.iter().find(|hit| &hit.path == path))
+        .map(|hit| link_line(config, hit))
         .collect::<Vec<_>>();
 
     if !articles.is_empty() {

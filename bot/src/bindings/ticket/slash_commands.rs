@@ -27,7 +27,7 @@ impl ModuleCommand for TicketCommand {
         Ticket::run(
             &cx.ctx.http,
             cx.interaction,
-            cx.app.as_ref(),
+            &cx.app,
             cx.interaction.data.options(),
         )
         .await?;

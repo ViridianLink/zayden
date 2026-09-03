@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM faq_articles WHERE guild_id = $1 AND id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a314fa4d3a573b101595e005e8ed23fa2b95a0a5d1836d1a7ab3901e9f0725f4"
+}

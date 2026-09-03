@@ -1,7 +1,7 @@
 use leptos::form::ActionForm;
 use leptos::prelude::*;
 
-use super::{TEXT_KINDS, sel};
+use super::super::{TEXT_KINDS, sel};
 use crate::dto::{ChannelInfo, GuildSettings, HelperLinkInfo, RoleInfo};
 use crate::server::guild::{
     AddHelperLink,
@@ -23,7 +23,7 @@ use crate::ui::components::settings::{
 };
 
 #[component]
-pub(crate) fn SupportTab(
+pub(crate) fn SupportSettingsPane(
     guild_id: String,
     settings: GuildSettings,
     support_roles: Vec<String>,
@@ -57,13 +57,6 @@ pub(crate) fn SupportTab(
                     label="Support Channel"
                     name="support_channel_id"
                     selected=sel(s.support_channel_id.as_deref())
-                    channels=channels.clone()
-                    kinds=TEXT_KINDS
-                />
-                <ChannelSelect
-                    label="FAQ Channel"
-                    name="faq_channel_id"
-                    selected=sel(s.faq_channel_id.as_deref())
                     channels=channels.clone()
                     kinds=TEXT_KINDS
                 />
@@ -161,9 +154,9 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
         <div class="setting-field">
             <label>"Wiki FAQ"</label>
             <p class="page-lead">
-                "Backs \"/ticket faq ask\" with a Wiki.js instance. Enter the "
-                "site origin only - Zayden derives the GraphQL endpoint, the "
-                "article links and the source view from it."
+                "Backs \"/ticket faq ask\" with a Wiki.js instance. Wiki.js is the "
+                "only supported wiki - Zayden talks to its GraphQL API and falls "
+                "back to its source view."
             </p>
             {move || result.get().map(save_feedback)}
             <ActionForm action=save_faq>
@@ -174,17 +167,30 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                     name="auto_triage"
                     value=s.faq_auto_triage
                 />
+                <ToggleField
+                    label="Write FAQ Articles From Solved Tickets"
+                    name="auto_generate"
+                    value=s.faq_auto_generate
+                />
                 <SettingField
                     label="Wiki URL"
                     name="wiki_url"
                     value=s.faq_wiki_url
                     pattern=".*"
+                    placeholder="https://wiki.example.com"
+                    hint="Site origin only, no trailing path. Zayden appends \
+                          /graphql, /<locale>/ and /s/<locale>/ itself - pointing \
+                          this at the GraphQL endpoint breaks page reads and \
+                          article links."
                 />
                 <SettingField
                     label="Wiki API Key"
                     name="wiki_api_key"
                     value=s.faq_wiki_api_key
                     pattern=".*"
+                    placeholder="eyJhbGciOiJSUzI1NiIs..."
+                    hint="A Wiki.js API key. Its group needs read:pages, plus \
+                          manage:pages or read:source to read page content."
                 />
                 <SettingField
                     label="Locale"
@@ -226,6 +232,13 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                 "With triage on, every new support thread gets an opening embed "
                 "of suggested articles and follow-up questions. That is two "
                 "model calls per ticket."
+            </p>
+            <p class="page-lead">
+                "With article writing on, \"/ticket solved\" and "
+                "\"/ticket fixed\" turn the thread into an FAQ article, which "
+                "goes live immediately and is searchable by \"/ticket faq "
+                "ask\". Review them under the FAQ tab. A ticket that ends "
+                "without a usable solution produces nothing."
             </p>
         </div>
     }

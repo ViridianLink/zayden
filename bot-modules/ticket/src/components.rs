@@ -1,10 +1,8 @@
 use std::borrow::Cow;
 
-use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
     ComponentInteraction,
     ComponentInteractionDataKind,
-    CreateEmbed,
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     CreateModal,
@@ -13,9 +11,10 @@ use serenity::all::{
     Http,
 };
 use zayden_app::state::AppState;
-use zayden_core::CoreError as ZaydenError;
+use zayden_core::{CoreError as ZaydenError, as_i64};
 
-use crate::{Result, TicketError, TicketGuildRow, TicketStores};
+use crate::faq::{FaqArticle, embeds};
+use crate::{Result, TicketError};
 
 pub struct TicketComponent;
 
@@ -67,9 +66,6 @@ impl TicketComponent {
         interaction: &ComponentInteraction,
         app: &AppState,
     ) -> Result<()> {
-        let stores = TicketStores::from_app(app);
-        let pool = &app.db;
-
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
         let ComponentInteractionDataKind::StringSelect { values } =
@@ -87,37 +83,18 @@ impl TicketComponent {
             ));
         };
 
-        let index =
-            raw.parse::<usize>().map_err(|_e| TicketError::SupportNotFound)?;
+        let id = raw.parse::<i32>().map_err(|_e| TicketError::ArticleNotFound)?;
 
-        let faq_channel_id = TicketGuildRow::get(stores, pool, guild_id)
+        let article = FaqArticle::get(&app.db, as_i64(guild_id.get()), id)
             .await?
-            .ok_or(ZaydenError::MissingGuildId)?
-            .faq_channel_id()
-            .ok_or(ZaydenError::MissingGuildId)?;
-
-        let message = faq_channel_id
-            .widen()
-            .messages_iter(http)
-            .skip(index)
-            .boxed()
-            .try_next()
-            .await?
-            .ok_or(TicketError::SupportNotFound)?;
-
-        let mut parts: Vec<&str> = message.content.split("**").collect();
-        let description = parts.pop().unwrap_or_default().trim();
-        let title = parts.join("");
+            .ok_or(TicketError::ArticleNotFound)?;
 
         interaction
             .create_response(
                 http,
                 CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new().embed(
-                        CreateEmbed::new()
-                            .title(title.trim())
-                            .description(description),
-                    ),
+                    CreateInteractionResponseMessage::new()
+                        .embed(embeds::stored(&article)),
                 ),
             )
             .await?;

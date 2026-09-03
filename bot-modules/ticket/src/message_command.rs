@@ -127,6 +127,7 @@ async fn triage(
             Arc::clone(app),
             context,
             thread_id,
+            guild_id,
             message.author.id,
             message.content.to_string(),
         ),

@@ -55,6 +55,8 @@ pub(crate) fn SettingField(
     name: &'static str,
     value: String,
     #[prop(default = "[0-9]*")] pattern: &'static str,
+    #[prop(default = "(not set)")] placeholder: &'static str,
+    #[prop(optional, into)] hint: Option<&'static str>,
 ) -> impl IntoView {
     view! {
         <div class="setting-field">
@@ -63,9 +65,10 @@ pub(crate) fn SettingField(
                 type="text"
                 name=name
                 value=value
-                placeholder="(not set)"
+                placeholder=placeholder
                 pattern=pattern
             />
+            {hint.map(|hint| view! { <p class="field-hint">{hint}</p> })}
         </div>
     }
 }

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use serenity::all::{
     CommandInteraction,
@@ -9,19 +10,22 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
-use sqlx::PgPool;
+use zayden_app::state::AppState;
 
+use crate::faq::on_ticket_solved;
 use crate::{Result, Ticket, TicketError, TicketGuildRow, TicketStores};
 
 impl Ticket {
     pub(super) async fn fixed(
-        http: &Http,
+        http: &Arc<Http>,
         interaction: &CommandInteraction,
         stores: TicketStores<'_>,
-        pool: &PgPool,
+        app: &Arc<AppState>,
         mut options: HashMap<&str, ResolvedValue<'_>>,
         guild_id: GuildId,
     ) -> Result<()> {
+        let pool = &app.db;
+
         let version = match options.remove("version") {
             Some(ResolvedValue::String(message)) => message,
             _ => "",
@@ -69,6 +73,15 @@ impl Ticket {
         };
 
         interaction.edit_response(http, response).await?;
+
+        on_ticket_solved(
+            http,
+            app,
+            stores,
+            interaction.channel_id.expect_thread(),
+            guild_id,
+        )
+        .await;
 
         Ok(())
     }

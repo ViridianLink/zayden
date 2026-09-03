@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use serenity::all::{CreateMessage, Http, Mentionable, ThreadId, UserId};
+use serenity::all::{CreateMessage, GuildId, Http, Mentionable, ThreadId, UserId};
 use tracing::{error, warn};
 use zayden_app::state::AppState;
 
@@ -11,6 +11,7 @@ pub(crate) fn on_ticket_opened(
     app: Arc<AppState>,
     context: FaqContext,
     thread_id: ThreadId,
+    guild_id: GuildId,
     author: UserId,
     content: String,
 ) {
@@ -18,7 +19,9 @@ pub(crate) fn on_ticket_opened(
         return;
     }
 
-    tokio::spawn(run_triage(http, app, context, thread_id, author, content));
+    tokio::spawn(run_triage(
+        http, app, context, thread_id, guild_id, author, content,
+    ));
 }
 
 async fn run_triage(
@@ -26,6 +29,7 @@ async fn run_triage(
     app: Arc<AppState>,
     context: FaqContext,
     thread_id: ThreadId,
+    guild_id: GuildId,
     author: UserId,
     content: String,
 ) {
@@ -37,7 +41,14 @@ async fn run_triage(
         },
     };
 
-    let results = lookup::search_keywords(&app.http, &context.wiki, &keywords).await;
+    let results = lookup::search_keywords(
+        &app.db,
+        guild_id,
+        &app.http,
+        &context.wiki,
+        &keywords,
+    )
+    .await;
 
     let triage = match triage::synthesize(&app, &content, &results).await {
         Ok(triage) => triage,

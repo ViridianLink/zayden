@@ -34,7 +34,6 @@ pub struct TicketGuildRow {
     pub thread_id: i32,
     pub support_channel_id: Option<i64>,
     pub support_role_ids: Vec<RoleId>,
-    pub faq_channel_id: Option<i64>,
     pub solved_tag_id: Option<i64>,
     pub helper_role_id: Option<i64>,
     pub solved_archive_secs: i32,
@@ -49,11 +48,6 @@ impl TicketGuildRow {
     #[must_use]
     pub fn role_ids(&self) -> &[RoleId] {
         &self.support_role_ids
-    }
-
-    #[must_use]
-    pub fn faq_channel_id(&self) -> Option<ChannelId> {
-        self.faq_channel_id.map(|id| ChannelId::new(as_u64(id)))
     }
 
     #[must_use]
@@ -86,7 +80,6 @@ impl TicketGuildRow {
             thread_id,
             support_channel_id: support.support_channel_id,
             support_role_ids,
-            faq_channel_id: support.faq_channel_id,
             solved_tag_id: support.solved_tag_id,
             helper_role_id: support.helper_role_id,
             solved_archive_secs: support.solved_archive_secs,
