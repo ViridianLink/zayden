@@ -1,0 +1,19 @@
+name: Cancel the run
+description: >
+  Cancels the whole workflow run. Used as an `if: failure()` trailing step on the
+  checks that race the image and release builds, so a failing check kills the in-flight build
+  instead of letting it run to completion. GitHub has no per-job cancel, so the
+  run is cancelled as a whole; each job keeps its own conclusion, only the
+  run-level badge reads "cancelled" rather than "failure".
+
+  A job using this needs `actions: write`, and on a fork pull request the token
+  is read-only, so the cancel is skipped rather than failing the job.
+
+runs:
+  using: composite
+  steps:
+    - run: gh run cancel "$GITHUB_RUN_ID" || echo "::warning::could not cancel the run"
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}

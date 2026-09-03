@@ -3,9 +3,12 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_call:
   workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,6 +43,9 @@ jobs:
   clippy:
     name: clippy (-D warnings)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -51,10 +57,15 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-on-failure: true
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - uses: ./.github/actions/cancel-run
+        if: failure()
 
   clippy-dashboard-ssr:
     name: clippy (dashboard, ssr)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -66,10 +77,15 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-on-failure: true
       - run: cargo clippy -p dashboard --features ssr --locked -- -D warnings
+      - uses: ./.github/actions/cancel-run
+        if: failure()
 
   clippy-dashboard-hydrate:
     name: clippy (dashboard, wasm32 hydrate)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -84,10 +100,15 @@ jobs:
       - run: >
           cargo clippy -p dashboard --target wasm32-unknown-unknown
           --features hydrate --locked -- -D warnings
+      - uses: ./.github/actions/cancel-run
+        if: failure()
 
   test:
     name: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 30
     services:
       postgres:
@@ -113,20 +134,30 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-on-failure: true
       - run: cargo test --workspace --all-targets --locked
+      - uses: ./.github/actions/cancel-run
+        if: failure()
 
   deny:
     name: cargo-deny (licenses + advisories)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
+      - uses: ./.github/actions/cancel-run
+        if: failure()
 
   sqlx:
     name: sqlx prepare --check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     timeout-minutes: 30
     services:
       postgres:
@@ -161,45 +192,90 @@ jobs:
       - name: Check the offline cache is current
         run: >-
           cargo sqlx prepare --workspace --check -- --features ssr --locked
+      - uses: ./.github/actions/cancel-run
+        if: failure()
 
-  build-bot:
-    name: build (bot, release)
-    needs: [fmt, clippy]
+  images:
+    name: ${{ matrix.name }} image
+    needs: [fmt]
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-on-failure: true
-      - run: cargo build --release --locked --bin bot
-
-  build-dashboard:
-    name: build (dashboard, release ssr)
-    needs: [fmt, clippy]
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-on-failure: true
-      - run: cargo build --release --locked -p dashboard --features ssr
-
-  cancel-on-test-failure:
-    name: cancel release builds on test failure
-    needs: [test]
-    if: failure()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
     permissions:
-      actions: write
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: bot
+            dockerfile: docker/Dockerfile.bot
+            image: zayden-bot
+            needs_ytdlp: true
+          - name: dashboard
+            dockerfile: docker/Dockerfile.dashboard
+            image: zayden-dashboard
+            needs_ytdlp: false
+
     steps:
-      - run: gh run cancel "$GITHUB_RUN_ID"
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute lowercase image ref
+        id: img
+        run: echo "ref=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/${{ matrix.image }}" >> "$GITHUB_OUTPUT"
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.img.outputs.ref }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+
+      - name: Resolve latest yt-dlp release
+        id: ytdlp
+        if: matrix.needs_ytdlp
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="$(gh release view --repo yt-dlp/yt-dlp --json tagName -q .tagName)"
+          if [ -z "$tag" ]; then
+            echo "could not resolve the latest yt-dlp release" >&2
+            exit 1
+          fi
+          echo "Using yt-dlp $tag"
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          build-args: ${{ matrix.needs_ytdlp && format('YTDLP_VERSION={0}', steps.ytdlp.outputs.version) || '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ steps.img.outputs.ref }}:buildcache
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=registry,ref={0}:buildcache,mode=max', steps.img.outputs.ref) || '' }}
