@@ -63,9 +63,6 @@ jobs:
   clippy-dashboard-ssr:
     name: clippy (dashboard, ssr)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -77,15 +74,10 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-on-failure: true
       - run: cargo clippy -p dashboard --features ssr --locked -- -D warnings
-      - uses: ./.github/actions/cancel-run
-        if: failure()
 
   clippy-dashboard-hydrate:
     name: clippy (dashboard, wasm32 hydrate)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
@@ -100,8 +92,6 @@ jobs:
       - run: >
           cargo clippy -p dashboard --target wasm32-unknown-unknown
           --features hydrate --locked -- -D warnings
-      - uses: ./.github/actions/cancel-run
-        if: failure()
 
   test:
     name: test
@@ -140,17 +130,12 @@ jobs:
   deny:
     name: cargo-deny (licenses + advisories)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
-      - uses: ./.github/actions/cancel-run
-        if: failure()
 
   sqlx:
     name: sqlx prepare --check
@@ -197,7 +182,7 @@ jobs:
 
   images:
     name: ${{ matrix.name }} image
-    needs: [fmt]
+    needs: [fmt, clippy-dashboard-ssr, clippy-dashboard-hydrate, deny]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
