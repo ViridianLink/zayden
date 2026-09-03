@@ -1,3 +1,4 @@
+use cynic::{GraphQlResponse, Operation, QueryFragment, QueryVariables};
 use reqwest::Client;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -5,40 +6,27 @@ use serde::de::DeserializeOwned;
 use crate::wiki::{WikiConfig, WikiError};
 
 #[derive(Deserialize)]
-struct Envelope<T> {
-    #[serde(default = "Option::default")]
-    data: Option<T>,
-    #[serde(default = "Vec::new")]
-    errors: Vec<GraphQlError>,
-}
-
-#[derive(Deserialize)]
-struct GraphQlError {
-    message: String,
-    #[serde(default = "Option::default")]
-    extensions: Option<Extensions>,
-}
-
-#[derive(Deserialize)]
 struct Extensions {
-    #[serde(default = "Option::default")]
     exception: Option<Exception>,
 }
 
 #[derive(Deserialize)]
 struct Exception {
-    #[serde(default = "Option::default")]
     code: Option<i64>,
 }
 
 const PAGE_VIEW_FORBIDDEN: i64 = 6013;
 
-pub(crate) async fn query<T: DeserializeOwned>(
+pub(crate) async fn run<Query, Variables>(
     client: &Client,
     config: &WikiConfig,
-    body: &serde_json::Value,
-) -> Result<T, WikiError> {
-    let mut request = client.post(config.graphql_endpoint()).json(body);
+    operation: &Operation<Query, Variables>,
+) -> Result<Query, WikiError>
+where
+    Query: QueryFragment + DeserializeOwned,
+    Variables: QueryVariables + serde::Serialize + Sync,
+{
+    let mut request = client.post(config.graphql_endpoint()).json(operation);
 
     if let Some(key) = config.api_key() {
         request = request.bearer_auth(key);
@@ -46,9 +34,9 @@ pub(crate) async fn query<T: DeserializeOwned>(
 
     let response = request.send().await?;
     let status = response.status();
-    let envelope: Envelope<T> = response.json().await?;
+    let body: GraphQlResponse<Query, Extensions> = response.json().await?;
 
-    if let Some(error) = envelope.errors.first() {
+    if let Some(error) = body.errors.as_ref().and_then(|errors| errors.first()) {
         let code = error
             .extensions
             .as_ref()
@@ -65,5 +53,5 @@ pub(crate) async fn query<T: DeserializeOwned>(
         });
     }
 
-    envelope.data.ok_or(WikiError::EmptyResponse)
+    body.data.ok_or(WikiError::EmptyResponse)
 }

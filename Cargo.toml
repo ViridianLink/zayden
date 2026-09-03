@@ -207,6 +207,10 @@ serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 toml = { version = "*", default-features = false }
 
+# -- GraphQL
+cynic = { version = "*", default-features = false }
+cynic-codegen = { version = "*", default-features = false }
+
 # -- Dates and times
 jiff = { version = "*", default-features = false }
 jiff-cron = { version = "*", default-features = false }

@@ -1,42 +1,44 @@
+#![expect(
+    unused_qualifications,
+    reason = "cynic's QueryFragment derive emits fully qualified paths spanned to \
+              the field declarations they were generated from"
+)]
+
+use cynic::{QueryBuilder, QueryFragment, QueryVariables};
 use reqwest::Client;
-use serde::Deserialize;
 
-use crate::wiki::{WikiConfig, WikiError, graphql};
+use crate::wiki::{WikiConfig, WikiError, graphql, schema};
 
-const SEARCH_QUERY: &str = r"
-    query SearchPages($query: String!, $locale: String!) {
-        pages {
-            search(query: $query, locale: $locale) {
-                results {
-                    title
-                    description
-                    path
-                }
-            }
-        }
-    }
-";
+#[derive(QueryVariables)]
+struct SearchVariables<'a> {
+    query: &'a str,
+    locale: Option<&'a str>,
+}
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(QueryFragment)]
+#[cynic(graphql_type = "Query", variables = "SearchVariables")]
+struct SearchPages {
+    pages: Option<PageQuery>,
+}
+
+#[derive(QueryFragment)]
+#[cynic(variables = "SearchVariables")]
+struct PageQuery {
+    #[arguments(query: $query, locale: $locale)]
+    search: PageSearchResponse,
+}
+
+#[derive(QueryFragment)]
+struct PageSearchResponse {
+    results: Vec<Option<SearchResult>>,
+}
+
+#[derive(QueryFragment, Debug, Clone)]
+#[cynic(graphql_type = "PageSearchResult")]
 pub struct SearchResult {
     pub title: String,
     pub description: String,
     pub path: String,
-}
-
-#[derive(Deserialize)]
-struct SearchData {
-    pages: PagesSearch,
-}
-
-#[derive(Deserialize)]
-struct PagesSearch {
-    search: SearchResults,
-}
-
-#[derive(Deserialize)]
-struct SearchResults {
-    results: Vec<SearchResult>,
 }
 
 pub async fn search(
@@ -44,12 +46,13 @@ pub async fn search(
     config: &WikiConfig,
     query: &str,
 ) -> Result<Vec<SearchResult>, WikiError> {
-    let body = serde_json::json!({
-        "query": SEARCH_QUERY,
-        "variables": { "query": query, "locale": config.locale() },
-    });
+    let operation =
+        SearchPages::build(SearchVariables { query, locale: Some(config.locale()) });
 
-    let data: SearchData = graphql::query(client, config, &body).await?;
+    let data = graphql::run(client, config, &operation).await?;
 
-    Ok(data.pages.search.results)
+    Ok(data
+        .pages
+        .map(|pages| pages.search.results.into_iter().flatten().collect())
+        .unwrap_or_default())
 }

@@ -1,12 +1,12 @@
 //! Integration tests: parse real, live-captured fixtures (see
 //! `bot-modules/marathon/tests/fixtures/`, captured 2026-07-08) through
-//! `gql`/`parse` and confirm they deserialize into sane `model.rs` structs,
+//! `apollo_cache`/`parse` and confirm they deserialize into sane `model.rs` structs,
 //! including graceful handling of data a fixture doesn't contain.
 
 use std::fs;
 
 use marathon::model::MapStatus;
-use marathon::{gql, parse};
+use marathon::{apollo_cache, parse};
 use serde_json::Value;
 
 /// Returns `Value::Null` on any read/parse failure rather than panicking here - the
@@ -23,9 +23,11 @@ fn load_fixture(name: &str) -> Value {
 #[test]
 fn parses_weapon_from_mobalytics_fixture() {
     let marathon_state = load_fixture("mobalytics_weapon_d54");
-    let doc =
-        gql::find_struct_document(&marathon_state, "weapons/d54-battle-pistol")
-            .expect("fixture should contain the weapon document");
+    let doc = apollo_cache::find_struct_document(
+        &marathon_state,
+        "weapons/d54-battle-pistol",
+    )
+    .expect("fixture should contain the weapon document");
 
     let weapon = parse::parse_weapon("d54-battle-pistol", doc);
 
@@ -51,8 +53,9 @@ fn parses_weapon_from_mobalytics_fixture() {
 #[test]
 fn parses_runner_from_mobalytics_fixture() {
     let marathon_state = load_fixture("mobalytics_runner_assassin");
-    let doc = gql::find_struct_document(&marathon_state, "runners/assassin")
-        .expect("fixture should contain the runner document");
+    let doc =
+        apollo_cache::find_struct_document(&marathon_state, "runners/assassin")
+            .expect("fixture should contain the runner document");
 
     let runner = parse::parse_runner("assassin", doc);
 
@@ -86,7 +89,7 @@ fn parses_runner_from_mobalytics_fixture() {
 #[test]
 fn parses_faction_listing_from_mobalytics_fixture() {
     let marathon_state = load_fixture("mobalytics_factions_listing");
-    let doc = gql::find_struct_document(&marathon_state, "factions")
+    let doc = apollo_cache::find_struct_document(&marathon_state, "factions")
         .expect("fixture should contain the factions listing document");
 
     let factions = parse::parse_faction_listing(doc);
@@ -109,7 +112,7 @@ fn parses_faction_listing_from_mobalytics_fixture() {
 #[test]
 fn parses_map_from_mobalytics_fixture() {
     let marathon_state = load_fixture("mobalytics_map_perimeter");
-    let doc = gql::find_struct_document(&marathon_state, "maps/perimeter")
+    let doc = apollo_cache::find_struct_document(&marathon_state, "maps/perimeter")
         .expect("fixture should contain the map document");
 
     let map = parse::parse_map("perimeter", doc);
@@ -130,7 +133,7 @@ fn parses_map_from_mobalytics_fixture() {
 #[test]
 fn parses_build_from_mobalytics_ug_fixture() {
     let marathon_state = load_fixture("mobalytics_build_wallzer_thief");
-    let doc = gql::find_ug_document(
+    let doc = apollo_cache::find_ug_document(
         &marathon_state,
         "builds",
         "wallzer-greed-is-good-thief",
@@ -231,11 +234,15 @@ fn marathondb_map_maps_layout_and_categorised_pois() {
 fn missing_document_degrades_to_none_rather_than_panicking() {
     let marathon_state = load_fixture("mobalytics_weapon_d54");
     assert!(
-        gql::find_struct_document(&marathon_state, "weapons/does-not-exist")
-            .is_none()
+        apollo_cache::find_struct_document(
+            &marathon_state,
+            "weapons/does-not-exist"
+        )
+        .is_none()
     );
     assert!(
-        gql::find_ug_document(&marathon_state, "builds", "does-not-exist").is_none()
+        apollo_cache::find_ug_document(&marathon_state, "builds", "does-not-exist")
+            .is_none()
     );
 }
 

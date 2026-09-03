@@ -7,8 +7,8 @@ use serde_json::Value;
 use tokio::sync::Mutex;
 
 use self::clearance::Clearance;
+use crate::apollo_cache;
 use crate::error::{MarathonError, Result};
-use crate::gql;
 
 pub struct Mobalytics {
     client: Client,
@@ -27,12 +27,12 @@ impl Mobalytics {
             .get_with_clearance(&format!("https://mobalytics.gg/marathon/{slug}"))
             .await?;
         let marathon_state = preloaded_state::extract_marathon_state(&html)?;
-        gql::find_struct_document(&marathon_state, slug).cloned().ok_or_else(|| {
-            MarathonError::NotFound {
+        apollo_cache::find_struct_document(&marathon_state, slug)
+            .cloned()
+            .ok_or_else(|| MarathonError::NotFound {
                 entity: "marathon document",
                 query: slug.to_string(),
-            }
-        })
+            })
     }
 
     pub async fn fetch_ug_document(
@@ -46,12 +46,12 @@ impl Mobalytics {
             ))
             .await?;
         let marathon_state = preloaded_state::extract_marathon_state(&html)?;
-        gql::find_ug_document(&marathon_state, category, slug).cloned().ok_or_else(
-            || MarathonError::NotFound {
+        apollo_cache::find_ug_document(&marathon_state, category, slug)
+            .cloned()
+            .ok_or_else(|| MarathonError::NotFound {
                 entity: "marathon document",
                 query: slug.to_string(),
-            },
-        )
+            })
     }
 
     pub async fn fetch_listing_slugs(

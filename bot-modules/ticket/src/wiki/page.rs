@@ -1,39 +1,40 @@
+#![expect(
+    unused_qualifications,
+    reason = "cynic's QueryFragment derive emits fully qualified paths spanned to \
+              the field declarations they were generated from"
+)]
+
+use cynic::{QueryBuilder, QueryFragment, QueryVariables};
 use reqwest::Client;
 use scraper::{Html, Selector};
-use serde::Deserialize;
 use tracing::debug;
 
-use crate::wiki::{WikiConfig, WikiError, graphql};
+use crate::wiki::{WikiConfig, WikiError, graphql, schema};
 
-const PAGE_QUERY: &str = r"
-    query GetPage($path: String!, $locale: String!) {
-        pages {
-            singleByPath(path: $path, locale: $locale) {
-                title
-                description
-                path
-                content
-            }
-        }
-    }
-";
+#[derive(QueryVariables)]
+struct PageVariables<'a> {
+    path: &'a str,
+    locale: &'a str,
+}
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(QueryFragment)]
+#[cynic(graphql_type = "Query", variables = "PageVariables")]
+struct GetPage {
+    pages: Option<PageQuery>,
+}
+
+#[derive(QueryFragment)]
+#[cynic(variables = "PageVariables")]
+struct PageQuery {
+    #[arguments(path: $path, locale: $locale)]
+    single_by_path: Option<Page>,
+}
+
+#[derive(QueryFragment, Debug, Clone)]
 pub struct Page {
     pub title: String,
     pub path: String,
     pub content: String,
-}
-
-#[derive(Deserialize)]
-struct PageData {
-    pages: SinglePage,
-}
-
-#[derive(Deserialize)]
-struct SinglePage {
-    #[serde(rename = "singleByPath")]
-    single_by_path: Option<Page>,
 }
 
 pub async fn page(
@@ -55,14 +56,13 @@ async fn page_via_graphql(
     config: &WikiConfig,
     path: &str,
 ) -> Result<Page, WikiError> {
-    let body = serde_json::json!({
-        "query": PAGE_QUERY,
-        "variables": { "path": path, "locale": config.locale() },
-    });
+    let operation = GetPage::build(PageVariables { path, locale: config.locale() });
 
-    let data: PageData = graphql::query(client, config, &body).await?;
+    let data = graphql::run(client, config, &operation).await?;
 
-    data.pages.single_by_path.ok_or_else(|| WikiError::PageNotFound(path.to_owned()))
+    data.pages
+        .and_then(|pages| pages.single_by_path)
+        .ok_or_else(|| WikiError::PageNotFound(path.to_owned()))
 }
 
 async fn page_via_source_view(
