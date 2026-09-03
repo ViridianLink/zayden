@@ -8,17 +8,15 @@ use serenity::all::{
     CreateEmbed,
     CreateMessage,
     CreateThread,
-    GuildId,
     Http,
     Message,
-    ThreadId,
 };
-use tracing::{debug, warn};
+use tracing::debug;
 use zayden_app::state::AppState;
 use zayden_core::CoreError;
 
-use crate::faq::{FaqContext, on_ticket_opened};
 use crate::{
+    ISSUE_EMBED_TITLE,
     Result,
     TicketError,
     TicketGuildRow,
@@ -84,7 +82,9 @@ impl SupportMessageCommand {
 
         TicketGuildRow::increment_thread_id(stores.ticket, guild_id).await?;
 
-        let issue = CreateEmbed::new().title("Issue").description(&message.content);
+        let issue = CreateEmbed::new()
+            .title(ISSUE_EMBED_TITLE)
+            .description(&message.content);
 
         let attachments = stream::iter(message.attachments.iter())
             .filter_map(|attachment| async move {
@@ -108,30 +108,6 @@ impl SupportMessageCommand {
 
         message.delete(http, Some("Support message deleted")).await?;
 
-        triage(http, app, guild_id, thread.id, message).await;
-
         Ok(())
-    }
-}
-
-async fn triage(
-    http: &Arc<Http>,
-    app: &Arc<AppState>,
-    guild_id: GuildId,
-    thread_id: ThreadId,
-    message: &Message,
-) {
-    match FaqContext::load(&app.settings.faq, guild_id).await {
-        Ok(Some(context)) => on_ticket_opened(
-            Arc::clone(http),
-            Arc::clone(app),
-            context,
-            thread_id,
-            guild_id,
-            message.author.id,
-            message.content.to_string(),
-        ),
-        Ok(None) => {},
-        Err(e) => warn!(error = ?e, %guild_id, "could not load faq settings"),
     }
 }

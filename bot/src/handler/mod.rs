@@ -16,6 +16,7 @@ mod presence_update;
 mod reaction_add;
 mod reaction_remove;
 mod ready;
+mod thread_create;
 mod thread_delete;
 mod voice_state_update;
 
@@ -44,6 +45,7 @@ impl EventHandler for Handler {
             | Event::Ready(_)
             | Event::VoiceStateUpdate(_)
             | Event::InteractionCreate(_)
+            | Event::ThreadCreate(_)
             | Event::ThreadDelete(_)
             | Event::EntitlementCreate(_)
             | Event::EntitlementUpdate(_)
@@ -96,7 +98,6 @@ impl EventHandler for Handler {
             | Event::StageInstanceCreate(_)
             | Event::StageInstanceUpdate(_)
             | Event::StageInstanceDelete(_)
-            | Event::ThreadCreate(_)
             | Event::ThreadUpdate(_)
             | Event::ThreadListSync(_)
             | Event::ThreadMemberUpdate(_)
@@ -165,6 +166,9 @@ impl EventHandler for Handler {
                 let app = Arc::clone(&self.app);
                 let registry = Arc::clone(&self.registry);
                 Self::interaction_create(ctx, interaction, app, registry).await
+            },
+            FullEvent::ThreadCreate { thread, newly_created, .. } => {
+                Self::thread_create(ctx, thread, *newly_created, &self.app).await
             },
             FullEvent::ThreadDelete { thread, .. } => {
                 Self::thread_delete(ctx, thread, &pool).await

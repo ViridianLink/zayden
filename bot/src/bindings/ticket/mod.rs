@@ -2,6 +2,7 @@ use crate::RegistryBuilder;
 use crate::registry::OverlapError;
 
 pub mod components;
+pub mod events;
 pub mod message_commands;
 pub mod slash_commands;
 

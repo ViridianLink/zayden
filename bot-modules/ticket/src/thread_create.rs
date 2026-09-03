@@ -1,0 +1,147 @@
+use std::sync::Arc;
+use std::time::Duration;
+
+use serenity::all::{GetMessages, GuildThread, Http, Message, MessageId, UserId};
+use tokio::time::sleep;
+use tracing::{debug, warn};
+use zayden_app::state::AppState;
+
+use crate::faq::{FaqContext, on_ticket_opened};
+use crate::{ISSUE_EMBED_TITLE, Result, TicketGuildRow, TicketStores};
+
+const OPENING_ATTEMPTS: u32 = 6;
+const OPENING_BACKOFF: Duration = Duration::from_millis(500);
+const OPENING_LIMIT: u8 = 5;
+const OLDEST: MessageId = MessageId::new(1);
+
+pub struct SupportThreadCreate;
+
+impl SupportThreadCreate {
+    pub async fn run(
+        http: &Arc<Http>,
+        thread: &GuildThread,
+        newly_created: Option<bool>,
+        app: &Arc<AppState>,
+    ) -> Result<()> {
+        if newly_created != Some(true) {
+            return Ok(());
+        }
+
+        let guild_id = thread.base.guild_id;
+        let stores = TicketStores::from_app(app);
+
+        let Some(row) = TicketGuildRow::get(stores, &app.db, guild_id).await? else {
+            debug!(%guild_id, "no ticket configuration for guild; ignoring thread");
+            return Ok(());
+        };
+
+        if row.channel_id() != Some(thread.parent_id) {
+            debug!(
+                %guild_id,
+                thread_id = %thread.id,
+                "thread is not in the support channel; ignoring",
+            );
+            return Ok(());
+        }
+
+        let context = match FaqContext::load(stores.faq, guild_id).await {
+            Ok(Some(context)) => context,
+            Ok(None) => return Ok(()),
+            Err(e) => {
+                warn!(error = ?e, %guild_id, "could not load faq settings");
+                return Ok(());
+            },
+        };
+
+        if !context.auto_triage {
+            return Ok(());
+        }
+
+        let Some((author, content)) = opening_ticket(http, thread).await else {
+            warn!(
+                thread_id = %thread.id,
+                "support thread opened without a readable issue embed; skipping triage",
+            );
+            return Ok(());
+        };
+
+        on_ticket_opened(
+            Arc::clone(http),
+            Arc::clone(app),
+            context,
+            thread.id,
+            guild_id,
+            author,
+            content,
+        );
+
+        Ok(())
+    }
+}
+
+async fn opening_ticket(
+    http: &Http,
+    thread: &GuildThread,
+) -> Option<(UserId, String)> {
+    for attempt in 0..OPENING_ATTEMPTS {
+        if attempt > 0 {
+            sleep(OPENING_BACKOFF).await;
+        }
+
+        let messages = match thread
+            .id
+            .widen()
+            .messages(http, GetMessages::new().after(OLDEST).limit(OPENING_LIMIT))
+            .await
+        {
+            Ok(messages) => messages,
+            Err(e) => {
+                warn!(error = ?e, thread_id = %thread.id, "could not read support thread");
+                continue;
+            },
+        };
+
+        if let Some(opening) = messages.iter().find_map(issue) {
+            return Some(opening);
+        }
+    }
+
+    None
+}
+
+fn issue(message: &Message) -> Option<(UserId, String)> {
+    let content = message.embeds.iter().find_map(|embed| {
+        if embed.title.as_deref() != Some(ISSUE_EMBED_TITLE) {
+            return None;
+        }
+
+        embed.description.as_deref().map(str::trim).filter(|d| !d.is_empty())
+    })?;
+
+    Some((author(&message.content)?, content.to_owned()))
+}
+
+#[must_use]
+pub fn author(content: &str) -> Option<UserId> {
+    let mut rest = content;
+
+    while let Some(open) = rest.find("<@") {
+        let after = rest.get(open + 2..)?;
+        let close = after.find('>')?;
+        let (raw, tail) = after.split_at(close);
+        rest = tail;
+
+        if raw.starts_with('&') {
+            continue;
+        }
+
+        // `<@!id>` is the legacy nickname mention form.
+        if let Ok(id) = raw.trim_start_matches('!').parse::<u64>()
+            && id != u64::MAX
+        {
+            return Some(UserId::new(id));
+        }
+    }
+
+    None
+}

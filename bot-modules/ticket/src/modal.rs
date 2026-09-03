@@ -13,13 +13,12 @@ use serenity::all::{
     Mentionable,
     ModalInteraction,
 };
-use tracing::warn;
 use zayden_app::state::AppState;
 use zayden_core::{CoreError, parse_modal_components};
 
-use crate::faq::{FaqContext, on_ticket_opened};
 use crate::ticket_manager::TicketRow;
 use crate::{
+    ISSUE_EMBED_TITLE,
     Result,
     TicketError,
     TicketGuildRow,
@@ -71,7 +70,7 @@ impl TicketModal {
             thread_name(guild_row.thread_id, member.display_name(), &content);
 
         let mut issue =
-            CreateEmbed::new().title("Issue").description(content.clone());
+            CreateEmbed::new().title(ISSUE_EMBED_TITLE).description(content.clone());
 
         if let Some(mut version) = data.remove("version")
             && let Some(v) = version.pop()
@@ -140,20 +139,6 @@ impl TicketModal {
                 ),
             )
             .await?;
-
-        match FaqContext::load(stores.faq, guild_id).await {
-            Ok(Some(context)) => on_ticket_opened(
-                Arc::clone(http),
-                Arc::clone(app),
-                context,
-                thread.id,
-                guild_id,
-                interaction.user.id,
-                content.into_owned(),
-            ),
-            Ok(None) => {},
-            Err(e) => warn!(error = ?e, %guild_id, "could not load faq settings"),
-        }
 
         Ok(())
     }

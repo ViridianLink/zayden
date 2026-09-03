@@ -18,6 +18,7 @@ pub mod message_command;
 pub mod modal;
 pub mod slash_commands;
 pub mod support_guild_manager;
+pub mod thread_create;
 pub mod ticket_manager;
 pub mod wiki;
 
@@ -29,9 +30,12 @@ pub use helper_links::{HelperLink, HelperLinks};
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
 pub use support_guild_manager::{SupportRoles, TicketGuildRow, TicketStores};
+pub use thread_create::SupportThreadCreate;
 pub use ticket_manager::TicketRow;
 
 pub struct Ticket;
+
+pub const ISSUE_EMBED_TITLE: &str = "Issue";
 
 #[must_use]
 pub fn thread_name(thread_id: i32, author_name: &str, content: &str) -> String {

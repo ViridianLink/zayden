@@ -15,10 +15,6 @@ pub(crate) fn on_ticket_opened(
     author: UserId,
     content: String,
 ) {
-    if !context.auto_triage {
-        return;
-    }
-
     tokio::spawn(run_triage(
         http, app, context, thread_id, guild_id, author, content,
     ));
