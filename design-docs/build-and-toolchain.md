@@ -85,6 +85,19 @@ working, and breaking either one breaks the release build:
 
 CI (`.github/workflows/ci.yml`) does the same thing with env vars rather than
 `.dockerignore`: `RUSTUP_TOOLCHAIN=stable` outranks `rust-toolchain.toml`, and
-`RUSTFLAGS=""` clears the `-Z` flags. A consequence is that CI's format gate is
-weaker than `cargo fmt` locally — `rustfmt.toml` uses unstable options and stable
-rustfmt ignores them rather than erroring.
+`RUSTFLAGS=""` clears the `-Z` flags.
+
+The `fmt` job is the one exception and overrides `RUSTUP_TOOLCHAIN` back to
+nightly. Stable rustfmt ignores the unstable options in `rustfmt.toml` rather
+than erroring, so it does not merely gate more weakly — it formats to a
+*different* style (`imports_layout` and `imports_granularity` are the ones that
+bite), and `--check` fails on correctly formatted code. The job compiles
+nothing, so nightly there costs nothing.
+
+The same split shows up in lints. Clippy's lint set differs between the two
+channels, so a `#[expect(clippy::…)]` that is fulfilled on nightly can be
+unfulfilled on stable and fail the `-D warnings` gate — `clippy::empty_enums` in
+`dashboard/src/lib.rs` is `allow` rather than `expect` for exactly that reason.
+The reverse case is only noise: `clippy::assert_is_empty` in the workspace lint
+table does not exist on stable, and its `unknown_lints` warning is documented to
+ignore `-D warnings`.
