@@ -6,9 +6,12 @@ use async_openai::error::OpenAIError;
 use async_openai::types::chat::{
     CreateChatCompletionRequest,
     CreateChatCompletionRequestArgs,
+    ResponseFormat,
+    ResponseFormatJsonSchema,
 };
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use zayden_app::services::http::ClientBuilderExt;
 
 use crate::chat::Message;
@@ -56,15 +59,67 @@ impl AiClient {
         &self,
         messages: Vec<Message>,
         max_tokens: u32,
+        temperature: Option<f32>,
     ) -> Result<String, Error> {
-        let messages: Vec<_> = messages.into_iter().map(Into::into).collect();
+        let request = self.build_request(messages, max_tokens, temperature, None)?;
+        self.chat_with_retry(request).await
+    }
 
-        let request = CreateChatCompletionRequestArgs::default()
+    pub async fn chat_json<T: DeserializeOwned>(
+        &self,
+        messages: Vec<Message>,
+        max_tokens: u32,
+        temperature: Option<f32>,
+        schema_name: &str,
+        schema: serde_json::Value,
+    ) -> Result<T, Error> {
+        let response_format = ResponseFormat::JsonSchema {
+            json_schema: ResponseFormatJsonSchema {
+                description: None,
+                name: schema_name.to_owned(),
+                schema,
+                strict: Some(true),
+            },
+        };
+        let request = self.build_request(
+            messages,
+            max_tokens,
+            temperature,
+            Some(response_format),
+        )?;
+        let content = self.chat_with_retry(request).await?;
+
+        serde_json::from_str(&content).map_err(Error::InvalidJson)
+    }
+
+    fn build_request(
+        &self,
+        messages: Vec<Message>,
+        max_tokens: u32,
+        temperature: Option<f32>,
+        response_format: Option<ResponseFormat>,
+    ) -> Result<CreateChatCompletionRequest, Error> {
+        let mut builder = CreateChatCompletionRequestArgs::default();
+        builder
             .model(&self.model)
-            .messages(messages)
-            .max_tokens(max_tokens)
-            .build()?;
+            .messages(messages.into_iter().map(Into::into).collect::<Vec<_>>())
+            .max_tokens(max_tokens);
 
+        if let Some(temperature) = temperature {
+            builder.temperature(temperature);
+        }
+
+        if let Some(response_format) = response_format {
+            builder.response_format(response_format);
+        }
+
+        Ok(builder.build()?)
+    }
+
+    async fn chat_with_retry(
+        &self,
+        request: CreateChatCompletionRequest,
+    ) -> Result<String, Error> {
         let mut attempt = 1;
 
         loop {

@@ -1,0 +1,114 @@
+use reqwest::Client;
+use scraper::{Html, Selector};
+use serde::Deserialize;
+use tracing::debug;
+
+use crate::wiki::{WikiConfig, WikiError, graphql};
+
+const PAGE_QUERY: &str = r"
+    query GetPage($path: String!, $locale: String!) {
+        pages {
+            singleByPath(path: $path, locale: $locale) {
+                title
+                description
+                path
+                content
+            }
+        }
+    }
+";
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Page {
+    pub title: String,
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Deserialize)]
+struct PageData {
+    pages: SinglePage,
+}
+
+#[derive(Deserialize)]
+struct SinglePage {
+    #[serde(rename = "singleByPath")]
+    single_by_path: Option<Page>,
+}
+
+pub async fn page(
+    client: &Client,
+    config: &WikiConfig,
+    path: &str,
+) -> Result<Page, WikiError> {
+    match page_via_graphql(client, config, path).await {
+        Err(WikiError::PageForbidden) => {
+            debug!(path, "graphql page source forbidden; trying the source view");
+            page_via_source_view(client, config, path).await
+        },
+        result => result,
+    }
+}
+
+async fn page_via_graphql(
+    client: &Client,
+    config: &WikiConfig,
+    path: &str,
+) -> Result<Page, WikiError> {
+    let body = serde_json::json!({
+        "query": PAGE_QUERY,
+        "variables": { "path": path, "locale": config.locale() },
+    });
+
+    let data: PageData = graphql::query(client, config, &body).await?;
+
+    data.pages.single_by_path.ok_or_else(|| WikiError::PageNotFound(path.to_owned()))
+}
+
+async fn page_via_source_view(
+    client: &Client,
+    config: &WikiConfig,
+    path: &str,
+) -> Result<Page, WikiError> {
+    let mut request = client.get(config.source_url(path)?);
+
+    if let Some(key) = config.api_key() {
+        request = request.bearer_auth(key);
+    }
+
+    let response = request.send().await?;
+
+    if !response.status().is_success() {
+        return Err(WikiError::SourceView(response.status().as_u16()));
+    }
+
+    let body = response.text().await?;
+
+    parse_source_view(&body)
+        .map(|content| Page {
+            title: page_title(&body).unwrap_or_else(|| path.to_owned()),
+            path: path.to_owned(),
+            content,
+        })
+        .ok_or(WikiError::PageForbidden)
+}
+
+fn parse_source_view(body: &str) -> Option<String> {
+    let selector = Selector::parse("code[v-pre]").ok()?;
+    let document = Html::parse_document(body);
+
+    let text = document.select(&selector).next()?.text().collect::<String>();
+
+    if text.trim().is_empty() { None } else { Some(text) }
+}
+
+fn page_title(body: &str) -> Option<String> {
+    let selector = Selector::parse("title").ok()?;
+    let document = Html::parse_document(body);
+    let raw = document.select(&selector).next()?.text().collect::<String>();
+
+    // Wiki.js titles its pages "<page title> | <site title>".
+    let title = raw.split('|').next().unwrap_or(&raw).trim();
+
+    if title.is_empty() { None } else { Some(title.to_owned()) }
+}

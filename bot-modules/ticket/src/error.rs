@@ -11,6 +11,9 @@ pub enum TicketError {
     SupportNotFound,
     SolvedTagNotConfigured,
     SolvedTagMissing,
+    MissingPermissions,
+    FaqNotConfigured,
+    Wiki(String),
     Internal(String),
 
     ZaydenCore(ZaydenError),
@@ -33,6 +36,16 @@ impl std::fmt::Display for TicketError {
                 "The configured solved tag no longer exists in this forum. \
                  Pick a new one in the dashboard under Support."
             ),
+            Self::MissingPermissions => write!(
+                f,
+                "You need the Manage Messages permission to use that subcommand."
+            ),
+            Self::FaqNotConfigured => write!(
+                f,
+                "No wiki is configured for this server. Set one in the dashboard \
+                 under Support."
+            ),
+            Self::Wiki(msg) => write!(f, "The wiki could not be reached: {msg}"),
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::ZaydenCore(e) => e.fmt(f),
         }
@@ -47,6 +60,9 @@ impl std::error::Error for TicketError {
             | Self::SupportNotFound
             | Self::SolvedTagNotConfigured
             | Self::SolvedTagMissing
+            | Self::MissingPermissions
+            | Self::FaqNotConfigured
+            | Self::Wiki(_)
             | Self::Internal(_) => None,
         }
     }
@@ -58,7 +74,10 @@ impl Respond for TicketError {
             Self::NotInSupportChannel
             | Self::SupportNotFound
             | Self::SolvedTagNotConfigured
-            | Self::SolvedTagMissing => Some(Cow::Owned(self.to_string())),
+            | Self::SolvedTagMissing
+            | Self::MissingPermissions
+            | Self::FaqNotConfigured
+            | Self::Wiki(_) => Some(Cow::Owned(self.to_string())),
             Self::Internal(_) => None,
             Self::ZaydenCore(e) => e.user_message(),
         }

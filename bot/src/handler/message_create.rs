@@ -4,7 +4,6 @@ use futures::FutureExt;
 use gambling::{GamblingManager, level_up_reward};
 use serenity::all::{Context, Message};
 use sqlx::PgPool;
-use ticket::TicketStores;
 use tracing::debug;
 use zayden_app::state::AppState;
 use zayden_core::as_i64;
@@ -36,11 +35,6 @@ impl Handler {
             }
         }
 
-        let stores = TicketStores {
-            support: &app.settings.support,
-            ticket: &app.settings.ticket,
-        };
-
         if let Some(level) = levels::message_create(msg, pool).await? {
             let reward = level_up_reward(i64::from(level));
 
@@ -57,7 +51,7 @@ impl Handler {
             llamad2::GoodMorning::run::<BotState>(ctx, msg).map(Result::Ok),
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
             llamad2::CountingFail::run(ctx, msg, pool).map(Result::Ok),
-            Box::pin(support(&ctx.http, msg, stores, pool)),
+            Box::pin(support(&ctx.http, msg, &app)),
             Box::pin(Ai::run(ctx, msg, &app)),
         )?;
 

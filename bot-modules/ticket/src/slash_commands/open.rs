@@ -18,6 +18,8 @@ impl Ticket {
         pool: &PgPool,
         guild_id: GuildId,
     ) -> Result<()> {
+        interaction.defer(http).await?;
+
         let support_channel_id = TicketGuildRow::get(stores, pool, guild_id)
             .await?
             .ok_or(TicketError::NotInSupportChannel)?

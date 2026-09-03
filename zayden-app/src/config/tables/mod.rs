@@ -1,6 +1,7 @@
 pub mod ai;
 pub mod channels_settings;
 pub mod family;
+pub mod faq;
 pub mod greetings;
 pub mod honeypot;
 pub mod lfg_settings;
@@ -14,6 +15,7 @@ pub mod ticket;
 pub use ai::AiSettingsRow;
 pub use channels_settings::ChannelsSettingsRow;
 pub use family::FamilySettingsRow;
+pub use faq::FaqSettingsRow;
 pub use greetings::{Cooldowns, GreetingsSettingsRow};
 pub use honeypot::HoneypotSettingsRow;
 pub use lfg_settings::LfgSettingsRow;

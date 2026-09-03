@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serenity::all::{
     AutoArchiveDuration,
     ChannelType,
@@ -11,9 +13,11 @@ use serenity::all::{
     Mentionable,
     ModalInteraction,
 };
-use sqlx::PgPool;
+use tracing::warn;
+use zayden_app::state::AppState;
 use zayden_core::{CoreError, parse_modal_components};
 
+use crate::faq::{FaqContext, on_ticket_opened};
 use crate::ticket_manager::TicketRow;
 use crate::{
     Result,
@@ -29,11 +33,13 @@ pub struct TicketModal;
 
 impl TicketModal {
     pub async fn run(
-        http: &Http,
+        http: &Arc<Http>,
         interaction: &ModalInteraction,
-        stores: TicketStores<'_>,
-        pool: &PgPool,
+        app: &Arc<AppState>,
     ) -> Result<()> {
+        let stores = TicketStores::from_app(app);
+        let pool = &app.db;
+
         let guild_id = interaction.guild_id.ok_or(CoreError::MissingGuildId)?;
 
         let guild_row = TicketGuildRow::get(stores, pool, guild_id)
@@ -64,7 +70,8 @@ impl TicketModal {
         let thread_name =
             thread_name(guild_row.thread_id, member.display_name(), &content);
 
-        let mut issue = CreateEmbed::new().title("Issue").description(content);
+        let mut issue =
+            CreateEmbed::new().title("Issue").description(content.clone());
 
         if let Some(mut version) = data.remove("version")
             && let Some(v) = version.pop()
@@ -133,6 +140,19 @@ impl TicketModal {
                 ),
             )
             .await?;
+
+        match FaqContext::load(stores.faq, guild_id).await {
+            Ok(Some(context)) => on_ticket_opened(
+                Arc::clone(http),
+                Arc::clone(app),
+                context,
+                thread.id,
+                interaction.user.id,
+                content.into_owned(),
+            ),
+            Ok(None) => {},
+            Err(e) => warn!(error = ?e, %guild_id, "could not load faq settings"),
+        }
 
         Ok(())
     }

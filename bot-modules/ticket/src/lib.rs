@@ -12,12 +12,14 @@ pub use serenity::all::{GuildId, RoleId, UserId};
 pub mod components;
 pub mod donation;
 pub mod error;
+pub mod faq;
 pub mod helper_links;
 pub mod message_command;
 pub mod modal;
 pub mod slash_commands;
 pub mod support_guild_manager;
 pub mod ticket_manager;
+pub mod wiki;
 
 pub use components::TicketComponent;
 use error::Result;
@@ -28,7 +30,6 @@ pub use modal::TicketModal;
 pub use support_guild_manager::{SupportRoles, TicketGuildRow, TicketStores};
 pub use ticket_manager::TicketRow;
 
-pub struct Support;
 pub struct Ticket;
 
 #[must_use]

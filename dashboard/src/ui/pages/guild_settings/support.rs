@@ -8,12 +8,19 @@ use crate::server::guild::{
     AddSupportRole,
     RemoveHelperLink,
     RemoveSupportRole,
+    SaveFaqSettings,
+    SaveFaqTuning,
     SaveSuggestionsSettings,
     SaveSupportSettings,
 };
 use crate::ui::components::icons::Icon;
 use crate::ui::components::select::{ChannelSelect, ForumTagSelect, RoleSelect};
-use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
+use crate::ui::components::settings::{
+    SaveButton,
+    SettingField,
+    ToggleField,
+    save_feedback,
+};
 
 #[component]
 pub(crate) fn SupportTab(
@@ -33,9 +40,11 @@ pub(crate) fn SupportTab(
     let save_suggestions = ServerAction::<SaveSuggestionsSettings>::new();
     let suggestions_result = save_suggestions.value();
 
+    let faq_settings = settings.clone();
     let s = settings;
     let gid = guild_id.clone();
     let suggestions_gid = guild_id.clone();
+    let faq_gid = guild_id.clone();
     let suggestions_channels = channels.clone();
     let form_roles = roles.clone();
 
@@ -121,6 +130,7 @@ pub(crate) fn SupportTab(
                 "the demote threshold. Tune both to your server size "
                 "- demote must stay below promote."
             </p>
+            <FaqField guild_id=faq_gid settings=faq_settings/>
             <SupportRoleField
                 guild_id=guild_id.clone()
                 support_roles=support_roles
@@ -135,6 +145,89 @@ pub(crate) fn SupportTab(
                 remove=remove_link
             />
         </fieldset>
+    }
+}
+
+#[component]
+fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
+    let save_faq = ServerAction::<SaveFaqSettings>::new();
+    let result = save_faq.value();
+    let save_tuning = ServerAction::<SaveFaqTuning>::new();
+    let tuning_result = save_tuning.value();
+    let s = settings;
+    let tuning_gid = guild_id.clone();
+
+    view! {
+        <div class="setting-field">
+            <label>"Wiki FAQ"</label>
+            <p class="page-lead">
+                "Backs \"/ticket faq ask\" with a Wiki.js instance. Enter the "
+                "site origin only - Zayden derives the GraphQL endpoint, the "
+                "article links and the source view from it."
+            </p>
+            {move || result.get().map(save_feedback)}
+            <ActionForm action=save_faq>
+                <input type="hidden" name="guild" value=guild_id/>
+                <ToggleField label="Wiki FAQ" name="enabled" value=s.faq_enabled/>
+                <ToggleField
+                    label="Triage New Tickets"
+                    name="auto_triage"
+                    value=s.faq_auto_triage
+                />
+                <SettingField
+                    label="Wiki URL"
+                    name="wiki_url"
+                    value=s.faq_wiki_url
+                    pattern=".*"
+                />
+                <SettingField
+                    label="Wiki API Key"
+                    name="wiki_api_key"
+                    value=s.faq_wiki_api_key
+                    pattern=".*"
+                />
+                <SettingField
+                    label="Locale"
+                    name="wiki_locale"
+                    value=s.faq_wiki_locale
+                    pattern="[a-zA-Z-]*"
+                />
+                <SaveButton/>
+            </ActionForm>
+            {move || tuning_result.get().map(save_feedback)}
+            <ActionForm action=save_tuning>
+                <input type="hidden" name="guild" value=tuning_gid/>
+                <SettingField
+                    label="Search results to consider"
+                    name="max_results"
+                    value=s.faq_max_results
+                />
+                <SettingField
+                    label="Answer length (max tokens)"
+                    name="answer_max_tokens"
+                    value=s.faq_answer_max_tokens
+                />
+                <SettingField
+                    label="Answer temperature"
+                    name="answer_temperature"
+                    value=s.faq_answer_temperature
+                    pattern="[0-9.]*"
+                />
+                <SaveButton/>
+            </ActionForm>
+            <p class="page-lead">
+                "The API key needs a group with \"read:source\" so Zayden can "
+                "read page Markdown. Wiki.js also gates its GraphQL page-source "
+                "queries behind \"manage:pages\"; without either grant the "
+                "command still answers with matching article links, but cannot "
+                "summarise them."
+            </p>
+            <p class="page-lead">
+                "With triage on, every new support thread gets an opening embed "
+                "of suggested articles and follow-up questions. That is two "
+                "model calls per ticket."
+            </p>
+        </div>
     }
 }
 

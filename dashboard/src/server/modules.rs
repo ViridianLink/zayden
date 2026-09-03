@@ -91,7 +91,7 @@ const MODULES: &[ModuleDef] = &[
         id: "ticket",
         label: "Tickets & Support",
         description: "Support tickets and FAQ panels.",
-        backing: Backing::Commands(&["ticket", "support"]),
+        backing: Backing::Commands(&["ticket"]),
     },
     ModuleDef {
         id: "honeypot",

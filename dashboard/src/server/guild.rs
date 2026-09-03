@@ -39,6 +39,31 @@ fn parse_id(s: &str) -> Option<i64> {
 }
 
 #[cfg(feature = "ssr")]
+fn parse_optional(s: &str) -> Option<String> {
+    let t = s.trim();
+    if t.is_empty() { None } else { Some(t.to_owned()) }
+}
+
+#[cfg(feature = "ssr")]
+fn parse_wiki_url(s: &str) -> Result<Option<String>, ServerFnError> {
+    let Some(raw) = parse_optional(s) else {
+        return Ok(None);
+    };
+
+    let Ok(url) = Url::parse(raw.trim_end_matches('/')) else {
+        return Err(ServerFnError::ServerError("invalid wiki URL".to_string()));
+    };
+
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err(ServerFnError::ServerError(
+            "the wiki URL must start with http:// or https://".to_string(),
+        ));
+    }
+
+    Ok(Some(url.as_str().trim_end_matches('/').to_owned()))
+}
+
+#[cfg(feature = "ssr")]
 fn parse_role(s: &str) -> Result<RoleId, ServerFnError> {
     s.trim()
         .parse::<u64>()
@@ -112,6 +137,7 @@ pub async fn get_guild_settings(
     let music = s.music.get(guild_id).await.map_err(server_err)?;
     let honeypot = s.honeypot.get(guild_id).await.map_err(server_err)?;
     let ai = s.ai.get(guild_id).await.map_err(server_err)?;
+    let faq = s.faq.get(guild_id).await.map_err(server_err)?;
 
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
@@ -145,7 +171,76 @@ pub async fn get_guild_settings(
         honeypot_purge_seconds: honeypot.purge_seconds.to_string(),
         ai_enabled: ai.enabled,
         ai_channel_id: opt_str(ai.channel_id),
+        faq_enabled: faq.enabled,
+        faq_auto_triage: faq.auto_triage,
+        faq_wiki_url: faq.wiki_url.clone().unwrap_or_default(),
+        faq_wiki_api_key: faq.wiki_api_key.clone().unwrap_or_default(),
+        faq_wiki_locale: faq.wiki_locale.clone(),
+        faq_max_results: faq.max_results.to_string(),
+        faq_answer_max_tokens: faq.answer_max_tokens.to_string(),
+        faq_answer_temperature: faq.answer_temperature.to_string(),
     })
+}
+
+#[server]
+pub async fn save_faq_settings(
+    guild: String,
+    enabled: String,
+    auto_triage: String,
+    wiki_url: String,
+    wiki_api_key: String,
+    wiki_locale: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let enabled = enabled.trim() == "true";
+    let auto_triage = auto_triage.trim() == "true";
+    let url = parse_wiki_url(&wiki_url)?;
+    let key = parse_optional(&wiki_api_key);
+    let locale = match wiki_locale.trim() {
+        "" => String::from("en"),
+        locale => locale.to_owned(),
+    };
+
+    app.settings
+        .faq
+        .update(guild_id, |p| {
+            p.enabled = enabled;
+            p.auto_triage = auto_triage;
+            p.wiki_url = url;
+            p.wiki_api_key = key;
+            p.wiki_locale = locale;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_faq_tuning(
+    guild: String,
+    max_results: String,
+    answer_max_tokens: String,
+    answer_temperature: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let max_results = max_results.trim().parse().unwrap_or(5_i32).clamp(1, 25);
+    let max_tokens =
+        answer_max_tokens.trim().parse().unwrap_or(500_i32).clamp(64, 4096);
+    let temperature =
+        answer_temperature.trim().parse().unwrap_or(0.2_f32).clamp(0.0, 2.0);
+
+    app.settings
+        .faq
+        .update(guild_id, |p| {
+            p.max_results = max_results;
+            p.answer_max_tokens = max_tokens;
+            p.answer_temperature = temperature;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
 }
 
 #[server]

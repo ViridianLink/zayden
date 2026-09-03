@@ -12,12 +12,11 @@ use components::{
     SupportTicket,
     TicketCreate,
 };
-use slash_commands::{SupportCommand, TicketCommand};
+use slash_commands::TicketCommand;
 
 pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
     builder
         .add_command(TicketCommand)
-        .add_command(SupportCommand)
         .add_component(TicketCreate)?
         .add_component(SupportTicket)?
         .add_component(SupportClose)?

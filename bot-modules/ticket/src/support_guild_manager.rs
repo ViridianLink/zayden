@@ -1,13 +1,31 @@
 use futures::TryStreamExt;
 use serenity::all::{ChannelId, ForumTagId, GuildId, RoleId};
 use sqlx::PgPool;
-use zayden_app::config::{SettingsStore, SupportSettingsRow, TicketSettingsRow};
+use zayden_app::config::{
+    FaqSettingsRow,
+    SettingsStore,
+    SupportSettingsRow,
+    TicketSettingsRow,
+};
+use zayden_app::state::AppState;
 use zayden_core::{as_i64, as_u64};
 
 #[derive(Clone, Copy)]
 pub struct TicketStores<'a> {
     pub support: &'a SettingsStore<SupportSettingsRow>,
     pub ticket: &'a SettingsStore<TicketSettingsRow>,
+    pub faq: &'a SettingsStore<FaqSettingsRow>,
+}
+
+impl<'a> TicketStores<'a> {
+    #[must_use]
+    pub fn from_app(app: &'a AppState) -> Self {
+        Self {
+            support: &app.settings.support,
+            ticket: &app.settings.ticket,
+            faq: &app.settings.faq,
+        }
+    }
 }
 
 #[derive(Debug)]

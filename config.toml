@@ -1,7 +1,7 @@
 [ai]
 endpoint = "https://openrouter.ai/api/v1"
 model = "openrouter/free"
-model_pro = "google/gemini-3.5-flash"
+model_pro = "google/gemini-3.7-flash"
 
 [ids]
 oscar_six = 211486447369322506

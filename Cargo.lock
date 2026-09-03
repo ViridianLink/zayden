@@ -5930,6 +5930,7 @@ dependencies = [
 name = "servers-at-home"
 version = "1.0.0"
 dependencies = [
+ "ai",
  "futures",
  "jiff",
  "jiff-cron",
@@ -6864,12 +6865,18 @@ dependencies = [
 name = "ticket"
 version = "1.0.0"
 dependencies = [
+ "ai",
  "futures",
  "jiff",
+ "reqwest 0.13.4",
+ "scraper",
+ "serde",
+ "serde_json",
  "serenity",
  "sqlx",
  "tokio",
  "tracing",
+ "url",
  "zayden-app",
  "zayden-core",
 ]

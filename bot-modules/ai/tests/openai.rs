@@ -6,6 +6,7 @@ use ai::chat::{Message, Role};
 use ai::error::AiError;
 use ai::openai::AiClient;
 use async_openai::error::OpenAIError;
+use serde::Deserialize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
@@ -152,7 +153,7 @@ async fn chat_parses_a_well_formed_openrouter_completion() {
     let client =
         AiClient::new("test-key", &base_url, "test-model").expect("build client");
     let content = client
-        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
         .await
         .expect("well-formed response should parse");
 
@@ -175,7 +176,7 @@ async fn chat_surfaces_rate_limit_errors_instead_of_panicking() {
     let client =
         AiClient::new("test-key", &base_url, "test-model").expect("build client");
     let err = client
-        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
         .await
         .expect_err("a 429 response must surface as an error, not a panic");
 
@@ -203,7 +204,7 @@ async fn chat_gives_up_on_a_hung_upstream_instead_of_waiting_forever() {
 
     let result = tokio::time::timeout(
         Duration::from_secs(180),
-        client.chat(vec![Message::new(Role::User, "hi")], 16),
+        client.chat(vec![Message::new(Role::User, "hi")], 16, None),
     )
     .await
     .expect(
@@ -255,7 +256,7 @@ async fn a_padded_gateway_error_reads_as_a_provider_error() {
     let client =
         AiClient::new("test-key", &base_url, "test-model").expect("build client");
     let err = client
-        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
         .await
         .expect_err("a gateway error body must surface as an error");
 
@@ -277,7 +278,7 @@ async fn an_aborted_upstream_is_retried() {
     let client =
         AiClient::new("test-key", &base_url, "test-model").expect("build client");
     let content = client
-        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
         .await
         .expect("the second attempt should succeed");
 
@@ -298,10 +299,101 @@ async fn a_rejected_request_is_not_retried() {
     let client =
         AiClient::new("test-key", &base_url, "test-model").expect("build client");
     let err = client
-        .chat(vec![Message::new(Role::User, "hi")], 16)
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
         .await
         .expect_err("a 400 response must surface as an error");
 
     assert!(!err.is_transient(), "a 400 must not be treated as transient");
     assert_eq!(served.load(Ordering::SeqCst), 1, "a 400 must not be retried");
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+struct Keywords {
+    keywords: Vec<String>,
+}
+
+fn keywords_schema() -> serde_json::Value {
+    serde_json::json!({
+        "type": "object",
+        "properties": {
+            "keywords": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["keywords"],
+        "additionalProperties": false
+    })
+}
+
+#[tokio::test]
+async fn chat_json_parses_a_well_formed_structured_response() {
+    let body = r#"{
+        "id": "chatcmpl-test123",
+        "object": "chat.completion",
+        "created": 1700000000,
+        "model": "test-model",
+        "choices": [
+            {
+                "index": 0,
+                "message": { "role": "assistant", "content": "{\"keywords\":[\"docker\",\"traefik\"]}" },
+                "finish_reason": "stop"
+            }
+        ],
+        "usage": null
+    }"#;
+    let base_url =
+        spawn_mock_server("HTTP/1.1 200 OK", body).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let keywords: Keywords = client
+        .chat_json(
+            vec![Message::new(Role::User, "hi")],
+            16,
+            None,
+            "keywords",
+            keywords_schema(),
+        )
+        .await
+        .expect("well-formed structured response should parse");
+
+    assert_eq!(keywords, Keywords {
+        keywords: vec!["docker".to_owned(), "traefik".to_owned()]
+    });
+}
+
+#[tokio::test]
+async fn chat_json_surfaces_malformed_content_as_invalid_json() {
+    let body = r#"{
+        "id": "chatcmpl-test123",
+        "object": "chat.completion",
+        "created": 1700000000,
+        "model": "test-model",
+        "choices": [
+            {
+                "index": 0,
+                "message": { "role": "assistant", "content": "not json" },
+                "finish_reason": "stop"
+            }
+        ],
+        "usage": null
+    }"#;
+    let base_url =
+        spawn_mock_server("HTTP/1.1 200 OK", body).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let err = client
+        .chat_json::<Keywords>(
+            vec![Message::new(Role::User, "hi")],
+            16,
+            None,
+            "keywords",
+            keywords_schema(),
+        )
+        .await
+        .expect_err("malformed JSON content must surface as an error");
+
+    assert!(
+        matches!(err, AiError::InvalidJson(_)),
+        "expected AiError::InvalidJson, got {err:?}"
+    );
 }

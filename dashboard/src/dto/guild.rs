@@ -47,4 +47,12 @@ pub struct GuildSettings {
     pub(crate) honeypot_purge_seconds: String,
     pub(crate) ai_enabled: bool,
     pub(crate) ai_channel_id: Option<String>,
+    pub(crate) faq_enabled: bool,
+    pub(crate) faq_auto_triage: bool,
+    pub(crate) faq_wiki_url: String,
+    pub(crate) faq_wiki_api_key: String,
+    pub(crate) faq_wiki_locale: String,
+    pub(crate) faq_max_results: String,
+    pub(crate) faq_answer_max_tokens: String,
+    pub(crate) faq_answer_temperature: String,
 }

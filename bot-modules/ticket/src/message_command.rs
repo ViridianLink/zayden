@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::{StreamExt, stream};
 use serenity::all::{
     AutoArchiveDuration,
@@ -6,13 +8,16 @@ use serenity::all::{
     CreateEmbed,
     CreateMessage,
     CreateThread,
+    GuildId,
     Http,
     Message,
+    ThreadId,
 };
-use sqlx::PgPool;
-use tracing::debug;
+use tracing::{debug, warn};
+use zayden_app::state::AppState;
 use zayden_core::CoreError;
 
+use crate::faq::{FaqContext, on_ticket_opened};
 use crate::{
     Result,
     TicketError,
@@ -27,11 +32,13 @@ pub struct SupportMessageCommand;
 
 impl SupportMessageCommand {
     pub async fn run(
-        http: &Http,
+        http: &Arc<Http>,
         message: &Message,
-        stores: TicketStores<'_>,
-        pool: &PgPool,
+        app: &Arc<AppState>,
     ) -> Result<()> {
+        let stores = TicketStores::from_app(app);
+        let pool = &app.db;
+
         let Some(guild_id) = message.guild_id else {
             return Err(TicketError::ZaydenCore(CoreError::MissingGuildId));
         };
@@ -101,6 +108,29 @@ impl SupportMessageCommand {
 
         message.delete(http, Some("Support message deleted")).await?;
 
+        triage(http, app, guild_id, thread.id, message).await;
+
         Ok(())
+    }
+}
+
+async fn triage(
+    http: &Arc<Http>,
+    app: &Arc<AppState>,
+    guild_id: GuildId,
+    thread_id: ThreadId,
+    message: &Message,
+) {
+    match FaqContext::load(&app.settings.faq, guild_id).await {
+        Ok(Some(context)) => on_ticket_opened(
+            Arc::clone(http),
+            Arc::clone(app),
+            context,
+            thread_id,
+            message.author.id,
+            message.content.to_string(),
+        ),
+        Ok(None) => {},
+        Err(e) => warn!(error = ?e, %guild_id, "could not load faq settings"),
     }
 }

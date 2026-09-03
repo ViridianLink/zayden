@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT guild_id, enabled, auto_triage, wiki_url, wiki_api_key,\n                   wiki_locale, max_results, answer_max_tokens, answer_temperature\n            FROM faq_settings\n            WHERE guild_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "auto_triage",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "auto_triage"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "wiki_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "wiki_url"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "wiki_api_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "wiki_api_key"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "wiki_locale",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "wiki_locale"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "max_results",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "max_results"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "answer_max_tokens",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "answer_max_tokens"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "answer_temperature",
+        "type_info": "Float4",
+        "origin": {
+          "Table": {
+            "table": "faq_settings",
+            "name": "answer_temperature"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0ef603706d2e8a8fe9a26296c55f79e1c87f3de6bea8b6b1fe840cea3edd2293"
+}

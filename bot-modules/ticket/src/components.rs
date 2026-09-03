@@ -12,7 +12,7 @@ use serenity::all::{
     EditThread,
     Http,
 };
-use sqlx::PgPool;
+use zayden_app::state::AppState;
 use zayden_core::CoreError as ZaydenError;
 
 use crate::{Result, TicketError, TicketGuildRow, TicketStores};
@@ -65,9 +65,11 @@ impl TicketComponent {
     pub async fn support_faq(
         http: &Http,
         interaction: &ComponentInteraction,
-        stores: TicketStores<'_>,
-        pool: &PgPool,
+        app: &AppState,
     ) -> Result<()> {
+        let stores = TicketStores::from_app(app);
+        let pool = &app.db;
+
         let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
 
         let ComponentInteractionDataKind::StringSelect { values } =

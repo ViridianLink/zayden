@@ -171,7 +171,7 @@ impl Ai {
 
         let client =
             AiClient::new(api_key, endpoint, params.model).map_err(BotError::Ai)?;
-        let text = client.chat(messages, params.max_tokens).await?;
+        let text = client.chat(messages, params.max_tokens, None).await?;
 
         let speakers = Self::speakers(persona, message, me);
 

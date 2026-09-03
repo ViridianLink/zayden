@@ -12,6 +12,7 @@ pub use tables::{
     ARCHIVE_NEVER,
     AiSettingsRow,
     Cooldowns,
+    FaqSettingsRow,
     GreetingsSettingsRow,
     HoneypotSettingsRow,
     MusicSettingsRow,

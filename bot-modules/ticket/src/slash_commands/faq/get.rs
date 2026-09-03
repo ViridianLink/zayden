@@ -12,10 +12,10 @@ use serenity::all::{
 use sqlx::PgPool;
 use zayden_core::required_option;
 
-use crate::{Result, Support, TicketError, TicketGuildRow, TicketStores};
+use crate::{Result, Ticket, TicketError, TicketGuildRow, TicketStores};
 
-impl Support {
-    pub(super) async fn get(
+impl Ticket {
+    pub(super) async fn faq_get(
         http: &Http,
         interaction: &CommandInteraction,
         stores: TicketStores<'_>,
