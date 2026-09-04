@@ -9,7 +9,6 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use palworld::model::{Gender, OwnedPal, PlayerRoster};
 use palworld::progress::{CAPTURE_TIERS, Region, catalogue, compute, world_to_map};
-use palworld::save::load_world;
 use palworld::save::player::{PlayerRecord, load_player};
 
 pub mod common;
@@ -589,7 +588,7 @@ fn collection_ignores_guild_pooled_pals() {
 fn guild_pools_never_reach_a_players_progress() {
     let dir = world_dir();
     let cat = catalogue();
-    let world = load_world(&dir).expect("load_world");
+    let world = common::progressed_world_roster().expect("load fixture world");
     let mut checked = 0usize;
 
     for player in &world.players {
@@ -642,7 +641,7 @@ fn guild_pools_never_reach_a_players_progress() {
 fn real_world_progress_is_ordered_and_in_range() {
     let dir = world_dir();
     let cat = catalogue();
-    let world = load_world(&dir).expect("load_world");
+    let world = common::progressed_world_roster().expect("load fixture world");
 
     let mut scored: Vec<(String, f64, bool)> = Vec::new();
     for player in &world.players {

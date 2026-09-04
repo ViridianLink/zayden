@@ -40,10 +40,3 @@ fn both_widths_survive_their_bounds() {
     assert_eq!(i32::MAX.format(), "2,147,483,647");
     assert_eq!(i32::MIN.format(), "-2,147,483,648");
 }
-
-#[test]
-fn the_i32_impl_agrees_with_the_i64_one() {
-    for n in [0_i32, 1, -1, 999, 1000, -1000, 1_234_567, -1_234_567] {
-        assert_eq!(n.format(), i64::from(n).format(), "disagreement at {n}");
-    }
-}

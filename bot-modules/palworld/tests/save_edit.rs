@@ -60,12 +60,10 @@ fn rawdata_blobs(file: &gvas::GvasFile) -> Vec<Vec<u8>> {
 
 #[test]
 fn every_rawdata_blob_round_trips_byte_identically() {
-    let raw = level_bytes!(common::progressed_world());
-    let decompressed = decompress(&raw).expect("decompress");
-    let file = read_gvas(&decompressed).expect("read_gvas");
+    let file = common::progressed_gvas().expect("decode fixture Level.sav");
     let custom_versions = file.header.get_custom_versions().clone();
 
-    let blobs = rawdata_blobs(&file);
+    let blobs = rawdata_blobs(file);
     assert_eq!(blobs.len(), 1822, "fixture carries 1822 characters");
 
     for (i, blob) in blobs.iter().enumerate() {
@@ -81,16 +79,14 @@ fn every_rawdata_blob_round_trips_byte_identically() {
 
 #[test]
 fn rawdata_tail_is_preserved_not_discarded() {
-    let raw = level_bytes!(common::progressed_world());
-    let decompressed = decompress(&raw).expect("decompress");
-    let file = read_gvas(&decompressed).expect("read_gvas");
+    let file = common::progressed_gvas().expect("decode fixture Level.sav");
     let custom_versions = file.header.get_custom_versions().clone();
 
     // Measured: every character carries exactly 24 bytes after the "None"
     // terminator (padding plus a group-id GUID). The editor copies them as an
     // opaque slice, so a future save version changing the length costs nothing -
     // but a *zero*-length tail would mean the reader is silently eating them.
-    for blob in rawdata_blobs(&file) {
+    for blob in rawdata_blobs(file) {
         let parsed =
             reparse_properties_at(&blob, &custom_versions).expect("reparse");
         assert_eq!(parsed.tail.len(), 24, "tail is carried, not dropped");
@@ -163,8 +159,7 @@ fn roster_reads_players_pals_and_traits() {
 
 #[test]
 fn traits_are_harvested_sorted_and_deduplicated() {
-    let raw = level_bytes!(common::progressed_world());
-    let roster = read_roster(&raw, 0).expect("read_roster");
+    let roster = common::progressed_roster().expect("read fixture roster");
 
     assert!(!roster.trait_ids.is_empty(), "fixture carries passive skills");
 
@@ -196,8 +191,8 @@ fn traits_are_harvested_sorted_and_deduplicated() {
 /// Apply `edits` to the fixture and read the result back.
 macro_rules! edited {
     ($edits:expr) => {{
-        let raw = level_bytes!(common::progressed_world());
-        let out = apply_edits(&raw, $edits).expect("apply_edits");
+        let raw = common::progressed_level().expect("read fixture Level.sav");
+        let out = apply_edits(raw, $edits).expect("apply_edits");
         read_roster(&out.level, 0).expect("re-read edited save")
     }};
 }
@@ -216,8 +211,7 @@ macro_rules! first_pal {
 
 #[test]
 fn zero_edits_produce_a_readable_save() {
-    let before = read_roster(&level_bytes!(common::progressed_world()), 0)
-        .expect("read_roster");
+    let before = common::progressed_roster().expect("read fixture roster");
     let after = edited!(&SaveEdits::default());
 
     assert_eq!(after.players.len(), before.players.len());
@@ -227,8 +221,7 @@ fn zero_edits_produce_a_readable_save() {
 
 #[test]
 fn player_level_edit_applies_and_zeroes_exp() {
-    let before = read_roster(&level_bytes!(common::progressed_world()), 0)
-        .expect("read_roster");
+    let before = common::progressed_roster().expect("read fixture roster");
     let target = before.players.first().expect("a player").clone();
 
     let after = edited!(&SaveEdits {
@@ -250,8 +243,7 @@ fn player_level_edit_applies_and_zeroes_exp() {
 
 #[test]
 fn pal_level_ivs_and_traits_all_apply() {
-    let before = read_roster(&level_bytes!(common::progressed_world()), 0)
-        .expect("read_roster");
+    let before = common::progressed_roster().expect("read fixture roster");
     let target = first_pal!(before);
     let new_traits = vec!["Vampire".to_string(), "Noukin".to_string()];
 
@@ -287,8 +279,8 @@ fn absent_properties_are_inserted_not_skipped() {
     // 176 of the fixture's 1822 characters have no `Level` property at all and
     // 126 have no `PassiveSkillList` - the game omits defaults. Setting a value
     // on one of those must insert the property rather than silently no-op.
-    let raw = level_bytes!(common::progressed_world());
-    let before = read_roster(&raw, 0).expect("read_roster");
+    let raw = common::progressed_level().expect("read fixture Level.sav");
+    let before = common::progressed_roster().expect("read fixture roster");
 
     let bare = before
         .players
@@ -299,7 +291,7 @@ fn absent_properties_are_inserted_not_skipped() {
         .expect("fixture contains a pal with neither Level nor PassiveSkillList")
         .clone();
 
-    let out = apply_edits(&raw, &SaveEdits {
+    let out = apply_edits(raw, &SaveEdits {
         player_edits: Vec::new(),
         pal_edits: vec![PalEdit {
             instance_id: bare.instance_id.clone(),
@@ -331,8 +323,8 @@ fn absent_properties_are_inserted_not_skipped() {
 
 #[test]
 fn unknown_instance_id_is_an_error() {
-    let raw = level_bytes!(common::progressed_world());
-    let err = apply_edits(&raw, &SaveEdits {
+    let raw = common::progressed_level().expect("read fixture Level.sav");
+    let err = apply_edits(raw, &SaveEdits {
         player_edits: Vec::new(),
         pal_edits: vec![PalEdit {
             instance_id: "00000000000000000000000000000000".to_string(),
@@ -353,8 +345,8 @@ fn unknown_instance_id_is_an_error() {
 
 #[test]
 fn edited_save_is_a_valid_container() {
-    let raw = level_bytes!(common::progressed_world());
-    let out = apply_edits(&raw, &SaveEdits::default()).expect("apply_edits");
+    let raw = common::progressed_level().expect("read fixture Level.sav");
+    let out = apply_edits(raw, &SaveEdits::default()).expect("apply_edits");
 
     palworld::save::validate_level(&out.level)
         .expect("the exported save passes the same validation an upload would");

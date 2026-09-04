@@ -12,7 +12,7 @@
 
 use std::fs;
 
-use palworld::save::{load_player_names, load_world};
+use palworld::save::load_player_names;
 
 pub mod common;
 use common::{progressed_world, storage_world};
@@ -22,9 +22,16 @@ use common::{progressed_world, storage_world};
 /// the command backing it can't resolve.
 #[test]
 fn the_name_index_matches_the_full_roster() {
-    for dir in [progressed_world(), storage_world()] {
-        let roster = load_world(&dir).expect("load_world");
-        let names = load_player_names(&dir).expect("load_player_names");
+    for (dir, roster, names) in [
+        (
+            progressed_world(),
+            common::progressed_world_roster(),
+            common::progressed_names(),
+        ),
+        (storage_world(), common::storage_world_roster(), common::storage_names()),
+    ] {
+        let roster = roster.expect("load fixture world");
+        let names = names.expect("load fixture player names");
 
         let from_roster: Vec<(&str, &str)> = roster
             .players
@@ -47,10 +54,10 @@ fn the_name_index_matches_the_full_roster() {
 /// over the player list allocates nothing.
 #[test]
 fn every_entry_carries_a_prelowercased_search_key() {
-    let names = load_player_names(&progressed_world()).expect("load_player_names");
+    let names = common::progressed_names().expect("load fixture player names");
     assert!(!names.is_empty(), "fixture yields players");
 
-    for player in &names {
+    for player in names {
         assert_eq!(player.search_key, player.name.to_lowercase());
     }
 }
@@ -59,8 +66,8 @@ fn every_entry_carries_a_prelowercased_search_key() {
 /// truncation is stable rather than dependent on hash iteration order.
 #[test]
 fn entries_are_sorted_by_search_key() {
-    let names = load_player_names(&storage_world()).expect("load_player_names");
-    let mut sorted = names.clone();
+    let names = common::storage_names().expect("load fixture player names");
+    let mut sorted = names.to_vec();
     sorted.sort_by(|a, b| a.search_key.cmp(&b.search_key));
     assert_eq!(names, sorted);
 }
@@ -95,7 +102,7 @@ fn the_name_index_does_not_read_pal_storage() {
     }
     assert!(skipped > 0, "fixture must contain Pal storage saves to omit");
 
-    let with_storage = load_player_names(&source).expect("with storage");
+    let with_storage = common::progressed_names().expect("with storage");
     let without_storage = load_player_names(&scratch).expect("without storage");
 
     let _ = fs::remove_dir_all(&scratch);

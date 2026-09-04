@@ -10,7 +10,7 @@
 use std::path::PathBuf;
 
 use palworld::save::player::{load_player, parse_player_uid, unknown_record_keys};
-use palworld::save::{load_world, uid_to_filename};
+use palworld::save::uid_to_filename;
 
 pub mod common;
 use common::{progressed_world, storage_world};
@@ -132,8 +132,11 @@ fn world_and_player_saves_are_not_interchangeable() {
 fn real_saves_carry_no_unknown_record_keys() {
     let mut unknown: Vec<String> = Vec::new();
 
-    for dir in [progressed_world(), storage_world()] {
-        let world = load_world(&dir).expect("load_world");
+    for (dir, world) in [
+        (progressed_world(), common::progressed_world_roster()),
+        (storage_world(), common::storage_world_roster()),
+    ] {
+        let world = world.expect("load fixture world");
         for player in &world.players {
             let Some(path) = palworld::save::player_save_path(&dir, &player.uid)
             else {
@@ -197,7 +200,7 @@ fn arena_ranks_are_read_per_rank() {
 #[test]
 fn decodes_a_progressed_world() {
     let dir = progressed_world();
-    let world = load_world(&dir).expect("load_world");
+    let world = common::progressed_world_roster().expect("load fixture world");
 
     let records: Vec<_> = world
         .players

@@ -5,7 +5,7 @@
 //! `Level.sav` alone therefore both loses those Pals and invents a player that
 //! does not exist, which is what these tests pin.
 
-use palworld::save::{GLOBAL_STORAGE_UID, dps, load_world};
+use palworld::save::{GLOBAL_STORAGE_UID, dps};
 
 pub mod common;
 use common::storage_world;
@@ -60,7 +60,7 @@ fn a_storage_save_is_not_a_world_or_player_save() {
 /// Pals `Level.sav` files under it must be restored to their real owners.
 #[test]
 fn storage_pals_land_with_their_owner_not_the_placeholder() {
-    let world = load_world(&storage_world()).expect("load_world");
+    let world = common::storage_world_roster().expect("load storage-world");
 
     assert!(
         world.players.iter().all(|p| p.uid != GLOBAL_STORAGE_UID),
@@ -82,7 +82,7 @@ fn storage_pals_land_with_their_owner_not_the_placeholder() {
 /// member's personal count - not even inside the same guild.
 #[test]
 fn storage_does_not_leak_between_players() {
-    let world = load_world(&storage_world()).expect("load_world");
+    let world = common::storage_world_roster().expect("load storage-world");
 
     let stored: usize = [
         "B0726C28000000000000000000000000_dps.sav",

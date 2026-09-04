@@ -12,11 +12,9 @@
 
 use std::collections::HashSet;
 
-use palworld::save::decompress::decompress;
+use palworld::save::dps;
 use palworld::save::extract::{ExtractedWorld, extract};
 use palworld::save::guild::{GuildData, decode_guilds};
-use palworld::save::gvas::read_gvas;
-use palworld::save::{dps, load_world};
 
 pub mod common;
 use common::progressed_world as save_dir;
@@ -37,10 +35,8 @@ fn pooled_count(uid: &str, extracted: &ExtractedWorld, guilds: &GuildData) -> us
 
 #[test]
 fn decodes_guilds_with_consistent_membership() {
-    let raw =
-        std::fs::read(save_dir().join("Level.sav")).expect("fixture Level.sav");
-    let level = read_gvas(&decompress(&raw).expect("decompress")).expect("gvas");
-    let guilds = decode_guilds(&level);
+    let level = common::progressed_gvas().expect("decode fixture Level.sav");
+    let guilds = decode_guilds(level);
 
     // Structural invariants that hold no matter how the world has evolved since
     // capture (members join or leave, guilds form or disband). Anchoring on
@@ -71,11 +67,9 @@ fn decodes_guilds_with_consistent_membership() {
 
 #[test]
 fn base_pals_pool_across_guild_members_only() {
-    let raw =
-        std::fs::read(save_dir().join("Level.sav")).expect("fixture Level.sav");
-    let level = read_gvas(&decompress(&raw).expect("decompress")).expect("gvas");
-    let extracted = extract(&level).expect("extract");
-    let guilds = decode_guilds(&level);
+    let level = common::progressed_gvas().expect("decode fixture Level.sav");
+    let extracted = extract(level).expect("extract");
+    let guilds = decode_guilds(level);
 
     // Group the decode's members by guild, so the subjects below are whoever
     // happens to be grouped together today.
@@ -129,13 +123,11 @@ fn base_pals_pool_across_guild_members_only() {
 /// and their share of the guild's base-camp pool.
 #[test]
 fn load_world_roster_matches_owned_plus_storage_plus_pool() {
-    let raw =
-        std::fs::read(save_dir().join("Level.sav")).expect("fixture Level.sav");
-    let level = read_gvas(&decompress(&raw).expect("decompress")).expect("gvas");
-    let extracted = extract(&level).expect("extract");
-    let guilds = decode_guilds(&level);
+    let level = common::progressed_gvas().expect("decode fixture Level.sav");
+    let extracted = extract(level).expect("extract");
+    let guilds = decode_guilds(level);
     let stored = dps::load_all(&save_dir());
-    let world = load_world(&save_dir()).expect("load_world");
+    let world = common::progressed_world_roster().expect("load fixture world");
 
     for player in &world.players {
         let owned = extracted.pals.get(&player.uid).map_or(0, Vec::len);

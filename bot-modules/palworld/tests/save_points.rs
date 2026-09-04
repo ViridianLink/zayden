@@ -15,7 +15,6 @@ use palworld::save::edit::{
     STATUS_POINTS_PER_LEVEL,
     SaveEdits,
     apply_edits,
-    read_roster,
 };
 use palworld::save::edit_player::{
     TECH_POINTS_PER_LEVEL,
@@ -31,12 +30,6 @@ pub mod common;
 /// The five stats a level-up point can be spent on, as the save names them.
 const CORE_STATS: [&str; 5] = ["最大HP", "最大SP", "攻撃力", "所持重量", "作業速度"];
 
-macro_rules! level_bytes {
-    ($dir:expr) => {
-        std::fs::read($dir.join("Level.sav")).expect("read fixture Level.sav")
-    };
-}
-
 /// `(level, unused_status_points, points_allocated_to_the_five_core_stats)` for
 /// every player character in a world.
 ///
@@ -44,9 +37,7 @@ macro_rules! level_bytes {
 /// only exempts `#[test]` bodies from `expect_used`. Silence is not a way to
 /// pass: every caller either asserts on a named character or on the total
 /// count, so a world that stops decoding fails the test.
-fn player_points(raw: &[u8]) -> Vec<(String, i64, i64, i64)> {
-    let Ok(decompressed) = decompress(raw) else { return Vec::new() };
-    let Ok(file) = read_gvas(&decompressed) else { return Vec::new() };
+fn player_points(file: &gvas::GvasFile) -> Vec<(String, i64, i64, i64)> {
     let versions = file.header.get_custom_versions().clone();
 
     let Some(world) = custom_struct(file.properties.0.get("worldSaveData")) else {
@@ -136,8 +127,11 @@ fn core_allocated(
 #[test]
 fn status_point_identity_holds_across_fixtures() {
     let mut checked = 0;
-    for dir in [common::progressed_world(), common::storage_world()] {
-        for (name, level, unused, core) in player_points(&level_bytes!(dir)) {
+    for file in [
+        common::progressed_gvas().expect("decode progressed-world"),
+        common::storage_gvas().expect("decode storage-world"),
+    ] {
+        for (name, level, unused, core) in player_points(file) {
             assert_eq!(
                 core + unused,
                 level - i64::from(STATUS_POINTS_PER_LEVEL),
@@ -153,18 +147,19 @@ fn status_point_identity_holds_across_fixtures() {
 
 #[test]
 fn raising_a_level_grants_one_status_point_per_level() {
-    let raw = level_bytes!(common::progressed_world());
-    let before = read_roster(&raw, 0).expect("read roster");
+    let raw = common::progressed_level().expect("read fixture Level.sav");
+    let before = common::progressed_roster().expect("read fixture roster");
     let target = before.players.first().expect("a player").clone();
 
-    let unused_before = player_points(&raw)
-        .into_iter()
-        .find(|(name, ..)| *name == target.name)
-        .map(|(_, _, unused, _)| unused)
-        .expect("target present");
+    let unused_before =
+        player_points(common::progressed_gvas().expect("decode progressed-world"))
+            .into_iter()
+            .find(|(name, ..)| *name == target.name)
+            .map(|(_, _, unused, _)| unused)
+            .expect("target present");
 
     let bump = 7;
-    let out = apply_edits(&raw, &SaveEdits {
+    let out = apply_edits(raw, &SaveEdits {
         player_edits: vec![PlayerEdit {
             instance_id: target.instance_id.clone(),
             level: Some(target.level + bump),
@@ -173,7 +168,7 @@ fn raising_a_level_grants_one_status_point_per_level() {
     })
     .expect("apply_edits");
 
-    let after = player_points(&out.level)
+    let after = points_of(&out.level)
         .into_iter()
         .find(|(name, ..)| *name == target.name)
         .expect("target still present");
@@ -186,13 +181,24 @@ fn raising_a_level_grants_one_status_point_per_level() {
     );
     assert_eq!(
         after.3,
-        core_allocated_for(&raw, &target.name),
+        core_allocated_for(
+            common::progressed_gvas().expect("decode progressed-world"),
+            &target.name,
+        ),
         "already-allocated points must not be touched"
     );
 }
 
-fn core_allocated_for(raw: &[u8], name: &str) -> i64 {
-    player_points(raw)
+/// `player_points` for a save that only exists as bytes - an `apply_edits`
+/// result, which by definition cannot come from the shared parse.
+fn points_of(raw: &[u8]) -> Vec<(String, i64, i64, i64)> {
+    let Ok(decompressed) = decompress(raw) else { return Vec::new() };
+    let Ok(file) = read_gvas(&decompressed) else { return Vec::new() };
+    player_points(&file)
+}
+
+fn core_allocated_for(file: &gvas::GvasFile, name: &str) -> i64 {
+    player_points(file)
         .into_iter()
         .find(|(n, ..)| n == name)
         .map(|(_, _, _, core)| core)
@@ -203,11 +209,11 @@ fn core_allocated_for(raw: &[u8], name: &str) -> i64 {
 /// technology points are not in `Level.sav` at all.
 #[test]
 fn level_change_reports_the_player_uid_and_delta() {
-    let raw = level_bytes!(common::progressed_world());
-    let before = read_roster(&raw, 0).expect("read roster");
+    let raw = common::progressed_level().expect("read fixture Level.sav");
+    let before = common::progressed_roster().expect("read fixture roster");
     let target = before.players.first().expect("a player").clone();
 
-    let out = apply_edits(&raw, &SaveEdits {
+    let out = apply_edits(raw, &SaveEdits {
         player_edits: vec![PlayerEdit {
             instance_id: target.instance_id.clone(),
             level: Some(target.level + 3),
@@ -222,11 +228,11 @@ fn level_change_reports_the_player_uid_and_delta() {
 /// Setting the level to what it already is grants nothing.
 #[test]
 fn a_no_op_level_change_grants_no_points() {
-    let raw = level_bytes!(common::progressed_world());
-    let before = read_roster(&raw, 0).expect("read roster");
+    let raw = common::progressed_level().expect("read fixture Level.sav");
+    let before = common::progressed_roster().expect("read fixture roster");
     let target = before.players.first().expect("a player").clone();
 
-    let out = apply_edits(&raw, &SaveEdits {
+    let out = apply_edits(raw, &SaveEdits {
         player_edits: vec![PlayerEdit {
             instance_id: target.instance_id.clone(),
             level: Some(target.level),
@@ -241,8 +247,8 @@ fn a_no_op_level_change_grants_no_points() {
 /// Pals have no status-point field and must not grow one.
 #[test]
 fn pal_level_changes_report_no_player_deltas() {
-    let raw = level_bytes!(common::progressed_world());
-    let before = read_roster(&raw, 0).expect("read roster");
+    let raw = common::progressed_level().expect("read fixture Level.sav");
+    let before = common::progressed_roster().expect("read fixture roster");
     let pal = before
         .players
         .iter()
@@ -252,7 +258,7 @@ fn pal_level_changes_report_no_player_deltas() {
         .expect("a pal")
         .clone();
 
-    let out = apply_edits(&raw, &SaveEdits {
+    let out = apply_edits(raw, &SaveEdits {
         player_edits: Vec::new(),
         pal_edits: vec![palworld::save::edit::PalEdit {
             instance_id: pal.instance_id.clone(),
@@ -271,7 +277,7 @@ fn pal_level_changes_report_no_player_deltas() {
 #[test]
 fn grant_tech_points_adds_six_per_level_and_leaves_ancient_alone() {
     let dir = common::progressed_world();
-    let roster = read_roster(&level_bytes!(dir), 0).expect("roster");
+    let roster = common::progressed_roster().expect("read fixture roster");
     let uid = &roster.players.first().expect("a player").player_uid;
     let stem = uid_to_filename(uid).expect("uid maps to a filename");
     let path = dir.join("Players").join(format!("{stem}.sav"));
@@ -296,7 +302,7 @@ fn grant_tech_points_adds_six_per_level_and_leaves_ancient_alone() {
 #[test]
 fn grant_tech_points_round_trips_and_never_goes_negative() {
     let dir = common::progressed_world();
-    let roster = read_roster(&level_bytes!(dir), 0).expect("roster");
+    let roster = common::progressed_roster().expect("read fixture roster");
     let uid = &roster.players.first().expect("a player").player_uid;
     let stem = uid_to_filename(uid).expect("uid maps to a filename");
     let raw = std::fs::read(dir.join("Players").join(format!("{stem}.sav")))
