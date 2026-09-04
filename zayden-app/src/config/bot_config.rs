@@ -17,6 +17,7 @@ const DEFAULT_ZAYDEN_ID: u64 = 787_490_197_943_091_211;
 
 const DEFAULT_AI_ENDPOINT: &str = "https://openrouter.ai/api/v1";
 const DEFAULT_AI_MODEL: &str = "openrouter/free";
+const DEFAULT_AI_MODEL_STRUCTURED: &str = "nvidia/nemotron-3-super-120b-a12b:free";
 const DEFAULT_AI_MODEL_PRO: &str = "google/gemini-2.5-flash";
 
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
@@ -50,6 +51,7 @@ pub struct BotConfig {
 
     pub ai_api_endpoint: String,
     pub ai_model: String,
+    pub ai_model_structured: String,
     pub ai_model_pro: String,
 
     pub bot_owner: u64,
@@ -132,6 +134,10 @@ impl BotConfig {
                 .ai
                 .model
                 .unwrap_or_else(|| DEFAULT_AI_MODEL.to_owned()),
+            ai_model_structured: toml_cfg
+                .ai
+                .model_structured
+                .unwrap_or_else(|| DEFAULT_AI_MODEL_STRUCTURED.to_owned()),
             ai_model_pro: toml_cfg
                 .ai
                 .model_pro
@@ -322,6 +328,7 @@ struct TomlPelican {
 struct TomlAi {
     endpoint: Option<String>,
     model: Option<String>,
+    model_structured: Option<String>,
     model_pro: Option<String>,
 }
 

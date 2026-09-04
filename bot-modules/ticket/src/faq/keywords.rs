@@ -15,7 +15,7 @@ Prefer proper nouns (app or service names) over generic words. Do not include fu
 questions, greetings, or filler words.";
 
 const SCHEMA_NAME: &str = "keyword_extraction";
-const MAX_TOKENS: u32 = 150;
+const MAX_TOKENS: u32 = 800;
 const TEMPERATURE: f32 = 0.2;
 const MAX_KEYWORDS: usize = 5;
 
@@ -47,8 +47,11 @@ pub(crate) async fn extract(
         ChatMessage::new(Role::User, content),
     ];
 
-    let client =
-        AiClient::new(&app.ai_provider_key, &app.ai_api_endpoint, &app.ai_model)?;
+    let client = AiClient::new(
+        &app.ai_provider_key,
+        &app.ai_api_endpoint,
+        &app.ai_model_structured,
+    )?;
 
     let extraction: KeywordExtraction = client
         .chat_json(messages, MAX_TOKENS, Some(TEMPERATURE), SCHEMA_NAME, schema())

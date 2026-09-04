@@ -393,7 +393,56 @@ async fn chat_json_surfaces_malformed_content_as_invalid_json() {
         .expect_err("malformed JSON content must surface as an error");
 
     assert!(
-        matches!(err, AiError::InvalidJson(_)),
-        "expected AiError::InvalidJson, got {err:?}"
+        matches!(&err, AiError::InvalidJson { content, .. } if content == "not json"),
+        "expected AiError::InvalidJson carrying the response body, got {err:?}"
+    );
+}
+
+#[tokio::test]
+async fn invalid_json_error_truncates_oversized_content() {
+    let content = "x".repeat(4096);
+    let body: &'static str = Box::leak(
+        format!(
+            r#"{{
+        "id": "chatcmpl-test123",
+        "object": "chat.completion",
+        "created": 1700000000,
+        "model": "test-model",
+        "choices": [
+            {{
+                "index": 0,
+                "message": {{ "role": "assistant", "content": "{content}" }},
+                "finish_reason": "stop"
+            }}
+        ],
+        "usage": null
+    }}"#
+        )
+        .into_boxed_str(),
+    );
+    let base_url =
+        spawn_mock_server("HTTP/1.1 200 OK", body).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let err = client
+        .chat_json::<Keywords>(
+            vec![Message::new(Role::User, "hi")],
+            16,
+            None,
+            "keywords",
+            keywords_schema(),
+        )
+        .await
+        .expect_err("malformed JSON content must surface as an error");
+
+    let AiError::InvalidJson { content, .. } = &err else {
+        panic!("expected AiError::InvalidJson, got {err:?}");
+    };
+
+    assert!(
+        content.chars().count() <= AiClient::ERROR_CONTENT_LIMIT + 1,
+        "content must be truncated, got {} chars",
+        content.chars().count()
     );
 }

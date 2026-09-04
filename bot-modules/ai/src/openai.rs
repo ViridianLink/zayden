@@ -30,6 +30,8 @@ pub struct AiClient {
 }
 
 impl AiClient {
+    pub const ERROR_CONTENT_LIMIT: usize = 512;
+
     pub fn new(api_key: &str, endpoint: &str, model: &str) -> Result<Self, Error> {
         let config =
             OpenAIConfig::new().with_api_key(api_key).with_api_base(endpoint);
@@ -89,7 +91,10 @@ impl AiClient {
         )?;
         let content = self.chat_with_retry(request).await?;
 
-        serde_json::from_str(&content).map_err(Error::InvalidJson)
+        serde_json::from_str(&content).map_err(|source| Error::InvalidJson {
+            source,
+            content: truncate_content(&content),
+        })
     }
 
     fn build_request(
@@ -156,6 +161,18 @@ impl AiClient {
             .next()
             .and_then(|c| c.message.content)
             .ok_or(Error::NoContent)
+    }
+}
+
+fn truncate_content(content: &str) -> String {
+    match content.char_indices().nth(AiClient::ERROR_CONTENT_LIMIT) {
+        Some((end, _)) => {
+            let mut truncated = String::with_capacity(end + 1);
+            truncated.push_str(content.get(..end).unwrap_or_default());
+            truncated.push('…');
+            truncated
+        },
+        None => content.to_owned(),
     }
 }
 

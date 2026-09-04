@@ -1,6 +1,7 @@
 [ai]
 endpoint = "https://openrouter.ai/api/v1"
 model = "openrouter/free"
+model_structured = "google/gemini-3.7-flash"
 model_pro = "google/gemini-3.7-flash"
 
 [ids]

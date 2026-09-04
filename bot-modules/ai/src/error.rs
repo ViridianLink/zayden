@@ -9,7 +9,7 @@ pub enum AiError {
     Provider { code: Option<u16>, message: String },
     Reqwest(reqwest::Error),
     NoContent,
-    InvalidJson(serde_json::Error),
+    InvalidJson { source: serde_json::Error, content: String },
 }
 
 impl AiError {
@@ -18,7 +18,7 @@ impl AiError {
         match self {
             Self::Provider { code, .. } => code.is_some_and(is_transient_status),
             Self::OpenAI(e) => openai_is_transient(e),
-            Self::Reqwest(_) | Self::NoContent | Self::InvalidJson(_) => false,
+            Self::Reqwest(_) | Self::NoContent | Self::InvalidJson { .. } => false,
         }
     }
 }
@@ -35,7 +35,12 @@ impl fmt::Display for AiError {
             },
             Self::Reqwest(e) => write!(f, "HTTP client build error: {e}"),
             Self::NoContent => write!(f, "AI response contained no text"),
-            Self::InvalidJson(e) => write!(f, "AI response was not valid JSON: {e}"),
+            Self::InvalidJson { source, content } => {
+                write!(
+                    f,
+                    "AI response was not valid JSON: {source}; content: {content}"
+                )
+            },
         }
     }
 }
@@ -45,7 +50,7 @@ impl std::error::Error for AiError {
         match self {
             Self::OpenAI(e) => Some(e),
             Self::Reqwest(e) => Some(e),
-            Self::InvalidJson(e) => Some(e),
+            Self::InvalidJson { source, .. } => Some(source),
             Self::Provider { .. } | Self::NoContent => None,
         }
     }
