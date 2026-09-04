@@ -26,7 +26,7 @@ tried). Skip a question the user's message already answers.
 Do not use em dashes, emojis, or filler pleasantries. Be concise.";
 
 const SCHEMA_NAME: &str = "triage_synthesis";
-const MAX_TOKENS: u32 = 400;
+const MAX_TOKENS: u32 = 1200;
 const TEMPERATURE: f32 = 0.3;
 
 pub(crate) const EMBED_TITLE: &str = "Automated Support Triage";

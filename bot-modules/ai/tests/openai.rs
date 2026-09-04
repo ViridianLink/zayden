@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use ai::chat::{Message, Role};
@@ -10,23 +10,24 @@ use serde::Deserialize;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
-async fn drain_request(socket: &mut TcpStream) {
+/// Reads one whole request off the socket and hands back its body.
+async fn drain_request(socket: &mut TcpStream) -> Option<String> {
     let mut buf = Vec::new();
     let mut chunk = [0u8; 1024];
 
     loop {
         let n = match socket.read(&mut chunk).await {
-            Ok(0) | Err(_) => return,
+            Ok(0) | Err(_) => return None,
             Ok(n) => n,
         };
-        let Some(received) = chunk.get(..n) else { return };
+        let received = chunk.get(..n)?;
         buf.extend_from_slice(received);
 
         let Some(header_end) = buf.windows(4).position(|w| w == b"\r\n\r\n") else {
             continue;
         };
 
-        let Some(header_bytes) = buf.get(..header_end) else { return };
+        let header_bytes = buf.get(..header_end)?;
         let headers = String::from_utf8_lossy(header_bytes);
         let content_length: usize = headers
             .lines()
@@ -38,7 +39,8 @@ async fn drain_request(socket: &mut TcpStream) {
             .unwrap_or(0);
 
         if buf.len().saturating_sub(header_end + 4) >= content_length {
-            break;
+            let body = buf.get(header_end + 4..)?;
+            return Some(String::from_utf8_lossy(body).into_owned());
         }
     }
 }
@@ -56,7 +58,7 @@ async fn spawn_mock_server(
                 break;
             };
 
-            drain_request(&mut socket).await;
+            let _ = drain_request(&mut socket).await;
 
             let response = format!(
                 "{status_line}\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{body}",
@@ -87,7 +89,7 @@ async fn spawn_sequenced_mock_server(
                 break;
             };
 
-            drain_request(&mut socket).await;
+            let _ = drain_request(&mut socket).await;
 
             let index = counter.fetch_add(1, Ordering::SeqCst);
             let Some((status_line, body)) =
@@ -108,6 +110,40 @@ async fn spawn_sequenced_mock_server(
     Some((format!("http://{addr}"), served))
 }
 
+/// Answers with `body` and keeps the request bodies it was asked with, so a
+/// test can assert on what actually went out on the wire.
+async fn spawn_recording_mock_server(
+    body: &'static str,
+) -> Option<(String, Arc<Mutex<Vec<String>>>)> {
+    let listener = TcpListener::bind("127.0.0.1:0").await.ok()?;
+    let addr = listener.local_addr().ok()?;
+    let requests = Arc::new(Mutex::new(Vec::new()));
+    let recorder = Arc::clone(&requests);
+
+    tokio::spawn(async move {
+        loop {
+            let Ok((mut socket, _)) = listener.accept().await else {
+                break;
+            };
+
+            if let Some(request) = drain_request(&mut socket).await
+                && let Ok(mut recorded) = recorder.lock()
+            {
+                recorded.push(request);
+            }
+
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = socket.write_all(response.as_bytes()).await;
+            let _ = socket.shutdown().await;
+        }
+    });
+
+    Some((format!("http://{addr}"), requests))
+}
+
 /// Accepts the connection, reads the request, then never answers and never
 /// hangs up — the silent upstream an outbound timeout has to defend against.
 async fn spawn_black_hole_server() -> Option<String> {
@@ -121,7 +157,7 @@ async fn spawn_black_hole_server() -> Option<String> {
             };
 
             tokio::spawn(async move {
-                drain_request(&mut socket).await;
+                let _ = drain_request(&mut socket).await;
                 // Hold the connection open, silently, forever.
                 std::future::pending::<()>().await;
             });
@@ -444,5 +480,128 @@ async fn invalid_json_error_truncates_oversized_content() {
         content.chars().count() <= AiClient::ERROR_CONTENT_LIMIT + 1,
         "content must be truncated, got {} chars",
         content.chars().count()
+    );
+}
+
+#[tokio::test]
+async fn chat_json_reports_a_length_capped_response_as_truncated() {
+    let body = r#"{
+        "id": "chatcmpl-test123",
+        "object": "chat.completion",
+        "created": 1700000000,
+        "model": "test-model",
+        "choices": [
+            {
+                "index": 0,
+                "message": { "role": "assistant", "content": "{\n" },
+                "finish_reason": "length"
+            }
+        ],
+        "usage": null
+    }"#;
+    let base_url =
+        spawn_mock_server("HTTP/1.1 200 OK", body).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let err = client
+        .chat_json::<Keywords>(
+            vec![Message::new(Role::User, "hi")],
+            16,
+            None,
+            "keywords",
+            keywords_schema(),
+        )
+        .await
+        .expect_err("a length-capped response must surface as an error");
+
+    assert!(
+        matches!(&err, AiError::Truncated { content } if content == "{\n"),
+        "expected AiError::Truncated carrying the partial body, got {err:?}"
+    );
+}
+
+#[tokio::test]
+async fn chat_keeps_a_length_capped_completion() {
+    let body = r#"{
+        "id": "chatcmpl-test123",
+        "object": "chat.completion",
+        "created": 1700000000,
+        "model": "test-model",
+        "choices": [
+            {
+                "index": 0,
+                "message": { "role": "assistant", "content": "half a sen" },
+                "finish_reason": "length"
+            }
+        ],
+        "usage": null
+    }"#;
+    let base_url =
+        spawn_mock_server("HTTP/1.1 200 OK", body).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let content = client
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
+        .await
+        .expect("a capped free-text reply is still usable");
+
+    assert_eq!(content, "half a sen");
+}
+
+const STOP_RESPONSE: &str = r#"{
+    "id": "chatcmpl-test123",
+    "object": "chat.completion",
+    "created": 1700000000,
+    "model": "test-model",
+    "choices": [
+        {
+            "index": 0,
+            "message": { "role": "assistant", "content": "Hello there!" },
+            "finish_reason": "stop"
+        }
+    ],
+    "usage": null
+}"#;
+
+/// A thinking model spends reasoning tokens out of the completion budget, so
+/// the cap has to be the one that covers both and the reasoning has to be held
+/// down. Otherwise a small budget is gone before any visible text is emitted.
+/// See <https://openrouter.ai/docs/api-reference/chat-completion>.
+#[tokio::test]
+async fn a_request_caps_total_tokens_and_holds_reasoning_down() {
+    let (base_url, requests) =
+        spawn_recording_mock_server(STOP_RESPONSE).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    client
+        .chat(vec![Message::new(Role::User, "hi")], 64, None)
+        .await
+        .expect("well-formed response should parse");
+
+    let body = requests
+        .lock()
+        .expect("recorder lock")
+        .first()
+        .cloned()
+        .expect("the client should have sent a request");
+    let sent: serde_json::Value =
+        serde_json::from_str(&body).expect("request body should be JSON");
+
+    assert_eq!(
+        sent.get("max_completion_tokens").and_then(serde_json::Value::as_u64),
+        Some(64),
+        "the budget must ride on max_completion_tokens, got {sent}"
+    );
+    assert!(
+        sent.get("max_tokens").is_none(),
+        "the deprecated max_tokens must not be sent, got {sent}"
+    );
+    assert_eq!(
+        sent.get("reasoning_effort").and_then(serde_json::Value::as_str),
+        Some("low"),
+        "reasoning must be held down, got {sent}"
     );
 }

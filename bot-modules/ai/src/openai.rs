@@ -6,6 +6,8 @@ use async_openai::error::OpenAIError;
 use async_openai::types::chat::{
     CreateChatCompletionRequest,
     CreateChatCompletionRequestArgs,
+    FinishReason,
+    ReasoningEffort,
     ResponseFormat,
     ResponseFormatJsonSchema,
 };
@@ -22,6 +24,8 @@ const APP_TITLE: &str = "Zayden";
 
 const MAX_ATTEMPTS: u32 = 2;
 const RETRY_BACKOFF: Duration = Duration::from_secs(1);
+
+const REASONING_EFFORT: ReasoningEffort = ReasoningEffort::Low;
 
 #[derive(Debug)]
 pub struct AiClient {
@@ -60,17 +64,20 @@ impl AiClient {
     pub async fn chat(
         &self,
         messages: Vec<Message>,
-        max_tokens: u32,
+        max_completion_tokens: u32,
         temperature: Option<f32>,
     ) -> Result<String, Error> {
-        let request = self.build_request(messages, max_tokens, temperature, None)?;
-        self.chat_with_retry(request).await
+        let request =
+            self.build_request(messages, max_completion_tokens, temperature, None)?;
+        let (content, _) = self.chat_with_retry(request).await?;
+
+        Ok(content)
     }
 
     pub async fn chat_json<T: DeserializeOwned>(
         &self,
         messages: Vec<Message>,
-        max_tokens: u32,
+        max_completion_tokens: u32,
         temperature: Option<f32>,
         schema_name: &str,
         schema: serde_json::Value,
@@ -85,11 +92,15 @@ impl AiClient {
         };
         let request = self.build_request(
             messages,
-            max_tokens,
+            max_completion_tokens,
             temperature,
             Some(response_format),
         )?;
-        let content = self.chat_with_retry(request).await?;
+        let (content, finish_reason) = self.chat_with_retry(request).await?;
+
+        if finish_reason == Some(FinishReason::Length) {
+            return Err(Error::Truncated { content: truncate_content(&content) });
+        }
 
         serde_json::from_str(&content).map_err(|source| Error::InvalidJson {
             source,
@@ -100,7 +111,7 @@ impl AiClient {
     fn build_request(
         &self,
         messages: Vec<Message>,
-        max_tokens: u32,
+        max_completion_tokens: u32,
         temperature: Option<f32>,
         response_format: Option<ResponseFormat>,
     ) -> Result<CreateChatCompletionRequest, Error> {
@@ -108,7 +119,8 @@ impl AiClient {
         builder
             .model(&self.model)
             .messages(messages.into_iter().map(Into::into).collect::<Vec<_>>())
-            .max_tokens(max_tokens);
+            .max_completion_tokens(max_completion_tokens)
+            .reasoning_effort(REASONING_EFFORT);
 
         if let Some(temperature) = temperature {
             builder.temperature(temperature);
@@ -124,12 +136,12 @@ impl AiClient {
     async fn chat_with_retry(
         &self,
         request: CreateChatCompletionRequest,
-    ) -> Result<String, Error> {
+    ) -> Result<(String, Option<FinishReason>), Error> {
         let mut attempt = 1;
 
         loop {
             let error = match self.send(request.clone()).await {
-                Ok(content) => return Ok(content),
+                Ok(response) => return Ok(response),
                 Err(e) => e,
             };
 
@@ -152,14 +164,14 @@ impl AiClient {
     async fn send(
         &self,
         request: CreateChatCompletionRequest,
-    ) -> Result<String, Error> {
+    ) -> Result<(String, Option<FinishReason>), Error> {
         let response = self.client.chat().create(request).await.map_err(classify)?;
 
         response
             .choices
             .into_iter()
             .next()
-            .and_then(|c| c.message.content)
+            .and_then(|c| Some((c.message.content?, c.finish_reason)))
             .ok_or(Error::NoContent)
     }
 }

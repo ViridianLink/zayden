@@ -9,6 +9,7 @@ pub enum AiError {
     Provider { code: Option<u16>, message: String },
     Reqwest(reqwest::Error),
     NoContent,
+    Truncated { content: String },
     InvalidJson { source: serde_json::Error, content: String },
 }
 
@@ -18,7 +19,10 @@ impl AiError {
         match self {
             Self::Provider { code, .. } => code.is_some_and(is_transient_status),
             Self::OpenAI(e) => openai_is_transient(e),
-            Self::Reqwest(_) | Self::NoContent | Self::InvalidJson { .. } => false,
+            Self::Reqwest(_)
+            | Self::NoContent
+            | Self::Truncated { .. }
+            | Self::InvalidJson { .. } => false,
         }
     }
 }
@@ -35,6 +39,11 @@ impl fmt::Display for AiError {
             },
             Self::Reqwest(e) => write!(f, "HTTP client build error: {e}"),
             Self::NoContent => write!(f, "AI response contained no text"),
+            Self::Truncated { content } => write!(
+                f,
+                "AI response hit the token limit before finishing; \
+partial content: {content}"
+            ),
             Self::InvalidJson { source, content } => {
                 write!(
                     f,
@@ -51,7 +60,7 @@ impl std::error::Error for AiError {
             Self::OpenAI(e) => Some(e),
             Self::Reqwest(e) => Some(e),
             Self::InvalidJson { source, .. } => Some(source),
-            Self::Provider { .. } | Self::NoContent => None,
+            Self::Provider { .. } | Self::NoContent | Self::Truncated { .. } => None,
         }
     }
 }
