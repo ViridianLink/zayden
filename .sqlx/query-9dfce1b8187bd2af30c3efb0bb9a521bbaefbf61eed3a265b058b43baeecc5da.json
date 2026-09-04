@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH due AS (\n            SELECT a.thread_id\n            FROM support_thread_activity a\n            JOIN support_settings s ON s.guild_id = a.guild_id\n            WHERE s.idle_enabled\n              AND s.idle_close_enabled\n              AND NOT a.paused\n              AND NOT a.waiting_on_helper\n              AND a.nudged_at IS NOT NULL\n              AND a.nudged_at < now() - (s.idle_close_after_secs * interval '1 second')\n            ORDER BY a.guild_id, a.nudged_at\n            LIMIT $1\n            FOR UPDATE OF a SKIP LOCKED\n        )\n        UPDATE support_thread_activity a\n        SET paused = TRUE\n        FROM due, support_settings s\n        WHERE a.thread_id = due.thread_id\n          AND s.guild_id = a.guild_id\n        RETURNING\n            a.thread_id,\n            a.guild_id,\n            a.op_id,\n            a.since AS \"since: jiff_sqlx::Timestamp\",\n            s.support_channel_id,\n            s.closed_tag_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "op_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "op_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "since: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "since"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "support_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "support_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "closed_tag_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "closed_tag_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "9dfce1b8187bd2af30c3efb0bb9a521bbaefbf61eed3a265b058b43baeecc5da"
+}

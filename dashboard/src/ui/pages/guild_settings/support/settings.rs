@@ -10,6 +10,7 @@ use crate::server::guild::{
     RemoveSupportRole,
     SaveFaqSettings,
     SaveFaqTuning,
+    SaveIdleSettings,
     SaveSuggestionsSettings,
     SaveSupportSettings,
 };
@@ -37,12 +38,15 @@ pub(crate) fn SupportSettingsPane(
 ) -> impl IntoView {
     let save_support = ServerAction::<SaveSupportSettings>::new();
     let result = save_support.value();
+    let save_idle = ServerAction::<SaveIdleSettings>::new();
+    let idle_result = save_idle.value();
     let save_suggestions = ServerAction::<SaveSuggestionsSettings>::new();
     let suggestions_result = save_suggestions.value();
 
     let faq_settings = settings.clone();
     let s = settings;
     let gid = guild_id.clone();
+    let idle_gid = guild_id.clone();
     let suggestions_gid = guild_id.clone();
     let faq_gid = guild_id.clone();
     let suggestions_channels = channels.clone();
@@ -77,6 +81,17 @@ pub(crate) fn SupportSettingsPane(
                     value=s.solved_archive_secs
                     pattern="-?[0-9]*"
                 />
+                <SaveButton/>
+            </ActionForm>
+            <p class="page-lead">
+                "\"/ticket solved\" applies the solved tag when the support "
+                "channel is a forum, and otherwise renames the thread. Archive "
+                "after 0 seconds to close immediately, or -1 to leave the post "
+                "open."
+            </p>
+            {move || idle_result.get().map(save_feedback)}
+            <ActionForm action=save_idle>
+                <input type="hidden" name="guild" value=idle_gid/>
                 <ToggleField
                     label="Idle Reminders"
                     name="idle_enabled"
@@ -88,14 +103,19 @@ pub(crate) fn SupportSettingsPane(
                     value=s.support_idle_after_secs
                     hint="Minimum one hour. Default 172800 (48 hours)."
                 />
+                <ToggleField
+                    label="Auto-close Abandoned Posts"
+                    name="idle_close_enabled"
+                    value=s.support_idle_close_enabled
+                />
+                <SettingField
+                    label="Close after (seconds without a reply to the reminder)"
+                    name="idle_close_after_secs"
+                    value=s.support_idle_close_after_secs
+                    hint="Minimum one hour. Default 86400 (24 hours)."
+                />
                 <SaveButton/>
             </ActionForm>
-            <p class="page-lead">
-                "\"/ticket solved\" applies the solved tag when the support "
-                "channel is a forum, and otherwise renames the thread. Archive "
-                "after 0 seconds to close immediately, or -1 to leave the post "
-                "open."
-            </p>
             <p class="page-lead">
                 "Idle reminders watch whose turn it is. If a helper spoke last "
                 "and the poster has gone quiet for the interval above, the "
@@ -104,6 +124,15 @@ pub(crate) fn SupportSettingsPane(
                 "nudged - or the support roles, if nobody has answered yet. "
                 "Each side is reminded once per turn, and never again until "
                 "somebody posts."
+            </p>
+            <p class="page-lead">
+                "Auto-close needs idle reminders switched on, because it acts "
+                "on a reminder nobody answered. Only posts waiting on the "
+                "person who opened them are closed - a post waiting on the "
+                "support team is left alone however long it sits, since that "
+                "is the team's backlog and not an abandoned ticket. Closing "
+                "applies the closed tag, posts a note to the poster and "
+                "archives the post. Any reply at all cancels it."
             </p>
             <p class="page-lead">
                 "A support role only gets notified if it is mentionable. Role "

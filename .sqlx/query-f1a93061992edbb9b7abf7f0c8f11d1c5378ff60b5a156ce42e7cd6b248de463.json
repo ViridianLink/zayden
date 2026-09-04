@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO support_settings (guild_id, support_channel_id,\n                                          solved_tag_id, closed_tag_id,\n                                          solved_archive_secs, idle_enabled,\n                                          idle_after_secs)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                support_channel_id = EXCLUDED.support_channel_id,\n                solved_tag_id = EXCLUDED.solved_tag_id,\n                closed_tag_id = EXCLUDED.closed_tag_id,\n                solved_archive_secs = EXCLUDED.solved_archive_secs,\n                idle_enabled = EXCLUDED.idle_enabled,\n                idle_after_secs = EXCLUDED.idle_after_secs,\n                updated_at = now()\n            RETURNING guild_id, support_channel_id, solved_tag_id,\n                      closed_tag_id, solved_archive_secs, idle_enabled,\n                      idle_after_secs\n            ",
+  "query": "\n            INSERT INTO support_settings (guild_id, support_channel_id,\n                                          solved_tag_id, closed_tag_id,\n                                          solved_archive_secs, idle_enabled,\n                                          idle_after_secs, idle_close_enabled,\n                                          idle_close_after_secs)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                support_channel_id = EXCLUDED.support_channel_id,\n                solved_tag_id = EXCLUDED.solved_tag_id,\n                closed_tag_id = EXCLUDED.closed_tag_id,\n                solved_archive_secs = EXCLUDED.solved_archive_secs,\n                idle_enabled = EXCLUDED.idle_enabled,\n                idle_after_secs = EXCLUDED.idle_after_secs,\n                idle_close_enabled = EXCLUDED.idle_close_enabled,\n                idle_close_after_secs = EXCLUDED.idle_close_after_secs,\n                updated_at = now()\n            RETURNING guild_id, support_channel_id, solved_tag_id,\n                      closed_tag_id, solved_archive_secs, idle_enabled,\n                      idle_after_secs, idle_close_enabled,\n                      idle_close_after_secs\n            ",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,28 @@
             "name": "idle_after_secs"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "idle_close_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "idle_close_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "idle_close_after_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "idle_close_after_secs"
+          }
+        }
       }
     ],
     "parameters": {
@@ -87,6 +109,8 @@
         "Int8",
         "Int8",
         "Int8",
+        "Int4",
+        "Bool",
         "Int4",
         "Bool",
         "Int4"
@@ -99,8 +123,10 @@
       true,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "01950a1a7bdba44144dce5137a8614a4e05af8e37f95cf750a954b4b6b2f57c0"
+  "hash": "f1a93061992edbb9b7abf7f0c8f11d1c5378ff60b5a156ce42e7cd6b248de463"
 }

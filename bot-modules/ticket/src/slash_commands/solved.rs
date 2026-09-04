@@ -48,7 +48,7 @@ impl Ticket {
             guild_id,
             &row,
             support_channel_id,
-            thread,
+            thread.id,
         )
         .await?;
 

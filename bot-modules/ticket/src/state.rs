@@ -5,7 +5,6 @@ use serenity::all::{
     ForumTagId,
     GuildId,
     Http,
-    InteractionGuildThread,
     ThreadId,
 };
 
@@ -19,21 +18,49 @@ pub async fn mark(
     http: &Http,
     guild_id: GuildId,
     support_channel_id: ChannelId,
-    thread: &InteractionGuildThread,
+    thread_id: ThreadId,
     tag: Option<ForumTagId>,
     prefix: &str,
 ) -> Result<()> {
-    match usable_tag(http, guild_id, support_channel_id, tag).await? {
-        Some(tag) => add_tag(http, guild_id, thread.id, tag).await,
-        None => rename(http, thread, prefix).await,
+    let tag = usable_tag(http, guild_id, support_channel_id, tag).await?;
+
+    let Some(edit) = marking(http, guild_id, thread_id, tag, prefix).await? else {
+        return Ok(());
+    };
+
+    thread_id.edit(http, edit).await?;
+
+    Ok(())
+}
+
+pub(crate) async fn marking(
+    http: &Http,
+    guild_id: GuildId,
+    thread_id: ThreadId,
+    tag: Option<ForumTagId>,
+    prefix: &str,
+) -> Result<Option<EditThread<'static>>> {
+    let thread = thread_id.to_thread(http, Some(guild_id)).await?;
+
+    let Some(tag) = tag else {
+        return Ok(Some(EditThread::new().name(retitle(&thread.base.name, prefix))));
+    };
+
+    if thread.applied_tags.contains(&tag) {
+        return Ok(None);
     }
+
+    let mut tags = thread.applied_tags.to_vec();
+    tags.insert(0, tag);
+
+    Ok(Some(EditThread::new().applied_tags(tags)))
 }
 
 pub async fn clear(
     http: &Http,
     guild_id: GuildId,
     support_channel_id: ChannelId,
-    thread: &InteractionGuildThread,
+    thread_id: ThreadId,
     tags: &[Option<ForumTagId>],
 ) -> Result<()> {
     let mut configured = Vec::new();
@@ -46,14 +73,33 @@ pub async fn clear(
         }
     }
 
+    let thread = thread_id.to_thread(http, Some(guild_id)).await?;
+
     if configured.is_empty() {
-        return rename(http, thread, "").await;
+        thread_id
+            .edit(http, EditThread::new().name(retitle(&thread.base.name, "")))
+            .await?;
+
+        return Ok(());
     }
 
-    remove_tags(http, guild_id, thread.id, &configured).await
+    if !thread.applied_tags.iter().any(|applied| configured.contains(applied)) {
+        return Ok(());
+    }
+
+    let kept = thread
+        .applied_tags
+        .iter()
+        .copied()
+        .filter(|applied| !configured.contains(applied))
+        .collect::<Vec<_>>();
+
+    thread_id.edit(http, EditThread::new().applied_tags(kept)).await?;
+
+    Ok(())
 }
 
-async fn usable_tag(
+pub(crate) async fn usable_tag(
     http: &Http,
     guild_id: GuildId,
     support_channel_id: ChannelId,
@@ -70,62 +116,6 @@ async fn usable_tag(
     }
 
     Ok(parent.available_tags.iter().any(|t| t.id == tag).then_some(tag))
-}
-
-async fn add_tag(
-    http: &Http,
-    guild_id: GuildId,
-    thread_id: ThreadId,
-    tag: ForumTagId,
-) -> Result<()> {
-    let thread = thread_id.to_thread(http, Some(guild_id)).await?;
-
-    if thread.applied_tags.contains(&tag) {
-        return Ok(());
-    }
-
-    let mut tags = thread.applied_tags.to_vec();
-    tags.insert(0, tag);
-
-    thread_id.edit(http, EditThread::new().applied_tags(tags)).await?;
-
-    Ok(())
-}
-
-async fn remove_tags(
-    http: &Http,
-    guild_id: GuildId,
-    thread_id: ThreadId,
-    tags: &[ForumTagId],
-) -> Result<()> {
-    let thread = thread_id.to_thread(http, Some(guild_id)).await?;
-
-    if !thread.applied_tags.iter().any(|applied| tags.contains(applied)) {
-        return Ok(());
-    }
-
-    let kept = thread
-        .applied_tags
-        .iter()
-        .copied()
-        .filter(|applied| !tags.contains(applied))
-        .collect::<Vec<_>>();
-
-    thread_id.edit(http, EditThread::new().applied_tags(kept)).await?;
-
-    Ok(())
-}
-
-async fn rename(
-    http: &Http,
-    thread: &InteractionGuildThread,
-    prefix: &str,
-) -> Result<()> {
-    let name = thread.base.name.as_deref().unwrap_or_default();
-
-    thread.id.edit(http, EditThread::new().name(retitle(name, prefix))).await?;
-
-    Ok(())
 }
 
 #[must_use]

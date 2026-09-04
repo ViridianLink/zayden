@@ -19,7 +19,7 @@ use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::PgPool;
 use temp_voice::VoiceStateCache;
-use ticket::{SupportIdleCron, SupportIdleGcCron, WikiIndex};
+use ticket::{SupportIdleCloseCron, SupportIdleCron, SupportIdleGcCron, WikiIndex};
 use tokio::sync::RwLock;
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState;
@@ -122,6 +122,7 @@ impl BotState {
             PalworldWarmCron::cron_job(Arc::clone(&self.palworld)),
             EntitlementSweepCron::cron_job(),
             SupportIdleCron::cron_job(),
+            SupportIdleCloseCron::cron_job(),
             SupportIdleGcCron::cron_job(),
         ];
         for job in jobs {

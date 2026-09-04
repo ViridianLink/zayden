@@ -1,6 +1,5 @@
 use serenity::all::{
     ButtonStyle,
-    ChannelId,
     CreateButton,
     CreateMessage,
     GenericInteractionChannel,
@@ -9,7 +8,7 @@ use serenity::all::{
     Mention,
     Mentionable,
 };
-pub use serenity::all::{GuildId, RoleId, ThreadId, UserId};
+pub use serenity::all::{ChannelId, ForumTagId, GuildId, RoleId, ThreadId, UserId};
 
 pub mod components;
 pub mod donation;
@@ -32,7 +31,13 @@ use error::Result;
 pub use error::TicketError;
 pub use faq::{FaqArticle, NewArticle, WikiIndex};
 pub use helper_links::{HelperLink, HelperLinks};
-pub use idle::{Ball, SupportIdleCron, SupportIdleGcCron, ThreadActivity};
+pub use idle::{
+    Ball,
+    SupportIdleCloseCron,
+    SupportIdleCron,
+    SupportIdleGcCron,
+    ThreadActivity,
+};
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
 pub use support_guild_manager::{SupportRoles, TicketGuildRow, TicketStores};

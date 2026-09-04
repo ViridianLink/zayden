@@ -54,7 +54,7 @@ impl Ticket {
             http,
             guild_id,
             support_channel_id,
-            thread,
+            thread.id,
             row.closed_tag_id(),
             state::CLOSED,
         )

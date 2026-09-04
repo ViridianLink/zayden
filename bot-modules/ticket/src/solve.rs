@@ -7,7 +7,6 @@ use serenity::all::{
     GuildId,
     Http,
     HttpError,
-    InteractionGuildThread,
     JsonErrorCode,
     ThreadId,
 };
@@ -27,23 +26,23 @@ pub(crate) async fn mark_solved(
     guild_id: GuildId,
     row: &TicketGuildRow,
     support_channel_id: ChannelId,
-    thread: &InteractionGuildThread,
+    thread_id: ThreadId,
 ) -> Result<()> {
     state::mark(
         http,
         guild_id,
         support_channel_id,
-        thread,
+        thread_id,
         row.solved_tag_id(),
         state::SOLVED,
     )
     .await?;
 
-    ThreadActivity::pause(&app.db, thread.id).await?;
+    ThreadActivity::pause(&app.db, thread_id).await?;
 
-    schedule_archive(Arc::clone(http), thread.id, row.solved_archive_secs);
+    schedule_archive(Arc::clone(http), thread_id, row.solved_archive_secs);
 
-    on_ticket_solved(http, app, stores, thread.id, guild_id).await;
+    on_ticket_solved(http, app, stores, thread_id, guild_id).await;
 
     Ok(())
 }

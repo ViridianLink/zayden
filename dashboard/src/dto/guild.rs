@@ -22,6 +22,8 @@ pub struct GuildSettings {
     pub(crate) solved_archive_secs: String,
     pub(crate) support_idle_enabled: bool,
     pub(crate) support_idle_after_secs: String,
+    pub(crate) support_idle_close_enabled: bool,
+    pub(crate) support_idle_close_after_secs: String,
     pub(crate) suggestions_channel_id: Option<String>,
     pub(crate) review_channel_id: Option<String>,
     pub(crate) suggestions_promote_threshold: String,

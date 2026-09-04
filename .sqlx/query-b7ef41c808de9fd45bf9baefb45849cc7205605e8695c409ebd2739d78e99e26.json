@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT guild_id, support_channel_id, solved_tag_id,\n                   closed_tag_id, solved_archive_secs, idle_enabled,\n                   idle_after_secs\n            FROM support_settings\n            WHERE guild_id = $1\n            ",
+  "query": "\n            SELECT guild_id, support_channel_id, solved_tag_id,\n                   closed_tag_id, solved_archive_secs, idle_enabled,\n                   idle_after_secs, idle_close_enabled, idle_close_after_secs\n            FROM support_settings\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,28 @@
             "name": "idle_after_secs"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "idle_close_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "idle_close_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "idle_close_after_secs",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "idle_close_after_secs"
+          }
+        }
       }
     ],
     "parameters": {
@@ -93,8 +115,10 @@
       true,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "25b409f472f06782a9245b9f3661060f3e037d7c7788fef879cf21e765bcb917"
+  "hash": "b7ef41c808de9fd45bf9baefb45849cc7205605e8695c409ebd2739d78e99e26"
 }

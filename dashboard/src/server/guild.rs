@@ -148,6 +148,8 @@ pub async fn get_guild_settings(
         solved_archive_secs: support.solved_archive_secs.to_string(),
         support_idle_enabled: support.idle_enabled,
         support_idle_after_secs: support.idle_after_secs.to_string(),
+        support_idle_close_enabled: support.idle_close_enabled,
+        support_idle_close_after_secs: support.idle_close_after_secs.to_string(),
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
         review_channel_id: opt_str(suggestions.review_channel_id),
         suggestions_promote_threshold: suggestions.promote_threshold.to_string(),
@@ -257,14 +259,10 @@ pub async fn save_support_settings(
     solved_tag_id: String,
     closed_tag_id: String,
     solved_archive_secs: String,
-    idle_enabled: String,
-    idle_after_secs: String,
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
     let archive_secs = parse_archive_secs(&solved_archive_secs);
-    let idle_enabled = idle_enabled.trim() == "true";
-    let idle_secs = parse_idle_secs(&idle_after_secs);
 
     app.settings
         .support
@@ -273,8 +271,34 @@ pub async fn save_support_settings(
             p.solved_tag_id = parse_id(&solved_tag_id);
             p.closed_tag_id = parse_id(&closed_tag_id);
             p.solved_archive_secs = archive_secs;
-            p.idle_enabled = idle_enabled;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_idle_settings(
+    guild: String,
+    idle_enabled: String,
+    idle_after_secs: String,
+    idle_close_enabled: String,
+    idle_close_after_secs: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let enabled = idle_enabled.trim() == "true";
+    let idle_secs = parse_idle_secs(&idle_after_secs, 172_800);
+    let close_enabled = idle_close_enabled.trim() == "true";
+    let close_secs = parse_idle_secs(&idle_close_after_secs, 86_400);
+
+    app.settings
+        .support
+        .update(guild_id, |p| {
+            p.idle_enabled = enabled;
             p.idle_after_secs = idle_secs;
+            p.idle_close_enabled = close_enabled;
+            p.idle_close_after_secs = close_secs;
         })
         .await
         .map(|_| ())
@@ -373,9 +397,9 @@ fn parse_archive_secs(s: &str) -> i32 {
 }
 
 #[cfg(feature = "ssr")]
-fn parse_idle_secs(s: &str) -> i32 {
-    // The column's CHECK floors this at an hour; a month is the practical ceiling.
-    s.trim().parse::<i32>().unwrap_or(172_800).clamp(3_600, 2_592_000)
+fn parse_idle_secs(s: &str, default: i32) -> i32 {
+    // The columns' CHECKs floor these at an hour; a month is the practical ceiling.
+    s.trim().parse::<i32>().unwrap_or(default).clamp(3_600, 2_592_000)
 }
 
 #[cfg(feature = "ssr")]
