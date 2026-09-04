@@ -13,6 +13,8 @@ use components::{
     CreateTicketModal,
     SupportClose,
     SupportFaq,
+    SupportSolved,
+    SupportStillOpen,
     SupportTicket,
     TicketCreate,
 };
@@ -26,6 +28,8 @@ pub fn register(builder: &mut RegistryBuilder) -> Result<(), OverlapError> {
         .add_component(SupportTicket)?
         .add_component(SupportClose)?
         .add_component(SupportFaq)?
+        .add_component(SupportSolved)?
+        .add_component(SupportStillOpen)?
         .add_modal(CreateTicketModal)?;
 
     Ok(())

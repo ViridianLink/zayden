@@ -6997,6 +6997,7 @@ dependencies = [
  "dashmap",
  "futures",
  "jiff",
+ "jiff-cron",
  "jiff-sqlx",
  "regex",
  "reqwest 0.13.4",

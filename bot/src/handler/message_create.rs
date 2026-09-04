@@ -10,6 +10,7 @@ use zayden_core::as_i64;
 
 use crate::bindings::ai::Ai;
 use crate::bindings::honeypot::record_hit;
+use crate::bindings::ticket::events::message as track_activity;
 use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
 use crate::{BotState, Result};
@@ -52,6 +53,7 @@ impl Handler {
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
             llamad2::CountingFail::run(ctx, msg, pool).map(Result::Ok),
             Box::pin(support(&ctx.http, msg, &app)),
+            Box::pin(track_activity(msg, &app)),
             Box::pin(Ai::run(ctx, msg, &app)),
         )?;
 

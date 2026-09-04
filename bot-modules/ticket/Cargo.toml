@@ -19,6 +19,7 @@ cynic = { workspace = true }
 dashmap = { workspace = true }
 futures = { workspace = true }
 jiff = { workspace = true, features = ["std"] }
+jiff-cron = { workspace = true }
 jiff-sqlx = { workspace = true }
 regex = { workspace = true, features = ["std", "unicode-perl"] }
 reqwest = { workspace = true, features = ["rustls", "http2", "json"] }

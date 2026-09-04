@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM support_thread_activity WHERE thread_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9ea6f3ff2e033fa7a16dbc61faa7ef2842ed2e94e347d12d2e74c0852d49a382"
+}

@@ -7,6 +7,7 @@ use tracing::{debug, warn};
 use zayden_app::state::AppState;
 
 use crate::faq::{FaqContext, on_ticket_opened};
+use crate::idle::ThreadActivity;
 use crate::{ISSUE_EMBED_TITLE, Result, TicketGuildRow, TicketStores};
 
 const OPENING_ATTEMPTS: u32 = 6;
@@ -43,6 +44,9 @@ impl SupportThreadCreate {
             );
             return Ok(());
         }
+
+        ThreadActivity::insert(&app.db, guild_id, thread.id, thread.owner_id)
+            .await?;
 
         let context = match FaqContext::load(stores.faq, guild_id).await {
             Ok(Some(context)) => context,

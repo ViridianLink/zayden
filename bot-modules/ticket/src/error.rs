@@ -12,6 +12,8 @@ pub enum TicketError {
     ArticleNotFound,
     ForumChannelUnsupported,
     MissingPermissions,
+    NotTicketParticipant,
+    TicketAlreadyClosed,
     FaqNotConfigured,
     Wiki(String),
     Internal(String),
@@ -41,6 +43,14 @@ impl std::fmt::Display for TicketError {
                 f,
                 "You need the Manage Messages permission to use that subcommand."
             ),
+            Self::NotTicketParticipant => write!(
+                f,
+                "Only the person who opened this ticket or the support team can \
+                 use these buttons."
+            ),
+            Self::TicketAlreadyClosed => {
+                write!(f, "This ticket has already been solved or closed.")
+            },
             Self::FaqNotConfigured => write!(
                 f,
                 "No wiki is configured for this server. Set one in the dashboard \
@@ -62,6 +72,8 @@ impl std::error::Error for TicketError {
             | Self::ArticleNotFound
             | Self::ForumChannelUnsupported
             | Self::MissingPermissions
+            | Self::NotTicketParticipant
+            | Self::TicketAlreadyClosed
             | Self::FaqNotConfigured
             | Self::Wiki(_)
             | Self::Internal(_) => None,
@@ -77,6 +89,8 @@ impl Respond for TicketError {
             | Self::ArticleNotFound
             | Self::ForumChannelUnsupported
             | Self::MissingPermissions
+            | Self::NotTicketParticipant
+            | Self::TicketAlreadyClosed
             | Self::FaqNotConfigured
             | Self::Wiki(_) => Some(Cow::Owned(self.to_string())),
             Self::Internal(_) => None,

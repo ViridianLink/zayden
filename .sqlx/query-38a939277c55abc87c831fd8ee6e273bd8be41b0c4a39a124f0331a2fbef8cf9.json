@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE support_thread_activity SET paused = FALSE, waiting_on_helper = TRUE, since = now(), nudged_at = NULL WHERE thread_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38a939277c55abc87c831fd8ee6e273bd8be41b0c4a39a124f0331a2fbef8cf9"
+}

@@ -1,6 +1,7 @@
 use serenity::all::{CommandInteraction, EditInteractionResponse, GuildId, Http};
 use sqlx::PgPool;
 
+use crate::idle::ThreadActivity;
 use crate::{
     Result,
     Ticket,
@@ -28,6 +29,8 @@ impl Ticket {
             row.channel_id().ok_or(TicketError::NotInSupportChannel)?;
 
         let thread = support_thread(&interaction.channel, support_channel_id)?;
+
+        ThreadActivity::resume(pool, thread.id).await?;
 
         state::clear(
             http,

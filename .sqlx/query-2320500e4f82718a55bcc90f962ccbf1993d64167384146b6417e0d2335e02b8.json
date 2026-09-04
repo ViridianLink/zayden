@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO support_thread_activity (thread_id, guild_id, op_id) VALUES ($1, $2, $3) ON CONFLICT (thread_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2320500e4f82718a55bcc90f962ccbf1993d64167384146b6417e0d2335e02b8"
+}

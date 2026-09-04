@@ -36,7 +36,6 @@ pub struct TicketGuildRow {
     pub support_role_ids: Vec<RoleId>,
     pub solved_tag_id: Option<i64>,
     pub closed_tag_id: Option<i64>,
-    pub helper_role_id: Option<i64>,
     pub solved_archive_secs: i32,
 }
 
@@ -66,11 +65,6 @@ impl TicketGuildRow {
         [self.solved_tag_id(), self.closed_tag_id()]
     }
 
-    #[must_use]
-    pub fn helper_role_id(&self) -> Option<RoleId> {
-        self.helper_role_id.map(|id| RoleId::new(as_u64(id)))
-    }
-
     pub async fn get(
         stores: TicketStores<'_>,
         pool: &PgPool,
@@ -93,7 +87,6 @@ impl TicketGuildRow {
             support_role_ids,
             solved_tag_id: support.solved_tag_id,
             closed_tag_id: support.closed_tag_id,
-            helper_role_id: support.helper_role_id,
             solved_archive_secs: support.solved_archive_secs,
         }))
     }

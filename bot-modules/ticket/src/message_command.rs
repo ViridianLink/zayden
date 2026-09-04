@@ -3,6 +3,7 @@ use std::sync::Arc;
 use futures::{StreamExt, stream};
 use serenity::all::{
     AutoArchiveDuration,
+    ChannelId,
     ChannelType,
     CreateAttachment,
     CreateEmbed,
@@ -13,8 +14,9 @@ use serenity::all::{
 };
 use tracing::debug;
 use zayden_app::state::AppState;
-use zayden_core::CoreError;
+use zayden_core::{CoreError, as_i64, as_u64};
 
+use crate::idle::ThreadActivity;
 use crate::{
     ISSUE_EMBED_TITLE,
     Result,
@@ -41,8 +43,8 @@ impl SupportMessageCommand {
             return Err(TicketError::ZaydenCore(CoreError::MissingGuildId));
         };
 
-        let row = match TicketGuildRow::get(stores, pool, guild_id).await {
-            Ok(Some(row)) => row,
+        let settings = match stores.support.try_get(as_i64(guild_id.get())).await {
+            Ok(Some(settings)) => settings,
             Ok(None) | Err(sqlx::Error::RowNotFound) => {
                 debug!(%guild_id, "no ticket configuration found for guild; ignoring support message");
                 return Ok(());
@@ -50,7 +52,9 @@ impl SupportMessageCommand {
             Err(e) => return Err(e.into()),
         };
 
-        let Some(support_channel) = row.channel_id() else {
+        let Some(support_channel) =
+            settings.support_channel_id.map(|id| ChannelId::new(as_u64(id)))
+        else {
             return Err(TicketError::Internal(format!(
                 "guild {guild_id} has no support channel configured"
             )));
@@ -62,6 +66,10 @@ impl SupportMessageCommand {
             debug!(%guild_id, %channel_id, "message not in support channel; ignoring");
             return Ok(());
         }
+
+        let row = TicketGuildRow::get(stores, pool, guild_id)
+            .await?
+            .ok_or(TicketError::SupportNotFound)?;
 
         let role_ids = row.role_ids();
 
@@ -81,6 +89,8 @@ impl SupportMessageCommand {
             .await?;
 
         TicketGuildRow::increment_thread_id(stores.ticket, guild_id).await?;
+
+        ThreadActivity::insert(pool, guild_id, thread.id, message.author.id).await?;
 
         let issue = CreateEmbed::new()
             .title(ISSUE_EMBED_TITLE)

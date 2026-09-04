@@ -16,6 +16,7 @@ use serenity::all::{
 use zayden_app::state::AppState;
 use zayden_core::{CoreError, parse_modal_components};
 
+use crate::idle::ThreadActivity;
 use crate::ticket_manager::TicketRow;
 use crate::{
     ISSUE_EMBED_TITLE,
@@ -112,6 +113,9 @@ impl TicketModal {
             .await?;
 
         TicketGuildRow::increment_thread_id(stores.ticket, guild_id).await?;
+
+        ThreadActivity::insert(pool, guild_id, thread.id, interaction.user.id)
+            .await?;
 
         let mentions = if role_ids.is_empty() {
             let owner_id = guild_id.to_partial_guild(http).await?.owner_id;

@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH due AS (\n            SELECT a.thread_id\n            FROM support_thread_activity a\n            JOIN support_settings s ON s.guild_id = a.guild_id\n            WHERE s.idle_enabled\n              AND NOT a.paused\n              AND a.nudged_at IS NULL\n              AND a.since < now() - (s.idle_after_secs * interval '1 second')\n            ORDER BY a.guild_id, a.since\n            LIMIT $1\n            FOR UPDATE OF a SKIP LOCKED\n        )\n        UPDATE support_thread_activity a\n        SET nudged_at = now()\n        FROM due\n        WHERE a.thread_id = due.thread_id\n        RETURNING\n            a.thread_id,\n            a.op_id,\n            a.helper_id,\n            a.waiting_on_helper,\n            a.since AS \"since: jiff_sqlx::Timestamp\",\n            COALESCE(\n                (SELECT array_agg(r.role_id ORDER BY r.role_id)\n                 FROM guild_support_roles r\n                 WHERE r.guild_id = a.guild_id),\n                ARRAY[]::bigint[]\n            ) AS \"support_role_ids!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "op_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "op_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "helper_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "helper_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "waiting_on_helper",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "waiting_on_helper"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "since: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "since"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "support_role_ids!",
+        "type_info": "Int8Array",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "54e233a35b198dc5a356eb3c9c80ade89167ebc5d0785a319fcb3403c5671fcf"
+}

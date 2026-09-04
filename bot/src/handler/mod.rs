@@ -171,7 +171,7 @@ impl EventHandler for Handler {
                 Self::thread_create(ctx, thread, *newly_created, &self.app).await
             },
             FullEvent::ThreadDelete { thread, .. } => {
-                Self::thread_delete(ctx, thread, &pool).await
+                Self::thread_delete(ctx, thread, &pool, &self.app).await
             },
 
             FullEvent::EntitlementCreate { entitlement, .. } => {

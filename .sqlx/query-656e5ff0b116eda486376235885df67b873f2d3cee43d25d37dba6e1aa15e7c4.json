@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE support_thread_activity SET paused = TRUE WHERE thread_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "656e5ff0b116eda486376235885df67b873f2d3cee43d25d37dba6e1aa15e7c4"
+}

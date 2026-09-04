@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM support_thread_activity WHERE since < now() - interval '60 days'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "0d38f89c92015d62dae33989c78fa6ac60cbeb5cddddf1a6fcf406ea8fd8958b"
+}

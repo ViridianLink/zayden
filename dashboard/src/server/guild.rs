@@ -145,8 +145,9 @@ pub async fn get_guild_settings(
         support_channel_id: opt_str(support.support_channel_id),
         solved_tag_id: opt_str(support.solved_tag_id),
         closed_tag_id: opt_str(support.closed_tag_id),
-        helper_role_id: opt_str(support.helper_role_id),
         solved_archive_secs: support.solved_archive_secs.to_string(),
+        support_idle_enabled: support.idle_enabled,
+        support_idle_after_secs: support.idle_after_secs.to_string(),
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
         review_channel_id: opt_str(suggestions.review_channel_id),
         suggestions_promote_threshold: suggestions.promote_threshold.to_string(),
@@ -255,12 +256,15 @@ pub async fn save_support_settings(
     support_channel_id: String,
     solved_tag_id: String,
     closed_tag_id: String,
-    helper_role_id: String,
     solved_archive_secs: String,
+    idle_enabled: String,
+    idle_after_secs: String,
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
     let archive_secs = parse_archive_secs(&solved_archive_secs);
+    let idle_enabled = idle_enabled.trim() == "true";
+    let idle_secs = parse_idle_secs(&idle_after_secs);
 
     app.settings
         .support
@@ -268,8 +272,9 @@ pub async fn save_support_settings(
             p.support_channel_id = parse_id(&support_channel_id);
             p.solved_tag_id = parse_id(&solved_tag_id);
             p.closed_tag_id = parse_id(&closed_tag_id);
-            p.helper_role_id = parse_id(&helper_role_id);
             p.solved_archive_secs = archive_secs;
+            p.idle_enabled = idle_enabled;
+            p.idle_after_secs = idle_secs;
         })
         .await
         .map(|_| ())
@@ -365,6 +370,12 @@ fn parse_archive_secs(s: &str) -> i32 {
         Ok(n) => n,
         Err(_e) => 60,
     }
+}
+
+#[cfg(feature = "ssr")]
+fn parse_idle_secs(s: &str) -> i32 {
+    // The column's CHECK floors this at an hour; a month is the practical ceiling.
+    s.trim().parse::<i32>().unwrap_or(172_800).clamp(3_600, 2_592_000)
 }
 
 #[cfg(feature = "ssr")]

@@ -15,15 +15,19 @@ pub async fn message(
     pool: &PgPool,
     thread_id: ThreadId,
     guild_id: GuildId,
-    helper_role: RoleId,
+    helper_roles: &[RoleId],
 ) -> Result<Option<String>> {
+    if helper_roles.is_empty() {
+        return Ok(None);
+    }
+
     let links = HelperLinks::map(pool, guild_id).await?;
 
     if links.is_empty() {
         return Ok(None);
     }
 
-    let helpers = scan_helpers(http, thread_id, helper_role, &links).await?;
+    let helpers = scan_helpers(http, thread_id, helper_roles, &links).await?;
 
     if helpers.is_empty() {
         return Ok(None);
@@ -35,7 +39,7 @@ pub async fn message(
 async fn scan_helpers(
     http: &Http,
     thread_id: ThreadId,
-    helper_role: RoleId,
+    helper_roles: &[RoleId],
     links: &HashMap<UserId, String>,
 ) -> Result<Vec<(UserId, String)>> {
     let helpers = thread_id
@@ -45,7 +49,7 @@ async fn scan_helpers(
         .try_fold(HashMap::new(), async |mut helpers, m| {
             let Some(member) = m.member else { return Ok(helpers) };
 
-            if !member.roles.contains(&helper_role) {
+            if !member.roles.iter().any(|role| helper_roles.contains(role)) {
                 return Ok(helpers);
             }
 

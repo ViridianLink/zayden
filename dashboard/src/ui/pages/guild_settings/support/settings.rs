@@ -46,7 +46,6 @@ pub(crate) fn SupportSettingsPane(
     let suggestions_gid = guild_id.clone();
     let faq_gid = guild_id.clone();
     let suggestions_channels = channels.clone();
-    let form_roles = roles.clone();
 
     view! {
         <fieldset class="settings-section">
@@ -72,17 +71,22 @@ pub(crate) fn SupportSettingsPane(
                     selected=sel(s.closed_tag_id.as_deref())
                     channels=channels
                 />
-                <RoleSelect
-                    label="Helper Role"
-                    name="helper_role_id"
-                    selected=sel(s.helper_role_id.as_deref())
-                    roles=form_roles
-                />
                 <SettingField
                     label="Archive solved posts after (seconds)"
                     name="solved_archive_secs"
                     value=s.solved_archive_secs
                     pattern="-?[0-9]*"
+                />
+                <ToggleField
+                    label="Idle Reminders"
+                    name="idle_enabled"
+                    value=s.support_idle_enabled
+                />
+                <SettingField
+                    label="Remind after (seconds of silence)"
+                    name="idle_after_secs"
+                    value=s.support_idle_after_secs
+                    hint="Minimum one hour. Default 172800 (48 hours)."
                 />
                 <SaveButton/>
             </ActionForm>
@@ -91,6 +95,22 @@ pub(crate) fn SupportSettingsPane(
                 "channel is a forum, and otherwise renames the thread. Archive "
                 "after 0 seconds to close immediately, or -1 to leave the post "
                 "open."
+            </p>
+            <p class="page-lead">
+                "Idle reminders watch whose turn it is. If a helper spoke last "
+                "and the poster has gone quiet for the interval above, the "
+                "poster is nudged with \"Solved\" and \"Still need help\" "
+                "buttons. If the poster spoke last, the helper who replied is "
+                "nudged - or the support roles, if nobody has answered yet. "
+                "Each side is reminded once per turn, and never again until "
+                "somebody posts."
+            </p>
+            <p class="page-lead">
+                "A support role only gets notified if it is mentionable. Role "
+                "mentions in private ticket threads mostly do not notify at "
+                "all, since Discord does not pull role members into a private "
+                "thread. A reminder also un-archives a post Discord had "
+                "already archived, which is usually the point."
             </p>
             {move || suggestions_result.get().map(save_feedback)}
             <ActionForm action=save_suggestions>
@@ -283,7 +303,7 @@ fn HelperLinkField(
         <div class="setting-field">
             <label>"Helper Donation Links"</label>
             <p class="page-lead">
-                "When a post is solved, anyone with the helper role who posted "
+                "When a post is solved, anyone with a support role who posted "
                 "in it and has a link here gets credited in a follow-up message."
             </p>
             <div class="chip-list">{chips}</div>
@@ -351,8 +371,11 @@ fn SupportRoleField(
         <div class="setting-field">
             <label>"Support Roles"</label>
             <p class="page-lead">
-                "Pinged in every new ticket thread. With none set, Zayden falls "
-                "back to pinging the server owner."
+                "One list, two jobs: these roles are pinged in every new "
+                "ticket thread, and holding one is what makes somebody a "
+                "helper - for idle reminders, for donation credit, and for the "
+                "reminder buttons. With none set, Zayden falls back to pinging "
+                "the server owner when a ticket opens."
             </p>
             <div class="chip-list">{chips}</div>
             {move || remove_result.get().map(save_feedback)}

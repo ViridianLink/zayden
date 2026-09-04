@@ -96,6 +96,36 @@ impl ModuleComponent for SupportClose {
     }
 }
 
+pub struct SupportSolved;
+
+#[async_trait]
+impl ModuleComponent for SupportSolved {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("support_solved"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        TicketComponent::support_solved(&cx.ctx.http, cx.interaction, &cx.app)
+            .await?;
+        Ok(())
+    }
+}
+
+pub struct SupportStillOpen;
+
+#[async_trait]
+impl ModuleComponent for SupportStillOpen {
+    fn id_match(&self) -> IdMatch {
+        IdMatch::Exact(Cow::Borrowed("support_still_open"))
+    }
+
+    async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
+        TicketComponent::support_still_open(&cx.ctx.http, cx.interaction, &cx.app)
+            .await?;
+        Ok(())
+    }
+}
+
 pub struct SupportFaq;
 
 #[async_trait]
