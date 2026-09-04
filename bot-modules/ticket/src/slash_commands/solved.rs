@@ -3,13 +3,10 @@ use std::time::Duration;
 
 use jiff::Timestamp;
 use serenity::all::{
-    ChannelType,
     CommandInteraction,
     CreateInteractionResponseFollowup,
     EditInteractionResponse,
     EditThread,
-    ForumTagId,
-    GenericInteractionChannel,
     GuildId,
     Http,
     HttpError,
@@ -22,7 +19,16 @@ use zayden_app::config::ARCHIVE_NEVER;
 use zayden_app::state::AppState;
 
 use crate::faq::on_ticket_solved;
-use crate::{Result, Ticket, TicketError, TicketGuildRow, TicketStores, donation};
+use crate::{
+    Result,
+    Ticket,
+    TicketError,
+    TicketGuildRow,
+    TicketStores,
+    donation,
+    state,
+    support_thread,
+};
 
 impl Ticket {
     pub(super) async fn solved(
@@ -42,37 +48,17 @@ impl Ticket {
         let support_channel_id =
             row.channel_id().ok_or(TicketError::NotInSupportChannel)?;
 
-        let GenericInteractionChannel::Thread(thread) = &interaction.channel else {
-            return Err(TicketError::NotInSupportChannel);
-        };
+        let thread = support_thread(&interaction.channel, support_channel_id)?;
 
-        if thread.parent_id != support_channel_id {
-            return Err(TicketError::NotInSupportChannel);
-        }
-
-        let parent =
-            support_channel_id.to_guild_channel(http, Some(guild_id)).await?;
-
-        if parent.base.kind == ChannelType::Forum {
-            let tag =
-                row.solved_tag_id().ok_or(TicketError::SolvedTagNotConfigured)?;
-
-            if !parent.available_tags.iter().any(|t| t.id == tag) {
-                return Err(TicketError::SolvedTagMissing);
-            }
-
-            apply_solved_tag(http, thread.id, guild_id, tag).await?;
-        } else {
-            let name: String = format!(
-                "[Solved] - {}",
-                thread.base.name.as_deref().unwrap_or_default()
-            )
-            .chars()
-            .take(100)
-            .collect();
-
-            thread.id.edit(http, EditThread::new().name(name)).await?;
-        }
+        state::mark(
+            http,
+            guild_id,
+            support_channel_id,
+            thread,
+            row.solved_tag_id(),
+            state::SOLVED,
+        )
+        .await?;
 
         interaction
             .edit_response(
@@ -103,26 +89,6 @@ impl Ticket {
 
         Ok(())
     }
-}
-
-async fn apply_solved_tag(
-    http: &Http,
-    thread_id: ThreadId,
-    guild_id: GuildId,
-    tag: ForumTagId,
-) -> Result<()> {
-    let thread = thread_id.to_thread(http, Some(guild_id)).await?;
-
-    if thread.applied_tags.contains(&tag) {
-        return Ok(());
-    }
-
-    let mut tags = thread.applied_tags.to_vec();
-    tags.insert(0, tag);
-
-    thread_id.edit(http, EditThread::new().applied_tags(tags)).await?;
-
-    Ok(())
 }
 
 fn schedule_archive(http: Arc<Http>, thread_id: ThreadId, secs: i32) {

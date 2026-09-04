@@ -2,17 +2,19 @@ use std::collections::HashMap;
 
 use serenity::all::{
     ButtonStyle,
+    ChannelType,
     CommandInteraction,
     CreateButton,
     CreateEmbed,
     CreateMessage,
     EditInteractionResponse,
+    GenericInteractionChannel,
     Http,
     ResolvedValue,
 };
 use zayden_core::required_option;
 
-use crate::{Result, Ticket};
+use crate::{Result, Ticket, TicketError};
 
 impl Ticket {
     pub(super) async fn create(
@@ -23,6 +25,14 @@ impl Ticket {
         let title: &str = required_option(&mut options, "title")?;
         let description: &str = required_option(&mut options, "description")?;
         let label: &str = required_option(&mut options, "label")?;
+
+        // Forum channels hold posts, not messages, so the send below would fail
+        // with an opaque Discord error rather than something actionable.
+        if let GenericInteractionChannel::Channel(channel) = &interaction.channel
+            && channel.base.kind == ChannelType::Forum
+        {
+            return Err(TicketError::ForumChannelUnsupported);
+        }
 
         interaction.defer_ephemeral(http).await?;
 

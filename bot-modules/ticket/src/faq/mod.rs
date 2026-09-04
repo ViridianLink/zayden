@@ -4,25 +4,28 @@ mod auto;
 pub(crate) mod embed;
 mod generate;
 pub(crate) mod hit;
+pub mod index;
 mod keywords;
 mod lookup;
-pub mod markdown;
+pub mod render;
 pub mod scrub;
 pub mod transcript;
 mod triage;
 mod tuning;
+pub(crate) mod view;
 mod writer;
 
 pub use article::{FaqArticle, NewArticle};
 pub(crate) use auto::on_ticket_opened;
 pub(crate) use generate::on_ticket_solved;
+pub use index::{Target, WikiIndex};
 use serenity::all::GuildId;
 use zayden_app::config::{FaqSettingsRow, SettingsStore};
 use zayden_core::as_i64;
 
 pub(crate) use crate::faq::answer::answer;
-pub(crate) use crate::faq::embed as embeds;
 pub use crate::faq::tuning::AnswerTuning;
+pub(crate) use crate::faq::{embed as embeds, view as views};
 use crate::wiki::{WikiConfig, WikiError};
 
 pub struct FaqContext {

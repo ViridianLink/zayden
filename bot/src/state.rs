@@ -19,6 +19,7 @@ use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::PgPool;
 use temp_voice::VoiceStateCache;
+use ticket::WikiIndex;
 use tokio::sync::RwLock;
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState;
@@ -37,6 +38,7 @@ pub struct BotState {
     pub marathon: Arc<MarathonClient>,
     pub palworld: Arc<PalworldClient>,
     pub bungie_client: Arc<BungieClient>,
+    pub wiki_index: Arc<WikiIndex>,
     marathon_bungie_api_key: String,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob>,
@@ -79,6 +81,9 @@ impl BotState {
             pelican,
         ));
 
+        let wiki_index = Arc::new(WikiIndex::new(app.http.clone()));
+        WikiIndex::spawn_invalidator(Arc::clone(&wiki_index), app.subscribe());
+
         Ok(Self {
             app,
             songbird: Songbird::serenity(),
@@ -88,6 +93,7 @@ impl BotState {
             marathon,
             palworld,
             bungie_client: Arc::new(bungie_client),
+            wiki_index,
             marathon_bungie_api_key: config.bungie_api_key.clone(),
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),

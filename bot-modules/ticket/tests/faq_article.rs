@@ -7,9 +7,8 @@
 //!   `custom_id`, which a user can forge, so an unscoped lookup would serve one
 //!   guild's article to another. Dropping `guild_id` from the `WHERE` clause fails
 //!   `an_article_is_invisible_to_another_guild`.
-//! - One article per source thread. `/ticket solved` followed by `/ticket fixed`, or
-//!   a double invocation, must not publish the same article twice. Dropping
-//!   `faq_articles_thread_idx` fails
+//! - One article per source thread. A double invocation of `/ticket solved` must not
+//!   publish the same article twice. Dropping `faq_articles_thread_idx` fails
 //!   `a_second_insert_for_the_same_thread_is_refused`.
 
 use sqlx::PgPool;

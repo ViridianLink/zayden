@@ -10,8 +10,7 @@ pub enum TicketError {
     NotInSupportChannel,
     SupportNotFound,
     ArticleNotFound,
-    SolvedTagNotConfigured,
-    SolvedTagMissing,
+    ForumChannelUnsupported,
     MissingPermissions,
     FaqNotConfigured,
     Wiki(String),
@@ -32,15 +31,11 @@ impl std::fmt::Display for TicketError {
                 "That FAQ article no longer exists. Run the command again for \
                  an up to date list."
             ),
-            Self::SolvedTagNotConfigured => write!(
+            Self::ForumChannelUnsupported => write!(
                 f,
-                "No solved tag is configured for this server. Set one in the \
-                 dashboard under Support."
-            ),
-            Self::SolvedTagMissing => write!(
-                f,
-                "The configured solved tag no longer exists in this forum. \
-                 Pick a new one in the dashboard under Support."
+                "A ticket button cannot be posted in a forum channel. Post it \
+                 in a text channel, or let people open posts in the forum \
+                 directly - those become tickets on their own."
             ),
             Self::MissingPermissions => write!(
                 f,
@@ -65,8 +60,7 @@ impl std::error::Error for TicketError {
             Self::NotInSupportChannel
             | Self::SupportNotFound
             | Self::ArticleNotFound
-            | Self::SolvedTagNotConfigured
-            | Self::SolvedTagMissing
+            | Self::ForumChannelUnsupported
             | Self::MissingPermissions
             | Self::FaqNotConfigured
             | Self::Wiki(_)
@@ -81,8 +75,7 @@ impl Respond for TicketError {
             Self::NotInSupportChannel
             | Self::SupportNotFound
             | Self::ArticleNotFound
-            | Self::SolvedTagNotConfigured
-            | Self::SolvedTagMissing
+            | Self::ForumChannelUnsupported
             | Self::MissingPermissions
             | Self::FaqNotConfigured
             | Self::Wiki(_) => Some(Cow::Owned(self.to_string())),

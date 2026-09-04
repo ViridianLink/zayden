@@ -1,4 +1,5 @@
 mod ask;
+mod autocomplete;
 mod list;
 
 use serenity::all::{
@@ -48,7 +49,8 @@ impl Ticket {
                 "query",
                 "What do you want to know?",
             )
-            .required(true),
+            .required(true)
+            .set_autocomplete(true),
         );
 
         let list = CreateCommandOption::new(

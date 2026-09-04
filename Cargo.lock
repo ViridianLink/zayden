@@ -6994,6 +6994,7 @@ dependencies = [
  "ai",
  "cynic",
  "cynic-codegen",
+ "dashmap",
  "futures",
  "jiff",
  "jiff-sqlx",

@@ -57,10 +57,10 @@ impl SupportThreadCreate {
             return Ok(());
         }
 
-        let Some((author, content)) = opening_ticket(http, thread).await else {
+        let Some((author, content)) = read_opening(http, thread).await else {
             warn!(
                 thread_id = %thread.id,
-                "support thread opened without a readable issue embed; skipping triage",
+                "support thread opened without a readable message; skipping triage",
             );
             return Ok(());
         };
@@ -79,7 +79,7 @@ impl SupportThreadCreate {
     }
 }
 
-async fn opening_ticket(
+async fn read_opening(
     http: &Http,
     thread: &GuildThread,
 ) -> Option<(UserId, String)> {
@@ -88,7 +88,7 @@ async fn opening_ticket(
             sleep(OPENING_BACKOFF).await;
         }
 
-        let messages = match thread
+        let mut messages = match thread
             .id
             .widen()
             .messages(http, GetMessages::new().after(OLDEST).limit(OPENING_LIMIT))
@@ -101,6 +101,10 @@ async fn opening_ticket(
             },
         };
 
+        // Discord pages newest-first even when reading forwards, and the ticket
+        // is the oldest message, not the newest.
+        messages.sort_unstable_by_key(|message| message.id);
+
         if let Some(opening) = messages.iter().find_map(issue) {
             return Some(opening);
         }
@@ -110,15 +114,35 @@ async fn opening_ticket(
 }
 
 fn issue(message: &Message) -> Option<(UserId, String)> {
-    let content = message.embeds.iter().find_map(|embed| {
+    let embed = message.embeds.iter().find_map(|embed| {
         if embed.title.as_deref() != Some(ISSUE_EMBED_TITLE) {
             return None;
         }
 
         embed.description.as_deref().map(str::trim).filter(|d| !d.is_empty())
-    })?;
+    });
 
-    Some((author(&message.content)?, content.to_owned()))
+    opening(message.author.bot(), message.author.id, &message.content, embed)
+}
+
+#[must_use]
+pub fn opening(
+    from_bot: bool,
+    author_id: UserId,
+    content: &str,
+    issue_embed: Option<&str>,
+) -> Option<(UserId, String)> {
+    if let Some(issue) = issue_embed {
+        return Some((author(content)?, issue.to_owned()));
+    }
+
+    if from_bot {
+        return None;
+    }
+
+    let content = content.trim();
+
+    (!content.is_empty()).then(|| (author_id, content.to_owned()))
 }
 
 #[must_use]

@@ -90,7 +90,8 @@ impl ModuleComponent for SupportClose {
     }
 
     async fn run(&self, cx: &ComponentCtx<'_>) -> Result<(), HandlerError> {
-        TicketComponent::support_close(&cx.ctx.http, cx.interaction).await?;
+        TicketComponent::support_close(&cx.ctx.http, cx.interaction, &cx.app)
+            .await?;
         Ok(())
     }
 }

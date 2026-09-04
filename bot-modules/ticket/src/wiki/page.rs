@@ -12,6 +12,24 @@ use tracing::debug;
 use crate::wiki::{WikiConfig, WikiError, graphql, schema};
 
 #[derive(QueryVariables)]
+struct IdVariables {
+    id: i32,
+}
+
+#[derive(QueryFragment)]
+#[cynic(graphql_type = "Query", variables = "IdVariables")]
+struct GetPageById {
+    pages: Option<PageByIdQuery>,
+}
+
+#[derive(QueryFragment)]
+#[cynic(graphql_type = "PageQuery", variables = "IdVariables")]
+struct PageByIdQuery {
+    #[arguments(id: $id)]
+    single: Option<Page>,
+}
+
+#[derive(QueryVariables)]
 struct PageVariables<'a> {
     path: &'a str,
     locale: &'a str,
@@ -49,6 +67,20 @@ pub async fn page(
         },
         result => result,
     }
+}
+
+pub async fn page_by_id(
+    client: &Client,
+    config: &WikiConfig,
+    id: i32,
+) -> Result<Page, WikiError> {
+    let operation = GetPageById::build(IdVariables { id });
+
+    let data = graphql::run(client, config, &operation).await?;
+
+    data.pages
+        .and_then(|pages| pages.single)
+        .ok_or_else(|| WikiError::PageNotFound(id.to_string()))
 }
 
 async fn page_via_graphql(

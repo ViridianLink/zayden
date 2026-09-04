@@ -35,6 +35,7 @@ pub struct TicketGuildRow {
     pub support_channel_id: Option<i64>,
     pub support_role_ids: Vec<RoleId>,
     pub solved_tag_id: Option<i64>,
+    pub closed_tag_id: Option<i64>,
     pub helper_role_id: Option<i64>,
     pub solved_archive_secs: i32,
 }
@@ -53,6 +54,16 @@ impl TicketGuildRow {
     #[must_use]
     pub fn solved_tag_id(&self) -> Option<ForumTagId> {
         self.solved_tag_id.map(|id| ForumTagId::new(as_u64(id)))
+    }
+
+    #[must_use]
+    pub fn closed_tag_id(&self) -> Option<ForumTagId> {
+        self.closed_tag_id.map(|id| ForumTagId::new(as_u64(id)))
+    }
+
+    #[must_use]
+    pub fn state_tag_ids(&self) -> [Option<ForumTagId>; 2] {
+        [self.solved_tag_id(), self.closed_tag_id()]
     }
 
     #[must_use]
@@ -81,6 +92,7 @@ impl TicketGuildRow {
             support_channel_id: support.support_channel_id,
             support_role_ids,
             solved_tag_id: support.solved_tag_id,
+            closed_tag_id: support.closed_tag_id,
             helper_role_id: support.helper_role_id,
             solved_archive_secs: support.solved_archive_secs,
         }))

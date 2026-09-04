@@ -1,7 +1,6 @@
 mod close;
 mod create;
 mod faq;
-mod fixed;
 mod open;
 mod remove;
 mod solved;
@@ -62,10 +61,6 @@ impl Ticket {
                     .await?;
             },
             "create" => Self::create(http, interaction, options).await?,
-            "fixed" => {
-                Self::fixed(http, interaction, stores, app, options, guild_id)
-                    .await?;
-            },
             "open" => {
                 Self::open(http, interaction, stores, pool, guild_id).await?;
             },
@@ -121,20 +116,6 @@ impl Ticket {
             "The label of the ticket button",
         ));
 
-        let fixed = CreateCommandOption::new(
-            CommandOptionType::SubCommand,
-            "fixed",
-            "Mark the ticket as fixed",
-        )
-        .add_sub_option(
-            CreateCommandOption::new(
-                CommandOptionType::String,
-                "version",
-                "Version of the game that fixed the issue",
-            )
-            .required(false),
-        );
-
         let open = CreateCommandOption::new(
             CommandOptionType::SubCommand,
             "open",
@@ -152,7 +133,6 @@ impl Ticket {
             .add_option(Self::faq_option())
             .add_option(close)
             .add_option(create)
-            .add_option(fixed)
             .add_option(open)
             .add_option(solved)
 

@@ -64,6 +64,12 @@ pub(crate) fn SupportSettingsPane(
                     label="Solved Tag"
                     name="solved_tag_id"
                     selected=sel(s.solved_tag_id.as_deref())
+                    channels=channels.clone()
+                />
+                <ForumTagSelect
+                    label="Closed Tag"
+                    name="closed_tag_id"
+                    selected=sel(s.closed_tag_id.as_deref())
                     channels=channels
                 />
                 <RoleSelect
@@ -234,8 +240,8 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                 "model calls per ticket."
             </p>
             <p class="page-lead">
-                "With article writing on, \"/ticket solved\" and "
-                "\"/ticket fixed\" turn the thread into an FAQ article, which "
+                "With article writing on, \"/ticket solved\" turns the thread "
+                "into an FAQ article, which "
                 "goes live immediately and is searchable by \"/ticket faq "
                 "ask\". Review them under the FAQ tab. A ticket that ends "
                 "without a usable solution produces nothing."

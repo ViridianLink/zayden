@@ -8,13 +8,15 @@ use serenity::all::{
     CreateModal,
     CreateModalComponent,
     EditThread,
+    GenericInteractionChannel,
     Http,
+    MessageFlags,
 };
 use zayden_app::state::AppState;
 use zayden_core::{CoreError as ZaydenError, as_i64};
 
-use crate::faq::{FaqArticle, embeds};
-use crate::{Result, TicketError};
+use crate::faq::{FaqArticle, views};
+use crate::{Result, TicketError, TicketGuildRow, TicketStores, state};
 
 pub struct TicketComponent;
 
@@ -37,22 +39,33 @@ impl TicketComponent {
     pub async fn support_close(
         http: &Http,
         interaction: &ComponentInteraction,
+        app: &AppState,
     ) -> Result<()> {
-        let channel = &interaction.channel;
+        let guild_id = interaction.guild_id.ok_or(ZaydenError::MissingGuildId)?;
+        // The button only ever rides on a ticket's opening message, but the id
+        // cast below would rename a whole channel if it were pressed elsewhere.
+        let GenericInteractionChannel::Thread(thread) = &interaction.channel else {
+            return Err(TicketError::NotInSupportChannel);
+        };
 
-        let new_channel_name: String = format!(
-            "[Closed] - {}",
-            channel.base().name.as_deref().unwrap_or_default()
+        let row =
+            TicketGuildRow::get(TicketStores::from_app(app), &app.db, guild_id)
+                .await?
+                .ok_or(TicketError::NotInSupportChannel)?;
+        let support_channel_id =
+            row.channel_id().ok_or(TicketError::NotInSupportChannel)?;
+
+        state::mark(
+            http,
+            guild_id,
+            support_channel_id,
+            thread,
+            row.closed_tag_id(),
+            state::CLOSED,
         )
-        .chars()
-        .take(100)
-        .collect();
+        .await?;
 
-        channel
-            .id()
-            .expect_thread()
-            .edit(http, EditThread::new().name(new_channel_name).archived(true))
-            .await?;
+        thread.id.edit(http, EditThread::new().archived(true)).await?;
 
         interaction
             .create_response(http, CreateInteractionResponse::Acknowledge)
@@ -94,7 +107,8 @@ impl TicketComponent {
                 http,
                 CreateInteractionResponse::Message(
                     CreateInteractionResponseMessage::new()
-                        .embed(embeds::stored(&article)),
+                        .components(vec![views::stored(&article)])
+                        .flags(MessageFlags::IS_COMPONENTS_V2),
                 ),
             )
             .await?;

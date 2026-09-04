@@ -18,6 +18,7 @@ pub struct HelperLinkInfo {
 pub struct GuildSettings {
     pub(crate) support_channel_id: Option<String>,
     pub(crate) solved_tag_id: Option<String>,
+    pub(crate) closed_tag_id: Option<String>,
     pub(crate) helper_role_id: Option<String>,
     pub(crate) solved_archive_secs: String,
     pub(crate) suggestions_channel_id: Option<String>,

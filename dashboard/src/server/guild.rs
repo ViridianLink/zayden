@@ -144,6 +144,7 @@ pub async fn get_guild_settings(
     Ok(GuildSettings {
         support_channel_id: opt_str(support.support_channel_id),
         solved_tag_id: opt_str(support.solved_tag_id),
+        closed_tag_id: opt_str(support.closed_tag_id),
         helper_role_id: opt_str(support.helper_role_id),
         solved_archive_secs: support.solved_archive_secs.to_string(),
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
@@ -253,6 +254,7 @@ pub async fn save_support_settings(
     guild: String,
     support_channel_id: String,
     solved_tag_id: String,
+    closed_tag_id: String,
     helper_role_id: String,
     solved_archive_secs: String,
 ) -> Result<(), ServerFnError> {
@@ -265,6 +267,7 @@ pub async fn save_support_settings(
         .update(guild_id, |p| {
             p.support_channel_id = parse_id(&support_channel_id);
             p.solved_tag_id = parse_id(&solved_tag_id);
+            p.closed_tag_id = parse_id(&closed_tag_id);
             p.helper_role_id = parse_id(&helper_role_id);
             p.solved_archive_secs = archive_secs;
         })

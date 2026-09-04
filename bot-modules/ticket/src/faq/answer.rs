@@ -2,7 +2,7 @@ use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
 use zayden_app::state::AppState;
 
-use crate::faq::markdown::{self, PROMPT_LIMIT};
+use crate::faq::render::{PROMPT_LIMIT, truncate};
 use crate::faq::tuning::AnswerTuning;
 
 const SYSTEM_PROMPT: &str = "You are a helpful Discord support bot.
@@ -12,6 +12,7 @@ Your task is to answer the user's question, using the provided reference article
 - Be concise and direct (under 150 words if possible).
 - Use Discord markdown sparingly: code lines and code blocks for commands/paths are good, but use bolding and other text styling only where absolutely necessary.
 - Do not use em dashes, emojis, or other characters heavily used by AI models.
+- Never emit a Markdown table. Discord cannot render one. Use a short list instead.
 - If neither the article nor search results answer the question, say so directly: \"The documentation mentions this topic, but for full details, please read the article.\" Saying you don't know is better than guessing.
 - Do not hallucinate or add information you can't support from the article or search results.";
 
@@ -21,7 +22,7 @@ pub(crate) async fn answer(
     question: &str,
     content: &str,
 ) -> Result<String, ai::Error> {
-    let content = markdown::truncate(content, PROMPT_LIMIT);
+    let content = truncate(content, PROMPT_LIMIT);
 
     let user_prompt =
         format!("User's Question: \"{question}\"\n\nReference Article:\n{content}");

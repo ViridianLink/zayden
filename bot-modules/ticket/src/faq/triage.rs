@@ -4,9 +4,9 @@ use serde::Deserialize;
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use zayden_app::state::AppState;
 
-use crate::faq::embed::link_line;
 use crate::faq::hit::FaqHit;
-use crate::faq::markdown::{self, DESCRIPTION_LIMIT};
+use crate::faq::render::truncate;
+use crate::faq::view::link_line;
 use crate::wiki::WikiConfig;
 
 const SYSTEM_PROMPT: &str = "You are a Discord support-ticket triage assistant \
@@ -36,8 +36,8 @@ const EMBED_FOOTER: &str =
 const ARTICLES_FIELD: &str = "Recommended Reading";
 pub(crate) const QUESTIONS_FIELD: &str = "Action Required: Please Reply With";
 
-/// Discord's per-field value budget.
 const FIELD_LIMIT: usize = 1024;
+const DESCRIPTION_LIMIT: usize = 4096;
 
 #[derive(Deserialize)]
 pub(crate) struct Triage {
@@ -105,7 +105,7 @@ pub(crate) fn embed(
     let mut embed = CreateEmbed::new()
         .title(EMBED_TITLE)
         .colour(EMBED_COLOUR)
-        .description(markdown::truncate(&triage.greeting, DESCRIPTION_LIMIT))
+        .description(truncate(&triage.greeting, DESCRIPTION_LIMIT))
         .footer(CreateEmbedFooter::new(EMBED_FOOTER));
 
     let articles = triage
@@ -118,7 +118,7 @@ pub(crate) fn embed(
     if !articles.is_empty() {
         embed = embed.field(
             ARTICLES_FIELD,
-            markdown::truncate(&articles.join("\n"), FIELD_LIMIT),
+            truncate(&articles.join("\n"), FIELD_LIMIT),
             false,
         );
     }
@@ -132,11 +132,8 @@ pub(crate) fn embed(
             .collect::<Vec<_>>()
             .join("\n");
 
-        embed = embed.field(
-            QUESTIONS_FIELD,
-            markdown::truncate(&questions, FIELD_LIMIT),
-            false,
-        );
+        embed =
+            embed.field(QUESTIONS_FIELD, truncate(&questions, FIELD_LIMIT), false);
     }
 
     embed

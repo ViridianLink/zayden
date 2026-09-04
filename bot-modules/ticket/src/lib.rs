@@ -1,8 +1,11 @@
 use serenity::all::{
     ButtonStyle,
+    ChannelId,
     CreateButton,
     CreateMessage,
+    GenericInteractionChannel,
     Http,
+    InteractionGuildThread,
     Mention,
     Mentionable,
     ThreadId,
@@ -17,6 +20,7 @@ pub mod helper_links;
 pub mod message_command;
 pub mod modal;
 pub mod slash_commands;
+pub mod state;
 pub mod support_guild_manager;
 pub mod thread_create;
 pub mod ticket_manager;
@@ -25,7 +29,7 @@ pub mod wiki;
 pub use components::TicketComponent;
 use error::Result;
 pub use error::TicketError;
-pub use faq::{FaqArticle, NewArticle};
+pub use faq::{FaqArticle, NewArticle, WikiIndex};
 pub use helper_links::{HelperLink, HelperLinks};
 pub use message_command::SupportMessageCommand;
 pub use modal::TicketModal;
@@ -36,6 +40,21 @@ pub use ticket_manager::TicketRow;
 pub struct Ticket;
 
 pub const ISSUE_EMBED_TITLE: &str = "Issue";
+
+pub fn support_thread(
+    channel: &GenericInteractionChannel,
+    support_channel_id: ChannelId,
+) -> Result<&InteractionGuildThread> {
+    let GenericInteractionChannel::Thread(thread) = channel else {
+        return Err(TicketError::NotInSupportChannel);
+    };
+
+    if thread.parent_id != support_channel_id {
+        return Err(TicketError::NotInSupportChannel);
+    }
+
+    Ok(thread)
+}
 
 #[must_use]
 pub fn thread_name(thread_id: i32, author_name: &str, content: &str) -> String {
