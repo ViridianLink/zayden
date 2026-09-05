@@ -3,20 +3,21 @@ pub mod article;
 mod auto;
 pub(crate) mod embed;
 mod generate;
-pub(crate) mod hit;
+pub mod hit;
 pub mod index;
 mod keywords;
+pub mod linked;
 mod lookup;
 pub mod render;
 pub mod scrub;
 pub mod transcript;
-mod triage;
+pub mod triage;
 mod tuning;
 pub(crate) mod view;
 mod writer;
 
 pub use article::{FaqArticle, NewArticle};
-pub(crate) use auto::on_ticket_opened;
+pub(crate) use auto::{TicketOpening, on_ticket_opened};
 pub(crate) use generate::on_ticket_solved;
 pub use index::{Target, WikiIndex};
 use serenity::all::GuildId;
@@ -52,6 +53,15 @@ impl FaqContext {
             auto_triage: row.auto_triage,
             auto_generate: row.auto_generate,
         }))
+    }
+
+    pub async fn generation_enabled(
+        store: &SettingsStore<FaqSettingsRow>,
+        guild_id: GuildId,
+    ) -> Result<bool, sqlx::Error> {
+        let row = store.get(as_i64(guild_id.get())).await?;
+
+        Ok(row.enabled && row.auto_generate)
     }
 }
 

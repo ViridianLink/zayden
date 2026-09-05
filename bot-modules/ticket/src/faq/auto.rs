@@ -4,31 +4,36 @@ use serenity::all::{CreateMessage, GuildId, Http, Mentionable, ThreadId, UserId}
 use tracing::{error, warn};
 use zayden_app::state::AppState;
 
-use crate::faq::{FaqContext, keywords, lookup, triage};
+use crate::faq::triage::Opening;
+use crate::faq::{FaqContext, keywords, linked, lookup, triage};
+
+pub(crate) struct TicketOpening {
+    pub thread_id: ThreadId,
+    pub guild_id: GuildId,
+    pub author: UserId,
+    pub title: String,
+    pub tags: Vec<String>,
+    pub content: String,
+}
 
 pub(crate) fn on_ticket_opened(
     http: Arc<Http>,
     app: Arc<AppState>,
     context: FaqContext,
-    thread_id: ThreadId,
-    guild_id: GuildId,
-    author: UserId,
-    content: String,
+    opening: TicketOpening,
 ) {
-    tokio::spawn(run_triage(
-        http, app, context, thread_id, guild_id, author, content,
-    ));
+    tokio::spawn(run_triage(http, app, context, opening));
 }
 
 async fn run_triage(
     http: Arc<Http>,
     app: Arc<AppState>,
     context: FaqContext,
-    thread_id: ThreadId,
-    guild_id: GuildId,
-    author: UserId,
-    content: String,
+    opening: TicketOpening,
 ) {
+    let TicketOpening { thread_id, guild_id, author, title, tags, content } =
+        opening;
+
     let keywords = match keywords::extract(&app, &content).await {
         Ok(keywords) => keywords,
         Err(e) => {
@@ -46,7 +51,15 @@ async fn run_triage(
     )
     .await;
 
-    let triage = match triage::synthesize(&app, &content, &results).await {
+    let links = linked::pages(&app.http, &content).await;
+
+    let triage = match triage::synthesize(
+        &app,
+        Opening { title: &title, tags: &tags, message: &content, links: &links },
+        &results,
+    )
+    .await
+    {
         Ok(triage) => triage,
         Err(e) => {
             error!(error = ?e, %thread_id, "faq triage synthesis failed");

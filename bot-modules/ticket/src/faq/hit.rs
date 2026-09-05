@@ -4,13 +4,13 @@ use crate::wiki::SearchResult;
 const LOCAL_PREFIX: &str = "local:";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FaqSource {
+pub enum FaqSource {
     Wiki,
     Local { id: i32 },
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct FaqHit {
+pub struct FaqHit {
     pub title: String,
     pub description: String,
     pub path: String,

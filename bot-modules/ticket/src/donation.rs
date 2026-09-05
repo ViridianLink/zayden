@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{GuildId, Http, Mentionable, RoleId, ThreadId, UserId};
 use sqlx::PgPool;
+use tracing::warn;
 
 use crate::Result;
 use crate::helper_links::HelperLinks;
@@ -27,7 +28,8 @@ pub async fn message(
         return Ok(None);
     }
 
-    let helpers = scan_helpers(http, thread_id, helper_roles, &links).await?;
+    let helpers =
+        scan_helpers(http, guild_id, thread_id, helper_roles, &links).await?;
 
     if helpers.is_empty() {
         return Ok(None);
@@ -38,33 +40,56 @@ pub async fn message(
 
 async fn scan_helpers(
     http: &Http,
+    guild_id: GuildId,
     thread_id: ThreadId,
     helper_roles: &[RoleId],
     links: &HashMap<UserId, String>,
 ) -> Result<Vec<(UserId, String)>> {
-    let helpers = thread_id
-        .widen()
-        .messages_iter(http)
-        .take(HELPER_SCAN_LIMIT)
-        .try_fold(HashMap::new(), async |mut helpers, m| {
-            let Some(member) = m.member else { return Ok(helpers) };
+    let candidates = speakers(http, thread_id, links).await?;
 
-            if !member.roles.iter().any(|role| helper_roles.contains(role)) {
-                return Ok(helpers);
-            }
+    let mut helpers = Vec::with_capacity(candidates.len());
 
-            if let Some(link) = links.get(&m.author.id) {
-                helpers.insert(m.author.id, link.clone());
-            }
+    for id in candidates {
+        // `Message::member` is only populated on gateway events, so the roles
+        // have to be read back per author rather than off the history fetch.
+        let member = match guild_id.member(http, id).await {
+            Ok(member) => member,
+            Err(e) => {
+                warn!(error = ?e, %guild_id, user_id = %id, "could not read helper roles");
+                continue;
+            },
+        };
 
-            Ok(helpers)
-        })
-        .await?;
+        if member.roles.iter().any(|role| helper_roles.contains(role))
+            && let Some(link) = links.get(&id)
+        {
+            helpers.push((id, link.clone()));
+        }
+    }
 
-    let mut helpers = helpers.into_iter().collect::<Vec<_>>();
     helpers.sort_unstable_by_key(|(id, _)| *id);
 
     Ok(helpers)
+}
+
+async fn speakers(
+    http: &Http,
+    thread_id: ThreadId,
+    links: &HashMap<UserId, String>,
+) -> Result<HashSet<UserId>> {
+    thread_id
+        .widen()
+        .messages_iter(http)
+        .take(HELPER_SCAN_LIMIT)
+        .try_fold(HashSet::new(), async |mut speakers, m| {
+            if !m.author.bot() && links.contains_key(&m.author.id) {
+                speakers.insert(m.author.id);
+            }
+
+            Ok(speakers)
+        })
+        .await
+        .map_err(Into::into)
 }
 
 #[must_use]

@@ -55,9 +55,9 @@ impl Ticket {
         interaction
             .edit_response(
                 http,
-                EditInteractionResponse::new().content(format!(
-                    "This post has been marked as solved.\n-# Post closed <t:{}:R>",
-                    Timestamp::now().as_second()
+                EditInteractionResponse::new().content(solve::solved_notice(
+                    Timestamp::now(),
+                    row.solved_archive_secs,
                 )),
             )
             .await?;

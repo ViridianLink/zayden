@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
 use serde::Deserialize;
@@ -5,14 +7,16 @@ use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use zayden_app::state::AppState;
 
 use crate::faq::hit::FaqHit;
+use crate::faq::linked::LinkedPage;
 use crate::faq::render::truncate;
 use crate::faq::view::link_line;
 use crate::wiki::WikiConfig;
 
 const SYSTEM_PROMPT: &str = "You are a Discord support-ticket triage assistant \
-for a self-hosted documentation wiki. A new support ticket has just been opened \
-with the user's message below, plus a fixed list of candidate wiki articles \
-(title, description, path) found by a keyword search of that message.
+for a self-hosted documentation wiki. A new support ticket has just been opened. \
+You are given its title, the forum tags the user picked, their message, the text \
+of every page their message linked to, and a fixed list of candidate wiki \
+articles (title, description, path) found by a keyword search of that message.
 
 Your job:
 - Write a short, friendly greeting (1-2 sentences) acknowledging the user's issue.
@@ -21,7 +25,12 @@ with this issue. Never invent an article or path that is not in the candidate li
 It is fine to select none if nothing fits.
 - Write 1 to 4 short follow-up triage questions a human helper would need answered \
 before they can assist (e.g. software/version, exact error message, what was already \
-tried). Skip a question the user's message already answers.
+tried). Return an empty list when nothing is left to ask.
+
+Never ask for something the ticket already provides. The title, the forum tags and \
+the linked page contents are part of the ticket: a tag naming the product, platform \
+or version has answered that question, and a linked log, paste or issue has answered \
+every question its text covers. Read the linked pages before deciding what to ask.
 
 Do not use em dashes, emojis, or filler pleasantries. Be concise.";
 
@@ -60,11 +69,42 @@ fn schema() -> serde_json::Value {
     })
 }
 
-pub(crate) async fn synthesize(
-    app: &AppState,
-    message: &str,
-    hits: &[FaqHit],
-) -> Result<Triage, ai::Error> {
+#[derive(Debug, Clone, Copy)]
+pub struct Opening<'a> {
+    pub title: &'a str,
+    pub tags: &'a [String],
+    pub message: &'a str,
+    pub links: &'a [LinkedPage],
+}
+
+#[must_use]
+pub fn user_prompt(opening: Opening<'_>, hits: &[FaqHit]) -> String {
+    let mut prompt = String::new();
+
+    if !opening.title.trim().is_empty() {
+        let _ = writeln!(prompt, "Ticket title: {}", opening.title.trim());
+    }
+
+    let _ = writeln!(
+        prompt,
+        "Forum tags the user applied: {}",
+        if opening.tags.is_empty() {
+            String::from("(none)")
+        } else {
+            opening.tags.join(", ")
+        }
+    );
+
+    let _ = writeln!(prompt, "\nUser's message:\n{}", opening.message);
+
+    for page in opening.links {
+        let _ = writeln!(
+            prompt,
+            "\nContents of the page the user linked ({}):\n{}",
+            page.url, page.text
+        );
+    }
+
     let candidates = hits
         .iter()
         .map(|hit| {
@@ -76,14 +116,23 @@ pub(crate) async fn synthesize(
         })
         .collect::<Vec<_>>();
 
-    let user_prompt = format!(
-        "User's message: \"{message}\"\n\nCandidate wiki articles:\n{}",
+    let _ = write!(
+        prompt,
+        "\nCandidate wiki articles:\n{}",
         serde_json::Value::Array(candidates)
     );
 
+    prompt
+}
+
+pub(crate) async fn synthesize(
+    app: &AppState,
+    opening: Opening<'_>,
+    hits: &[FaqHit],
+) -> Result<Triage, ai::Error> {
     let messages = vec![
         ChatMessage::new(Role::System, SYSTEM_PROMPT),
-        ChatMessage::new(Role::User, user_prompt),
+        ChatMessage::new(Role::User, user_prompt(opening, hits)),
     ];
 
     let client = AiClient::new(

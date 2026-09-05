@@ -1,12 +1,20 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use serenity::all::{GetMessages, GuildThread, Http, Message, MessageId, UserId};
+use serenity::all::{
+    GetMessages,
+    GuildId,
+    GuildThread,
+    Http,
+    Message,
+    MessageId,
+    UserId,
+};
 use tokio::time::sleep;
 use tracing::{debug, warn};
 use zayden_app::state::AppState;
 
-use crate::faq::{FaqContext, on_ticket_opened};
+use crate::faq::{FaqContext, TicketOpening, on_ticket_opened};
 use crate::idle::ThreadActivity;
 use crate::{ISSUE_EMBED_TITLE, Result, TicketGuildRow, TicketStores};
 
@@ -73,14 +81,48 @@ impl SupportThreadCreate {
             Arc::clone(http),
             Arc::clone(app),
             context,
-            thread.id,
-            guild_id,
-            author,
-            content,
+            TicketOpening {
+                thread_id: thread.id,
+                guild_id,
+                author,
+                title: thread.base.name.to_string(),
+                tags: tag_names(http, guild_id, thread).await,
+                content,
+            },
         );
 
         Ok(())
     }
+}
+
+async fn tag_names(
+    http: &Http,
+    guild_id: GuildId,
+    thread: &GuildThread,
+) -> Vec<String> {
+    if thread.applied_tags.is_empty() {
+        return Vec::new();
+    }
+
+    let parent = match thread.parent_id.to_guild_channel(http, Some(guild_id)).await
+    {
+        Ok(parent) => parent,
+        Err(e) => {
+            warn!(
+                error = ?e,
+                channel_id = %thread.parent_id,
+                "could not read the support channel's forum tags",
+            );
+            return Vec::new();
+        },
+    };
+
+    thread
+        .applied_tags
+        .iter()
+        .filter_map(|id| parent.available_tags.iter().find(|tag| tag.id == *id))
+        .map(|tag| tag.name.to_string())
+        .collect()
 }
 
 async fn read_opening(

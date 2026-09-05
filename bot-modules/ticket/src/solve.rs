@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use jiff::Timestamp;
 use serenity::all::{
     ChannelId,
     EditThread,
@@ -45,6 +46,20 @@ pub(crate) async fn mark_solved(
     on_ticket_solved(http, app, stores, thread_id, guild_id).await;
 
     Ok(())
+}
+
+const SOLVED_NOTICE: &str = "This post has been marked as solved.";
+
+#[must_use]
+pub fn solved_notice(now: Timestamp, archive_secs: i32) -> String {
+    if archive_secs == ARCHIVE_NEVER {
+        return SOLVED_NOTICE.to_owned();
+    }
+
+    format!(
+        "{SOLVED_NOTICE}\n-# Post closes <t:{}:R>",
+        now.as_second() + i64::from(archive_secs)
+    )
 }
 
 fn schedule_archive(http: Arc<Http>, thread_id: ThreadId, secs: i32) {

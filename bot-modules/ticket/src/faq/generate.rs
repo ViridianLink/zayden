@@ -18,17 +18,16 @@ pub(crate) async fn on_ticket_solved(
     thread_id: ThreadId,
     guild_id: GuildId,
 ) {
-    let context = match FaqContext::load(stores.faq, guild_id).await {
-        Ok(Some(context)) => context,
-        Ok(None) => return,
+    match FaqContext::generation_enabled(stores.faq, guild_id).await {
+        Ok(true) => {},
+        Ok(false) => {
+            debug!(%guild_id, %thread_id, "faq article generation is disabled");
+            return;
+        },
         Err(e) => {
             warn!(error = ?e, %guild_id, "could not load faq settings");
             return;
         },
-    };
-
-    if !context.auto_generate {
-        return;
     }
 
     tokio::spawn(run(Arc::clone(http), Arc::clone(app), thread_id, guild_id));
