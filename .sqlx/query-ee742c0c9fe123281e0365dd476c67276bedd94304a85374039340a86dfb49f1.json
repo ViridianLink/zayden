@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT campaign_id,\n                   next_cursor,\n                   seeded_at AS \"seeded_at: Timestamp\",\n                   consecutive_failures\n            FROM patreon_campaigns\n            WHERE campaign_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "campaign_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_campaigns",
+            "name": "campaign_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "next_cursor",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_campaigns",
+            "name": "next_cursor"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "seeded_at: Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "patreon_campaigns",
+            "name": "seeded_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "consecutive_failures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "patreon_campaigns",
+            "name": "consecutive_failures"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "ee742c0c9fe123281e0365dd476c67276bedd94304a85374039340a86dfb49f1"
+}

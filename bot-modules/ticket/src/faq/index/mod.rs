@@ -74,7 +74,9 @@ impl WikiIndex {
                             index.invalidate(GuildId::new(guild_id));
                         }
                     },
-                    Ok(AppEvent::EntitlementChanged(_)) => {},
+                    Ok(
+                        AppEvent::EntitlementChanged(_) | AppEvent::PatreonPost(_),
+                    ) => {},
                     Err(RecvError::Lagged(n)) => {
                         warn!(n, "wiki index invalidator lagged; dropping all");
                         index.guilds.clear();

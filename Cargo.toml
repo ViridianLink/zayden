@@ -156,6 +156,7 @@ llamad2 = { path = "./bot-modules/llamad2" }
 marathon = { path = "./bot-modules/marathon" }
 music = { path = "./bot-modules/music" }
 palworld = { path = "./bot-modules/palworld" }
+patreon = { path = "./bot-modules/patreon" }
 reaction-roles = { path = "./bot-modules/reaction-roles" }
 servers-at-home = { path = "./bot-modules/servers-at-home" }
 suggestions = { path = "./bot-modules/suggestions" }
@@ -229,12 +230,13 @@ clap = { version = "*", default-features = false, features = [
 dotenvy = { version = "*", default-features = false }
 
 # -- HTTP client
-reqwest = { version = "*", default-features = false, features = ["rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 oauth2 = { version = "*", default-features = false, features = [
   "reqwest",
   "rustls-tls",
 ] }
 rustls = { version = "*", default-features = false }
+ego-tree = { version = "*", default-features = false }
 scraper = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 
@@ -304,6 +306,10 @@ oozextract = { version = "=0.5.0" }
 zip = { version = "*", default-features = false }
 
 # -- Text and hashing
+# Majors pinned together: `hmac` 0.13 and `md-5` 0.11 both build on `digest`
+# 0.11, and `*` resolves `hmac` to 0.12 (digest 0.10), which will not compose.
+hmac = { version = "0.13", default-features = false }
+md-5 = { version = "0.11", default-features = false }
 regex = { version = "*", default-features = false }
 sha2 = { version = "*", default-features = false }
 

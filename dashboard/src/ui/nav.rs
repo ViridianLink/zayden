@@ -94,6 +94,14 @@ pub(crate) const MODULES: &[ModuleNav] = &[
         module_id: Some("music"),
     },
     ModuleNav {
+        label: "Patreon",
+        dest: Dest::Section {
+            slug: "patreon",
+            lead: "Connect a Patreon campaign and choose where its posts are announced.",
+        },
+        module_id: Some("patreon"),
+    },
+    ModuleNav {
         label: "Reaction Roles",
         dest: Dest::Page("reaction-roles"),
         module_id: None,

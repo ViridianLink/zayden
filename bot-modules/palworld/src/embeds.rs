@@ -5,14 +5,8 @@ use serenity::all::{
     CreateComponent,
     CreateContainer,
     CreateContainerComponent,
-    CreateSection,
-    CreateSectionAccessory,
-    CreateSectionComponent,
-    CreateSeparator,
-    CreateTextDisplay,
-    CreateThumbnail,
-    CreateUnfurledMediaItem,
 };
+use zayden_core::templates::{body_component, separator, text};
 
 use crate::model::{Element, Item, Pal, PassiveSkill};
 use crate::progress::{Milestone, Progress, Region};
@@ -20,31 +14,6 @@ use crate::progress::{Milestone, Progress, Region};
 const MAX_LEAVES: usize = 25;
 
 const ACCENT: Colour = Colour::from_rgb(0x35, 0xc7, 0x59);
-
-fn separator() -> CreateContainerComponent<'static> {
-    CreateContainerComponent::Separator(CreateSeparator::new().divider(true))
-}
-
-fn text(content: impl Into<String>) -> CreateContainerComponent<'static> {
-    CreateContainerComponent::TextDisplay(CreateTextDisplay::new(content.into()))
-}
-
-fn body_component(
-    content: String,
-    thumbnail_url: Option<&str>,
-) -> CreateContainerComponent<'static> {
-    match thumbnail_url {
-        Some(url) => CreateContainerComponent::Section(CreateSection::new(
-            vec![CreateSectionComponent::TextDisplay(CreateTextDisplay::new(
-                content,
-            ))],
-            CreateSectionAccessory::Thumbnail(CreateThumbnail::new(
-                CreateUnfurledMediaItem::new(url.to_string()),
-            )),
-        )),
-        None => text(content),
-    }
-}
 
 fn labelled_list(
     title: &str,

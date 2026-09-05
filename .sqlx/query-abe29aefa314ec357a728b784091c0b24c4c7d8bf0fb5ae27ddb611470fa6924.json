@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE patreon_campaigns\n            SET next_cursor = $2,\n                seeded_at = COALESCE(seeded_at, now()),\n                last_polled_at = now(),\n                consecutive_failures = 0\n            WHERE campaign_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "abe29aefa314ec357a728b784091c0b24c4c7d8bf0fb5ae27ddb611470fa6924"
+}

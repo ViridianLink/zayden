@@ -25,7 +25,8 @@ const NAMED: &[(&str, &str)] = &[
     ("deg", "\u{b0}"),
 ];
 
-pub(crate) fn strip(content: &str) -> String {
+#[must_use]
+pub fn strip(content: &str) -> String {
     decode_entities(&strip_tags(content))
 }
 

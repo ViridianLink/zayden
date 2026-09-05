@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO patreon_campaigns (campaign_id) VALUES ($1)\n             ON CONFLICT (campaign_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b9c5f5298bfa0e078b431cc54ef877a8853e56718a65abac31df3356a053f61f"
+}

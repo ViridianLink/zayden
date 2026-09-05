@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE patreon_oauth SET disabled_at = now(), updated_at = now()\n             WHERE guild_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "443dc2d9c26da71c01a6615ce103e67b683b9b22d949252bb7332aea0b1450d9"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n            SELECT 1\n            FROM patreon_oauth o\n            JOIN patreon_announce a ON a.guild_id = o.guild_id\n            WHERE o.campaign_id = $1 AND o.disabled_at IS NULL\n        ) AS \"exists!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "935f619068a39fc6f9ddcc984fcc68594d4bb6225e03d9a9b16006e4bba00596"
+}

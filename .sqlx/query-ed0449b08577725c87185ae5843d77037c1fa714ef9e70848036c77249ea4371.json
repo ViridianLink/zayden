@@ -1,0 +1,110 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DISTINCT ON (o.campaign_id)\n                   o.guild_id,\n                   o.campaign_id,\n                   o.creator_name,\n                   o.access_token,\n                   o.refresh_token,\n                   o.expires_at AS \"expires_at: Timestamp\",\n                   o.webhook_id,\n                   o.disabled_at AS \"disabled_at: Timestamp\"\n            FROM patreon_oauth o\n            JOIN patreon_announce a ON a.guild_id = o.guild_id\n            WHERE o.disabled_at IS NULL\n            ORDER BY o.campaign_id, o.guild_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "campaign_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "campaign_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "creator_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "creator_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "access_token",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "access_token"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "refresh_token",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "refresh_token"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "expires_at: Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "webhook_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "webhook_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "disabled_at: Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "disabled_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "ed0449b08577725c87185ae5843d77037c1fa714ef9e70848036c77249ea4371"
+}

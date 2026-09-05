@@ -1,0 +1,22 @@
+{
+  "data": {
+    "attributes": {
+      "content": "<p>Straight from the webhook.</p>",
+      "is_public": false,
+      "published_at": "2026-09-02T18:45:00.000+00:00",
+      "title": "Webhook post",
+      "url": "https://www.patreon.com/posts/webhook-post-2001"
+    },
+    "id": "2001",
+    "relationships": {
+      "campaign": {
+        "data": {
+          "id": "555000",
+          "type": "campaign"
+        }
+      }
+    },
+    "type": "post"
+  },
+  "included": []
+}

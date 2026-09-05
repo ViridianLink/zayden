@@ -46,6 +46,7 @@ ssr = [
   "dep:moka",
   "dep:oauth2",
   "dep:palworld",
+  "dep:patreon",
   "dep:rand",
   "dep:reaction-roles",
   "dep:rustls",
@@ -82,6 +83,7 @@ jiff-sqlx = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"], optional = true }
 oauth2 = { workspace = true, optional = true }
 palworld = { workspace = true, optional = true }
+patreon = { workspace = true, optional = true }
 rand = { workspace = true, features = ["thread_rng"], optional = true }
 reaction-roles = { workspace = true, optional = true }
 rustls = { workspace = true, features = ["aws-lc-rs"], optional = true }

@@ -4,7 +4,7 @@ pub mod registry;
 pub mod settings_store;
 pub mod tables;
 
-pub use bot_config::{BotConfig, PelicanConfig};
+pub use bot_config::{BotConfig, PatreonConfig, PelicanConfig};
 pub use radio::{Genre, RadioStation};
 pub use registry::SettingsRegistry;
 pub use settings_store::{SettingsRow, SettingsStore};

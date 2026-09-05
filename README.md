@@ -5,16 +5,16 @@ them. Serenity for Discord, Leptos for the dashboard, Postgres via `sqlx`.
 
 ## Layout
 
-| Path | What it is |
-| --- | --- |
-| `bot/` | the bot binary — wires modules into a Serenity client |
-| `bot-modules/*` | one crate per feature (gambling, levels, music, palworld, …) |
-| `bot-modules/zayden-core` | command/event routing traits shared by every module |
-| `zayden-app` | application layer: config, entitlements, shared state |
-| `dashboard/` | Leptos SSR + WASM hydration operator dashboard |
-| `migrations/` | sqlx migrations, immutable once written |
-| `.sqlx/` | offline query cache; committed, regenerated on any query change |
-| `design-docs/` | specs, plans, and per-module audits |
+| Path                      | What it is                                                      |
+| ------------------------- | --------------------------------------------------------------- |
+| `bot/`                    | the bot binary — wires modules into a Serenity client           |
+| `bot-modules/*`           | one crate per feature (gambling, levels, music, palworld, …)    |
+| `bot-modules/zayden-core` | command/event routing traits shared by every module             |
+| `zayden-app`              | application layer: config, entitlements, shared state           |
+| `dashboard/`              | Leptos SSR + WASM hydration operator dashboard                  |
+| `migrations/`             | sqlx migrations, immutable once written                         |
+| `.sqlx/`                  | offline query cache; committed, regenerated on any query change |
+| `design-docs/`            | specs, plans, and per-module audits                             |
 
 ## Commands
 
@@ -63,7 +63,7 @@ command weaker than CI is how drift starts.
 - Lints are declared once in the root `Cargo.toml` under `[workspace.lints]`;
   every crate opts in with `[lints] workspace = true`.
 - Dependency versions are pinned once in `[workspace.dependencies]`; member
-  crates say `foo.workspace = true` and may *add* features on top, but never
+  crates say `foo.workspace = true` and may _add_ features on top, but never
   restate a version. Unused workspace entries cost nothing — cargo only
   resolves a dependency once a member opts in.
 - `unwrap`/`expect`/`panic`/`todo`/`dbg!` are **denied** outside tests;

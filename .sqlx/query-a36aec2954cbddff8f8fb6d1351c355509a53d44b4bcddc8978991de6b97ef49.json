@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE patreon_oauth\n            SET access_token = $2,\n                refresh_token = $3,\n                expires_at = now() + make_interval(secs => $4),\n                disabled_at = NULL,\n                updated_at = now()\n            WHERE guild_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a36aec2954cbddff8f8fb6d1351c355509a53d44b4bcddc8978991de6b97ef49"
+}

@@ -15,6 +15,7 @@ normal_log = "https://discord.com/api/webhooks/<id>/<token>"
 [dashboard]
 frontend_url = "http://localhost:5173"
 redirect_uri = "http://localhost:3000/auth/callback"
+patreon_redirect_uri = "http://localhost:3000/patreon/callback"
 bind_addr = "0.0.0.0:3000"
 invite_url = "https://discord.com/oauth2/authorize?client_id=<id>&permissions=8&integration_type=0&scope=bot+applications.commands"
 upgrade_url = "https://ko-fi.com/your-page"

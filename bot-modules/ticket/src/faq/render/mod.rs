@@ -1,5 +1,4 @@
 mod code;
-mod html;
 mod links;
 mod sections;
 mod spans;
@@ -9,6 +8,7 @@ mod truncate;
 pub use links::thumbnail;
 pub use sections::{Section, anchor, best_match, fit, split_sections};
 pub use truncate::truncate;
+use zayden_core::html;
 
 use crate::faq::render::spans::{Span, blocks, map_text};
 use crate::wiki::WikiConfig;

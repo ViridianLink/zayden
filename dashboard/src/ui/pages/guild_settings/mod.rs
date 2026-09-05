@@ -4,6 +4,7 @@ pub mod general;
 pub mod honeypot;
 pub mod lfg;
 pub mod music;
+pub mod patreon;
 pub mod support;
 pub mod temp_voice;
 
@@ -12,7 +13,13 @@ use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 use twilight_model::channel::ChannelType;
 
-use crate::dto::{ChannelInfo, GuildSettings, HelperLinkInfo, RoleInfo};
+use crate::dto::{
+    ChannelInfo,
+    GuildSettings,
+    HelperLinkInfo,
+    PatreonStatus,
+    RoleInfo,
+};
 use crate::server::discord::{list_guild_channels, list_guild_roles};
 use crate::server::guild::{
     AddHelperLink,
@@ -24,6 +31,7 @@ use crate::server::guild::{
     list_helper_links,
     list_support_roles,
 };
+use crate::server::patreon::get_patreon_status;
 use crate::ui::components::layout::AppShell;
 use crate::ui::nav;
 
@@ -74,6 +82,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                 list_helper_links(gid.clone()).await.unwrap_or_default();
             let channels =
                 list_guild_channels(gid.clone()).await.unwrap_or_default();
+            let patreon = get_patreon_status(gid.clone()).await.unwrap_or_default();
             let roles = list_guild_roles(gid).await.unwrap_or_default();
             Ok::<
                 (
@@ -82,9 +91,17 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                     Vec<HelperLinkInfo>,
                     Vec<ChannelInfo>,
                     Vec<RoleInfo>,
+                    PatreonStatus,
                 ),
                 ServerFnError,
-            >((settings, support_roles, helper_links, channels, roles))
+            >((
+                settings,
+                support_roles,
+                helper_links,
+                channels,
+                roles,
+                patreon,
+            ))
         },
     );
 
@@ -107,7 +124,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                         Err(e) => view! {
                             <p class="error">"Failed to load settings: " {e.to_string()}</p>
                         }.into_any(),
-                        Ok((s, support_roles, helper_links, channels, roles)) => {
+                        Ok((s, support_roles, helper_links, channels, roles, patreon)) => {
                             let gid = guild_id();
                             // Re-runs on section change only; the resource above
                             // is untouched, so switching modules never refetches.
@@ -118,6 +135,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                 let helper_links = helper_links.clone();
                                 let channels = channels.clone();
                                 let roles = roles.clone();
+                                let patreon_status = patreon.clone();
 
                                 match active.get().slug() {
                                     Some("support") => view! {
@@ -165,6 +183,13 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                         <ai::AiTab
                                             guild_id=guild_id
                                             settings=s
+                                            channels=channels
+                                        />
+                                    }.into_any(),
+                                    Some("patreon") => view! {
+                                        <patreon::PatreonTab
+                                            guild_id=guild_id
+                                            status=patreon_status
                                             channels=channels
                                         />
                                     }.into_any(),

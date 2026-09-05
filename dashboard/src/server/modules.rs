@@ -49,6 +49,12 @@ const MODULES: &[ModuleDef] = &[
         backing: Backing::Commands(&["palworld"]),
     },
     ModuleDef {
+        id: "patreon",
+        label: "Patreon",
+        description: "Announce a connected Patreon campaign's new posts.",
+        backing: Backing::Settings,
+    },
+    ModuleDef {
         id: "marathon",
         label: "Marathon",
         description: "Marathon wiki lookups and news.",

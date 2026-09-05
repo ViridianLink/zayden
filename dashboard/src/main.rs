@@ -23,6 +23,7 @@ use oauth2::url::ParseError;
 use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
 use palworld::client::PalworldClient;
 use palworld::transport::Pelican;
+use patreon::oauth::PatreonApp;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tower_cookies::cookie::SameSite;
@@ -52,10 +53,12 @@ pub(crate) struct WebState {
         EndpointSet,
     >,
     pub(crate) http_oauth: oauth2::reqwest::Client,
-    pub(crate) discord_token: String,
     pub(crate) invite_url: Option<String>,
     pub(crate) upgrade_url: Option<String>,
     pub(crate) kofi_verification_token: Option<String>,
+    pub(crate) patreon: Option<PatreonApp>,
+    pub(crate) patreon_webhook_uri: String,
+    pub(crate) discord_http: Arc<twilight_http::Client>,
     pub(crate) session_cache: Cache<String, i64>,
     pub(crate) leptos_options: LeptosOptions,
     pub(crate) palworld: Arc<PalworldClient>,
@@ -91,9 +94,24 @@ impl WebState {
             palworld,
             oauth_client: state::build_oauth_client(config)?,
             http_oauth: oauth2::reqwest::Client::new(),
-            discord_token: config.discord_token.clone(),
             upgrade_url: config.upgrade_url.clone(),
             kofi_verification_token: config.kofi_verification_token.clone(),
+            patreon: config.patreon.as_ref().map(|p| PatreonApp {
+                client_id: p.client_id.clone(),
+                client_secret: p.client_secret.clone(),
+                redirect_uri: p.redirect_uri.clone(),
+            }),
+            // Patreon delivers to a fixed URL, so it is derived from the
+            // callback the app is already registered against.
+            patreon_webhook_uri: config
+                .patreon
+                .as_ref()
+                .map_or_else(String::new, |p| {
+                    p.redirect_uri.replace("/patreon/callback", "/webhooks/patreon")
+                }),
+            discord_http: Arc::new(twilight_http::Client::new(
+                config.discord_token.clone(),
+            )),
             invite_url: config.invite_url.clone(),
             session_cache: Cache::builder()
                 .max_capacity(1024)
@@ -143,8 +161,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let discord_http =
-        Arc::new(twilight_http::Client::new(web_state.discord_token.clone()));
+    let discord_http = Arc::clone(&web_state.discord_http);
 
     let routes = generate_route_list(App);
 

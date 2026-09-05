@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE patreon_posts SET thumbnail_url = $2 WHERE post_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "76376853965b7f156cca1dea45bbd9615e077eca1b25b011c86e67c47f1ce3d0"
+}

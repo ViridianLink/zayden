@@ -11,7 +11,7 @@ pub mod tier;
 pub use discord::{ChannelInfo, ForumTagInfo, RoleInfo, SessionUser};
 pub use faq::FaqArticleInfo;
 pub use greetings::{CooldownView, GreetingImageInfo, GreetingsView};
-pub use guild::{GuildInfo, GuildSettings, HelperLinkInfo};
+pub use guild::{GuildInfo, GuildSettings, HelperLinkInfo, PatreonStatus};
 pub use levels::LeaderboardEntry;
 pub use modules::ModuleView;
 pub use palworld_save::{

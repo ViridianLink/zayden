@@ -574,6 +574,7 @@ dependencies = [
  "marathon",
  "music",
  "palworld",
+ "patreon",
  "rand 0.10.2",
  "reaction-roles",
  "rustls",
@@ -1314,6 +1315,7 @@ dependencies = [
  "moka",
  "oauth2",
  "palworld",
+ "patreon",
  "rand 0.10.2",
  "reaction-roles",
  "rustls",
@@ -4545,6 +4547,30 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
+
+[[package]]
+name = "patreon"
+version = "1.0.0"
+dependencies = [
+ "ego-tree",
+ "futures",
+ "hmac 0.13.0",
+ "jiff",
+ "jiff-cron",
+ "jiff-sqlx",
+ "md-5",
+ "reqwest 0.13.4",
+ "scraper",
+ "serde",
+ "serde_json",
+ "serenity",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "url",
+ "zayden-core",
+]
 
 [[package]]
 name = "patricia_tree"

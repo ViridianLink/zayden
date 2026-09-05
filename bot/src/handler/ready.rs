@@ -7,6 +7,7 @@ use tracing::info;
 use crate::bindings::ai::Ai;
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
+use crate::patreon_webhook::spawn_patreon_listener;
 use crate::{BotState, Result};
 
 impl Handler {
@@ -32,6 +33,8 @@ impl Handler {
 
             let palworld = Arc::clone(&self.bot_state.read().await.palworld);
             tokio::spawn(async move { palworld.warm().await });
+
+            spawn_patreon_listener(ctx.clone(), Arc::clone(&self.app));
 
             let ctx = ctx.clone();
             let pool = self.app.db.clone();

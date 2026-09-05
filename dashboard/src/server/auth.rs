@@ -131,15 +131,15 @@ impl GuildAccess {
 }
 
 #[cfg(feature = "ssr")]
-pub(crate) struct GuildAdminContext {
-    pub(crate) guild_id: i64,
+pub struct GuildAdminContext {
+    pub guild_id: i64,
     pub(crate) access_token: String,
     pub(crate) access: GuildAccess,
 }
 
 #[cfg(feature = "ssr")]
-async fn bot_is_in_guild(guild_id: u64) -> bool {
-    let (Ok(http), Some(id)) = (discord_client(), Id::new_checked(guild_id)) else {
+async fn bot_is_in_guild(discord: Option<&Client>, guild_id: u64) -> bool {
+    let (Some(http), Some(id)) = (discord, Id::new_checked(guild_id)) else {
         return false;
     };
 
@@ -147,42 +147,55 @@ async fn bot_is_in_guild(guild_id: u64) -> bool {
 }
 
 #[cfg(feature = "ssr")]
-pub(crate) async fn guild_admin_context(
+pub struct SessionIdentity {
+    pub user_id: i64,
+    pub access_token: String,
+}
+
+#[cfg(feature = "ssr")]
+pub async fn session_identity(
+    pool: &PgPool,
+    token: &str,
+) -> Result<SessionIdentity, ServerFnError> {
+    let row = sqlx::query!(
+        "SELECT discord_access_token, discord_user_id FROM web_sessions \
+         WHERE token = $1 AND expires_at > now()",
+        token,
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(server_err)?;
+
+    let Some(row) = row else {
+        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
+    };
+
+    Ok(SessionIdentity {
+        user_id: row.discord_user_id,
+        access_token: row.discord_access_token,
+    })
+}
+
+#[cfg(feature = "ssr")]
+pub async fn guild_admin_for(
+    pool: &PgPool,
+    identity: &SessionIdentity,
     guild_id_str: &str,
+    discord: Option<&Client>,
 ) -> Result<GuildAdminContext, ServerFnError> {
     let Ok(guild_id) = guild_id_str.parse::<i64>() else {
         return Err(ServerFnError::ServerError("invalid guild id".to_string()));
     };
     let guild_id_u64 = guild_id.cast_unsigned();
 
-    let pool = db_pool()?;
-
-    let cookies: Cookies = extract().await.map_err(server_err)?;
-    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-
-    let row = sqlx::query!(
-        "SELECT discord_access_token, discord_user_id FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-        &token,
-    )
-    .fetch_optional(&pool)
-    .await
-    .map_err(server_err)?;
-    let Some(row) = row else {
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-    let access_token: String = row.discord_access_token;
-    let user_id: i64 = row.discord_user_id;
-
-    let all_guilds = bearer_client(&access_token)
+    let all_guilds = bearer_client(&identity.access_token)
         .current_user_guilds()
         .await
         .map_err(server_err)?
         .model()
         .await
         .map_err(server_err)?;
+
     let is_member_admin = all_guilds.iter().any(|g| {
         g.id.get() == guild_id_u64
             && g.permissions
@@ -192,22 +205,43 @@ pub(crate) async fn guild_admin_context(
     if is_member_admin {
         return Ok(GuildAdminContext {
             guild_id,
-            access_token,
+            access_token: identity.access_token.clone(),
             access: GuildAccess::Member,
         });
     }
 
-    if !has_role(&pool, user_id, WebRole::Operator).await? {
+    if !has_role(pool, identity.user_id, WebRole::Operator).await? {
         return Err(ServerFnError::ServerError("forbidden".to_string()));
     }
 
-    if !bot_is_in_guild(guild_id_u64).await {
+    if !bot_is_in_guild(discord, guild_id_u64).await {
         return Err(ServerFnError::ServerError(
             "Zayden isn't in that server".to_string(),
         ));
     }
 
-    Ok(GuildAdminContext { guild_id, access_token, access: GuildAccess::Operator })
+    Ok(GuildAdminContext {
+        guild_id,
+        access_token: identity.access_token.clone(),
+        access: GuildAccess::Operator,
+    })
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) async fn guild_admin_context(
+    guild_id_str: &str,
+) -> Result<GuildAdminContext, ServerFnError> {
+    let pool = db_pool()?;
+
+    let cookies: Cookies = extract().await.map_err(server_err)?;
+    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
+        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
+    };
+
+    let identity = session_identity(&pool, &token).await?;
+    let discord = discord_client().ok();
+
+    guild_admin_for(&pool, &identity, guild_id_str, discord.as_deref()).await
 }
 
 #[cfg(feature = "ssr")]

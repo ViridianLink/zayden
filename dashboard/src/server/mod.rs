@@ -9,6 +9,7 @@ pub mod levels;
 pub mod modules;
 pub mod operator;
 pub mod palworld_save;
+pub mod patreon;
 pub mod reaction_roles;
 #[cfg(feature = "ssr")]
 pub mod supersede;

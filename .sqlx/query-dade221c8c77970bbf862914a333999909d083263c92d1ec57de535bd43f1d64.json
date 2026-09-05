@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO patreon_posts (\n            post_id, campaign_id, title, url, content_html, is_public,\n            published_at, announced_at\n        )\n        VALUES ($1, $2, $3, $4, $5, $6, $7, CASE WHEN $8 THEN now() END)\n        ON CONFLICT (post_id) DO NOTHING\n        RETURNING TRUE AS \"inserted!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "inserted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Timestamptz",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dade221c8c77970bbf862914a333999909d083263c92d1ec57de535bd43f1d64"
+}

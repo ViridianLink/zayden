@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO patreon_oauth (\n                guild_id, campaign_id, creator_name, access_token, refresh_token,\n                expires_at, webhook_id, webhook_secret, connected_by\n            )\n            VALUES ($1, $2, $3, $4, $5, now() + make_interval(secs => $6), $7, $8, $9)\n            ON CONFLICT (guild_id) DO UPDATE\n            SET campaign_id = EXCLUDED.campaign_id,\n                creator_name = EXCLUDED.creator_name,\n                access_token = EXCLUDED.access_token,\n                refresh_token = EXCLUDED.refresh_token,\n                expires_at = EXCLUDED.expires_at,\n                webhook_id = EXCLUDED.webhook_id,\n                webhook_secret = EXCLUDED.webhook_secret,\n                connected_by = EXCLUDED.connected_by,\n                disabled_at = NULL,\n                updated_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Float8",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b3b062bc502b23f2ea03766d9fd0ec8d25ea6f8dcee2e2ead2c4e37dd943a5c5"
+}

@@ -13,6 +13,7 @@ pub mod bindings;
 pub mod cron;
 mod error;
 mod handler;
+pub mod patreon_webhook;
 pub mod registry;
 pub mod sqlx_lib;
 pub mod state;

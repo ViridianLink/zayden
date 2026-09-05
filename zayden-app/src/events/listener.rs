@@ -18,8 +18,9 @@ impl EventListener {
             },
         };
 
-        if let Err(e) =
-            listener.listen_all(["config_changed", "entitlement_changed"]).await
+        if let Err(e) = listener
+            .listen_all(["config_changed", "entitlement_changed", "patreon_post"])
+            .await
         {
             warn!("EventListener: LISTEN failed: {e}");
             return;
@@ -52,6 +53,11 @@ impl EventListener {
                                 );
                             },
                         }
+                    },
+                    "patreon_post" => {
+                        let _ = events.send(AppEvent::PatreonPost(
+                            notification.payload().to_owned(),
+                        ));
                     },
                     other => {
                         warn!("EventListener: unexpected channel: {other}");

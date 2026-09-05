@@ -15,6 +15,17 @@ pub struct HelperLinkInfo {
 }
 
 #[derive(Clone, Default, Serialize, Deserialize)]
+pub struct PatreonStatus {
+    pub(crate) connected: bool,
+    pub(crate) disabled: bool,
+    pub(crate) creator_name: Option<String>,
+    pub(crate) campaign_id: Option<String>,
+    pub(crate) webhook_registered: bool,
+    pub(crate) channel_id: Option<String>,
+    pub(crate) public_only: bool,
+}
+
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub struct GuildSettings {
     pub(crate) support_channel_id: Option<String>,
     pub(crate) solved_tag_id: Option<String>,

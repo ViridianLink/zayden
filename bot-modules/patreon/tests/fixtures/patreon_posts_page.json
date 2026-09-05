@@ -1,0 +1,44 @@
+{
+  "data": [
+    {
+      "attributes": {
+        "content": "<p>First <strong>public</strong> update. Read the <a href=\"https://example.com/notes\">notes</a>.</p><ul><li>One</li><li>Two</li></ul>",
+        "is_public": true,
+        "published_at": "2026-08-01T12:00:00.000+00:00",
+        "title": "August devlog",
+        "url": "https://www.patreon.com/posts/august-devlog-1001"
+      },
+      "id": "1001",
+      "type": "post"
+    },
+    {
+      "attributes": {
+        "content": null,
+        "is_public": false,
+        "published_at": "2026-08-15T09:30:00.000+00:00",
+        "title": null,
+        "url": "https://www.patreon.com/posts/1002"
+      },
+      "id": "1002",
+      "type": "post"
+    },
+    {
+      "attributes": {
+        "content": "<p>Missing a url, so it cannot be announced.</p>",
+        "is_public": true,
+        "published_at": "2026-08-20T09:30:00.000+00:00",
+        "title": "Broken"
+      },
+      "id": "1003",
+      "type": "post"
+    }
+  ],
+  "meta": {
+    "pagination": {
+      "cursors": {
+        "next": "cursor-page-2"
+      },
+      "total": 3
+    }
+  }
+}

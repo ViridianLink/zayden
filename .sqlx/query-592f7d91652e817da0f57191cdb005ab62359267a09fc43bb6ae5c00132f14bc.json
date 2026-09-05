@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT webhook_secret AS \"webhook_secret!\"\n        FROM patreon_oauth\n        WHERE campaign_id = $1 AND webhook_secret IS NOT NULL AND disabled_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "webhook_secret!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_oauth",
+            "name": "webhook_secret"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "592f7d91652e817da0f57191cdb005ab62359267a09fc43bb6ae5c00132f14bc"
+}

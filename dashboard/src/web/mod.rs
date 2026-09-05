@@ -1,6 +1,7 @@
 mod routes_kofi;
 mod routes_login;
 mod routes_palworld_save;
+mod routes_patreon;
 
 pub(crate) const SESSION_COOKIE: &str = "session";
 pub(crate) const OAUTH_STATE_COOKIE: &str = "oauth_state";
@@ -22,12 +23,19 @@ pub(crate) fn routes(state: WebState) -> Router<WebState> {
             "/admin/palworld/save/export",
             post(routes_palworld_save::export_handler),
         )
+        .route("/patreon/connect", get(routes_patreon::patreon_connect_handler))
+        .route("/patreon/callback", get(routes_patreon::patreon_callback_handler))
+        .route(
+            "/patreon/disconnect",
+            post(routes_patreon::patreon_disconnect_handler),
+        )
         .route_layer(from_fn_with_state(state, require_auth));
 
     Router::new()
         .route("/auth/callback", get(discord_auth_callback_handler))
         .route("/logout", get(logout_handler))
         .route("/webhooks/kofi", post(routes_kofi::kofi_webhook_handler))
+        .route("/webhooks/patreon", post(routes_patreon::patreon_webhook_handler))
         .merge(protected)
 }
 

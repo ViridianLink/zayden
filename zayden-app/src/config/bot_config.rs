@@ -21,6 +21,7 @@ const DEFAULT_AI_MODEL_STRUCTURED: &str = "nvidia/nemotron-3-super-120b-a12b:fre
 const DEFAULT_AI_MODEL_PRO: &str = "google/gemini-2.5-flash";
 
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
+const DEFAULT_PATREON_REDIRECT_URI: &str = "http://localhost:3000/patreon/callback";
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
 
 const DEFAULT_PALWORLD_SAVE_DIR: &str = "056C426C55974CFCA115EB695A224F67";
@@ -38,6 +39,13 @@ pub struct PelicanConfig {
     pub api_key: String,
     pub server_id: String,
     pub save_path: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct PatreonConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +90,8 @@ pub struct BotConfig {
 
     pub kofi_verification_token: Option<String>,
 
+    pub patreon: Option<PatreonConfig>,
+
     pub discord_sku_pro: Option<u64>,
     pub discord_sku_ultra: Option<u64>,
 
@@ -117,6 +127,13 @@ impl BotConfig {
         let db = load_db_row(pool).await?;
 
         let pelican = load_pelican_config(&toml_cfg);
+        let patreon = load_patreon_config(
+            toml_cfg
+                .dashboard
+                .patreon_redirect_uri
+                .clone()
+                .unwrap_or_else(|| DEFAULT_PATREON_REDIRECT_URI.to_owned()),
+        );
 
         Ok(Self {
             discord_token,
@@ -191,6 +208,8 @@ impl BotConfig {
             upgrade_url: toml_cfg.dashboard.upgrade_url,
             kofi_verification_token: env::var("KOFI_VERIFICATION_TOKEN").ok(),
 
+            patreon,
+
             discord_sku_pro: toml_cfg.entitlements.discord.skus.pro,
             discord_sku_ultra: toml_cfg.entitlements.discord.skus.ultra,
 
@@ -240,6 +259,25 @@ fn load_pelican_config(toml_cfg: &TomlConfig) -> Option<PelicanConfig> {
                  until PELICAN_BASE_URL and PELICAN_API_KEY (env) plus \
                  [pelican].server_id and [pelican].save_path (config.toml) are \
                  all set"
+            );
+            None
+        },
+    }
+}
+
+fn load_patreon_config(redirect_uri: String) -> Option<PatreonConfig> {
+    match (
+        env::var("PATREON_CLIENT_ID").ok(),
+        env::var("PATREON_CLIENT_SECRET").ok(),
+    ) {
+        (Some(client_id), Some(client_secret)) => {
+            Some(PatreonConfig { client_id, client_secret, redirect_uri })
+        },
+        (None, None) => None,
+        _ => {
+            warn!(
+                "Patreon config is incomplete; post announcements disabled until \
+                 both PATREON_CLIENT_ID and PATREON_CLIENT_SECRET are set"
             );
             None
         },
@@ -343,6 +381,7 @@ struct TomlIds {
 #[derive(Debug, Default, Deserialize)]
 struct TomlDashboard {
     redirect_uri: Option<String>,
+    patreon_redirect_uri: Option<String>,
     bind_addr: Option<String>,
     invite_url: Option<String>,
     upgrade_url: Option<String>,

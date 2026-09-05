@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE patreon_campaigns\n            SET last_polled_at = now(), consecutive_failures = consecutive_failures + 1\n            WHERE campaign_id = $1\n            RETURNING consecutive_failures\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "consecutive_failures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "patreon_campaigns",
+            "name": "consecutive_failures"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e418012e17f723c60570b666b49b0ecff4b13b9e9aade60c35a69bd1390bf51e"
+}

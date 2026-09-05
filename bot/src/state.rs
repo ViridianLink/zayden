@@ -15,6 +15,8 @@ use palworld::cron::{
     PalworldWarmCron,
 };
 use palworld::transport::Pelican;
+use patreon::PatreonPollCron;
+use patreon::oauth::PatreonApp;
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::PgPool;
@@ -40,6 +42,7 @@ pub struct BotState {
     pub bungie_client: Arc<BungieClient>,
     pub wiki_index: Arc<WikiIndex>,
     marathon_bungie_api_key: String,
+    pub patreon: Option<Arc<PatreonApp>>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob>,
     guild_members: DashMap<GuildId, Vec<UserId>>,
@@ -81,6 +84,14 @@ impl BotState {
             pelican,
         ));
 
+        let patreon = config.patreon.as_ref().map(|p| {
+            Arc::new(PatreonApp {
+                client_id: p.client_id.clone(),
+                client_secret: p.client_secret.clone(),
+                redirect_uri: p.redirect_uri.clone(),
+            })
+        });
+
         let wiki_index = Arc::new(WikiIndex::new(app.http.clone()));
         WikiIndex::spawn_invalidator(Arc::clone(&wiki_index), app.subscribe());
 
@@ -95,6 +106,7 @@ impl BotState {
             bungie_client: Arc::new(bungie_client),
             wiki_index,
             marathon_bungie_api_key: config.bungie_api_key.clone(),
+            patreon,
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),
             guild_members: DashMap::new(),
@@ -104,6 +116,15 @@ impl BotState {
     }
 
     pub fn setup_static_cron(&mut self) {
+        // Patreon is optional: without an app registration no guild can connect,
+        // so the poll would have nothing to do.
+        if let Some(app) = self.patreon.as_ref() {
+            match PatreonPollCron::cron_job(self.app.http.clone(), Arc::clone(app)) {
+                Ok(job) => self.cron_jobs.push(job),
+                Err(e) => tracing::error!(error = ?e, "failed to create cron job"),
+            }
+        }
+
         let jobs = [
             StaminaCron::cron_job(),
             Lotto::cron_job::<Self>(),
