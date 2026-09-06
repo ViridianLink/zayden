@@ -19,7 +19,6 @@ of every page their message linked to, and a fixed list of candidate wiki \
 articles (title, description, path) found by a keyword search of that message.
 
 Your job:
-- Write a short, friendly greeting (1-2 sentences) acknowledging the user's issue.
 - From the candidate articles ONLY, select the paths of the ones that genuinely help \
 with this issue. Never invent an article or path that is not in the candidate list. \
 It is fine to select none if nothing fits.
@@ -38,7 +37,8 @@ const SCHEMA_NAME: &str = "triage_synthesis";
 const MAX_TOKENS: u32 = 1200;
 const TEMPERATURE: f32 = 0.3;
 
-pub(crate) const EMBED_TITLE: &str = "Automated Support Triage";
+pub(crate) const EMBED_TITLE: &str = "Automated Triage";
+const EMBED_DESCRIPTION: &str = "To help us provide the best possible support, please review the wiki pages linked below and answer the follow-up questions provided.";
 const EMBED_COLOUR: Colour = Colour::new(0x00_99_ff);
 const EMBED_FOOTER: &str =
     "Please reply to this channel with the requested information.";
@@ -46,11 +46,9 @@ const ARTICLES_FIELD: &str = "Recommended Reading";
 pub(crate) const QUESTIONS_FIELD: &str = "Action Required: Please Reply With";
 
 const FIELD_LIMIT: usize = 1024;
-const DESCRIPTION_LIMIT: usize = 4096;
 
 #[derive(Deserialize)]
 pub(crate) struct Triage {
-    greeting: String,
     relevant_paths: Vec<String>,
     #[serde(rename = "triage_questions")]
     questions: Vec<String>,
@@ -60,7 +58,6 @@ fn schema() -> serde_json::Value {
     serde_json::json!({
         "type": "object",
         "properties": {
-            "greeting": { "type": "string" },
             "relevant_paths": { "type": "array", "items": { "type": "string" } },
             "triage_questions": { "type": "array", "items": { "type": "string" } }
         },
@@ -154,7 +151,7 @@ pub(crate) fn embed(
     let mut embed = CreateEmbed::new()
         .title(EMBED_TITLE)
         .colour(EMBED_COLOUR)
-        .description(truncate(&triage.greeting, DESCRIPTION_LIMIT))
+        .description(EMBED_DESCRIPTION)
         .footer(CreateEmbedFooter::new(EMBED_FOOTER));
 
     let articles = triage
