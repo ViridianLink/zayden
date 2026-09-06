@@ -43,7 +43,7 @@ const EMBED_COLOUR: Colour = Colour::new(0x00_99_ff);
 const EMBED_FOOTER: &str =
     "Please reply to this channel with the requested information.";
 const ARTICLES_FIELD: &str = "Recommended Reading";
-pub(crate) const QUESTIONS_FIELD: &str = "Action Required: Please Reply With";
+pub(crate) const QUESTIONS_FIELD: &str = "Follow-up Questions";
 
 const FIELD_LIMIT: usize = 1024;
 
