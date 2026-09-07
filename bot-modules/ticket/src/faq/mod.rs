@@ -1,7 +1,6 @@
 mod answer;
 pub mod article;
 mod auto;
-pub(crate) mod embed;
 mod generate;
 pub mod hit;
 pub mod index;
@@ -26,7 +25,7 @@ use zayden_core::as_i64;
 
 pub(crate) use crate::faq::answer::answer;
 pub use crate::faq::tuning::AnswerTuning;
-pub(crate) use crate::faq::{embed as embeds, view as views};
+pub(crate) use crate::faq::view as views;
 use crate::wiki::{WikiConfig, WikiError};
 
 pub struct FaqContext {

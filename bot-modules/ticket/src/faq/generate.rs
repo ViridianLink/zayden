@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use serenity::all::{CreateMessage, GuildId, Http, ThreadId};
+use serenity::all::{GuildId, Http, ThreadId};
 use tracing::{debug, error, info, warn};
 use zayden_app::state::AppState;
 use zayden_core::as_i64;
 
 use crate::faq::article::{FaqArticle, NewArticle};
-use crate::faq::{FaqContext, embeds, scrub, transcript, writer};
+use crate::faq::{FaqContext, scrub, transcript, writer};
 use crate::support_guild_manager::TicketStores;
 
 const DUPLICATE_RANK: f32 = 0.9;
@@ -79,30 +79,15 @@ async fn run(
         tags: &draft.tags,
     };
 
-    let article = match FaqArticle::insert_generated(
-        &app.db,
-        guild,
-        as_i64(thread_id.get()),
-        new,
-    )
-    .await
+    match FaqArticle::insert_generated(&app.db, guild, as_i64(thread_id.get()), new)
+        .await
     {
-        Ok(Some(article)) => article,
+        Ok(Some(_)) => {},
         Ok(None) => {
             debug!(%thread_id, "thread already has a faq article");
-            return;
         },
         Err(e) => {
             error!(error = ?e, %thread_id, "faq article insert failed");
-            return;
         },
     };
-
-    if let Err(e) = thread_id
-        .widen()
-        .send_message(&http, CreateMessage::new().embed(embeds::created(&article)))
-        .await
-    {
-        warn!(error = ?e, %thread_id, "failed to announce the generated faq article");
-    }
 }

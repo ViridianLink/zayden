@@ -1,7 +1,7 @@
 use futures::StreamExt;
 use serenity::all::{Http, Message, ThreadId};
 
-use crate::faq::{embed, triage};
+use crate::faq::triage;
 
 const MESSAGE_LIMIT: usize = 200;
 const MIN_MESSAGE_CHARS: usize = 15;
@@ -71,7 +71,6 @@ fn ticket_body(message: &Message) -> Option<RawMessage> {
     let body = message
         .embeds
         .iter()
-        .filter(|embed| embed.title.as_deref() != Some(embed::CREATED_TITLE))
         .filter_map(|embed| {
             let description = embed.description.as_deref()?;
 
