@@ -89,5 +89,5 @@ async fn run(
         Err(e) => {
             error!(error = ?e, %thread_id, "faq article insert failed");
         },
-    };
+    }
 }
