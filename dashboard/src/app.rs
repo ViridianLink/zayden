@@ -1,9 +1,9 @@
 use leptos::prelude::*;
 use leptos_meta::{Stylesheet, provide_meta_context};
-use leptos_router::components::{Route, Router, Routes};
+use leptos_router::components::{ParentRoute, Route, Router, Routes};
 use leptos_router::path;
 
-use crate::ui::components::layout::ModulesOpen;
+use crate::ui::components::layout::{GuildShell, ModulesOpen};
 use crate::ui::pages::greetings::GreetingsPage;
 use crate::ui::pages::guild_settings::GuildSettingsPage;
 use crate::ui::pages::guilds::GuildListPage;
@@ -58,12 +58,14 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/login") view=LoginPage/>
                 <Route path=path!("/upgrade") view=UpgradePage/>
                 <Route path=path!("/guilds") view=GuildListPage/>
-                <Route path=path!("/guild/:id") view=GuildOverviewPage/>
-                <Route path=path!("/guild/:id/settings") view=GuildSettingsPage/>
-                <Route path=path!("/guild/:id/settings/:section") view=GuildSettingsPage/>
-                <Route path=path!("/guild/:id/levels") view=LevelsPage/>
-                <Route path=path!("/guild/:id/reaction-roles") view=ReactionRolesPage/>
-                <Route path=path!("/guild/:id/greetings") view=GreetingsPage/>
+                <ParentRoute path=path!("/guild/:id") view=GuildShell>
+                    <Route path=path!("") view=GuildOverviewPage/>
+                    <Route path=path!("/settings") view=GuildSettingsPage/>
+                    <Route path=path!("/settings/:section") view=GuildSettingsPage/>
+                    <Route path=path!("/levels") view=LevelsPage/>
+                    <Route path=path!("/reaction-roles") view=ReactionRolesPage/>
+                    <Route path=path!("/greetings") view=GreetingsPage/>
+                </ParentRoute>
                 <Route path=path!("/admin/servers") view=OperatorServersPage/>
                 <Route path=path!("/admin/palworld/save") view=PalworldSavePage/>
             </Routes>

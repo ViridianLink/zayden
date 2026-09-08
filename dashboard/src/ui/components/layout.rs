@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_router::components::A;
+use leptos_router::components::{A, Outlet};
 use leptos_router::hooks::{use_location, use_params_map};
 
 use super::icons::Icon;
@@ -13,23 +13,39 @@ use crate::ui::nav::MODULES;
 pub struct ModulesOpen(pub RwSignal<bool>);
 
 #[component]
-pub(crate) fn AppShell(children: Children) -> impl IntoView {
-    let params = use_params_map();
-    let guild_id = move || params.with(|p| p.get("id"));
-
+fn Frame(sidebar: AnyView, children: Children) -> impl IntoView {
     view! {
         <div class="app">
             <AppNavBar/>
             <div class="app-body">
-                {move || guild_id().map_or_else(
-                    || view! { <TopSidebar/> }.into_any(),
-                    |id| view! { <GuildSidebar guild_id=id/> }.into_any(),
-                )}
+                {sidebar}
                 <main class="app-main">
                     {children()}
                 </main>
             </div>
         </div>
+    }
+}
+
+#[component]
+pub(crate) fn AppShell(children: Children) -> impl IntoView {
+    view! {
+        <Frame sidebar=view! { <TopSidebar/> }.into_any()>
+            {children()}
+        </Frame>
+    }
+}
+
+#[component]
+pub(crate) fn GuildShell() -> impl IntoView {
+    let params = use_params_map();
+    let guild_id =
+        Signal::derive(move || params.with(|p| p.get("id").unwrap_or_default()));
+
+    view! {
+        <Frame sidebar=view! { <GuildSidebar guild_id/> }.into_any()>
+            <Outlet/>
+        </Frame>
     }
 }
 
@@ -97,13 +113,13 @@ fn SidebarLink(
 }
 
 #[component]
-fn GuildSidebar(guild_id: String) -> impl IntoView {
+fn GuildSidebar(guild_id: Signal<String>) -> impl IntoView {
     view! {
         <aside class="app-sidebar">
-            <ServerSwitcher guild_id=guild_id.clone()/>
-            <OperatorBadge guild_id=guild_id.clone()/>
+            <ServerSwitcher guild_id/>
+            <OperatorBadge guild_id/>
             <div class="app-sidebar-heading">"Manage"</div>
-            <ModulesGroup guild_id=guild_id/>
+            <ModulesGroup guild_id/>
             <div class="app-sidebar-spacer"></div>
             <SidebarLink href="/guilds".to_string() icon="server" label="All servers" exact=true/>
             <OperatorLink/>
@@ -113,9 +129,9 @@ fn GuildSidebar(guild_id: String) -> impl IntoView {
 }
 
 #[component]
-fn OperatorBadge(guild_id: String) -> impl IntoView {
+fn OperatorBadge(guild_id: Signal<String>) -> impl IntoView {
     let access =
-        Resource::new_blocking(move || guild_id.clone(), guild_operator_access);
+        Resource::new_blocking(move || guild_id.get(), guild_operator_access);
 
     view! {
         <Suspense fallback=|| ()>
@@ -154,26 +170,28 @@ fn OperatorLink() -> impl IntoView {
 }
 
 #[component]
-fn ModulesGroup(guild_id: String) -> impl IntoView {
+fn ModulesGroup(guild_id: Signal<String>) -> impl IntoView {
     let location = use_location();
     let open = use_context::<ModulesOpen>()
         .map_or_else(|| RwSignal::new(true), |ctx| ctx.0);
 
-    let overview_href = format!("/guild/{guild_id}");
-    let overview_target = overview_href.clone();
+    let overview_href = move || format!("/guild/{}", guild_id.get());
     let overview_class = move || {
-        if location.pathname.get() == overview_target {
+        if location.pathname.get() == overview_href() {
             "app-sidebar-link active"
         } else {
             "app-sidebar-link"
         }
     };
 
-    let bare_settings = format!("/guild/{guild_id}/settings");
-    let canonical_settings = format!("/guild/{guild_id}/settings/general");
     let current = Memo::new(move |_| {
         let path = location.pathname.get();
-        if path == bare_settings { canonical_settings.clone() } else { path }
+        let gid = guild_id.get();
+        if path == format!("/guild/{gid}/settings") {
+            format!("/guild/{gid}/settings/general")
+        } else {
+            path
+        }
     });
 
     let caret_class = move || {
@@ -182,10 +200,11 @@ fn ModulesGroup(guild_id: String) -> impl IntoView {
 
     let sublist = move || {
         open.get().then(|| {
+            let gid = guild_id.get();
             let links = MODULES
                 .iter()
                 .map(|module| {
-                    let href = module.href(&guild_id);
+                    let href = module.href(&gid);
                     let target = href.clone();
                     let class = move || {
                         if current.get() == target {

@@ -12,7 +12,6 @@ use crate::server::reaction_roles::{
     list_reaction_roles,
 };
 use crate::ui::components::icons::Icon;
-use crate::ui::components::layout::AppShell;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{SettingField, save_feedback};
 
@@ -62,89 +61,87 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
 
     view! {
         <Title text="Reaction Roles - Zayden Dashboard"/>
-        <AppShell>
-            <div class="page">
-                <div class="page-header">
-                    <div>
-                        <h1>"Reaction Roles"</h1>
-                        <p class="page-lead">
-                            "Every message \u{2192} emoji \u{2192} role mapping in this "
-                            "server, in one place. Members react to get the role and "
-                            "un-react to lose it."
-                        </p>
-                    </div>
+        <div class="page">
+            <div class="page-header">
+                <div>
+                    <h1>"Reaction Roles"</h1>
+                    <p class="page-lead">
+                        "Every message \u{2192} emoji \u{2192} role mapping in this "
+                        "server, in one place. Members react to get the role and "
+                        "un-react to lose it."
+                    </p>
                 </div>
-                <Suspense fallback=|| view! {
-                    <p class="loading">"Loading reaction roles\u{2026}"</p>
-                }>
-                    {move || data.get().map(|result| match result {
-                        Err(e) => view! {
-                            <p class="error">"Failed to load reaction roles: " {e.to_string()}</p>
-                        }.into_any(),
-                        Ok((maps, channels, roles)) => {
-                            let gid = guild_id();
-                            let form_channels = channels.clone();
-                            let form_roles = roles.clone();
-                            view! {
-                                {move || remove_result.get().map(save_feedback)}
-                                <MappingTable
-                                    guild_id=gid.clone()
-                                    maps=maps
-                                    channels=channels
-                                    roles=roles
-                                    remove=remove
-                                />
-
-                                <fieldset class="settings-section">
-                                    <legend><Icon name="plus"/>"Add a mapping"</legend>
-                                    {move || add_result.get().map(save_feedback)}
-                                    <ActionForm action=add>
-                                        <input type="hidden" name="guild" value=gid.clone()/>
-                                        <ChannelSelect
-                                            label="Channel"
-                                            name="channel_id"
-                                            selected=String::new()
-                                            channels=form_channels
-                                            kinds=TEXT_KINDS
-                                        />
-                                        <SettingField
-                                            label="Message ID (blank posts a new panel)"
-                                            name="message_id"
-                                            value=String::new()
-                                        />
-                                        <div class="setting-field">
-                                            <label>"Emoji"</label>
-                                            <input
-                                                type="text"
-                                                name="emoji"
-                                                placeholder="\u{2705} or <:name:id>"
-                                            />
-                                        </div>
-                                        <RoleSelect
-                                            label="Role"
-                                            name="role_id"
-                                            selected=String::new()
-                                            roles=form_roles
-                                        />
-                                        <div class="form-actions">
-                                            <button type="submit" class="btn btn-primary">
-                                                "Add mapping"
-                                            </button>
-                                        </div>
-                                    </ActionForm>
-                                    <p class="page-lead">
-                                        "Leave the message ID blank and Zayden posts a new "
-                                        "panel message in the chosen channel. Give an ID to "
-                                        "attach the mapping to a message that already exists "
-                                        "- several emoji can share one message."
-                                    </p>
-                                </fieldset>
-                            }.into_any()
-                        },
-                    })}
-                </Suspense>
             </div>
-        </AppShell>
+            <Suspense fallback=|| view! {
+                <p class="loading">"Loading reaction roles\u{2026}"</p>
+            }>
+                {move || data.get().map(|result| match result {
+                    Err(e) => view! {
+                        <p class="error">"Failed to load reaction roles: " {e.to_string()}</p>
+                    }.into_any(),
+                    Ok((maps, channels, roles)) => {
+                        let gid = guild_id();
+                        let form_channels = channels.clone();
+                        let form_roles = roles.clone();
+                        view! {
+                            {move || remove_result.get().map(save_feedback)}
+                            <MappingTable
+                                guild_id=gid.clone()
+                                maps=maps
+                                channels=channels
+                                roles=roles
+                                remove=remove
+                            />
+
+                            <fieldset class="settings-section">
+                                <legend><Icon name="plus"/>"Add a mapping"</legend>
+                                {move || add_result.get().map(save_feedback)}
+                                <ActionForm action=add>
+                                    <input type="hidden" name="guild" value=gid.clone()/>
+                                    <ChannelSelect
+                                        label="Channel"
+                                        name="channel_id"
+                                        selected=String::new()
+                                        channels=form_channels
+                                        kinds=TEXT_KINDS
+                                    />
+                                    <SettingField
+                                        label="Message ID (blank posts a new panel)"
+                                        name="message_id"
+                                        value=String::new()
+                                    />
+                                    <div class="setting-field">
+                                        <label>"Emoji"</label>
+                                        <input
+                                            type="text"
+                                            name="emoji"
+                                            placeholder="\u{2705} or <:name:id>"
+                                        />
+                                    </div>
+                                    <RoleSelect
+                                        label="Role"
+                                        name="role_id"
+                                        selected=String::new()
+                                        roles=form_roles
+                                    />
+                                    <div class="form-actions">
+                                        <button type="submit" class="btn btn-primary">
+                                            "Add mapping"
+                                        </button>
+                                    </div>
+                                </ActionForm>
+                                <p class="page-lead">
+                                    "Leave the message ID blank and Zayden posts a new "
+                                    "panel message in the chosen channel. Give an ID to "
+                                    "attach the mapping to a message that already exists "
+                                    "- several emoji can share one message."
+                                </p>
+                            </fieldset>
+                        }.into_any()
+                    },
+                })}
+            </Suspense>
+        </div>
     }
 }
 

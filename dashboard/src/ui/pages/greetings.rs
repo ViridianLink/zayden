@@ -16,7 +16,6 @@ use crate::server::greetings::{
     get_greetings,
 };
 use crate::ui::components::icons::Icon;
-use crate::ui::components::layout::AppShell;
 use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 
@@ -66,105 +65,103 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
 
     view! {
         <Title text="Greetings - Zayden Dashboard"/>
-        <AppShell>
-            <div class="page">
-                <div class="page-header">
-                    <div>
-                        <h1>"Greetings"</h1>
-                        <p class="page-lead">
-                            "What Zayden posts for "<code>"/good morning"</code>" and "
-                            <code>"/good night"</code>". Each subcommand replies with one "
-                            "image picked at random from its list, plus the message "
-                            "below if you set one."
-                        </p>
-                    </div>
+        <div class="page">
+            <div class="page-header">
+                <div>
+                    <h1>"Greetings"</h1>
+                    <p class="page-lead">
+                        "What Zayden posts for "<code>"/good morning"</code>" and "
+                        <code>"/good night"</code>". Each subcommand replies with one "
+                        "image picked at random from its list, plus the message "
+                        "below if you set one."
+                    </p>
                 </div>
-                <Suspense fallback=|| view! {
-                    <p class="loading">"Loading greetings\u{2026}"</p>
-                }>
-                    {move || data.get().map(|result| match result {
-                        Err(e) => view! {
-                            <p class="error">"Failed to load greetings: " {e.to_string()}</p>
-                        }.into_any(),
-                        Ok((view, channels)) => {
-                            let GreetingsView {
-                                morning_message,
-                                night_message,
-                                morning,
-                                night,
-                                allowed_channels,
-                                channels_locked,
-                                cooldowns,
-                            } = view;
-                            let gid = guild_id();
-                            let form_gid = gid.clone();
-                            let morning_gid = gid.clone();
-                            let channel_gid = gid.clone();
-                            let cooldown_gid = gid.clone();
-
-                            view! {
-                                <fieldset class="settings-section">
-                                    <legend><Icon name="message"/>"Messages"</legend>
-                                    {move || save_result.get().map(save_feedback)}
-                                    <ActionForm action=save>
-                                        <input type="hidden" name="guild" value=form_gid/>
-                                        <SettingField
-                                            label="Good morning message"
-                                            name="morning_message"
-                                            value=morning_message
-                                            pattern=ANY_TEXT
-                                        />
-                                        <SettingField
-                                            label="Good night message"
-                                            name="night_message"
-                                            value=night_message
-                                            pattern=ANY_TEXT
-                                        />
-                                        <PlaceholderLegend/>
-                                        <SaveButton/>
-                                    </ActionForm>
-                                </fieldset>
-
-                                <ChannelSection
-                                    guild_id=channel_gid
-                                    allowed=allowed_channels
-                                    channels=channels
-                                    locked=channels_locked
-                                    add=add_channel
-                                    remove=remove_channel
-                                />
-
-                                <CooldownSection
-                                    guild_id=cooldown_gid
-                                    cooldowns=cooldowns
-                                    save=save_cooldowns
-                                />
-
-                                {move || add_result.get().map(save_feedback)}
-                                {move || remove_result.get().map(save_feedback)}
-
-                                <ImageSection
-                                    guild_id=morning_gid
-                                    kind="morning"
-                                    title="Good morning images"
-                                    images=morning
-                                    add=add
-                                    remove=remove
-                                />
-                                <ImageSection
-                                    guild_id=gid
-                                    kind="night"
-                                    title="Good night images"
-                                    images=night
-                                    add=add
-                                    remove=remove
-                                />
-                            }.into_any()
-                        },
-                    })}
-                </Suspense>
             </div>
-        </AppShell>
+            <Suspense fallback=|| view! {
+                <p class="loading">"Loading greetings\u{2026}"</p>
+            }>
+                {move || data.get().map(|result| match result {
+                    Err(e) => view! {
+                        <p class="error">"Failed to load greetings: " {e.to_string()}</p>
+                    }.into_any(),
+                    Ok((view, channels)) => {
+                        let GreetingsView {
+                            morning_message,
+                            night_message,
+                            morning,
+                            night,
+                            allowed_channels,
+                            channels_locked,
+                            cooldowns,
+                        } = view;
+                        let gid = guild_id();
+                        let form_gid = gid.clone();
+                        let morning_gid = gid.clone();
+                        let channel_gid = gid.clone();
+                        let cooldown_gid = gid.clone();
+
+                        view! {
+                            <fieldset class="settings-section">
+                                <legend><Icon name="message"/>"Messages"</legend>
+                                {move || save_result.get().map(save_feedback)}
+                                <ActionForm action=save>
+                                    <input type="hidden" name="guild" value=form_gid/>
+                                    <SettingField
+                                        label="Good morning message"
+                                        name="morning_message"
+                                        value=morning_message
+                                        pattern=ANY_TEXT
+                                    />
+                                    <SettingField
+                                        label="Good night message"
+                                        name="night_message"
+                                        value=night_message
+                                        pattern=ANY_TEXT
+                                    />
+                                    <PlaceholderLegend/>
+                                    <SaveButton/>
+                                </ActionForm>
+                            </fieldset>
+
+                            <ChannelSection
+                                guild_id=channel_gid
+                                allowed=allowed_channels
+                                channels=channels
+                                locked=channels_locked
+                                add=add_channel
+                                remove=remove_channel
+                            />
+
+                            <CooldownSection
+                                guild_id=cooldown_gid
+                                cooldowns=cooldowns
+                                save=save_cooldowns
+                            />
+
+                            {move || add_result.get().map(save_feedback)}
+                            {move || remove_result.get().map(save_feedback)}
+
+                            <ImageSection
+                                guild_id=morning_gid
+                                kind="morning"
+                                title="Good morning images"
+                                images=morning
+                                add=add
+                                remove=remove
+                            />
+                            <ImageSection
+                                guild_id=gid
+                                kind="night"
+                                title="Good night images"
+                                images=night
+                                add=add
+                                remove=remove
+                            />
+                        }.into_any()
+                    },
+                })}
+            </Suspense>
+        </div>
     }
 }
 

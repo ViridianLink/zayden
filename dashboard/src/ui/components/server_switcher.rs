@@ -25,13 +25,13 @@ fn guild_avatar(g: &GuildInfo) -> AnyView {
 }
 
 #[component]
-pub(crate) fn ServerSwitcher(guild_id: String) -> impl IntoView {
+pub(crate) fn ServerSwitcher(guild_id: Signal<String>) -> impl IntoView {
     let guilds = Resource::new_blocking(|| (), |()| list_manageable_guilds());
 
     view! {
         <Suspense fallback=|| ()>
             {move || {
-                let current = guild_id.clone();
+                let current = guild_id.get();
                 guilds.get().and_then(Result::ok).map(|list| {
                     let active = list.iter().find(|g| g.id == current);
                     let active_name = active.map_or_else(

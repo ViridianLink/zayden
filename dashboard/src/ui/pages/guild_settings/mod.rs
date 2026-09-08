@@ -22,7 +22,6 @@ use crate::server::guild::{
     RemoveSupportRole,
     get_settings_bundle,
 };
-use crate::ui::components::layout::AppShell;
 use crate::ui::nav;
 
 pub(super) const TEXT_KINDS: &[ChannelType] = &[
@@ -71,119 +70,117 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
         <Title text=move || {
             format!("{} settings - Zayden Dashboard", active.get().label)
         }/>
-        <AppShell>
-            <div class="page">
-                <div class="page-header">
-                    <div>
-                        <h1>{move || active.get().label}</h1>
-                        <p class="page-lead">{move || active.get().lead()}</p>
-                    </div>
+        <div class="page">
+            <div class="page-header">
+                <div>
+                    <h1>{move || active.get().label}</h1>
+                    <p class="page-lead">{move || active.get().lead()}</p>
                 </div>
-                <Suspense fallback=|| view! {
-                    <p class="loading">"Loading settings\u{2026}"</p>
-                }>
-                    {move || data.get().map(|result| match result {
-                        Err(e) => view! {
-                            <p class="error">"Failed to load settings: " {e.to_string()}</p>
-                        }.into_any(),
-                        Ok(SettingsBundle {
-                            settings: s,
-                            support_roles,
-                            helper_links,
-                            channels,
-                            roles,
-                            patreon,
-                        }) => {
-                            let gid = guild_id();
-                            // Re-runs on section change only; the resource above
-                            // is untouched, so switching modules never refetches.
-                            (move || {
-                                let guild_id = gid.clone();
-                                let s = s.clone();
-                                let support_roles = support_roles.clone();
-                                let helper_links = helper_links.clone();
-                                let channels = channels.clone();
-                                let roles = roles.clone();
-                                let patreon_status = patreon.clone();
-
-                                match active.get().slug() {
-                                    Some("support") => view! {
-                                        <support::SupportTab
-                                            guild_id=guild_id
-                                            settings=s
-                                            support_roles=support_roles
-                                            helper_links=helper_links
-                                            channels=channels
-                                            roles=roles
-                                            add=add_support_role
-                                            remove=remove_support_role
-                                            add_link=add_helper_link
-                                            remove_link=remove_helper_link
-                                        />
-                                    }.into_any(),
-                                    Some("temp-voice") => view! {
-                                        <temp_voice::TempVoiceTab
-                                            guild_id=guild_id
-                                            settings=s
-                                            channels=channels
-                                            create=create_creator
-                                        />
-                                    }.into_any(),
-                                    Some("music") => view! {
-                                        <music::MusicTab
-                                            guild_id=guild_id
-                                            settings=s
-                                            channels=channels
-                                            roles=roles
-                                        />
-                                    }.into_any(),
-                                    Some("lfg") => view! {
-                                        <lfg::LfgTab
-                                            guild_id=guild_id
-                                            settings=s
-                                            channels=channels
-                                            roles=roles
-                                        />
-                                    }.into_any(),
-                                    Some("family") => view! {
-                                        <family::FamilyTab guild_id=guild_id settings=s/>
-                                    }.into_any(),
-                                    Some("ai") => view! {
-                                        <ai::AiTab
-                                            guild_id=guild_id
-                                            settings=s
-                                            channels=channels
-                                        />
-                                    }.into_any(),
-                                    Some("patreon") => view! {
-                                        <patreon::PatreonTab
-                                            guild_id=guild_id
-                                            status=patreon_status
-                                            channels=channels
-                                        />
-                                    }.into_any(),
-                                    Some("honeypot") => view! {
-                                        <honeypot::HoneypotTab
-                                            guild_id=guild_id
-                                            settings=s
-                                            channels=channels
-                                            roles=roles
-                                        />
-                                    }.into_any(),
-                                    _ => view! {
-                                        <general::GeneralTab
-                                            guild_id=guild_id
-                                            settings=s
-                                            channels=channels
-                                            roles=roles
-                                        />
-                                    }.into_any(),
-                                }
-                            }).into_any()
-                        },
-                    })}
-                </Suspense>
             </div>
-        </AppShell>
+            <Suspense fallback=|| view! {
+                <p class="loading">"Loading settings\u{2026}"</p>
+            }>
+                {move || data.get().map(|result| match result {
+                    Err(e) => view! {
+                        <p class="error">"Failed to load settings: " {e.to_string()}</p>
+                    }.into_any(),
+                    Ok(SettingsBundle {
+                        settings: s,
+                        support_roles,
+                        helper_links,
+                        channels,
+                        roles,
+                        patreon,
+                    }) => {
+                        let gid = guild_id();
+                        // Re-runs on section change only; the resource above
+                        // is untouched, so switching modules never refetches.
+                        (move || {
+                            let guild_id = gid.clone();
+                            let s = s.clone();
+                            let support_roles = support_roles.clone();
+                            let helper_links = helper_links.clone();
+                            let channels = channels.clone();
+                            let roles = roles.clone();
+                            let patreon_status = patreon.clone();
+
+                            match active.get().slug() {
+                                Some("support") => view! {
+                                    <support::SupportTab
+                                        guild_id=guild_id
+                                        settings=s
+                                        support_roles=support_roles
+                                        helper_links=helper_links
+                                        channels=channels
+                                        roles=roles
+                                        add=add_support_role
+                                        remove=remove_support_role
+                                        add_link=add_helper_link
+                                        remove_link=remove_helper_link
+                                    />
+                                }.into_any(),
+                                Some("temp-voice") => view! {
+                                    <temp_voice::TempVoiceTab
+                                        guild_id=guild_id
+                                        settings=s
+                                        channels=channels
+                                        create=create_creator
+                                    />
+                                }.into_any(),
+                                Some("music") => view! {
+                                    <music::MusicTab
+                                        guild_id=guild_id
+                                        settings=s
+                                        channels=channels
+                                        roles=roles
+                                    />
+                                }.into_any(),
+                                Some("lfg") => view! {
+                                    <lfg::LfgTab
+                                        guild_id=guild_id
+                                        settings=s
+                                        channels=channels
+                                        roles=roles
+                                    />
+                                }.into_any(),
+                                Some("family") => view! {
+                                    <family::FamilyTab guild_id=guild_id settings=s/>
+                                }.into_any(),
+                                Some("ai") => view! {
+                                    <ai::AiTab
+                                        guild_id=guild_id
+                                        settings=s
+                                        channels=channels
+                                    />
+                                }.into_any(),
+                                Some("patreon") => view! {
+                                    <patreon::PatreonTab
+                                        guild_id=guild_id
+                                        status=patreon_status
+                                        channels=channels
+                                    />
+                                }.into_any(),
+                                Some("honeypot") => view! {
+                                    <honeypot::HoneypotTab
+                                        guild_id=guild_id
+                                        settings=s
+                                        channels=channels
+                                        roles=roles
+                                    />
+                                }.into_any(),
+                                _ => view! {
+                                    <general::GeneralTab
+                                        guild_id=guild_id
+                                        settings=s
+                                        channels=channels
+                                        roles=roles
+                                    />
+                                }.into_any(),
+                            }
+                        }).into_any()
+                    },
+                })}
+            </Suspense>
+        </div>
     }
 }
