@@ -34,14 +34,16 @@ pub(crate) fn ToggleField(
     label: &'static str,
     name: &'static str,
     value: bool,
+    #[prop(default = "Enabled")] on_label: &'static str,
+    #[prop(default = "Disabled")] off_label: &'static str,
 ) -> impl IntoView {
     view! {
         <div class="setting-field">
             <label>{label}</label>
             <div class="select">
                 <select name=name>
-                    <option value="true" selected=value>"Enabled"</option>
-                    <option value="false" selected=!value>"Disabled"</option>
+                    <option value="true" selected=value>{on_label}</option>
+                    <option value="false" selected=!value>{off_label}</option>
                 </select>
                 <span class="select-chevron"><Icon name="chevron-down"/></span>
             </div>
@@ -57,12 +59,13 @@ pub(crate) fn SettingField(
     #[prop(default = "[0-9]*")] pattern: &'static str,
     #[prop(default = "(not set)")] placeholder: &'static str,
     #[prop(optional, into)] hint: Option<&'static str>,
+    #[prop(default = "text")] input_type: &'static str,
 ) -> impl IntoView {
     view! {
         <div class="setting-field">
             <label>{label}</label>
             <input
-                type="text"
+                type=input_type
                 name=name
                 value=value
                 placeholder=placeholder

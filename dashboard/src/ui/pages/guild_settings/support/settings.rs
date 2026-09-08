@@ -10,6 +10,7 @@ use crate::server::guild::{
     RemoveSupportRole,
     SaveFaqSettings,
     SaveFaqTuning,
+    SaveFaqWikiKey,
     SaveIdleSettings,
     SaveStaleSettings,
     SaveSuggestionsSettings,
@@ -235,10 +236,19 @@ pub(crate) fn SupportSettingsPane(
 fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
     let save_faq = ServerAction::<SaveFaqSettings>::new();
     let result = save_faq.value();
+    let save_key = ServerAction::<SaveFaqWikiKey>::new();
+    let key_result = save_key.value();
     let save_tuning = ServerAction::<SaveFaqTuning>::new();
     let tuning_result = save_tuning.value();
     let s = settings;
+    let key_gid = guild_id.clone();
     let tuning_gid = guild_id.clone();
+    let key_set = s.faq_wiki_api_key_set;
+    let key_placeholder = if key_set {
+        "A key is saved - leave blank to keep it"
+    } else {
+        "eyJhbGciOiJSUzI1NiIs..."
+    };
 
     view! {
         <div class="setting-field">
@@ -274,20 +284,45 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                           article links."
                 />
                 <SettingField
-                    label="Wiki API Key"
-                    name="wiki_api_key"
-                    value=s.faq_wiki_api_key
-                    pattern=".*"
-                    placeholder="eyJhbGciOiJSUzI1NiIs..."
-                    hint="A Wiki.js API key. Its group needs read:pages, plus \
-                          manage:pages or read:source to read page content."
-                />
-                <SettingField
                     label="Locale"
                     name="wiki_locale"
                     value=s.faq_wiki_locale
                     pattern="[a-zA-Z-]*"
                 />
+                <SaveButton/>
+            </ActionForm>
+            {move || key_result.get().map(save_feedback)}
+            <ActionForm action=save_key>
+                <input type="hidden" name="guild" value=key_gid/>
+                <SettingField
+                    label="Wiki API Key"
+                    name="wiki_api_key"
+                    input_type="password"
+                    value=String::new()
+                    pattern=".*"
+                    placeholder=key_placeholder
+                    hint="A Wiki.js API key. Its group needs read:pages, plus \
+                          manage:pages or read:source to read page content. A \
+                          saved key is never sent back to the browser, so \
+                          leaving this blank keeps it."
+                />
+                {if key_set {
+                    view! {
+                        <ToggleField
+                            label="Saved API Key"
+                            name="keep_wiki_api_key"
+                            value=true
+                            on_label="Keep"
+                            off_label="Remove"
+                        />
+                    }
+                    .into_any()
+                } else {
+                    view! {
+                        <input type="hidden" name="keep_wiki_api_key" value="true"/>
+                    }
+                    .into_any()
+                }}
                 <SaveButton/>
             </ActionForm>
             {move || tuning_result.get().map(save_feedback)}

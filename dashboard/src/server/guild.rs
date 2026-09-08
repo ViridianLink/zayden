@@ -164,7 +164,10 @@ pub(crate) async fn fetch_guild_settings(
         faq_auto_triage: faq.auto_triage,
         faq_auto_generate: faq.auto_generate,
         faq_wiki_url: faq.wiki_url.clone().unwrap_or_default(),
-        faq_wiki_api_key: faq.wiki_api_key.clone().unwrap_or_default(),
+        faq_wiki_api_key_set: faq
+            .wiki_api_key
+            .as_deref()
+            .is_some_and(|key| !key.trim().is_empty()),
         faq_wiki_locale: faq.wiki_locale.clone(),
         faq_max_results: faq.max_results.to_string(),
         faq_answer_max_tokens: faq.answer_max_tokens.to_string(),
@@ -216,7 +219,6 @@ pub async fn save_faq_settings(
     auto_triage: String,
     auto_generate: String,
     wiki_url: String,
-    wiki_api_key: String,
     wiki_locale: String,
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
@@ -225,7 +227,6 @@ pub async fn save_faq_settings(
     let auto_triage = auto_triage.trim() == "true";
     let auto_generate = auto_generate.trim() == "true";
     let url = parse_wiki_url(&wiki_url)?;
-    let key = parse_optional(&wiki_api_key);
     let locale = match wiki_locale.trim() {
         "" => String::from("en"),
         locale => locale.to_owned(),
@@ -238,9 +239,31 @@ pub async fn save_faq_settings(
             p.auto_triage = auto_triage;
             p.auto_generate = auto_generate;
             p.wiki_url = url;
-            p.wiki_api_key = key;
             p.wiki_locale = locale;
         })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_faq_wiki_key(
+    guild: String,
+    wiki_api_key: String,
+    keep_wiki_api_key: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let key = parse_optional(&wiki_api_key);
+    let keep = keep_wiki_api_key.trim() == "true";
+
+    if key.is_none() && keep {
+        return Ok(());
+    }
+
+    app.settings
+        .faq
+        .update(guild_id, |p| p.wiki_api_key = key)
         .await
         .map(|_| ())
         .map_err(server_err)
