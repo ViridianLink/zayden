@@ -29,10 +29,10 @@ use crate::ui::components::settings::{
 pub(crate) fn SupportSettingsPane(
     guild_id: String,
     settings: GuildSettings,
-    support_roles: Vec<String>,
-    helper_links: Vec<HelperLinkInfo>,
-    channels: Vec<ChannelInfo>,
-    roles: Vec<RoleInfo>,
+    support_roles: Result<Vec<String>, String>,
+    helper_links: Result<Vec<HelperLinkInfo>, String>,
+    channels: Result<Vec<ChannelInfo>, String>,
+    roles: Result<Vec<RoleInfo>, String>,
     add: ServerAction<AddSupportRole>,
     remove: ServerAction<RemoveSupportRole>,
     add_link: ServerAction<AddHelperLink>,
@@ -372,31 +372,41 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
 #[component]
 fn HelperLinkField(
     guild_id: String,
-    helper_links: Vec<HelperLinkInfo>,
+    helper_links: Result<Vec<HelperLinkInfo>, String>,
     add: ServerAction<AddHelperLink>,
     remove: ServerAction<RemoveHelperLink>,
 ) -> impl IntoView {
     let add_result = add.value();
     let remove_result = remove.value();
 
-    let chips = helper_links
-        .into_iter()
-        .map(|l| {
-            let gid = guild_id.clone();
-            let label = format!("{} \u{2192} {}", l.name, l.link);
+    let chips = match helper_links {
+        Ok(links) => {
+            let views = links
+                .into_iter()
+                .map(|l| {
+                    let gid = guild_id.clone();
+                    let label = format!("{} \u{2192} {}", l.name, l.link);
 
-            view! {
-                <ActionForm action=remove attr:class="chip">
-                    <input type="hidden" name="guild" value=gid/>
-                    <input type="hidden" name="user_id" value=l.user_id/>
-                    <span class="chip-label">{label}</span>
-                    <button type="submit" class="chip-remove" title="Remove">
-                        <Icon name="x"/>
-                    </button>
-                </ActionForm>
-            }
-        })
-        .collect_view();
+                    view! {
+                        <ActionForm action=remove attr:class="chip">
+                            <input type="hidden" name="guild" value=gid/>
+                            <input type="hidden" name="user_id" value=l.user_id/>
+                            <span class="chip-label">{label}</span>
+                            <button type="submit" class="chip-remove" title="Remove">
+                                <Icon name="x"/>
+                            </button>
+                        </ActionForm>
+                    }
+                })
+                .collect_view();
+
+            view! { <div class="chip-list">{views}</div> }.into_any()
+        },
+        Err(reason) => view! {
+            <p class="warning">"Couldn't load the helper links: " {reason}</p>
+        }
+        .into_any(),
+    };
 
     view! {
         <div class="setting-field">
@@ -405,7 +415,7 @@ fn HelperLinkField(
                 "When a post is solved, anyone with a support role who posted "
                 "in it and has a link here gets credited in a follow-up message."
             </p>
-            <div class="chip-list">{chips}</div>
+            {chips}
             {move || remove_result.get().map(save_feedback)}
             {move || add_result.get().map(save_feedback)}
             <ActionForm action=add attr:class="chip-add">
@@ -430,41 +440,51 @@ fn HelperLinkField(
 #[component]
 fn SupportRoleField(
     guild_id: String,
-    support_roles: Vec<String>,
-    roles: Vec<RoleInfo>,
+    support_roles: Result<Vec<String>, String>,
+    roles: Result<Vec<RoleInfo>, String>,
     add: ServerAction<AddSupportRole>,
     remove: ServerAction<RemoveSupportRole>,
 ) -> impl IntoView {
     let add_result = add.value();
     let remove_result = remove.value();
 
-    let unconfigured = roles
-        .iter()
-        .filter(|r| !support_roles.contains(&r.id))
-        .cloned()
-        .collect::<Vec<_>>();
+    let known = roles.clone().unwrap_or_default();
+    let configured = support_roles.clone().unwrap_or_default();
+    let unconfigured = roles.map(|roles| {
+        roles.into_iter().filter(|r| !configured.contains(&r.id)).collect::<Vec<_>>()
+    });
 
-    let chips = support_roles
-        .into_iter()
-        .map(|id| {
-            let name = roles.iter().find(|r| r.id == id).map_or_else(
-                || format!("@unknown ({id})"),
-                |r| format!("@{}", r.name),
-            );
-            let gid = guild_id.clone();
+    let chips = match support_roles {
+        Ok(ids) => {
+            let views = ids
+                .into_iter()
+                .map(|id| {
+                    let name = known.iter().find(|r| r.id == id).map_or_else(
+                        || format!("@unknown ({id})"),
+                        |r| format!("@{}", r.name),
+                    );
+                    let gid = guild_id.clone();
 
-            view! {
-                <ActionForm action=remove attr:class="chip">
-                    <input type="hidden" name="guild" value=gid/>
-                    <input type="hidden" name="role_id" value=id/>
-                    <span class="chip-label">{name}</span>
-                    <button type="submit" class="chip-remove" title="Remove">
-                        <Icon name="x"/>
-                    </button>
-                </ActionForm>
-            }
-        })
-        .collect_view();
+                    view! {
+                        <ActionForm action=remove attr:class="chip">
+                            <input type="hidden" name="guild" value=gid/>
+                            <input type="hidden" name="role_id" value=id/>
+                            <span class="chip-label">{name}</span>
+                            <button type="submit" class="chip-remove" title="Remove">
+                                <Icon name="x"/>
+                            </button>
+                        </ActionForm>
+                    }
+                })
+                .collect_view();
+
+            view! { <div class="chip-list">{views}</div> }.into_any()
+        },
+        Err(reason) => view! {
+            <p class="warning">"Couldn't load the support roles: " {reason}</p>
+        }
+        .into_any(),
+    };
 
     view! {
         <div class="setting-field">
@@ -476,7 +496,7 @@ fn SupportRoleField(
                 "reminder buttons. With none set, Zayden falls back to pinging "
                 "the server owner when a ticket opens."
             </p>
-            <div class="chip-list">{chips}</div>
+            {chips}
             {move || remove_result.get().map(save_feedback)}
             {move || add_result.get().map(save_feedback)}
             <ActionForm action=add attr:class="chip-add">

@@ -102,7 +102,7 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                                         label="Channel"
                                         name="channel_id"
                                         selected=String::new()
-                                        channels=form_channels
+                                        channels=Ok(form_channels)
                                         kinds=TEXT_KINDS
                                     />
                                     <SettingField
@@ -122,7 +122,7 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                                         label="Role"
                                         name="role_id"
                                         selected=String::new()
-                                        roles=form_roles
+                                        roles=Ok(form_roles)
                                     />
                                     <div class="form-actions">
                                         <button type="submit" class="btn btn-primary">

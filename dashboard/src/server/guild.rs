@@ -204,11 +204,11 @@ pub async fn get_settings_bundle(
 
     Ok(SettingsBundle {
         settings: settings?,
-        support_roles: support_roles.unwrap_or_default(),
-        helper_links: helper_links.unwrap_or_default(),
-        channels: channels.unwrap_or_default(),
-        roles: roles.unwrap_or_default(),
-        patreon: patreon.unwrap_or_default(),
+        support_roles: support_roles.map_err(|e| e.to_string()),
+        helper_links: helper_links.map_err(|e| e.to_string()),
+        channels: channels.map_err(|e| e.to_string()),
+        roles: roles.map_err(|e| e.to_string()),
+        patreon: patreon.map_err(|e| e.to_string()),
     })
 }
 

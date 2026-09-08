@@ -10,8 +10,35 @@ use crate::ui::components::settings::{SaveButton, ToggleField, save_feedback};
 #[component]
 pub(crate) fn PatreonTab(
     guild_id: String,
+    status: Result<PatreonStatus, String>,
+    channels: Result<Vec<ChannelInfo>, String>,
+) -> impl IntoView {
+    match status {
+        Ok(status) => view! {
+            <PatreonPanel guild_id=guild_id status=status channels=channels/>
+        }
+        .into_any(),
+        Err(reason) => view! {
+            <fieldset class="settings-section">
+                <p class="warning">
+                    "Couldn't load the Patreon connection: " {reason}
+                </p>
+                <p class="page-lead">
+                    "Reload once Patreon is reachable. Connecting from here \
+                     while the status is unknown would overwrite whatever \
+                     campaign is already linked."
+                </p>
+            </fieldset>
+        }
+        .into_any(),
+    }
+}
+
+#[component]
+fn PatreonPanel(
+    guild_id: String,
     status: PatreonStatus,
-    channels: Vec<ChannelInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
 ) -> impl IntoView {
     let save = ServerAction::<SavePatreonSettings>::new();
     let result = save.value();

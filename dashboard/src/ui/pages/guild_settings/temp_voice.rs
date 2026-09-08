@@ -11,7 +11,7 @@ use crate::ui::components::settings::{SaveButton, create_feedback, save_feedback
 pub(crate) fn TempVoiceTab(
     guild_id: String,
     settings: GuildSettings,
-    channels: Vec<ChannelInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
     create: ServerAction<CreateTempVoiceCreatorChannel>,
 ) -> impl IntoView {
     let save_temp_voice = ServerAction::<SaveTempVoiceSettings>::new();

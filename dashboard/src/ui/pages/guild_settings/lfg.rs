@@ -11,8 +11,8 @@ use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 pub(crate) fn LfgTab(
     guild_id: String,
     settings: GuildSettings,
-    channels: Vec<ChannelInfo>,
-    roles: Vec<RoleInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
+    roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
     let save_lfg = ServerAction::<SaveLfgSettings>::new();
     let result = save_lfg.value();

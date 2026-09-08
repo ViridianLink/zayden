@@ -16,8 +16,8 @@ use crate::ui::components::settings::{
 pub(crate) fn MusicTab(
     guild_id: String,
     settings: GuildSettings,
-    channels: Vec<ChannelInfo>,
-    roles: Vec<RoleInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
+    roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
     let save_music = ServerAction::<SaveMusicSettings>::new();
     let result = save_music.value();

@@ -4,6 +4,12 @@ use twilight_model::channel::ChannelType;
 use super::icons::Icon;
 use crate::dto::{ChannelInfo, RoleInfo};
 
+const CHANNELS_UNAVAILABLE: &str = "Couldn't reach Discord; the channel list is \
+                                    unavailable. Saving keeps the current value.";
+
+const ROLES_UNAVAILABLE: &str = "Couldn't reach Discord; the role list is \
+                                 unavailable. Saving keeps the current value.";
+
 #[derive(Clone)]
 pub struct SelectOption {
     pub value: String,
@@ -15,8 +21,20 @@ pub(crate) fn SelectField(
     label: &'static str,
     name: &'static str,
     selected: String,
-    options: Vec<SelectOption>,
+    options: Result<Vec<SelectOption>, String>,
 ) -> impl IntoView {
+    match options {
+        Ok(options) => picker(label, name, selected, options),
+        Err(reason) => locked_picker(label, name, selected, reason),
+    }
+}
+
+fn picker(
+    label: &'static str,
+    name: &'static str,
+    selected: String,
+    options: Vec<SelectOption>,
+) -> AnyView {
     let has_selected = !selected.is_empty();
     let known = options.iter().any(|o| o.value == selected);
     let option_views = options
@@ -44,6 +62,41 @@ pub(crate) fn SelectField(
             </div>
         </div>
     }
+    .into_any()
+}
+
+// The hidden input carries `selected` in the disabled select's place, so a save
+// made while the list is missing round-trips the stored value instead of null.
+fn locked_picker(
+    label: &'static str,
+    name: &'static str,
+    selected: String,
+    reason: String,
+) -> AnyView {
+    let current = if selected.is_empty() {
+        "(not set)".to_owned()
+    } else {
+        format!("Unchanged ({selected})")
+    };
+
+    view! {
+        <div class="setting-field">
+            <label>{label}</label>
+            <div class="select">
+                <select disabled=true>
+                    <option selected=true>{current}</option>
+                </select>
+                <span class="select-chevron"><Icon name="chevron-down"/></span>
+            </div>
+            <input type="hidden" name=name value=selected/>
+            <p class="field-hint field-warning">{reason}</p>
+        </div>
+    }
+    .into_any()
+}
+
+fn unavailable(reason: &str, detail: &str) -> String {
+    format!("{reason} ({detail})")
 }
 
 const fn channel_prefix(kind: ChannelType) -> &'static str {
@@ -71,17 +124,21 @@ pub(crate) fn ChannelSelect(
     label: &'static str,
     name: &'static str,
     selected: String,
-    channels: Vec<ChannelInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
     #[prop(default = &[])] kinds: &'static [ChannelType],
 ) -> impl IntoView {
     let options = channels
-        .into_iter()
-        .filter(|c| kinds.is_empty() || kinds.contains(&c.kind))
-        .map(|c| SelectOption {
-            label: format!("{}{}", channel_prefix(c.kind), c.name),
-            value: c.id,
+        .map(|channels| {
+            channels
+                .into_iter()
+                .filter(|c| kinds.is_empty() || kinds.contains(&c.kind))
+                .map(|c| SelectOption {
+                    label: format!("{}{}", channel_prefix(c.kind), c.name),
+                    value: c.id,
+                })
+                .collect()
         })
-        .collect();
+        .map_err(|e| unavailable(CHANNELS_UNAVAILABLE, &e));
 
     view! { <SelectField label=label name=name selected=selected options=options/> }
 }
@@ -91,12 +148,16 @@ pub(crate) fn RoleSelect(
     label: &'static str,
     name: &'static str,
     selected: String,
-    roles: Vec<RoleInfo>,
+    roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
     let options = roles
-        .into_iter()
-        .map(|r| SelectOption { label: format!("@{}", r.name), value: r.id })
-        .collect();
+        .map(|roles| {
+            roles
+                .into_iter()
+                .map(|r| SelectOption { label: format!("@{}", r.name), value: r.id })
+                .collect()
+        })
+        .map_err(|e| unavailable(ROLES_UNAVAILABLE, &e));
 
     view! { <SelectField label=label name=name selected=selected options=options/> }
 }
@@ -106,17 +167,21 @@ pub(crate) fn ForumTagSelect(
     label: &'static str,
     name: &'static str,
     selected: String,
-    channels: Vec<ChannelInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
 ) -> impl IntoView {
     let options = channels
-        .into_iter()
-        .flat_map(|c| {
-            c.tags.into_iter().map(move |t| SelectOption {
-                label: format!("#{} / {}", c.name, t.name),
-                value: t.id,
-            })
+        .map(|channels| {
+            channels
+                .into_iter()
+                .flat_map(|c| {
+                    c.tags.into_iter().map(move |t| SelectOption {
+                        label: format!("#{} / {}", c.name, t.name),
+                        value: t.id,
+                    })
+                })
+                .collect()
         })
-        .collect();
+        .map_err(|e| unavailable(CHANNELS_UNAVAILABLE, &e));
 
     view! { <SelectField label=label name=name selected=selected options=options/> }
 }

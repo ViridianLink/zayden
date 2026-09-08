@@ -11,7 +11,7 @@ use crate::ui::components::settings::{SaveButton, ToggleField, save_feedback};
 pub(crate) fn AiTab(
     guild_id: String,
     settings: GuildSettings,
-    channels: Vec<ChannelInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
 ) -> impl IntoView {
     let save_ai = ServerAction::<SaveAiSettings>::new();
     let result = save_ai.value();

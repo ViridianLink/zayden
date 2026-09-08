@@ -16,8 +16,8 @@ use crate::ui::components::settings::{
 pub(crate) fn HoneypotTab(
     guild_id: String,
     settings: GuildSettings,
-    channels: Vec<ChannelInfo>,
-    roles: Vec<RoleInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
+    roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
     let save_honeypot = ServerAction::<SaveHoneypotSettings>::new();
     let result = save_honeypot.value();

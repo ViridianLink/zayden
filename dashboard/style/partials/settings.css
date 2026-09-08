@@ -81,6 +81,10 @@
   color: var(--text-secondary);
 }
 
+.setting-field .field-warning {
+  color: var(--warning);
+}
+
 /* Styled native select (channel/role picker). */
 .select {
   position: relative;
@@ -100,6 +104,11 @@
   font-size: 14px;
   cursor: pointer;
   transition: border-color 0.2s var(--ease-spring);
+}
+
+.select select:disabled {
+  color: var(--text-tertiary);
+  cursor: not-allowed;
 }
 
 .select select:focus {

@@ -80,9 +80,9 @@ pub struct GuildSettings {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SettingsBundle {
     pub(crate) settings: GuildSettings,
-    pub(crate) support_roles: Vec<String>,
-    pub(crate) helper_links: Vec<HelperLinkInfo>,
-    pub(crate) channels: Vec<ChannelInfo>,
-    pub(crate) roles: Vec<RoleInfo>,
-    pub(crate) patreon: PatreonStatus,
+    pub(crate) support_roles: Result<Vec<String>, String>,
+    pub(crate) helper_links: Result<Vec<HelperLinkInfo>, String>,
+    pub(crate) channels: Result<Vec<ChannelInfo>, String>,
+    pub(crate) roles: Result<Vec<RoleInfo>, String>,
+    pub(crate) patreon: Result<PatreonStatus, String>,
 }

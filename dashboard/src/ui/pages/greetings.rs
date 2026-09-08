@@ -263,7 +263,7 @@ fn ChannelSection(
                     label="Allow a channel"
                     name="channel_id"
                     selected=String::new()
-                    channels=unconfigured
+                    channels=Ok(unconfigured)
                     kinds=GATE_KINDS
                 />
                 <button type="submit" class="btn btn-ghost">"Add channel"</button>

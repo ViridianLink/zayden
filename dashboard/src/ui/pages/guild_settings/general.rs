@@ -12,8 +12,8 @@ use crate::ui::components::settings::{SaveButton, save_feedback};
 pub(crate) fn GeneralTab(
     guild_id: String,
     settings: GuildSettings,
-    channels: Vec<ChannelInfo>,
-    roles: Vec<RoleInfo>,
+    channels: Result<Vec<ChannelInfo>, String>,
+    roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
     let save_channels = ServerAction::<SaveChannelSettings>::new();
     let save_roles = ServerAction::<SaveRoleSettings>::new();
