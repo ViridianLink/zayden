@@ -10,6 +10,7 @@ use {
     twilight_http::Client,
     twilight_model::guild::Permissions,
     twilight_model::id::Id,
+    twilight_model::user::CurrentUserGuild,
     zayden_app::state::AppState,
 };
 
@@ -210,30 +211,64 @@ pub(crate) async fn current_session_identity()
 }
 
 #[cfg(feature = "ssr")]
+#[must_use]
+pub fn manages_guild(guild: &CurrentUserGuild) -> bool {
+    guild
+        .permissions
+        .intersects(Permissions::ADMINISTRATOR | Permissions::MANAGE_GUILD)
+}
+
+#[cfg(feature = "ssr")]
+pub type UserGuildsCache = Cache<i64, Arc<[CurrentUserGuild]>>;
+
+// The only call of Discord's `GET /users/@me/guilds`. Both the per-guild
+// authorization decision and the server switcher's list are derived from this
+// one payload, so a page render pays for it once rather than once per server
+// fn. The TTL bounds how long a revoked guild permission stays honoured.
+#[cfg(feature = "ssr")]
+pub async fn lookup_user_guilds(
+    cache: Option<&UserGuildsCache>,
+    identity: &SessionIdentity,
+) -> Result<Arc<[CurrentUserGuild]>, ServerFnError> {
+    if let Some(cache) = cache
+        && let Some(guilds) = cache.get(&identity.user_id).await
+    {
+        return Ok(guilds);
+    }
+
+    let guilds: Arc<[CurrentUserGuild]> = bearer_client(&identity.access_token)
+        .current_user_guilds()
+        .await
+        .map_err(server_err)?
+        .model()
+        .await
+        .map_err(server_err)?
+        .into();
+
+    if let Some(cache) = cache {
+        cache.insert(identity.user_id, Arc::clone(&guilds)).await;
+    }
+
+    Ok(guilds)
+}
+
+#[cfg(feature = "ssr")]
 pub async fn guild_admin_for(
     pool: &PgPool,
     identity: &SessionIdentity,
     guild_id_str: &str,
     discord: Option<&Client>,
+    guilds_cache: Option<&UserGuildsCache>,
 ) -> Result<GuildAdminContext, ServerFnError> {
     let Ok(guild_id) = guild_id_str.parse::<i64>() else {
         return Err(ServerFnError::ServerError("invalid guild id".to_string()));
     };
     let guild_id_u64 = guild_id.cast_unsigned();
 
-    let all_guilds = bearer_client(&identity.access_token)
-        .current_user_guilds()
-        .await
-        .map_err(server_err)?
-        .model()
-        .await
-        .map_err(server_err)?;
+    let all_guilds = lookup_user_guilds(guilds_cache, identity).await?;
 
-    let is_member_admin = all_guilds.iter().any(|g| {
-        g.id.get() == guild_id_u64
-            && g.permissions
-                .intersects(Permissions::ADMINISTRATOR | Permissions::MANAGE_GUILD)
-    });
+    let is_member_admin =
+        all_guilds.iter().any(|g| g.id.get() == guild_id_u64 && manages_guild(g));
 
     if is_member_admin {
         return Ok(GuildAdminContext {
@@ -274,7 +309,14 @@ pub(crate) async fn guild_admin_context(
     let identity = session_identity(&pool, &token).await?;
     let discord = discord_client().ok();
 
-    guild_admin_for(&pool, &identity, guild_id_str, discord.as_deref()).await
+    guild_admin_for(
+        &pool,
+        &identity,
+        guild_id_str,
+        discord.as_deref(),
+        use_context::<UserGuildsCache>().as_ref(),
+    )
+    .await
 }
 
 #[cfg(feature = "ssr")]

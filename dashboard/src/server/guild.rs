@@ -2,12 +2,14 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     crate::server::auth::{
+        UserGuildsCache,
         admin_guild_id,
         app_state,
-        bearer_client,
         current_session_identity,
         db_pool,
         discord_client,
+        lookup_user_guilds,
+        manages_guild,
         server_err,
     },
     honeypot::{HoneypotConfig, HoneypotSettings},
@@ -17,7 +19,6 @@ use {
     ticket::{GuildId, HelperLinks, RoleId, SupportRoles, UserId},
     twilight_http::Client,
     twilight_model::channel::ChannelType,
-    twilight_model::guild::Permissions,
     twilight_model::id::Id,
     url::Url,
     zayden_app::config::{ARCHIVE_NEVER, MusicSettingsRow},
@@ -80,23 +81,16 @@ pub async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
 
-    let all_guilds = bearer_client(&identity.access_token)
-        .current_user_guilds()
-        .await
-        .map_err(server_err)?
-        .model()
-        .await
-        .map_err(server_err)?;
+    let all_guilds =
+        lookup_user_guilds(use_context::<UserGuildsCache>().as_ref(), &identity)
+            .await?;
 
     Ok(all_guilds
-        .into_iter()
-        .filter(|g| {
-            g.permissions
-                .intersects(Permissions::ADMINISTRATOR | Permissions::MANAGE_GUILD)
-        })
+        .iter()
+        .filter(|g| manages_guild(g))
         .map(|g| GuildInfo {
             id: g.id.to_string(),
-            name: g.name,
+            name: g.name.clone(),
             icon: g.icon.map(|hash| hash.to_string()),
         })
         .collect())

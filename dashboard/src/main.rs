@@ -14,7 +14,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use dashboard::app::{App, UpgradeUrl, shell};
-use dashboard::server::auth::SessionCache;
+use dashboard::server::auth::{SessionCache, UserGuildsCache};
 use leptos::config::{LeptosOptions, get_configuration};
 use leptos::prelude::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list};
@@ -61,6 +61,7 @@ pub(crate) struct WebState {
     pub(crate) patreon_webhook_uri: String,
     pub(crate) discord_http: Arc<twilight_http::Client>,
     pub(crate) session_cache: SessionCache,
+    pub(crate) user_guilds_cache: UserGuildsCache,
     pub(crate) leptos_options: LeptosOptions,
     pub(crate) palworld: Arc<PalworldClient>,
 }
@@ -115,6 +116,10 @@ impl WebState {
             )),
             invite_url: config.invite_url.clone(),
             session_cache: Cache::builder()
+                .max_capacity(1024)
+                .time_to_live(Duration::from_mins(1))
+                .build(),
+            user_guilds_cache: Cache::builder()
                 .max_capacity(1024)
                 .time_to_live(Duration::from_mins(1))
                 .build(),
@@ -180,6 +185,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let discord_http = Arc::clone(&discord_http);
                 let palworld = Arc::clone(&web_state.palworld);
                 let session_cache = web_state.session_cache.clone();
+                let user_guilds_cache = web_state.user_guilds_cache.clone();
                 move || {
                     provide_context(db.clone());
                     provide_context(Arc::clone(&app));
@@ -187,6 +193,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     provide_context(Arc::clone(&discord_http));
                     provide_context(Arc::clone(&palworld));
                     provide_context(session_cache.clone());
+                    provide_context(user_guilds_cache.clone());
                 }
             },
             {

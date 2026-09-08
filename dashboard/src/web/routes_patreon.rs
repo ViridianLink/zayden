@@ -51,10 +51,15 @@ async fn admin(
     let identity = session_identity(&state.app.db, &token).await.ok()?;
     let user_id = identity.user_id;
 
-    let context =
-        guild_admin_for(&state.app.db, &identity, guild, Some(&state.discord_http))
-            .await
-            .ok()?;
+    let context = guild_admin_for(
+        &state.app.db,
+        &identity,
+        guild,
+        Some(&state.discord_http),
+        Some(&state.user_guilds_cache),
+    )
+    .await
+    .ok()?;
 
     Some((context, user_id))
 }
