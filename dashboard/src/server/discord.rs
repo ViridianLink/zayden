@@ -16,12 +16,11 @@ async fn admin_discord(guild: &str) -> Result<(u64, Arc<Client>), ServerFnError>
     Ok((guild_id.cast_unsigned(), discord_client()?))
 }
 
-#[server]
-pub async fn list_guild_channels(
-    guild: String,
+#[cfg(feature = "ssr")]
+pub(crate) async fn fetch_guild_channels(
+    http: &Client,
+    guild_id: u64,
 ) -> Result<Vec<ChannelInfo>, ServerFnError> {
-    let (guild_id, http) = admin_discord(&guild).await?;
-
     let mut channels = http
         .guild_channels(Id::new(guild_id))
         .await
@@ -47,12 +46,11 @@ pub async fn list_guild_channels(
         .collect())
 }
 
-#[server]
-pub async fn list_guild_roles(
-    guild: String,
+#[cfg(feature = "ssr")]
+pub(crate) async fn fetch_guild_roles(
+    http: &Client,
+    guild_id: u64,
 ) -> Result<Vec<RoleInfo>, ServerFnError> {
-    let (guild_id, http) = admin_discord(&guild).await?;
-
     let mut roles = http
         .roles(Id::new(guild_id))
         .await
@@ -71,4 +69,20 @@ pub async fn list_guild_roles(
             color: r.colors.primary_color,
         })
         .collect())
+}
+
+#[server]
+pub async fn list_guild_channels(
+    guild: String,
+) -> Result<Vec<ChannelInfo>, ServerFnError> {
+    let (guild_id, http) = admin_discord(&guild).await?;
+    fetch_guild_channels(&http, guild_id).await
+}
+
+#[server]
+pub async fn list_guild_roles(
+    guild: String,
+) -> Result<Vec<RoleInfo>, ServerFnError> {
+    let (guild_id, http) = admin_discord(&guild).await?;
+    fetch_guild_roles(&http, guild_id).await
 }

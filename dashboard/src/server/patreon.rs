@@ -4,16 +4,16 @@ use {
     crate::server::auth::admin_guild_id,
     crate::server::guild::admin_app,
     patreon::{PatreonAnnounceRow, PatreonConnection},
+    zayden_app::state::AppState,
 };
 
 use crate::dto::PatreonStatus;
 
-#[server]
-pub async fn get_patreon_status(
-    guild: String,
+#[cfg(feature = "ssr")]
+pub(crate) async fn fetch_patreon_status(
+    app: &AppState,
+    guild_id: i64,
 ) -> Result<PatreonStatus, ServerFnError> {
-    let (guild_id, app) = admin_app(&guild).await?;
-
     let connection = PatreonConnection::select(&app.db, guild_id)
         .await
         .map_err(crate::server::auth::server_err)?;
@@ -33,6 +33,14 @@ pub async fn get_patreon_status(
         channel_id: announce.as_ref().map(|a| a.channel_id.to_string()),
         public_only: announce.as_ref().is_some_and(|a| a.public_only),
     })
+}
+
+#[server]
+pub async fn get_patreon_status(
+    guild: String,
+) -> Result<PatreonStatus, ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+    fetch_patreon_status(&app, guild_id).await
 }
 
 #[server]

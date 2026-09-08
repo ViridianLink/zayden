@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::dto::{ChannelInfo, RoleInfo};
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct GuildInfo {
     pub(crate) id: String,
@@ -73,4 +75,14 @@ pub struct GuildSettings {
     pub(crate) faq_max_results: String,
     pub(crate) faq_answer_max_tokens: String,
     pub(crate) faq_answer_temperature: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SettingsBundle {
+    pub(crate) settings: GuildSettings,
+    pub(crate) support_roles: Vec<String>,
+    pub(crate) helper_links: Vec<HelperLinkInfo>,
+    pub(crate) channels: Vec<ChannelInfo>,
+    pub(crate) roles: Vec<RoleInfo>,
+    pub(crate) patreon: PatreonStatus,
 }

@@ -12,8 +12,11 @@ use {
         manages_guild,
         server_err,
     },
+    crate::server::discord::{fetch_guild_channels, fetch_guild_roles},
+    crate::server::patreon::fetch_patreon_status,
     honeypot::{HoneypotConfig, HoneypotSettings},
     leptos_axum::redirect,
+    sqlx::PgPool,
     std::sync::Arc,
     suggestions::ReviewThresholds,
     ticket::{GuildId, HelperLinks, RoleId, SupportRoles, UserId},
@@ -25,7 +28,7 @@ use {
     zayden_app::state::AppState,
 };
 
-use crate::dto::{GuildInfo, GuildSettings, HelperLinkInfo};
+use crate::dto::{GuildInfo, GuildSettings, HelperLinkInfo, SettingsBundle};
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn admin_app(
@@ -96,15 +99,15 @@ pub async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
         .collect())
 }
 
-#[server]
-pub async fn get_guild_settings(
-    guild_id: String,
+#[cfg(feature = "ssr")]
+pub(crate) async fn fetch_guild_settings(
+    app: &AppState,
+    guild_id: i64,
 ) -> Result<GuildSettings, ServerFnError> {
     fn opt_str(v: Option<i64>) -> Option<String> {
         v.map(|n| n.to_string())
     }
 
-    let (guild_id, app) = admin_app(&guild_id).await?;
     let s = &app.settings;
 
     let support = s.support.get(guild_id).await.map_err(server_err)?;
@@ -166,6 +169,43 @@ pub async fn get_guild_settings(
         faq_max_results: faq.max_results.to_string(),
         faq_answer_max_tokens: faq.answer_max_tokens.to_string(),
         faq_answer_temperature: faq.answer_temperature.to_string(),
+    })
+}
+
+#[server]
+pub async fn get_guild_settings(
+    guild_id: String,
+) -> Result<GuildSettings, ServerFnError> {
+    let (guild_id, app) = admin_app(&guild_id).await?;
+    fetch_guild_settings(&app, guild_id).await
+}
+
+#[server]
+pub async fn get_settings_bundle(
+    guild: String,
+) -> Result<SettingsBundle, ServerFnError> {
+    let guild_id = admin_guild_id(&guild).await?;
+    let app = app_state()?;
+    let pool = db_pool()?;
+    let http = discord_client()?;
+    let discord_guild_id = guild_id.cast_unsigned();
+
+    let (settings, support_roles, helper_links, channels, roles, patreon) = tokio::join!(
+        fetch_guild_settings(&app, guild_id),
+        fetch_support_roles(&pool, guild_id),
+        fetch_helper_links(&pool, &http, guild_id),
+        fetch_guild_channels(&http, discord_guild_id),
+        fetch_guild_roles(&http, discord_guild_id),
+        fetch_patreon_status(&app, guild_id),
+    );
+
+    Ok(SettingsBundle {
+        settings: settings?,
+        support_roles: support_roles.unwrap_or_default(),
+        helper_links: helper_links.unwrap_or_default(),
+        channels: channels.unwrap_or_default(),
+        roles: roles.unwrap_or_default(),
+        patreon: patreon.unwrap_or_default(),
     })
 }
 
@@ -336,19 +376,26 @@ pub async fn save_suggestions_settings(
         .map_err(server_err)
 }
 
+#[cfg(feature = "ssr")]
+pub(crate) async fn fetch_support_roles(
+    pool: &PgPool,
+    guild_id: i64,
+) -> Result<Vec<String>, ServerFnError> {
+    Ok(SupportRoles::ids(pool, GuildId::new(guild_id.cast_unsigned()))
+        .await
+        .map_err(server_err)?
+        .into_iter()
+        .map(|id| id.get().to_string())
+        .collect())
+}
+
 #[server]
 pub async fn list_support_roles(
     guild: String,
 ) -> Result<Vec<String>, ServerFnError> {
     let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
-
-    Ok(SupportRoles::ids(&pool, GuildId::new(guild_id.cast_unsigned()))
-        .await
-        .map_err(server_err)?
-        .into_iter()
-        .map(|id| id.get().to_string())
-        .collect())
+    fetch_support_roles(&pool, guild_id).await
 }
 
 #[server]
@@ -446,15 +493,13 @@ fn parse_link(s: &str) -> Result<String, ServerFnError> {
     Ok(link)
 }
 
-#[server]
-pub async fn list_helper_links(
-    guild: String,
+#[cfg(feature = "ssr")]
+pub(crate) async fn fetch_helper_links(
+    pool: &PgPool,
+    http: &Client,
+    guild_id: i64,
 ) -> Result<Vec<HelperLinkInfo>, ServerFnError> {
-    let guild_id = admin_guild_id(&guild).await?;
-    let pool = db_pool()?;
-    let http = discord_client()?;
-
-    let links = HelperLinks::list(&pool, GuildId::new(guild_id.cast_unsigned()))
+    let links = HelperLinks::list(pool, GuildId::new(guild_id.cast_unsigned()))
         .await
         .map_err(server_err)?;
 
@@ -462,7 +507,7 @@ pub async fn list_helper_links(
 
     for l in links {
         let user_id = l.user_id.get();
-        let name = display_name(&http, guild_id.cast_unsigned(), user_id).await;
+        let name = display_name(http, guild_id.cast_unsigned(), user_id).await;
 
         out.push(HelperLinkInfo {
             user_id: user_id.to_string(),
@@ -472,6 +517,16 @@ pub async fn list_helper_links(
     }
 
     Ok(out)
+}
+
+#[server]
+pub async fn list_helper_links(
+    guild: String,
+) -> Result<Vec<HelperLinkInfo>, ServerFnError> {
+    let guild_id = admin_guild_id(&guild).await?;
+    let pool = db_pool()?;
+    let http = discord_client()?;
+    fetch_helper_links(&pool, &http, guild_id).await
 }
 
 #[cfg(feature = "ssr")]
