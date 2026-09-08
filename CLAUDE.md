@@ -124,6 +124,64 @@ narration, and summaries of work the user just watched you do.
   the cranelift post-mortem. **Read it before touching codegen or linking.**
 - `.claude/skills/rust-skills/` — 265 Rust rules across 26 categories. Consult
   when writing or reviewing non-trivial Rust.
+- `.claude/agents/` — the five Sonnet perimeter subagents. See the delegation
+  policy at the end of this file.
 - `.claude/memory/` — accumulated project and preference notes, indexed in
   `MEMORY.md`.
 - `README.md` — layout, full command list, Docker and CI notes.
+
+## MULTI-AGENT DELEGATION POLICY ("Opus Core, Sonnet Perimeter")
+
+You are the Primary Orchestrator running as `claude-opus-5`. Five perimeter
+subagents in `.claude/agents/` run as `claude-sonnet-5`. To preserve
+subscription quotas and eliminate context bloat, you MUST NOT perform
+brute-force search, test log ingestion, or git administrative tasks directly.
+
+The division is by token profile, not by difficulty: anything that ingests bulk
+low-signal text — grep hits, compiler output, test logs, diffs — belongs on the
+perimeter. Anything that requires holding the whole design in mind at once stays
+in the core.
+
+### Strict Routing Rules
+
+1. **Reconnaissance & Symbol Discovery**
+   - DELEGATE to subagent `recon`.
+   - NEVER run raw recursive greps or glob entire directory trees into the main
+     context. Reading two or three files you already know the paths of is fine;
+     hunting for them is not.
+2. **Backlog & Prerequisites**
+   - DELEGATE to subagent `planner`.
+   - It reads `design-docs/`, the `Cargo.toml` manifests and this file, and
+     returns a scoped task with a machine-verifiable Done-When gate.
+3. **Core Implementation (Opus Domain)**
+   - Handle algorithmic design, lifetime and borrow-checker resolution, state
+     machines, `unsafe` audits, trait and API design, and core module logic.
+   - Work exclusively from the high-signal summaries `recon` and `planner`
+     return. Do not re-derive what they already established.
+4. **Verification & Test Execution**
+   - DELEGATE all build, lint and test runs to subagent `verifier`.
+   - NEVER run `cargo check`, `cargo clippy`, `cargo build` or `cargo test`
+     directly. Ingest ONLY `VERIFICATION_SUCCESS` or the distilled root-cause
+     block.
+   - `--all-features` is invalid in this workspace (see **Validation** above);
+     `verifier` runs the real gate, including the `dashboard` `ssr` / `hydrate`
+     split.
+5. **Boilerplate & Test Generation**
+   - Write the conceptual edge-case spec yourself — which behaviours matter and
+     why — then DELEGATE the fixtures, tables, mocks and assertions to subagent
+     `test-generator`.
+   - It is confined to `tests/`; it will refuse a production-code change and
+     report the blocker back to you.
+6. **Formatting & Git Staging**
+   - DELEGATE to subagent `git-hygiene`.
+   - It runs `cargo fmt`, audits the diff, stages explicit paths, and drafts a
+     Conventional Commit message. It is hard-blocked from `git commit`,
+     `git push` and `gh pr create`.
+   - NEVER run `git commit` or `git push` yourself. Repository mutations require
+     explicit user confirmation, every time.
+
+### Escalation
+
+If a subagent returns twice without resolving its task, stop delegating and do
+that step in the core rather than looping. Two failed perimeter round-trips cost
+more than doing it once directly.
