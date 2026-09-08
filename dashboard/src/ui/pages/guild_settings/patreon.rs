@@ -97,9 +97,11 @@ fn PatreonPanel(
                         }}
                     </p>
                     <div class="settings-actions">
-                        <a class="button" href=connect_href>"Reconnect Patreon"</a>
+                        <a class="btn btn-secondary" href=connect_href>
+                            "Reconnect Patreon"
+                        </a>
                         <form method="post" action=disconnect_href>
-                            <button type="submit" class="button danger">
+                            <button type="submit" class="btn btn-danger">
                                 "Disconnect"
                             </button>
                         </form>
@@ -114,7 +116,9 @@ fn PatreonPanel(
                          so nobody else can grant it."
                     </p>
                     <div class="settings-actions">
-                        <a class="button" href=connect_href>"Connect Patreon"</a>
+                        <a class="btn btn-primary" href=connect_href>
+                            "Connect Patreon"
+                        </a>
                     </div>
                 }
                     .into_any()
