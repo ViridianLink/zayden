@@ -4,6 +4,7 @@ pub mod greetings;
 pub mod guild;
 pub mod levels;
 pub mod modules;
+pub mod patreon;
 pub mod reaction_roles;
 pub mod tier;
 
@@ -19,5 +20,6 @@ pub use guild::{
 };
 pub use levels::LeaderboardEntry;
 pub use modules::ModuleView;
+pub use patreon::PatreonOutcome;
 pub use reaction_roles::ReactionRoleInfo;
 pub use tier::{Tier, UserTierInfo};

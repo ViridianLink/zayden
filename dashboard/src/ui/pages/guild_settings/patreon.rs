@@ -1,8 +1,10 @@
 use leptos::form::ActionForm;
 use leptos::prelude::*;
+use leptos_router::hooks::use_query_map;
 
 use super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, PatreonStatus};
+use crate::dto::patreon::OUTCOME_PARAM;
+use crate::dto::{ChannelInfo, PatreonOutcome, PatreonStatus};
 use crate::server::patreon::SavePatreonSettings;
 use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, ToggleField, save_feedback};
@@ -13,7 +15,15 @@ pub(crate) fn PatreonTab(
     status: Result<PatreonStatus, String>,
     channels: Result<Vec<ChannelInfo>, String>,
 ) -> impl IntoView {
-    match status {
+    let query = use_query_map();
+    let outcome = move || {
+        query
+            .with(|q| q.get(OUTCOME_PARAM))
+            .as_deref()
+            .and_then(PatreonOutcome::from_key)
+    };
+
+    let panel = match status {
         Ok(status) => view! {
             <PatreonPanel guild_id=guild_id status=status channels=channels/>
         }
@@ -31,6 +41,13 @@ pub(crate) fn PatreonTab(
             </fieldset>
         }
         .into_any(),
+    };
+
+    view! {
+        {move || {
+            outcome().map(|o| view! { <p class=o.class()>{o.message()}</p> })
+        }}
+        {panel}
     }
 }
 

@@ -2,6 +2,8 @@ use axum::body::{Body, Bytes};
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use dashboard::dto::PatreonOutcome;
+use dashboard::dto::patreon::OUTCOME_PARAM;
 use dashboard::server::auth::{
     GuildAdminContext,
     guild_admin_for,
@@ -35,11 +37,11 @@ fn redirect(location: &str) -> Response {
         .unwrap_or_else(|_e| StatusCode::INTERNAL_SERVER_ERROR.into_response())
 }
 
-fn settings_url(guild_id: &str, outcome: &str) -> String {
+fn settings_url(guild_id: &str, outcome: PatreonOutcome) -> String {
     let base = nav::settings_href(guild_id, "patreon")
         .unwrap_or_else(|| format!("/guild/{guild_id}/settings"));
 
-    format!("{base}?patreon={outcome}")
+    format!("{base}?{OUTCOME_PARAM}={}", outcome.as_key())
 }
 
 fn app(state: &WebState) -> Option<PatreonApp> {
@@ -80,13 +82,13 @@ pub(super) async fn patreon_connect_handler(
 ) -> Response {
     let Some(app) = app(&state) else {
         warn!("Patreon connect attempted while PATREON_CLIENT_ID is unset");
-        return redirect(&settings_url(&query.guild, "unconfigured"));
+        return redirect(&settings_url(&query.guild, PatreonOutcome::Unconfigured));
     };
 
     // Proves the caller administers this guild before anything is stored.
     if admin(&state, &cookies, &query.guild).await.is_none() {
         warn!(guild = %query.guild, "Patreon connect rejected: not a guild admin");
-        return redirect(&settings_url(&query.guild, "forbidden"));
+        return redirect(&settings_url(&query.guild, PatreonOutcome::Forbidden));
     }
 
     let mut bytes = [0u8; 32];
@@ -96,7 +98,7 @@ pub(super) async fn patreon_connect_handler(
     let oauth_state = format!("{nonce}.{}", query.guild);
 
     let Ok(url) = app.authorize_url(&oauth_state) else {
-        return redirect(&settings_url(&query.guild, "error"));
+        return redirect(&settings_url(&query.guild, PatreonOutcome::Error));
     };
 
     let cookie = Cookie::build((PATREON_STATE_COOKIE, nonce))
@@ -142,30 +144,30 @@ pub(super) async fn patreon_callback_handler(
             guild,
             "Patreon callback rejected: state cookie missing or mismatched"
         );
-        return redirect(&settings_url(guild, "state_mismatch"));
+        return redirect(&settings_url(guild, PatreonOutcome::StateMismatch));
     }
 
     // The creator declined, or Patreon returned an error instead of a code.
     let Some(code) = query.code.as_deref() else {
-        return redirect(&settings_url(guild, "declined"));
+        return redirect(&settings_url(guild, PatreonOutcome::Declined));
     };
 
     let Some(app) = app(&state) else {
-        return redirect(&settings_url(guild, "unconfigured"));
+        return redirect(&settings_url(guild, PatreonOutcome::Unconfigured));
     };
 
     // Re-checked after the round trip: the cookie proves the browser started
     // the flow, this proves it still has the right to bind this guild.
     let Some((context, user_id)) = admin(&state, &cookies, guild).await else {
         warn!(guild, "Patreon callback rejected: not a guild admin");
-        return redirect(&settings_url(guild, "forbidden"));
+        return redirect(&settings_url(guild, PatreonOutcome::Forbidden));
     };
 
     let tokens = match app.exchange_code(&state.app.http, code).await {
         Ok(tokens) => tokens,
         Err(e) => {
             warn!(?e, guild, "Patreon token exchange failed");
-            return redirect(&settings_url(guild, "error"));
+            return redirect(&settings_url(guild, PatreonOutcome::Error));
         },
     };
 
@@ -176,7 +178,7 @@ pub(super) async fn patreon_callback_handler(
             Ok(campaign) => campaign,
             Err(e) => {
                 warn!(?e, guild, "Patreon account has no readable campaign");
-                return redirect(&settings_url(guild, "no_campaign"));
+                return redirect(&settings_url(guild, PatreonOutcome::NoCampaign));
             },
         };
 
@@ -210,10 +212,10 @@ pub(super) async fn patreon_callback_handler(
 
     if let Err(e) = stored {
         warn!(?e, guild, "failed to store the Patreon connection");
-        return redirect(&settings_url(guild, "error"));
+        return redirect(&settings_url(guild, PatreonOutcome::Error));
     }
 
-    redirect(&settings_url(guild, "connected"))
+    redirect(&settings_url(guild, PatreonOutcome::Connected))
 }
 
 #[derive(Deserialize)]
@@ -229,7 +231,7 @@ pub(super) async fn patreon_disconnect_handler(
     let Some((context, _user_id)) = admin(&state, &cookies, &query.guild).await
     else {
         warn!(guild = %query.guild, "Patreon disconnect rejected: not a guild admin");
-        return redirect(&settings_url(&query.guild, "forbidden"));
+        return redirect(&settings_url(&query.guild, PatreonOutcome::Forbidden));
     };
 
     let connection = PatreonConnection::select(&state.app.db, context.guild_id)
@@ -253,10 +255,10 @@ pub(super) async fn patreon_disconnect_handler(
     if let Err(e) = PatreonConnection::delete(&state.app.db, context.guild_id).await
     {
         warn!(?e, guild = %query.guild, "failed to delete the Patreon connection");
-        return redirect(&settings_url(&query.guild, "error"));
+        return redirect(&settings_url(&query.guild, PatreonOutcome::Error));
     }
 
-    redirect(&settings_url(&query.guild, "disconnected"))
+    redirect(&settings_url(&query.guild, PatreonOutcome::Disconnected))
 }
 
 pub(super) async fn patreon_webhook_handler(
