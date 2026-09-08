@@ -7,6 +7,7 @@ use dashboard::server::auth::{
     guild_admin_for,
     session_identity,
 };
+use dashboard::ui::nav;
 use patreon::oauth::PatreonApp;
 use patreon::{
     PATREON_EVENT_HEADER,
@@ -35,7 +36,10 @@ fn redirect(location: &str) -> Response {
 }
 
 fn settings_url(guild_id: &str, outcome: &str) -> String {
-    format!("/guilds/{guild_id}/patreon?patreon={outcome}")
+    let base = nav::settings_href(guild_id, "patreon")
+        .unwrap_or_else(|| format!("/guild/{guild_id}/settings"));
+
+    format!("{base}?patreon={outcome}")
 }
 
 fn app(state: &WebState) -> Option<PatreonApp> {

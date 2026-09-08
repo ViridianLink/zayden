@@ -128,6 +128,10 @@ pub(crate) fn section(slug: &str) -> &'static ModuleNav {
     MODULES.iter().find(|m| m.slug() == Some(slug)).unwrap_or(&GENERAL)
 }
 
+pub fn settings_href(guild_id: &str, slug: &str) -> Option<String> {
+    MODULES.iter().find(|m| m.slug() == Some(slug)).map(|m| m.href(guild_id))
+}
+
 pub(crate) fn for_module(module_id: &str) -> Option<&'static ModuleNav> {
     MODULES.iter().find(|m| m.module_id == Some(module_id))
 }
