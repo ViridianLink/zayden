@@ -3,7 +3,6 @@ use leptos::prelude::*;
 use {
     leptos_axum::extract,
     moka::future::Cache,
-    palworld::client::PalworldClient,
     sqlx::PgPool,
     std::sync::Arc,
     tower_cookies::Cookies,
@@ -15,6 +14,8 @@ use {
 };
 
 use crate::dto::SessionUser;
+#[cfg(feature = "ssr")]
+use crate::server::error::{FORBIDDEN, UNAUTHENTICATED};
 
 #[cfg(feature = "ssr")]
 pub(crate) fn server_err<E: std::fmt::Display>(e: E) -> ServerFnError {
@@ -47,18 +48,11 @@ pub(crate) fn discord_client() -> Result<Arc<Client>, ServerFnError> {
 }
 
 #[cfg(feature = "ssr")]
-pub(crate) fn palworld_client() -> Result<Arc<PalworldClient>, ServerFnError> {
-    use_context::<Arc<PalworldClient>>().ok_or_else(|| {
-        ServerFnError::ServerError("missing Palworld client".to_string())
-    })
-}
-
-#[cfg(feature = "ssr")]
 pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
     current_session_identity()
         .await?
         .map(|identity| identity.user_id)
-        .ok_or_else(|| ServerFnError::ServerError("unauthenticated".to_string()))
+        .ok_or_else(|| ServerFnError::ServerError(UNAUTHENTICATED.to_string()))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -102,7 +96,7 @@ pub(crate) async fn require_role(role: WebRole) -> Result<i64, ServerFnError> {
     if has_role(&pool, user_id, role).await? {
         Ok(user_id)
     } else {
-        Err(ServerFnError::ServerError("forbidden".to_string()))
+        Err(ServerFnError::ServerError(FORBIDDEN.to_string()))
     }
 }
 
@@ -192,7 +186,7 @@ pub async fn session_identity(
     lookup_session(use_context::<SessionCache>().as_ref(), pool, token)
         .await
         .map_err(server_err)?
-        .ok_or_else(|| ServerFnError::ServerError("unauthenticated".to_string()))
+        .ok_or_else(|| ServerFnError::ServerError(UNAUTHENTICATED.to_string()))
 }
 
 #[cfg(feature = "ssr")]
@@ -279,7 +273,7 @@ pub async fn guild_admin_for(
     }
 
     if !has_role(pool, identity.user_id, WebRole::Operator).await? {
-        return Err(ServerFnError::ServerError("forbidden".to_string()));
+        return Err(ServerFnError::ServerError(FORBIDDEN.to_string()));
     }
 
     if !bot_is_in_guild(discord, guild_id_u64).await {

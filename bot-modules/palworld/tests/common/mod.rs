@@ -52,7 +52,6 @@ mod cache {
     use gvas::GvasFile;
     use palworld::model::{PlayerName, WorldRoster};
     use palworld::save::decompress::decompress;
-    use palworld::save::edit::{SaveRoster, read_roster};
     use palworld::save::gvas::read_gvas;
     use palworld::save::{load_player_names, load_world};
 
@@ -77,9 +76,6 @@ mod cache {
         LazyLock::new(|| gvas_of(&super::storage_world()));
     pub(super) static STEAM_GVAS: LazyLock<Option<GvasFile>> =
         LazyLock::new(|| gvas_of(&super::steam_world1()));
-
-    pub(super) static PROGRESSED_ROSTER: LazyLock<Option<SaveRoster>> =
-        LazyLock::new(|| read_roster(PROGRESSED_LEVEL.as_ref()?, 0).ok());
 
     pub(super) static PROGRESSED_NAMES: LazyLock<Option<Vec<PlayerName>>> =
         LazyLock::new(|| load_player_names(&super::progressed_world()).ok());
@@ -127,12 +123,6 @@ pub fn storage_gvas() -> Option<&'static gvas::GvasFile> {
 #[must_use]
 pub fn steam_world1_gvas() -> Option<&'static gvas::GvasFile> {
     cache::STEAM_GVAS.as_ref()
-}
-
-/// `read_roster` at `level_modified = 0`, decoded once per test binary.
-#[must_use]
-pub fn progressed_roster() -> Option<&'static palworld::save::edit::SaveRoster> {
-    cache::PROGRESSED_ROSTER.as_ref()
 }
 
 /// `load_player_names`, decoded once per test binary.

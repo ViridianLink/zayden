@@ -1,8 +1,6 @@
 pub mod compress;
 pub mod decompress;
 pub mod dps;
-pub mod edit;
-pub mod edit_player;
 pub mod extract;
 pub mod guild;
 pub mod gvas;

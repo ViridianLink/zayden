@@ -2,10 +2,10 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::components::A;
 
+use crate::server::error::is_denied;
 use crate::server::operator::list_bot_guilds;
 use crate::ui::components::guild_grid::GuildGrid;
 use crate::ui::components::layout::AppShell;
-use crate::ui::pages::not_found::NotFound;
 
 #[must_use]
 pub fn parse_guild_id(raw: &str) -> Option<u64> {
@@ -40,7 +40,16 @@ pub(crate) fn OperatorServersPage() -> impl IntoView {
                 </div>
                 <Suspense fallback=|| view! { <p class="loading">"Loading servers\u{2026}"</p> }>
                     {move || guilds.get().map(|result| match result {
-                        Err(_e) => view! { <NotFound/> }.into_any(),
+                        Err(e) if is_denied(&e) => view! {
+                            <p class="error">
+                                "Operator access is required to list every server."
+                            </p>
+                        }.into_any(),
+                        Err(e) => view! {
+                            <p class="error">
+                                "Couldn't load the server list: " {e.to_string()}
+                            </p>
+                        }.into_any(),
                         Ok(list) => {
                             let total = list.len();
 

@@ -28,8 +28,6 @@ default = []
 hydrate = [
   "leptos/hydrate",
   "dep:wasm-bindgen",
-  "dep:wasm-bindgen-futures",
-  "dep:web-sys",
 ]
 
 ssr = [
@@ -45,7 +43,6 @@ ssr = [
   "dep:jiff-sqlx",
   "dep:moka",
   "dep:oauth2",
-  "dep:palworld",
   "dep:patreon",
   "dep:rand",
   "dep:reaction-roles",
@@ -54,7 +51,6 @@ ssr = [
   "dep:sqlx",
   "dep:suggestions",
   "dep:tokio",
-  "dep:zip",
   "dep:ticket",
   "dep:tower-cookies",
   "dep:tracing-subscriber",
@@ -82,7 +78,6 @@ jiff = { workspace = true, optional = true }
 jiff-sqlx = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"], optional = true }
 oauth2 = { workspace = true, optional = true }
-palworld = { workspace = true, optional = true }
 patreon = { workspace = true, optional = true }
 rand = { workspace = true, features = ["thread_rng"], optional = true }
 reaction-roles = { workspace = true, optional = true }
@@ -102,7 +97,6 @@ tokio = { workspace = true, features = [
   "rt-multi-thread",
   "sync",
 ], optional = true }
-zip = { workspace = true, features = ["deflate"], optional = true }
 tower-cookies = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, features = [
   "ansi",
@@ -116,21 +110,6 @@ zayden-app = { workspace = true, optional = true }
 # -- Hydrate-only
 
 wasm-bindgen = { workspace = true, optional = true }
-wasm-bindgen-futures = { workspace = true, optional = true }
-web-sys = { workspace = true, optional = true, features = [
-  "Blob",
-  "Document",
-  "Headers",
-  "HtmlAnchorElement",
-  "HtmlCollection",
-  "HtmlOptionElement",
-  "HtmlSelectElement",
-  "Request",
-  "RequestInit",
-  "Response",
-  "Url",
-  "Window",
-] }
 
 # ── cargo-leptos build configuration ─────────────────────────────────────────
 

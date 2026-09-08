@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod command_permissions;
 pub mod discord;
+pub mod error;
 pub mod faq;
 pub mod greetings;
 pub mod guild;
@@ -8,7 +9,6 @@ pub mod kofi;
 pub mod levels;
 pub mod modules;
 pub mod operator;
-pub mod palworld_save;
 pub mod patreon;
 pub mod reaction_roles;
 #[cfg(feature = "ssr")]

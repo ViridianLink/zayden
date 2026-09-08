@@ -22,8 +22,6 @@ use moka::future::Cache;
 use oauth2::basic::BasicClient;
 use oauth2::url::ParseError;
 use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
-use palworld::client::PalworldClient;
-use palworld::transport::Pelican;
 use patreon::oauth::PatreonApp;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
@@ -63,7 +61,6 @@ pub(crate) struct WebState {
     pub(crate) session_cache: SessionCache,
     pub(crate) user_guilds_cache: UserGuildsCache,
     pub(crate) leptos_options: LeptosOptions,
-    pub(crate) palworld: Arc<PalworldClient>,
 }
 
 impl WebState {
@@ -72,28 +69,8 @@ impl WebState {
         config: &BotConfig,
         leptos_options: LeptosOptions,
     ) -> Result<Self, ParseError> {
-        let pelican = config.pelican.clone().map(|p| {
-            Pelican::new(
-                app.http.clone(),
-                p.base_url,
-                p.api_key,
-                p.server_id,
-                p.save_path,
-            )
-        });
-        let palworld = Arc::new(PalworldClient::new(
-            app.http.clone(),
-            config.flaresolverr_url.clone(),
-            config.palworld_paldex_url.clone(),
-            config.palworld_palcalc_url.clone(),
-            config.palworld_save_dir.clone(),
-            config.palworld_uploads_dir.clone(),
-            pelican,
-        ));
-
         Ok(Self {
             app,
-            palworld,
             oauth_client: state::build_oauth_client(config)?,
             http_oauth: oauth2::reqwest::Client::new(),
             upgrade_url: config.upgrade_url.clone(),
@@ -183,7 +160,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let app = Arc::clone(&web_state.app);
                 let upgrade_url = web_state.upgrade_url.clone();
                 let discord_http = Arc::clone(&discord_http);
-                let palworld = Arc::clone(&web_state.palworld);
                 let session_cache = web_state.session_cache.clone();
                 let user_guilds_cache = web_state.user_guilds_cache.clone();
                 move || {
@@ -191,7 +167,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     provide_context(Arc::clone(&app));
                     provide_context(UpgradeUrl(upgrade_url.clone()));
                     provide_context(Arc::clone(&discord_http));
-                    provide_context(Arc::clone(&palworld));
                     provide_context(session_cache.clone());
                     provide_context(user_guilds_cache.clone());
                 }

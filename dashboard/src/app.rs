@@ -13,7 +13,6 @@ use crate::ui::pages::login::LoginPage;
 use crate::ui::pages::modules::GuildOverviewPage;
 use crate::ui::pages::not_found::NotFound;
 use crate::ui::pages::operator_servers::OperatorServersPage;
-use crate::ui::pages::palworld_save::PalworldSavePage;
 use crate::ui::pages::reaction_roles::ReactionRolesPage;
 use crate::ui::pages::upgrade::UpgradePage;
 
@@ -67,7 +66,6 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/greetings") view=GreetingsPage/>
                 </ParentRoute>
                 <Route path=path!("/admin/servers") view=OperatorServersPage/>
-                <Route path=path!("/admin/palworld/save") view=PalworldSavePage/>
             </Routes>
         </Router>
     }
