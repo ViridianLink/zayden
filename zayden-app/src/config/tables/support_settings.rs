@@ -15,6 +15,9 @@ pub struct SupportSettingsRow {
     pub idle_after_secs: i32,
     pub idle_close_enabled: bool,
     pub idle_close_after_secs: i32,
+    pub stale_enabled: bool,
+    pub stale_tag_id: Option<i64>,
+    pub stale_after_secs: i32,
 }
 
 impl SettingsRow for SupportSettingsRow {
@@ -31,6 +34,9 @@ impl SettingsRow for SupportSettingsRow {
             idle_after_secs: 172_800,
             idle_close_enabled: false,
             idle_close_after_secs: 86_400,
+            stale_enabled: false,
+            stale_tag_id: None,
+            stale_after_secs: 604_800,
         }
     }
 
@@ -43,7 +49,8 @@ impl SettingsRow for SupportSettingsRow {
             r#"
             SELECT guild_id, support_channel_id, solved_tag_id,
                    closed_tag_id, solved_archive_secs, idle_enabled,
-                   idle_after_secs, idle_close_enabled, idle_close_after_secs
+                   idle_after_secs, idle_close_enabled, idle_close_after_secs,
+                   stale_enabled, stale_tag_id, stale_after_secs
             FROM support_settings
             WHERE guild_id = $1
             "#,
@@ -61,8 +68,9 @@ impl SettingsRow for SupportSettingsRow {
                                           solved_tag_id, closed_tag_id,
                                           solved_archive_secs, idle_enabled,
                                           idle_after_secs, idle_close_enabled,
-                                          idle_close_after_secs)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                                          idle_close_after_secs, stale_enabled,
+                                          stale_tag_id, stale_after_secs)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             ON CONFLICT (guild_id) DO UPDATE SET
                 support_channel_id = EXCLUDED.support_channel_id,
                 solved_tag_id = EXCLUDED.solved_tag_id,
@@ -72,11 +80,15 @@ impl SettingsRow for SupportSettingsRow {
                 idle_after_secs = EXCLUDED.idle_after_secs,
                 idle_close_enabled = EXCLUDED.idle_close_enabled,
                 idle_close_after_secs = EXCLUDED.idle_close_after_secs,
+                stale_enabled = EXCLUDED.stale_enabled,
+                stale_tag_id = EXCLUDED.stale_tag_id,
+                stale_after_secs = EXCLUDED.stale_after_secs,
                 updated_at = now()
             RETURNING guild_id, support_channel_id, solved_tag_id,
                       closed_tag_id, solved_archive_secs, idle_enabled,
                       idle_after_secs, idle_close_enabled,
-                      idle_close_after_secs
+                      idle_close_after_secs, stale_enabled, stale_tag_id,
+                      stale_after_secs
             "#,
             self.guild_id,
             self.support_channel_id,
@@ -86,7 +98,10 @@ impl SettingsRow for SupportSettingsRow {
             self.idle_enabled,
             self.idle_after_secs,
             self.idle_close_enabled,
-            self.idle_close_after_secs
+            self.idle_close_after_secs,
+            self.stale_enabled,
+            self.stale_tag_id,
+            self.stale_after_secs
         )
         .fetch_one(pool)
         .await

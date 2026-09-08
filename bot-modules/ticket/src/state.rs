@@ -40,18 +40,38 @@ pub(crate) async fn marking(
     tag: Option<ForumTagId>,
     prefix: &str,
 ) -> Result<Option<EditThread<'static>>> {
-    let thread = thread_id.to_thread(http, Some(guild_id)).await?;
-
     let Some(tag) = tag else {
+        let thread = thread_id.to_thread(http, Some(guild_id)).await?;
+
         return Ok(Some(EditThread::new().name(retitle(&thread.base.name, prefix))));
     };
 
-    if thread.applied_tags.contains(&tag) {
+    retagging(http, guild_id, thread_id, tag, true).await
+}
+
+pub(crate) async fn retagging(
+    http: &Http,
+    guild_id: GuildId,
+    thread_id: ThreadId,
+    tag: ForumTagId,
+    applied: bool,
+) -> Result<Option<EditThread<'static>>> {
+    let thread = thread_id.to_thread(http, Some(guild_id)).await?;
+
+    if thread.applied_tags.contains(&tag) == applied {
         return Ok(None);
     }
 
-    let mut tags = thread.applied_tags.to_vec();
-    tags.insert(0, tag);
+    let mut tags = thread
+        .applied_tags
+        .iter()
+        .copied()
+        .filter(|current| *current != tag)
+        .collect::<Vec<_>>();
+
+    if applied {
+        tags.insert(0, tag);
+    }
 
     Ok(Some(EditThread::new().applied_tags(tags)))
 }

@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH due AS (\n            SELECT a.thread_id\n            FROM support_thread_activity a\n            JOIN support_settings s ON s.guild_id = a.guild_id\n            WHERE s.stale_enabled\n              AND s.stale_tag_id IS NOT NULL\n              AND NOT a.paused\n              AND NOT a.waiting_on_helper\n              AND a.staled_at IS NULL\n              AND a.since < now() - (s.stale_after_secs * interval '1 second')\n            ORDER BY a.guild_id, a.since\n            LIMIT $1\n            FOR UPDATE OF a SKIP LOCKED\n        )\n        UPDATE support_thread_activity a\n        SET staled_at = now()\n        FROM due, support_settings s\n        WHERE a.thread_id = due.thread_id\n          AND s.guild_id = a.guild_id\n        RETURNING\n            a.thread_id,\n            a.guild_id,\n            s.support_channel_id,\n            s.stale_tag_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "support_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "support_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "stale_tag_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "stale_tag_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "3e44eda5f80d9b8539c8aae6ab5300375f5f2370cce1058a1bf905d864b615e2"
+}

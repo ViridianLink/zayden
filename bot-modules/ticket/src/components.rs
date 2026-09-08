@@ -20,6 +20,7 @@ use serenity::all::{
 use zayden_app::state::AppState;
 use zayden_core::{CoreError as ZaydenError, as_i64};
 
+use crate::archive::notice;
 use crate::faq::{FaqArticle, views};
 use crate::idle::{ThreadActivity, may_act};
 use crate::{
@@ -107,7 +108,7 @@ impl TicketComponent {
             .create_response(http, CreateInteractionResponse::Acknowledge)
             .await?;
 
-        solve::mark_solved(
+        let deadline = solve::mark_solved(
             http,
             app,
             stores,
@@ -122,9 +123,12 @@ impl TicketComponent {
             .edit_response(
                 http,
                 EditInteractionResponse::new()
-                    .content(format!(
-                        "{} marked this solved. Thanks!",
-                        interaction.user.display_name()
+                    .content(notice::with_deadline(
+                        &format!(
+                            "{} marked this solved. Thanks!",
+                            interaction.user.display_name()
+                        ),
+                        deadline,
                     ))
                     .components(Vec::new()),
             )

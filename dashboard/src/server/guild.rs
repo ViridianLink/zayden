@@ -150,6 +150,9 @@ pub async fn get_guild_settings(
         support_idle_after_secs: support.idle_after_secs.to_string(),
         support_idle_close_enabled: support.idle_close_enabled,
         support_idle_close_after_secs: support.idle_close_after_secs.to_string(),
+        support_stale_enabled: support.stale_enabled,
+        support_stale_tag_id: opt_str(support.stale_tag_id),
+        support_stale_after_secs: support.stale_after_secs.to_string(),
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
         review_channel_id: opt_str(suggestions.review_channel_id),
         suggestions_promote_threshold: suggestions.promote_threshold.to_string(),
@@ -299,6 +302,31 @@ pub async fn save_idle_settings(
             p.idle_after_secs = idle_secs;
             p.idle_close_enabled = close_enabled;
             p.idle_close_after_secs = close_secs;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+#[server]
+pub async fn save_stale_settings(
+    guild: String,
+    stale_enabled: String,
+    stale_tag_id: String,
+    stale_after_secs: String,
+) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let enabled = stale_enabled.trim() == "true";
+    let tag = parse_id(&stale_tag_id);
+    let secs = parse_idle_secs(&stale_after_secs, 604_800);
+
+    app.settings
+        .support
+        .update(guild_id, |p| {
+            p.stale_enabled = enabled;
+            p.stale_tag_id = tag;
+            p.stale_after_secs = secs;
         })
         .await
         .map(|_| ())

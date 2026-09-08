@@ -1,24 +1,16 @@
-use serenity::all::{
-    EditThread,
-    ForumTagId,
-    Http,
-    HttpError,
-    JsonErrorCode,
-    ThreadId,
-};
-use sqlx::PgPool;
-use tracing::{debug, error, warn};
+use serenity::all::{ForumTagId, Http};
+use tracing::{debug, error};
 use zayden_core::CronJob;
 
-use crate::idle::activity::ThreadActivity;
-use crate::idle::close::{DueClose, claim_due as claim_due_close};
-use crate::idle::notice::Notice;
-use crate::idle::sweep::{DueNudge, claim_due, gc};
-use crate::idle::{batch, reminder};
-use crate::state;
+use crate::batch;
+use crate::idle::act;
+use crate::idle::close::claim_due as claim_due_close;
+use crate::idle::stale::{StaleTarget, claim_cleared, claim_due as claim_due_stale};
+use crate::idle::sweep::{claim_due, gc};
 
 const NUDGE_BATCH: i64 = 40;
 const CLOSE_BATCH: i64 = 40;
+const STALE_BATCH: i64 = 40;
 
 pub struct SupportIdleCron;
 
@@ -38,7 +30,7 @@ impl SupportIdleCron {
                 let pool = &pool;
 
                 batch::run(due, move |row| async move {
-                    send(http, pool, &row).await;
+                    act::nudge(http, pool, &row).await;
                 })
                 .await;
             })
@@ -62,18 +54,78 @@ impl SupportIdleCloseCron {
 
                 let http = &ctx.http;
                 let pool = &pool;
-                let tags = resolve_tags(http, &due).await;
+
+                let requests = due
+                    .iter()
+                    .map(|row| {
+                        (
+                            row.guild_id,
+                            row.guild(),
+                            row.support_channel(),
+                            row.closed_tag(),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+
+                let tags = act::resolve_tags(http, &requests).await;
                 let tags = &tags;
 
                 batch::run(due, move |row| async move {
-                    let tag = tags
-                        .iter()
-                        .find(|(guild_id, _)| *guild_id == row.guild_id)
-                        .and_then(|(_, tag)| *tag);
-
-                    close(http, pool, &row, tag).await;
+                    act::close(http, pool, &row, act::tag_for(tags, row.guild_id))
+                        .await;
                 })
                 .await;
+            })
+        })
+    }
+}
+
+pub struct SupportIdleStaleCron;
+
+impl SupportIdleStaleCron {
+    pub fn cron_job() -> Result<CronJob, jiff_cron::error::Error> {
+        CronJob::new("support_idle_stale", "15 */5 * * * * *").map(|job| {
+            job.set_action(move |ctx, pool| async move {
+                let http = &ctx.http;
+                let pool = &pool;
+
+                match claim_due_stale(pool, STALE_BATCH).await {
+                    Ok(due) => {
+                        let tags = tags(http, &due).await;
+                        let tags = &tags;
+
+                        batch::run(due, move |row| async move {
+                            act::stale(
+                                http,
+                                pool,
+                                &row,
+                                act::tag_for(tags, row.guild_id),
+                            )
+                            .await;
+                        })
+                        .await;
+                    },
+                    Err(e) => error!(error = ?e, "support stale sweep failed"),
+                }
+
+                match claim_cleared(pool, STALE_BATCH).await {
+                    Ok(cleared) => {
+                        let tags = tags(http, &cleared).await;
+                        let tags = &tags;
+
+                        batch::run(cleared, move |row| async move {
+                            act::unstale(
+                                http,
+                                pool,
+                                &row,
+                                act::tag_for(tags, row.guild_id),
+                            )
+                            .await;
+                        })
+                        .await;
+                    },
+                    Err(e) => error!(error = ?e, "support stale clear sweep failed"),
+                }
             })
         })
     }
@@ -95,111 +147,13 @@ impl SupportIdleGcCron {
     }
 }
 
-async fn resolve_tags(
-    http: &Http,
-    due: &[DueClose],
-) -> Vec<(i64, Option<ForumTagId>)> {
-    let mut tags: Vec<(i64, Option<ForumTagId>)> = Vec::new();
+async fn tags(http: &Http, rows: &[StaleTarget]) -> Vec<(i64, Option<ForumTagId>)> {
+    let requests = rows
+        .iter()
+        .map(|row| {
+            (row.guild_id, row.guild(), row.support_channel(), row.stale_tag())
+        })
+        .collect::<Vec<_>>();
 
-    for row in due {
-        if tags.iter().any(|(guild_id, _)| *guild_id == row.guild_id) {
-            continue;
-        }
-
-        let tag = match row.support_channel() {
-            Some(channel_id) => {
-                state::usable_tag(http, row.guild(), channel_id, row.closed_tag())
-                    .await
-                    .unwrap_or_default()
-            },
-            None => None,
-        };
-
-        tags.push((row.guild_id, tag));
-    }
-
-    tags
-}
-
-async fn send(http: &Http, pool: &PgPool, row: &DueNudge) {
-    let Some(reminder) =
-        reminder(row.ball(), row.op(), row.helper(), &row.support_roles())
-    else {
-        debug!(
-            thread_id = row.thread_id,
-            "nobody to remind; the guild has no support roles",
-        );
-        return;
-    };
-
-    let sent =
-        row.thread().widen().send_message(http, reminder.message(row.since())).await;
-
-    let Err(e) = sent else {
-        return;
-    };
-
-    // The thread can be deleted, or the bot locked out of it, between the claim
-    // and the send.
-    triage(pool, row.thread(), row.thread_id, &e, "idle reminder not sent").await;
-}
-
-async fn close(http: &Http, pool: &PgPool, row: &DueClose, tag: Option<ForumTagId>) {
-    let notice = Notice::new(row.op(), row.since());
-
-    if let Err(e) = row.thread().widen().send_message(http, notice.message()).await {
-        triage(pool, row.thread(), row.thread_id, &e, "close notice not sent").await;
-        return;
-    }
-
-    let edit =
-        match state::marking(http, row.guild(), row.thread(), tag, state::CLOSED)
-            .await
-        {
-            Ok(edit) => edit.unwrap_or_default(),
-            Err(e) => {
-                warn!(
-                    error = ?e,
-                    thread_id = row.thread_id,
-                    "could not read thread to tag it closed; archiving anyway",
-                );
-                EditThread::new()
-            },
-        };
-
-    if let Err(e) = row.thread().edit(http, edit.archived(true)).await {
-        triage(pool, row.thread(), row.thread_id, &e, "thread not archived").await;
-    }
-}
-
-async fn triage(
-    pool: &PgPool,
-    thread: ThreadId,
-    thread_id: i64,
-    e: &serenity::Error,
-    context: &str,
-) {
-    match code(e) {
-        Some(&JsonErrorCode::UnknownChannel) => {
-            if let Err(e) = ThreadActivity::delete(pool, thread).await {
-                warn!(error = ?e, thread_id, "could not drop activity row");
-            }
-        },
-        Some(&JsonErrorCode::MissingAccess | &JsonErrorCode::ThreadLocked) => {
-            debug!(thread_id, context, "no access to the thread; pausing");
-
-            if let Err(e) = ThreadActivity::pause(pool, thread).await {
-                warn!(error = ?e, thread_id, "could not pause activity row");
-            }
-        },
-        _ => warn!(error = ?e, thread_id, "{context}"),
-    }
-}
-
-fn code(e: &serenity::Error) -> Option<&JsonErrorCode> {
-    let serenity::Error::Http(HttpError::UnsuccessfulRequest(resp)) = e else {
-        return None;
-    };
-
-    Some(&resp.error.code)
+    act::resolve_tags(http, &requests).await
 }

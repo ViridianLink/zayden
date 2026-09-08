@@ -1,6 +1,7 @@
 mod answer;
 pub mod article;
 mod auto;
+pub mod essential;
 mod generate;
 pub mod hit;
 pub mod index;

@@ -6,21 +6,24 @@ use serde::Deserialize;
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use zayden_app::state::AppState;
 
-use crate::faq::hit::FaqHit;
+use crate::faq::essential::Essential;
+use crate::faq::hit::{FaqHit, FaqSource};
 use crate::faq::linked::LinkedPage;
 use crate::faq::render::truncate;
-use crate::faq::view::link_line;
+use crate::faq::view::{essential_line, link_line};
 use crate::wiki::WikiConfig;
 
 const SYSTEM_PROMPT: &str = "You are a Discord support-ticket triage assistant \
 for a self-hosted documentation wiki. A new support ticket has just been opened. \
 You are given its title, the forum tags the user picked, their message, the text \
-of every page their message linked to, and a fixed list of candidate wiki \
-articles (title, description, path) found by a keyword search of that message.
+of every page their message linked to, a fixed list of candidate wiki \
+articles (title, description, path) found by a keyword search of that message, and \
+some internal notes this server's helpers keep.
 
 Your job:
-- From the candidate articles ONLY, select the paths of the ones that genuinely help \
-with this issue. Never invent an article or path that is not in the candidate list. \
+- From the candidate wiki articles ONLY, select the paths of the ones that genuinely help \
+with this issue. Never invent an article or path that is not in the candidate list, and \
+never select an internal note - those are yours to read, not to hand to the user. \
 It is fine to select none if nothing fits.
 - Write 1 to 4 short follow-up triage questions a human helper would need answered \
 before they can assist (e.g. software/version, exact error message, what was already \
@@ -102,24 +105,32 @@ pub fn user_prompt(opening: Opening<'_>, hits: &[FaqHit]) -> String {
         );
     }
 
-    let candidates = hits
-        .iter()
-        .map(|hit| {
-            serde_json::json!({
-                "title": hit.title,
-                "description": hit.description,
-                "path": hit.path,
-            })
-        })
-        .collect::<Vec<_>>();
+    let (candidates, internal): (Vec<_>, Vec<_>) =
+        hits.iter().partition(|hit| matches!(hit.source, FaqSource::Wiki));
 
     let _ = write!(
         prompt,
         "\nCandidate wiki articles:\n{}",
-        serde_json::Value::Array(candidates)
+        serde_json::Value::Array(candidates.into_iter().map(describe).collect())
     );
 
+    if !internal.is_empty() {
+        let _ = write!(
+            prompt,
+            "\n\nInternal notes, for context only - never select these:\n{}",
+            serde_json::Value::Array(internal.into_iter().map(describe).collect())
+        );
+    }
+
     prompt
+}
+
+fn describe(hit: &FaqHit) -> serde_json::Value {
+    serde_json::json!({
+        "title": hit.title,
+        "description": hit.description,
+        "path": hit.path,
+    })
 }
 
 pub(crate) async fn synthesize(
@@ -147,6 +158,7 @@ pub(crate) fn embed(
     config: &WikiConfig,
     triage: &Triage,
     hits: &[FaqHit],
+    essential: &[Essential],
 ) -> CreateEmbed<'static> {
     let mut embed = CreateEmbed::new()
         .title(EMBED_TITLE)
@@ -154,11 +166,22 @@ pub(crate) fn embed(
         .description(EMBED_DESCRIPTION)
         .footer(CreateEmbedFooter::new(EMBED_FOOTER));
 
-    let articles = triage
+    let picked = triage
         .relevant_paths
         .iter()
         .filter_map(|path| hits.iter().find(|hit| &hit.path == path))
+        .filter(|hit| matches!(hit.source, FaqSource::Wiki))
+        .collect::<Vec<_>>();
+
+    let articles = picked
+        .iter()
         .map(|hit| link_line(config, hit))
+        .chain(
+            essential
+                .iter()
+                .filter(|page| !picked.iter().any(|hit| hit.path == page.path))
+                .map(|page| essential_line(config, page)),
+        )
         .collect::<Vec<_>>();
 
     if !articles.is_empty() {

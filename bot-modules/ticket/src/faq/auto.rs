@@ -5,7 +5,7 @@ use tracing::{error, warn};
 use zayden_app::state::AppState;
 
 use crate::faq::triage::Opening;
-use crate::faq::{FaqContext, keywords, linked, lookup, triage};
+use crate::faq::{FaqContext, essential, keywords, linked, lookup, triage};
 
 pub(crate) struct TicketOpening {
     pub thread_id: ThreadId,
@@ -51,7 +51,10 @@ async fn run_triage(
     )
     .await;
 
-    let links = linked::pages(&app.http, &content).await;
+    let (links, essential) = tokio::join!(
+        linked::pages(&app.http, &content),
+        essential::pages(&app.http, &context.wiki),
+    );
 
     let triage = match triage::synthesize(
         &app,
@@ -67,7 +70,7 @@ async fn run_triage(
         },
     };
 
-    let embed = triage::embed(&context.wiki, &triage, &results);
+    let embed = triage::embed(&context.wiki, &triage, &results, &essential);
 
     if let Err(e) = thread_id
         .widen()

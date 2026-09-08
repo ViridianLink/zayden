@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH cleared AS (\n            SELECT a.thread_id\n            FROM support_thread_activity a\n            WHERE a.staled_at IS NOT NULL\n              AND a.since > a.staled_at\n            ORDER BY a.thread_id\n            LIMIT $1\n            FOR UPDATE OF a SKIP LOCKED\n        )\n        UPDATE support_thread_activity a\n        SET staled_at = NULL\n        FROM cleared, support_settings s\n        WHERE a.thread_id = cleared.thread_id\n          AND s.guild_id = a.guild_id\n        RETURNING\n            a.thread_id,\n            a.guild_id,\n            s.support_channel_id,\n            s.stale_tag_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "thread_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "thread_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "support_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "support_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "stale_tag_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_settings",
+            "name": "stale_tag_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "93ffb670be98eceafa60efe42f013b39bbdfb20c957a06a0247dfb21059a8dc6"
+}

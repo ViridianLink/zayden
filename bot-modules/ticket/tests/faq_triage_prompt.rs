@@ -18,6 +18,15 @@ fn hit() -> FaqHit {
     }
 }
 
+fn internal() -> FaqHit {
+    FaqHit {
+        title: String::from("Refund policy"),
+        description: String::from("Ask which store the purchase went through"),
+        path: String::from("local:7"),
+        source: FaqSource::Local { id: 7 },
+    }
+}
+
 fn page() -> LinkedPage {
     LinkedPage {
         url: String::from("https://paste.ee/r/abc"),
@@ -122,4 +131,44 @@ fn the_users_own_words_are_never_dropped() {
     );
 
     assert!(prompt.contains("exit code 137 after about a minute"), "{prompt}");
+}
+
+/// Internal notes still reach the model - they are what sharpen the follow-up
+/// questions - but they are kept out of the list it is allowed to recommend
+/// from, because a link to them is a link the user cannot open.
+#[test]
+fn an_internal_article_is_context_and_not_a_candidate() {
+    let hits = [hit(), internal()];
+
+    let prompt = user_prompt(
+        Opening {
+            title: "Charged twice",
+            tags: &[],
+            message: "my card was billed two times",
+            links: &[],
+        },
+        &hits,
+    );
+
+    let (candidates, notes) =
+        prompt.split_once("Internal notes").expect("the internal section");
+
+    assert!(candidates.contains("servers/ports"), "{prompt}");
+    assert!(!candidates.contains("local:7"), "{prompt}");
+    assert!(notes.contains("Ask which store the purchase went through"), "{prompt}");
+}
+
+#[test]
+fn a_ticket_with_no_internal_notes_gets_no_internal_section() {
+    let prompt = user_prompt(
+        Opening {
+            title: "Server will not start",
+            tags: &[],
+            message: "it just dies",
+            links: &[],
+        },
+        &[hit()],
+    );
+
+    assert!(!prompt.contains("Internal notes"), "{prompt}");
 }

@@ -11,6 +11,7 @@ use crate::server::guild::{
     SaveFaqSettings,
     SaveFaqTuning,
     SaveIdleSettings,
+    SaveStaleSettings,
     SaveSuggestionsSettings,
     SaveSupportSettings,
 };
@@ -40,6 +41,8 @@ pub(crate) fn SupportSettingsPane(
     let result = save_support.value();
     let save_idle = ServerAction::<SaveIdleSettings>::new();
     let idle_result = save_idle.value();
+    let save_stale = ServerAction::<SaveStaleSettings>::new();
+    let stale_result = save_stale.value();
     let save_suggestions = ServerAction::<SaveSuggestionsSettings>::new();
     let suggestions_result = save_suggestions.value();
 
@@ -47,9 +50,11 @@ pub(crate) fn SupportSettingsPane(
     let s = settings;
     let gid = guild_id.clone();
     let idle_gid = guild_id.clone();
+    let stale_gid = guild_id.clone();
     let suggestions_gid = guild_id.clone();
     let faq_gid = guild_id.clone();
     let suggestions_channels = channels.clone();
+    let idle_channels = channels.clone();
 
     view! {
         <fieldset class="settings-section">
@@ -116,6 +121,28 @@ pub(crate) fn SupportSettingsPane(
                 />
                 <SaveButton/>
             </ActionForm>
+            {move || stale_result.get().map(save_feedback)}
+            <ActionForm action=save_stale>
+                <input type="hidden" name="guild" value=stale_gid/>
+                <ToggleField
+                    label="Mark Quiet Posts Stale"
+                    name="stale_enabled"
+                    value=s.support_stale_enabled
+                />
+                <ForumTagSelect
+                    label="Stale Tag"
+                    name="stale_tag_id"
+                    selected=sel(s.support_stale_tag_id.as_deref())
+                    channels=idle_channels
+                />
+                <SettingField
+                    label="Mark stale after (seconds of poster silence)"
+                    name="stale_after_secs"
+                    value=s.support_stale_after_secs
+                    hint="Minimum one hour. Default 604800 (7 days)."
+                />
+                <SaveButton/>
+            </ActionForm>
             <p class="page-lead">
                 "Idle reminders watch whose turn it is. If a helper spoke last "
                 "and the poster has gone quiet for the interval above, the "
@@ -133,6 +160,14 @@ pub(crate) fn SupportSettingsPane(
                 "is the team's backlog and not an abandoned ticket. Closing "
                 "applies the closed tag, posts a note to the poster and "
                 "archives the post. Any reply at all cancels it."
+            </p>
+            <p class="page-lead">
+                "The stale tag is a quieter signal than closing: a post the "
+                "poster has left unanswered for the interval above is tagged "
+                "so the team can see at a glance what has gone cold. It needs "
+                "a forum tag to apply, follows the same staff-side exemption "
+                "as auto-close, and comes off again by itself as soon as "
+                "anybody posts."
             </p>
             <p class="page-lead">
                 "A support role only gets notified if it is mentionable. Role "

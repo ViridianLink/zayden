@@ -27,20 +27,31 @@ impl Handler {
         BotState::ready(ctx, ready, &pool, self.app.zayden_id).await?;
 
         if self.cron_started.set(()).is_ok() {
-            if ready.application.id.get() == self.app.zayden_id {
-                self.bot_state.write().await.setup_static_cron();
-            }
-
-            let palworld = Arc::clone(&self.bot_state.read().await.palworld);
-            tokio::spawn(async move { palworld.warm().await });
-
-            spawn_patreon_listener(ctx.clone(), Arc::clone(&self.app));
-
-            let ctx = ctx.clone();
-            let pool = self.app.db.clone();
-            tokio::spawn(async move { start_cron_jobs(ctx, pool).await });
+            self.background_tasks(ctx, ready).await;
         }
 
         Ok(())
+    }
+
+    async fn background_tasks(&self, ctx: &Context, ready: &Ready) {
+        if ready.application.id.get() == self.app.zayden_id {
+            self.bot_state.write().await.setup_static_cron();
+        }
+
+        let palworld = Arc::clone(&self.bot_state.read().await.palworld);
+        tokio::spawn(async move { palworld.warm().await });
+
+        spawn_patreon_listener(ctx.clone(), Arc::clone(&self.app));
+
+        let http = Arc::clone(&ctx.http);
+        let app = Arc::clone(&self.app);
+        let guilds = ready.guilds.iter().map(|guild| guild.id).collect::<Vec<_>>();
+        tokio::spawn(async move {
+            ticket::archive::rebuild(&http, &app, &guilds).await;
+        });
+
+        let ctx = ctx.clone();
+        let pool = self.app.db.clone();
+        tokio::spawn(async move { start_cron_jobs(ctx, pool).await });
     }
 }

@@ -15,6 +15,7 @@ use serenity::all::{
 };
 
 use crate::faq::article::FaqArticle;
+use crate::faq::essential::Essential;
 use crate::faq::hit::{FaqHit, FaqSource};
 use crate::faq::render::{self, BODY_LIMIT};
 use crate::wiki::{Page, WikiConfig};
@@ -101,13 +102,21 @@ pub(crate) fn results(
 pub(crate) fn link_line(config: &WikiConfig, hit: &FaqHit) -> String {
     let heading = match hit.source {
         FaqSource::Local { .. } => format!("**{}**", hit.title),
-        FaqSource::Wiki => match config.article_url(&hit.path) {
-            Ok(url) => format!("[{}]({url})", hit.title),
-            Err(_e) => hit.title.clone(),
-        },
+        FaqSource::Wiki => wiki_link(config, &hit.title, &hit.path),
     };
 
     format!("\u{1f539} {heading}\n> {}", hit.description)
+}
+
+pub(crate) fn essential_line(config: &WikiConfig, page: &Essential) -> String {
+    format!("\u{1f539} {}", wiki_link(config, &page.title, &page.path))
+}
+
+fn wiki_link(config: &WikiConfig, title: &str, path: &str) -> String {
+    match config.article_url(path) {
+        Ok(url) => format!("[{title}]({url})"),
+        Err(_e) => title.to_owned(),
+    }
 }
 
 fn local(stored: &FaqArticle, body: &str) -> CreateComponent<'static> {

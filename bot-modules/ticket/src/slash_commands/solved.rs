@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use jiff::Timestamp;
 use serenity::all::{
     CommandInteraction,
     CreateInteractionResponseFollowup,
@@ -10,6 +9,7 @@ use serenity::all::{
 };
 use zayden_app::state::AppState;
 
+use crate::archive::notice;
 use crate::{
     Result,
     Ticket,
@@ -41,7 +41,7 @@ impl Ticket {
 
         let thread = support_thread(&interaction.channel, support_channel_id)?;
 
-        solve::mark_solved(
+        let deadline = solve::mark_solved(
             http,
             app,
             stores,
@@ -55,10 +55,8 @@ impl Ticket {
         interaction
             .edit_response(
                 http,
-                EditInteractionResponse::new().content(solve::solved_notice(
-                    Timestamp::now(),
-                    row.solved_archive_secs,
-                )),
+                EditInteractionResponse::new()
+                    .content(notice::solved_notice(deadline)),
             )
             .await?;
 
