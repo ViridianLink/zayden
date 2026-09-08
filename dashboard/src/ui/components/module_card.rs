@@ -10,6 +10,8 @@ use crate::ui::nav;
 #[component]
 pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView {
     let ModuleView { id, label, description, enabled, locked, commands: _ } = module;
+    let locked_reason = locked;
+    let locked = locked_reason.is_some();
     let icon = module_icon(&id);
     let tint_style = format!("--tint: {}", module_tint(&id));
 
@@ -23,13 +25,16 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
         }
     });
 
-    let desired = RwSignal::new(enabled);
-    let synced = RwSignal::new(enabled);
+    let unknown = enabled.is_none();
+    let known = enabled.unwrap_or(false);
+
+    let desired = RwSignal::new(known);
+    let synced = RwSignal::new(known);
     let saving = RwSignal::new(false);
     let error = RwSignal::new(None::<String>);
 
     let on_click = move |_| {
-        if locked {
+        if locked || unknown {
             return;
         }
 
@@ -79,7 +84,9 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
     };
 
     let status = move || {
-        if error.with(Option::is_some) {
+        if unknown {
+            ("module-status", "Unknown")
+        } else if error.with(Option::is_some) {
             ("module-status failed", "Not saved")
         } else if saving.get() {
             ("module-status saving", "Saving\u{2026}")
@@ -90,14 +97,17 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
         }
     };
 
-    let lock_note = locked.then(|| {
+    let unknown_note = unknown.then(|| {
         view! {
             <p class="module-locked">
-                "Read-only: Discord only lets a member with Manage Server \
-                 change which commands are enabled."
+                "Zayden couldn't read this module's current state, so it can't \
+                 be changed right now."
             </p>
         }
     });
+
+    let lock_note =
+        locked_reason.map(|reason| view! { <p class="module-locked">{reason}</p> });
 
     view! {
         <div class="module-card">
@@ -108,13 +118,20 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
                 <button
                     class=toggle_cls
                     aria-label="Toggle module"
-                    aria-pressed=move || desired.get().to_string()
-                    disabled=locked
+                    aria-pressed=move || {
+                        if unknown {
+                            "mixed".to_string()
+                        } else {
+                            desired.get().to_string()
+                        }
+                    }
+                    disabled=locked || unknown
                     on:click=on_click
                 />
             </div>
             <div class="module-name">{label}</div>
             <p class="module-desc">{description}</p>
+            {unknown_note}
             {lock_note}
             {move || error.get().map(|e| view! {
                 <p class="module-error">{e}</p>

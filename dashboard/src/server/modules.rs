@@ -11,6 +11,7 @@ use {
         store,
         with_everyone_denied,
     },
+    crate::server::patreon::fetch_patreon_status,
     crate::server::supersede,
     std::collections::{HashMap, HashSet},
     twilight_model::application::command::permissions::CommandPermission,
@@ -24,6 +25,7 @@ use crate::dto::ModuleView;
 enum Backing {
     Commands(&'static [&'static str]),
     Settings,
+    Derived,
 }
 
 #[cfg(feature = "ssr")]
@@ -52,7 +54,7 @@ const MODULES: &[ModuleDef] = &[
         id: "patreon",
         label: "Patreon",
         description: "Announce a connected Patreon campaign's new posts.",
-        backing: Backing::Settings,
+        backing: Backing::Derived,
     },
     ModuleDef {
         id: "marathon",
@@ -130,33 +132,36 @@ impl ModuleDef {
     const fn commands(&self) -> &'static [&'static str] {
         match self.backing {
             Backing::Commands(names) => names,
-            Backing::Settings => &[],
+            Backing::Settings | Backing::Derived => &[],
         }
     }
 
-    const fn locked_for(&self, access: GuildAccess) -> bool {
+    const fn locked_for(&self, access: GuildAccess) -> Option<&'static str> {
         match self.backing {
-            Backing::Commands(_) => !access.can_write_command_permissions(),
-            Backing::Settings => false,
+            Backing::Commands(_) if !access.can_write_command_permissions() => Some(
+                "Read-only: Discord only lets a member with Manage Server \
+                     change which commands are enabled.",
+            ),
+            Backing::Derived => Some(
+                "This module is switched on from its own settings page \u{2014} \
+                 use Configure below.",
+            ),
+            Backing::Commands(_) | Backing::Settings => None,
         }
     }
 
     fn view(
         &self,
-        name_to_id: &HashMap<String, Id<CommandMarker>>,
-        denied: &HashSet<Id<CommandMarker>>,
+        commands: Option<&CommandState>,
         settings_flags: &HashMap<&'static str, bool>,
         access: GuildAccess,
     ) -> ModuleView {
         let enabled = match self.backing {
             Backing::Commands(names) => {
-                let known: Vec<_> =
-                    names.iter().filter_map(|c| name_to_id.get(*c)).collect();
-
-                known.is_empty() || known.iter().any(|id| !denied.contains(*id))
+                commands.and_then(|state| state.enabled(names))
             },
-            Backing::Settings => {
-                settings_flags.get(self.id).copied().unwrap_or(false)
+            Backing::Settings | Backing::Derived => {
+                settings_flags.get(self.id).copied()
             },
         };
 
@@ -166,8 +171,38 @@ impl ModuleDef {
             description: self.description.to_string(),
             commands: self.commands().iter().map(|c| (*c).to_string()).collect(),
             enabled,
-            locked: self.locked_for(access),
+            locked: self.locked_for(access).map(str::to_owned),
         }
+    }
+}
+
+#[cfg(feature = "ssr")]
+pub struct CommandState {
+    name_to_id: HashMap<String, Id<CommandMarker>>,
+    denied: HashSet<Id<CommandMarker>>,
+}
+
+#[cfg(feature = "ssr")]
+impl CommandState {
+    #[must_use]
+    pub fn new(
+        guild_id: Id<GuildMarker>,
+        name_to_id: HashMap<String, Id<CommandMarker>>,
+        permissions: &HashMap<Id<CommandMarker>, Vec<CommandPermission>>,
+    ) -> Self {
+        Self { name_to_id, denied: denied_commands(guild_id, permissions) }
+    }
+
+    #[must_use]
+    pub fn enabled(&self, names: &[&str]) -> Option<bool> {
+        let known: Vec<_> =
+            names.iter().filter_map(|c| self.name_to_id.get(*c)).collect();
+
+        if known.is_empty() {
+            return None;
+        }
+
+        Some(known.iter().any(|id| !self.denied.contains(*id)))
     }
 }
 
@@ -187,9 +222,18 @@ fn denied_commands(
 async fn settings_flags(
     guild_id: i64,
 ) -> Result<HashMap<&'static str, bool>, ServerFnError> {
-    let ai = app_state()?.settings.ai.get(guild_id).await.map_err(server_err)?;
+    let app = app_state()?;
 
-    Ok(HashMap::from([("ai", ai.enabled)]))
+    let (ai, patreon) = tokio::try_join!(
+        async { app.settings.ai.get(guild_id).await.map_err(server_err) },
+        fetch_patreon_status(&app, guild_id),
+    )?;
+
+    // Announcements only fire on a live connection with somewhere to post.
+    let patreon_on =
+        patreon.connected && !patreon.disabled && patreon.channel_id.is_some();
+
+    Ok(HashMap::from([("ai", ai.enabled), ("patreon", patreon_on)]))
 }
 
 #[server]
@@ -203,12 +247,24 @@ pub async fn list_guild_modules(
         guild_permissions(&ctx),
         settings_flags(ctx.guild_id.get().cast_signed()),
     );
-    let denied = denied_commands(ctx.guild_id, &permissions);
     let flags = flags?;
+
+    let commands = match (name_to_id, permissions) {
+        (Ok(name_to_id), Ok(permissions)) => {
+            Some(CommandState::new(ctx.guild_id, name_to_id, &permissions))
+        },
+        (Err(e), _) | (_, Err(e)) => {
+            tracing::warn!(
+                error = ?e,
+                "failed to read command state from Discord; reporting modules as unknown"
+            );
+            None
+        },
+    };
 
     Ok(MODULES
         .iter()
-        .map(|m| m.view(&name_to_id, &denied, &flags, ctx.access))
+        .map(|m| m.view(commands.as_ref(), &flags, ctx.access))
         .collect())
 }
 
@@ -239,19 +295,34 @@ async fn set_commands_enabled(
     names: &[&str],
     enabled: bool,
 ) -> Result<(), ServerFnError> {
-    let (name_to_id, mut permissions) =
+    let (name_to_id, permissions) =
         tokio::join!(fetch_command_ids(ctx), guild_permissions(ctx));
+    let name_to_id = name_to_id?;
+    let mut permissions = permissions?;
+
+    let mut resolved = Vec::with_capacity(names.len());
+    let mut missing = Vec::new();
 
     for name in names {
+        match name_to_id.get(*name) {
+            Some(id) => resolved.push((*name, *id)),
+            None => missing.push(format!("/{name}")),
+        }
+    }
+
+    if !missing.is_empty() {
+        return Err(ServerFnError::ServerError(format!(
+            "Not registered for this server yet: {}",
+            missing.join(", ")
+        )));
+    }
+
+    for (name, cmd_id) in resolved {
         if claim.superseded() {
             return Ok(());
         }
 
-        let Some(cmd_id) = name_to_id.get(*name) else {
-            continue;
-        };
-
-        let current = permissions.remove(cmd_id).unwrap_or_default();
+        let current = permissions.remove(&cmd_id).unwrap_or_default();
 
         // Skip the ones that already read the way the toggle wants them.
         if everyone_denied(ctx.guild_id, &current) != enabled {
@@ -260,7 +331,7 @@ async fn set_commands_enabled(
 
         let updated = with_everyone_denied(ctx.guild_id, &current, !enabled);
 
-        store(ctx, *cmd_id, name, &updated).await?;
+        store(ctx, cmd_id, name, &updated).await?;
     }
 
     Ok(())
@@ -297,5 +368,9 @@ pub async fn set_module_enabled(
         Backing::Commands(names) => {
             set_commands_enabled(&ctx, &claim, names, enabled).await
         },
+        Backing::Derived => Err(ServerFnError::ServerError(format!(
+            "{} is switched on from its own settings page, not from this toggle.",
+            module.label
+        ))),
     }
 }

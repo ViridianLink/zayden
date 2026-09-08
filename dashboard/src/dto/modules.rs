@@ -6,6 +6,6 @@ pub struct ModuleView {
     pub(crate) label: String,
     pub(crate) description: String,
     pub(crate) commands: Vec<String>,
-    pub(crate) enabled: bool,
-    pub(crate) locked: bool,
+    pub(crate) enabled: Option<bool>,
+    pub(crate) locked: Option<String>,
 }

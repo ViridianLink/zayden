@@ -12,6 +12,7 @@ use {
         bearer_client,
         discord_client,
         guild_admin_context,
+        server_err,
     },
     leptos::prelude::ServerFnError,
     std::collections::HashMap,
@@ -176,31 +177,25 @@ fn read_client(ctx: &GuildContext) -> Arc<twilight_http::Client> {
 #[cfg(feature = "ssr")]
 async fn command_ids(
     list: Result<Response<ListBody<Command>>, Error>,
-) -> HashMap<String, Id<CommandMarker>> {
-    let Ok(resp) = list else {
-        return HashMap::new();
-    };
-    resp.models()
-        .await
-        .map(|cmds| {
-            cmds.into_iter().filter_map(|c| c.id.map(|id| (c.name, id))).collect()
-        })
-        .unwrap_or_default()
+) -> Result<HashMap<String, Id<CommandMarker>>, ServerFnError> {
+    let commands = list.map_err(server_err)?.models().await.map_err(server_err)?;
+
+    Ok(commands.into_iter().filter_map(|c| c.id.map(|id| (c.name, id))).collect())
 }
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn fetch_command_ids(
     ctx: &GuildContext,
-) -> HashMap<String, Id<CommandMarker>> {
+) -> Result<HashMap<String, Id<CommandMarker>>, ServerFnError> {
     let interaction = ctx.http.interaction(Id::new(ctx.app_id));
     let (global, guild) = tokio::join!(
         interaction.global_commands(),
         interaction.guild_commands(ctx.guild_id),
     );
 
-    let mut merged = command_ids(global).await;
-    merged.extend(command_ids(guild).await);
-    merged
+    let mut merged = command_ids(global).await?;
+    merged.extend(command_ids(guild).await?);
+    Ok(merged)
 }
 
 #[cfg(feature = "ssr")]
@@ -208,7 +203,7 @@ pub(crate) async fn command_id(
     ctx: &GuildContext,
     name: &str,
 ) -> Result<Id<CommandMarker>, ServerFnError> {
-    fetch_command_ids(ctx).await.get(name).copied().ok_or_else(|| {
+    fetch_command_ids(ctx).await?.get(name).copied().ok_or_else(|| {
         ServerFnError::ServerError(format!(
             "/{name} isn't registered for this server yet"
         ))
@@ -235,20 +230,17 @@ pub(crate) async fn fetch(
 #[cfg(feature = "ssr")]
 pub(crate) async fn guild_permissions(
     ctx: &GuildContext,
-) -> HashMap<Id<CommandMarker>, Vec<CommandPermission>> {
-    let resp = read_client(ctx)
+) -> Result<HashMap<Id<CommandMarker>, Vec<CommandPermission>>, ServerFnError> {
+    let list = read_client(ctx)
         .interaction(Id::new(ctx.app_id))
         .guild_command_permissions(ctx.guild_id)
-        .await;
-
-    let Ok(resp) = resp else {
-        return HashMap::new();
-    };
-
-    resp.models()
         .await
-        .map(|list| list.into_iter().map(|cp| (cp.id, cp.permissions)).collect())
-        .unwrap_or_default()
+        .map_err(server_err)?
+        .models()
+        .await
+        .map_err(server_err)?;
+
+    Ok(list.into_iter().map(|cp| (cp.id, cp.permissions)).collect())
 }
 
 #[cfg(feature = "ssr")]
