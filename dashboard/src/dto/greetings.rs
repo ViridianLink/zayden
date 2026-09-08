@@ -26,7 +26,7 @@ pub struct GreetingsView {
     pub(crate) night_message: String,
     pub(crate) morning: Vec<GreetingImageInfo>,
     pub(crate) night: Vec<GreetingImageInfo>,
-    pub(crate) allowed_channels: Vec<String>,
+    pub(crate) allowed_channels: Option<Vec<String>>,
     pub(crate) channels_locked: bool,
     pub(crate) cooldowns: CooldownView,
 }

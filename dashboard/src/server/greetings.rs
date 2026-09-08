@@ -5,11 +5,13 @@ use {
     crate::dto::{CooldownView, Tier},
     crate::server::auth::{admin_guild_id, app_state, db_pool, server_err},
     crate::server::command_permissions::{
+        GuildContext,
         MAX_ALLOWED_CHANNELS,
         channel_allowlist,
         command_id,
         fetch,
         guild_context,
+        lookup_command_id,
         store,
         with_channel_allowlist,
     },
@@ -69,7 +71,7 @@ where
     let ctx = guild_context(guild).await?;
     let cmd = command_id(&ctx, COMMAND).await?;
 
-    let current = fetch(&ctx, cmd).await;
+    let current = fetch(&ctx, cmd).await?;
     let mut allowed = channel_allowlist(ctx.guild_id, &current);
 
     edit(&mut allowed)?;
@@ -77,6 +79,20 @@ where
     let updated = with_channel_allowlist(ctx.guild_id, &current, &allowed);
 
     store(&ctx, cmd, COMMAND, &updated).await
+}
+
+#[cfg(feature = "ssr")]
+async fn read_allowed_channels(
+    ctx: &GuildContext,
+) -> Result<Vec<String>, ServerFnError> {
+    let Some(cmd) = lookup_command_id(ctx, COMMAND).await? else {
+        return Ok(Vec::new());
+    };
+
+    Ok(channel_allowlist(ctx.guild_id, &fetch(ctx, cmd).await?)
+        .into_iter()
+        .map(|id| id.to_string())
+        .collect())
 }
 
 #[cfg(feature = "ssr")]
@@ -103,13 +119,16 @@ pub async fn get_greetings(guild: String) -> Result<GreetingsView, ServerFnError
     let next_floor = next_tier.map_or(floor, floors_for);
 
     let ctx = guild_context(&guild).await?;
-    let allowed_channels = match command_id(&ctx, COMMAND).await {
-        Ok(cmd) => channel_allowlist(ctx.guild_id, &fetch(&ctx, cmd).await)
-            .into_iter()
-            .map(|id| id.to_string())
-            .collect(),
-        // The command is not registered for this guild yet
-        Err(_e) => Vec::new(),
+    let allowed_channels = match read_allowed_channels(&ctx).await {
+        Ok(channels) => Some(channels),
+        Err(e) => {
+            tracing::warn!(
+                error = ?e,
+                "failed to read /good channel restrictions from Discord; \
+                 reporting them as unknown"
+            );
+            None
+        },
     };
 
     Ok(GreetingsView {

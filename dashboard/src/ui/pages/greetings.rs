@@ -186,7 +186,7 @@ fn PlaceholderLegend() -> impl IntoView {
 #[component]
 fn ChannelSection(
     guild_id: String,
-    allowed: Vec<String>,
+    allowed: Option<Vec<String>>,
     channels: Vec<ChannelInfo>,
     locked: bool,
     add: ServerAction<AddGreetingChannel>,
@@ -195,6 +195,9 @@ fn ChannelSection(
     let add_result = add.value();
     let remove_result = remove.value();
     let add_gid = guild_id.clone();
+
+    let unknown = allowed.is_none();
+    let allowed = allowed.unwrap_or_default();
 
     let unconfigured = channels
         .iter()
@@ -233,7 +236,16 @@ fn ChannelSection(
         })
         .collect_view();
 
-    let editor = if locked {
+    let editor = if unknown {
+        view! {
+            <p class="module-locked">
+                "Discord didn't report which channels "<code>"/good"</code>" is \
+                 allowed in, so its restrictions can't be shown or changed \
+                 right now."
+            </p>
+        }
+        .into_any()
+    } else if locked {
         view! {
             <p class="module-locked">
                 "Read-only: Discord only lets a member with Manage Server \
@@ -263,12 +275,14 @@ fn ChannelSection(
     view! {
         <fieldset class="settings-section">
             <legend><Icon name="grid"/>"Where /good works"</legend>
-            <p class="page-lead">
-                "With nothing listed, "<code>"/good"</code>" works in every channel. "
-                "Add one or more and Discord hides the command everywhere else "
-                "- it never even shows up in the picker. Adding a category "
-                "covers every channel inside it."
-            </p>
+            {(!unknown).then(|| view! {
+                <p class="page-lead">
+                    "With nothing listed, "<code>"/good"</code>" works in every channel. "
+                    "Add one or more and Discord hides the command everywhere else "
+                    "- it never even shows up in the picker. Adding a category "
+                    "covers every channel inside it."
+                </p>
+            })}
             <p class="page-lead">
                 "This writes the same command permissions as Discord's own "
                 "Server Settings \u{2192} Integrations panel, so changes made "

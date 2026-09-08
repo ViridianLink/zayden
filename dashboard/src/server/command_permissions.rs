@@ -17,6 +17,7 @@ use {
     leptos::prelude::ServerFnError,
     std::collections::HashMap,
     std::sync::Arc,
+    twilight_http::error::ErrorType,
     twilight_http::response::marker::ListBody,
     twilight_http::{Error, Response},
     twilight_model::application::command::Command,
@@ -199,11 +200,19 @@ pub(crate) async fn fetch_command_ids(
 }
 
 #[cfg(feature = "ssr")]
+pub(crate) async fn lookup_command_id(
+    ctx: &GuildContext,
+    name: &str,
+) -> Result<Option<Id<CommandMarker>>, ServerFnError> {
+    Ok(fetch_command_ids(ctx).await?.get(name).copied())
+}
+
+#[cfg(feature = "ssr")]
 pub(crate) async fn command_id(
     ctx: &GuildContext,
     name: &str,
 ) -> Result<Id<CommandMarker>, ServerFnError> {
-    fetch_command_ids(ctx).await?.get(name).copied().ok_or_else(|| {
+    lookup_command_id(ctx, name).await?.ok_or_else(|| {
         ServerFnError::ServerError(format!(
             "/{name} isn't registered for this server yet"
         ))
@@ -211,20 +220,28 @@ pub(crate) async fn command_id(
 }
 
 #[cfg(feature = "ssr")]
+const fn unconfigured(error: &Error) -> bool {
+    // Discord answers 404 for a command that carries no permission overwrites
+    // at all, which is a genuinely empty array rather than a failed read.
+    matches!(error.kind(), ErrorType::Response { status, .. } if status.get() == 404)
+}
+
+#[cfg(feature = "ssr")]
 pub(crate) async fn fetch(
     ctx: &GuildContext,
     command: Id<CommandMarker>,
-) -> Vec<CommandPermission> {
-    let resp = read_client(ctx)
+) -> Result<Vec<CommandPermission>, ServerFnError> {
+    let resp = match read_client(ctx)
         .interaction(Id::new(ctx.app_id))
         .command_permissions(ctx.guild_id, command)
-        .await;
-
-    let Ok(resp) = resp else {
-        return Vec::new();
+        .await
+    {
+        Ok(resp) => resp,
+        Err(e) if unconfigured(&e) => return Ok(Vec::new()),
+        Err(e) => return Err(server_err(e)),
     };
 
-    resp.model().await.map(|p| p.permissions).unwrap_or_default()
+    Ok(resp.model().await.map_err(server_err)?.permissions)
 }
 
 #[cfg(feature = "ssr")]
