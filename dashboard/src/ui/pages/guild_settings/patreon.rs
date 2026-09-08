@@ -5,15 +5,22 @@ use leptos_router::hooks::use_query_map;
 use super::{TEXT_KINDS, sel};
 use crate::dto::patreon::OUTCOME_PARAM;
 use crate::dto::{ChannelInfo, PatreonOutcome, PatreonStatus};
-use crate::server::patreon::SavePatreonSettings;
+use crate::server::patreon::{DisconnectPatreon, SavePatreonSettings};
+use crate::ui::components::confirm::ConfirmButton;
 use crate::ui::components::select::ChannelSelect;
-use crate::ui::components::settings::{SaveButton, ToggleField, save_feedback};
+use crate::ui::components::settings::{
+    Alert,
+    SaveButton,
+    ToggleField,
+    save_feedback,
+};
 
 #[component]
 pub(crate) fn PatreonTab(
     guild_id: String,
     status: Result<PatreonStatus, String>,
     channels: Result<Vec<ChannelInfo>, String>,
+    disconnect: ServerAction<DisconnectPatreon>,
 ) -> impl IntoView {
     let query = use_query_map();
     let outcome = move || {
@@ -25,7 +32,12 @@ pub(crate) fn PatreonTab(
 
     let panel = match status {
         Ok(status) => view! {
-            <PatreonPanel guild_id=guild_id status=status channels=channels/>
+            <PatreonPanel
+                guild_id=guild_id
+                status=status
+                channels=channels
+                disconnect=disconnect
+            />
         }
         .into_any(),
         Err(reason) => view! {
@@ -43,11 +55,44 @@ pub(crate) fn PatreonTab(
         .into_any(),
     };
 
+    let disconnected = disconnect.value();
+
     view! {
         {move || {
-            outcome().map(|o| view! { <p class=o.class()>{o.message()}</p> })
+            outcome()
+                .map(|o| {
+                    view! {
+                        <Alert
+                            class=format!("alert {}", o.class())
+                            role=o.role()
+                            message=o.message()
+                        />
+                    }
+                })
         }}
+        {move || disconnected.get().map(disconnect_feedback)}
         {panel}
+    }
+}
+
+fn disconnect_feedback(r: Result<(), ServerFnError>) -> AnyView {
+    match r {
+        Ok(()) => view! {
+            <Alert
+                class="alert success"
+                role="status"
+                message=PatreonOutcome::Disconnected.message()
+            />
+        }
+        .into_any(),
+        Err(e) => view! {
+            <Alert
+                class="alert error"
+                role="alert"
+                message=format!("Failed to disconnect: {e}")
+            />
+        }
+        .into_any(),
     }
 }
 
@@ -56,12 +101,13 @@ fn PatreonPanel(
     guild_id: String,
     status: PatreonStatus,
     channels: Result<Vec<ChannelInfo>, String>,
+    disconnect: ServerAction<DisconnectPatreon>,
 ) -> impl IntoView {
     let save = ServerAction::<SavePatreonSettings>::new();
     let result = save.value();
 
     let connect_href = format!("/patreon/connect?guild={guild_id}");
-    let disconnect_href = format!("/patreon/disconnect?guild={guild_id}");
+    let disconnect_guild = guild_id.clone();
     let connected = status.connected;
     let disabled = status.disabled;
     let webhook = status.webhook_registered;
@@ -100,11 +146,21 @@ fn PatreonPanel(
                         <a class="btn btn-secondary" href=connect_href>
                             "Reconnect Patreon"
                         </a>
-                        <form method="post" action=disconnect_href>
-                            <button type="submit" class="btn btn-danger">
-                                "Disconnect"
-                            </button>
-                        </form>
+                        <ActionForm action=disconnect>
+                            <input
+                                type="hidden"
+                                name="guild"
+                                value=disconnect_guild
+                            />
+                            <ConfirmButton
+                                label="Disconnect"
+                                prompt="Zayden stops announcing this campaign \
+                                        and drops its webhook on the creator's \
+                                        Patreon account. Reconnecting needs \
+                                        the creator to authorise again."
+                                confirm="Disconnect Patreon"
+                            />
+                        </ActionForm>
                     </div>
                 }
                     .into_any()

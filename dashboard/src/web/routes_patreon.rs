@@ -218,49 +218,6 @@ pub(super) async fn patreon_callback_handler(
     redirect(&settings_url(guild, PatreonOutcome::Connected))
 }
 
-#[derive(Deserialize)]
-pub(super) struct DisconnectQuery {
-    guild: String,
-}
-
-pub(super) async fn patreon_disconnect_handler(
-    Query(query): Query<DisconnectQuery>,
-    cookies: Cookies,
-    State(state): State<WebState>,
-) -> Response {
-    let Some((context, _user_id)) = admin(&state, &cookies, &query.guild).await
-    else {
-        warn!(guild = %query.guild, "Patreon disconnect rejected: not a guild admin");
-        return redirect(&settings_url(&query.guild, PatreonOutcome::Forbidden));
-    };
-
-    let connection = PatreonConnection::select(&state.app.db, context.guild_id)
-        .await
-        .ok()
-        .flatten();
-
-    if let (Some(app), Some(connection)) = (app(&state), connection.as_ref())
-        && let Some(webhook_id) = connection.webhook_id.as_deref()
-        && let Ok(token) = patreon::oauth::access_token(
-            &state.app.db,
-            &state.app.http,
-            &app,
-            connection,
-        )
-        .await
-    {
-        patreon::webhook::unregister(&state.app.http, &token, webhook_id).await;
-    }
-
-    if let Err(e) = PatreonConnection::delete(&state.app.db, context.guild_id).await
-    {
-        warn!(?e, guild = %query.guild, "failed to delete the Patreon connection");
-        return redirect(&settings_url(&query.guild, PatreonOutcome::Error));
-    }
-
-    redirect(&settings_url(&query.guild, PatreonOutcome::Disconnected))
-}
-
 pub(super) async fn patreon_webhook_handler(
     State(state): State<WebState>,
     headers: HeaderMap,

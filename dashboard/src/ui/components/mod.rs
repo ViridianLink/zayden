@@ -1,3 +1,4 @@
+pub mod confirm;
 pub mod guild_grid;
 pub mod icons;
 pub mod layout;

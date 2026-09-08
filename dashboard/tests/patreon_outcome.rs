@@ -50,3 +50,14 @@ fn every_severity_class_is_defined_in_the_stylesheet() {
         assert!(FEEDBACK.contains(&rule), "{rule} is not defined");
     }
 }
+
+/// The banner is rendered into an ARIA live region, and only a real failure is
+/// allowed to interrupt: `role="alert"` is assertive by definition.
+#[test]
+fn only_the_failures_interrupt_the_reader() {
+    for outcome in PatreonOutcome::ALL {
+        let expected = if outcome.class() == "error" { "alert" } else { "status" };
+
+        assert_eq!(outcome.role(), expected, "{outcome:?}");
+    }
+}

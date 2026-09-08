@@ -20,10 +20,6 @@ pub(crate) fn routes(state: WebState) -> Router<WebState> {
         .route("/kofi/link", post(routes_kofi::kofi_link_handler))
         .route("/patreon/connect", get(routes_patreon::patreon_connect_handler))
         .route("/patreon/callback", get(routes_patreon::patreon_callback_handler))
-        .route(
-            "/patreon/disconnect",
-            post(routes_patreon::patreon_disconnect_handler),
-        )
         .route_layer(from_fn_with_state(state, require_auth));
 
     Router::new()

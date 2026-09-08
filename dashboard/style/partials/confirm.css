@@ -1,0 +1,46 @@
+.confirm {
+    position: relative;
+    display: inline-block;
+}
+
+.confirm > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.confirm > summary::-webkit-details-marker {
+    display: none;
+}
+
+.confirm > summary .confirm-cancel,
+.confirm[open] > summary .confirm-label {
+    display: none;
+}
+
+.confirm[open] > summary .confirm-cancel {
+    display: inline;
+}
+
+.confirm-panel {
+    position: absolute;
+    z-index: 20;
+    right: 0;
+    top: calc(100% + 0.4rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: max-content;
+    max-width: 20rem;
+    padding: 0.85rem;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-strong);
+    background-color: var(--bg-modal);
+    box-shadow: var(--shadow-pop);
+}
+
+.confirm-prompt {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-wrap: pretty;
+}

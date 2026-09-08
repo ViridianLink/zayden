@@ -162,6 +162,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let discord_http = Arc::clone(&discord_http);
                 let session_cache = web_state.session_cache.clone();
                 let user_guilds_cache = web_state.user_guilds_cache.clone();
+                let patreon = web_state.patreon.clone();
                 move || {
                     provide_context(db.clone());
                     provide_context(Arc::clone(&app));
@@ -169,6 +170,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     provide_context(Arc::clone(&discord_http));
                     provide_context(session_cache.clone());
                     provide_context(user_guilds_cache.clone());
+
+                    // Absent when the instance has no Patreon credentials, which
+                    // is how `disconnect_patreon` tells "skip the webhook call"
+                    // from "the call failed".
+                    if let Some(patreon) = patreon.clone() {
+                        provide_context(patreon);
+                    }
                 }
             },
             {

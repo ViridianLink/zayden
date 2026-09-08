@@ -52,6 +52,19 @@ impl PatreonOutcome {
         }
     }
 
+    pub const fn role(self) -> &'static str {
+        match self {
+            Self::Connected
+            | Self::Disconnected
+            | Self::Declined
+            | Self::NoCampaign => "status",
+            Self::Forbidden
+            | Self::StateMismatch
+            | Self::Unconfigured
+            | Self::Error => "alert",
+        }
+    }
+
     pub const fn message(self) -> &'static str {
         match self {
             Self::Connected => {

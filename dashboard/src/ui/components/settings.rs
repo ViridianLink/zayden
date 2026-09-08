@@ -2,21 +2,64 @@ use leptos::prelude::*;
 
 use super::icons::Icon;
 
+#[component]
+pub(crate) fn Alert(
+    #[prop(into)] class: String,
+    role: &'static str,
+    #[prop(into)] message: String,
+) -> impl IntoView {
+    let dismissed = RwSignal::new(false);
+
+    view! {
+        <div class=class role=role hidden=move || dismissed.get()>
+            <span>{message}</span>
+            <button
+                type="button"
+                class="alert-dismiss"
+                aria-label="Dismiss"
+                on:click=move |_| dismissed.set(true)
+            >
+                <Icon name="x"/>
+            </button>
+        </div>
+    }
+}
+
 pub(crate) fn save_feedback(r: Result<(), ServerFnError>) -> AnyView {
     match r {
-        Ok(()) => view! { <p class="success">"Saved."</p> }.into_any(),
-        Err(e) => view! { <p class="error">"Failed to save: " {e.to_string()}</p> }
-            .into_any(),
+        Ok(()) => view! {
+            <Alert class="alert success" role="status" message="Saved."/>
+        }
+        .into_any(),
+        Err(e) => view! {
+            <Alert
+                class="alert error"
+                role="alert"
+                message=format!("Failed to save: {e}")
+            />
+        }
+        .into_any(),
     }
 }
 
 pub(crate) fn create_feedback(r: Result<(), ServerFnError>) -> AnyView {
     match r {
-        Ok(()) => view! { <p class="success">"Creator channel created."</p> }.into_any(),
-        Err(e) => {
-            view! { <p class="error">"Failed to create channel: " {e.to_string()}</p> }
-                .into_any()
-        },
+        Ok(()) => view! {
+            <Alert
+                class="alert success"
+                role="status"
+                message="Creator channel created."
+            />
+        }
+        .into_any(),
+        Err(e) => view! {
+            <Alert
+                class="alert error"
+                role="alert"
+                message=format!("Failed to create channel: {e}")
+            />
+        }
+        .into_any(),
     }
 }
 

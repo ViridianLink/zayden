@@ -3,6 +3,7 @@ use leptos::prelude::*;
 use {
     crate::server::auth::admin_guild_id,
     crate::server::guild::admin_app,
+    patreon::oauth::PatreonApp,
     patreon::{PatreonAnnounceRow, PatreonConnection},
     zayden_app::state::AppState,
 };
@@ -81,4 +82,34 @@ pub async fn save_patreon_settings(
 #[server]
 pub async fn can_manage_patreon(guild: String) -> Result<bool, ServerFnError> {
     admin_guild_id(&guild).await.map(|_id| true)
+}
+
+#[server]
+pub async fn disconnect_patreon(guild: String) -> Result<(), ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    let connection = PatreonConnection::select(&app.db, guild_id)
+        .await
+        .map_err(crate::server::auth::server_err)?;
+
+    // Best effort. A webhook Patreon has already dropped, or an authorisation it
+    // has revoked, must not be able to pin the connection open on our side.
+    if let Some(connection) = connection.as_ref()
+        && let Some(webhook_id) = connection.webhook_id.as_deref()
+        && let Some(patreon_app) = use_context::<PatreonApp>()
+        && let Ok(token) = patreon::oauth::access_token(
+            &app.db,
+            &app.http,
+            &patreon_app,
+            connection,
+        )
+        .await
+    {
+        patreon::webhook::unregister(&app.http, &token, webhook_id).await;
+    }
+
+    PatreonConnection::delete(&app.db, guild_id)
+        .await
+        .map(|_removed| ())
+        .map_err(crate::server::auth::server_err)
 }

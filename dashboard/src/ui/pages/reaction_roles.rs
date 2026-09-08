@@ -11,6 +11,7 @@ use crate::server::reaction_roles::{
     RemoveReactionRole,
     list_reaction_roles,
 };
+use crate::ui::components::confirm::ConfirmButton;
 use crate::ui::components::icons::Icon;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{SettingField, save_feedback};
@@ -197,7 +198,13 @@ fn MappingTable(
                         <input type="hidden" name="channel_id" value=m.channel_id/>
                         <input type="hidden" name="message_id" value=m.message_id/>
                         <input type="hidden" name="emoji" value=m.emoji/>
-                        <button type="submit" class="btn btn-ghost">"Remove"</button>
+                        <ConfirmButton
+                            label="Remove"
+                            prompt="Reactions already on the message stay, but \
+                                    they stop granting the role."
+                            confirm="Remove mapping"
+                            class="btn btn-ghost"
+                        />
                     </ActionForm>
                 </div>
             }

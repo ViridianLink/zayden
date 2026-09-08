@@ -2,7 +2,7 @@ use leptos::prelude::*;
 
 use crate::dto::FaqArticleInfo;
 use crate::server::faq::{DeleteFaqArticle, SaveFaqArticle, list_faq_articles};
-use crate::ui::components::icons::Icon;
+use crate::ui::components::confirm::ConfirmButton;
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 
 #[component]
@@ -107,10 +107,12 @@ fn ArticleRow(
                 <input type="hidden" name="guild" value=delete_guild_id/>
                 <input type="hidden" name="id" value=id/>
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-danger">
-                        <Icon name="x"/>
-                        "Delete"
-                    </button>
+                    <ConfirmButton
+                        label="Delete"
+                        prompt="This removes the article for everyone, including \
+                                the wiki copy. It cannot be undone."
+                        confirm="Delete article"
+                    />
                 </div>
             </ActionForm>
         </details>

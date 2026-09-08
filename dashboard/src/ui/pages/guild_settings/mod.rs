@@ -22,6 +22,7 @@ use crate::server::guild::{
     RemoveSupportRole,
     get_settings_bundle,
 };
+use crate::server::patreon::DisconnectPatreon;
 use crate::ui::nav;
 
 pub(super) const TEXT_KINDS: &[ChannelType] = &[
@@ -51,6 +52,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let remove_support_role = ServerAction::<RemoveSupportRole>::new();
     let add_helper_link = ServerAction::<AddHelperLink>::new();
     let remove_helper_link = ServerAction::<RemoveHelperLink>::new();
+    let disconnect_patreon = ServerAction::<DisconnectPatreon>::new();
 
     let data = Resource::new_blocking(
         move || {
@@ -61,6 +63,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                 remove_support_role.version().get(),
                 add_helper_link.version().get(),
                 remove_helper_link.version().get(),
+                disconnect_patreon.version().get(),
             )
         },
         |(gid, ..)| async move { get_settings_bundle(gid).await },
@@ -158,6 +161,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                         guild_id=guild_id
                                         status=patreon_status
                                         channels=channels
+                                        disconnect=disconnect_patreon
                                     />
                                 }.into_any(),
                                 Some("honeypot") => view! {
