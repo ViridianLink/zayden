@@ -5,16 +5,16 @@ use {
         admin_guild_id,
         app_state,
         bearer_client,
+        current_session_identity,
         db_pool,
         discord_client,
         server_err,
     },
     honeypot::{HoneypotConfig, HoneypotSettings},
-    leptos_axum::{extract, redirect},
+    leptos_axum::redirect,
     std::sync::Arc,
     suggestions::ReviewThresholds,
     ticket::{GuildId, HelperLinks, RoleId, SupportRoles, UserId},
-    tower_cookies::Cookies,
     twilight_http::Client,
     twilight_model::channel::ChannelType,
     twilight_model::guild::Permissions,
@@ -75,28 +75,12 @@ fn parse_role(s: &str) -> Result<RoleId, ServerFnError> {
 
 #[server]
 pub async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
-    let pool = db_pool()?;
-
-    let cookies: Cookies = extract().await.map_err(server_err)?;
-    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
+    let Some(identity) = current_session_identity().await? else {
         redirect("/login");
         return Err(ServerFnError::ServerError("unauthenticated".to_string()));
     };
 
-    let row = sqlx::query_scalar!(
-        "SELECT discord_access_token FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-        &token,
-    )
-    .fetch_optional(&pool)
-    .await
-    .map_err(server_err)?;
-    let Some(access_token) = row else {
-        redirect("/login");
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-
-    let all_guilds = bearer_client(&access_token)
+    let all_guilds = bearer_client(&identity.access_token)
         .current_user_guilds()
         .await
         .map_err(server_err)?

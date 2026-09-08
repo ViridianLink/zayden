@@ -14,6 +14,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use dashboard::app::{App, UpgradeUrl, shell};
+use dashboard::server::auth::SessionCache;
 use leptos::config::{LeptosOptions, get_configuration};
 use leptos::prelude::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list};
@@ -59,7 +60,7 @@ pub(crate) struct WebState {
     pub(crate) patreon: Option<PatreonApp>,
     pub(crate) patreon_webhook_uri: String,
     pub(crate) discord_http: Arc<twilight_http::Client>,
-    pub(crate) session_cache: Cache<String, i64>,
+    pub(crate) session_cache: SessionCache,
     pub(crate) leptos_options: LeptosOptions,
     pub(crate) palworld: Arc<PalworldClient>,
 }
@@ -178,12 +179,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let upgrade_url = web_state.upgrade_url.clone();
                 let discord_http = Arc::clone(&discord_http);
                 let palworld = Arc::clone(&web_state.palworld);
+                let session_cache = web_state.session_cache.clone();
                 move || {
                     provide_context(db.clone());
                     provide_context(Arc::clone(&app));
                     provide_context(UpgradeUrl(upgrade_url.clone()));
                     provide_context(Arc::clone(&discord_http));
                     provide_context(Arc::clone(&palworld));
+                    provide_context(session_cache.clone());
                 }
             },
             {

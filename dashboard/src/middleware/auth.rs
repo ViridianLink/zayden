@@ -2,6 +2,7 @@ use axum::extract::{Request, State};
 use axum::http::StatusCode;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
+use dashboard::server::auth::lookup_session;
 use tower_cookies::Cookies;
 use tracing::{debug, warn};
 
@@ -25,22 +26,12 @@ pub(crate) async fn require_auth(
         return StatusCode::UNAUTHORIZED.into_response();
     };
 
-    if let Some(discord_user_id) = state.session_cache.get(&session_token).await {
-        debug!(user_id = discord_user_id, "authenticated request (cache hit)");
-        req.extensions_mut().insert(AuthUser { id: discord_user_id.to_string() });
-        return next.run(req).await;
-    }
+    let session =
+        lookup_session(Some(&state.session_cache), &state.app.db, &session_token)
+            .await;
 
-    let row = sqlx::query_scalar!(
-        "SELECT discord_user_id FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-        &session_token,
-    )
-    .fetch_optional(&state.app.db)
-    .await;
-
-    let discord_user_id = match row {
-        Ok(Some(r)) => r,
+    let identity = match session {
+        Ok(Some(identity)) => identity,
         Ok(None) => return StatusCode::UNAUTHORIZED.into_response(),
         Err(e) => {
             warn!(?e, "Failed to look up session token");
@@ -48,9 +39,7 @@ pub(crate) async fn require_auth(
         },
     };
 
-    state.session_cache.insert(session_token, discord_user_id).await;
-
-    debug!(user_id = discord_user_id, "authenticated request");
-    req.extensions_mut().insert(AuthUser { id: discord_user_id.to_string() });
+    debug!(user_id = identity.user_id, "authenticated request");
+    req.extensions_mut().insert(AuthUser { id: identity.user_id.to_string() });
     next.run(req).await
 }

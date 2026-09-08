@@ -2,6 +2,7 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     leptos_axum::extract,
+    moka::future::Cache,
     palworld::client::PalworldClient,
     sqlx::PgPool,
     std::sync::Arc,
@@ -53,23 +54,10 @@ pub(crate) fn palworld_client() -> Result<Arc<PalworldClient>, ServerFnError> {
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn current_user_id() -> Result<i64, ServerFnError> {
-    let pool = db_pool()?;
-    let cookies: Cookies = extract().await.map_err(server_err)?;
-    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-    let row = sqlx::query_scalar!(
-        "SELECT discord_user_id FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-        &token,
-    )
-    .fetch_optional(&pool)
-    .await
-    .map_err(server_err)?;
-    let Some(user_id) = row else {
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
-    };
-    Ok(user_id)
+    current_session_identity()
+        .await?
+        .map(|identity| identity.user_id)
+        .ok_or_else(|| ServerFnError::ServerError("unauthenticated".to_string()))
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -147,9 +135,52 @@ async fn bot_is_in_guild(discord: Option<&Client>, guild_id: u64) -> bool {
 }
 
 #[cfg(feature = "ssr")]
+#[derive(Clone)]
 pub struct SessionIdentity {
     pub user_id: i64,
     pub access_token: String,
+}
+
+#[cfg(feature = "ssr")]
+pub type SessionCache = Cache<String, SessionIdentity>;
+
+// The only read of `web_sessions`. A miss populates the cache, so the Axum
+// middleware and every server fn on one page render share a single SELECT
+// instead of repeating it per call.
+#[cfg(feature = "ssr")]
+pub async fn lookup_session(
+    cache: Option<&SessionCache>,
+    pool: &PgPool,
+    token: &str,
+) -> Result<Option<SessionIdentity>, sqlx::Error> {
+    if let Some(cache) = cache
+        && let Some(identity) = cache.get(token).await
+    {
+        return Ok(Some(identity));
+    }
+
+    let row = sqlx::query!(
+        "SELECT discord_access_token, discord_user_id FROM web_sessions \
+         WHERE token = $1 AND expires_at > now()",
+        token,
+    )
+    .fetch_optional(pool)
+    .await?;
+
+    let Some(row) = row else {
+        return Ok(None);
+    };
+
+    let identity = SessionIdentity {
+        user_id: row.discord_user_id,
+        access_token: row.discord_access_token,
+    };
+
+    if let Some(cache) = cache {
+        cache.insert(token.to_owned(), identity.clone()).await;
+    }
+
+    Ok(Some(identity))
 }
 
 #[cfg(feature = "ssr")]
@@ -157,23 +188,25 @@ pub async fn session_identity(
     pool: &PgPool,
     token: &str,
 ) -> Result<SessionIdentity, ServerFnError> {
-    let row = sqlx::query!(
-        "SELECT discord_access_token, discord_user_id FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-        token,
-    )
-    .fetch_optional(pool)
-    .await
-    .map_err(server_err)?;
+    lookup_session(use_context::<SessionCache>().as_ref(), pool, token)
+        .await
+        .map_err(server_err)?
+        .ok_or_else(|| ServerFnError::ServerError("unauthenticated".to_string()))
+}
 
-    let Some(row) = row else {
-        return Err(ServerFnError::ServerError("unauthenticated".to_string()));
+#[cfg(feature = "ssr")]
+pub(crate) async fn current_session_identity()
+-> Result<Option<SessionIdentity>, ServerFnError> {
+    let pool = db_pool()?;
+    let cookies: Cookies = extract().await.map_err(server_err)?;
+
+    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
+        return Ok(None);
     };
 
-    Ok(SessionIdentity {
-        user_id: row.discord_user_id,
-        access_token: row.discord_access_token,
-    })
+    lookup_session(use_context::<SessionCache>().as_ref(), &pool, &token)
+        .await
+        .map_err(server_err)
 }
 
 #[cfg(feature = "ssr")]
@@ -251,50 +284,16 @@ pub(crate) async fn admin_guild_id(guild: &str) -> Result<i64, ServerFnError> {
 
 #[server]
 pub async fn check_session() -> Result<bool, ServerFnError> {
-    let pool = db_pool()?;
-
-    let cookies: Cookies = extract().await.map_err(server_err)?;
-
-    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
-        return Ok(false);
-    };
-
-    let logged_in = sqlx::query_scalar!(
-        "SELECT token FROM web_sessions WHERE token = $1 AND expires_at > now()",
-        &token,
-    )
-    .fetch_optional(&pool)
-    .await
-    .map_err(server_err)?
-    .is_some();
-
-    Ok(logged_in)
+    Ok(current_session_identity().await?.is_some())
 }
 
 #[server]
 pub async fn current_session_user() -> Result<Option<SessionUser>, ServerFnError> {
-    let pool = db_pool()?;
-
-    let cookies: Cookies = extract().await.map_err(server_err)?;
-
-    let Some(token) = cookies.get("session").map(|c| c.value().to_owned()) else {
+    let Some(identity) = current_session_identity().await? else {
         return Ok(None);
     };
 
-    let access_token = sqlx::query_scalar!(
-        "SELECT discord_access_token FROM web_sessions \
-         WHERE token = $1 AND expires_at > now()",
-        &token,
-    )
-    .fetch_optional(&pool)
-    .await
-    .map_err(server_err)?;
-
-    let Some(access_token) = access_token else {
-        return Ok(None);
-    };
-
-    let user = match bearer_client(&access_token).current_user().await {
+    let user = match bearer_client(&identity.access_token).current_user().await {
         Ok(response) => response.model().await,
         Err(e) => {
             tracing::warn!(error = ?e, "request to Discord /users/@me failed");
