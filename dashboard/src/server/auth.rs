@@ -213,6 +213,15 @@ pub fn manages_guild(guild: &CurrentUserGuild) -> bool {
 }
 
 #[cfg(feature = "ssr")]
+#[must_use]
+pub fn find_user_guild(
+    guilds: &[CurrentUserGuild],
+    guild_id: u64,
+) -> Option<&CurrentUserGuild> {
+    guilds.iter().find(|g| g.id.get() == guild_id)
+}
+
+#[cfg(feature = "ssr")]
 pub type UserGuildsCache = Cache<i64, Arc<[CurrentUserGuild]>>;
 
 // The only call of Discord's `GET /users/@me/guilds`. Both the per-guild
@@ -262,7 +271,7 @@ pub async fn guild_admin_for(
     let all_guilds = lookup_user_guilds(guilds_cache, identity).await?;
 
     let is_member_admin =
-        all_guilds.iter().any(|g| g.id.get() == guild_id_u64 && manages_guild(g));
+        find_user_guild(&all_guilds, guild_id_u64).is_some_and(manages_guild);
 
     if is_member_admin {
         return Ok(GuildAdminContext {

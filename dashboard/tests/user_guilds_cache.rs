@@ -11,6 +11,7 @@ use std::time::Duration;
 use dashboard::server::auth::{
     SessionIdentity,
     UserGuildsCache,
+    find_user_guild,
     lookup_user_guilds,
     manages_guild,
 };
@@ -100,4 +101,35 @@ fn an_unrelated_permission_does_not_manage_a_guild() {
 #[test]
 fn no_permissions_do_not_manage_a_guild() {
     assert!(!manages_guild(&guild(7, Permissions::empty())));
+}
+
+/// The switcher header used to resolve the active guild through the
+/// `manages_guild`-filtered list, so an operator viewing a guild read
+/// "Select a server" directly above the "Operator access" badge. Membership
+/// alone -- or no membership at all -- has to be enough to name the guild.
+#[test]
+fn the_active_guild_resolves_without_the_manageable_filter() {
+    let guilds = [guild(7, Permissions::SEND_MESSAGES)];
+    let found = find_user_guild(&guilds, 7).expect("membership is enough");
+
+    assert_eq!(found.name, "Guild 7");
+    assert!(!manages_guild(found));
+}
+
+#[test]
+fn a_guild_the_user_is_not_in_resolves_to_nothing() {
+    let guilds = [guild(7, Permissions::ADMINISTRATOR)];
+
+    assert!(find_user_guild(&guilds, 8).is_none());
+}
+
+/// `guild_admin_for` narrows the same lookup rather than scanning the payload
+/// itself, so the authorization and the header cannot drift apart again.
+#[test]
+fn the_authorization_check_narrows_the_same_lookup() {
+    let guilds =
+        [guild(7, Permissions::ADMINISTRATOR), guild(8, Permissions::empty())];
+
+    assert!(find_user_guild(&guilds, 7).is_some_and(manages_guild));
+    assert!(!find_user_guild(&guilds, 8).is_some_and(manages_guild));
 }

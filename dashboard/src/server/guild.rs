@@ -8,6 +8,7 @@ use {
         current_session_identity,
         db_pool,
         discord_client,
+        find_user_guild,
         lookup_user_guilds,
         manages_guild,
         server_err,
@@ -97,6 +98,51 @@ pub async fn list_manageable_guilds() -> Result<Vec<GuildInfo>, ServerFnError> {
             icon: g.icon.map(|hash| hash.to_string()),
         })
         .collect())
+}
+
+#[cfg(feature = "ssr")]
+async fn user_guild_info(guild: &str, guild_id: u64) -> Option<GuildInfo> {
+    let identity = current_session_identity().await.ok()??;
+    let guilds =
+        lookup_user_guilds(use_context::<UserGuildsCache>().as_ref(), &identity)
+            .await
+            .ok()?;
+
+    find_user_guild(&guilds, guild_id).map(|g| GuildInfo {
+        id: guild.to_owned(),
+        name: g.name.clone(),
+        icon: g.icon.map(|hash| hash.to_string()),
+    })
+}
+
+#[cfg(feature = "ssr")]
+async fn bot_guild_info(guild: &str, guild_id: u64) -> Option<GuildInfo> {
+    let http = discord_client().ok()?;
+    let found =
+        http.guild(Id::new_checked(guild_id)?).await.ok()?.model().await.ok()?;
+
+    Some(GuildInfo {
+        id: guild.to_owned(),
+        name: found.name,
+        icon: found.icon.map(|hash| hash.to_string()),
+    })
+}
+
+#[server]
+pub async fn get_active_guild(guild: String) -> Result<GuildInfo, ServerFnError> {
+    let guild_id = admin_guild_id(&guild).await?.cast_unsigned();
+
+    // The authorization above already cached the viewer's own guild payload, so
+    // only an operator viewing a guild they are not in pays a Discord call here.
+    if let Some(info) = user_guild_info(&guild, guild_id).await {
+        return Ok(info);
+    }
+
+    if let Some(info) = bot_guild_info(&guild, guild_id).await {
+        return Ok(info);
+    }
+
+    Ok(GuildInfo { name: guild.clone(), id: guild, icon: None })
 }
 
 #[cfg(feature = "ssr")]
