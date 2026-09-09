@@ -120,6 +120,7 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                                     <div class="setting-field">
                                         <label>"Emoji"</label>
                                         <input
+                                            class="input"
                                             type="text"
                                             name="emoji"
                                             placeholder="\u{2705} or <:name:id>"

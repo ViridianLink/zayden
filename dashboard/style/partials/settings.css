@@ -1,23 +1,15 @@
 /* Settings form */
 
-.settings-section {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-2xl);
-  padding: 1.4rem 1.5rem;
-  margin-bottom: 1.5rem;
-  background-color: var(--bg-card);
-}
-
 .settings-section legend {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--text-secondary);
-  padding: 0 0.5rem;
+  padding: 0 var(--space-2);
 }
 
 .settings-section legend .icon {
@@ -28,8 +20,8 @@
 .setting-field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 1rem;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
 }
 
 .setting-field label {
@@ -37,35 +29,6 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-secondary);
-}
-
-.setting-field input,
-.setting-field textarea {
-  padding: 0.6rem 0.8rem;
-  background-color: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
-  transition: border-color 0.2s var(--ease-spring);
-}
-
-.setting-field textarea {
-  resize: vertical;
-  line-height: 1.5;
-}
-
-.setting-field input:focus,
-.setting-field textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
-}
-
-.setting-field input::placeholder,
-.setting-field textarea::placeholder {
-  color: var(--text-tertiary);
 }
 
 /* FAQ article rows collapse to their title until opened. */
@@ -92,34 +55,9 @@
   align-items: center;
 }
 
-.select select {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 100%;
-  padding: 0.6rem 2.2rem 0.6rem 0.8rem;
-  background-color: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  color: var(--text-primary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: border-color 0.2s var(--ease-spring);
-}
-
-.select select:disabled {
-  color: var(--text-tertiary);
-  cursor: not-allowed;
-}
-
-.select select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
-}
-
 .select-chevron {
   position: absolute;
-  right: 0.75rem;
+  right: var(--space-3);
   display: grid;
   place-items: center;
   color: var(--text-tertiary);
@@ -130,8 +68,8 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  padding-top: 0.9rem;
-  margin-top: 0.6rem;
+  padding-top: var(--space-4);
+  margin-top: var(--space-2);
   border-top: 1px solid var(--border);
 }
 
@@ -139,5 +77,5 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
+  gap: var(--space-2);
 }

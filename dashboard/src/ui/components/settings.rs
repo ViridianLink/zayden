@@ -86,7 +86,7 @@ pub(crate) fn ToggleField(
         <div class="setting-field">
             <label>{label}</label>
             <div class="select">
-                <select name=name>
+                <select class="input" name=name>
                     <option value="true" selected=value>{on_label}</option>
                     <option value="false" selected=!value>{off_label}</option>
                 </select>
@@ -110,6 +110,7 @@ pub(crate) fn SettingField(
         <div class="setting-field">
             <label>{label}</label>
             <input
+                class="input"
                 type=input_type
                 name=name
                 value=value

@@ -1,7 +1,7 @@
 /* Pages */
 
 .page {
-    max-width: 960px;
+    max-width: var(--content-max);
     animation: fade-up 0.4s var(--ease-spring);
 }
 
@@ -10,8 +10,8 @@
     flex-wrap: wrap;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
 }
 
 .page h1 {
@@ -24,7 +24,7 @@
 
 .page-lead {
     color: var(--text-secondary);
-    margin: 0.4rem 0 0;
+    margin: var(--space-2) 0 0;
 }
 
 /* Login page */
@@ -35,7 +35,7 @@
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-    padding: 2rem;
+    padding: var(--space-6);
     text-align: center;
     position: relative;
     overflow: hidden;
@@ -46,29 +46,26 @@
     z-index: 1;
     width: 100%;
     max-width: 400px;
-    padding: 2.5rem 2rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-2xl);
-    background-color: var(--bg-card);
+    padding: var(--space-7) var(--space-6);
     box-shadow: var(--shadow-pop);
     animation: fade-up 0.4s var(--ease-spring);
 }
 
 .login-card .brand {
     justify-content: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-5);
     font-size: 20px;
 }
 
 .login-card h1 {
     font-size: 22px;
     font-weight: 700;
-    margin: 0 0 0.5rem;
+    margin: 0 0 var(--space-2);
 }
 
 .login-card p {
     color: var(--text-secondary);
-    margin: 0 0 1.75rem;
+    margin: 0 0 var(--space-6);
 }
 
 .login-card .btn {
@@ -79,28 +76,28 @@
 
 .error {
     color: var(--error);
-    padding: 0.6rem 0.85rem;
+    padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-xl);
     background-color: rgb(248 113 113 / 0.1);
 }
 
 .warning {
     color: var(--warning);
-    padding: 0.6rem 0.85rem;
+    padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-xl);
     background-color: rgb(251 191 36 / 0.1);
 }
 
 .success {
     color: var(--success);
-    padding: 0.6rem 0.85rem;
+    padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-xl);
     background-color: rgb(74 222 128 / 0.1);
 }
 
 .empty {
     color: var(--text-secondary);
-    padding: 3rem 1rem;
+    padding: var(--space-8) var(--space-4);
     text-align: center;
     border: 1px dashed var(--border);
     border-radius: var(--radius-2xl);
@@ -111,17 +108,14 @@
 .guild-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1rem;
+    gap: var(--space-4);
 }
 
 .guild-card {
     display: flex;
     align-items: center;
-    gap: 0.9rem;
-    padding: 1.1rem;
-    border-radius: var(--radius-2xl);
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
+    gap: var(--space-4);
+    padding: var(--space-4);
     color: var(--text-primary);
     transition:
         background-color 0.2s var(--ease-spring),
@@ -148,7 +142,7 @@
     display: grid;
     place-items: center;
     background: var(--accent-gradient);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 700;
     font-size: 18px;
 }
@@ -174,7 +168,7 @@
 .tier-badge {
     font-size: 11px;
     font-weight: 600;
-    padding: 0.22rem 0.55rem;
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-full);
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -198,15 +192,15 @@
 .btn-upgrade {
     font-size: 12px;
     font-weight: 600;
-    padding: 0.3rem 0.85rem;
+    padding: var(--space-1) var(--space-3);
     border-radius: var(--radius-full);
     background: var(--accent-gradient);
-    color: #fff;
+    color: var(--on-accent);
     transition: transform 0.2s var(--ease-spring);
 }
 
 .btn-upgrade:hover {
-    color: #fff;
+    color: var(--on-accent);
     transform: translateY(-1px);
 }
 
@@ -215,9 +209,9 @@
 .banner-pro {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.85rem 1.1rem;
-    margin-bottom: 1.75rem;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-6);
     background-color: var(--accent-weak);
     border: 1px solid rgb(91 141 239 / 0.24);
     border-radius: var(--radius-xl);
@@ -233,7 +227,7 @@
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: var(--space-3);
 }
 
 .alert-dismiss {

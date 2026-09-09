@@ -61,6 +61,7 @@ pub(crate) fn OperatorServersPage() -> impl IntoView {
                             view! {
                                 <div class="operator-tools">
                                     <input
+                                        class="input"
                                         type="search"
                                         placeholder="Filter by name"
                                         aria-label="Filter servers by name"
@@ -69,7 +70,8 @@ pub(crate) fn OperatorServersPage() -> impl IntoView {
                                     />
                                     <div class="operator-jump">
                                         <input
-                                                type="text"
+                                            class="input"
+                                            type="text"
                                             inputmode="numeric"
                                             placeholder="Go to server ID"
                                             aria-label="Go to server ID"

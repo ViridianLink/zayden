@@ -128,6 +128,7 @@ pub(crate) fn UpgradePage() -> impl IntoView {
                     <ActionForm action=link>
                         <div class="kofi-link-form">
                             <input
+                                class="input"
                                 type="email"
                                 name="email"
                                 placeholder="you@example.com"

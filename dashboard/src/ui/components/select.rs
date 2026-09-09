@@ -50,7 +50,7 @@ fn picker(
         <div class="setting-field">
             <label>{label}</label>
             <div class="select">
-                <select name=name>
+                <select class="input" name=name>
                     <option value="" selected=!has_selected>"(not set)"</option>
                     {fallback.map(|id| {
                         let text = format!("Unknown ({id})");
@@ -83,7 +83,7 @@ fn locked_picker(
         <div class="setting-field">
             <label>{label}</label>
             <div class="select">
-                <select disabled=true>
+                <select class="input" disabled=true>
                     <option selected=true>{current}</option>
                 </select>
                 <span class="select-chevron"><Icon name="chevron-down"/></span>

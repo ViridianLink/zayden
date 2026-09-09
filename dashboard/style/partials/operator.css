@@ -4,31 +4,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.25rem;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
 }
 
-.operator-tools input {
-  padding: 0.6rem 0.8rem;
-  background-color: var(--bg-base);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  color: var(--text-primary);
-  font-size: 14px;
-  transition: border-color 0.2s var(--ease-spring);
-}
-
-.operator-tools input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
-}
-
-.operator-tools input::placeholder {
-  color: var(--text-tertiary);
-}
-
-.operator-tools > input[type="search"] {
+.operator-tools > .input[type="search"] {
   flex: 1 1 16rem;
   min-width: 0;
 }
@@ -36,16 +16,16 @@
 .operator-jump {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
-.operator-jump input {
+.operator-jump .input {
   width: 13rem;
   font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
 }
 
 .operator-count {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   font-size: 12.5px;
   color: var(--text-tertiary);
 }
@@ -56,9 +36,9 @@
 .operator-badge {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  margin: 0.6rem 0 0;
-  padding: 0.45rem 0.7rem;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--warning);
   border-radius: var(--radius-full);
   font-size: 11px;
@@ -74,7 +54,7 @@
 }
 
 .module-locked {
-  margin: 0 0 1rem;
+  margin: 0 0 var(--space-4);
   font-size: 12.5px;
   color: var(--text-tertiary);
 }

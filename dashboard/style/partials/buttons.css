@@ -2,8 +2,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-xl);
   border: 1px solid transparent;
   font-size: 14px;
@@ -27,18 +27,18 @@
 }
 
 .btn-lg {
-  padding: 0.8rem 1.6rem;
+  padding: var(--space-3) var(--space-5);
   font-size: 15px;
 }
 
 .btn-primary {
   background: var(--accent-gradient);
-  color: #fff;
+  color: var(--on-accent);
   box-shadow: 0 4px 16px rgb(62 106 212 / 0.25);
 }
 
 .btn-primary:hover {
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-secondary {

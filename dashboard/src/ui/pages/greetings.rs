@@ -380,6 +380,7 @@ fn DynamicSettingField(
         <div class="setting-field">
             <label>{label}</label>
             <input
+                class="input"
                 type="text"
                 name=name
                 value=value
@@ -411,6 +412,7 @@ fn ImageSection(
                 <div class="setting-field">
                     <label>"Image link"</label>
                     <input
+                        class="input"
                         type="url"
                         name="url"
                         placeholder="https://example.com/sunrise.gif"

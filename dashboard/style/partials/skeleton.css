@@ -15,33 +15,34 @@
     animation: skeleton-pulse 1.5s var(--ease-spring) infinite;
 }
 
-/* Matches .btn: 14px label inside 0.6rem vertical padding. */
+/* Matches .btn: 14px label inside var(--space-2) vertical padding. */
 .skeleton-btn {
     width: 6.5rem;
-    height: 2.6rem;
+    height: 2.4rem;
 }
 
 /* Matches .tier-badge. */
 .skeleton-badge {
     width: 3.4rem;
-    height: 1.45rem;
+    height: 1.5rem;
     border-radius: var(--radius-full);
 }
 
-/* Matches .server-switcher > summary: a 30px avatar in 0.6rem padding. */
+/* Matches .server-switcher > summary: a 30px avatar in var(--space-2)
+   padding. */
 .skeleton-switcher {
-    height: 3.2rem;
-    margin-bottom: 0.5rem;
+    height: 3rem;
+    margin-bottom: var(--space-2);
 }
 
 /* Matches .lb-row and .rr-row. */
 .skeleton-row {
-    height: 2.75rem;
+    height: 2.85rem;
 }
 
-/* Matches .guild-card: a 48px icon in 1.1rem padding. */
+/* Matches .guild-card: a 48px icon in var(--space-4) padding. */
 .skeleton-card {
-    height: 5.3rem;
+    height: 5.1rem;
 }
 
 /* Matches the panel family - .settings-section, .module-card, .plan-card. */
@@ -53,19 +54,19 @@
 .skeleton-list {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: var(--space-1);
 }
 
 .skeleton-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1rem;
+    gap: var(--space-4);
 }
 
 .skeleton-stack {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--space-5);
 }
 
 @media (prefers-reduced-motion: reduce) {

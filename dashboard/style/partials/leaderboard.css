@@ -3,18 +3,15 @@
 .leaderboard {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-2xl);
   overflow: hidden;
-  background-color: var(--bg-card);
 }
 
 .lb-row {
   display: grid;
   grid-template-columns: 3rem 1fr 5rem 6rem 7rem;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.7rem 1.1rem;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-top: 1px solid var(--border);
 }
 
@@ -39,7 +36,7 @@
 .lb-user {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: var(--space-3);
   min-width: 0;
 }
 

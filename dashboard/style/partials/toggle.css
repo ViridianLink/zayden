@@ -25,7 +25,7 @@
   width: 18px;
   height: 18px;
   border-radius: var(--radius-full);
-  background-color: #fff;
+  background-color: var(--on-accent);
   transition: transform 0.2s var(--ease-spring);
 }
 

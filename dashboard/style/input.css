@@ -2,11 +2,12 @@
 
 @import "./partials/tokens.css";
 @import "./partials/base.css";
+@import "./partials/card.css";
+@import "./partials/forms.css";
 @import "./partials/buttons.css";
 @import "./partials/landing.css";
 @import "./partials/layout.css";
 @import "./partials/pages.css";
-@import "./partials/card.css";
 @import "./partials/module-card.css";
 @import "./partials/settings.css";
 @import "./partials/upgrade.css";

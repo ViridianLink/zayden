@@ -10,7 +10,7 @@
 }
 
 .segmented .seg {
-  padding: 0.4rem 0.95rem;
+  padding: var(--space-2) var(--space-4);
   border: none;
   border-radius: var(--radius-full);
   background: transparent;
@@ -29,5 +29,5 @@
 
 .segmented .seg.active {
   background: var(--accent-gradient);
-  color: #fff;
+  color: var(--on-accent);
 }

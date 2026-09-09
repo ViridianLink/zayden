@@ -165,7 +165,7 @@ fn ArticleForm(
             />
             <div class="setting-field">
                 <label>"Body (Markdown)"</label>
-                <textarea name="content" rows="14">{article.content}</textarea>
+                <textarea class="input" name="content" rows="14">{article.content}</textarea>
             </div>
             <SaveButton pending=save.pending()/>
         </ActionForm>

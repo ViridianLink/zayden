@@ -4,8 +4,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  margin-top: 1.25rem;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
 }
 
 .pager-page {
