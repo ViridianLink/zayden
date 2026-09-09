@@ -1,11 +1,12 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
+    crate::dto::LeaderboardEntry,
     crate::server::auth::{admin_guild_id, db_pool, discord_client, server_err},
     twilight_model::id::Id,
 };
 
-use crate::dto::LeaderboardEntry;
+use crate::dto::LeaderboardPage;
 
 #[cfg(feature = "ssr")]
 const PAGE_SIZE: i64 = 10;
@@ -23,17 +24,19 @@ pub async fn get_leaderboard(
     guild: String,
     global: bool,
     page: i32,
-) -> Result<Vec<LeaderboardEntry>, ServerFnError> {
+) -> Result<LeaderboardPage, ServerFnError> {
     let guild_id = admin_guild_id(&guild).await?;
     let pool = db_pool()?;
 
     let page = i64::from(page).max(1);
     let offset = (page - 1) * PAGE_SIZE;
+    let limit = PAGE_SIZE + 1;
 
     let rows = if global {
         sqlx::query_as!(
             LevelRow,
-            "SELECT user_id, xp, level, message_count FROM levels ORDER BY level DESC, xp DESC LIMIT 10 OFFSET $1",
+            "SELECT user_id, xp, level, message_count FROM levels ORDER BY level DESC, xp DESC LIMIT $1 OFFSET $2",
+            limit,
             offset
         )
         .fetch_all(&pool)
@@ -42,8 +45,9 @@ pub async fn get_leaderboard(
     } else {
         sqlx::query_as!(
             LevelRow,
-            "SELECT user_id, xp, level, message_count FROM guild_levels WHERE guild_id = $1 ORDER BY level DESC, xp DESC LIMIT 10 OFFSET $2",
+            "SELECT user_id, xp, level, message_count FROM guild_levels WHERE guild_id = $1 ORDER BY level DESC, xp DESC LIMIT $2 OFFSET $3",
             guild_id,
+            limit,
             offset
         )
         .fetch_all(&pool)
@@ -53,7 +57,7 @@ pub async fn get_leaderboard(
 
     let http = discord_client()?;
     let mut entries = Vec::with_capacity(rows.len());
-    for (rank, row) in (offset + 1..).zip(rows) {
+    for (rank, row) in (offset + 1..=offset + PAGE_SIZE).zip(&rows) {
         let user_id = row.user_id.cast_unsigned();
 
         let user = match http.user(Id::new(user_id)).await {
@@ -83,5 +87,7 @@ pub async fn get_leaderboard(
         });
     }
 
-    Ok(entries)
+    let has_next = rows.len() > entries.len();
+
+    Ok(LeaderboardPage { entries, has_next })
 }

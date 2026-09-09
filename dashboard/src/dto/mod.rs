@@ -18,7 +18,7 @@ pub use guild::{
     PatreonStatus,
     SettingsBundle,
 };
-pub use levels::LeaderboardEntry;
+pub use levels::{LeaderboardEntry, LeaderboardPage};
 pub use modules::ModuleView;
 pub use patreon::PatreonOutcome;
 pub use reaction_roles::ReactionRoleInfo;

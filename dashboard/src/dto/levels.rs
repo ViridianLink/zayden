@@ -10,3 +10,9 @@ pub struct LeaderboardEntry {
     pub(crate) xp: i32,
     pub(crate) message_count: i64,
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct LeaderboardPage {
+    pub(crate) entries: Vec<LeaderboardEntry>,
+    pub(crate) has_next: bool,
+}

@@ -2,10 +2,9 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 
+use crate::dto::LeaderboardPage;
 use crate::server::levels::get_leaderboard;
 use crate::ui::components::skeleton::Skeleton;
-
-const PAGE_SIZE: usize = 10;
 
 #[component]
 pub(crate) fn LevelsPage() -> impl IntoView {
@@ -53,48 +52,52 @@ pub(crate) fn LevelsPage() -> impl IntoView {
                     Err(e) => view! {
                         <p class="error">"Failed to load leaderboard: " {e.to_string()}</p>
                     }.into_any(),
-                    Ok(entries) if entries.is_empty() => view! {
-                        <div class="empty">
-                            {if page.get() > 1 {
-                                "No more entries on this page."
-                            } else if global.get() {
-                                "No one has earned global XP yet."
-                            } else {
-                                "No one has chatted here yet - the board fills as members talk."
-                            }}
-                        </div>
-                    }.into_any(),
-                    Ok(entries) => {
-                        let has_next = entries.len() == PAGE_SIZE;
-                        view! {
-                            <div class="leaderboard">
-                                <div class="lb-row lb-head">
-                                    <span class="lb-rank">"#"</span>
-                                    <span class="lb-user">"Member"</span>
-                                    <span class="lb-num">"Level"</span>
-                                    <span class="lb-num">"XP"</span>
-                                    <span class="lb-num">"Messages"</span>
+                    Ok(LeaderboardPage { entries, has_next }) => view! {
+                        {if entries.is_empty() {
+                            view! {
+                                <div class="empty">
+                                    {if page.get() > 1 {
+                                        "No more entries on this page."
+                                    } else if global.get() {
+                                        "No one has earned global XP yet."
+                                    } else {
+                                        "No one has chatted here yet - the board fills as members talk."
+                                    }}
                                 </div>
-                                {entries.into_iter().map(|e| view! {
-                                    <div class="lb-row">
-                                        <span class="lb-rank">{e.rank}</span>
-                                        <span class="lb-user">
-                                            {e.avatar.map_or_else(
-                                                || view! {
-                                                    <span class="lb-avatar placeholder"></span>
-                                                }.into_any(),
-                                                |url| view! {
-                                                    <img class="lb-avatar" src=url alt=""/>
-                                                }.into_any(),
-                                            )}
-                                            <span class="lb-name">{e.name}</span>
-                                        </span>
-                                        <span class="lb-num">{e.level}</span>
-                                        <span class="lb-num">{e.xp}</span>
-                                        <span class="lb-num">{e.message_count}</span>
+                            }.into_any()
+                        } else {
+                            view! {
+                                <div class="leaderboard">
+                                    <div class="lb-row lb-head">
+                                        <span class="lb-rank">"#"</span>
+                                        <span class="lb-user">"Member"</span>
+                                        <span class="lb-num">"Level"</span>
+                                        <span class="lb-num">"XP"</span>
+                                        <span class="lb-num">"Messages"</span>
                                     </div>
-                                }).collect_view()}
-                            </div>
+                                    {entries.into_iter().map(|e| view! {
+                                        <div class="lb-row">
+                                            <span class="lb-rank">{e.rank}</span>
+                                            <span class="lb-user">
+                                                {e.avatar.map_or_else(
+                                                    || view! {
+                                                        <span class="lb-avatar placeholder"></span>
+                                                    }.into_any(),
+                                                    |url| view! {
+                                                        <img class="lb-avatar" src=url alt=""/>
+                                                    }.into_any(),
+                                                )}
+                                                <span class="lb-name">{e.name}</span>
+                                            </span>
+                                            <span class="lb-num">{e.level}</span>
+                                            <span class="lb-num">{e.xp}</span>
+                                            <span class="lb-num">{e.message_count}</span>
+                                        </div>
+                                    }).collect_view()}
+                                </div>
+                            }.into_any()
+                        }}
+                        {(page.get() > 1 || has_next).then(|| view! {
                             <div class="pager">
                                 <button
                                     type="button"
@@ -110,8 +113,8 @@ pub(crate) fn LevelsPage() -> impl IntoView {
                                     on:click=move |_| set_page.update(|p| *p += 1)
                                 >"Next"</button>
                             </div>
-                        }.into_any()
-                    },
+                        })}
+                    }.into_any(),
                 })}
             </Transition>
         </div>
