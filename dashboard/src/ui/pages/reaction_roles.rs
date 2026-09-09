@@ -73,7 +73,7 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                     </p>
                 </div>
             </div>
-            <Suspense fallback=|| view! {
+            <Transition fallback=|| view! {
                 <p class="loading">"Loading reaction roles\u{2026}"</p>
             }>
                 {move || data.get().map(|result| match result {
@@ -145,7 +145,7 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                         }.into_any()
                     },
                 })}
-            </Suspense>
+            </Transition>
         </div>
     }
 }

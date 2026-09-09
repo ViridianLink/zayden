@@ -43,7 +43,7 @@ pub(crate) fn LevelsPage() -> impl IntoView {
                 </div>
             </div>
 
-            <Suspense fallback=|| view! {
+            <Transition fallback=|| view! {
                 <p class="loading">"Loading leaderboard\u{2026}"</p>
             }>
                 {move || board.get().map(|result| match result {
@@ -110,7 +110,7 @@ pub(crate) fn LevelsPage() -> impl IntoView {
                         }.into_any()
                     },
                 })}
-            </Suspense>
+            </Transition>
         </div>
     }
 }

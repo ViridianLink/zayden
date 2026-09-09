@@ -77,7 +77,7 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                     </p>
                 </div>
             </div>
-            <Suspense fallback=|| view! {
+            <Transition fallback=|| view! {
                 <p class="loading">"Loading greetings\u{2026}"</p>
             }>
                 {move || data.get().map(|result| match result {
@@ -160,7 +160,7 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                         }.into_any()
                     },
                 })}
-            </Suspense>
+            </Transition>
         </div>
     }
 }

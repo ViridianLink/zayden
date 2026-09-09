@@ -42,7 +42,7 @@ pub(crate) fn FaqArticlesPane(guild_id: String) -> impl IntoView {
                     save=save
                 />
             </details>
-            <Suspense fallback=|| view! {
+            <Transition fallback=|| view! {
                 <p class="loading">"Loading articles\u{2026}"</p>
             }>
                 {move || articles.get().map(|result| match result {
@@ -69,7 +69,7 @@ pub(crate) fn FaqArticlesPane(guild_id: String) -> impl IntoView {
                             .into_any()
                     },
                 })}
-            </Suspense>
+            </Transition>
         </fieldset>
     }
 }

@@ -80,7 +80,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                     <p class="page-lead">{move || active.get().lead()}</p>
                 </div>
             </div>
-            <Suspense fallback=|| view! {
+            <Transition fallback=|| view! {
                 <p class="loading">"Loading settings\u{2026}"</p>
             }>
                 {move || data.get().map(|result| match result {
@@ -184,7 +184,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                         }).into_any()
                     },
                 })}
-            </Suspense>
+            </Transition>
         </div>
     }
 }
