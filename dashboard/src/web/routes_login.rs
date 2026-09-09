@@ -6,11 +6,10 @@ use jiff::{SignedDuration, Timestamp};
 use oauth2::{AuthorizationCode, TokenResponse};
 use rand::RngExt;
 use serde::Deserialize;
-use tower_cookies::cookie::SameSite;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
 
-use super::{OAUTH_STATE_COOKIE, SESSION_COOKIE};
+use super::cookie::{self, OAUTH_STATE_COOKIE, SESSION_COOKIE};
 use crate::WebState;
 
 const SESSION_TTL_HOURS: i64 = 24 * 7;
@@ -112,11 +111,11 @@ pub(super) async fn discord_auth_callback_handler(
         return error_redirect();
     }
 
-    let cookie = Cookie::build((SESSION_COOKIE, session_token))
-        .path("/")
-        .http_only(true)
-        .secure(!cfg!(debug_assertions))
-        .same_site(SameSite::Lax);
+    let cookie = cookie::build(
+        SESSION_COOKIE,
+        session_token,
+        Duration::hours(SESSION_TTL_HOURS),
+    );
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
@@ -141,12 +140,7 @@ pub(super) async fn logout_handler(
         state.session_cache.invalidate(&token).await;
     }
 
-    let cleared = Cookie::build((SESSION_COOKIE, ""))
-        .path("/")
-        .http_only(true)
-        .secure(!cfg!(debug_assertions))
-        .same_site(SameSite::Lax)
-        .max_age(Duration::ZERO);
+    let cleared = cookie::build(SESSION_COOKIE, "", Duration::ZERO);
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)

@@ -25,8 +25,7 @@ use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
 use patreon::oauth::PatreonApp;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
-use tower_cookies::cookie::SameSite;
-use tower_cookies::{Cookie, CookieManagerLayer, Cookies};
+use tower_cookies::{CookieManagerLayer, Cookies};
 use tracing::{info, warn};
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
@@ -36,7 +35,7 @@ use zayden_app::config::BotConfig;
 use zayden_app::events::listener::EventListener;
 use zayden_app::state::AppState as ZaydenAppState;
 
-use crate::web::OAUTH_STATE_COOKIE;
+use crate::web::cookie::{self, OAUTH_STATE_COOKIE};
 
 const SESSION_PRUNE_INTERVAL: Duration = Duration::from_hours(1);
 const OAUTH_STATE_TTL: Duration = Duration::from_mins(10);
@@ -230,12 +229,7 @@ async fn login_handler(
         OAUTH_STATE_TTL.as_secs().cast_signed(),
     );
     let state_cookie =
-        Cookie::build((OAUTH_STATE_COOKIE, csrf_token.secret().clone()))
-            .path("/")
-            .http_only(true)
-            .secure(!cfg!(debug_assertions))
-            .same_site(SameSite::Lax)
-            .max_age(max_age)
+        cookie::build(OAUTH_STATE_COOKIE, csrf_token.secret().clone(), max_age)
             .build();
     cookies.add(state_cookie);
 

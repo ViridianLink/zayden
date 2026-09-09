@@ -7,7 +7,7 @@ use tower_cookies::Cookies;
 use tracing::{debug, warn};
 
 use crate::WebState;
-use crate::web::SESSION_COOKIE;
+use crate::web::cookie::SESSION_COOKIE;
 
 #[derive(Clone)]
 pub(crate) struct AuthUser {

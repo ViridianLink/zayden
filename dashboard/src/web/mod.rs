@@ -1,9 +1,7 @@
+pub(crate) mod cookie;
 mod routes_kofi;
 mod routes_login;
 mod routes_patreon;
-
-pub(crate) const SESSION_COOKIE: &str = "session";
-pub(crate) const OAUTH_STATE_COOKIE: &str = "oauth_state";
 
 use axum::Router;
 use axum::middleware::from_fn_with_state;

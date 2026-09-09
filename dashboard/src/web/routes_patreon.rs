@@ -19,13 +19,12 @@ use patreon::{
 };
 use rand::RngExt;
 use serde::Deserialize;
-use tower_cookies::cookie::SameSite;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
 use tracing::warn;
 
 use crate::WebState;
-use crate::web::SESSION_COOKIE;
+use crate::web::cookie::{self, SESSION_COOKIE};
 
 const PATREON_STATE_COOKIE: &str = "patreon_oauth_state";
 
@@ -101,17 +100,13 @@ pub(super) async fn patreon_connect_handler(
         return redirect(&settings_url(&query.guild, PatreonOutcome::Error));
     };
 
-    let cookie = Cookie::build((PATREON_STATE_COOKIE, nonce))
-        .path("/")
-        .http_only(true)
-        .secure(!cfg!(debug_assertions))
-        .same_site(SameSite::Lax)
-        .max_age(Duration::minutes(10));
+    let state_cookie =
+        cookie::build(PATREON_STATE_COOKIE, nonce, Duration::minutes(10));
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
         .header(header::LOCATION, url)
-        .header(header::SET_COOKIE, cookie.to_string())
+        .header(header::SET_COOKIE, state_cookie.to_string())
         .body(Body::empty())
         .unwrap_or_else(|_e| StatusCode::INTERNAL_SERVER_ERROR.into_response())
 }
