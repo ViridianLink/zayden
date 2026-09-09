@@ -1,12 +1,12 @@
 use leptos::form::ActionForm;
 use leptos::prelude::*;
 
-use crate::dto::GuildSettings;
+use crate::dto::FamilySection;
 use crate::server::guild::SaveFamilySettings;
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 
 #[component]
-pub(crate) fn FamilyTab(guild_id: String, settings: GuildSettings) -> impl IntoView {
+pub(crate) fn FamilyTab(guild_id: String, settings: FamilySection) -> impl IntoView {
     let save_family = ServerAction::<SaveFamilySettings>::new();
     let result = save_family.value();
 
@@ -18,7 +18,7 @@ pub(crate) fn FamilyTab(guild_id: String, settings: GuildSettings) -> impl IntoV
                 <SettingField
                     label="Max Partners"
                     name="max_partners"
-                    value=settings.family_max_partners
+                    value=settings.max_partners
                 />
                 <SaveButton pending=save_family.pending()/>
             </ActionForm>

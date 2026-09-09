@@ -2,7 +2,7 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 
 use super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, GuildSettings};
+use crate::dto::{AiSection, ChannelInfo};
 use crate::server::guild::SaveAiSettings;
 use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, ToggleField, save_feedback};
@@ -10,7 +10,7 @@ use crate::ui::components::settings::{SaveButton, ToggleField, save_feedback};
 #[component]
 pub(crate) fn AiTab(
     guild_id: String,
-    settings: GuildSettings,
+    settings: AiSection,
     channels: Result<Vec<ChannelInfo>, String>,
 ) -> impl IntoView {
     let save_ai = ServerAction::<SaveAiSettings>::new();
@@ -22,11 +22,11 @@ pub(crate) fn AiTab(
             {move || result.get().map(save_feedback)}
             <ActionForm action=save_ai>
                 <input type="hidden" name="guild" value=guild_id/>
-                <ToggleField label="AI Responses" name="enabled" value=s.ai_enabled/>
+                <ToggleField label="AI Responses" name="enabled" value=s.enabled/>
                 <ChannelSelect
                     label="Restrict to Channel"
                     name="channel_id"
-                    selected=sel(s.ai_channel_id.as_deref())
+                    selected=sel(s.channel_id.as_deref())
                     channels=channels
                     kinds=TEXT_KINDS
                 />

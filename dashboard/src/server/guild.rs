@@ -1,6 +1,17 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
+    crate::dto::{
+        AiSection,
+        FamilySection,
+        FaqSection,
+        GeneralSection,
+        HoneypotSection,
+        LfgSection,
+        MusicSection,
+        SupportSection,
+        TempVoiceSection,
+    },
     crate::server::auth::{
         UserGuildsCache,
         admin_guild_id,
@@ -29,7 +40,7 @@ use {
     zayden_app::state::AppState,
 };
 
-use crate::dto::{GuildInfo, GuildSettings, HelperLinkInfo, SettingsBundle};
+use crate::dto::{GuildDirectory, GuildInfo, HelperLinkInfo, SectionSettings};
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn admin_app(
@@ -146,115 +157,212 @@ pub async fn get_active_guild(guild: String) -> Result<GuildInfo, ServerFnError>
 }
 
 #[cfg(feature = "ssr")]
-pub(crate) async fn fetch_guild_settings(
+fn opt_str(v: Option<i64>) -> Option<String> {
+    v.map(|n| n.to_string())
+}
+
+#[cfg(feature = "ssr")]
+async fn general_section(
     app: &AppState,
     guild_id: i64,
-) -> Result<GuildSettings, ServerFnError> {
-    fn opt_str(v: Option<i64>) -> Option<String> {
-        v.map(|n| n.to_string())
-    }
+) -> Result<GeneralSection, ServerFnError> {
+    let (channels, roles) = tokio::join!(
+        app.settings.channels.get(guild_id),
+        app.settings.roles.get(guild_id),
+    );
+    let channels = channels.map_err(server_err)?;
+    let roles = roles.map_err(server_err)?;
 
-    let s = &app.settings;
-
-    let support = s.support.get(guild_id).await.map_err(server_err)?;
-    let suggestions = s.suggestions.get(guild_id).await.map_err(server_err)?;
-    let channels = s.channels.get(guild_id).await.map_err(server_err)?;
-    let roles = s.roles.get(guild_id).await.map_err(server_err)?;
-    let temp_voice = s.temp_voice.get(guild_id).await.map_err(server_err)?;
-    let lfg = s.lfg.get(guild_id).await.map_err(server_err)?;
-    let family = s.family.get(guild_id).await.map_err(server_err)?;
-    let music = s.music.get(guild_id).await.map_err(server_err)?;
-    let honeypot = s.honeypot.get(guild_id).await.map_err(server_err)?;
-    let ai = s.ai.get(guild_id).await.map_err(server_err)?;
-    let faq = s.faq.get(guild_id).await.map_err(server_err)?;
-
-    Ok(GuildSettings {
-        support_channel_id: opt_str(support.support_channel_id),
-        solved_tag_id: opt_str(support.solved_tag_id),
-        closed_tag_id: opt_str(support.closed_tag_id),
-        solved_archive_secs: support.solved_archive_secs.to_string(),
-        support_idle_enabled: support.idle_enabled,
-        support_idle_after_secs: support.idle_after_secs.to_string(),
-        support_idle_close_enabled: support.idle_close_enabled,
-        support_idle_close_after_secs: support.idle_close_after_secs.to_string(),
-        support_stale_enabled: support.stale_enabled,
-        support_stale_tag_id: opt_str(support.stale_tag_id),
-        support_stale_after_secs: support.stale_after_secs.to_string(),
-        suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
-        review_channel_id: opt_str(suggestions.review_channel_id),
-        suggestions_promote_threshold: suggestions.promote_threshold.to_string(),
-        suggestions_demote_threshold: suggestions.demote_threshold.to_string(),
+    Ok(GeneralSection {
         rules_channel_id: opt_str(channels.rules_channel_id),
         general_channel_id: opt_str(channels.general_channel_id),
         spoiler_channel_id: opt_str(channels.spoiler_channel_id),
         artist_role_id: opt_str(roles.artist_role_id),
         sleep_role_id: opt_str(roles.sleep_role_id),
         verified_role_id: opt_str(roles.verified_role_id),
-        temp_voice_category: opt_str(temp_voice.temp_voice_category),
-        temp_voice_creator_channel: opt_str(temp_voice.temp_voice_creator_channel),
-        lfg_channel_id: opt_str(lfg.lfg_channel_id),
-        lfg_role_id: opt_str(lfg.lfg_role_id),
-        lfg_scheduled_thread_id: opt_str(lfg.lfg_scheduled_thread_id),
-        family_max_partners: family.max_partners.to_string(),
-        music_dj_role_id: opt_str(music.dj_role_id),
-        music_auto_disconnect_secs: music.auto_disconnect_secs.to_string(),
-        music_announce_now_playing: music.announce_now_playing,
-        music_announce_channel_id: opt_str(music.announce_channel_id),
-        honeypot_channel_id: opt_str(honeypot.channel_id),
-        honeypot_exempt_admins: honeypot.exempt_admins,
-        honeypot_exempt_role_id: opt_str(honeypot.exempt_role_id),
-        honeypot_purge_seconds: honeypot.purge_seconds.to_string(),
-        ai_enabled: ai.enabled,
-        ai_channel_id: opt_str(ai.channel_id),
-        faq_enabled: faq.enabled,
-        faq_auto_triage: faq.auto_triage,
-        faq_auto_generate: faq.auto_generate,
-        faq_wiki_url: faq.wiki_url.clone().unwrap_or_default(),
-        faq_wiki_api_key_set: faq
-            .wiki_api_key
-            .as_deref()
-            .is_some_and(|key| !key.trim().is_empty()),
-        faq_wiki_locale: faq.wiki_locale.clone(),
-        faq_max_results: faq.max_results.to_string(),
-        faq_answer_max_tokens: faq.answer_max_tokens.to_string(),
-        faq_answer_temperature: faq.answer_temperature.to_string(),
+    })
+}
+
+#[cfg(feature = "ssr")]
+async fn ai_section(
+    app: &AppState,
+    guild_id: i64,
+) -> Result<AiSection, ServerFnError> {
+    let ai = app.settings.ai.get(guild_id).await.map_err(server_err)?;
+
+    Ok(AiSection { enabled: ai.enabled, channel_id: opt_str(ai.channel_id) })
+}
+
+#[cfg(feature = "ssr")]
+async fn family_section(
+    app: &AppState,
+    guild_id: i64,
+) -> Result<FamilySection, ServerFnError> {
+    let family = app.settings.family.get(guild_id).await.map_err(server_err)?;
+
+    Ok(FamilySection { max_partners: family.max_partners.to_string() })
+}
+
+#[cfg(feature = "ssr")]
+async fn honeypot_section(
+    app: &AppState,
+    guild_id: i64,
+) -> Result<HoneypotSection, ServerFnError> {
+    let honeypot = app.settings.honeypot.get(guild_id).await.map_err(server_err)?;
+
+    Ok(HoneypotSection {
+        channel_id: opt_str(honeypot.channel_id),
+        exempt_admins: honeypot.exempt_admins,
+        exempt_role_id: opt_str(honeypot.exempt_role_id),
+        purge_seconds: honeypot.purge_seconds.to_string(),
+    })
+}
+
+#[cfg(feature = "ssr")]
+async fn lfg_section(
+    app: &AppState,
+    guild_id: i64,
+) -> Result<LfgSection, ServerFnError> {
+    let lfg = app.settings.lfg.get(guild_id).await.map_err(server_err)?;
+
+    Ok(LfgSection {
+        channel_id: opt_str(lfg.lfg_channel_id),
+        role_id: opt_str(lfg.lfg_role_id),
+        scheduled_thread_id: opt_str(lfg.lfg_scheduled_thread_id),
+    })
+}
+
+#[cfg(feature = "ssr")]
+async fn music_section(
+    app: &AppState,
+    guild_id: i64,
+) -> Result<MusicSection, ServerFnError> {
+    let music = app.settings.music.get(guild_id).await.map_err(server_err)?;
+
+    Ok(MusicSection {
+        dj_role_id: opt_str(music.dj_role_id),
+        auto_disconnect_secs: music.auto_disconnect_secs.to_string(),
+        announce_now_playing: music.announce_now_playing,
+        announce_channel_id: opt_str(music.announce_channel_id),
+    })
+}
+
+#[cfg(feature = "ssr")]
+async fn temp_voice_section(
+    app: &AppState,
+    guild_id: i64,
+) -> Result<TempVoiceSection, ServerFnError> {
+    let temp_voice =
+        app.settings.temp_voice.get(guild_id).await.map_err(server_err)?;
+
+    Ok(TempVoiceSection {
+        category: opt_str(temp_voice.temp_voice_category),
+        creator_channel: opt_str(temp_voice.temp_voice_creator_channel),
+    })
+}
+
+#[cfg(feature = "ssr")]
+async fn support_section(
+    app: &AppState,
+    pool: &PgPool,
+    http: &Client,
+    guild_id: i64,
+) -> Result<SupportSection, ServerFnError> {
+    let (support, suggestions, faq, support_roles, helper_links) = tokio::join!(
+        app.settings.support.get(guild_id),
+        app.settings.suggestions.get(guild_id),
+        app.settings.faq.get(guild_id),
+        fetch_support_roles(pool, guild_id),
+        fetch_helper_links(pool, http, guild_id),
+    );
+
+    let support = support.map_err(server_err)?;
+    let suggestions = suggestions.map_err(server_err)?;
+    let faq = faq.map_err(server_err)?;
+
+    Ok(SupportSection {
+        support_channel_id: opt_str(support.support_channel_id),
+        solved_tag_id: opt_str(support.solved_tag_id),
+        closed_tag_id: opt_str(support.closed_tag_id),
+        solved_archive_secs: support.solved_archive_secs.to_string(),
+        idle_enabled: support.idle_enabled,
+        idle_after_secs: support.idle_after_secs.to_string(),
+        idle_close_enabled: support.idle_close_enabled,
+        idle_close_after_secs: support.idle_close_after_secs.to_string(),
+        stale_enabled: support.stale_enabled,
+        stale_tag_id: opt_str(support.stale_tag_id),
+        stale_after_secs: support.stale_after_secs.to_string(),
+        suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
+        review_channel_id: opt_str(suggestions.review_channel_id),
+        promote_threshold: suggestions.promote_threshold.to_string(),
+        demote_threshold: suggestions.demote_threshold.to_string(),
+        faq: FaqSection {
+            enabled: faq.enabled,
+            auto_triage: faq.auto_triage,
+            auto_generate: faq.auto_generate,
+            wiki_url: faq.wiki_url.clone().unwrap_or_default(),
+            wiki_api_key_set: faq
+                .wiki_api_key
+                .as_deref()
+                .is_some_and(|key| !key.trim().is_empty()),
+            wiki_locale: faq.wiki_locale.clone(),
+            max_results: faq.max_results.to_string(),
+            answer_max_tokens: faq.answer_max_tokens.to_string(),
+            answer_temperature: faq.answer_temperature.to_string(),
+        },
+        support_roles: support_roles.map_err(|e| e.to_string()),
+        helper_links: helper_links.map_err(|e| e.to_string()),
     })
 }
 
 #[server]
-pub async fn get_guild_settings(
-    guild_id: String,
-) -> Result<GuildSettings, ServerFnError> {
-    let (guild_id, app) = admin_app(&guild_id).await?;
-    fetch_guild_settings(&app, guild_id).await
-}
-
-#[server]
-pub async fn get_settings_bundle(
+pub async fn get_guild_directory(
     guild: String,
-) -> Result<SettingsBundle, ServerFnError> {
+) -> Result<GuildDirectory, ServerFnError> {
     let guild_id = admin_guild_id(&guild).await?;
-    let app = app_state()?;
-    let pool = db_pool()?;
     let http = discord_client()?;
     let discord_guild_id = guild_id.cast_unsigned();
 
-    let (settings, support_roles, helper_links, channels, roles, patreon) = tokio::join!(
-        fetch_guild_settings(&app, guild_id),
-        fetch_support_roles(&pool, guild_id),
-        fetch_helper_links(&pool, &http, guild_id),
+    let (channels, roles) = tokio::join!(
         fetch_guild_channels(&http, discord_guild_id),
         fetch_guild_roles(&http, discord_guild_id),
-        fetch_patreon_status(&app, guild_id),
     );
 
-    Ok(SettingsBundle {
-        settings: settings?,
-        support_roles: support_roles.map_err(|e| e.to_string()),
-        helper_links: helper_links.map_err(|e| e.to_string()),
+    Ok(GuildDirectory {
         channels: channels.map_err(|e| e.to_string()),
         roles: roles.map_err(|e| e.to_string()),
-        patreon: patreon.map_err(|e| e.to_string()),
+    })
+}
+
+#[server]
+pub async fn get_section_settings(
+    guild: String,
+    section: String,
+) -> Result<SectionSettings, ServerFnError> {
+    let (guild_id, app) = admin_app(&guild).await?;
+
+    Ok(match section.as_str() {
+        "ai" => SectionSettings::Ai(ai_section(&app, guild_id).await?),
+        "family" => SectionSettings::Family(family_section(&app, guild_id).await?),
+        "honeypot" => {
+            SectionSettings::Honeypot(honeypot_section(&app, guild_id).await?)
+        },
+        "lfg" => SectionSettings::Lfg(lfg_section(&app, guild_id).await?),
+        "music" => SectionSettings::Music(music_section(&app, guild_id).await?),
+        "temp-voice" => {
+            SectionSettings::TempVoice(temp_voice_section(&app, guild_id).await?)
+        },
+        "patreon" => SectionSettings::Patreon(
+            fetch_patreon_status(&app, guild_id).await.map_err(|e| e.to_string()),
+        ),
+        "support" => {
+            let pool = db_pool()?;
+            let http = discord_client()?;
+            SectionSettings::Support(Box::new(
+                support_section(&app, &pool, &http, guild_id).await?,
+            ))
+        },
+        _ => SectionSettings::General(general_section(&app, guild_id).await?),
     })
 }
 

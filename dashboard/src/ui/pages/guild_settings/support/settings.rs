@@ -2,7 +2,13 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 
 use super::super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, GuildSettings, HelperLinkInfo, RoleInfo};
+use crate::dto::{
+    ChannelInfo,
+    FaqSection,
+    HelperLinkInfo,
+    RoleInfo,
+    SupportSection,
+};
 use crate::server::guild::{
     AddHelperLink,
     AddSupportRole,
@@ -28,9 +34,7 @@ use crate::ui::components::settings::{
 #[component]
 pub(crate) fn SupportSettingsPane(
     guild_id: String,
-    settings: GuildSettings,
-    support_roles: Result<Vec<String>, String>,
-    helper_links: Result<Vec<HelperLinkInfo>, String>,
+    settings: SupportSection,
     channels: Result<Vec<ChannelInfo>, String>,
     roles: Result<Vec<RoleInfo>, String>,
     add: ServerAction<AddSupportRole>,
@@ -47,7 +51,7 @@ pub(crate) fn SupportSettingsPane(
     let save_suggestions = ServerAction::<SaveSuggestionsSettings>::new();
     let suggestions_result = save_suggestions.value();
 
-    let faq_settings = settings.clone();
+    let SupportSection { faq, support_roles, helper_links, .. } = settings.clone();
     let s = settings;
     let gid = guild_id.clone();
     let idle_gid = guild_id.clone();
@@ -101,23 +105,23 @@ pub(crate) fn SupportSettingsPane(
                 <ToggleField
                     label="Idle Reminders"
                     name="idle_enabled"
-                    value=s.support_idle_enabled
+                    value=s.idle_enabled
                 />
                 <SettingField
                     label="Remind after (seconds of silence)"
                     name="idle_after_secs"
-                    value=s.support_idle_after_secs
+                    value=s.idle_after_secs
                     hint="Minimum one hour. Default 172800 (48 hours)."
                 />
                 <ToggleField
                     label="Auto-close Abandoned Posts"
                     name="idle_close_enabled"
-                    value=s.support_idle_close_enabled
+                    value=s.idle_close_enabled
                 />
                 <SettingField
                     label="Close after (seconds without a reply to the reminder)"
                     name="idle_close_after_secs"
-                    value=s.support_idle_close_after_secs
+                    value=s.idle_close_after_secs
                     hint="Minimum one hour. Default 86400 (24 hours)."
                 />
                 <SaveButton pending=save_idle.pending()/>
@@ -128,18 +132,18 @@ pub(crate) fn SupportSettingsPane(
                 <ToggleField
                     label="Mark Quiet Posts Stale"
                     name="stale_enabled"
-                    value=s.support_stale_enabled
+                    value=s.stale_enabled
                 />
                 <ForumTagSelect
                     label="Stale Tag"
                     name="stale_tag_id"
-                    selected=sel(s.support_stale_tag_id.as_deref())
+                    selected=sel(s.stale_tag_id.as_deref())
                     channels=idle_channels
                 />
                 <SettingField
                     label="Mark stale after (seconds of poster silence)"
                     name="stale_after_secs"
-                    value=s.support_stale_after_secs
+                    value=s.stale_after_secs
                     hint="Minimum one hour. Default 604800 (7 days)."
                 />
                 <SaveButton pending=save_stale.pending()/>
@@ -197,12 +201,12 @@ pub(crate) fn SupportSettingsPane(
                 <SettingField
                     label="Promote at net upvotes"
                     name="promote_threshold"
-                    value=s.suggestions_promote_threshold
+                    value=s.promote_threshold
                 />
                 <SettingField
                     label="Demote at or below"
                     name="demote_threshold"
-                    value=s.suggestions_demote_threshold
+                    value=s.demote_threshold
                     pattern="-?[0-9]*"
                 />
                 <SaveButton pending=save_suggestions.pending()/>
@@ -214,7 +218,7 @@ pub(crate) fn SupportSettingsPane(
                 "the demote threshold. Tune both to your server size "
                 "- demote must stay below promote."
             </p>
-            <FaqField guild_id=faq_gid settings=faq_settings/>
+            <FaqField guild_id=faq_gid settings=faq/>
             <SupportRoleField
                 guild_id=guild_id.clone()
                 support_roles=support_roles
@@ -233,7 +237,7 @@ pub(crate) fn SupportSettingsPane(
 }
 
 #[component]
-fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
+fn FaqField(guild_id: String, settings: FaqSection) -> impl IntoView {
     let save_faq = ServerAction::<SaveFaqSettings>::new();
     let result = save_faq.value();
     let save_key = ServerAction::<SaveFaqWikiKey>::new();
@@ -243,7 +247,7 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
     let s = settings;
     let key_gid = guild_id.clone();
     let tuning_gid = guild_id.clone();
-    let key_set = s.faq_wiki_api_key_set;
+    let key_set = s.wiki_api_key_set;
     let key_placeholder = if key_set {
         "A key is saved - leave blank to keep it"
     } else {
@@ -261,21 +265,21 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
             {move || result.get().map(save_feedback)}
             <ActionForm action=save_faq>
                 <input type="hidden" name="guild" value=guild_id/>
-                <ToggleField label="Wiki FAQ" name="enabled" value=s.faq_enabled/>
+                <ToggleField label="Wiki FAQ" name="enabled" value=s.enabled/>
                 <ToggleField
                     label="Triage New Tickets"
                     name="auto_triage"
-                    value=s.faq_auto_triage
+                    value=s.auto_triage
                 />
                 <ToggleField
                     label="Write FAQ Articles From Solved Tickets"
                     name="auto_generate"
-                    value=s.faq_auto_generate
+                    value=s.auto_generate
                 />
                 <SettingField
                     label="Wiki URL"
                     name="wiki_url"
-                    value=s.faq_wiki_url
+                    value=s.wiki_url
                     pattern=".*"
                     placeholder="https://wiki.example.com"
                     hint="Site origin only, no trailing path. Zayden appends \
@@ -286,7 +290,7 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                 <SettingField
                     label="Locale"
                     name="wiki_locale"
-                    value=s.faq_wiki_locale
+                    value=s.wiki_locale
                     pattern="[a-zA-Z-]*"
                 />
                 <SaveButton pending=save_faq.pending()/>
@@ -331,17 +335,17 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                 <SettingField
                     label="Search results to consider"
                     name="max_results"
-                    value=s.faq_max_results
+                    value=s.max_results
                 />
                 <SettingField
                     label="Answer length (max tokens)"
                     name="answer_max_tokens"
-                    value=s.faq_answer_max_tokens
+                    value=s.answer_max_tokens
                 />
                 <SettingField
                     label="Answer temperature"
                     name="answer_temperature"
-                    value=s.faq_answer_temperature
+                    value=s.answer_temperature
                     pattern="[0-9.]*"
                 />
                 <SaveButton pending=save_tuning.pending()/>

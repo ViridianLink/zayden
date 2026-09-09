@@ -2,7 +2,7 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 
 use super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
+use crate::dto::{ChannelInfo, HoneypotSection, RoleInfo};
 use crate::server::guild::SaveHoneypotSettings;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{
@@ -15,7 +15,7 @@ use crate::ui::components::settings::{
 #[component]
 pub(crate) fn HoneypotTab(
     guild_id: String,
-    settings: GuildSettings,
+    settings: HoneypotSection,
     channels: Result<Vec<ChannelInfo>, String>,
     roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
@@ -31,25 +31,25 @@ pub(crate) fn HoneypotTab(
                 <ChannelSelect
                     label="Honeypot Channel"
                     name="channel_id"
-                    selected=sel(s.honeypot_channel_id.as_deref())
+                    selected=sel(s.channel_id.as_deref())
                     channels=channels
                     kinds=TEXT_KINDS
                 />
                 <ToggleField
                     label="Exempt Admins"
                     name="exempt_admins"
-                    value=s.honeypot_exempt_admins
+                    value=s.exempt_admins
                 />
                 <RoleSelect
                     label="Exempt Role"
                     name="exempt_role_id"
-                    selected=sel(s.honeypot_exempt_role_id.as_deref())
+                    selected=sel(s.exempt_role_id.as_deref())
                     roles=roles
                 />
                 <SettingField
                     label="Purge Window (seconds)"
                     name="purge_seconds"
-                    value=s.honeypot_purge_seconds
+                    value=s.purge_seconds
                 />
                 <SaveButton pending=save_honeypot.pending()/>
             </ActionForm>

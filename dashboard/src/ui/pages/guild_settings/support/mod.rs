@@ -5,7 +5,7 @@ use leptos::prelude::*;
 
 use self::faq::FaqArticlesPane;
 use self::settings::SupportSettingsPane;
-use crate::dto::{ChannelInfo, GuildSettings, HelperLinkInfo, RoleInfo};
+use crate::dto::{ChannelInfo, RoleInfo, SupportSection};
 use crate::server::guild::{
     AddHelperLink,
     AddSupportRole,
@@ -22,9 +22,7 @@ enum Pane {
 #[component]
 pub(crate) fn SupportTab(
     guild_id: String,
-    settings: GuildSettings,
-    support_roles: Result<Vec<String>, String>,
-    helper_links: Result<Vec<HelperLinkInfo>, String>,
+    settings: SupportSection,
     channels: Result<Vec<ChannelInfo>, String>,
     roles: Result<Vec<RoleInfo>, String>,
     add: ServerAction<AddSupportRole>,
@@ -56,8 +54,6 @@ pub(crate) fn SupportTab(
             <SupportSettingsPane
                 guild_id=guild_id.clone()
                 settings=settings.clone()
-                support_roles=support_roles.clone()
-                helper_links=helper_links.clone()
                 channels=channels.clone()
                 roles=roles.clone()
                 add=add

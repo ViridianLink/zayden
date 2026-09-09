@@ -2,7 +2,7 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 
 use super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
+use crate::dto::{ChannelInfo, MusicSection, RoleInfo};
 use crate::server::guild::SaveMusicSettings;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{
@@ -15,7 +15,7 @@ use crate::ui::components::settings::{
 #[component]
 pub(crate) fn MusicTab(
     guild_id: String,
-    settings: GuildSettings,
+    settings: MusicSection,
     channels: Result<Vec<ChannelInfo>, String>,
     roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
@@ -31,23 +31,23 @@ pub(crate) fn MusicTab(
                 <RoleSelect
                     label="DJ Role"
                     name="dj_role_id"
-                    selected=sel(s.music_dj_role_id.as_deref())
+                    selected=sel(s.dj_role_id.as_deref())
                     roles=roles
                 />
                 <SettingField
                     label="Auto-disconnect (seconds)"
                     name="auto_disconnect_secs"
-                    value=s.music_auto_disconnect_secs
+                    value=s.auto_disconnect_secs
                 />
                 <ToggleField
                     label="Announce Now Playing"
                     name="announce_now_playing"
-                    value=s.music_announce_now_playing
+                    value=s.announce_now_playing
                 />
                 <ChannelSelect
                     label="Announce Channel"
                     name="announce_channel_id"
-                    selected=sel(s.music_announce_channel_id.as_deref())
+                    selected=sel(s.announce_channel_id.as_deref())
                     channels=channels
                     kinds=TEXT_KINDS
                 />

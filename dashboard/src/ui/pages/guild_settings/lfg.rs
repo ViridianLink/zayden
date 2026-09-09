@@ -2,7 +2,7 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 
 use super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
+use crate::dto::{ChannelInfo, LfgSection, RoleInfo};
 use crate::server::guild::SaveLfgSettings;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
@@ -10,7 +10,7 @@ use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
 #[component]
 pub(crate) fn LfgTab(
     guild_id: String,
-    settings: GuildSettings,
+    settings: LfgSection,
     channels: Result<Vec<ChannelInfo>, String>,
     roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
@@ -26,20 +26,20 @@ pub(crate) fn LfgTab(
                 <ChannelSelect
                     label="LFG Channel"
                     name="lfg_channel_id"
-                    selected=sel(s.lfg_channel_id.as_deref())
+                    selected=sel(s.channel_id.as_deref())
                     channels=channels
                     kinds=TEXT_KINDS
                 />
                 <RoleSelect
                     label="LFG Role"
                     name="lfg_role_id"
-                    selected=sel(s.lfg_role_id.as_deref())
+                    selected=sel(s.role_id.as_deref())
                     roles=roles
                 />
                 <SettingField
                     label="LFG Scheduled Thread ID"
                     name="lfg_scheduled_thread_id"
-                    value=sel(s.lfg_scheduled_thread_id.as_deref())
+                    value=sel(s.scheduled_thread_id.as_deref())
                 />
                 <SaveButton pending=save_lfg.pending()/>
             </ActionForm>

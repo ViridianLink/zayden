@@ -2,7 +2,7 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 use twilight_model::channel::ChannelType;
 
-use crate::dto::{ChannelInfo, GuildSettings};
+use crate::dto::{ChannelInfo, TempVoiceSection};
 use crate::server::guild::{CreateTempVoiceCreatorChannel, SaveTempVoiceSettings};
 use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, create_feedback, save_feedback};
@@ -10,7 +10,7 @@ use crate::ui::components::settings::{SaveButton, create_feedback, save_feedback
 #[component]
 pub(crate) fn TempVoiceTab(
     guild_id: String,
-    settings: GuildSettings,
+    settings: TempVoiceSection,
     channels: Result<Vec<ChannelInfo>, String>,
     create: ServerAction<CreateTempVoiceCreatorChannel>,
 ) -> impl IntoView {
@@ -18,13 +18,12 @@ pub(crate) fn TempVoiceTab(
     let save_result = save_temp_voice.value();
     let create_result = create.value();
 
-    let GuildSettings { temp_voice_category, temp_voice_creator_channel, .. } =
-        settings;
+    let TempVoiceSection { category, creator_channel } = settings;
     let save_channels = channels.clone();
     // The category doubles as the target for the "create one for me" form.
-    let save_category = temp_voice_category.unwrap_or_default();
+    let save_category = category.unwrap_or_default();
     let create_category = save_category.clone();
-    let creator = temp_voice_creator_channel.unwrap_or_default();
+    let creator = creator_channel.unwrap_or_default();
     let gid = guild_id.clone();
 
     view! {

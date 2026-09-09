@@ -13,14 +13,15 @@ use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 use twilight_model::channel::ChannelType;
 
-use crate::dto::SettingsBundle;
+use crate::dto::{GuildDirectory, SectionSettings};
 use crate::server::guild::{
     AddHelperLink,
     AddSupportRole,
     CreateTempVoiceCreatorChannel,
     RemoveHelperLink,
     RemoveSupportRole,
-    get_settings_bundle,
+    get_guild_directory,
+    get_section_settings,
 };
 use crate::server::patreon::DisconnectPatreon;
 use crate::ui::components::skeleton::Skeleton;
@@ -55,10 +56,16 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let remove_helper_link = ServerAction::<RemoveHelperLink>::new();
     let disconnect_patreon = ServerAction::<DisconnectPatreon>::new();
 
-    let data = Resource::new_blocking(
+    // Channel and role lists are the same on every tab, so they are keyed on
+    // the guild alone and survive a section change untouched. Discord does not
+    // cache them, and refetching per tab would be two API calls per click.
+    let directory = Resource::new_blocking(guild_id, get_guild_directory);
+
+    let settings = Resource::new_blocking(
         move || {
             (
                 guild_id(),
+                active.get().slug().unwrap_or("general").to_owned(),
                 create_creator.version().get(),
                 add_support_role.version().get(),
                 remove_support_role.version().get(),
@@ -67,7 +74,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                 disconnect_patreon.version().get(),
             )
         },
-        |(gid, ..)| async move { get_settings_bundle(gid).await },
+        |(gid, section, ..)| async move { get_section_settings(gid, section).await },
     );
 
     view! {
@@ -86,37 +93,21 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                     <Skeleton class="skeleton-panel" count=2/>
                 </div>
             }>
-                {move || data.get().map(|result| match result {
-                    Err(e) => view! {
-                        <p class="error">"Failed to load settings: " {e.to_string()}</p>
-                    }.into_any(),
-                    Ok(SettingsBundle {
-                        settings: s,
-                        support_roles,
-                        helper_links,
-                        channels,
-                        roles,
-                        patreon,
-                    }) => {
-                        let gid = guild_id();
-                        // Re-runs on section change only; the resource above
-                        // is untouched, so switching modules never refetches.
-                        (move || {
-                            let guild_id = gid.clone();
-                            let s = s.clone();
-                            let support_roles = support_roles.clone();
-                            let helper_links = helper_links.clone();
-                            let channels = channels.clone();
-                            let roles = roles.clone();
-                            let patreon_status = patreon.clone();
+                {move || directory.get().zip(settings.get()).map(|pair| {
+                    let gid = guild_id();
 
-                            match active.get().slug() {
-                                Some("support") => view! {
+                    match pair {
+                        (Err(e), _) | (_, Err(e)) => view! {
+                            <p class="error">
+                                "Failed to load settings: " {e.to_string()}
+                            </p>
+                        }.into_any(),
+                        (Ok(GuildDirectory { channels, roles }), Ok(section)) => {
+                            match section {
+                                SectionSettings::Support(s) => view! {
                                     <support::SupportTab
-                                        guild_id=guild_id
-                                        settings=s
-                                        support_roles=support_roles
-                                        helper_links=helper_links
+                                        guild_id=gid
+                                        settings=*s
                                         channels=channels
                                         roles=roles
                                         add=add_support_role
@@ -125,67 +116,67 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                         remove_link=remove_helper_link
                                     />
                                 }.into_any(),
-                                Some("temp-voice") => view! {
+                                SectionSettings::TempVoice(s) => view! {
                                     <temp_voice::TempVoiceTab
-                                        guild_id=guild_id
+                                        guild_id=gid
                                         settings=s
                                         channels=channels
                                         create=create_creator
                                     />
                                 }.into_any(),
-                                Some("music") => view! {
+                                SectionSettings::Music(s) => view! {
                                     <music::MusicTab
-                                        guild_id=guild_id
+                                        guild_id=gid
                                         settings=s
                                         channels=channels
                                         roles=roles
                                     />
                                 }.into_any(),
-                                Some("lfg") => view! {
+                                SectionSettings::Lfg(s) => view! {
                                     <lfg::LfgTab
-                                        guild_id=guild_id
+                                        guild_id=gid
                                         settings=s
                                         channels=channels
                                         roles=roles
                                     />
                                 }.into_any(),
-                                Some("family") => view! {
-                                    <family::FamilyTab guild_id=guild_id settings=s/>
+                                SectionSettings::Family(s) => view! {
+                                    <family::FamilyTab guild_id=gid settings=s/>
                                 }.into_any(),
-                                Some("ai") => view! {
+                                SectionSettings::Ai(s) => view! {
                                     <ai::AiTab
-                                        guild_id=guild_id
+                                        guild_id=gid
                                         settings=s
                                         channels=channels
                                     />
                                 }.into_any(),
-                                Some("patreon") => view! {
+                                SectionSettings::Patreon(status) => view! {
                                     <patreon::PatreonTab
-                                        guild_id=guild_id
-                                        status=patreon_status
+                                        guild_id=gid
+                                        status=status
                                         channels=channels
                                         disconnect=disconnect_patreon
                                     />
                                 }.into_any(),
-                                Some("honeypot") => view! {
+                                SectionSettings::Honeypot(s) => view! {
                                     <honeypot::HoneypotTab
-                                        guild_id=guild_id
+                                        guild_id=gid
                                         settings=s
                                         channels=channels
                                         roles=roles
                                     />
                                 }.into_any(),
-                                _ => view! {
+                                SectionSettings::General(s) => view! {
                                     <general::GeneralTab
-                                        guild_id=guild_id
+                                        guild_id=gid
                                         settings=s
                                         channels=channels
                                         roles=roles
                                     />
                                 }.into_any(),
                             }
-                        }).into_any()
-                    },
+                        },
+                    }
                 })}
             </Transition>
         </div>

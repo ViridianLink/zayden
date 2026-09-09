@@ -12,11 +12,20 @@ pub use discord::{ChannelInfo, ForumTagInfo, RoleInfo, SessionUser};
 pub use faq::FaqArticleInfo;
 pub use greetings::{CooldownView, GreetingImageInfo, GreetingsView};
 pub use guild::{
+    AiSection,
+    FamilySection,
+    FaqSection,
+    GeneralSection,
+    GuildDirectory,
     GuildInfo,
-    GuildSettings,
     HelperLinkInfo,
+    HoneypotSection,
+    LfgSection,
+    MusicSection,
     PatreonStatus,
-    SettingsBundle,
+    SectionSettings,
+    SupportSection,
+    TempVoiceSection,
 };
 pub use levels::{LeaderboardEntry, LeaderboardPage};
 pub use modules::ModuleView;

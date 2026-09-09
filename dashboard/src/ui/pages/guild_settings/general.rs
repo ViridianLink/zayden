@@ -2,7 +2,7 @@ use leptos::form::ActionForm;
 use leptos::prelude::*;
 
 use super::{TEXT_KINDS, sel};
-use crate::dto::{ChannelInfo, GuildSettings, RoleInfo};
+use crate::dto::{ChannelInfo, GeneralSection, RoleInfo};
 use crate::server::guild::{SaveChannelSettings, SaveRoleSettings};
 use crate::ui::components::icons::Icon;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
@@ -11,7 +11,7 @@ use crate::ui::components::settings::{SaveButton, save_feedback};
 #[component]
 pub(crate) fn GeneralTab(
     guild_id: String,
-    settings: GuildSettings,
+    settings: GeneralSection,
     channels: Result<Vec<ChannelInfo>, String>,
     roles: Result<Vec<RoleInfo>, String>,
 ) -> impl IntoView {
