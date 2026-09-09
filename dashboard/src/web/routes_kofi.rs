@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -14,9 +16,10 @@ use zayden_app::entitlement::{
     KoFiType,
     Tier,
 };
+use zayden_app::state::AppState as ZaydenAppState;
 
-use crate::WebState;
 use crate::middleware::auth::AuthUser;
+use crate::state::IntegrationsState;
 
 #[derive(Deserialize)]
 pub(super) struct KoFiForm {
@@ -24,7 +27,8 @@ pub(super) struct KoFiForm {
 }
 
 pub(super) async fn kofi_webhook_handler(
-    State(state): State<WebState>,
+    State(integrations): State<Arc<IntegrationsState>>,
+    State(app): State<Arc<ZaydenAppState>>,
     Form(form): Form<KoFiForm>,
 ) -> impl IntoResponse {
     let payload: KoFiPayload = match serde_json::from_str(&form.data) {
@@ -35,7 +39,7 @@ pub(super) async fn kofi_webhook_handler(
         },
     };
 
-    if !payload.verification_ok(state.kofi_verification_token.as_deref()) {
+    if !payload.verification_ok(integrations.kofi_verification_token.as_deref()) {
         warn!(
             transaction_id = %payload.kofi_transaction_id,
             "Ko-fi webhook rejected: verification_token missing, unconfigured, or mismatched"
@@ -53,7 +57,7 @@ pub(super) async fn kofi_webhook_handler(
         "SELECT discord_user_id FROM kofi_links WHERE email_hash = $1",
         &email_hash,
     )
-    .fetch_optional(&state.app.db)
+    .fetch_optional(&app.db)
     .await
     {
         Ok(Some(id)) => id.cast_unsigned(),
@@ -80,12 +84,10 @@ pub(super) async fn kofi_webhook_handler(
             tier: Tier::Pro,
             expires_at,
         };
-        if let Err(e) = KoFiProvider.grant(&state.app.entitlements, grant_data).await
-        {
+        if let Err(e) = KoFiProvider.grant(&app.entitlements, grant_data).await {
             warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to record Ko-fi entitlement");
         }
-    } else if let Err(e) =
-        state.app.entitlements.revoke_all_by_scope("kofi", &scope).await
+    } else if let Err(e) = app.entitlements.revoke_all_by_scope("kofi", &scope).await
     {
         warn!(?e, transaction_id = %payload.kofi_transaction_id, "failed to revoke Ko-fi entitlement");
     }
@@ -100,7 +102,7 @@ pub(super) struct KoFiLinkBody {
 
 pub(super) async fn kofi_link_handler(
     Extension(user): Extension<AuthUser>,
-    State(state): State<WebState>,
+    State(app): State<Arc<ZaydenAppState>>,
     Json(body): Json<KoFiLinkBody>,
 ) -> Response {
     let email_hash = dashboard::util::email_hash(&body.email);
@@ -112,7 +114,7 @@ pub(super) async fn kofi_link_handler(
     match sqlx::query!(
         "INSERT INTO kofi_links (email_hash, discord_user_id) VALUES ($1, $2)", &email_hash, discord_user_id
     )
-    .execute(&state.app.db)
+    .execute(&app.db)
     .await
     {
         Ok(_) => StatusCode::CREATED.into_response(),

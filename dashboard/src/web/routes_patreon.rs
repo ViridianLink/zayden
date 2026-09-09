@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::body::{Body, Bytes};
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
@@ -10,7 +12,6 @@ use dashboard::server::auth::{
     session_identity,
 };
 use dashboard::ui::nav;
-use patreon::oauth::PatreonApp;
 use patreon::{
     PATREON_EVENT_HEADER,
     PATREON_SIGNATURE_HEADER,
@@ -22,8 +23,9 @@ use serde::Deserialize;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
 use tracing::warn;
+use zayden_app::state::AppState as ZaydenAppState;
 
-use crate::WebState;
+use crate::state::{DiscordState, IntegrationsState};
 use crate::web::cookie::{self, SESSION_COOKIE};
 
 const PATREON_STATE_COOKIE: &str = "patreon_oauth_state";
@@ -43,25 +45,22 @@ fn settings_url(guild_id: &str, outcome: PatreonOutcome) -> String {
     format!("{base}?{OUTCOME_PARAM}={}", outcome.as_key())
 }
 
-fn app(state: &WebState) -> Option<PatreonApp> {
-    state.patreon.clone()
-}
-
 async fn admin(
-    state: &WebState,
+    app: &ZaydenAppState,
+    discord: &DiscordState,
     cookies: &Cookies,
     guild: &str,
 ) -> Option<(GuildAdminContext, i64)> {
     let token = cookies.get(SESSION_COOKIE).map(|c| c.value().to_owned())?;
-    let identity = session_identity(&state.app.db, &token).await.ok()?;
+    let identity = session_identity(&app.db, &token).await.ok()?;
     let user_id = identity.user_id;
 
     let context = guild_admin_for(
-        &state.app.db,
+        &app.db,
         &identity,
         guild,
-        Some(&state.discord_http),
-        Some(&state.user_guilds_cache),
+        Some(&discord.http),
+        Some(&discord.user_guilds),
     )
     .await
     .ok()?;
@@ -77,15 +76,17 @@ pub(super) struct ConnectQuery {
 pub(super) async fn patreon_connect_handler(
     Query(query): Query<ConnectQuery>,
     cookies: Cookies,
-    State(state): State<WebState>,
+    State(app): State<Arc<ZaydenAppState>>,
+    State(discord): State<DiscordState>,
+    State(integrations): State<Arc<IntegrationsState>>,
 ) -> Response {
-    let Some(app) = app(&state) else {
+    let Some(patreon_app) = integrations.patreon.clone() else {
         warn!("Patreon connect attempted while PATREON_CLIENT_ID is unset");
         return redirect(&settings_url(&query.guild, PatreonOutcome::Unconfigured));
     };
 
     // Proves the caller administers this guild before anything is stored.
-    if admin(&state, &cookies, &query.guild).await.is_none() {
+    if admin(&app, &discord, &cookies, &query.guild).await.is_none() {
         warn!(guild = %query.guild, "Patreon connect rejected: not a guild admin");
         return redirect(&settings_url(&query.guild, PatreonOutcome::Forbidden));
     }
@@ -96,7 +97,7 @@ pub(super) async fn patreon_connect_handler(
 
     let oauth_state = format!("{nonce}.{}", query.guild);
 
-    let Ok(url) = app.authorize_url(&oauth_state) else {
+    let Ok(url) = patreon_app.authorize_url(&oauth_state) else {
         return redirect(&settings_url(&query.guild, PatreonOutcome::Error));
     };
 
@@ -120,7 +121,9 @@ pub(super) struct CallbackQuery {
 pub(super) async fn patreon_callback_handler(
     Query(query): Query<CallbackQuery>,
     cookies: Cookies,
-    State(state): State<WebState>,
+    State(app): State<Arc<ZaydenAppState>>,
+    State(discord): State<DiscordState>,
+    State(integrations): State<Arc<IntegrationsState>>,
 ) -> Response {
     let nonce = cookies.get(PATREON_STATE_COOKIE).map(|c| c.value().to_owned());
     let mut removal = Cookie::from(PATREON_STATE_COOKIE);
@@ -147,18 +150,19 @@ pub(super) async fn patreon_callback_handler(
         return redirect(&settings_url(guild, PatreonOutcome::Declined));
     };
 
-    let Some(app) = app(&state) else {
+    let Some(patreon_app) = integrations.patreon.clone() else {
         return redirect(&settings_url(guild, PatreonOutcome::Unconfigured));
     };
 
     // Re-checked after the round trip: the cookie proves the browser started
     // the flow, this proves it still has the right to bind this guild.
-    let Some((context, user_id)) = admin(&state, &cookies, guild).await else {
+    let Some((context, user_id)) = admin(&app, &discord, &cookies, guild).await
+    else {
         warn!(guild, "Patreon callback rejected: not a guild admin");
         return redirect(&settings_url(guild, PatreonOutcome::Forbidden));
     };
 
-    let tokens = match app.exchange_code(&state.app.http, code).await {
+    let tokens = match patreon_app.exchange_code(&app.http, code).await {
         Ok(tokens) => tokens,
         Err(e) => {
             warn!(?e, guild, "Patreon token exchange failed");
@@ -167,9 +171,7 @@ pub(super) async fn patreon_callback_handler(
     };
 
     let (campaign_id, creator_name) =
-        match patreon::api::fetch_campaign(&state.app.http, &tokens.access_token)
-            .await
-        {
+        match patreon::api::fetch_campaign(&app.http, &tokens.access_token).await {
             Ok(campaign) => campaign,
             Err(e) => {
                 warn!(?e, guild, "Patreon account has no readable campaign");
@@ -180,10 +182,10 @@ pub(super) async fn patreon_callback_handler(
     // Best-effort: a guild with no webhook still gets its posts from the poll,
     // just up to fifteen minutes later.
     let webhook = match patreon::webhook::register(
-        &state.app.http,
+        &app.http,
         &tokens.access_token,
         &campaign_id,
-        &state.patreon_webhook_uri,
+        &integrations.patreon_webhook_uri,
     )
     .await
     {
@@ -195,7 +197,7 @@ pub(super) async fn patreon_callback_handler(
     };
 
     let stored = PatreonConnection::connect(
-        &state.app.db,
+        &app.db,
         context.guild_id,
         &campaign_id,
         creator_name.as_deref(),
@@ -214,7 +216,7 @@ pub(super) async fn patreon_callback_handler(
 }
 
 pub(super) async fn patreon_webhook_handler(
-    State(state): State<WebState>,
+    State(app): State<Arc<ZaydenAppState>>,
     headers: HeaderMap,
     body: Bytes,
 ) -> impl IntoResponse {
@@ -237,9 +239,7 @@ pub(super) async fn patreon_webhook_handler(
 
     // The campaign in an unverified payload only selects which secrets to try;
     // a forged one simply fails every signature check below.
-    let secrets = match patreon::webhook_secrets(&state.app.db, &post.campaign_id)
-        .await
-    {
+    let secrets = match patreon::webhook_secrets(&app.db, &post.campaign_id).await {
         Ok(secrets) => secrets,
         Err(e) => {
             warn!(?e, campaign_id = %post.campaign_id, "failed to load webhook secrets");
@@ -257,7 +257,7 @@ pub(super) async fn patreon_webhook_handler(
         return StatusCode::OK;
     }
 
-    match patreon::is_subscribed(&state.app.db, &post.campaign_id).await {
+    match patreon::is_subscribed(&app.db, &post.campaign_id).await {
         Ok(true) => {},
         Ok(false) => return StatusCode::OK,
         Err(e) => {
@@ -266,7 +266,7 @@ pub(super) async fn patreon_webhook_handler(
         },
     }
 
-    match patreon::insert_post(&state.app.db, &post, false).await {
+    match patreon::insert_post(&app.db, &post, false).await {
         // Already stored by a poll or an earlier delivery; the announce path
         // has it either way.
         Ok(false) => return StatusCode::OK,
@@ -280,7 +280,7 @@ pub(super) async fn patreon_webhook_handler(
     // The bot is a separate process, so the wake-up travels over the same
     // Postgres LISTEN/NOTIFY bus the settings cache uses.
     if let Err(e) = sqlx::query!("SELECT pg_notify('patreon_post', $1)", post.id)
-        .execute(&state.app.db)
+        .execute(&app.db)
         .await
     {
         warn!(?e, post_id = %post.id, "failed to notify the bot of a Patreon post");

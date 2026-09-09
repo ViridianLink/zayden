@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::body::Body;
 use axum::extract::{Query, State};
 use axum::http::{StatusCode, header};
@@ -8,9 +10,10 @@ use rand::RngExt;
 use serde::Deserialize;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
+use zayden_app::state::AppState as ZaydenAppState;
 
 use super::cookie::{self, OAUTH_STATE_COOKIE, SESSION_COOKIE};
-use crate::WebState;
+use crate::state::{OAuthState, SessionState};
 
 const SESSION_TTL_HOURS: i64 = 24 * 7;
 
@@ -31,7 +34,8 @@ fn error_redirect() -> Response {
 pub(super) async fn discord_auth_callback_handler(
     Query(query): Query<DiscordAuthCallback>,
     cookies: Cookies,
-    State(state): State<WebState>,
+    State(oauth): State<Arc<OAuthState>>,
+    State(app): State<Arc<ZaydenAppState>>,
 ) -> impl IntoResponse {
     let cookie_state = cookies.get(OAUTH_STATE_COOKIE).map(|c| c.value().to_owned());
     let mut removal = Cookie::from(OAUTH_STATE_COOKIE);
@@ -45,10 +49,10 @@ pub(super) async fn discord_auth_callback_handler(
         return error_redirect();
     }
 
-    let token_result = state
-        .oauth_client
+    let token_result = oauth
+        .client
         .exchange_code(AuthorizationCode::new(query.code))
-        .request_async(&state.http_oauth)
+        .request_async(&oauth.http)
         .await;
 
     let discord_access_token = match token_result {
@@ -103,7 +107,7 @@ pub(super) async fn discord_auth_callback_handler(
         &discord_access_token,
         expires_at as jiff_sqlx::Timestamp
     )
-    .execute(&state.app.db)
+    .execute(&app.db)
     .await;
 
     if let Err(e) = insert_result {
@@ -127,17 +131,17 @@ pub(super) async fn discord_auth_callback_handler(
 
 pub(super) async fn logout_handler(
     cookies: Cookies,
-    State(state): State<WebState>,
+    State(session): State<SessionState>,
 ) -> impl IntoResponse {
     if let Some(token) = cookies.get(SESSION_COOKIE).map(|c| c.value().to_owned()) {
         if let Err(e) =
             sqlx::query!("DELETE FROM web_sessions WHERE token = $1", token)
-                .execute(&state.app.db)
+                .execute(&session.app.db)
                 .await
         {
             tracing::warn!(?e, "failed to delete session row on logout");
         }
-        state.session_cache.invalidate(&token).await;
+        session.cache.invalidate(&token).await;
     }
 
     let cleared = cookie::build(SESSION_COOKIE, "", Duration::ZERO);

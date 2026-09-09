@@ -9,20 +9,15 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::Router;
-use axum::extract::{FromRef, State};
+use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::get;
 use dashboard::app::{App, UpgradeUrl, shell};
-use dashboard::server::auth::{SessionCache, UserGuildsCache};
-use leptos::config::{LeptosOptions, get_configuration};
+use leptos::config::get_configuration;
 use leptos::prelude::provide_context;
 use leptos_axum::{LeptosRoutes, generate_route_list};
-use moka::future::Cache;
-use oauth2::basic::BasicClient;
-use oauth2::url::ParseError;
-use oauth2::{CsrfToken, EndpointNotSet, EndpointSet, Scope};
-use patreon::oauth::PatreonApp;
+use oauth2::{CsrfToken, Scope};
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tower_cookies::{CookieManagerLayer, Cookies};
@@ -35,80 +30,11 @@ use zayden_app::config::BotConfig;
 use zayden_app::events::listener::EventListener;
 use zayden_app::state::AppState as ZaydenAppState;
 
+use crate::state::{OAuthState, SiteUrls, WebState};
 use crate::web::cookie::{self, OAUTH_STATE_COOKIE};
 
 const SESSION_PRUNE_INTERVAL: Duration = Duration::from_hours(1);
 const OAUTH_STATE_TTL: Duration = Duration::from_mins(10);
-
-#[derive(Clone)]
-pub(crate) struct WebState {
-    pub(crate) app: Arc<ZaydenAppState>,
-    pub(crate) oauth_client: BasicClient<
-        EndpointSet,
-        EndpointNotSet,
-        EndpointNotSet,
-        EndpointNotSet,
-        EndpointSet,
-    >,
-    pub(crate) http_oauth: oauth2::reqwest::Client,
-    pub(crate) invite_url: Option<String>,
-    pub(crate) upgrade_url: Option<String>,
-    pub(crate) kofi_verification_token: Option<String>,
-    pub(crate) patreon: Option<PatreonApp>,
-    pub(crate) patreon_webhook_uri: String,
-    pub(crate) discord_http: Arc<twilight_http::Client>,
-    pub(crate) session_cache: SessionCache,
-    pub(crate) user_guilds_cache: UserGuildsCache,
-    pub(crate) leptos_options: LeptosOptions,
-}
-
-impl WebState {
-    pub(crate) fn new(
-        app: Arc<ZaydenAppState>,
-        config: &BotConfig,
-        leptos_options: LeptosOptions,
-    ) -> Result<Self, ParseError> {
-        Ok(Self {
-            app,
-            oauth_client: state::build_oauth_client(config)?,
-            http_oauth: oauth2::reqwest::Client::new(),
-            upgrade_url: config.upgrade_url.clone(),
-            kofi_verification_token: config.kofi_verification_token.clone(),
-            patreon: config.patreon.as_ref().map(|p| PatreonApp {
-                client_id: p.client_id.clone(),
-                client_secret: p.client_secret.clone(),
-                redirect_uri: p.redirect_uri.clone(),
-            }),
-            // Patreon delivers to a fixed URL, so it is derived from the
-            // callback the app is already registered against.
-            patreon_webhook_uri: config
-                .patreon
-                .as_ref()
-                .map_or_else(String::new, |p| {
-                    p.redirect_uri.replace("/patreon/callback", "/webhooks/patreon")
-                }),
-            discord_http: Arc::new(twilight_http::Client::new(
-                config.discord_token.clone(),
-            )),
-            invite_url: config.invite_url.clone(),
-            session_cache: Cache::builder()
-                .max_capacity(1024)
-                .time_to_live(Duration::from_mins(1))
-                .build(),
-            user_guilds_cache: Cache::builder()
-                .max_capacity(1024)
-                .time_to_live(Duration::from_mins(1))
-                .build(),
-            leptos_options,
-        })
-    }
-}
-
-impl FromRef<WebState> for LeptosOptions {
-    fn from_ref(state: &WebState) -> Self {
-        state.leptos_options.clone()
-    }
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -143,25 +69,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let discord_http = Arc::clone(&web_state.discord_http);
+    let discord_http = Arc::clone(&web_state.discord.http);
 
     let routes = generate_route_list(App);
 
     let app: Router = Router::new()
         .route("/invite", get(invite_handler))
         .route("/auth/discord", get(login_handler))
-        .merge(web::routes(web_state.clone()))
+        .merge(web::routes(&web_state))
         .leptos_routes_with_context(
             &web_state,
             routes,
             {
                 let db = web_state.app.db.clone();
                 let app = Arc::clone(&web_state.app);
-                let upgrade_url = web_state.upgrade_url.clone();
+                let upgrade_url = web_state.urls.upgrade.clone();
                 let discord_http = Arc::clone(&discord_http);
-                let session_cache = web_state.session_cache.clone();
-                let user_guilds_cache = web_state.user_guilds_cache.clone();
-                let patreon = web_state.patreon.clone();
+                let session_cache = web_state.sessions.clone();
+                let user_guilds_cache = web_state.discord.user_guilds.clone();
+                let patreon = web_state.integrations.patreon.clone();
                 move || {
                     provide_context(db.clone());
                     provide_context(Arc::clone(&app));
@@ -203,8 +129,8 @@ fn logging() {
     Registry::default().with(stdout_log).init();
 }
 
-async fn invite_handler(State(state): State<WebState>) -> Response {
-    state.invite_url.as_deref().map_or_else(
+async fn invite_handler(State(urls): State<Arc<SiteUrls>>) -> Response {
+    urls.invite.as_deref().map_or_else(
         || StatusCode::NOT_FOUND.into_response(),
         |url| Redirect::to(url).into_response(),
     )
@@ -212,10 +138,10 @@ async fn invite_handler(State(state): State<WebState>) -> Response {
 
 async fn login_handler(
     cookies: Cookies,
-    State(state): State<WebState>,
+    State(oauth): State<Arc<OAuthState>>,
 ) -> impl IntoResponse {
-    let (auth_url, csrf_token) = state
-        .oauth_client
+    let (auth_url, csrf_token) = oauth
+        .client
         .authorize_url(CsrfToken::new_random)
         .add_scopes([
             Scope::new("identify".to_string()),
