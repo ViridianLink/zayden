@@ -77,11 +77,6 @@
 
 /* State messages */
 
-.loading {
-    color: var(--text-secondary);
-    font-style: italic;
-}
-
 .error {
     color: var(--error);
     padding: 0.6rem 0.85rem;

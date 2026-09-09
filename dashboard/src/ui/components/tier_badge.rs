@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 
+use super::skeleton::Skeleton;
 use crate::dto::Tier;
 use crate::server::tier::get_user_tier;
 
@@ -8,7 +9,7 @@ pub(crate) fn TierBadge() -> impl IntoView {
     let tier_info = Resource::new(|| (), |()| get_user_tier());
 
     view! {
-        <Suspense fallback=|| ()>
+        <Suspense fallback=|| view! { <Skeleton class="skeleton-badge"/> }>
             {move || {
                 tier_info
                     .get()

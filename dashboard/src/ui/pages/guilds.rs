@@ -4,6 +4,7 @@ use leptos_meta::Title;
 use crate::server::guild::list_manageable_guilds;
 use crate::ui::components::guild_grid::GuildGrid;
 use crate::ui::components::layout::AppShell;
+use crate::ui::components::skeleton::Skeleton;
 
 #[component]
 pub(crate) fn GuildListPage() -> impl IntoView {
@@ -20,7 +21,11 @@ pub(crate) fn GuildListPage() -> impl IntoView {
                     </div>
                     <a href="/invite" rel="external" class="btn btn-secondary">"Add to a server"</a>
                 </div>
-                <Suspense fallback=|| view! { <p class="loading">"Loading servers\u{2026}"</p> }>
+                <Suspense fallback=|| view! {
+                    <div class="skeleton-grid">
+                        <Skeleton class="skeleton-card" count=6/>
+                    </div>
+                }>
                     {move || guilds.get().map(|result| match result {
                         Err(e) => view! {
                             <p class="error">"Failed to load servers: " {e.to_string()}</p>

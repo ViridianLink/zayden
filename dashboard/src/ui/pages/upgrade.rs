@@ -7,6 +7,7 @@ use crate::server::kofi::LinkKofiEmail;
 use crate::server::tier::get_user_tier;
 use crate::ui::components::icons::Icon;
 use crate::ui::components::layout::AppShell;
+use crate::ui::components::skeleton::Skeleton;
 
 #[component]
 pub(crate) fn UpgradePage() -> impl IntoView {
@@ -54,7 +55,11 @@ pub(crate) fn UpgradePage() -> impl IntoView {
                     </li>
                 </ul>
 
-                <Suspense fallback=|| ()>
+                <Suspense fallback=|| view! {
+                    <div class="skeleton-grid">
+                        <Skeleton class="skeleton-panel" count=2/>
+                    </div>
+                }>
                     {move || tier_info.get().and_then(Result::ok).map(|info| {
                         let current = info.tier.unwrap_or(Tier::Free);
                         let upgrade_url = info.upgrade_url;

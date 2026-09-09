@@ -5,6 +5,7 @@ use leptos_router::hooks::use_params_map;
 
 use crate::server::modules::list_guild_modules;
 use crate::ui::components::module_card::ModuleCard;
+use crate::ui::components::skeleton::Skeleton;
 
 #[component]
 pub(crate) fn GuildOverviewPage() -> impl IntoView {
@@ -28,7 +29,11 @@ pub(crate) fn GuildOverviewPage() -> impl IntoView {
                 </div>
                 <A href=settings_href attr:class="btn btn-secondary">"Server settings"</A>
             </div>
-            <Transition fallback=|| view! { <p class="loading">"Loading modules\u{2026}"</p> }>
+            <Transition fallback=|| view! {
+                <div class="skeleton-grid">
+                    <Skeleton class="skeleton-panel" count=6/>
+                </div>
+            }>
                 {move || modules.get().map(|result| match result {
                     Err(e) => view! {
                         <p class="error">"Failed to load modules: " {e.to_string()}</p>

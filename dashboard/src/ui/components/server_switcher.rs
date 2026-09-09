@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos_router::components::A;
 
 use super::icons::Icon;
+use super::skeleton::Skeleton;
 use crate::dto::GuildInfo;
 use crate::server::guild::{get_active_guild, list_manageable_guilds};
 
@@ -30,7 +31,7 @@ pub(crate) fn ServerSwitcher(guild_id: Signal<String>) -> impl IntoView {
     let active = Resource::new_blocking(move || guild_id.get(), get_active_guild);
 
     view! {
-        <Suspense fallback=|| ()>
+        <Suspense fallback=|| view! { <Skeleton class="skeleton-switcher"/> }>
             {move || {
                 active.get().and_then(Result::ok).map(|current| {
                     let list =

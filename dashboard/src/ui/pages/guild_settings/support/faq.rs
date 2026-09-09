@@ -4,6 +4,7 @@ use crate::dto::FaqArticleInfo;
 use crate::server::faq::{DeleteFaqArticle, SaveFaqArticle, list_faq_articles};
 use crate::ui::components::confirm::ConfirmButton;
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
+use crate::ui::components::skeleton::Skeleton;
 
 #[component]
 pub(crate) fn FaqArticlesPane(guild_id: String) -> impl IntoView {
@@ -43,7 +44,9 @@ pub(crate) fn FaqArticlesPane(guild_id: String) -> impl IntoView {
                 />
             </details>
             <Transition fallback=|| view! {
-                <p class="loading">"Loading articles\u{2026}"</p>
+                <div class="skeleton-list">
+                    <Skeleton class="skeleton-row" count=4/>
+                </div>
             }>
                 {move || articles.get().map(|result| match result {
                     Err(e) => view! {

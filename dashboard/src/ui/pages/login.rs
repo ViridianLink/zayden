@@ -13,12 +13,21 @@ pub(crate) fn LoginPage() -> impl IntoView {
 
         <Suspense fallback=|| ()>
             {move || {
-                session.get()
-                    .and_then(Result::ok)
-                    .filter(|&logged_in| logged_in)
-                    .map(|_| view! { <Redirect path="/guilds"/> })
+                session.get().and_then(Result::ok).map(|logged_in| {
+                    if logged_in {
+                        view! { <Redirect path="/guilds"/> }.into_any()
+                    } else {
+                        view! { <LoginCard/> }.into_any()
+                    }
+                })
             }}
         </Suspense>
+    }
+}
+
+#[component]
+fn LoginCard() -> impl IntoView {
+    view! {
         <div class="login-page">
             <div class="hero-glow"></div>
             <div class="login-card">

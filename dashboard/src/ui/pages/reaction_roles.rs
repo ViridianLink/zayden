@@ -15,6 +15,7 @@ use crate::ui::components::confirm::ConfirmButton;
 use crate::ui::components::icons::Icon;
 use crate::ui::components::select::{ChannelSelect, RoleSelect};
 use crate::ui::components::settings::{SettingField, save_feedback};
+use crate::ui::components::skeleton::Skeleton;
 
 const TEXT_KINDS: &[ChannelType] =
     &[ChannelType::GuildText, ChannelType::GuildAnnouncement];
@@ -74,7 +75,12 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                 </div>
             </div>
             <Transition fallback=|| view! {
-                <p class="loading">"Loading reaction roles\u{2026}"</p>
+                <div class="skeleton-stack">
+                    <div class="skeleton-list">
+                        <Skeleton class="skeleton-row" count=6/>
+                    </div>
+                    <Skeleton class="skeleton-panel"/>
+                </div>
             }>
                 {move || data.get().map(|result| match result {
                     Err(e) => view! {

@@ -4,6 +4,7 @@ use leptos_router::hooks::{use_location, use_params_map};
 
 use super::icons::Icon;
 use super::server_switcher::ServerSwitcher;
+use super::skeleton::Skeleton;
 use super::tier_badge::TierBadge;
 use crate::server::auth::check_session;
 use crate::server::operator::{guild_operator_access, is_operator};
@@ -61,7 +62,9 @@ fn AppNavBar() -> AnyView {
             </A>
             <div class="app-navbar-links">
                 <TierBadge/>
-                <Suspense fallback=|| ()>
+                <Suspense fallback=|| view! {
+                    <Skeleton class="skeleton-btn"/>
+                }>
                     {move || {
                         session.get().and_then(Result::ok).map(|logged_in| {
                             if logged_in {

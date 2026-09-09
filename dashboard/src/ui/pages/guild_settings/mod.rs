@@ -23,6 +23,7 @@ use crate::server::guild::{
     get_settings_bundle,
 };
 use crate::server::patreon::DisconnectPatreon;
+use crate::ui::components::skeleton::Skeleton;
 use crate::ui::nav;
 
 pub(super) const TEXT_KINDS: &[ChannelType] = &[
@@ -81,7 +82,9 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                 </div>
             </div>
             <Transition fallback=|| view! {
-                <p class="loading">"Loading settings\u{2026}"</p>
+                <div class="skeleton-stack">
+                    <Skeleton class="skeleton-panel" count=2/>
+                </div>
             }>
                 {move || data.get().map(|result| match result {
                     Err(e) => view! {

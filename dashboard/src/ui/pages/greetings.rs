@@ -18,6 +18,7 @@ use crate::server::greetings::{
 use crate::ui::components::icons::Icon;
 use crate::ui::components::select::ChannelSelect;
 use crate::ui::components::settings::{SaveButton, SettingField, save_feedback};
+use crate::ui::components::skeleton::Skeleton;
 
 const ANY_TEXT: &str = ".*";
 
@@ -78,7 +79,9 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                 </div>
             </div>
             <Transition fallback=|| view! {
-                <p class="loading">"Loading greetings\u{2026}"</p>
+                <div class="skeleton-stack">
+                    <Skeleton class="skeleton-panel" count=3/>
+                </div>
             }>
                 {move || data.get().map(|result| match result {
                     Err(e) => view! {

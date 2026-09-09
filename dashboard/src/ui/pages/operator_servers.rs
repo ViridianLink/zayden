@@ -6,6 +6,7 @@ use crate::server::error::is_denied;
 use crate::server::operator::list_bot_guilds;
 use crate::ui::components::guild_grid::GuildGrid;
 use crate::ui::components::layout::AppShell;
+use crate::ui::components::skeleton::Skeleton;
 
 #[must_use]
 pub fn parse_guild_id(raw: &str) -> Option<u64> {
@@ -38,7 +39,11 @@ pub(crate) fn OperatorServersPage() -> impl IntoView {
                         </p>
                     </div>
                 </div>
-                <Suspense fallback=|| view! { <p class="loading">"Loading servers\u{2026}"</p> }>
+                <Suspense fallback=|| view! {
+                    <div class="skeleton-grid">
+                        <Skeleton class="skeleton-card" count=6/>
+                    </div>
+                }>
                     {move || guilds.get().map(|result| match result {
                         Err(e) if is_denied(&e) => view! {
                             <p class="error">

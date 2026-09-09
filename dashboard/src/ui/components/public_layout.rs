@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 
 use super::icons::Icon;
+use super::skeleton::Skeleton;
 use crate::dto::SessionUser;
 use crate::server::auth::current_session_user;
 
@@ -29,7 +30,7 @@ fn PublicNav() -> AnyView {
                 <nav class="public-nav-links">
                     <a href="#features">"Features"</a>
                     <a href="/upgrade">"Pricing"</a>
-                    <Suspense fallback=|| ()>
+                    <Suspense fallback=|| view! { <Skeleton class="skeleton-btn"/> }>
                         {move || {
                             session_user.get().and_then(Result::ok).map(|user| {
                                 user.map_or_else(

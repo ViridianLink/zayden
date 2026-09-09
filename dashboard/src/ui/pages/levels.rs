@@ -3,6 +3,7 @@ use leptos_meta::Title;
 use leptos_router::hooks::use_params_map;
 
 use crate::server::levels::get_leaderboard;
+use crate::ui::components::skeleton::Skeleton;
 
 const PAGE_SIZE: usize = 10;
 
@@ -44,7 +45,9 @@ pub(crate) fn LevelsPage() -> impl IntoView {
             </div>
 
             <Transition fallback=|| view! {
-                <p class="loading">"Loading leaderboard\u{2026}"</p>
+                <div class="skeleton-list">
+                    <Skeleton class="skeleton-row" count=10/>
+                </div>
             }>
                 {move || board.get().map(|result| match result {
                     Err(e) => view! {

@@ -7,4 +7,5 @@ pub mod public_layout;
 pub mod select;
 pub mod server_switcher;
 pub mod settings;
+pub mod skeleton;
 pub mod tier_badge;
