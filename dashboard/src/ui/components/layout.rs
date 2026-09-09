@@ -175,8 +175,7 @@ fn OperatorLink() -> impl IntoView {
 #[component]
 fn ModulesGroup(guild_id: Signal<String>) -> impl IntoView {
     let location = use_location();
-    let open = use_context::<ModulesOpen>()
-        .map_or_else(|| RwSignal::new(true), |ctx| ctx.0);
+    let open = expect_context::<ModulesOpen>().0;
 
     let overview_href = move || format!("/guild/{}", guild_id.get());
     let overview_class = move || {
@@ -201,29 +200,25 @@ fn ModulesGroup(guild_id: Signal<String>) -> impl IntoView {
         if open.get() { "app-sidebar-caret open" } else { "app-sidebar-caret" }
     };
 
-    let sublist = move || {
-        open.get().then(|| {
-            let gid = guild_id.get();
-            let links = MODULES
-                .iter()
-                .map(|module| {
-                    let href = module.href(&gid);
-                    let target = href.clone();
-                    let class = move || {
-                        if current.get() == target {
-                            "app-sidebar-sublink active"
-                        } else {
-                            "app-sidebar-sublink"
-                        }
-                    };
-
-                    view! { <A href=href attr:class=class>{module.label}</A> }
-                })
-                .collect_view();
-
-            view! { <div class="app-sidebar-sublist">{links}</div> }
-        })
+    let sublist_class = move || {
+        if open.get() { "app-sidebar-sublist open" } else { "app-sidebar-sublist" }
     };
+
+    let links = MODULES
+        .iter()
+        .map(|module| {
+            let href = move || module.href(&guild_id.get());
+            let class = move || {
+                if current.get() == href() {
+                    "app-sidebar-sublink active"
+                } else {
+                    "app-sidebar-sublink"
+                }
+            };
+
+            view! { <A href=href attr:class=class>{module.label}</A> }
+        })
+        .collect_view();
 
     view! {
         <div class="app-sidebar-group">
@@ -242,7 +237,7 @@ fn ModulesGroup(guild_id: Signal<String>) -> impl IntoView {
                     <Icon name="chevron-down"/>
                 </button>
             </div>
-            {sublist}
+            <div class=sublist_class>{links}</div>
         </div>
     }
 }
