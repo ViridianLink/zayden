@@ -126,7 +126,11 @@ pub(crate) fn ReactionRolesPage() -> impl IntoView {
                                         roles=Ok(form_roles)
                                     />
                                     <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary">
+                                        <button
+                                            type="submit"
+                                            class="btn btn-primary"
+                                            disabled=add.pending()
+                                        >
                                             "Add mapping"
                                         </button>
                                     </div>
@@ -199,6 +203,7 @@ fn MappingTable(
                         <input type="hidden" name="message_id" value=m.message_id/>
                         <input type="hidden" name="emoji" value=m.emoji/>
                         <ConfirmButton
+                            pending=remove.pending()
                             label="Remove"
                             prompt="Reactions already on the message stay, but \
                                     they stop granting the role."

@@ -59,9 +59,15 @@ fn the_danger_style_is_only_reachable_through_the_confirm_component() {
 fn the_confirm_trigger_swaps_to_cancel_when_it_opens() {
     const CSS: &str = include_str!("../style/partials/confirm.css");
 
-    assert!(CSS.contains(".confirm>summary .confirm-cancel"));
-    assert!(CSS.contains(".confirm[open]>summary .confirm-label"));
-    assert!(CSS.contains(".confirm[open]>summary .confirm-cancel"));
+    // Indentation and the spacing around `>` are a formatter's business, so the
+    // stylesheet is flattened before matching rather than pinned to whichever
+    // shape it happens to be written in.
+    let css = CSS.split_whitespace().collect::<Vec<_>>().join(" ");
+    let css = css.replace(" > ", ">");
+
+    assert!(css.contains(".confirm>summary .confirm-cancel"));
+    assert!(css.contains(".confirm[open]>summary .confirm-label"));
+    assert!(css.contains(".confirm[open]>summary .confirm-cancel"));
 }
 
 /// An alert nobody hears is the same defect as no alert, so every call site has

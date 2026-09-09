@@ -153,6 +153,7 @@ fn PatreonPanel(
                                 value=disconnect_guild
                             />
                             <ConfirmButton
+                                pending=disconnect.pending()
                                 label="Disconnect"
                                 prompt="Zayden stops announcing this campaign \
                                         and drops its webhook on the creator's \
@@ -198,7 +199,7 @@ fn PatreonPanel(
                                 name="public_only"
                                 value=status.public_only
                             />
-                            <SaveButton/>
+                            <SaveButton pending=save.pending()/>
                         </ActionForm>
                         <p class="page-lead">
                             "Leave the channel unset to stop announcing without \

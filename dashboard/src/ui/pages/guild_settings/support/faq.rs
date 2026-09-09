@@ -108,6 +108,7 @@ fn ArticleRow(
                 <input type="hidden" name="id" value=id/>
                 <div class="form-actions">
                     <ConfirmButton
+                        pending=delete.pending()
                         label="Delete"
                         prompt="This removes the article for everyone, including \
                                 the wiki copy. It cannot be undone."
@@ -163,7 +164,7 @@ fn ArticleForm(
                 <label>"Body (Markdown)"</label>
                 <textarea name="content" rows="14">{article.content}</textarea>
             </div>
-            <SaveButton/>
+            <SaveButton pending=save.pending()/>
         </ActionForm>
     }
 }

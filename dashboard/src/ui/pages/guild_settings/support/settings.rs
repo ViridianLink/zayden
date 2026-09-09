@@ -87,7 +87,7 @@ pub(crate) fn SupportSettingsPane(
                     value=s.solved_archive_secs
                     pattern="-?[0-9]*"
                 />
-                <SaveButton/>
+                <SaveButton pending=save_support.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "\"/ticket solved\" applies the solved tag when the support "
@@ -120,7 +120,7 @@ pub(crate) fn SupportSettingsPane(
                     value=s.support_idle_close_after_secs
                     hint="Minimum one hour. Default 86400 (24 hours)."
                 />
-                <SaveButton/>
+                <SaveButton pending=save_idle.pending()/>
             </ActionForm>
             {move || stale_result.get().map(save_feedback)}
             <ActionForm action=save_stale>
@@ -142,7 +142,7 @@ pub(crate) fn SupportSettingsPane(
                     value=s.support_stale_after_secs
                     hint="Minimum one hour. Default 604800 (7 days)."
                 />
-                <SaveButton/>
+                <SaveButton pending=save_stale.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "Idle reminders watch whose turn it is. If a helper spoke last "
@@ -205,7 +205,7 @@ pub(crate) fn SupportSettingsPane(
                     value=s.suggestions_demote_threshold
                     pattern="-?[0-9]*"
                 />
-                <SaveButton/>
+                <SaveButton pending=save_suggestions.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "A suggestion is posted to the review channel once "
@@ -289,7 +289,7 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                     value=s.faq_wiki_locale
                     pattern="[a-zA-Z-]*"
                 />
-                <SaveButton/>
+                <SaveButton pending=save_faq.pending()/>
             </ActionForm>
             {move || key_result.get().map(save_feedback)}
             <ActionForm action=save_key>
@@ -323,7 +323,7 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                     }
                     .into_any()
                 }}
-                <SaveButton/>
+                <SaveButton pending=save_key.pending()/>
             </ActionForm>
             {move || tuning_result.get().map(save_feedback)}
             <ActionForm action=save_tuning>
@@ -344,7 +344,7 @@ fn FaqField(guild_id: String, settings: GuildSettings) -> impl IntoView {
                     value=s.faq_answer_temperature
                     pattern="[0-9.]*"
                 />
-                <SaveButton/>
+                <SaveButton pending=save_tuning.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "The API key needs a group with \"read:source\" so Zayden can "
@@ -392,7 +392,12 @@ fn HelperLinkField(
                             <input type="hidden" name="guild" value=gid/>
                             <input type="hidden" name="user_id" value=l.user_id/>
                             <span class="chip-label">{label}</span>
-                            <button type="submit" class="chip-remove" title="Remove">
+                            <button
+                                type="submit"
+                                class="chip-remove"
+                                title="Remove"
+                                disabled=remove.pending()
+                            >
                                 <Icon name="x"/>
                             </button>
                         </ActionForm>
@@ -431,7 +436,13 @@ fn HelperLinkField(
                     value=String::new()
                     pattern=".*"
                 />
-                <button type="submit" class="btn btn-ghost">"Add link"</button>
+                <button
+                    type="submit"
+                    class="btn btn-ghost"
+                    disabled=add.pending()
+                >
+                    "Add link"
+                </button>
             </ActionForm>
         </div>
     }
@@ -470,7 +481,12 @@ fn SupportRoleField(
                             <input type="hidden" name="guild" value=gid/>
                             <input type="hidden" name="role_id" value=id/>
                             <span class="chip-label">{name}</span>
-                            <button type="submit" class="chip-remove" title="Remove">
+                            <button
+                                type="submit"
+                                class="chip-remove"
+                                title="Remove"
+                                disabled=remove.pending()
+                            >
                                 <Icon name="x"/>
                             </button>
                         </ActionForm>
@@ -507,7 +523,13 @@ fn SupportRoleField(
                     selected=String::new()
                     roles=unconfigured
                 />
-                <button type="submit" class="btn btn-ghost">"Add role"</button>
+                <button
+                    type="submit"
+                    class="btn btn-ghost"
+                    disabled=add.pending()
+                >
+                    "Add role"
+                </button>
             </ActionForm>
         </div>
     }

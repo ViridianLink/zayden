@@ -51,7 +51,7 @@ pub(crate) fn HoneypotTab(
                     name="purge_seconds"
                     value=s.honeypot_purge_seconds
                 />
-                <SaveButton/>
+                <SaveButton pending=save_honeypot.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "Anyone who posts in the honeypot channel is "

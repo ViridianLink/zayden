@@ -41,7 +41,7 @@ pub(crate) fn LfgTab(
                     name="lfg_scheduled_thread_id"
                     value=sel(s.lfg_scheduled_thread_id.as_deref())
                 />
-                <SaveButton/>
+                <SaveButton pending=save_lfg.pending()/>
             </ActionForm>
         </fieldset>
     }

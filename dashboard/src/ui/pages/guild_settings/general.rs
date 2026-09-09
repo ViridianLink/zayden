@@ -50,7 +50,7 @@ pub(crate) fn GeneralTab(
                     channels=channels
                     kinds=TEXT_KINDS
                 />
-                <SaveButton/>
+                <SaveButton pending=save_channels.pending()/>
             </ActionForm>
         </fieldset>
 
@@ -77,7 +77,7 @@ pub(crate) fn GeneralTab(
                     selected=sel(s.verified_role_id.as_deref())
                     roles=roles
                 />
-                <SaveButton/>
+                <SaveButton pending=save_roles.pending()/>
             </ActionForm>
         </fieldset>
     }

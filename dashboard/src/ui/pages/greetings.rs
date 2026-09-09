@@ -119,7 +119,7 @@ pub(crate) fn GreetingsPage() -> impl IntoView {
                                         pattern=ANY_TEXT
                                     />
                                     <PlaceholderLegend/>
-                                    <SaveButton/>
+                                    <SaveButton pending=save.pending()/>
                                 </ActionForm>
                             </fieldset>
 
@@ -227,7 +227,12 @@ fn ChannelSection(
                     <input type="hidden" name="guild" value=gid/>
                     <input type="hidden" name="channel_id" value=id/>
                     <span class="chip-label">{name}</span>
-                    <button type="submit" class="chip-remove" title="Remove">
+                    <button
+                        type="submit"
+                        class="chip-remove"
+                        title="Remove"
+                        disabled=remove.pending()
+                    >
                         <Icon name="x"/>
                     </button>
                 </ActionForm>
@@ -266,7 +271,13 @@ fn ChannelSection(
                     channels=Ok(unconfigured)
                     kinds=GATE_KINDS
                 />
-                <button type="submit" class="btn btn-ghost">"Add channel"</button>
+                <button
+                    type="submit"
+                    class="btn btn-ghost"
+                    disabled=add.pending()
+                >
+                    "Add channel"
+                </button>
             </ActionForm>
         }
         .into_any()
@@ -349,7 +360,7 @@ fn CooldownSection(
                     name="guild_cooldown"
                     value=cooldowns.guild_secs.to_string()
                 />
-                <SaveButton/>
+                <SaveButton pending=save.pending()/>
             </ActionForm>
             {upgrade}
         </fieldset>
@@ -405,7 +416,11 @@ fn ImageSection(
                     />
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        disabled=add.pending()
+                    >
                         <Icon name="plus"/>
                         "Add image"
                     </button>
@@ -460,7 +475,11 @@ fn ImageGrid(
                     <ActionForm action=remove attr:class="greet-remove">
                         <input type="hidden" name="guild" value=gid/>
                         <input type="hidden" name="id" value=image.id/>
-                        <button type="submit" class="btn btn-ghost">
+                        <button
+                            type="submit"
+                            class="btn btn-ghost"
+                            disabled=remove.pending()
+                        >
                             <Icon name="x"/>
                             "Remove"
                         </button>

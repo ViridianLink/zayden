@@ -64,10 +64,12 @@ pub(crate) fn create_feedback(r: Result<(), ServerFnError>) -> AnyView {
 }
 
 #[component]
-pub(crate) fn SaveButton() -> impl IntoView {
+pub(crate) fn SaveButton(#[prop(into)] pending: Signal<bool>) -> impl IntoView {
     view! {
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">"Save"</button>
+            <button type="submit" class="btn btn-primary" disabled=pending>
+                {move || if pending.get() { "Saving\u{2026}" } else { "Save" }}
+            </button>
         </div>
     }
 }

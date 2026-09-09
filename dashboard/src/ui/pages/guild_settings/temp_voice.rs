@@ -46,7 +46,7 @@ pub(crate) fn TempVoiceTab(
                     channels=save_channels
                     kinds=&[ChannelType::GuildVoice]
                 />
-                <SaveButton/>
+                <SaveButton pending=save_temp_voice.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "No creator channel yet? Zayden can make one for you "
@@ -63,7 +63,11 @@ pub(crate) fn TempVoiceTab(
                     kinds=&[ChannelType::GuildCategory]
                 />
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-secondary">
+                    <button
+                        type="submit"
+                        class="btn btn-secondary"
+                        disabled=create.pending()
+                    >
                         "Create Creator Channel"
                     </button>
                 </div>

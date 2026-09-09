@@ -20,7 +20,7 @@ pub(crate) fn FamilyTab(guild_id: String, settings: GuildSettings) -> impl IntoV
                     name="max_partners"
                     value=settings.family_max_partners
                 />
-                <SaveButton/>
+                <SaveButton pending=save_family.pending()/>
             </ActionForm>
         </fieldset>
     }

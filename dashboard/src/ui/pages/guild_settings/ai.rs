@@ -30,7 +30,7 @@ pub(crate) fn AiTab(
                     channels=channels
                     kinds=TEXT_KINDS
                 />
-                <SaveButton/>
+                <SaveButton pending=save_ai.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "With AI responses on, Zayden replies in character "

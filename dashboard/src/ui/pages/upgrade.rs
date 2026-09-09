@@ -128,7 +128,13 @@ pub(crate) fn UpgradePage() -> impl IntoView {
                                 placeholder="you@example.com"
                                 required=true
                             />
-                            <button type="submit" class="btn btn-primary">"Link email"</button>
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                                disabled=link.pending()
+                            >
+                                "Link email"
+                            </button>
                         </div>
                     </ActionForm>
                     {move || link.value().get().map(|r| match r {

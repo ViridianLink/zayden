@@ -51,7 +51,7 @@ pub(crate) fn MusicTab(
                     channels=channels
                     kinds=TEXT_KINDS
                 />
-                <SaveButton/>
+                <SaveButton pending=save_music.pending()/>
             </ActionForm>
             <p class="page-lead">
                 "Announcements post when a track ends and the next "
