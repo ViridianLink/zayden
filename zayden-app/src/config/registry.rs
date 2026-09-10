@@ -11,6 +11,7 @@ use super::tables::{
     FaqSettingsRow,
     GreetingsSettingsRow,
     HoneypotSettingsRow,
+    JellyfinSettingsRow,
     LfgSettingsRow,
     MusicSettingsRow,
     RolesSettingsRow,
@@ -32,6 +33,7 @@ pub struct SettingsRegistry {
     pub ticket: Arc<SettingsStore<TicketSettingsRow>>,
     pub family: Arc<SettingsStore<FamilySettingsRow>>,
     pub honeypot: Arc<SettingsStore<HoneypotSettingsRow>>,
+    pub jellyfin: Arc<SettingsStore<JellyfinSettingsRow>>,
     pub greetings: Arc<SettingsStore<GreetingsSettingsRow>>,
     pub ai: Arc<SettingsStore<AiSettingsRow>>,
     pub faq: Arc<SettingsStore<FaqSettingsRow>>,
@@ -50,6 +52,7 @@ impl SettingsRegistry {
         let ticket = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let family = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let honeypot = Arc::new(SettingsStore::new(db.clone(), events.clone()));
+        let jellyfin = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let greetings = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let ai = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let faq = Arc::new(SettingsStore::new(db, events.clone()));
@@ -70,6 +73,7 @@ impl SettingsRegistry {
         SettingsStore::spawn_invalidator(Arc::clone(&ticket), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&family), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&honeypot), events.subscribe());
+        SettingsStore::spawn_invalidator(Arc::clone(&jellyfin), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&greetings), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&ai), events.subscribe());
         SettingsStore::spawn_invalidator(Arc::clone(&faq), events.subscribe());
@@ -85,6 +89,7 @@ impl SettingsRegistry {
             ticket,
             family,
             honeypot,
+            jellyfin,
             greetings,
             ai,
             faq,

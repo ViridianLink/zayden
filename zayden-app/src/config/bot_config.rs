@@ -42,6 +42,18 @@ pub struct PelicanConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct JellyfinConfig {
+    pub base_url: String,
+    pub api_key: String,
+    pub movie_library_id: String,
+    pub show_library_id: String,
+    pub seer_base_url: String,
+    pub seer_api_key: String,
+    pub region: String,
+    pub dddie_api_key: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub struct PatreonConfig {
     pub client_id: String,
     pub client_secret: String,
@@ -82,6 +94,8 @@ pub struct BotConfig {
     pub palworld_save_dir: Option<PathBuf>,
     pub palworld_uploads_dir: PathBuf,
     pub pelican: Option<PelicanConfig>,
+
+    pub jellyfin: Option<JellyfinConfig>,
 
     pub redirect_uri: String,
     pub bind_addr: String,
@@ -127,6 +141,7 @@ impl BotConfig {
         let db = load_db_row(pool).await?;
 
         let pelican = load_pelican_config(&toml_cfg);
+        let jellyfin = load_jellyfin_config(&toml_cfg);
         let patreon = load_patreon_config(
             toml_cfg
                 .dashboard
@@ -192,6 +207,8 @@ impl BotConfig {
                 PathBuf::from,
             ),
             pelican,
+
+            jellyfin,
 
             palworld_paldex_url: toml_cfg.palworld.paldex_url,
             palworld_palcalc_url: toml_cfg.palworld.palcalc_url,
@@ -265,6 +282,56 @@ fn load_pelican_config(toml_cfg: &TomlConfig) -> Option<PelicanConfig> {
     }
 }
 
+const DEFAULT_JELLYFIN_REGION: &str = "GB";
+
+fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
+    let vars = [
+        env::var("JELLYFIN_BASE_URL").ok(),
+        env::var("JELLYFIN_API_KEY").ok(),
+        env::var("JELLYFIN_MOVIE_LIBRARY_ID").ok(),
+        env::var("JELLYFIN_SHOW_LIBRARY_ID").ok(),
+        env::var("JELLYSEERR_BASE_URL").ok(),
+        env::var("JELLYSEERR_API_KEY").ok(),
+    ];
+
+    if vars.iter().all(Option::is_none) {
+        return None;
+    }
+
+    let [
+        Some(base_url),
+        Some(api_key),
+        Some(movie_library_id),
+        Some(show_library_id),
+        Some(seer_base_url),
+        Some(seer_api_key),
+    ] = vars
+    else {
+        warn!(
+            "Jellyfin config is incomplete; the /jellyfin and /watch commands \
+             are disabled until JELLYFIN_BASE_URL, JELLYFIN_API_KEY, \
+             JELLYFIN_MOVIE_LIBRARY_ID, JELLYFIN_SHOW_LIBRARY_ID, \
+             JELLYSEERR_BASE_URL and JELLYSEERR_API_KEY are all set"
+        );
+        return None;
+    };
+
+    Some(JellyfinConfig {
+        base_url,
+        api_key,
+        movie_library_id,
+        show_library_id,
+        seer_base_url,
+        seer_api_key,
+        region: toml_cfg
+            .jellyfin
+            .region
+            .clone()
+            .unwrap_or_else(|| DEFAULT_JELLYFIN_REGION.to_owned()),
+        dddie_api_key: env::var("DOESTHEDOGDIE_API_KEY").ok(),
+    })
+}
+
 fn load_patreon_config(redirect_uri: String) -> Option<PatreonConfig> {
     match (
         env::var("PATREON_CLIENT_ID").ok(),
@@ -328,6 +395,8 @@ struct TomlConfig {
     #[serde(default)]
     pelican: TomlPelican,
     #[serde(default)]
+    jellyfin: TomlJellyfin,
+    #[serde(default)]
     entitlements: TomlEntitlements,
 }
 
@@ -354,6 +423,11 @@ struct TomlPalworld {
     paldex_url: Option<String>,
     palcalc_url: Option<String>,
     uploads_dir: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlJellyfin {
+    region: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]

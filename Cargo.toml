@@ -150,6 +150,7 @@ gambling = { path = "./bot-modules/gambling" }
 gold-star = { path = "./bot-modules/gold-star" }
 greetings = { path = "./bot-modules/greetings" }
 honeypot = { path = "./bot-modules/honeypot" }
+jellyfin = { path = "./bot-modules/jellyfin" }
 levels = { path = "./bot-modules/levels" }
 lfg = { path = "./bot-modules/lfg" }
 llamad2 = { path = "./bot-modules/llamad2" }
@@ -163,6 +164,7 @@ suggestions = { path = "./bot-modules/suggestions" }
 temp-voice = { path = "./bot-modules/temp-voice" }
 ticket = { path = "./bot-modules/ticket" }
 verify = { path = "./bot-modules/verify" }
+watch = { path = "./bot-modules/watch" }
 zayden-core = { path = "./bot-modules/zayden-core" }
 zayden-graphics = { path = "./bot-modules/zayden-graphics" }
 zayden-app = { path = "./zayden-app" }
@@ -207,6 +209,7 @@ base64 = { version = "*", default-features = false }
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 toml = { version = "*", default-features = false }
+quick-xml = { version = "*", default-features = false, features = ["std"] }
 
 # -- GraphQL
 cynic = { version = "*", default-features = false }
@@ -291,6 +294,10 @@ tracing-subscriber = { version = "*", default-features = false }
 async-openai = { version = "*", default-features = false }
 
 # -- Media
+image = { version = "*", default-features = false, features = [
+  "jpeg",
+  "png",
+] }
 png = { version = "*", default-features = false }
 resvg = { version = "*", default-features = false, features = [
   "text",
