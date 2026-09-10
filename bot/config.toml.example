@@ -29,3 +29,15 @@ uploads_dir = "palworld_uploads"
 [pelican]
 server_id = "your-server-id"
 save_path = "/Pal/Saved/SaveGames/0/123abc"
+
+# Endpoints and library ids only — the API keys live in the environment.
+# The library ids scope the index to the two real libraries; a bare recursive
+# query would also walk the per-user "Recommended" virtual libraries and inflate
+# every count.
+[jellyfin]
+base_url = "https://jellyfin.example.com"
+seer_base_url = "https://seer.example.com"
+movie_library_id = "your-movies-library-id"
+show_library_id = "your-shows-library-id"
+# TMDB watch-provider region for /watch justwatch. Defaults to GB.
+region = "GB"

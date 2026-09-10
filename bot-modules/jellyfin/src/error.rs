@@ -17,7 +17,8 @@ pub enum JellyfinError {
 
     #[error(
         "The Jellyfin integration is not configured on this bot. Ask an admin to \
-         set JELLYFIN_BASE_URL, JELLYFIN_API_KEY and the Jellyseerr variables."
+         fill in the [jellyfin] section of config.toml and set JELLYFIN_API_KEY \
+         and JELLYSEERR_API_KEY."
     )]
     NotConfigured,
     #[error("This command can only be used in a server.")]

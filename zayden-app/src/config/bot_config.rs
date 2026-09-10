@@ -285,33 +285,37 @@ fn load_pelican_config(toml_cfg: &TomlConfig) -> Option<PelicanConfig> {
 const DEFAULT_JELLYFIN_REGION: &str = "GB";
 
 fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
-    let vars = [
-        env::var("JELLYFIN_BASE_URL").ok(),
-        env::var("JELLYFIN_API_KEY").ok(),
-        env::var("JELLYFIN_MOVIE_LIBRARY_ID").ok(),
-        env::var("JELLYFIN_SHOW_LIBRARY_ID").ok(),
-        env::var("JELLYSEERR_BASE_URL").ok(),
-        env::var("JELLYSEERR_API_KEY").ok(),
-    ];
+    let cfg = &toml_cfg.jellyfin;
 
-    if vars.iter().all(Option::is_none) {
+    let endpoints = [
+        cfg.base_url.clone(),
+        cfg.movie_library_id.clone(),
+        cfg.show_library_id.clone(),
+        cfg.seer_base_url.clone(),
+    ];
+    let keys =
+        [env::var("JELLYFIN_API_KEY").ok(), env::var("JELLYSEERR_API_KEY").ok()];
+
+    if endpoints.iter().all(Option::is_none) && keys.iter().all(Option::is_none) {
         return None;
     }
 
-    let [
-        Some(base_url),
-        Some(api_key),
-        Some(movie_library_id),
-        Some(show_library_id),
-        Some(seer_base_url),
-        Some(seer_api_key),
-    ] = vars
+    let (
+        [
+            Some(base_url),
+            Some(movie_library_id),
+            Some(show_library_id),
+            Some(seer_base_url),
+        ],
+        [Some(api_key), Some(seer_api_key)],
+    ) = (endpoints, keys)
     else {
         warn!(
             "Jellyfin config is incomplete; the /jellyfin and /watch commands \
-             are disabled until JELLYFIN_BASE_URL, JELLYFIN_API_KEY, \
-             JELLYFIN_MOVIE_LIBRARY_ID, JELLYFIN_SHOW_LIBRARY_ID, \
-             JELLYSEERR_BASE_URL and JELLYSEERR_API_KEY are all set"
+             are disabled until [jellyfin].base_url, [jellyfin].movie_library_id, \
+             [jellyfin].show_library_id and [jellyfin].seer_base_url \
+             (config.toml) plus JELLYFIN_API_KEY and JELLYSEERR_API_KEY (env) \
+             are all set"
         );
         return None;
     };
@@ -323,8 +327,7 @@ fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
         show_library_id,
         seer_base_url,
         seer_api_key,
-        region: toml_cfg
-            .jellyfin
+        region: cfg
             .region
             .clone()
             .unwrap_or_else(|| DEFAULT_JELLYFIN_REGION.to_owned()),
@@ -427,6 +430,10 @@ struct TomlPalworld {
 
 #[derive(Debug, Default, Deserialize)]
 struct TomlJellyfin {
+    base_url: Option<String>,
+    movie_library_id: Option<String>,
+    show_library_id: Option<String>,
+    seer_base_url: Option<String>,
     region: Option<String>,
 }
 
