@@ -18,6 +18,7 @@ gambling = { workspace = true }
 gold-star = { workspace = true }
 greetings = { workspace = true }
 honeypot = { workspace = true }
+jellyfin = { workspace = true }
 levels = { workspace = true }
 lfg = { workspace = true }
 llamad2 = { workspace = true }

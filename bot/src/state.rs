@@ -4,6 +4,8 @@ use bungie_api::{BungieClient, BungieClientBuilder};
 use dashmap::DashMap;
 use destiny2::endgame_analysis::EndgameAnalysisSheetCron;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
+use jellyfin::cron::{JellyfinIndexRefreshCron, JellyfinRollupCron};
+use jellyfin::runtime::JellyfinRuntime;
 use llamad2::GoodMorningCache;
 use marathon::client::MarathonClient;
 use marathon::cron::{MarathonAnnounceCron, MarathonNewsCron};
@@ -48,6 +50,7 @@ pub struct BotState {
     pub palworld: Arc<PalworldClient>,
     pub bungie_client: Arc<BungieClient>,
     pub wiki_index: Arc<WikiIndex>,
+    pub jellyfin: Option<Arc<JellyfinRuntime>>,
     marathon_bungie_api_key: String,
     pub patreon: Option<Arc<PatreonApp>>,
     emoji_cache: Arc<EmojiCache>,
@@ -99,6 +102,11 @@ impl BotState {
             })
         });
 
+        let jellyfin = config
+            .jellyfin
+            .as_ref()
+            .map(|c| JellyfinRuntime::new(app.http.clone(), c));
+
         let wiki_index = Arc::new(WikiIndex::new(app.http.clone()));
         WikiIndex::spawn_invalidator(Arc::clone(&wiki_index), app.subscribe());
 
@@ -112,6 +120,7 @@ impl BotState {
             palworld,
             bungie_client: Arc::new(bungie_client),
             wiki_index,
+            jellyfin,
             marathon_bungie_api_key: config.bungie_api_key.clone(),
             patreon,
             emoji_cache: Arc::default(),
@@ -129,6 +138,27 @@ impl BotState {
             match PatreonPollCron::cron_job(self.app.http.clone(), Arc::clone(app)) {
                 Ok(job) => self.cron_jobs.push(job),
                 Err(e) => tracing::error!(error = ?e, "failed to create cron job"),
+            }
+        }
+
+        // Guest accounts are real accounts on a real media server, so the
+        // reaper is registered alongside the refresh jobs rather than being
+        // left to the in-memory per-party schedules.
+        if let Some(runtime) = self.jellyfin.as_ref() {
+            let jellyfin_jobs = [
+                JellyfinIndexRefreshCron::cron_job(Arc::clone(runtime)),
+                JellyfinRollupCron::cron_job(Arc::clone(runtime)),
+                JellyfinPartyReaperCron::cron_job(Arc::clone(runtime)),
+                JellyfinPartyReaperCron::reconcile_job(Arc::clone(runtime)),
+            ];
+
+            for job in jellyfin_jobs {
+                match job {
+                    Ok(j) => self.cron_jobs.push(j),
+                    Err(e) => {
+                        tracing::error!(error = ?e, "failed to create cron job");
+                    },
+                }
             }
         }
 
