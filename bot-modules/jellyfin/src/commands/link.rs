@@ -38,6 +38,7 @@ pub async fn run(
         Arc::clone(runtime),
         cx.app.db.clone(),
         user_id,
+        cx.interaction.user.name.to_string(),
     );
 
     Ok(())

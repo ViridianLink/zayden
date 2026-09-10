@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        WITH due AS (\n            SELECT s.id\n            FROM hosted_servers s\n            WHERE s.state = 'trial'\n              AND s.price_cents = 0\n              AND s.trial_ends_at < now()\n            ORDER BY s.trial_ends_at\n            LIMIT $1\n            FOR UPDATE OF s SKIP LOCKED\n        )\n        UPDATE hosted_servers s\n        SET state = 'active',\n            billing_source = 'entitlement',\n            reminded_at = NULL,\n            updated_at = now()\n        FROM due\n        WHERE s.id = due.id\n        RETURNING\n            s.id, s.owner_id, s.game_key, s.plan, s.pelican_server_id,\n            s.price_cents, s.billing_source, s.claim_code,\n            coalesce(s.paid_until, s.trial_ends_at) AS \"expires_at: jiff_sqlx::Timestamp\"\n        ",
+  "query": "\n        WITH due AS (\n            SELECT s.id\n            FROM hosted_servers s\n            WHERE s.state = 'suspended'\n              AND s.delete_after IS NOT NULL\n              AND s.delete_after <= now()\n            ORDER BY s.delete_after\n            LIMIT $1\n            FOR UPDATE OF s SKIP LOCKED\n        )\n        UPDATE hosted_servers s\n        SET delete_after = now() + interval '1 hour',\n            updated_at = now()\n        FROM due\n        WHERE s.id = due.id\n        RETURNING\n            s.id, s.owner_id, s.game_key, s.plan, s.pelican_server_id,\n            s.price_cents, s.billing_source, s.claim_code,\n            s.paid_until IS NOT NULL AS \"has_paid!\",\n            coalesce(s.paid_until, s.trial_ends_at) AS \"expires_at: jiff_sqlx::Timestamp\"\n        ",
   "describe": {
     "columns": [
       {
@@ -93,6 +93,12 @@
       },
       {
         "ordinal": 8,
+        "name": "has_paid!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
         "name": "expires_at: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": "Expression"
@@ -112,8 +118,9 @@
       false,
       false,
       false,
+      null,
       null
     ]
   },
-  "hash": "344939f1eea1f350382dcee50e7f44ee0cf5ea128553ccbcac141150346f4917"
+  "hash": "b658752c79ac88f5bb904ab091b366e30eb0f04d1e79f4db67cd7786faab8e76"
 }

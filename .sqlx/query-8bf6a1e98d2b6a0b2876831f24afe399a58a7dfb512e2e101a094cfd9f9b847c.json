@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        WITH due AS (\n            SELECT s.id\n            FROM hosted_servers s\n            WHERE s.state = 'suspended'\n              AND s.delete_after IS NOT NULL\n              AND s.delete_after < now()\n            ORDER BY s.delete_after\n            LIMIT $1\n            FOR UPDATE OF s SKIP LOCKED\n        )\n        UPDATE hosted_servers s\n        SET delete_after = now() + interval '1 hour',\n            updated_at = now()\n        FROM due\n        WHERE s.id = due.id\n        RETURNING\n            s.id, s.owner_id, s.game_key, s.plan, s.pelican_server_id,\n            s.price_cents, s.billing_source, s.claim_code,\n            coalesce(s.paid_until, s.trial_ends_at) AS \"expires_at: jiff_sqlx::Timestamp\"\n        ",
+  "query": "\n        WITH due AS (\n            SELECT s.id\n            FROM hosted_servers s\n            WHERE s.state IN ('trial', 'active')\n              AND s.price_cents > 0\n              AND coalesce(s.paid_until, s.trial_ends_at) < now()\n            ORDER BY coalesce(s.paid_until, s.trial_ends_at)\n            LIMIT $1\n            FOR UPDATE OF s SKIP LOCKED\n        )\n        UPDATE hosted_servers s\n        SET state = 'suspended',\n            suspended_at = now(),\n            delete_after = CASE\n                WHEN s.paid_until IS NULL THEN now()\n                ELSE now() + make_interval(days => $2)\n            END,\n            updated_at = now()\n        FROM due\n        WHERE s.id = due.id\n        RETURNING\n            s.id, s.owner_id, s.game_key, s.plan, s.pelican_server_id,\n            s.price_cents, s.billing_source, s.claim_code,\n            s.paid_until IS NOT NULL AS \"has_paid!\",\n            coalesce(s.paid_until, s.trial_ends_at) AS \"expires_at: jiff_sqlx::Timestamp\"\n        ",
   "describe": {
     "columns": [
       {
@@ -93,6 +93,12 @@
       },
       {
         "ordinal": 8,
+        "name": "has_paid!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
         "name": "expires_at: jiff_sqlx::Timestamp",
         "type_info": "Timestamptz",
         "origin": "Expression"
@@ -100,7 +106,8 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8",
+        "Int4"
       ]
     },
     "nullable": [
@@ -112,8 +119,9 @@
       false,
       false,
       false,
+      null,
       null
     ]
   },
-  "hash": "10e81979e35b8f4bd725ba058d32251cda9d700d85dd07b0798fdbdb819e4769"
+  "hash": "8bf6a1e98d2b6a0b2876831f24afe399a58a7dfb512e2e101a094cfd9f9b847c"
 }

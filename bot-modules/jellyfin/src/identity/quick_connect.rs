@@ -107,9 +107,10 @@ pub fn spawn_poller(
     runtime: Arc<JellyfinRuntime>,
     pool: PgPool,
     user_id: UserId,
+    discord_username: String,
 ) {
     tokio::spawn(async move {
-        let outcome = poll(&runtime, &pool, user_id).await;
+        let outcome = poll(&runtime, &pool, user_id, &discord_username).await;
 
         let content = match outcome {
             Ok(LinkOutcome::Linked { username }) => format!(
@@ -152,6 +153,7 @@ async fn poll(
     runtime: &Arc<JellyfinRuntime>,
     pool: &PgPool,
     user_id: UserId,
+    discord_username: &str,
 ) -> Result<LinkOutcome> {
     loop {
         tokio::time::sleep(POLL_INTERVAL).await;
@@ -171,7 +173,7 @@ async fn poll(
             continue;
         }
 
-        return finish(runtime, pool, user_id, &pending).await;
+        return finish(runtime, pool, user_id, discord_username, &pending).await;
     }
 }
 
@@ -179,6 +181,7 @@ async fn finish(
     runtime: &Arc<JellyfinRuntime>,
     pool: &PgPool,
     user_id: UserId,
+    discord_username: &str,
     pending: &PendingLink,
 ) -> Result<LinkOutcome> {
     let auth = runtime
@@ -186,8 +189,14 @@ async fn finish(
         .authenticate_with_quick_connect(&pending.secret, &pending.device_id)
         .await?;
 
-    let insert =
-        JellyfinLinkRow::insert(pool, user_id, &auth.user.id, &auth.user.name).await;
+    let insert = JellyfinLinkRow::insert(
+        pool,
+        user_id,
+        discord_username,
+        &auth.user.id,
+        &auth.user.name,
+    )
+    .await;
 
     // Revoke whatever the handshake created, even when the insert failed. The
     // admin API key covers every later operation, so this token has no further

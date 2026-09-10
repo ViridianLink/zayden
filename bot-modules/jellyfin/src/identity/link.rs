@@ -41,14 +41,17 @@ impl JellyfinLinkRow {
     pub async fn insert(
         pool: &PgPool,
         user_id: UserId,
+        discord_username: &str,
         jellyfin_user_id: &str,
         jellyfin_username: &str,
     ) -> Result<()> {
         let discord_id = as_i64(user_id.get());
 
         sqlx::query!(
-            "INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
-            discord_id
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            discord_id,
+            discord_username
         )
         .execute(pool)
         .await?;
