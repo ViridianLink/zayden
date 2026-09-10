@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pelican_user_id FROM hosting_pelican_users WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pelican_user_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosting_pelican_users",
+            "name": "pelican_user_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "74ed3ed7800f97de9a80238f04ebfb3819372471f61da98792a6d7646c1817bf"
+}

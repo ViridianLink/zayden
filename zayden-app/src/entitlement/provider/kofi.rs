@@ -40,6 +40,14 @@ pub struct KoFiPayload {
     pub is_first_subscription_payment: bool,
     pub timestamp: String,
     pub message_id: Option<String>,
+    #[serde(default)]
+    pub tier_name: Option<String>,
+    #[serde(default)]
+    pub amount: Option<String>,
+    #[serde(default)]
+    pub currency: Option<String>,
+    #[serde(default)]
+    pub message: Option<String>,
 }
 
 impl KoFiPayload {

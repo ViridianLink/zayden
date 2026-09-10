@@ -4,6 +4,9 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Extension, Form, Json};
+use dashboard::util;
+use hosting::kofi::{Payment, Settlement};
+use hosting::{kofi, pricing};
 use jiff::Timestamp;
 use serde::Deserialize;
 use tracing::warn;
@@ -51,7 +54,17 @@ pub(super) async fn kofi_webhook_handler(
         return StatusCode::OK;
     }
 
-    let email_hash = dashboard::util::email_hash(&payload.email);
+    let email_hash = util::email_hash(&payload.email);
+
+    // Hosting tiers are named for their ladder rung, which is what separates
+    // them from the Pro/Ultra membership tiers. They must not fall through to
+    // the grant below: a rented Small server would otherwise buy Pro, and Pro
+    // makes Small free.
+    if payload.tier_name.as_deref().and_then(pricing::price_from_tier_name).is_some()
+    {
+        settle_hosting(&app, &payload, &email_hash).await;
+        return StatusCode::OK;
+    }
 
     let discord_user_id = match sqlx::query_scalar!(
         "SELECT discord_user_id FROM kofi_links WHERE email_hash = $1",
@@ -95,6 +108,56 @@ pub(super) async fn kofi_webhook_handler(
     StatusCode::OK
 }
 
+async fn settle_hosting(
+    app: &ZaydenAppState,
+    payload: &KoFiPayload,
+    email_hash: &str,
+) {
+    let Some(message_id) = payload.message_id.as_deref() else {
+        warn!(
+            transaction_id = %payload.kofi_transaction_id,
+            "hosting: Ko-fi payment has no message_id; cannot deduplicate it"
+        );
+        return;
+    };
+
+    let amount_cents = payload
+        .amount
+        .as_deref()
+        .and_then(pricing::parse_amount_cents)
+        .unwrap_or_default();
+
+    let payment = Payment {
+        message_id,
+        email_hash,
+        tier_name: payload.tier_name.as_deref(),
+        amount_cents,
+        currency: payload.currency.as_deref().unwrap_or("GBP"),
+        message: payload.message.as_deref(),
+    };
+
+    match kofi::settle(&app.db, &app.entitlements, &payment).await {
+        Ok(Settlement::Settled { server_id, matched_by }) => {
+            tracing::info!(server_id, matched_by, "hosting: payment settled");
+        },
+        Ok(Settlement::Duplicate) => {},
+        Ok(Settlement::Unmatched(reason)) => {
+            warn!(
+                reason,
+                transaction_id = %payload.kofi_transaction_id,
+                "hosting: payment recorded but unattributed; reconcile by hand"
+            );
+        },
+        Err(e) => {
+            warn!(
+                ?e,
+                transaction_id = %payload.kofi_transaction_id,
+                "hosting: failed to record payment"
+            );
+        },
+    }
+}
+
 #[derive(Deserialize)]
 pub(super) struct KoFiLinkBody {
     email: String,
@@ -105,7 +168,7 @@ pub(super) async fn kofi_link_handler(
     State(app): State<Arc<ZaydenAppState>>,
     Json(body): Json<KoFiLinkBody>,
 ) -> Response {
-    let email_hash = dashboard::util::email_hash(&body.email);
+    let email_hash = util::email_hash(&body.email);
 
     let Ok(discord_user_id) = user.id.parse::<i64>() else {
         return StatusCode::BAD_REQUEST.into_response();

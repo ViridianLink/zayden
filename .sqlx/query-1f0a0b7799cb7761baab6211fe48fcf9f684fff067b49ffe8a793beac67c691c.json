@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hosted_servers SET paid_until = $2, state = 'active', billing_source = 'kofi', suspended_at = NULL, delete_after = NULL, reminded_at = NULL, updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1f0a0b7799cb7761baab6211fe48fcf9f684fff067b49ffe8a793beac67c691c"
+}

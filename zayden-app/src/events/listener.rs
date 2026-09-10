@@ -19,7 +19,12 @@ impl EventListener {
         };
 
         if let Err(e) = listener
-            .listen_all(["config_changed", "entitlement_changed", "patreon_post"])
+            .listen_all([
+                "config_changed",
+                "entitlement_changed",
+                "patreon_post",
+                "hosting_paid",
+            ])
             .await
         {
             warn!("EventListener: LISTEN failed: {e}");
@@ -58,6 +63,16 @@ impl EventListener {
                         let _ = events.send(AppEvent::PatreonPost(
                             notification.payload().to_owned(),
                         ));
+                    },
+                    "hosting_paid" => {
+                        if let Ok(id) = notification.payload().parse::<i64>() {
+                            let _ = events.send(AppEvent::HostingPaid(id));
+                        } else {
+                            warn!(
+                                "EventListener: unparseable hosting_paid payload: {}",
+                                notification.payload()
+                            );
+                        }
                     },
                     other => {
                         warn!("EventListener: unexpected channel: {other}");

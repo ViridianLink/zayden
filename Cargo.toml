@@ -150,6 +150,7 @@ gambling = { path = "./bot-modules/gambling" }
 gold-star = { path = "./bot-modules/gold-star" }
 greetings = { path = "./bot-modules/greetings" }
 honeypot = { path = "./bot-modules/honeypot" }
+hosting = { path = "./bot-modules/hosting" }
 jellyfin = { path = "./bot-modules/jellyfin" }
 levels = { path = "./bot-modules/levels" }
 lfg = { path = "./bot-modules/lfg" }
@@ -159,7 +160,6 @@ music = { path = "./bot-modules/music" }
 palworld = { path = "./bot-modules/palworld" }
 patreon = { path = "./bot-modules/patreon" }
 reaction-roles = { path = "./bot-modules/reaction-roles" }
-servers-at-home = { path = "./bot-modules/servers-at-home" }
 suggestions = { path = "./bot-modules/suggestions" }
 temp-voice = { path = "./bot-modules/temp-voice" }
 ticket = { path = "./bot-modules/ticket" }

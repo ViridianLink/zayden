@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hosting_pelican_users (user_id, pelican_user_id, pelican_username) VALUES ($1, $2, $3) ON CONFLICT (user_id) DO UPDATE SET pelican_user_id = EXCLUDED.pelican_user_id, pelican_username = EXCLUDED.pelican_username",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6509678304cf545e40b7886ffb8606f41e2fe04e4f9639cfa1f75e505710f48a"
+}

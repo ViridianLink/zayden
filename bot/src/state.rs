@@ -4,6 +4,8 @@ use bungie_api::{BungieClient, BungieClientBuilder};
 use dashmap::DashMap;
 use destiny2::endgame_analysis::EndgameAnalysisSheetCron;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
+use hosting::HostingRuntime;
+use hosting::cron::{HostingDeleteCron, HostingExpireCron, HostingReminderCron};
 use jellyfin::cron::{JellyfinIndexRefreshCron, JellyfinRollupCron};
 use jellyfin::runtime::JellyfinRuntime;
 use llamad2::GoodMorningCache;
@@ -51,6 +53,7 @@ pub struct BotState {
     pub bungie_client: Arc<BungieClient>,
     pub wiki_index: Arc<WikiIndex>,
     pub jellyfin: Option<Arc<JellyfinRuntime>>,
+    pub hosting: Option<Arc<HostingRuntime>>,
     marathon_bungie_api_key: String,
     pub patreon: Option<Arc<PatreonApp>>,
     emoji_cache: Arc<EmojiCache>,
@@ -74,14 +77,15 @@ impl BotState {
             config.flaresolverr_url.clone(),
         ));
 
-        let pelican = config.pelican.clone().map(|p| {
-            Pelican::new(
+        let pelican = config.pelican.clone().and_then(|p| {
+            let save = p.save?;
+            Some(Pelican::new(
                 app.http.clone(),
                 p.base_url,
                 p.api_key,
-                p.server_id,
-                p.save_path,
-            )
+                save.server_id,
+                save.save_path,
+            ))
         });
 
         let palworld = Arc::new(PalworldClient::new(
@@ -107,6 +111,25 @@ impl BotState {
             .as_ref()
             .map(|c| JellyfinRuntime::new(app.http.clone(), c));
 
+        // Hosting needs the panel's admin-scoped key, so its client is built
+        // here and never handed to the dashboard.
+        let hosting = config.pelican.as_ref().zip(config.hosting.as_ref()).map(
+            |(pelican, hosting)| {
+                let runtime = Arc::new(HostingRuntime::new(
+                    app.http.clone(),
+                    &pelican.base_url,
+                    &pelican.api_key,
+                    hosting.clone(),
+                ));
+                HostingRuntime::spawn_paid_listener(
+                    Arc::clone(&runtime),
+                    app.db.clone(),
+                    app.subscribe(),
+                );
+                runtime
+            },
+        );
+
         let wiki_index = Arc::new(WikiIndex::new(app.http.clone()));
         WikiIndex::spawn_invalidator(Arc::clone(&wiki_index), app.subscribe());
 
@@ -121,6 +144,7 @@ impl BotState {
             bungie_client: Arc::new(bungie_client),
             wiki_index,
             jellyfin,
+            hosting,
             marathon_bungie_api_key: config.bungie_api_key.clone(),
             patreon,
             emoji_cache: Arc::default(),
@@ -153,6 +177,28 @@ impl BotState {
             ];
 
             for job in jellyfin_jobs {
+                match job {
+                    Ok(j) => self.cron_jobs.push(j),
+                    Err(e) => {
+                        tracing::error!(error = ?e, "failed to create cron job");
+                    },
+                }
+            }
+        }
+
+        // Hosting is optional; without a catalog and panel credentials there
+        // are no servers for these sweeps to act on.
+        if let Some(runtime) = self.hosting.as_ref() {
+            let hosting_jobs = [
+                HostingReminderCron::cron_job(Arc::clone(runtime)),
+                HostingExpireCron::cron_job(
+                    Arc::clone(runtime),
+                    Arc::clone(&self.app.entitlements),
+                ),
+                HostingDeleteCron::cron_job(Arc::clone(runtime)),
+            ];
+
+            for job in hosting_jobs {
                 match job {
                     Ok(j) => self.cron_jobs.push(j),
                     Err(e) => {

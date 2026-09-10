@@ -1,0 +1,119 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH due AS (\n            SELECT s.id\n            FROM hosted_servers s\n            WHERE s.state = 'suspended'\n              AND s.delete_after IS NOT NULL\n              AND s.delete_after < now()\n            ORDER BY s.delete_after\n            LIMIT $1\n            FOR UPDATE OF s SKIP LOCKED\n        )\n        UPDATE hosted_servers s\n        SET delete_after = now() + interval '1 hour',\n            updated_at = now()\n        FROM due\n        WHERE s.id = due.id\n        RETURNING\n            s.id, s.owner_id, s.game_key, s.plan, s.pelican_server_id,\n            s.price_cents, s.billing_source, s.claim_code,\n            coalesce(s.paid_until, s.trial_ends_at) AS \"expires_at: jiff_sqlx::Timestamp\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "owner_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "game_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "game_key"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "plan",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "plan"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "pelican_server_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "pelican_server_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "price_cents",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "price_cents"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "billing_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "billing_source"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "claim_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "claim_code"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "expires_at: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "10e81979e35b8f4bd725ba058d32251cda9d700d85dd07b0798fdbdb819e4769"
+}

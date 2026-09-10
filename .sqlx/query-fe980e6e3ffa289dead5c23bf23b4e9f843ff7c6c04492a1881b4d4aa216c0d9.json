@@ -1,0 +1,220 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id, owner_id, guild_id, game_key, plan, pelican_user_id,\n            pelican_server_id, memory_mib, cpu_percent, disk_mib, price_cents,\n            billing_source, claim_code, address, state,\n            trial_ends_at AS \"trial_ends_at: jiff_sqlx::Timestamp\",\n            paid_until AS \"paid_until: jiff_sqlx::Timestamp\"\n        FROM hosted_servers\n        WHERE claim_code = $1 AND state <> 'deleted'\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "owner_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "game_key",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "game_key"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "plan",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "plan"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "pelican_user_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "pelican_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "pelican_server_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "pelican_server_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "memory_mib",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "memory_mib"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "cpu_percent",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "cpu_percent"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "disk_mib",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "disk_mib"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "price_cents",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "price_cents"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "billing_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "billing_source"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "claim_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "claim_code"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "address",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "address"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "trial_ends_at: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "trial_ends_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "paid_until: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "hosted_servers",
+            "name": "paid_until"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "fe980e6e3ffa289dead5c23bf23b4e9f843ff7c6c04492a1881b4d4aa216c0d9"
+}

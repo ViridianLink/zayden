@@ -75,7 +75,9 @@ impl WikiIndex {
                         }
                     },
                     Ok(
-                        AppEvent::EntitlementChanged(_) | AppEvent::PatreonPost(_),
+                        AppEvent::EntitlementChanged(_)
+                        | AppEvent::PatreonPost(_)
+                        | AppEvent::HostingPaid(_),
                     ) => {},
                     Err(RecvError::Lagged(n)) => {
                         warn!(n, "wiki index invalidator lagged; dropping all");

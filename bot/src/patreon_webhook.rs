@@ -24,8 +24,11 @@ pub fn spawn_patreon_listener(ctx: Context, app: Arc<AppState>) {
                         );
                     }
                 },
-                Ok(AppEvent::ConfigChanged(_) | AppEvent::EntitlementChanged(_)) => {
-                },
+                Ok(
+                    AppEvent::ConfigChanged(_)
+                    | AppEvent::EntitlementChanged(_)
+                    | AppEvent::HostingPaid(_),
+                ) => {},
                 Err(RecvError::Lagged(n)) => {
                     warn!(
                         n,

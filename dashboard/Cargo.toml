@@ -39,6 +39,7 @@ ssr = [
   "dep:dotenvy",
   "dep:greetings",
   "dep:honeypot",
+  "dep:hosting",
   "dep:jiff",
   "dep:jiff-sqlx",
   "dep:moka",
@@ -74,6 +75,7 @@ axum = { workspace = true, optional = true }
 dotenvy = { workspace = true, optional = true }
 greetings = { workspace = true, optional = true }
 honeypot = { workspace = true, optional = true }
+hosting = { workspace = true, optional = true }
 jiff = { workspace = true, optional = true }
 jiff-sqlx = { workspace = true, optional = true }
 moka = { workspace = true, features = ["future"], optional = true }

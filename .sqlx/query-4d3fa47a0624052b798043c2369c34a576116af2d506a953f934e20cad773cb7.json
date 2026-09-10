@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT pg_notify('hosting_paid', $1)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "pg_notify",
+        "type_info": "Void",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "4d3fa47a0624052b798043c2369c34a576116af2d506a953f934e20cad773cb7"
+}

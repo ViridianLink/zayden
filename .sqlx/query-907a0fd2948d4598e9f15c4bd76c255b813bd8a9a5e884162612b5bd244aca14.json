@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) FROM hosted_servers WHERE owner_id = $1 AND state IN ('provisioning', 'trial', 'active', 'suspended')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "907a0fd2948d4598e9f15c4bd76c255b813bd8a9a5e884162612b5bd244aca14"
+}

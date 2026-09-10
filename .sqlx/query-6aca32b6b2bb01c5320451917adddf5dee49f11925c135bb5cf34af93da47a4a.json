@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hosted_servers SET state = 'failed', failure_reason = $2, updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6aca32b6b2bb01c5320451917adddf5dee49f11925c135bb5cf34af93da47a4a"
+}

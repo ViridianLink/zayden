@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hosted_servers SET state = 'suspended', suspended_at = now(), delete_after = now() + make_interval(days => $2), updated_at = now() WHERE id = $1 AND state IN ('trial', 'active')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "88a4b424a2fcf3b9b230fc2d8709fc95382060d37d4cae7a629e8c5db9434385"
+}

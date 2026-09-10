@@ -9,4 +9,5 @@ pub enum AppEvent {
     ConfigChanged(u64),
     EntitlementChanged(EntitlementScope),
     PatreonPost(String),
+    HostingPaid(i64),
 }

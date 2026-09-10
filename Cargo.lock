@@ -566,6 +566,7 @@ dependencies = [
  "gold-star",
  "greetings",
  "honeypot",
+ "hosting",
  "jellyfin",
  "jiff",
  "jiff-cron",
@@ -1320,6 +1321,7 @@ dependencies = [
  "dotenvy",
  "greetings",
  "honeypot",
+ "hosting",
  "jiff",
  "jiff-sqlx",
  "leptos",
@@ -2532,6 +2534,25 @@ name = "honeypot"
 version = "1.0.0"
 dependencies = [
  "moka",
+ "serenity",
+ "sqlx",
+ "thiserror 2.0.20",
+ "tokio",
+ "tracing",
+ "zayden-app",
+ "zayden-core",
+]
+
+[[package]]
+name = "hosting"
+version = "1.0.0"
+dependencies = [
+ "jiff",
+ "jiff-cron",
+ "jiff-sqlx",
+ "rand 0.10.2",
+ "reqwest 0.13.5",
+ "serde",
  "serenity",
  "sqlx",
  "thiserror 2.0.20",

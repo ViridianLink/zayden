@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -37,8 +38,37 @@ pub struct SpotifyCredentials {
 pub struct PelicanConfig {
     pub base_url: String,
     pub api_key: String,
+    pub save: Option<PelicanSaveConfig>,
+}
+
+#[derive(Debug, Clone)]
+pub struct PelicanSaveConfig {
     pub server_id: String,
     pub save_path: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct HostingGame {
+    pub key: String,
+    pub name: String,
+    pub egg_id: i32,
+    pub env: Vec<(String, String)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct HostingConfig {
+    pub panel_url: String,
+    pub kofi_url: String,
+    pub location_ids: Vec<i32>,
+    /// Hours, not days. The trial exists to prove the server comes up and the
+    /// specs are what was advertised, not to be a free tier.
+    pub trial_hours: i64,
+    /// Days a *subscription* survives after lapsing. Never applied to a trial.
+    pub grace_days: i64,
+    pub reminder_days: i64,
+    pub max_servers: i64,
+    pub max_ram_mib: i64,
+    pub games: Vec<HostingGame>,
 }
 
 #[derive(Debug, Clone)]
@@ -97,6 +127,8 @@ pub struct BotConfig {
 
     pub jellyfin: Option<JellyfinConfig>,
 
+    pub hosting: Option<HostingConfig>,
+
     pub redirect_uri: String,
     pub bind_addr: String,
     pub invite_url: Option<String>,
@@ -142,6 +174,7 @@ impl BotConfig {
 
         let pelican = load_pelican_config(&toml_cfg);
         let jellyfin = load_jellyfin_config(&toml_cfg);
+        let hosting = load_hosting_config(&toml_cfg, pelican.as_ref());
         let patreon = load_patreon_config(
             toml_cfg
                 .dashboard
@@ -210,6 +243,8 @@ impl BotConfig {
 
             jellyfin,
 
+            hosting,
+
             palworld_paldex_url: toml_cfg.palworld.paldex_url,
             palworld_palcalc_url: toml_cfg.palworld.palcalc_url,
 
@@ -260,26 +295,117 @@ fn require_env(var: &str) -> Result<String> {
 }
 
 fn load_pelican_config(toml_cfg: &TomlConfig) -> Option<PelicanConfig> {
-    match (
+    let (base_url, api_key) = match (
         env::var("PELICAN_BASE_URL").ok(),
         env::var("PELICAN_API_KEY").ok(),
+    ) {
+        (Some(base_url), Some(api_key)) => (base_url, api_key),
+        (None, None) => return None,
+        _ => {
+            warn!(
+                "Pelican config is incomplete; both PELICAN_BASE_URL and \
+                     PELICAN_API_KEY (env) must be set"
+            );
+            return None;
+        },
+    };
+
+    let save = match (
         toml_cfg.pelican.server_id.clone(),
         toml_cfg.pelican.save_path.clone(),
     ) {
-        (Some(base_url), Some(api_key), Some(server_id), Some(save_path)) => {
-            Some(PelicanConfig { base_url, api_key, server_id, save_path })
+        (Some(server_id), Some(save_path)) => {
+            Some(PelicanSaveConfig { server_id, save_path })
         },
-        (None, None, None, None) => None,
+        (None, None) => None,
         _ => {
             warn!(
-                "Pelican config is incomplete; near-live save refresh disabled \
-                 until PELICAN_BASE_URL and PELICAN_API_KEY (env) plus \
-                 [pelican].server_id and [pelican].save_path (config.toml) are \
-                 all set"
+                "Pelican save config is incomplete; near-live Palworld save \
+                 refresh disabled until both [pelican].server_id and \
+                 [pelican].save_path (config.toml) are set"
             );
             None
         },
+    };
+
+    Some(PelicanConfig { base_url, api_key, save })
+}
+
+const DEFAULT_HOSTING_TRIAL_HOURS: i64 = 4;
+const DEFAULT_HOSTING_GRACE_DAYS: i64 = 3;
+const DEFAULT_HOSTING_REMINDER_DAYS: i64 = 2;
+const DEFAULT_HOSTING_MAX_SERVERS: i64 = 13;
+const DEFAULT_HOSTING_MAX_RAM_MIB: i64 = 16_384;
+
+fn load_hosting_config(
+    toml_cfg: &TomlConfig,
+    pelican: Option<&PelicanConfig>,
+) -> Option<HostingConfig> {
+    let cfg = &toml_cfg.hosting;
+
+    if cfg.games.is_empty() && cfg.kofi_url.is_none() {
+        return None;
     }
+
+    let Some(pelican) = pelican else {
+        warn!(
+            "[hosting] is configured but Pelican credentials are not; game \
+             server hosting disabled until PELICAN_BASE_URL and \
+             PELICAN_API_KEY (env) are set"
+        );
+        return None;
+    };
+
+    let Some(kofi_url) = cfg.kofi_url.clone() else {
+        warn!(
+            "[hosting].kofi_url is unset; game server hosting disabled because \
+             users would have no way to pay"
+        );
+        return None;
+    };
+
+    if cfg.games.is_empty() {
+        warn!("[hosting] has no [[hosting.games]] entries; hosting disabled");
+        return None;
+    }
+
+    // A zero or negative trial expires the server the moment it finishes
+    // installing, which reads as a provisioning failure to whoever bought it.
+    let trial_hours = match cfg.trial_hours {
+        Some(hours) if hours > 0 => hours,
+        Some(bad) => {
+            warn!(
+                configured = bad,
+                default = DEFAULT_HOSTING_TRIAL_HOURS,
+                "[hosting].trial_hours must be positive; using the default"
+            );
+            DEFAULT_HOSTING_TRIAL_HOURS
+        },
+        None => DEFAULT_HOSTING_TRIAL_HOURS,
+    };
+
+    let games = cfg
+        .games
+        .iter()
+        .map(|g| HostingGame {
+            key: g.key.clone(),
+            name: g.name.clone(),
+            egg_id: g.egg_id,
+            env: g.env.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+        })
+        .collect();
+
+    Some(HostingConfig {
+        panel_url: cfg.panel_url.clone().unwrap_or_else(|| pelican.base_url.clone()),
+        kofi_url,
+        location_ids: cfg.location_ids.clone(),
+        trial_hours,
+        grace_days: cfg.grace_days.unwrap_or(DEFAULT_HOSTING_GRACE_DAYS),
+        reminder_days: cfg.reminder_days.unwrap_or(DEFAULT_HOSTING_REMINDER_DAYS),
+        max_servers: cfg.max_servers.unwrap_or(DEFAULT_HOSTING_MAX_SERVERS),
+        max_ram_mib: cfg.max_ram_mib.unwrap_or(DEFAULT_HOSTING_MAX_RAM_MIB),
+        games,
+    })
 }
 
 const DEFAULT_JELLYFIN_REGION: &str = "GB";
@@ -398,6 +524,8 @@ struct TomlConfig {
     #[serde(default)]
     pelican: TomlPelican,
     #[serde(default)]
+    hosting: TomlHosting,
+    #[serde(default)]
     jellyfin: TomlJellyfin,
     #[serde(default)]
     entitlements: TomlEntitlements,
@@ -441,6 +569,30 @@ struct TomlJellyfin {
 struct TomlPelican {
     server_id: Option<String>,
     save_path: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlHosting {
+    panel_url: Option<String>,
+    kofi_url: Option<String>,
+    #[serde(default)]
+    location_ids: Vec<i32>,
+    trial_hours: Option<i64>,
+    grace_days: Option<i64>,
+    reminder_days: Option<i64>,
+    max_servers: Option<i64>,
+    max_ram_mib: Option<i64>,
+    #[serde(default)]
+    games: Vec<TomlHostingGame>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct TomlHostingGame {
+    key: String,
+    name: String,
+    egg_id: i32,
+    #[serde(default)]
+    env: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Default, Deserialize)]

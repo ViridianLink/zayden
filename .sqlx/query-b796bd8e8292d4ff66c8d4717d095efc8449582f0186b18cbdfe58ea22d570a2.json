@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hosting_payments SET server_id = $2, matched_by = $3 WHERE kofi_message_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b796bd8e8292d4ff66c8d4717d095efc8449582f0186b18cbdfe58ea22d570a2"
+}

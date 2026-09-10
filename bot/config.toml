@@ -1,0 +1,84 @@
+[ai]
+endpoint = "https://openrouter.ai/api/v1"
+model = "openrouter/free"
+model_structured = "google/gemini-3.7-flash"
+model_pro = "google/gemini-3.7-flash"
+
+[ids]
+oscar_six = 211486447369322506
+zayden_guild = 1222360995700150443
+llamad2_guild = 1133034263579734037
+zayden_id = 787490197943091211
+
+[dashboard]
+redirect_uri = "http://localhost:3000/auth/callback"
+patreon_redirect_uri = "http://localhost:3000/patreon/callback"
+bind_addr = "0.0.0.0:3000"
+invite_url = "https://discord.com/oauth2/authorize?client_id=787490197943091211&permissions=8&integration_type=0&scope=bot+applications.commands"
+upgrade_url = "https://ko-fi.com/viridianlink"
+
+[palworld]
+paldex_url = "https://raw.githubusercontent.com/mlg404/palworld-paldex-api/main/src"
+palcalc_url = "https://raw.githubusercontent.com/tylercamp/palcalc/main/PalCalc.Model"
+uploads_dir = "palworld_uploads"
+
+[pelican]
+server_id = "your-server-id"
+save_path = "/Pal/Saved/SaveGames/0/123abc"
+
+[jellyfin]
+base_url = "https://jellyfin.viridian.icu"
+seer_base_url = "https://seer.viridian.icu"
+movie_library_id = "f137a2dd21bbc1b99aa5c0f6bf02a805"
+show_library_id = "a656b907eb3a73532e40e44b968d0225"
+region = "GB"
+
+# Game server hosting (`/server host`). Disabled unless [[hosting.games]] and
+# kofi_url are both present and PELICAN_BASE_URL/PELICAN_API_KEY are set — the
+# Application API key is the same `pacc_` key the [pelican] save refresh uses.
+[hosting]
+# Link users follow to pay. It must front four membership tiers priced at 2.50,
+# 5.00, 7.50 and 10.00; the tier name is matched on the amount embedded in it,
+# so the surrounding words and currency symbol are free-form.
+kofi_url = "https://ko-fi.com/your-page"
+# Panel URL DM'd with credentials. Defaults to PELICAN_BASE_URL.
+panel_url = "https://panel.example.com"
+# Passed to the Application API `deploy` block so the panel picks node and
+# allocation itself. Empty means "any location".
+location_ids = [1]
+# Trial length in HOURS. It exists to prove the server comes up, that people can
+# connect and that the specs are what was advertised — not as a free tier. 1-6 is
+# the sane range; anything longer is long enough to be farmed.
+trial_hours = 4
+# Days a lapsed *subscription* stays suspended before deletion. Never applied to
+# a trial: a trial that was not paid for is deleted as soon as it ends.
+grace_days = 3
+# Days before a subscription lapses that the reminder DM fires. Trials never get
+# a reminder — they are shorter than any sane value here.
+reminder_days = 2
+# Global ceilings, guarding the box rather than the buyer. max_servers is bounded
+# by the node's free allocations; max_ram_mib by real host RAM, not the LXC cap.
+max_servers = 13
+max_ram_mib = 16384
+
+# One entry per offered game. `egg_id` is the panel's own egg id — read them from
+# `GET /api/application/eggs`. Everything else (docker image, startup command,
+# default variables) is fetched from the egg at provision time; the optional
+# `env` table only overrides individual variables.
+[[hosting.games]]
+key = "minecraft-paper"
+name = "Minecraft (Paper)"
+egg_id = 3
+
+[[hosting.games]]
+key = "palworld"
+name = "Palworld"
+egg_id = 15
+
+[hosting.games.env]
+COMMUNITY = "false"
+
+# Discord monetisation SKU ids, from the Developer Portal.
+[entitlements.discord.skus]
+pro = 1234567890
+ultra = 9876543210

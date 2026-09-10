@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO hosting_payments ( kofi_message_id, server_id, kofi_email, tier_name, amount_cents, currency, matched_by ) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (kofi_message_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9de0e727a30d0a4255b0e55984e16f00e16e27ee146609b8cc89b1c201e49dc4"
+}

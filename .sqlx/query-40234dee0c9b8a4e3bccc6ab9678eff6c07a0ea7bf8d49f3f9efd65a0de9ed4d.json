@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hosted_servers SET pelican_user_id = $2, pelican_server_id = $3, pelican_server_uuid = $4, address = $5, state = 'trial', billing_source = 'trial', trial_ends_at = $6, updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4",
+        "Int4",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "40234dee0c9b8a4e3bccc6ab9678eff6c07a0ea7bf8d49f3f9efd65a0de9ed4d"
+}

@@ -75,6 +75,7 @@ build/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.zed/
 *.sw?
 .DS_Store
 *.suo
