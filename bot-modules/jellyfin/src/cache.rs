@@ -3,7 +3,7 @@ use std::time::Duration;
 use moka::future::Cache;
 
 use crate::identity::quick_connect::PendingLink;
-use crate::transport::jellyfin::model::ItemCounts;
+use crate::transport::jellyfin::model::LibraryCounts;
 use crate::transport::jellyseerr::model::{
     MovieDetails,
     RegionProviders,
@@ -27,7 +27,7 @@ pub struct JellyfinCaches {
     pub watch_providers: Cache<(String, i32), Vec<RegionProviders>>,
     pub search: Cache<String, Vec<SearchResult>>,
     pub segment_stats: Cache<String, SegmentStats>,
-    pub counts: Cache<(), ItemCounts>,
+    pub counts: Cache<(), LibraryCounts>,
 }
 
 impl Default for JellyfinCaches {

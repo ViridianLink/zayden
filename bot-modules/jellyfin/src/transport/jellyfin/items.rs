@@ -1,5 +1,7 @@
+use serde::de::IgnoredAny;
+
 use super::JellyfinClient;
-use super::model::{Item, ItemCounts, ItemsPage};
+use super::model::{Item, ItemsPage, LibraryCounts};
 use crate::transport::http::{ApiResult, fetch_json};
 
 const INDEX_FIELDS: &str =
@@ -14,8 +16,36 @@ impl JellyfinClient {
         .await
     }
 
-    pub async fn counts(&self) -> ApiResult<ItemCounts> {
-        fetch_json(super::SERVICE, "item counts", || self.get("Items/Counts")).await
+    pub async fn library_count(
+        &self,
+        parent_id: &str,
+        item_type: &str,
+    ) -> ApiResult<i64> {
+        let page: ItemsPage<IgnoredAny> =
+            fetch_json(super::SERVICE, "library count", || {
+                self.get("Items").query(&[
+                    ("parentId", parent_id),
+                    ("includeItemTypes", item_type),
+                    ("recursive", "true"),
+                    ("collapseBoxSetItems", "false"),
+                    ("isMissing", "false"),
+                    ("limit", "0"),
+                    ("enableTotalRecordCount", "true"),
+                ])
+            })
+            .await?;
+
+        Ok(page.total_record_count)
+    }
+
+    pub async fn counts(&self) -> ApiResult<LibraryCounts> {
+        let (movies, series, episodes) = futures::try_join!(
+            self.library_count(self.movie_library_id(), "Movie"),
+            self.library_count(self.show_library_id(), "Series"),
+            self.library_count(self.show_library_id(), "Episode"),
+        )?;
+
+        Ok(LibraryCounts { movies, series, episodes })
     }
 
     pub async fn library_page(
@@ -29,6 +59,7 @@ impl JellyfinClient {
                 ("parentId", parent_id),
                 ("includeItemTypes", item_type),
                 ("recursive", "true"),
+                ("collapseBoxSetItems", "false"),
                 ("fields", INDEX_FIELDS),
                 ("startIndex", &start_index.to_string()),
                 ("limit", &PAGE_SIZE.to_string()),

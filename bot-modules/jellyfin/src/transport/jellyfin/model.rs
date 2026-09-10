@@ -57,17 +57,11 @@ pub struct Item {
     pub provider_ids: Option<ProviderIds>,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct ItemCounts {
-    #[serde(default)]
-    pub movie_count: i64,
-    #[serde(default)]
-    pub series_count: i64,
-    #[serde(default)]
-    pub episode_count: i64,
-    #[serde(default)]
-    pub box_set_count: i64,
+#[derive(Debug, Clone, Copy)]
+pub struct LibraryCounts {
+    pub movies: i64,
+    pub series: i64,
+    pub episodes: i64,
 }
 
 #[derive(Debug, Clone, Deserialize)]

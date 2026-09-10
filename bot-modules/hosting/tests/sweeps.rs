@@ -108,9 +108,7 @@ async fn trials_never_get_an_expiry_reminder(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "../../migrations", fixtures("hosting"))]
-async fn a_lapsed_trial_gets_no_grace_but_a_lapsed_subscription_does(
-    pool: PgPool,
-) {
+async fn a_lapsed_trial_gets_no_grace_but_a_lapsed_subscription_does(pool: PgPool) {
     let expired = ids(sweep::claim_expired(&pool, 3, 40).await);
     assert_eq!(expired, vec![1, 2], "row 1 is a subscription, row 2 a trial");
 
