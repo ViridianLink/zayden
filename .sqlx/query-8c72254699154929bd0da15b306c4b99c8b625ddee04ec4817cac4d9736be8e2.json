@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM jellyfin_party_guests WHERE party_id = $1 AND user_id = $2 AND jellyfin_user_id IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8c72254699154929bd0da15b306c4b99c8b625ddee04ec4817cac4d9736be8e2"
+}

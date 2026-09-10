@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT party_id, user_id, jellyfin_username, jellyfin_user_id, deleted_at AS \"deleted_at: SqlxTimestamp\" FROM jellyfin_party_guests WHERE party_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "party_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_party_guests",
+            "name": "party_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_party_guests",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "jellyfin_username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_party_guests",
+            "name": "jellyfin_username"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "jellyfin_user_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_party_guests",
+            "name": "jellyfin_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "deleted_at: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_party_guests",
+            "name": "deleted_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "c951207dc4adf57d1d39b7d4d3ba2b384f305b617edcfaf7158b7901de1ee4fa"
+}

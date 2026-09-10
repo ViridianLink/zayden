@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use serenity::all::{Context, CreateCommand, Guild, GuildId};
@@ -22,11 +23,23 @@ impl Handler {
     ) -> Result<()> {
         let data = ctx.data::<RwLock<BotState>>();
 
+        // Party provisioning and cleanup are lost with the in-memory cron jobs,
+        // so anything the bot was down for has to be caught up here.
+        let jellyfin_runtime = {
+            let guard = data.read().await;
+            guard.jellyfin.as_ref().map(Arc::clone)
+        };
+
         let (lfg_result, ()) = tokio::join!(
             lfg::events::guild_create::<BotState>(ctx, guild, pool),
             BotState::guild_create(data, guild),
         );
         lfg_result?;
+
+        if let Some(runtime) = jellyfin_runtime {
+            watch::events::guild_create::<BotState>(ctx, &runtime, pool, guild.id)
+                .await;
+        }
 
         let commands = self.registry.definitions_for(guild.id);
 

@@ -30,6 +30,7 @@ suggestions = { workspace = true }
 temp-voice = { workspace = true }
 ticket = { workspace = true }
 verify = { workspace = true }
+watch = { workspace = true }
 zayden-core = { workspace = true }
 zayden-app = { workspace = true }
 

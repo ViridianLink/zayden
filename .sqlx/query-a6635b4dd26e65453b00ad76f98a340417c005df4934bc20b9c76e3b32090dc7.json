@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jellyfin_party_guests SET deleted_at = now() WHERE party_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6635b4dd26e65453b00ad76f98a340417c005df4934bc20b9c76e3b32090dc7"
+}

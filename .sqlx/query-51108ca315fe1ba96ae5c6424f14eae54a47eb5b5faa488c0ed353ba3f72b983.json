@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT day AS \"day: jiff_sqlx::Date\", seconds\n        FROM jellyfin_playback_daily\n        WHERE jellyfin_user_id = $1\n        ORDER BY day\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "day: jiff_sqlx::Date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_playback_daily",
+            "name": "day"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "seconds",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_playback_daily",
+            "name": "seconds"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "51108ca315fe1ba96ae5c6424f14eae54a47eb5b5faa488c0ed353ba3f72b983"
+}

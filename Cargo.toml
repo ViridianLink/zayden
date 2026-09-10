@@ -209,7 +209,7 @@ base64 = { version = "*", default-features = false }
 serde = { version = "*", default-features = false }
 serde_json = { version = "*", default-features = false }
 toml = { version = "*", default-features = false }
-quick-xml = { version = "*", default-features = false, features = ["std"] }
+quick-xml = { version = "*", default-features = false }
 
 # -- GraphQL
 cynic = { version = "*", default-features = false }

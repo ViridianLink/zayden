@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jellyfin_party_guests SET jellyfin_user_id = $3, provisioned_at = now() WHERE party_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f61e266bc1ada7db20a4da0678a9a2dcc54fdeabb97d0120cb8c12dd06233beb"
+}

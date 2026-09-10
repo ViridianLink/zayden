@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT tmdb_id AS \"tmdb_id!\"\n            FROM jellyfin_library_items\n            WHERE item_type = $1 AND tmdb_id IS NOT NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tmdb_id!",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "tmdb_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "b6eb0bb8a7d20f080bd44addb792c159996a5a80545c4d6e23c386c5ea81b59d"
+}

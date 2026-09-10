@@ -1,0 +1,163 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT item_id, item_type, name, sort_name, production_year, tmdb_id,\n                   imdb_id, tvdb_id, runtime_ticks, community_rating,\n                   genres AS \"genres!: Vec<String>\", parent_path\n            FROM jellyfin_library_items\n            WHERE ($2::text IS NULL OR item_type = $2)\n              AND (lower(name) LIKE $1 OR lower(sort_name) LIKE $1)\n            ORDER BY\n                CASE WHEN lower(name) LIKE $3 THEN 0 ELSE 1 END,\n                sort_name\n            LIMIT $4\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "item_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "item_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "item_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "item_type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "sort_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "sort_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "production_year",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "production_year"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "tmdb_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "tmdb_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "imdb_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "imdb_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "tvdb_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "tvdb_id"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "runtime_ticks",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "runtime_ticks"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "community_rating",
+        "type_info": "Float4",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "community_rating"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "genres!: Vec<String>",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "genres"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "parent_path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_library_items",
+            "name": "parent_path"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "0438b2ab1f09334a5f89040e27cf3b25b3fc256818291cc1a92ea44bc6adf234"
+}

@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT user_id,\n                   SUM(points)::int AS \"points!\",\n                   SUM(correct)::int AS \"correct!\",\n                   SUM(played)::int AS \"played!\"\n            FROM jellyfin_game_scores\n            WHERE guild_id = $1 AND ($2::text IS NULL OR game = $2)\n            GROUP BY user_id\n            ORDER BY \"points!\" DESC\n            LIMIT $3\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_scores",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "points!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "correct!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "played!",
+        "type_info": "Int4",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b7bfe87724cec79aede543f9a039ba142fc0dbb28a8784f1d08921250704707b"
+}

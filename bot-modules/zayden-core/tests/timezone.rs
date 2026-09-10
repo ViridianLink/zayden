@@ -62,4 +62,3 @@ fn locale_mapping_is_stable_for_known_regions() {
     assert_eq!(locale_to_timezone("ja"), "Asia/Tokyo");
     assert_eq!(locale_to_timezone("pt-BR"), "America/Sao_Paulo");
 }
-

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jellyfin_game_rounds SET solved_by = NULL, solved_at = NULL WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "38ac3c9ac026ac8a3f5d38b66c17f71d7bc05c745a0a31c323f4b02497bb6ea9"
+}

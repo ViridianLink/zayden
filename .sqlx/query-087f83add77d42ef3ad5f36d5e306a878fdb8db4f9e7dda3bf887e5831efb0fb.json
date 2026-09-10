@@ -1,0 +1,100 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT user_id, jellyfin_user_id, jellyfin_username,\n                   jellyseerr_user_id,\n                   jellyseerr_checked_at AS \"jellyseerr_checked_at: Timestamp\",\n                   streak_public, letterboxd_username\n            FROM jellyfin_users\n            WHERE user_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "jellyfin_user_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "jellyfin_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "jellyfin_username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "jellyfin_username"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "jellyseerr_user_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "jellyseerr_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "jellyseerr_checked_at: Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "jellyseerr_checked_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "streak_public",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "streak_public"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "letterboxd_username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "letterboxd_username"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "087f83add77d42ef3ad5f36d5e306a878fdb8db4f9e7dda3bf887e5831efb0fb"
+}

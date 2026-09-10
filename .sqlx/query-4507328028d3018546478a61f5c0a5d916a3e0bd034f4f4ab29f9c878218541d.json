@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO jellyfin_game_scores\n                (guild_id, user_id, game, points, correct, played, last_played_at)\n            VALUES ($1, $2, $3, $4, $5, 1, now())\n            ON CONFLICT (guild_id, user_id, game) DO UPDATE SET\n                points = jellyfin_game_scores.points + EXCLUDED.points,\n                correct = jellyfin_game_scores.correct + EXCLUDED.correct,\n                played = jellyfin_game_scores.played + 1,\n                last_played_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4507328028d3018546478a61f5c0a5d916a3e0bd034f4f4ab29f9c878218541d"
+}

@@ -1,0 +1,230 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, guild_id, channel_id, message_id, event_id, host_id, item_id, item_name, item_type, item_parent_path, guests_enabled, library_name, library_item_id, starts_at AS \"starts_at: SqlxTimestamp\", ends_at AS \"ends_at: SqlxTimestamp\", cleanup_after AS \"cleanup_after: SqlxTimestamp\", state, cleaned_at AS \"cleaned_at: SqlxTimestamp\" FROM jellyfin_parties WHERE cleaned_at IS NULL AND state <> 'cancelled' ORDER BY starts_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "message_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "message_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "event_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "event_id"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "host_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "host_id"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "item_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "item_id"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "item_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "item_name"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "item_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "item_type"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "item_parent_path",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "item_parent_path"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "guests_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "guests_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "library_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "library_name"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "library_item_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "library_item_id"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "starts_at: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "starts_at"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "ends_at: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "ends_at"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "cleanup_after: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "cleanup_after"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "cleaned_at: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_parties",
+            "name": "cleaned_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "2bfda53291e55723990e077df9ee11f1715f92fb9208e8c5726bb35d1e935a8f"
+}

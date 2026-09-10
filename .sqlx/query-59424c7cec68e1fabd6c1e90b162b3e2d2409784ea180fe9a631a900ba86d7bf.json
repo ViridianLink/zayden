@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO jellyfin_playback_daily\n                (jellyfin_user_id, day, seconds, items)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (jellyfin_user_id, day) DO UPDATE SET\n                seconds = EXCLUDED.seconds,\n                items = EXCLUDED.items\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Date",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "59424c7cec68e1fabd6c1e90b162b3e2d2409784ea180fe9a631a900ba86d7bf"
+}

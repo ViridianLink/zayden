@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jellyfin_users SET jellyseerr_user_id = $2, jellyseerr_checked_at = now(), updated_at = now() WHERE user_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6fd31f2bae7db57726fb7e731a5a29700eeebb0a427c619ee7ccfa37f6cb56a7"
+}

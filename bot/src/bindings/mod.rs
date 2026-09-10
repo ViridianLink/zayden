@@ -10,6 +10,7 @@ pub mod gambling;
 pub mod gold_star;
 pub mod greetings;
 pub mod honeypot;
+pub mod jellyfin;
 pub mod levels;
 pub mod lfg;
 pub mod llamad2;
@@ -34,6 +35,7 @@ pub fn build_registry(
     gold_star::register(&mut builder);
     greetings::register(&mut builder);
     honeypot::register(&mut builder);
+    jellyfin::register(&mut builder)?;
     lfg::register(&mut builder)?;
     levels::register(&mut builder)?;
     llamad2::register(&mut builder, llamad2_guild);

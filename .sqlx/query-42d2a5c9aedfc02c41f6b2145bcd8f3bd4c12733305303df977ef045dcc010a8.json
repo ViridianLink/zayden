@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM jellyfin_library_items WHERE refreshed_at < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "42d2a5c9aedfc02c41f6b2145bcd8f3bd4c12733305303df977ef045dcc010a8"
+}

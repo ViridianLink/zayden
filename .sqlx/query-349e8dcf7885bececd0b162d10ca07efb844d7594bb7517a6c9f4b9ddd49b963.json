@@ -1,0 +1,80 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO jellyfin_settings\n                (guild_id, party_channel_id, game_channel_id, guests_enabled,\n                 max_concurrent_guests)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (guild_id) DO UPDATE SET\n                party_channel_id = EXCLUDED.party_channel_id,\n                game_channel_id = EXCLUDED.game_channel_id,\n                guests_enabled = EXCLUDED.guests_enabled,\n                max_concurrent_guests = EXCLUDED.max_concurrent_guests,\n                updated_at = now()\n            RETURNING guild_id, party_channel_id, game_channel_id, guests_enabled,\n                      max_concurrent_guests\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_settings",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "party_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_settings",
+            "name": "party_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "game_channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_settings",
+            "name": "game_channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "guests_enabled",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_settings",
+            "name": "guests_enabled"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "max_concurrent_guests",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_settings",
+            "name": "max_concurrent_guests"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "349e8dcf7885bececd0b162d10ca07efb844d7594bb7517a6c9f4b9ddd49b963"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO jellyfin_users\n                (user_id, jellyfin_user_id, jellyfin_username)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (user_id) DO UPDATE SET\n                jellyfin_user_id = EXCLUDED.jellyfin_user_id,\n                jellyfin_username = EXCLUDED.jellyfin_username,\n                updated_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "da35c97e3408b58570ecb1654d7746bd706c6ca335e915d6bbd2ceb7912bc3e4"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jellyfin_parties SET state = 'cleaned', cleaned_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d865b74a20525855e5857f9895940f7034d15b266488da3105b4da5025e0ce50"
+}

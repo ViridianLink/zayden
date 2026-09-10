@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT COUNT(*)\n            FROM jellyfin_party_guests AS g\n            JOIN jellyfin_parties AS p ON p.id = g.party_id\n            WHERE p.guild_id = $1 AND g.jellyfin_user_id IS NOT NULL\n              AND g.deleted_at IS NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f0d3bcd289e1236e89aced8d893200436a789451aa8c93e1357dbc6b4d6507ac"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE jellyfin_parties SET library_name = $2 WHERE id = $1 AND library_name IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8ab7aa33b223622415b888c1ba48042b70b49acaa9a51c7472460c775ba30690"
+}

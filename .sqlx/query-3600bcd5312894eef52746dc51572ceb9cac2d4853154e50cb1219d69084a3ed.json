@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO jellyfin_party_guests (party_id, user_id, jellyfin_username) VALUES ($1, $2, $3) ON CONFLICT (party_id, user_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3600bcd5312894eef52746dc51572ceb9cac2d4853154e50cb1219d69084a3ed"
+}

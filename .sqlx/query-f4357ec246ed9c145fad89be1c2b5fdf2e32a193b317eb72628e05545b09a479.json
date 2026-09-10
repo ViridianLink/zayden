@@ -1,0 +1,124 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, guild_id, channel_id, game, kind, answer, choices, solved_by, expires_at AS \"expires_at: SqlxTimestamp\" FROM jellyfin_game_rounds WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "game",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "game"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "answer",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "answer"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "choices",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "choices"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "solved_by",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "solved_by"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "expires_at: SqlxTimestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "expires_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "f4357ec246ed9c145fad89be1c2b5fdf2e32a193b317eb72628e05545b09a479"
+}
