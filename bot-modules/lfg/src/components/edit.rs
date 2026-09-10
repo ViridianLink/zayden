@@ -60,7 +60,7 @@ impl EditRow {
             FROM
                 lfg_posts AS p
             LEFT JOIN
-                lfg_user_settings AS u ON p.owner_id = u.id
+                user_timezones AS u ON p.owner_id = u.user_id
             WHERE
                 p.id = $1
             "#,

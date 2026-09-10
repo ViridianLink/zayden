@@ -9,10 +9,10 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::PgPool;
-use zayden_core::required_option;
+use zayden_core::{UserTimezone, required_option};
 
 use super::Command;
-use crate::{Result, UserSettings};
+use crate::Result;
 
 impl Command {
     pub async fn timezone(
@@ -28,7 +28,7 @@ impl Command {
         let tz = tz::db().get(region).unwrap_or(TimeZone::UTC);
         let tz_name = tz.iana_name().unwrap_or(region);
 
-        UserSettings::save(pool, interaction.user.id, tz_name).await?;
+        UserTimezone::save(pool, interaction.user.id, tz_name).await?;
 
         interaction
             .edit_response(

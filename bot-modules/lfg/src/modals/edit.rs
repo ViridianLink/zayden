@@ -9,13 +9,13 @@ use serenity::all::{
 };
 use sqlx::PgPool;
 use tracing::debug;
-use zayden_core::{CronJobData, parse_modal_components};
+use zayden_core::{CronJobData, UserTimezone, parse_modal_components};
 
 use super::start_time;
 use crate::cron::create_reminders;
 use crate::templates::DefaultTemplate;
 use crate::utils::update_embeds;
-use crate::{LfgError, PostBuilder, PostRow, Result, UserSettings};
+use crate::{LfgError, PostBuilder, PostRow, Result};
 
 pub struct Edit;
 
@@ -54,7 +54,7 @@ impl Edit {
             .unwrap_or_default();
 
         let timezone =
-            UserSettings::get(pool, interaction.user.id, &interaction.locale)
+            UserTimezone::get(pool, interaction.user.id, &interaction.locale)
                 .await?;
 
         let start_time = start_time(timezone, &start_time_str)?;

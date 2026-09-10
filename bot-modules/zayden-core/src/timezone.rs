@@ -3,7 +3,7 @@ use jiff::tz::TimeZone;
 use serenity::all::UserId;
 use sqlx::PgPool;
 use sqlx::postgres::PgQueryResult;
-use zayden_core::as_i64;
+use crate::as_i64;
 
 #[must_use]
 pub fn locale_to_timezone(locale: &str) -> &'static str {
@@ -43,16 +43,16 @@ pub fn locale_to_timezone(locale: &str) -> &'static str {
     }
 }
 
-pub struct UserSettings;
+pub struct UserTimezone;
 
-impl UserSettings {
+impl UserTimezone {
     pub async fn get(
         pool: &PgPool,
         id: UserId,
         locale: &str,
     ) -> sqlx::Result<TimeZone> {
         let row = sqlx::query!(
-            "SELECT timezone FROM lfg_user_settings WHERE id = $1",
+            "SELECT timezone FROM user_timezones WHERE user_id = $1",
             as_i64(id.get())
         )
         .fetch_optional(pool)
@@ -72,7 +72,7 @@ impl UserSettings {
         tz_name: &str,
     ) -> sqlx::Result<PgQueryResult> {
         sqlx::query!(
-            "INSERT INTO lfg_user_settings (id, timezone) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET timezone = $2",
+            "INSERT INTO user_timezones (user_id, timezone) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET timezone = $2, updated_at = now()",
             as_i64(id.get()),
             tz_name
         )

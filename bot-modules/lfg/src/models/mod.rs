@@ -1,9 +1,7 @@
 pub mod post;
-pub mod timezone_manager;
 
 pub use post::{PostBuilder, PostRow};
 use serenity::all::UserId;
-pub use timezone_manager::UserSettings;
 
 pub trait Join {
     fn fireteam_size(&self) -> i16;

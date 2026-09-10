@@ -17,4 +17,4 @@ pub use components::{Components, KickComponent, TagsComponent};
 pub use error::LfgError;
 use error::Result;
 pub use modals::{Create, Edit};
-pub use models::{Join, PostBuilder, PostRow, UserSettings};
+pub use models::{Join, PostBuilder, PostRow};

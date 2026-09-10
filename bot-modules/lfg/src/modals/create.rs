@@ -17,12 +17,12 @@ use serenity::all::{
 use sqlx::PgPool;
 use sqlx::prelude::FromRow;
 use tracing::warn;
-use zayden_core::{CronJobData, as_u64, parse_modal_components};
+use zayden_core::{CronJobData, UserTimezone, as_u64, parse_modal_components};
 
 use super::start_time;
 use crate::cron::create_reminders;
 use crate::templates::{DefaultTemplate, Template};
-use crate::{ACTIVITIES, LfgError, PostBuilder, PostRow, Result, UserSettings};
+use crate::{ACTIVITIES, LfgError, PostBuilder, PostRow, Result};
 
 #[derive(FromRow)]
 pub struct GuildRow {
@@ -85,7 +85,7 @@ impl Create {
             .unwrap_or_default();
 
         let timezone =
-            UserSettings::get(pool, interaction.user.id, &interaction.locale)
+            UserTimezone::get(pool, interaction.user.id, &interaction.locale)
                 .await?;
 
         let start_time = start_time(timezone, &start_time_str)?;

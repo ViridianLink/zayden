@@ -9,11 +9,11 @@ use serenity::all::{
     ResolvedValue,
 };
 use sqlx::PgPool;
-use zayden_core::required_option;
+use zayden_core::{UserTimezone, required_option};
 
 use super::Command;
 use crate::modals::modal_components;
-use crate::{ACTIVITIES, Result, UserSettings};
+use crate::{ACTIVITIES, Result};
 
 impl Command {
     pub async fn create(
@@ -30,7 +30,7 @@ impl Command {
         };
 
         let timezone =
-            UserSettings::get(pool, interaction.user.id, &interaction.locale)
+            UserTimezone::get(pool, interaction.user.id, &interaction.locale)
                 .await?;
         let now = Timestamp::now().to_zoned(timezone);
 
