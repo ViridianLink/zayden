@@ -66,6 +66,7 @@ pub async fn run<S: BuildHasher>(
         guild_id,
         channel_id,
         started_by: cx.interaction.user.id,
+        started_by_name: &cx.interaction.user.name,
         game: GAME,
         kind: scope,
         answer: &question.answer,

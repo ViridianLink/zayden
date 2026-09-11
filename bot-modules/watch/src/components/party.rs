@@ -45,7 +45,8 @@ pub async fn join(
     }
 
     let user = &cx.interaction.user;
-    PartyGuestRow::join(&cx.app.db, party_id, user.id, user.name.as_str()).await?;
+    PartyGuestRow::join(&cx.app.db, party_id, user.id, &user.name, &user.name)
+        .await?;
 
     cx.ephemeral(
         "You are on the list. If you have not linked a Jellyfin account I will \

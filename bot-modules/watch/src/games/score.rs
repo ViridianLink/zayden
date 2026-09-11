@@ -22,6 +22,7 @@ impl ScoreRow {
         pool: &PgPool,
         guild_id: GuildId,
         user_id: UserId,
+        username: &str,
         game: &str,
         correct: bool,
     ) -> sqlx::Result<()> {
@@ -36,8 +37,10 @@ impl ScoreRow {
         .await?;
 
         sqlx::query!(
-            "INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
-            discord_id
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            discord_id,
+            username
         )
         .execute(pool)
         .await?;

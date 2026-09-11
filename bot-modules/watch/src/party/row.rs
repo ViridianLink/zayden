@@ -239,13 +239,16 @@ impl PartyGuestRow {
         pool: &PgPool,
         party_id: i64,
         user_id: UserId,
-        username: &str,
+        discord_username: &str,
+        jellyfin_username: &str,
     ) -> sqlx::Result<()> {
         let discord_id = as_i64(user_id.get());
 
         sqlx::query!(
-            "INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
-            discord_id
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            discord_id,
+            discord_username
         )
         .execute(pool)
         .await?;
@@ -254,7 +257,7 @@ impl PartyGuestRow {
             "INSERT INTO jellyfin_party_guests (party_id, user_id, jellyfin_username) VALUES ($1, $2, $3) ON CONFLICT (party_id, user_id) DO NOTHING",
             party_id,
             discord_id,
-            username
+            jellyfin_username
         )
         .execute(pool)
         .await?;

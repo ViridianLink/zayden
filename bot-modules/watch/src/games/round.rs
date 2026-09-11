@@ -11,6 +11,7 @@ pub struct NewRound<'a> {
     pub guild_id: GuildId,
     pub channel_id: GenericChannelId,
     pub started_by: UserId,
+    pub started_by_name: &'a str,
     pub game: &'a str,
     pub kind: &'a str,
     pub answer: &'a str,
@@ -26,8 +27,10 @@ impl NewRound<'_> {
         let discord_id = as_i64(self.started_by.get());
 
         sqlx::query!(
-            "INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
-            discord_id
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            discord_id,
+            self.started_by_name
         )
         .execute(pool)
         .await?;
@@ -104,12 +107,15 @@ impl RoundRow {
         pool: &PgPool,
         id: i64,
         user_id: UserId,
+        username: &str,
     ) -> sqlx::Result<Option<String>> {
         let discord_id = as_i64(user_id.get());
 
         sqlx::query!(
-            "INSERT INTO users (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
-            discord_id
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            discord_id,
+            username
         )
         .execute(pool)
         .await?;

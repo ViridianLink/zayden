@@ -49,9 +49,12 @@ async fn settle(
 ) -> Result<()> {
     let guild_id = cx.interaction.guild_id.ok_or(WatchError::MissingGuildId)?;
     let user_id = cx.interaction.user.id;
+    let username = cx.interaction.user.name.as_str();
 
     // Atomic: exactly one simultaneous click can claim the round.
-    let Some(answer) = RoundRow::claim(&cx.app.db, round.id, user_id).await? else {
+    let Some(answer) =
+        RoundRow::claim(&cx.app.db, round.id, user_id, username).await?
+    else {
         return if round.is_expired() {
             Err(WatchError::RoundExpired)
         } else {
@@ -60,7 +63,8 @@ async fn settle(
     };
 
     let correct = answer.eq_ignore_ascii_case(picked.trim());
-    ScoreRow::record(&cx.app.db, guild_id, user_id, &round.game, correct).await?;
+    ScoreRow::record(&cx.app.db, guild_id, user_id, username, &round.game, correct)
+        .await?;
 
     if correct {
         cx.interaction
@@ -117,8 +121,11 @@ pub async fn guess_submit(cx: &ModalCtx<'_>, suffix: &str) -> Result<()> {
 
     let guild_id = cx.interaction.guild_id.ok_or(WatchError::MissingGuildId)?;
     let user_id = cx.interaction.user.id;
+    let username = cx.interaction.user.name.as_str();
 
-    let Some(answer) = RoundRow::claim(&cx.app.db, round_id, user_id).await? else {
+    let Some(answer) =
+        RoundRow::claim(&cx.app.db, round_id, user_id, username).await?
+    else {
         return if round.is_expired() {
             Err(WatchError::RoundExpired)
         } else {
@@ -127,7 +134,8 @@ pub async fn guess_submit(cx: &ModalCtx<'_>, suffix: &str) -> Result<()> {
     };
 
     let correct = answer.trim().eq_ignore_ascii_case(guess.trim());
-    ScoreRow::record(&cx.app.db, guild_id, user_id, &round.game, correct).await?;
+    ScoreRow::record(&cx.app.db, guild_id, user_id, username, &round.game, correct)
+        .await?;
 
     let content = if correct {
         format!("<@{user_id}> got it — **{answer}**.")
