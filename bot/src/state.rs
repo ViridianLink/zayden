@@ -68,7 +68,7 @@ impl BotState {
         app: Arc<AppState>,
         config: &BotConfig,
         music_resolver: Arc<dyn TrackResolver>,
-    ) -> std::result::Result<Self, bungie_api::BungieApiError> {
+    ) -> Result<Self> {
         let bungie_client =
             BungieClientBuilder::new(config.bungie_api_key.clone()).build()?;
 
@@ -109,7 +109,8 @@ impl BotState {
         let jellyfin = config
             .jellyfin
             .as_ref()
-            .map(|c| JellyfinRuntime::new(app.http.clone(), c));
+            .map(|c| JellyfinRuntime::new(app.http.clone(), c))
+            .transpose()?;
 
         // Hosting needs the panel's admin-scoped key, so its client is built
         // here and never handed to the dashboard.

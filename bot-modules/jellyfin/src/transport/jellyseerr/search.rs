@@ -11,8 +11,10 @@ use crate::transport::http::{ApiResult, fetch_json};
 
 impl SeerClient {
     pub async fn search(&self, query: &str) -> ApiResult<Vec<SearchResult>> {
+        let params = [("query", query), ("page", "1")];
+
         let page: SearchPage = fetch_json(super::SERVICE, "search", || {
-            self.get("search").query(&[("query", query), ("page", "1")])
+            self.get_query("search", &params)
         })
         .await?;
 
@@ -34,8 +36,10 @@ impl SeerClient {
     }
 
     pub async fn keyword_id(&self, name: &str) -> ApiResult<Option<i32>> {
+        let params = [("query", name), ("page", "1")];
+
         let page: KeywordPage = fetch_json(super::SERVICE, "keyword search", || {
-            self.get("search/keyword").query(&[("query", name), ("page", "1")])
+            self.get_query("search/keyword", &params)
         })
         .await?;
 

@@ -79,9 +79,13 @@ impl SeerClient {
             MediaType::Tv => "discover/tv",
         };
         let query = filters.query();
+        let params = query
+            .iter()
+            .map(|(key, value)| (*key, value.as_str()))
+            .collect::<Vec<_>>();
 
         let page: SearchPage =
-            fetch_json(super::SERVICE, "discover", || self.get(path).query(&query))
+            fetch_json(super::SERVICE, "discover", || self.get_query(path, &params))
                 .await?;
 
         Ok(page.results)
@@ -89,7 +93,7 @@ impl SeerClient {
 
     pub async fn trending(&self) -> ApiResult<Vec<SearchResult>> {
         let page: SearchPage = fetch_json(super::SERVICE, "trending", || {
-            self.get("discover/trending").query(&[("page", "1")])
+            self.get_query("discover/trending", &[("page", "1")])
         })
         .await?;
 
@@ -104,7 +108,7 @@ impl SeerClient {
         let path = format!("{}/{tmdb_id}/recommendations", kind.as_str());
 
         let page: SearchPage = fetch_json(super::SERVICE, "recommendations", || {
-            self.get(&path).query(&[("page", "1")])
+            self.get_query(&path, &[("page", "1")])
         })
         .await?;
 
@@ -119,7 +123,7 @@ impl SeerClient {
         let path = format!("{}/{tmdb_id}/similar", kind.as_str());
 
         let page: SearchPage = fetch_json(super::SERVICE, "similar", || {
-            self.get(&path).query(&[("page", "1")])
+            self.get_query(&path, &[("page", "1")])
         })
         .await?;
 

@@ -143,6 +143,45 @@ where
 }
 
 #[must_use]
+pub fn encode_query(params: &[(&str, &str)]) -> String {
+    let mut query = String::new();
+
+    for (key, value) in params {
+        if !query.is_empty() {
+            query.push('&');
+        }
+        encode_component(key, &mut query);
+        query.push('=');
+        encode_component(value, &mut query);
+    }
+
+    query
+}
+
+// RFC 3986 2.3: everything outside the unreserved set is percent-encoded, so a
+// space arrives as %20. Jellyseerr reads its query strings as RFC 3986 rather
+// than as a form body and takes the '+' of form encoding literally.
+fn encode_component(raw: &str, query: &mut String) {
+    for byte in raw.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~')
+        {
+            query.push(char::from(byte));
+        } else {
+            query.push('%');
+            query.push(hex(byte >> 4));
+            query.push(hex(byte & 0x0f));
+        }
+    }
+}
+
+const fn hex(nibble: u8) -> char {
+    match nibble {
+        0..=9 => (b'0' + nibble) as char,
+        _ => (b'A' + nibble - 10) as char,
+    }
+}
+
+#[must_use]
 pub fn trim_base_url(mut base_url: String) -> String {
     while base_url.ends_with('/') {
         base_url.pop();

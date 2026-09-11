@@ -93,6 +93,12 @@ pub enum JellyfinError {
     #[error("Could not read that Letterboxd feed: {0}")]
     LetterboxdParse(String),
 
+    #[error(
+        "[jellyfin].seer_base_url ({url}) is not a usable Jellyseerr base URL: \
+         {reason}"
+    )]
+    InvalidSeerBaseUrl { url: String, reason: String },
+
     #[error("internal error: {0}")]
     Internal(String),
 }
@@ -130,6 +136,7 @@ impl Respond for JellyfinError {
             | Self::Api(_)
             | Self::Ai(_)
             | Self::LetterboxdParse(_)
+            | Self::InvalidSeerBaseUrl { .. }
             | Self::Internal(_) => None,
         }
     }

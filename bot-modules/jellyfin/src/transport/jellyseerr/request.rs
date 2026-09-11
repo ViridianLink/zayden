@@ -6,8 +6,10 @@ const USER_PAGE_SIZE: i64 = 200;
 
 impl SeerClient {
     pub async fn users(&self) -> ApiResult<Vec<SeerUser>> {
+        let take = USER_PAGE_SIZE.to_string();
+
         let page: SeerUserPage = fetch_json(super::SERVICE, "user list", || {
-            self.get("user").query(&[("take", USER_PAGE_SIZE.to_string())])
+            self.get_query("user", &[("take", take.as_str())])
         })
         .await?;
 

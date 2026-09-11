@@ -28,6 +28,7 @@ sqlx = { workspace = true, features = ["migrate"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["time", "rt", "sync"] }
 tracing = { workspace = true }
+url = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread"] }

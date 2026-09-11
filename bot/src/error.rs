@@ -10,6 +10,7 @@ pub enum BotError {
 
     EndgameAnalysis(destiny2::EndgameAnalysisError),
     Honeypot(honeypot::HoneypotError),
+    Jellyfin(jellyfin::JellyfinError),
     Lfg(lfg::LfgError),
     Music(music::MusicError),
     ReactionRole(reaction_roles::ReactionRoleError),
@@ -41,6 +42,7 @@ impl std::fmt::Display for BotError {
 
             Self::EndgameAnalysis(e) => e.fmt(f),
             Self::Honeypot(e) => e.fmt(f),
+            Self::Jellyfin(e) => e.fmt(f),
             Self::Lfg(e) => e.fmt(f),
             Self::Music(e) => e.fmt(f),
             Self::ReactionRole(e) => e.fmt(f),
@@ -61,6 +63,7 @@ impl std::error::Error for BotError {
         match self {
             Self::EndgameAnalysis(e) => Some(e),
             Self::Honeypot(e) => Some(e),
+            Self::Jellyfin(e) => Some(e),
             Self::Lfg(e) => Some(e),
             Self::Music(e) => Some(e),
             Self::ReactionRole(e) => Some(e),
@@ -88,6 +91,7 @@ impl Respond for BotError {
 
             Self::EndgameAnalysis(e) => e.user_message(),
             Self::Honeypot(e) => e.user_message(),
+            Self::Jellyfin(e) => e.user_message(),
             Self::Lfg(e) => e.user_message(),
             Self::Music(e) => e.user_message(),
             Self::ReactionRole(e) => e.user_message(),
@@ -115,6 +119,12 @@ impl From<destiny2::EndgameAnalysisError> for BotError {
 impl From<honeypot::HoneypotError> for BotError {
     fn from(e: honeypot::HoneypotError) -> Self {
         Self::Honeypot(e)
+    }
+}
+
+impl From<jellyfin::JellyfinError> for BotError {
+    fn from(e: jellyfin::JellyfinError) -> Self {
+        Self::Jellyfin(e)
     }
 }
 
