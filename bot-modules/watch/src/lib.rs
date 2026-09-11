@@ -10,4 +10,5 @@ pub mod party;
 
 pub use commands::Watch;
 pub use error::{Result, WatchError};
+pub use games::JellyfinGameRoundReaperCron;
 pub use party::JellyfinPartyReaperCron;

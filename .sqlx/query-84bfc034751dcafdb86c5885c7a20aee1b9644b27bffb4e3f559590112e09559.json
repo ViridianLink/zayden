@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, guild_id, channel_id, game, kind, answer, choices, solved_by, expires_at AS \"expires_at: SqlxTimestamp\" FROM jellyfin_game_rounds WHERE id = $1",
+  "query": "SELECT id, guild_id, channel_id, game, kind, answer, choices, reveal_image_url, solved_by, expires_at AS \"expires_at: SqlxTimestamp\" FROM jellyfin_game_rounds WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -82,6 +82,17 @@
       },
       {
         "ordinal": 7,
+        "name": "reveal_image_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "reveal_image_url"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
         "name": "solved_by",
         "type_info": "Int8",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "expires_at: SqlxTimestamp",
         "type_info": "Timestamptz",
         "origin": {
@@ -117,8 +128,9 @@
       false,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "f4357ec246ed9c145fad89be1c2b5fdf2e32a193b317eb72628e05545b09a479"
+  "hash": "84bfc034751dcafdb86c5885c7a20aee1b9644b27bffb4e3f559590112e09559"
 }

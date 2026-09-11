@@ -16,6 +16,7 @@ pub struct NewRound<'a> {
     pub kind: &'a str,
     pub answer: &'a str,
     pub choices: Option<serde_json::Value>,
+    pub reveal_image_url: Option<&'a str>,
 }
 
 impl NewRound<'_> {
@@ -41,8 +42,8 @@ impl NewRound<'_> {
             r#"
             INSERT INTO jellyfin_game_rounds
                 (guild_id, channel_id, started_by, game, kind, answer, choices,
-                 expires_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 reveal_image_url, expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id
             "#,
             as_i64(self.guild_id.get()),
@@ -52,6 +53,7 @@ impl NewRound<'_> {
             self.kind,
             self.answer,
             self.choices,
+            self.reveal_image_url,
             jiff_sqlx::Timestamp::from(expires_at) as jiff_sqlx::Timestamp,
         )
         .fetch_one(pool)
@@ -68,6 +70,7 @@ pub struct RoundRow {
     pub kind: String,
     pub answer: String,
     pub choices: Option<serde_json::Value>,
+    pub reveal_image_url: Option<String>,
     pub solved_by: Option<i64>,
     pub expires_at: SqlxTimestamp,
 }
@@ -81,7 +84,7 @@ impl RoundRow {
     pub async fn get(pool: &PgPool, id: i64) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             Self,
-            r#"SELECT id, guild_id, channel_id, game, kind, answer, choices, solved_by, expires_at AS "expires_at: SqlxTimestamp" FROM jellyfin_game_rounds WHERE id = $1"#,
+            r#"SELECT id, guild_id, channel_id, game, kind, answer, choices, reveal_image_url, solved_by, expires_at AS "expires_at: SqlxTimestamp" FROM jellyfin_game_rounds WHERE id = $1"#,
             id
         )
         .fetch_optional(pool)
@@ -142,5 +145,15 @@ impl RoundRow {
         .execute(pool)
         .await?;
         Ok(())
+    }
+
+    pub async fn sweep_finished(pool: &PgPool) -> sqlx::Result<u64> {
+        sqlx::query!(
+            "DELETE FROM jellyfin_game_rounds \
+             WHERE expires_at < now() - interval '1 day'"
+        )
+        .execute(pool)
+        .await
+        .map(|done| done.rows_affected())
     }
 }

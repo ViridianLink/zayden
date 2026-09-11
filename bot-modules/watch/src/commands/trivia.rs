@@ -71,6 +71,7 @@ pub async fn run<S: BuildHasher>(
         kind: scope,
         answer: &question.answer,
         choices: Some(choices),
+        reveal_image_url: None,
     }
     .open(&cx.app.db)
     .await?;

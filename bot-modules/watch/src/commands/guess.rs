@@ -47,6 +47,18 @@ pub async fn run<S: BuildHasher>(
 
     let details = runtime.seer.movie(tmdb_id).await.map_err(JellyfinError::from)?;
 
+    let poster_url = details.poster_path.as_deref().map(poster::poster_url);
+
+    let response = if mode == "visual" {
+        let url = poster_url
+            .as_deref()
+            .ok_or_else(|| JellyfinError::NoSuchTitle(details.title.clone()))?;
+
+        visual(&cx.app.http, url, difficulty, tmdb_id).await?
+    } else {
+        text(&details, &candidate.name)
+    };
+
     let round_id = NewRound {
         guild_id,
         channel_id: cx.interaction.channel_id,
@@ -56,6 +68,7 @@ pub async fn run<S: BuildHasher>(
         kind: mode,
         answer: &candidate.name,
         choices: None,
+        reveal_image_url: poster_url.as_deref(),
     }
     .open(&cx.app.db)
     .await?;
@@ -65,12 +78,6 @@ pub async fn run<S: BuildHasher>(
             .label("Guess")
             .style(ButtonStyle::Primary),
     ]));
-
-    let response = if mode == "visual" {
-        visual(&cx.app.http, &details, difficulty, round_id).await?
-    } else {
-        text(&details, &candidate.name)
-    };
 
     let message = cx
         .interaction
@@ -109,17 +116,12 @@ async fn pick(
 
 async fn visual(
     http: &reqwest::Client,
-    details: &jellyfin::transport::jellyseerr::model::MovieDetails,
+    poster_url: &str,
     difficulty: Difficulty,
-    round_id: i64,
+    tmdb_id: i32,
 ) -> Result<EditInteractionResponse<'static>> {
-    let poster_path = details
-        .poster_path
-        .as_deref()
-        .ok_or_else(|| JellyfinError::NoSuchTitle(details.title.clone()))?;
-
     let downloaded = http
-        .get(poster::poster_url(poster_path))
+        .get(poster_url)
         .send()
         .await
         .map_err(|e| WatchError::Internal(format!("poster fetch failed: {e}")))?
@@ -128,7 +130,7 @@ async fn visual(
         .map_err(|e| WatchError::Internal(format!("poster read failed: {e}")))?;
 
     let derived = poster::derive(&downloaded, difficulty)?;
-    let name = format!("guess-{round_id}.png");
+    let name = format!("guess-{tmdb_id}.png");
 
     Ok(EditInteractionResponse::new()
         .embed(

@@ -33,7 +33,7 @@ use ticket::{
     WikiIndex,
 };
 use tokio::sync::RwLock;
-use watch::JellyfinPartyReaperCron;
+use watch::{JellyfinGameRoundReaperCron, JellyfinPartyReaperCron};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;
@@ -175,6 +175,7 @@ impl BotState {
                 JellyfinRollupCron::cron_job(Arc::clone(runtime)),
                 JellyfinPartyReaperCron::cron_job(Arc::clone(runtime)),
                 JellyfinPartyReaperCron::reconcile_job(Arc::clone(runtime)),
+                JellyfinGameRoundReaperCron::cron_job(),
             ];
 
             for job in jellyfin_jobs {

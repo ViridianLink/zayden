@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO jellyfin_game_rounds\n                (guild_id, channel_id, started_by, game, kind, answer, choices,\n                 expires_at)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING id\n            ",
+  "query": "\n        INSERT INTO jellyfin_game_rounds\n            (guild_id, channel_id, started_by, game, kind, answer, expires_at)\n        VALUES ($1, $2, $3, 'guess', 'visual', 'Arrival', $4)\n        RETURNING id\n        ",
   "describe": {
     "columns": [
       {
@@ -20,10 +20,6 @@
         "Int8",
         "Int8",
         "Int8",
-        "Text",
-        "Text",
-        "Text",
-        "Jsonb",
         "Timestamptz"
       ]
     },
@@ -31,5 +27,5 @@
       false
     ]
   },
-  "hash": "a77d06d41d1d433de185805e551659d7bb951213ec8f18e6e1f9a3fd79027572"
+  "hash": "b5217682af0804cb4b3724b25de2c23d369a80501b84d186b666547fa61e1403"
 }

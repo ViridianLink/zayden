@@ -1,15 +1,20 @@
 use serenity::all::{
+    CreateEmbed,
     CreateInputText,
     CreateInteractionResponse,
+    CreateInteractionResponseMessage,
     CreateLabel,
     CreateModal,
     CreateModalComponent,
     InputTextStyle,
+    UserId,
 };
 use zayden_core::{ComponentCtx, ModalCtx, parse_modal_components};
 
 use crate::components::GUESS_MODAL_PREFIX;
+use crate::embeds::COLOUR;
 use crate::error::{Result, WatchError};
+use crate::games::answer;
 use crate::games::round::RoundRow;
 use crate::games::score::ScoreRow;
 
@@ -71,7 +76,7 @@ async fn settle(
             .create_response(
                 &cx.ctx.http,
                 CreateInteractionResponse::Message(
-                    serenity::all::CreateInteractionResponseMessage::new()
+                    CreateInteractionResponseMessage::new()
                         .content(format!("<@{user_id}> got it — **{answer}**.")),
                 ),
             )
@@ -133,26 +138,58 @@ pub async fn guess_submit(cx: &ModalCtx<'_>, suffix: &str) -> Result<()> {
         };
     };
 
-    let correct = answer.trim().eq_ignore_ascii_case(guess.trim());
+    let correct = answer::matches(&answer, &guess);
     ScoreRow::record(&cx.app.db, guild_id, user_id, username, &round.game, correct)
         .await?;
 
-    let content = if correct {
-        format!("<@{user_id}> got it — **{answer}**.")
-    } else {
+    if !correct {
         RoundRow::release(&cx.app.db, round_id).await?;
-        format!("`{guess}` is not it. Still open.")
-    };
+
+        cx.interaction
+            .create_response(
+                &cx.ctx.http,
+                CreateInteractionResponse::Message(
+                    CreateInteractionResponseMessage::new()
+                        .content(format!("`{guess}` is not it. Still open.")),
+                ),
+            )
+            .await?;
+
+        return Ok(());
+    }
 
     cx.interaction
         .create_response(
             &cx.ctx.http,
-            CreateInteractionResponse::Message(
-                serenity::all::CreateInteractionResponseMessage::new()
-                    .content(content),
+            CreateInteractionResponse::UpdateMessage(
+                CreateInteractionResponseMessage::new()
+                    .embed(solved(
+                        &answer,
+                        round.reveal_image_url.as_deref(),
+                        user_id,
+                    ))
+                    .components(Vec::new()),
             ),
         )
         .await?;
 
     Ok(())
+}
+
+fn solved(
+    answer: &str,
+    reveal_image_url: Option<&str>,
+    user_id: UserId,
+) -> CreateEmbed<'static> {
+    let embed = CreateEmbed::new()
+        .title(answer.to_owned())
+        .colour(COLOUR)
+        .description(format!("Guessed by <@{user_id}>."));
+
+    match reveal_image_url {
+        Some(url) => {
+            embed.image(url.to_owned(), Some(format!("{answer} poster").into()))
+        },
+        None => embed,
+    }
 }

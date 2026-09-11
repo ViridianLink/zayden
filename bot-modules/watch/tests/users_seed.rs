@@ -85,6 +85,7 @@ const fn round_started_by(
         kind: "movie",
         answer: "Arrival",
         choices: None,
+        reveal_image_url: None,
     }
 }
 
