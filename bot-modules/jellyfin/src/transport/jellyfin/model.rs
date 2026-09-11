@@ -159,3 +159,13 @@ pub struct NewUser {
     pub name: String,
     pub password: String,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct ScheduledTask {
+    pub id: String,
+    #[serde(default)]
+    pub key: Option<String>,
+    #[serde(default)]
+    pub state: Option<String>,
+}

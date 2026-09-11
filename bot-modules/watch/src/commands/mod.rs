@@ -80,18 +80,7 @@ impl Watch {
                             .set_autocomplete(true),
                     ),
             )
-            .add_option(
-                sub("letterboxd", "Compare a Letterboxd diary against the server")
-                    .add_sub_option(string(
-                        "username",
-                        "Letterboxd username (remembered after the first time)",
-                    ))
-                    .add_sub_option(CreateCommandOption::new(
-                        CommandOptionType::Number,
-                        "min_rating",
-                        "Only suggest films rated at least this (default 3.5)",
-                    )),
-            )
+            .add_option(letterboxd_group())
             .add_option(
                 sub("guess", "Guess the film from a poster or a redacted plot")
                     .add_sub_option(
@@ -140,11 +129,13 @@ impl Watch {
     ) -> Result<Scheduled> {
         let (name, sub_options) = parse_subcommand(cx.interaction.data.options())?;
 
-        // Groups keep their inner options for a second `parse_subcommand`;
-        // plain subcommands are flattened straight into a map.
         match name {
             "recommend" => {
                 recommend::run(cx, runtime).await?;
+                return Ok(Scheduled::Nothing);
+            },
+            "letterboxd" => {
+                letterboxd::run(cx, runtime).await?;
                 return Ok(Scheduled::Nothing);
             },
             "party" => return party::run(cx, runtime).await,
@@ -193,7 +184,6 @@ async fn games(
     options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<()> {
     match name {
-        "letterboxd" => letterboxd::run(cx, runtime, options).await,
         "guess" => guess::run(cx, runtime, options).await,
         "trivia" => trivia::run(cx, runtime, options).await,
         "leaderboard" => leaderboard::run(cx, options).await,
@@ -213,6 +203,35 @@ fn string(
     description: &'static str,
 ) -> CreateCommandOption<'static> {
     CreateCommandOption::new(CommandOptionType::String, name, description)
+}
+
+fn letterboxd_group() -> CreateCommandOption<'static> {
+    CreateCommandOption::new(
+        CommandOptionType::SubCommandGroup,
+        "letterboxd",
+        "Your Letterboxd diary and the server",
+    )
+    .add_sub_option(
+        sub("gaps", "Films you rated highly that the server is missing")
+            .add_sub_option(string(
+                "username",
+                "Letterboxd username (I set Jellyscribe up with it too)",
+            ))
+            .add_sub_option(CreateCommandOption::new(
+                CommandOptionType::Number,
+                "min_rating",
+                "Only suggest films rated at least this (default 3.5)",
+            )),
+    )
+    .add_sub_option(
+        sub("sync", "Hand Jellyscribe your Letterboxd login and sync now")
+            .add_sub_option(
+                string("username", "Your Letterboxd username").required(true),
+            )
+            .add_sub_option(
+                string("password", "Your Letterboxd password").required(true),
+            ),
+    )
 }
 
 fn recommend_group() -> CreateCommandOption<'static> {

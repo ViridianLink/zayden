@@ -6,6 +6,7 @@ pub mod error;
 pub mod guest;
 pub mod identity;
 pub mod index;
+pub mod jellyscribe;
 pub mod runtime;
 pub mod settings;
 pub mod stats;

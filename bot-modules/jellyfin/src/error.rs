@@ -92,6 +92,11 @@ pub enum JellyfinError {
     NoLetterboxdFeed(String),
     #[error("Could not read that Letterboxd feed: {0}")]
     LetterboxdParse(String),
+    #[error(
+        "Letterboxd would not accept those details. Check the username and \
+         password, then try again."
+    )]
+    LetterboxdAuth,
 
     #[error(
         "[jellyfin].seer_base_url ({url}) is not a usable Jellyseerr base URL: \
@@ -127,7 +132,8 @@ impl Respond for JellyfinError {
             | Self::PartyInThePast
             | Self::AiUnavailable
             | Self::WarningsUnavailable
-            | Self::NoLetterboxdFeed(_) => Some(Cow::Owned(self.to_string())),
+            | Self::NoLetterboxdFeed(_)
+            | Self::LetterboxdAuth => Some(Cow::Owned(self.to_string())),
 
             // These can carry an upstream body, a URL or a key, so they go to
             // the log and the user sees nothing.

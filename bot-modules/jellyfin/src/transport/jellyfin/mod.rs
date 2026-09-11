@@ -1,7 +1,9 @@
 pub mod items;
 pub mod libraries;
 pub mod model;
+pub mod plugins;
 pub mod quick_connect;
+pub mod tasks;
 pub mod users;
 
 use reqwest::{Client, RequestBuilder};

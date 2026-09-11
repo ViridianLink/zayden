@@ -1,0 +1,70 @@
+use std::collections::HashMap;
+use std::hash::BuildHasher;
+use std::sync::Arc;
+
+use jellyfin::identity::JellyfinLinkRow;
+use jellyfin::jellyscribe;
+use jellyfin::runtime::JellyfinRuntime;
+use serenity::all::{CreateEmbed, EditInteractionResponse, ResolvedValue};
+use tracing::warn;
+use zayden_core::{InvocationCtx, required_option};
+
+use crate::embeds::COLOUR;
+use crate::error::Result;
+
+pub async fn run<S: BuildHasher>(
+    cx: &InvocationCtx<'_>,
+    runtime: &Arc<JellyfinRuntime>,
+    mut options: HashMap<&str, ResolvedValue<'_>, S>,
+) -> Result<()> {
+    let username: &str = required_option(&mut options, "username")?;
+    let password: &str = required_option(&mut options, "password")?;
+
+    cx.interaction.defer_ephemeral(&cx.ctx.http).await?;
+
+    let user_id = cx.interaction.user.id;
+    let row = JellyfinLinkRow::require(&cx.app.db, user_id).await?;
+
+    jellyscribe::test_connection(&runtime.jellyfin, username, password).await?;
+
+    let created = jellyscribe::configure(
+        &runtime.jellyfin,
+        &row.jellyfin_user_id,
+        username,
+        password,
+    )
+    .await?;
+
+    JellyfinLinkRow::set_letterboxd(&cx.app.db, user_id, Some(username)).await.ok();
+
+    let started = jellyscribe::start_sync(&runtime.jellyfin)
+        .await
+        .inspect_err(|e| {
+            warn!(error = ?e, %user_id, "could not start the Jellyscribe sync task");
+        })
+        .unwrap_or(false);
+
+    let account = if created { "Added" } else { "Updated" };
+    let sync = if started {
+        "A sync is running now; your recent Jellyfin watches should reach your \
+         diary shortly."
+    } else {
+        "I could not start a sync just now, so the plugin's daily run will pick \
+         it up instead."
+    };
+
+    let embed = CreateEmbed::new()
+        .title("Letterboxd sync is set up")
+        .colour(COLOUR)
+        .description(format!(
+            "{account} **{username}** in the Jellyscribe plugin and switched it \
+             on. Letterboxd accepted the login, and your password went straight \
+             to the plugin — I do not keep it.\n\n{sync}"
+        ));
+
+    cx.interaction
+        .edit_response(&cx.ctx.http, EditInteractionResponse::new().embed(embed))
+        .await?;
+
+    Ok(())
+}
