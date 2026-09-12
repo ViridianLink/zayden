@@ -4,6 +4,12 @@ pub mod watch;
 use std::borrow::Cow;
 use std::sync::Arc;
 
+use ::watch::components::{
+    PARTY_CANCEL_PREFIX,
+    PARTY_JOIN_PREFIX,
+    PARTY_LEAVE_PREFIX,
+    party,
+};
 use async_trait::async_trait;
 pub use command::Jellyfin;
 use jellyfin::JellyfinError;
@@ -19,12 +25,6 @@ use jellyfin::runtime::JellyfinRuntime;
 use serenity::all::Context;
 use tokio::sync::RwLock;
 pub use watch::Watch;
-use watch::components::{
-    PARTY_CANCEL_PREFIX,
-    PARTY_JOIN_PREFIX,
-    PARTY_LEAVE_PREFIX,
-    party,
-};
 use zayden_core::ctx::{ComponentCtx, ModalCtx};
 use zayden_core::error::HandlerError;
 use zayden_core::module::{ModuleComponent, ModuleModal};
