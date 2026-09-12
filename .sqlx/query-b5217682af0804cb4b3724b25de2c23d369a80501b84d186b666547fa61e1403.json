@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO jellyfin_game_rounds\n            (guild_id, channel_id, started_by, game, kind, answer, expires_at)\n        VALUES ($1, $2, $3, 'guess', 'visual', 'Arrival', $4)\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_game_rounds",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b5217682af0804cb4b3724b25de2c23d369a80501b84d186b666547fa61e1403"
+}
