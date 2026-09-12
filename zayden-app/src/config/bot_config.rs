@@ -452,10 +452,7 @@ fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
     };
 
     Some(JellyfinConfig {
-        internal_url: cfg
-            .internal_url
-            .clone()
-            .unwrap_or_else(|| public_url.clone()),
+        internal_url: cfg.internal_url.clone().unwrap_or_else(|| public_url.clone()),
         public_url,
         api_key,
         movie_library_id,
