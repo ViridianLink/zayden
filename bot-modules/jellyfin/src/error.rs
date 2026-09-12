@@ -103,6 +103,20 @@ pub enum JellyfinError {
          password, then try again."
     )]
     LetterboxdAuth,
+    #[error("Serializd has no public diary for **{0}**.")]
+    NoSerializdDiary(String),
+    #[error("Could not read that Serializd diary: {0}")]
+    SerializdParse(String),
+    #[error(
+        "Serializd would not accept those details. Check the email and \
+         password, then try again."
+    )]
+    SerializdAuth,
+    #[error(
+        "I do not know whose diary to check. Pass a `letterboxd` or `serializd` \
+         username, or set your accounts up with Jellyscribe at {0}."
+    )]
+    NoDiaryToCheck(String),
 
     #[error(
         "[jellyfin].seer_base_url ({url}) is not a usable Jellyseerr base URL: \
@@ -141,7 +155,10 @@ impl Respond for JellyfinError {
             | Self::AiUnavailable
             | Self::WarningsUnavailable
             | Self::NoLetterboxdFeed(_)
-            | Self::LetterboxdAuth => Some(Cow::Owned(self.to_string())),
+            | Self::LetterboxdAuth
+            | Self::NoSerializdDiary(_)
+            | Self::SerializdAuth
+            | Self::NoDiaryToCheck(_) => Some(Cow::Owned(self.to_string())),
 
             // These can carry an upstream body, a URL or a key, so they go to
             // the log and the user sees nothing.
@@ -150,6 +167,7 @@ impl Respond for JellyfinError {
             | Self::Api(_)
             | Self::Ai(_)
             | Self::LetterboxdParse(_)
+            | Self::SerializdParse(_)
             | Self::InvalidSeerBaseUrl { .. }
             | Self::Internal(_) => None,
         }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT user_id, jellyfin_user_id, jellyfin_username,\n                   jellyseerr_user_id,\n                   jellyseerr_checked_at AS \"jellyseerr_checked_at: Timestamp\",\n                   streak_public, letterboxd_username\n            FROM jellyfin_users\n            WHERE jellyfin_user_id = $1\n            ",
+  "query": "\n            SELECT user_id, jellyfin_user_id, jellyfin_username,\n                   jellyseerr_user_id,\n                   jellyseerr_checked_at AS \"jellyseerr_checked_at: Timestamp\",\n                   streak_public, letterboxd_username, serializd_username\n            FROM jellyfin_users\n            WHERE jellyfin_user_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,17 @@
             "name": "letterboxd_username"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "serializd_username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "jellyfin_users",
+            "name": "serializd_username"
+          }
+        }
       }
     ],
     "parameters": {
@@ -93,8 +104,9 @@
       true,
       true,
       false,
+      true,
       true
     ]
   },
-  "hash": "3c7c1e6438c60d1479c88049b27b32548a44a6a562a89a07c9ccdbcfa4afed85"
+  "hash": "d20e23801a40038129a9c66c61619b055db6a09e38b24b710c16fdd37cde45c4"
 }

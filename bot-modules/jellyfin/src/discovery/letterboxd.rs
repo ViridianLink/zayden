@@ -1,12 +1,9 @@
-use std::collections::HashSet;
-
 use quick_xml::Reader;
 use quick_xml::events::Event;
 use reqwest::Client;
-use sqlx::PgPool;
 
+use crate::discovery::gaps::Candidate;
 use crate::error::{JellyfinError, Result};
-use crate::index::LibraryItemRow;
 
 const MAX_FEED_BYTES: usize = 4 * 1024 * 1024;
 
@@ -20,13 +17,16 @@ pub struct DiaryEntry {
     pub rewatch: bool,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct GapReport {
-    pub total: usize,
-    pub matched_by_id: usize,
-    pub matched_by_title: usize,
-    pub unmatched: usize,
-    pub missing: Vec<DiaryEntry>,
+impl DiaryEntry {
+    #[must_use]
+    pub fn candidate(&self) -> Candidate {
+        Candidate {
+            title: self.title.clone(),
+            year: self.year,
+            tmdb_id: self.tmdb_id,
+            rating: self.rating,
+        }
+    }
 }
 
 #[must_use]
@@ -126,50 +126,4 @@ pub fn parse(xml: &str) -> Result<Vec<DiaryEntry>> {
     }
 
     Ok(entries)
-}
-
-pub async fn cross_reference(
-    pool: &PgPool,
-    entries: &[DiaryEntry],
-    min_rating: f32,
-    limit: usize,
-) -> Result<GapReport> {
-    let owned: HashSet<i32> =
-        LibraryItemRow::tmdb_ids(pool, "Movie").await?.into_iter().collect();
-
-    let mut report = GapReport { total: entries.len(), ..Default::default() };
-    let mut missing = Vec::new();
-
-    for entry in entries {
-        match entry.tmdb_id {
-            Some(tmdb_id) => {
-                report.matched_by_id += 1;
-                if !owned.contains(&tmdb_id) {
-                    missing.push(entry.clone());
-                }
-            },
-            None => {
-                // No id in the feed: fall back to title, and say so in the
-                // report rather than presenting it as an exact match.
-                let found =
-                    LibraryItemRow::search(pool, &entry.title, Some("Movie"), 1)
-                        .await?;
-
-                if found.is_empty() {
-                    report.unmatched += 1;
-                    missing.push(entry.clone());
-                } else {
-                    report.matched_by_title += 1;
-                }
-            },
-        }
-    }
-
-    missing.retain(|e| e.rating.is_none_or(|r| r >= min_rating));
-    missing
-        .sort_by(|a, b| b.rating.unwrap_or(0.0).total_cmp(&a.rating.unwrap_or(0.0)));
-    missing.truncate(limit);
-
-    report.missing = missing;
-    Ok(report)
 }

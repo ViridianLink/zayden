@@ -1,8 +1,10 @@
 pub mod about;
+pub mod gaps;
 pub mod guess;
 pub mod letterboxd;
 pub mod link;
 pub mod request;
+pub mod serializd;
 pub mod unlink;
 
 use std::sync::Arc;
@@ -12,6 +14,8 @@ use zayden_core::{InvocationCtx, parse_options, parse_subcommand};
 
 use crate::error::{JellyfinError, Result};
 use crate::runtime::JellyfinRuntime;
+
+const MAX_USERNAME_LENGTH: u16 = 64;
 
 pub struct Jellyfin;
 
@@ -57,7 +61,32 @@ impl Jellyfin {
                             .add_string_choice("Hard", "hard"),
                     ),
             )
-            .add_option(letterboxd_group())
+            .add_option(gaps_command())
+            .add_option(
+                sub(
+                    "letterboxd",
+                    "Hand Jellyscribe your Letterboxd login and sync now",
+                )
+                .add_sub_option(
+                    string("username", "Your Letterboxd username").required(true),
+                )
+                .add_sub_option(
+                    string("password", "Your Letterboxd password").required(true),
+                ),
+            )
+            .add_option(
+                sub(
+                    "serializd",
+                    "Hand Jellyscribe your Serializd login and sync now",
+                )
+                .add_sub_option(
+                    string("email", "Your Serializd email (or username)")
+                        .required(true),
+                )
+                .add_sub_option(
+                    string("password", "Your Serializd password").required(true),
+                ),
+            )
     }
 
     pub async fn run(
@@ -65,11 +94,6 @@ impl Jellyfin {
         runtime: &Arc<JellyfinRuntime>,
     ) -> Result<()> {
         let (name, sub_options) = parse_subcommand(cx.interaction.data.options())?;
-
-        if name == "letterboxd" {
-            return letterboxd::run(cx, runtime).await;
-        }
-
         let options = parse_options(sub_options);
 
         match name {
@@ -78,6 +102,9 @@ impl Jellyfin {
             "about" => about::run(cx, runtime).await,
             "request" => request::run(cx, runtime, options).await,
             "guess" => guess::run(cx, runtime, options).await,
+            "gaps" => gaps::run(cx, runtime, options).await,
+            "letterboxd" => letterboxd::run(cx, runtime, options).await,
+            "serializd" => serializd::run(cx, runtime, options).await,
             _ => Err(JellyfinError::UnknownSubcommand(name.to_string())),
         }
     }
@@ -97,31 +124,26 @@ fn string(
     CreateCommandOption::new(CommandOptionType::String, name, description)
 }
 
-fn letterboxd_group() -> CreateCommandOption<'static> {
-    CreateCommandOption::new(
-        CommandOptionType::SubCommandGroup,
-        "letterboxd",
-        "Your Letterboxd diary and the server",
-    )
-    .add_sub_option(
-        sub("gaps", "Films you rated highly that the server is missing")
-            .add_sub_option(string(
-                "username",
-                "Letterboxd username (I set Jellyscribe up with it too)",
-            ))
-            .add_sub_option(CreateCommandOption::new(
+fn gaps_command() -> CreateCommandOption<'static> {
+    sub("gaps", "Films and shows you rated highly that the server is missing")
+        .add_sub_option(
+            string(
+                "letterboxd",
+                "Letterboxd username for films (I set Jellyscribe up with it too)",
+            )
+            .max_length(MAX_USERNAME_LENGTH),
+        )
+        .add_sub_option(
+            string("serializd", "Serializd username for shows")
+                .max_length(MAX_USERNAME_LENGTH),
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
                 CommandOptionType::Number,
                 "min_rating",
-                "Only suggest films rated at least this (default 3.5)",
-            )),
-    )
-    .add_sub_option(
-        sub("sync", "Hand Jellyscribe your Letterboxd login and sync now")
-            .add_sub_option(
-                string("username", "Your Letterboxd username").required(true),
+                "Only suggest titles rated at least this many stars (default 3.5)",
             )
-            .add_sub_option(
-                string("password", "Your Letterboxd password").required(true),
-            ),
-    )
+            .min_number_value(0.5)
+            .max_number_value(5.0),
+        )
 }

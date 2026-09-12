@@ -3,7 +3,7 @@
 //! makes safe: never clobbering somebody else's account, and never overwriting a
 //! username whose stored password belongs to it.
 
-use jellyfin::jellyscribe::{Linked, apply, apply_credentials};
+use jellyfin::jellyscribe::letterboxd::{Linked, apply, apply_credentials};
 use serde_json::{Value, json};
 
 const ALICE: &str = "aaaaaaaaaaaa4aaaaaaaaaaaaaaaaaaa";

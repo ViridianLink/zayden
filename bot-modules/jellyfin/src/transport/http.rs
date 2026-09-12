@@ -158,6 +158,13 @@ pub fn encode_query(params: &[(&str, &str)]) -> String {
     query
 }
 
+#[must_use]
+pub fn encode_path_segment(raw: &str) -> String {
+    let mut segment = String::with_capacity(raw.len());
+    encode_component(raw, &mut segment);
+    segment
+}
+
 // RFC 3986 2.3: everything outside the unreserved set is percent-encoded, so a
 // space arrives as %20. Jellyseerr reads its query strings as RFC 3986 rather
 // than as a form body and takes the '+' of form encoding literally.

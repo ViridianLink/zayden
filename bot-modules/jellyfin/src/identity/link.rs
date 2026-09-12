@@ -14,6 +14,7 @@ pub struct JellyfinLinkRow {
     pub jellyseerr_checked_at: Option<Timestamp>,
     pub streak_public: bool,
     pub letterboxd_username: Option<String>,
+    pub serializd_username: Option<String>,
 }
 
 impl JellyfinLinkRow {
@@ -24,7 +25,7 @@ impl JellyfinLinkRow {
             SELECT user_id, jellyfin_user_id, jellyfin_username,
                    jellyseerr_user_id,
                    jellyseerr_checked_at AS "jellyseerr_checked_at: Timestamp",
-                   streak_public, letterboxd_username
+                   streak_public, letterboxd_username, serializd_username
             FROM jellyfin_users
             WHERE user_id = $1
             "#,
@@ -127,6 +128,23 @@ impl JellyfinLinkRow {
         Ok(())
     }
 
+    pub async fn set_serializd(
+        pool: &PgPool,
+        user_id: UserId,
+        username: Option<&str>,
+    ) -> sqlx::Result<()> {
+        sqlx::query!(
+            "UPDATE jellyfin_users SET serializd_username = $2, \
+             updated_at = now() WHERE user_id = $1",
+            as_i64(user_id.get()),
+            username
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+
     pub async fn set_jellyseerr_user(
         pool: &PgPool,
         user_id: i64,
@@ -154,7 +172,7 @@ impl JellyfinLinkRow {
             SELECT user_id, jellyfin_user_id, jellyfin_username,
                    jellyseerr_user_id,
                    jellyseerr_checked_at AS "jellyseerr_checked_at: Timestamp",
-                   streak_public, letterboxd_username
+                   streak_public, letterboxd_username, serializd_username
             FROM jellyfin_users
             WHERE jellyfin_user_id = $1
             "#,
