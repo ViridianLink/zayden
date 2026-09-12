@@ -22,7 +22,8 @@ pub fn device_auth_header(device_id: &str, client_version: &str) -> String {
 #[derive(Debug, Clone)]
 pub struct JellyfinClient {
     client: Client,
-    base_url: String,
+    internal_url: String,
+    public_url: String,
     api_key: String,
     movie_library_id: String,
     show_library_id: String,
@@ -32,14 +33,16 @@ impl JellyfinClient {
     #[must_use]
     pub fn new(
         client: Client,
-        base_url: String,
+        internal_url: String,
+        public_url: String,
         api_key: String,
         movie_library_id: String,
         show_library_id: String,
     ) -> Self {
         Self {
             client,
-            base_url: trim_base_url(base_url),
+            internal_url: trim_base_url(internal_url),
+            public_url: trim_base_url(public_url),
             api_key,
             movie_library_id,
             show_library_id,
@@ -47,8 +50,8 @@ impl JellyfinClient {
     }
 
     #[must_use]
-    pub fn base_url(&self) -> &str {
-        &self.base_url
+    pub fn public_url(&self) -> &str {
+        &self.public_url
     }
 
     #[must_use]
@@ -63,16 +66,16 @@ impl JellyfinClient {
 
     #[must_use]
     pub fn item_url(&self, item_id: &str) -> String {
-        format!("{}/web/#/details?id={item_id}", self.base_url)
+        format!("{}/web/#/details?id={item_id}", self.public_url)
     }
 
     #[must_use]
     pub fn quick_connect_url(&self) -> String {
-        format!("{}/web/#/quickconnect", self.base_url)
+        format!("{}/web/#/quickconnect", self.public_url)
     }
 
     pub(crate) fn endpoint(&self, path: &str) -> String {
-        format!("{}/{path}", self.base_url)
+        format!("{}/{path}", self.internal_url)
     }
 
     pub(crate) fn get(&self, path: &str) -> RequestBuilder {

@@ -73,7 +73,8 @@ pub struct HostingConfig {
 
 #[derive(Debug, Clone)]
 pub struct JellyfinConfig {
-    pub base_url: String,
+    pub internal_url: String,
+    pub public_url: String,
     pub api_key: String,
     pub movie_library_id: String,
     pub show_library_id: String,
@@ -414,7 +415,7 @@ fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
     let cfg = &toml_cfg.jellyfin;
 
     let endpoints = [
-        cfg.base_url.clone(),
+        cfg.public_url.clone(),
         cfg.movie_library_id.clone(),
         cfg.show_library_id.clone(),
         cfg.seer_base_url.clone(),
@@ -422,13 +423,16 @@ fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
     let keys =
         [env::var("JELLYFIN_API_KEY").ok(), env::var("JELLYSEERR_API_KEY").ok()];
 
-    if endpoints.iter().all(Option::is_none) && keys.iter().all(Option::is_none) {
+    if cfg.internal_url.is_none()
+        && endpoints.iter().all(Option::is_none)
+        && keys.iter().all(Option::is_none)
+    {
         return None;
     }
 
     let (
         [
-            Some(base_url),
+            Some(public_url),
             Some(movie_library_id),
             Some(show_library_id),
             Some(seer_base_url),
@@ -438,8 +442,9 @@ fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
     else {
         warn!(
             "Jellyfin config is incomplete; the /jellyfin and /watch commands \
-             are disabled until [jellyfin].base_url, [jellyfin].movie_library_id, \
-             [jellyfin].show_library_id and [jellyfin].seer_base_url \
+             are disabled until [jellyfin].public_url, \
+             [jellyfin].movie_library_id, [jellyfin].show_library_id and \
+             [jellyfin].seer_base_url \
              (config.toml) plus JELLYFIN_API_KEY and JELLYSEERR_API_KEY (env) \
              are all set"
         );
@@ -447,7 +452,11 @@ fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
     };
 
     Some(JellyfinConfig {
-        base_url,
+        internal_url: cfg
+            .internal_url
+            .clone()
+            .unwrap_or_else(|| public_url.clone()),
+        public_url,
         api_key,
         movie_library_id,
         show_library_id,
@@ -558,7 +567,8 @@ struct TomlPalworld {
 
 #[derive(Debug, Default, Deserialize)]
 struct TomlJellyfin {
-    base_url: Option<String>,
+    internal_url: Option<String>,
+    public_url: Option<String>,
     movie_library_id: Option<String>,
     show_library_id: Option<String>,
     seer_base_url: Option<String>,

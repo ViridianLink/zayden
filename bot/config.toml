@@ -27,8 +27,9 @@ server_id = "your-server-id"
 save_path = "/Pal/Saved/SaveGames/0/123abc"
 
 [jellyfin]
-base_url = "http://10.0.3.112:8096"
-seer_base_url = "https://seer.viridian.icu"
+internal_url = "http://10.0.3.112:8096"
+public_url = "https://jellyfin.viridian.icu"
+seer_base_url = "http://10.0.3.133:5055"
 movie_library_id = "f137a2dd21bbc1b99aa5c0f6bf02a805"
 show_library_id = "a656b907eb3a73532e40e44b968d0225"
 region = "GB"

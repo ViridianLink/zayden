@@ -20,7 +20,8 @@ impl JellyfinRuntime {
     pub fn new(http: Client, config: &JellyfinConfig) -> Result<Arc<Self>> {
         let jellyfin = JellyfinClient::new(
             http.clone(),
-            config.base_url.clone(),
+            config.internal_url.clone(),
+            config.public_url.clone(),
             config.api_key.clone(),
             config.movie_library_id.clone(),
             config.show_library_id.clone(),
@@ -28,7 +29,7 @@ impl JellyfinRuntime {
 
         let playback = PlaybackClient::new(
             http.clone(),
-            config.base_url.clone(),
+            config.internal_url.clone(),
             config.api_key.clone(),
         );
 

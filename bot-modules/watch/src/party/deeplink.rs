@@ -13,7 +13,7 @@ pub fn join_guide(client: &JellyfinClient, party: &PartyRow) -> String {
          Your access is limited to this one title and disappears a couple of \
          hours after the party.",
         party.item_name,
-        client.base_url(),
+        client.public_url(),
         client.item_url(&party.item_id),
     )
 }

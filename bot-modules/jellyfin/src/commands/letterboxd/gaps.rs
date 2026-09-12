@@ -28,7 +28,7 @@ pub async fn run<S: BuildHasher>(
     cx.interaction.defer(&cx.ctx.http).await?;
 
     let user_id = cx.interaction.user.id;
-    let settings_url = jellyscribe::settings_url(runtime.jellyfin.base_url());
+    let settings_url = jellyscribe::settings_url(runtime.jellyfin.public_url());
 
     let linked = JellyfinLinkRow::get(&cx.app.db, user_id).await?;
     let account = match linked.as_ref() {
