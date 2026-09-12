@@ -148,6 +148,45 @@ fn credentials_create_an_enabled_account() {
 }
 
 #[test]
+fn a_created_account_carries_the_configured_defaults() {
+    let mut config = config();
+
+    apply_credentials(&mut config, ALICE, "alice", "s3cret");
+
+    let added = &accounts(&config)[1];
+    for on in [
+        "SyncFavorites",
+        "IsPrimary",
+        "EnableWatchlistSync",
+        "AutoRequestWatchlist",
+        "SkipPreviouslySynced",
+        "EnableDiaryImport",
+    ] {
+        assert_eq!(added[on], json!(true), "{on} should default on");
+    }
+
+    for off in [
+        "EnableDateFilter",
+        "BackfillAvailableRequests",
+        "MirrorJellyseerrWatchlist",
+        "StopOnFailure",
+    ] {
+        assert_eq!(added[off], json!(false), "{off} should default off");
+    }
+}
+
+#[test]
+fn an_account_created_without_a_password_stays_switched_off() {
+    let mut config = config();
+
+    apply(&mut config, ALICE, "alice");
+
+    let added = &accounts(&config)[1];
+    assert_eq!(added["Enabled"], json!(false));
+    assert_eq!(added["IsPrimary"], json!(true));
+}
+
+#[test]
 fn credentials_update_the_matching_account_in_place() {
     let mut config = config();
 
@@ -159,7 +198,7 @@ fn credentials_update_the_matching_account_in_place() {
 }
 
 #[test]
-fn credentials_keep_the_rest_of_the_matching_account() {
+fn an_updated_account_keeps_its_own_toggles() {
     let mut config = config();
 
     apply_credentials(&mut config, BOB, "bob", "rotated");
@@ -167,6 +206,7 @@ fn credentials_keep_the_rest_of_the_matching_account() {
     let account = &accounts(&config)[0];
     assert_eq!(account["PlaylistName"], json!("Watchlist"));
     assert_eq!(account["AFieldFromANewerPluginVersion"], json!(7));
+    assert_eq!(account["SyncFavorites"], json!(true));
 }
 
 #[test]
@@ -198,4 +238,22 @@ fn a_created_account_carries_the_id_form_the_plugin_matches_on() {
     apply_credentials(&mut config, dashed, "alice", "s3cret");
 
     assert_eq!(accounts(&config)[0]["UserJellyfinId"], json!(ALICE));
+}
+
+#[test]
+fn a_hand_set_cookie_jar_survives_a_credential_write() {
+    let mut config = json!({
+        "Accounts": [{
+            "UserJellyfinId": ALICE,
+            "LetterboxdUsername": "alice",
+            "RawCookies": "cf_clearance=keep",
+            "UserAgent": "Mozilla/5.0"
+        }]
+    });
+
+    apply_credentials(&mut config, ALICE, "alice", "rotated");
+
+    let account = &accounts(&config)[0];
+    assert_eq!(account["RawCookies"], json!("cf_clearance=keep"));
+    assert_eq!(account["UserAgent"], json!("Mozilla/5.0"));
 }

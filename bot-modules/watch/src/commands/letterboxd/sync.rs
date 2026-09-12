@@ -12,6 +12,12 @@ use zayden_core::{InvocationCtx, required_option};
 use crate::embeds::COLOUR;
 use crate::error::Result;
 
+const NEW_ACCOUNT_DEFAULTS: &str = "Enabled, favourites liked, primary account, \
+     watchlist synced to the library, auto-request via Seerr, diary imported as \
+     watched, already-synced skipped. Date filter, Seerr backfill, watchlist \
+     mirroring and stop-on-failure are off. Change any of them on your \
+     Jellyscribe page.";
+
 pub async fn run<S: BuildHasher>(
     cx: &InvocationCtx<'_>,
     runtime: &Arc<JellyfinRuntime>,
@@ -44,6 +50,16 @@ pub async fn run<S: BuildHasher>(
         })
         .unwrap_or(false);
 
+    let embed = embed(username, created, started);
+
+    cx.interaction
+        .edit_response(&cx.ctx.http, EditInteractionResponse::new().embed(embed))
+        .await?;
+
+    Ok(())
+}
+
+fn embed(username: &str, created: bool, started: bool) -> CreateEmbed<'static> {
     let account = if created { "Added" } else { "Updated" };
     let sync = if started {
         "A sync is running now; your recent Jellyfin watches should reach your \
@@ -62,9 +78,9 @@ pub async fn run<S: BuildHasher>(
              to the plugin — I do not keep it.\n\n{sync}"
         ));
 
-    cx.interaction
-        .edit_response(&cx.ctx.http, EditInteractionResponse::new().embed(embed))
-        .await?;
-
-    Ok(())
+    if created {
+        embed.field("Defaults", NEW_ACCOUNT_DEFAULTS, false)
+    } else {
+        embed
+    }
 }

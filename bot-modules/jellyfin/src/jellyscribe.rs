@@ -18,6 +18,19 @@ const USERNAME: &str = "LetterboxdUsername";
 const PASSWORD: &str = "LetterboxdPassword";
 const ENABLED: &str = "Enabled";
 
+const DEFAULTS: [(&str, bool); 10] = [
+    ("SyncFavorites", true),
+    ("EnableDateFilter", false),
+    ("IsPrimary", true),
+    ("EnableWatchlistSync", true),
+    ("AutoRequestWatchlist", true),
+    ("BackfillAvailableRequests", false),
+    ("MirrorJellyseerrWatchlist", false),
+    ("SkipPreviouslySynced", true),
+    ("StopOnFailure", false),
+    ("EnableDiaryImport", true),
+];
+
 #[must_use]
 pub fn settings_url(base_url: &str) -> String {
     format!("{base_url}/web/configurationpage?name=letterboxduser")
@@ -110,18 +123,27 @@ pub fn apply(
         Some(entry) => {
             entry.insert(USERNAME.to_owned(), Value::String(target.to_owned()));
         },
-        None => accounts.push(new_entry(&wanted, target)),
+        None => accounts.push(new_entry(&wanted, target, false)),
     }
 
     Linked::Created
 }
 
-fn new_entry(jellyfin_user_id: &str, letterboxd_username: &str) -> Value {
+fn new_entry(
+    jellyfin_user_id: &str,
+    letterboxd_username: &str,
+    enabled: bool,
+) -> Value {
     let mut entry = serde_json::Map::new();
     entry.insert(USER_ID.to_owned(), Value::String(jellyfin_user_id.to_owned()));
     entry.insert(USERNAME.to_owned(), Value::String(letterboxd_username.to_owned()));
     entry.insert(PASSWORD.to_owned(), Value::String(String::new()));
-    entry.insert(ENABLED.to_owned(), Value::Bool(false));
+    entry.insert(ENABLED.to_owned(), Value::Bool(enabled));
+
+    for (flag, value) in DEFAULTS {
+        entry.insert(flag.to_owned(), Value::Bool(value));
+    }
+
     Value::Object(entry)
 }
 
@@ -166,7 +188,7 @@ fn normalise_id(raw: &str) -> String {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "PascalCase")]
-struct Credentials<'a> {
+struct TestRequest<'a> {
     letterboxd_username: &'a str,
     letterboxd_password: &'a str,
 }
@@ -176,10 +198,10 @@ pub async fn test_connection(
     letterboxd_username: &str,
     letterboxd_password: &str,
 ) -> Result<()> {
-    let credentials = Credentials { letterboxd_username, letterboxd_password };
+    let body = TestRequest { letterboxd_username, letterboxd_password };
 
     match send_ok(crate::transport::jellyfin::SERVICE, "Letterboxd login", || {
-        client.post(&format!("{ROUTE}/TestConnection")).json(&credentials)
+        client.post(&format!("{ROUTE}/TestConnection")).json(&body)
     })
     .await
     {
@@ -239,7 +261,7 @@ pub fn apply_credentials(
 
     let created = slot.is_none();
     let index = slot.unwrap_or_else(|| {
-        accounts.push(new_entry(&wanted, username));
+        accounts.push(new_entry(&wanted, username, true));
         accounts.len() - 1
     });
 
