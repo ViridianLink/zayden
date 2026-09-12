@@ -6,6 +6,7 @@ use destiny2::endgame_analysis::EndgameAnalysisSheetCron;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use hosting::HostingRuntime;
 use hosting::cron::{HostingDeleteCron, HostingExpireCron, HostingReminderCron};
+use jellyfin::JellyfinGameRoundReaperCron;
 use jellyfin::cron::{JellyfinIndexRefreshCron, JellyfinRollupCron};
 use jellyfin::runtime::JellyfinRuntime;
 use llamad2::GoodMorningCache;
@@ -33,7 +34,7 @@ use ticket::{
     WikiIndex,
 };
 use tokio::sync::RwLock;
-use watch::{JellyfinGameRoundReaperCron, JellyfinPartyReaperCron};
+use watch::JellyfinPartyReaperCron;
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;

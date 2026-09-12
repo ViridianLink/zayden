@@ -1,9 +1,9 @@
-use jellyfin::transport::JellyfinClient;
-use jellyfin::transport::jellyseerr::model::{MediaInfo, SearchResult};
 use serenity::all::CreateEmbed;
 
 use crate::discovery::Resolved;
 use crate::embeds::COLOUR;
+use crate::transport::JellyfinClient;
+use crate::transport::jellyseerr::model::{MediaInfo, SearchResult};
 
 const POSTER_ROOT: &str = "https://image.tmdb.org/t/p/w342";
 const MAX_OVERVIEW: usize = 400;

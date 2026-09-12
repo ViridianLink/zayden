@@ -114,8 +114,8 @@ pub fn spawn_poller(
 
         let content = match outcome {
             Ok(LinkOutcome::Linked { username }) => format!(
-                "Linked to Jellyfin as **{username}**. `/watch request` now files \
-                 requests as you, and `/jellyfin streak` can see your history."
+                "Linked to Jellyfin as **{username}**. `/jellyfin request` now files \
+                 requests as you, and `/watch streak` can see your history."
             ),
             Ok(LinkOutcome::Cancelled) => "Link cancelled.".to_owned(),
             Ok(LinkOutcome::Expired) => {

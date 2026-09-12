@@ -1,7 +1,7 @@
-//! Guess matching for `/watch guess`. Typos are forgiven; sequel numbers are
+//! Guess matching for `/jellyfin guess`. Typos are forgiven; sequel numbers are
 //! not.
 
-use watch::games::answer::matches;
+use jellyfin::games::answer::matches;
 
 #[test]
 fn an_exact_title_matches() {

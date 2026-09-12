@@ -2,17 +2,16 @@ use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::sync::Arc;
 
-use jellyfin::JellyfinError;
-use jellyfin::identity::JellyfinLinkRow;
-use jellyfin::jellyscribe::{self, Linked};
-use jellyfin::runtime::JellyfinRuntime;
 use serenity::all::{CreateEmbed, EditInteractionResponse, ResolvedValue};
 use tracing::warn;
 use zayden_core::{InvocationCtx, optional_option};
 
 use crate::discovery::letterboxd;
 use crate::embeds::COLOUR;
-use crate::error::Result;
+use crate::error::{JellyfinError, Result};
+use crate::identity::JellyfinLinkRow;
+use crate::jellyscribe::{self, Linked};
+use crate::runtime::JellyfinRuntime;
 
 const DEFAULT_MIN_RATING: f64 = 3.5;
 const MAX_LISTED: usize = 5;

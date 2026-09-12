@@ -17,11 +17,9 @@ zayden-app = { workspace = true }
 zayden-core = { workspace = true }
 
 futures = { workspace = true, features = ["std", "async-await"] }
-image = { workspace = true }
 jiff = { workspace = true }
 jiff-cron = { workspace = true }
 jiff-sqlx = { workspace = true }
-quick-xml = { workspace = true }
 reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

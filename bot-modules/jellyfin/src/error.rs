@@ -49,7 +49,9 @@ pub enum JellyfinError {
 
     #[error("Nothing on the server or on TMDB matches **{0}**.")]
     NoSuchTitle(String),
-    #[error("**{0}** is not on the server yet. Request it with `/watch request`.")]
+    #[error(
+        "**{0}** is not on the server yet. Request it with `/jellyfin request`."
+    )]
     NotOnServer(String),
     #[error(
         "I could not work out where **{0}** lives on disk, so I cannot host a party for it."
@@ -62,6 +64,10 @@ pub enum JellyfinError {
 
     #[error("{0} keeps their watch streak private.")]
     StreakPrivate(String),
+    #[error("That round has already been answered.")]
+    RoundClosed,
+    #[error("That round has expired.")]
+    RoundExpired,
     #[error("Guest accounts are disabled in this server.")]
     GuestsDisabled,
     #[error(
@@ -124,6 +130,8 @@ impl Respond for JellyfinError {
             | Self::NoItemPath(_)
             | Self::EmptyIndex
             | Self::StreakPrivate(_)
+            | Self::RoundClosed
+            | Self::RoundExpired
             | Self::GuestsDisabled
             | Self::GuestLimit { .. }
             | Self::NoSuchParty(_)

@@ -1,7 +1,7 @@
-//! Plot redaction for `/watch guess text`. Under-redacting gives the answer
+//! Plot redaction for `/jellyfin guess text`. Under-redacting gives the answer
 //! away, so the rule errs towards redacting.
 
-use watch::games::question::redact::redact;
+use jellyfin::games::question::redact::redact;
 
 #[test]
 fn the_title_is_always_removed() {

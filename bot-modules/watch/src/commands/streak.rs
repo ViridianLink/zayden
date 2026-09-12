@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 
+use jellyfin::JellyfinError;
+use jellyfin::embeds::COLOUR;
+use jellyfin::identity::JellyfinLinkRow;
+use jellyfin::stats::{heatmap, streak};
 use serenity::all::{
     CreateAttachment,
     CreateEmbed,
@@ -10,10 +14,7 @@ use serenity::all::{
 };
 use zayden_core::{InvocationCtx, optional_option};
 
-use crate::commands::about::EMBED_COLOUR;
-use crate::error::{JellyfinError, Result};
-use crate::identity::JellyfinLinkRow;
-use crate::stats::{heatmap, streak};
+use crate::error::Result;
 
 pub async fn run<S: BuildHasher>(
     cx: &InvocationCtx<'_>,
@@ -36,7 +37,9 @@ pub async fn run<S: BuildHasher>(
 
     // Streaks default to private, so viewing someone else's needs their opt-in.
     if !is_self && !link.streak_public {
-        return Err(JellyfinError::StreakPrivate(target.display_name().to_owned()));
+        return Err(
+            JellyfinError::StreakPrivate(target.display_name().to_owned()).into()
+        );
     }
 
     let stats = streak::load(&cx.app.db, &link.jellyfin_user_id).await?;
@@ -44,7 +47,7 @@ pub async fn run<S: BuildHasher>(
     let title = format!("{}'s watch streak", target.display_name());
     let embed = CreateEmbed::new()
         .title(title.clone())
-        .colour(EMBED_COLOUR)
+        .colour(COLOUR)
         .field("Current streak", format!("{} days", stats.current), true)
         .field("Longest streak", format!("{} days", stats.longest), true)
         .field("Days watched", stats.total_days.to_string(), true)

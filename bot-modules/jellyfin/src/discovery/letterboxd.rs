@@ -1,13 +1,12 @@
 use std::collections::HashSet;
 
-use jellyfin::JellyfinError;
-use jellyfin::index::LibraryItemRow;
 use quick_xml::Reader;
 use quick_xml::events::Event;
 use reqwest::Client;
 use sqlx::PgPool;
 
-use crate::error::{Result, WatchError};
+use crate::error::{JellyfinError, Result};
+use crate::index::LibraryItemRow;
 
 const MAX_FEED_BYTES: usize = 4 * 1024 * 1024;
 
@@ -41,23 +40,21 @@ pub async fn fetch(client: &Client, username: &str) -> Result<Vec<DiaryEntry>> {
         .header(reqwest::header::ACCEPT, "application/rss+xml")
         .send()
         .await
-        .map_err(|e| {
-            WatchError::Jellyfin(JellyfinError::LetterboxdParse(e.to_string()))
-        })?;
+        .map_err(|e| JellyfinError::LetterboxdParse(e.to_string()))?;
 
     if response.status() == reqwest::StatusCode::NOT_FOUND {
-        return Err(JellyfinError::NoLetterboxdFeed(username.to_owned()).into());
+        return Err(JellyfinError::NoLetterboxdFeed(username.to_owned()));
     }
 
-    let body = response.text().await.map_err(|e| {
-        WatchError::Jellyfin(JellyfinError::LetterboxdParse(e.to_string()))
-    })?;
+    let body = response
+        .text()
+        .await
+        .map_err(|e| JellyfinError::LetterboxdParse(e.to_string()))?;
 
     if body.len() > MAX_FEED_BYTES {
         return Err(JellyfinError::LetterboxdParse(
             "feed is implausibly large".to_owned(),
-        )
-        .into());
+        ));
     }
 
     parse(&body)
@@ -72,9 +69,9 @@ pub fn parse(xml: &str) -> Result<Vec<DiaryEntry>> {
     let mut field = String::new();
 
     loop {
-        let event = reader.read_event().map_err(|e| {
-            WatchError::Jellyfin(JellyfinError::LetterboxdParse(e.to_string()))
-        })?;
+        let event = reader
+            .read_event()
+            .map_err(|e| JellyfinError::LetterboxdParse(e.to_string()))?;
 
         match event {
             Event::Start(tag) => {

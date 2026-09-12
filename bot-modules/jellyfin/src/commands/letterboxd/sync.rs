@@ -2,15 +2,15 @@ use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::sync::Arc;
 
-use jellyfin::identity::JellyfinLinkRow;
-use jellyfin::jellyscribe;
-use jellyfin::runtime::JellyfinRuntime;
 use serenity::all::{CreateEmbed, EditInteractionResponse, ResolvedValue};
 use tracing::warn;
 use zayden_core::{InvocationCtx, required_option};
 
 use crate::embeds::COLOUR;
 use crate::error::Result;
+use crate::identity::JellyfinLinkRow;
+use crate::jellyscribe;
+use crate::runtime::JellyfinRuntime;
 
 const NEW_ACCOUNT_DEFAULTS: &str = "Enabled, favourites liked, primary account, \
      watchlist synced to the library, auto-request via Seerr, diary imported as \

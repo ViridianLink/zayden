@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use jellyfin::JellyfinError;
-use jellyfin::index::LibraryItemRow;
-use jellyfin::runtime::JellyfinRuntime;
-use jellyfin::transport::playback::model::RecentPlay;
 use sqlx::PgPool;
 
-use crate::error::Result;
+use crate::error::{JellyfinError, Result};
+use crate::index::LibraryItemRow;
+use crate::runtime::JellyfinRuntime;
+use crate::transport::playback::model::RecentPlay;
 
 const HISTORY_LIMIT: i64 = 40;
 const CHOICES: usize = 4;
@@ -62,11 +61,11 @@ pub async fn own_history(
 pub async fn server_history(
     runtime: &Arc<JellyfinRuntime>,
 ) -> Result<Vec<RecentPlay>> {
-    Ok(runtime
+    runtime
         .playback
         .server_recent_plays(HISTORY_LIMIT)
         .await
-        .map_err(JellyfinError::from)?)
+        .map_err(JellyfinError::from)
 }
 
 pub async fn build(

@@ -1,11 +1,9 @@
 pub mod binge;
-pub mod guess;
 pub mod justwatch;
-pub mod leaderboard;
-pub mod letterboxd;
 pub mod party;
+pub mod privacy;
 pub mod recommend;
-pub mod request;
+pub mod streak;
 pub mod trivia;
 pub mod warnings;
 use std::collections::HashMap;
@@ -27,21 +25,7 @@ pub struct Watch;
 impl Watch {
     pub fn register() -> CreateCommand<'static> {
         CreateCommand::new("watch")
-            .description("Find, request and plan what to watch")
-            .add_option(
-                sub("request", "Ask for something to be added to the server")
-                    .add_sub_option(
-                        string("title", "What to look for")
-                            .required(true)
-                            .set_autocomplete(true),
-                    )
-                    .add_sub_option(
-                        string("seasons", "Which seasons, for a show")
-                            .add_string_choice("All", "all")
-                            .add_string_choice("Latest", "latest")
-                            .add_string_choice("First", "first"),
-                    ),
-            )
+            .description("Plan what to watch and see what you have watched")
             .add_option(
                 sub("justwatch", "See where something streams in your region")
                     .add_sub_option(
@@ -80,20 +64,24 @@ impl Watch {
                             .set_autocomplete(true),
                     ),
             )
-            .add_option(letterboxd_group())
             .add_option(
-                sub("guess", "Guess the film from a poster or a redacted plot")
+                sub("streak", "Show consecutive days watched").add_sub_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::User,
+                        "user",
+                        "Whose streak to show (defaults to you)",
+                    ),
+                ),
+            )
+            .add_option(
+                sub("privacy", "Choose whether others can see your watch streak")
                     .add_sub_option(
-                        string("mode", "How to play")
-                            .required(true)
-                            .add_string_choice("Visual", "visual")
-                            .add_string_choice("Text", "text"),
-                    )
-                    .add_sub_option(
-                        string("difficulty", "How hard to make it")
-                            .add_string_choice("Easy", "easy")
-                            .add_string_choice("Medium", "medium")
-                            .add_string_choice("Hard", "hard"),
+                        CreateCommandOption::new(
+                            CommandOptionType::Boolean,
+                            "visible",
+                            "True to let others run /watch streak on you",
+                        )
+                        .required(true),
                     ),
             )
             .add_option(
@@ -111,14 +99,6 @@ impl Watch {
                             .add_string_choice("Everything", "yearly"),
                     ),
             )
-            .add_option(
-                sub("leaderboard", "Who is winning the games").add_sub_option(
-                    string("game", "Which game")
-                        .add_string_choice("Trivia", "trivia")
-                        .add_string_choice("Guess", "guess")
-                        .add_string_choice("All", "all"),
-                ),
-            )
             .add_option(recommend_group())
             .add_option(party_group())
     }
@@ -134,10 +114,6 @@ impl Watch {
                 recommend::run(cx, runtime).await?;
                 return Ok(Scheduled::Nothing);
             },
-            "letterboxd" => {
-                letterboxd::run(cx, runtime).await?;
-                return Ok(Scheduled::Nothing);
-            },
             "party" => return party::run(cx, runtime).await,
             _ => {},
         }
@@ -151,7 +127,7 @@ impl Watch {
         if is_library_subcommand(name) {
             library(cx, runtime, name, options).await?;
         } else {
-            games(cx, runtime, name, options).await?;
+            history(cx, runtime, name, options).await?;
         }
 
         Ok(Scheduled::Nothing)
@@ -159,7 +135,7 @@ impl Watch {
 }
 
 fn is_library_subcommand(name: &str) -> bool {
-    matches!(name, "request" | "justwatch" | "binge" | "warnings")
+    matches!(name, "justwatch" | "binge" | "warnings")
 }
 
 async fn library(
@@ -169,7 +145,6 @@ async fn library(
     options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<()> {
     match name {
-        "request" => request::run(cx, runtime, options).await,
         "justwatch" => justwatch::run(cx, runtime, options).await,
         "binge" => binge::run(cx, runtime, options).await,
         "warnings" => warnings::run(cx, runtime, options).await,
@@ -177,16 +152,16 @@ async fn library(
     }
 }
 
-async fn games(
+async fn history(
     cx: &InvocationCtx<'_>,
     runtime: &Arc<JellyfinRuntime>,
     name: &str,
     options: HashMap<&str, ResolvedValue<'_>>,
 ) -> Result<()> {
     match name {
-        "guess" => guess::run(cx, runtime, options).await,
+        "streak" => streak::run(cx, options).await,
+        "privacy" => privacy::run(cx, options).await,
         "trivia" => trivia::run(cx, runtime, options).await,
-        "leaderboard" => leaderboard::run(cx, options).await,
         _ => Err(WatchError::UnknownSubcommand(name.to_string())),
     }
 }
@@ -203,35 +178,6 @@ fn string(
     description: &'static str,
 ) -> CreateCommandOption<'static> {
     CreateCommandOption::new(CommandOptionType::String, name, description)
-}
-
-fn letterboxd_group() -> CreateCommandOption<'static> {
-    CreateCommandOption::new(
-        CommandOptionType::SubCommandGroup,
-        "letterboxd",
-        "Your Letterboxd diary and the server",
-    )
-    .add_sub_option(
-        sub("gaps", "Films you rated highly that the server is missing")
-            .add_sub_option(string(
-                "username",
-                "Letterboxd username (I set Jellyscribe up with it too)",
-            ))
-            .add_sub_option(CreateCommandOption::new(
-                CommandOptionType::Number,
-                "min_rating",
-                "Only suggest films rated at least this (default 3.5)",
-            )),
-    )
-    .add_sub_option(
-        sub("sync", "Hand Jellyscribe your Letterboxd login and sync now")
-            .add_sub_option(
-                string("username", "Your Letterboxd username").required(true),
-            )
-            .add_sub_option(
-                string("password", "Your Letterboxd password").required(true),
-            ),
-    )
 }
 
 fn recommend_group() -> CreateCommandOption<'static> {

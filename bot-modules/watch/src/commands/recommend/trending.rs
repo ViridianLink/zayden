@@ -22,7 +22,7 @@ pub async fn run(
             EditInteractionResponse::new().embed(embeds::media::list(
                 "Trending now",
                 &results,
-                Some("Anything not marked as on the server can be requested with `/watch request`."),
+                Some("Anything not marked as on the server can be requested with `/jellyfin request`."),
             )),
         )
         .await?;

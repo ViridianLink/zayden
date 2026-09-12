@@ -1,7 +1,7 @@
 //! Letterboxd RSS parsing. The feed carries `<tmdb:movieId>`, which is what
 //! makes the library cross-reference an exact join rather than a title guess.
 
-use watch::discovery::letterboxd::{feed_url, parse};
+use jellyfin::discovery::letterboxd::{feed_url, parse};
 
 const FEED: &str = r#"<?xml version='1.0' encoding='utf-8'?>
 <rss version="2.0" xmlns:letterboxd="https://letterboxd.com" xmlns:tmdb="https://themoviedb.org">

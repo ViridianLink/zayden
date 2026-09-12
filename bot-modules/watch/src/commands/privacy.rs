@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::hash::BuildHasher;
 
+use jellyfin::identity::JellyfinLinkRow;
 use serenity::all::{EditInteractionResponse, ResolvedValue};
 use zayden_core::{InvocationCtx, required_option};
 
 use crate::error::Result;
-use crate::identity::JellyfinLinkRow;
 
 pub async fn run<S: BuildHasher>(
     cx: &InvocationCtx<'_>,
@@ -21,7 +21,7 @@ pub async fn run<S: BuildHasher>(
 
     let content = if visible {
         "Your watch streak is now public — anyone can run \
-         `/jellyfin streak` on you."
+         `/watch streak` on you."
     } else {
         "Your watch streak is now private. Only you can see it."
     };

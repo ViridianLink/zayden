@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use jellyfin::games::question::history;
 use jellyfin::identity::JellyfinLinkRow;
 use jellyfin::index::LibraryItemRow;
 use jellyfin::runtime::JellyfinRuntime;
@@ -9,7 +10,6 @@ use zayden_core::InvocationCtx;
 
 use crate::embeds::COLOUR;
 use crate::error::Result;
-use crate::games::question::history;
 
 const SUGGESTIONS: usize = 8;
 

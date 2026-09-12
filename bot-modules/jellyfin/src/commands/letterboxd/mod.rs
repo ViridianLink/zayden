@@ -3,10 +3,10 @@ pub mod sync;
 
 use std::sync::Arc;
 
-use jellyfin::runtime::JellyfinRuntime;
 use zayden_core::{InvocationCtx, parse_options, parse_subcommand};
 
-use crate::error::{Result, WatchError};
+use crate::error::{JellyfinError, Result};
+use crate::runtime::JellyfinRuntime;
 
 pub async fn run(
     cx: &InvocationCtx<'_>,
@@ -19,6 +19,6 @@ pub async fn run(
     match name {
         "gaps" => gaps::run(cx, runtime, options).await,
         "sync" => sync::run(cx, runtime, options).await,
-        _ => Err(WatchError::UnknownSubcommand(name.to_string())),
+        _ => Err(JellyfinError::UnknownSubcommand(name.to_string())),
     }
 }

@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use jellyfin::JellyfinError;
-use jellyfin::index::LibraryItemRow;
-use jellyfin::runtime::JellyfinRuntime;
-use jellyfin::transport::jellyseerr::model::{MediaType, SearchResult};
 use sqlx::PgPool;
 
-use crate::error::Result;
+use crate::error::{JellyfinError, Result};
+use crate::index::LibraryItemRow;
+use crate::runtime::JellyfinRuntime;
+use crate::transport::jellyseerr::model::{MediaType, SearchResult};
 
 #[derive(Debug, Clone)]
 pub enum Resolved {
@@ -113,7 +112,7 @@ pub async fn resolve(
     }
 
     best.map(|remote| Resolved::Remote(Box::new(remote)))
-        .ok_or_else(|| JellyfinError::NoSuchTitle(query.to_owned()).into())
+        .ok_or_else(|| JellyfinError::NoSuchTitle(query.to_owned()))
 }
 
 pub async fn resolve_local(
@@ -129,5 +128,5 @@ pub async fn resolve_local(
         .await?
         .into_iter()
         .next()
-        .ok_or_else(|| JellyfinError::NotOnServer(query.to_owned()).into())
+        .ok_or_else(|| JellyfinError::NotOnServer(query.to_owned()))
 }

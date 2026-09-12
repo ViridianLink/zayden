@@ -1,8 +1,7 @@
 use image::imageops::FilterType;
 use image::{GenericImageView, ImageFormat};
-use jellyfin::JellyfinError;
 
-use crate::error::{Result, WatchError};
+use crate::error::{JellyfinError, Result};
 
 pub const TMDB_IMAGE_ROOT: &str = "https://image.tmdb.org/t/p/w500";
 
@@ -81,8 +80,6 @@ fn palette_strip(image: &image::DynamicImage) -> image::DynamicImage {
     image::DynamicImage::ImageRgba8(strip)
 }
 
-fn decode_err(e: impl std::fmt::Display) -> WatchError {
-    WatchError::Jellyfin(JellyfinError::Internal(format!(
-        "poster processing failed: {e}"
-    )))
+fn decode_err(e: impl std::fmt::Display) -> JellyfinError {
+    JellyfinError::Internal(format!("poster processing failed: {e}"))
 }

@@ -1,18 +1,18 @@
-//! Round retention for `/watch guess` and `/watch trivia`.
+//! Round retention for `/jellyfin guess` and `/watch trivia`.
 //!
 //! Rounds are write-once scratch state: `claim` refuses anything past
-//! `expires_at`, and the leaderboard reads `jellyfin_game_scores`, so a round
+//! `expires_at`, and scores are settled into `jellyfin_game_scores`, so a round
 //! is dead five minutes after it opens. Without the sweep the table grows for
 //! the life of the deployment.
 //!
 //! These need a live Postgres — each `#[sqlx::test]` creates and drops its own
 //! migrated database, so `DATABASE_URL` must point at a throwaway server.
 
+use jellyfin::games::score::POINTS_CORRECT;
+use jellyfin::games::{RoundRow, ScoreRow};
 use jiff::{Span, Timestamp};
 use serenity::all::{GenericChannelId, GuildId, UserId};
 use sqlx::PgPool;
-use watch::games::score::POINTS_CORRECT;
-use watch::games::{RoundRow, ScoreRow};
 
 const GUILD: GuildId = GuildId::new(1_089_479_616_209_539_112);
 const CHANNEL: GenericChannelId = GenericChannelId::new(1_089_479_616_209_539_113);

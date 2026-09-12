@@ -1,18 +1,12 @@
 use std::sync::Arc;
 
-use serenity::all::{
-    Colour,
-    CreateEmbed,
-    CreateEmbedFooter,
-    EditInteractionResponse,
-};
+use serenity::all::{CreateEmbed, CreateEmbedFooter, EditInteractionResponse};
 use zayden_core::InvocationCtx;
 
+use crate::embeds::COLOUR;
 use crate::error::Result;
 use crate::index::LibraryItemRow;
 use crate::runtime::JellyfinRuntime;
-
-pub const EMBED_COLOUR: Colour = Colour::new(0x0000_a4dc);
 
 pub async fn run(
     cx: &InvocationCtx<'_>,
@@ -46,7 +40,7 @@ pub async fn run(
 
     let embed = CreateEmbed::new()
         .title("Media server")
-        .colour(EMBED_COLOUR)
+        .colour(COLOUR)
         .field("Movies", counts.movies.to_string(), true)
         .field("Series", counts.series.to_string(), true)
         .field("Episodes", counts.episodes.to_string(), true)

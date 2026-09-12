@@ -13,25 +13,25 @@ use zayden_core::{ComponentCtx, ModalCtx, parse_modal_components};
 
 use crate::components::GUESS_MODAL_PREFIX;
 use crate::embeds::COLOUR;
-use crate::error::{Result, WatchError};
+use crate::error::{JellyfinError, Result};
 use crate::games::answer;
 use crate::games::round::RoundRow;
 use crate::games::score::ScoreRow;
 
 pub async fn trivia_answer(cx: &ComponentCtx<'_>, suffix: &str) -> Result<()> {
-    let (round_id, index) = suffix
-        .split_once(':')
-        .ok_or_else(|| WatchError::Internal(format!("bad trivia id `{suffix}`")))?;
+    let (round_id, index) = suffix.split_once(':').ok_or_else(|| {
+        JellyfinError::Internal(format!("bad trivia id `{suffix}`"))
+    })?;
 
     let round_id: i64 = round_id
         .parse()
-        .map_err(|_e| WatchError::Internal("bad round id".to_owned()))?;
+        .map_err(|_e| JellyfinError::Internal("bad round id".to_owned()))?;
     let index: usize = index
         .parse()
-        .map_err(|_e| WatchError::Internal("bad choice index".to_owned()))?;
+        .map_err(|_e| JellyfinError::Internal("bad choice index".to_owned()))?;
 
     let Some(round) = RoundRow::get(&cx.app.db, round_id).await? else {
-        return Err(WatchError::RoundExpired);
+        return Err(JellyfinError::RoundExpired);
     };
 
     let choices: Vec<String> = round
@@ -42,7 +42,7 @@ pub async fn trivia_answer(cx: &ComponentCtx<'_>, suffix: &str) -> Result<()> {
 
     let picked = choices
         .get(index)
-        .ok_or_else(|| WatchError::Internal("choice out of range".to_owned()))?;
+        .ok_or_else(|| JellyfinError::Internal("choice out of range".to_owned()))?;
 
     settle(cx, &round, picked).await
 }
@@ -52,7 +52,7 @@ async fn settle(
     round: &RoundRow,
     picked: &str,
 ) -> Result<()> {
-    let guild_id = cx.interaction.guild_id.ok_or(WatchError::MissingGuildId)?;
+    let guild_id = cx.interaction.guild_id.ok_or(JellyfinError::MissingGuildId)?;
     let user_id = cx.interaction.user.id;
     let username = cx.interaction.user.name.as_str();
 
@@ -61,9 +61,9 @@ async fn settle(
         RoundRow::claim(&cx.app.db, round.id, user_id, username).await?
     else {
         return if round.is_expired() {
-            Err(WatchError::RoundExpired)
+            Err(JellyfinError::RoundExpired)
         } else {
-            Err(WatchError::RoundClosed)
+            Err(JellyfinError::RoundClosed)
         };
     };
 
@@ -110,7 +110,7 @@ pub async fn open_guess_modal(cx: &ComponentCtx<'_>, suffix: &str) -> Result<()>
 pub async fn guess_submit(cx: &ModalCtx<'_>, suffix: &str) -> Result<()> {
     let round_id: i64 = suffix
         .parse()
-        .map_err(|_e| WatchError::Internal(format!("bad round id `{suffix}`")))?;
+        .map_err(|_e| JellyfinError::Internal(format!("bad round id `{suffix}`")))?;
 
     let mut inputs =
         parse_modal_components(cx.interaction.data.components.as_slice());
@@ -121,10 +121,10 @@ pub async fn guess_submit(cx: &ModalCtx<'_>, suffix: &str) -> Result<()> {
         .to_string();
 
     let Some(round) = RoundRow::get(&cx.app.db, round_id).await? else {
-        return Err(WatchError::RoundExpired);
+        return Err(JellyfinError::RoundExpired);
     };
 
-    let guild_id = cx.interaction.guild_id.ok_or(WatchError::MissingGuildId)?;
+    let guild_id = cx.interaction.guild_id.ok_or(JellyfinError::MissingGuildId)?;
     let user_id = cx.interaction.user.id;
     let username = cx.interaction.user.name.as_str();
 
@@ -132,9 +132,9 @@ pub async fn guess_submit(cx: &ModalCtx<'_>, suffix: &str) -> Result<()> {
         RoundRow::claim(&cx.app.db, round_id, user_id, username).await?
     else {
         return if round.is_expired() {
-            Err(WatchError::RoundExpired)
+            Err(JellyfinError::RoundExpired)
         } else {
-            Err(WatchError::RoundClosed)
+            Err(JellyfinError::RoundClosed)
         };
     };
 

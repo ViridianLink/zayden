@@ -2,9 +2,6 @@ use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::sync::Arc;
 
-use jellyfin::JellyfinError;
-use jellyfin::index::LibraryItemRow;
-use jellyfin::runtime::JellyfinRuntime;
 use serenity::all::{
     ButtonStyle,
     CreateActionRow,
@@ -19,10 +16,13 @@ use zayden_core::{InvocationCtx, optional_option, required_option};
 
 use crate::components::GUESS_OPEN_PREFIX;
 use crate::embeds::COLOUR;
-use crate::error::{Result, WatchError};
+use crate::error::{JellyfinError, Result};
 use crate::games::question::poster::{self, Difficulty};
 use crate::games::question::redact;
 use crate::games::round::{NewRound, RoundRow};
+use crate::index::LibraryItemRow;
+use crate::runtime::JellyfinRuntime;
+use crate::transport::jellyseerr::model::MovieDetails;
 
 pub const GAME: &str = "guess";
 
@@ -36,7 +36,7 @@ pub async fn run<S: BuildHasher>(
         optional_option(&mut options, "difficulty").unwrap_or("easy"),
     );
 
-    let guild_id = cx.interaction.guild_id.ok_or(WatchError::MissingGuildId)?;
+    let guild_id = cx.interaction.guild_id.ok_or(JellyfinError::MissingGuildId)?;
 
     cx.interaction.defer(&cx.ctx.http).await?;
 
@@ -109,9 +109,7 @@ async fn pick(
 
     let item_id = row.ok_or(JellyfinError::EmptyIndex)?;
 
-    LibraryItemRow::by_id(pool, &item_id)
-        .await?
-        .ok_or(JellyfinError::EmptyIndex.into())
+    LibraryItemRow::by_id(pool, &item_id).await?.ok_or(JellyfinError::EmptyIndex)
 }
 
 async fn visual(
@@ -124,10 +122,10 @@ async fn visual(
         .get(poster_url)
         .send()
         .await
-        .map_err(|e| WatchError::Internal(format!("poster fetch failed: {e}")))?
+        .map_err(|e| JellyfinError::Internal(format!("poster fetch failed: {e}")))?
         .bytes()
         .await
-        .map_err(|e| WatchError::Internal(format!("poster read failed: {e}")))?;
+        .map_err(|e| JellyfinError::Internal(format!("poster read failed: {e}")))?;
 
     let derived = poster::derive(&downloaded, difficulty)?;
     let name = format!("guess-{tmdb_id}.png");
@@ -143,10 +141,7 @@ async fn visual(
         .new_attachment(CreateAttachment::bytes(derived, name)))
 }
 
-fn text(
-    details: &jellyfin::transport::jellyseerr::model::MovieDetails,
-    title: &str,
-) -> EditInteractionResponse<'static> {
+fn text(details: &MovieDetails, title: &str) -> EditInteractionResponse<'static> {
     let overview = details.overview.as_deref().unwrap_or_default();
 
     EditInteractionResponse::new().embed(

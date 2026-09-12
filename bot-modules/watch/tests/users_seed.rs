@@ -1,5 +1,5 @@
-//! Regression tests for the `users` parent row that `watch`'s four write paths
-//! must seed before they can reference it.
+//! Regression tests for the `users` parent row that the game and party write
+//! paths must seed before they can reference it.
 //!
 //! `users.username` is `VARCHAR(255) NOT NULL` with no default
 //! ([`0001_v1_init.up.sql`]). These paths used to seed the parent row with
@@ -19,10 +19,10 @@
 //! [`0001_v1_init.up.sql`]: ../../../migrations/0001_v1_init.up.sql
 
 use jellyfin::LibraryItemRow;
+use jellyfin::games::{NewRound, RoundRow, ScoreRow};
 use jiff::{Span, Timestamp};
 use serenity::all::{GenericChannelId, GuildId, UserId};
 use sqlx::PgPool;
-use watch::games::{NewRound, RoundRow, ScoreRow};
 use watch::party::{PartyGuestRow, PartyRow};
 
 const GUILD: GuildId = GuildId::new(1_089_479_616_209_539_112);

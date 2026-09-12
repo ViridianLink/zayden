@@ -2,15 +2,14 @@ use std::collections::HashMap;
 use std::hash::BuildHasher;
 use std::sync::Arc;
 
-use jellyfin::JellyfinError;
-use jellyfin::identity::{JellyfinLinkRow, seer_user};
-use jellyfin::runtime::JellyfinRuntime;
 use serenity::all::{EditInteractionResponse, ResolvedValue};
 use zayden_core::{InvocationCtx, optional_option, required_option};
 
 use crate::discovery::{Resolved, resolve};
 use crate::embeds;
-use crate::error::Result;
+use crate::error::{JellyfinError, Result};
+use crate::identity::{JellyfinLinkRow, seer_user};
+use crate::runtime::JellyfinRuntime;
 
 pub async fn run<S: BuildHasher>(
     cx: &InvocationCtx<'_>,
