@@ -56,22 +56,55 @@ pub(crate) struct NewInfraction<'a> {
 
 impl NewInfraction<'_> {
     pub(crate) async fn record(&self, pool: &PgPool) -> sqlx::Result<()> {
+        let guild_id = as_i64(self.guild_id.get());
+        let target_id = as_i64(self.target_id.get());
+        let moderator_id = as_i64(self.moderator_id.get());
+
+        let mut tx = pool.begin().await?;
+
+        sqlx::query!(
+            "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+            guild_id
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            target_id,
+            self.target_username
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO users (id, username) VALUES ($1, $2) \
+             ON CONFLICT (id) DO NOTHING",
+            moderator_id,
+            self.moderator_username
+        )
+        .execute(&mut *tx)
+        .await?;
+
         sqlx::query!(
             "INSERT INTO infractions
                 (user_id, username, guild_id, infraction_type,
                  moderator_id, moderator_username, points, reason)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-            as_i64(self.target_id.get()),
+            target_id,
             self.target_username,
-            as_i64(self.guild_id.get()),
+            guild_id,
             self.kind as _,
-            as_i64(self.moderator_id.get()),
+            moderator_id,
             self.moderator_username,
             self.points,
             self.reason,
         )
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
+
+        tx.commit().await?;
 
         Ok(())
     }

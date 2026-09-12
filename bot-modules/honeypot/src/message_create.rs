@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serenity::all::{ChannelId, Context, GuildId, Message, RoleId, UserId};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info};
 use zayden_app::config::HoneypotSettingsRow;
 use zayden_core::as_u64;
 use zayden_core::retry::{RetryBudget, retry_transient};
@@ -120,7 +120,7 @@ pub async fn message_create(
 
     let outcome = outcome_of(&unban);
     match &unban {
-        Ok(()) => warn!(
+        Ok(()) => info!(
             %guild_id,
             %author_id,
             username = %msg.author.name,
