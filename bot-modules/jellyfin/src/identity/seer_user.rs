@@ -1,13 +1,18 @@
 use std::sync::Arc;
 
-use jiff::{Span, Timestamp};
+use jiff::{SignedDuration, Timestamp};
 use sqlx::PgPool;
 
 use crate::error::Result;
 use crate::identity::link::JellyfinLinkRow;
 use crate::runtime::JellyfinRuntime;
 
-const STALE_AFTER_DAYS: i64 = 7;
+const STALE_AFTER: SignedDuration = SignedDuration::from_hours(24 * 7);
+
+#[must_use]
+pub fn is_fresh(checked_at: Option<Timestamp>, now: Timestamp) -> bool {
+    checked_at.is_some_and(|checked| now.duration_since(checked) < STALE_AFTER)
+}
 
 pub async fn refresh(
     runtime: &Arc<JellyfinRuntime>,
@@ -31,10 +36,10 @@ pub async fn resolve(
     pool: &PgPool,
     link: &JellyfinLinkRow,
 ) -> Result<Option<i32>> {
-    let stale_before = Timestamp::now() - Span::new().days(STALE_AFTER_DAYS);
-    let fresh = link
-        .jellyseerr_checked_at
-        .is_some_and(|checked| checked.to_jiff() > stale_before);
+    let fresh = is_fresh(
+        link.jellyseerr_checked_at.map(jiff_sqlx::Timestamp::to_jiff),
+        Timestamp::now(),
+    );
 
     if fresh && link.jellyseerr_user_id.is_some() {
         return Ok(link.jellyseerr_user_id);
