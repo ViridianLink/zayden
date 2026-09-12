@@ -2,6 +2,7 @@ pub mod discover;
 pub mod model;
 pub mod request;
 pub mod search;
+pub mod service;
 
 use reqwest::{Client, RequestBuilder};
 use url::Url;

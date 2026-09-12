@@ -9,6 +9,7 @@ use crate::discovery::{Resolved, resolve};
 use crate::embeds;
 use crate::error::{JellyfinError, Result};
 use crate::identity::{JellyfinLinkRow, seer_user};
+use crate::requests::{self, Seasons};
 use crate::runtime::JellyfinRuntime;
 
 pub async fn run<S: BuildHasher>(
@@ -42,9 +43,12 @@ pub async fn run<S: BuildHasher>(
     let link = JellyfinLinkRow::require(&cx.app.db, cx.interaction.user.id).await?;
     let seer_id = seer_user::resolve(runtime, &cx.app.db, &link).await?;
 
+    let kind = resolved.kind();
+    let plan = requests::plan(runtime, kind, tmdb_id, Seasons::parse(seasons)).await;
+
     let request = runtime
         .seer
-        .create_request(resolved.kind(), tmdb_id, season_payload(seasons), seer_id)
+        .create_request(kind, tmdb_id, plan.seasons, seer_id, plan.profile)
         .await
         .map_err(JellyfinError::from)?;
 
@@ -70,13 +74,4 @@ pub async fn run<S: BuildHasher>(
         .await?;
 
     Ok(())
-}
-
-fn season_payload(seasons: Option<&str>) -> Option<serde_json::Value> {
-    match seasons {
-        Some("first") => Some(serde_json::json!([1])),
-        Some("latest") => Some(serde_json::json!("latest")),
-        Some("all") | None => Some(serde_json::json!("all")),
-        Some(_) => None,
-    }
 }

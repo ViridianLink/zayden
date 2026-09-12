@@ -23,6 +23,14 @@ impl MediaType {
             _ => None,
         }
     }
+
+    #[must_use]
+    pub const fn service(self) -> &'static str {
+        match self {
+            Self::Movie => "radarr",
+            Self::Tv => "sonarr",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -124,7 +132,7 @@ pub struct MovieDetails {
     pub watch_providers: Vec<RegionProviders>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TvDetails {
     pub id: i32,
@@ -151,7 +159,7 @@ pub struct TvDetails {
     pub watch_providers: Vec<RegionProviders>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Season {
     #[serde(default)]
@@ -225,6 +233,39 @@ pub struct NewRequest {
     pub seasons: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user_id: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server_id: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profile_id: Option<i32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ProfileTarget {
+    pub server_id: i32,
+    pub profile_id: i32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceServer {
+    pub id: i32,
+    #[serde(default)]
+    pub is_default: bool,
+    #[serde(default, rename = "is4k")]
+    pub is_4k: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ServiceProfile {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ServiceServerDetails {
+    #[serde(default = "Vec::new")]
+    pub profiles: Vec<ServiceProfile>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

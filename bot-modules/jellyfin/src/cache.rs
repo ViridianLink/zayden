@@ -6,6 +6,7 @@ use crate::identity::quick_connect::PendingLink;
 use crate::transport::jellyfin::model::LibraryCounts;
 use crate::transport::jellyseerr::model::{
     MovieDetails,
+    ProfileTarget,
     RegionProviders,
     SearchResult,
     TvDetails,
@@ -24,6 +25,7 @@ pub struct JellyfinCaches {
     pub movie_details: Cache<i32, MovieDetails>,
     pub tv_details: Cache<i32, TvDetails>,
     pub keyword_ids: Cache<String, Option<i32>>,
+    pub quality_profiles: Cache<(&'static str, &'static str), Option<ProfileTarget>>,
     pub watch_providers: Cache<(String, i32), Vec<RegionProviders>>,
     pub search: Cache<String, Vec<SearchResult>>,
     pub segment_stats: Cache<String, SegmentStats>,
@@ -46,6 +48,7 @@ impl JellyfinCaches {
             movie_details: build(2048, 6 * HOUR),
             tv_details: build(2048, 6 * HOUR),
             keyword_ids: build(512, 24 * HOUR),
+            quality_profiles: build(16, HOUR),
             watch_providers: build(1024, 12 * HOUR),
             search: build(512, MINUTE),
             segment_stats: build(256, 24 * HOUR),

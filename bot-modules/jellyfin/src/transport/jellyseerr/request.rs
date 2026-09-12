@@ -1,5 +1,12 @@
 use super::SeerClient;
-use super::model::{MediaType, NewRequest, RequestResult, SeerUser, SeerUserPage};
+use super::model::{
+    MediaType,
+    NewRequest,
+    ProfileTarget,
+    RequestResult,
+    SeerUser,
+    SeerUserPage,
+};
 use crate::transport::http::{ApiResult, fetch_json};
 
 const USER_PAGE_SIZE: i64 = 200;
@@ -33,12 +40,15 @@ impl SeerClient {
         tmdb_id: i32,
         seasons: Option<serde_json::Value>,
         user_id: Option<i32>,
+        profile: Option<ProfileTarget>,
     ) -> ApiResult<RequestResult> {
         let body = NewRequest {
             media_type: kind.as_str().to_owned(),
             media_id: tmdb_id,
             seasons,
             user_id,
+            server_id: profile.map(|p| p.server_id),
+            profile_id: profile.map(|p| p.profile_id),
         };
 
         fetch_json(super::SERVICE, "request creation", || {
