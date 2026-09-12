@@ -3050,10 +3050,12 @@ name = "jellyfin"
 version = "1.0.0"
 dependencies = [
  "futures",
+ "image",
  "jiff",
  "jiff-cron",
  "jiff-sqlx",
  "moka",
+ "quick-xml",
  "reqwest 0.13.5",
  "serde",
  "serde_json",
@@ -8142,12 +8144,10 @@ version = "1.0.0"
 dependencies = [
  "ai",
  "futures",
- "image",
  "jellyfin",
  "jiff",
  "jiff-cron",
  "jiff-sqlx",
- "quick-xml",
  "reqwest 0.13.5",
  "serde",
  "serde_json",
