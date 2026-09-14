@@ -1,7 +1,10 @@
 use futures::StreamExt;
-use serenity::all::{Http, Message, ThreadId};
+use serenity::all::{GuildId, Http, Message, ThreadId};
+use tracing::debug;
 
+use crate::faq::facts::collapse;
 use crate::faq::triage;
+use crate::state::retitle;
 
 const MESSAGE_LIMIT: usize = 200;
 const MIN_MESSAGE_CHARS: usize = 15;
@@ -9,7 +12,12 @@ const TRANSCRIPT_LIMIT: usize = 12_000;
 
 const USER_LABEL: &str = "User";
 const BOT_LABEL: &str = "Support Bot";
+const HELPER_LABEL: &str = "Helper";
+const TITLE_LABEL: &str = "Thread title";
 const DIAGNOSTIC_HEADER: &str = "Diagnostic questions asked:";
+pub const OPENING_HEADER: &str = "Original issue:";
+pub const CONVERSATION_HEADER: &str = "Conversation:";
+const TRUNCATED: &str = "\n[truncated]";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageKind {
@@ -25,7 +33,19 @@ pub struct RawMessage {
     pub content: String,
 }
 
-pub async fn collect(http: &Http, thread_id: ThreadId) -> Option<String> {
+pub async fn collect(
+    http: &Http,
+    guild_id: GuildId,
+    thread_id: ThreadId,
+) -> Option<String> {
+    let title = match thread_id.to_thread(http, Some(guild_id)).await {
+        Ok(thread) => Some(retitle(&thread.base.name, "")),
+        Err(e) => {
+            debug!(error = ?e, %thread_id, "could not fetch thread title for faq");
+            None
+        },
+    };
+
     let messages = thread_id
         .widen()
         .messages_iter(http)
@@ -34,7 +54,7 @@ pub async fn collect(http: &Http, thread_id: ThreadId) -> Option<String> {
         .collect::<Vec<_>>()
         .await;
 
-    render(&messages, TRANSCRIPT_LIMIT)
+    render(title.as_deref(), &messages, TRANSCRIPT_LIMIT)
 }
 
 fn raw(message: &Message) -> Option<RawMessage> {
@@ -93,7 +113,11 @@ fn ticket_body(message: &Message) -> Option<RawMessage> {
 }
 
 #[must_use]
-pub fn render(messages: &[RawMessage], limit: usize) -> Option<String> {
+pub fn render(
+    title: Option<&str>,
+    messages: &[RawMessage],
+    limit: usize,
+) -> Option<String> {
     let mut speakers = author(messages).map(|id| vec![id]).unwrap_or_default();
 
     let lines = messages
@@ -102,7 +126,7 @@ pub fn render(messages: &[RawMessage], limit: usize) -> Option<String> {
         .filter(|message| keep(message))
         .map(|message| {
             let label = label(message, &mut speakers);
-            format!("{label}: {}", message.content.trim())
+            (message.kind, format!("{label}: {}", message.content.trim()))
         })
         .collect::<Vec<_>>();
 
@@ -110,7 +134,104 @@ pub fn render(messages: &[RawMessage], limit: usize) -> Option<String> {
         return None;
     }
 
-    Some(tail(&lines.join("\n"), limit))
+    let (opening, conversation) = split_opening(lines);
+
+    let opening = title
+        .map(str::trim)
+        .filter(|title| !title.is_empty())
+        .map(|title| format!("{TITLE_LABEL}: {title}"))
+        .into_iter()
+        .chain(opening)
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let opening = format!(
+        "{OPENING_HEADER}\n{}",
+        zayden_core::text::truncate(&opening, limit / 2, TRUNCATED)
+    );
+
+    if conversation.is_empty() {
+        return Some(opening);
+    }
+
+    let budget = limit
+        .saturating_sub(opening.chars().count() + CONVERSATION_HEADER.len() + 3);
+
+    Some(format!(
+        "{opening}\n\n{CONVERSATION_HEADER}\n{}",
+        tail(&conversation.join("\n"), budget)
+    ))
+}
+
+fn split_opening(lines: Vec<(MessageKind, String)>) -> (Vec<String>, Vec<String>) {
+    let has_body = lines.iter().any(|(kind, _)| *kind == MessageKind::TicketBody);
+    let mut opening = Vec::new();
+    let mut conversation = Vec::new();
+
+    for (kind, line) in lines {
+        let is_opening = if has_body {
+            kind == MessageKind::TicketBody
+        } else {
+            opening.is_empty()
+        };
+
+        if is_opening {
+            opening.push(line);
+        } else {
+            conversation.push(line);
+        }
+    }
+
+    (opening, conversation)
+}
+
+#[must_use]
+pub fn user_said(transcript: &str, quote: &str) -> bool {
+    let quote = collapse(quote);
+
+    if quote.is_empty() {
+        return false;
+    }
+
+    let Some((_, conversation)) =
+        transcript.split_once(&format!("\n\n{CONVERSATION_HEADER}\n"))
+    else {
+        return false;
+    };
+
+    let mut said = Vec::new();
+    let mut current: Option<String> = None;
+
+    for line in conversation.lines() {
+        match speaker(line) {
+            Some((label, content)) => {
+                said.extend(current.take());
+                current = (label == USER_LABEL).then(|| content.to_owned());
+            },
+            None => {
+                if let Some(message) = current.as_mut() {
+                    message.push('\n');
+                    message.push_str(line);
+                }
+            },
+        }
+    }
+
+    said.extend(current);
+    said.iter().any(|message| collapse(message).contains(&quote))
+}
+
+fn speaker(line: &str) -> Option<(&str, &str)> {
+    let (label, content) = line.split_once(": ")?;
+
+    let known = label == USER_LABEL
+        || label == BOT_LABEL
+        || label
+            .strip_prefix(HELPER_LABEL)
+            .and_then(|index| index.strip_prefix(' '))
+            .is_some_and(|index| index.parse::<usize>().is_ok());
+
+    known.then_some((label, content))
 }
 
 fn author(messages: &[RawMessage]) -> Option<u64> {
@@ -142,7 +263,11 @@ fn label(message: &RawMessage, speakers: &mut Vec<u64>) -> String {
     let index =
         speakers.iter().position(|id| *id == message.author_id).unwrap_or_default();
 
-    if index == 0 { USER_LABEL.to_owned() } else { format!("Helper {index}") }
+    if index == 0 {
+        USER_LABEL.to_owned()
+    } else {
+        format!("{HELPER_LABEL} {index}")
+    }
 }
 
 fn tail(transcript: &str, limit: usize) -> String {

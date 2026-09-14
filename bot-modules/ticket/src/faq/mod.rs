@@ -10,6 +10,7 @@ mod keywords;
 pub mod linked;
 mod lookup;
 pub mod reconcile;
+pub mod related;
 pub mod render;
 pub mod scrub;
 pub mod transcript;

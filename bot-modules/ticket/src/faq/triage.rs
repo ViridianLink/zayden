@@ -13,8 +13,8 @@ use crate::faq::render::truncate;
 use crate::faq::view::{essential_line, link_line};
 use crate::wiki::WikiConfig;
 
-const SYSTEM_PROMPT: &str = "You are a Discord support-ticket triage assistant \
-for a self-hosted documentation wiki. A new support ticket has just been opened. \
+const SYSTEM_PROMPT: &str = "You are a support-ticket triage assistant for a \
+Discord server and its documentation wiki. A new support ticket has just been opened. \
 You are given its title, the forum tags the user picked, their message, the text \
 of every page their message linked to, a fixed list of candidate wiki \
 articles (title, description, path) found by a keyword search of that message, and \

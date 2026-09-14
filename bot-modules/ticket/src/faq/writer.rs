@@ -5,17 +5,26 @@ use zayden_app::state::AppState;
 
 use crate::faq::article::NewArticle;
 
-const SYSTEM_PROMPT: &str = "You are a technical writer for a self-hosted \
-documentation wiki. You are given the transcript of a Discord support ticket \
-that has just been marked solved. Turn it into one reusable FAQ article.
+const SYSTEM_PROMPT: &str = "You write the support FAQ for a Discord server. \
+You are given the transcript of a support ticket \
+that has just been marked solved. Turn it into one reusable FAQ article about \
+the issue the ticket was opened for.
+
+The transcript starts with the Original issue section: the thread title and the \
+user's opening post. The article answers that issue and nothing else. Support \
+threads wander: helpers chase causes that turn out to be wrong, changes get \
+tried that do not help, and the user raises or fixes unrelated problems along \
+the way. Leave all of that out. Only describe the cause that was confirmed and \
+the steps that actually resolved the original issue.
 
 Speakers are already anonymised. Never reintroduce a name, and never repeat an \
 identifier, address, or credential that appears in the transcript.
 
-If the transcript does not contain a solution anyone could follow, for example \
-the user resolved it themselves without saying how, or the thread was closed \
-without a fix, set status to insufficient_data and leave the other fields \
-empty. Do not invent a solution.";
+If the original issue was not resolved, or the transcript does not show how it \
+was resolved, for example the user fixed it themselves without saying how, or \
+the thread was closed without a fix, set status to insufficient_data and leave \
+the other fields empty. Do this even when some other problem in the thread was \
+fixed. Do not invent a solution.";
 
 pub(crate) const ARTICLE_FORMAT: &str = "Structure the article body with these \
 headers, in this order, omitting Prevention when you have nothing to say there:

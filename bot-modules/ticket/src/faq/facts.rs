@@ -74,6 +74,6 @@ fn insert(found: &mut BTreeSet<String>, literal: &str) {
     }
 }
 
-fn collapse(text: &str) -> String {
+pub(crate) fn collapse(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
 }

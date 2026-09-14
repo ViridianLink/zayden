@@ -6,9 +6,9 @@ use tracing::{debug, error, info, warn};
 use zayden_app::state::AppState;
 use zayden_core::as_i64;
 
-use crate::faq::article::{FaqArticle, NewArticle};
+use crate::faq::article::{FaqArticle, NewArticle, PRIMARY_POSITION};
 use crate::faq::reconcile::{Outcome, Reconciler, Subject, candidates};
-use crate::faq::{FaqContext, scrub, transcript, writer};
+use crate::faq::{FaqContext, related, scrub, transcript, writer};
 use crate::support_guild_manager::TicketStores;
 
 pub(crate) async fn on_ticket_solved(
@@ -39,12 +39,15 @@ async fn run(
     thread_id: ThreadId,
     guild_id: GuildId,
 ) {
-    let Some(transcript) = transcript::collect(&http, thread_id).await else {
+    let Some(transcript) = transcript::collect(&http, guild_id, thread_id).await
+    else {
         debug!(%thread_id, "no usable transcript for faq generation");
         return;
     };
 
-    let draft = match writer::draft(&app, &scrub::redact(&transcript)).await {
+    let transcript = scrub::redact(&transcript);
+
+    let draft = match writer::draft(&app, &transcript).await {
         Ok(draft) => draft,
         Err(e) => {
             error!(error = ?e, %thread_id, "faq article synthesis failed");
@@ -58,13 +61,50 @@ async fn run(
     }
 
     let guild = as_i64(guild_id.get());
-    let new = draft.article.as_new();
+    let primary = draft.article.as_new();
 
-    match reconcile(&app, guild, thread_id, new).await {
-        Outcome::Create => publish(&app, guild, thread_id, new).await,
+    settle(&app, guild, thread_id, PRIMARY_POSITION, primary).await;
+
+    let entries = match related::draft(&app, &transcript, primary).await {
+        Ok(entries) => entries,
+        Err(e) => {
+            warn!(error = ?e, %thread_id, "related faq article synthesis failed");
+            return;
+        },
+    };
+
+    let mut position = PRIMARY_POSITION;
+
+    for sifted in related::sift(entries, &transcript) {
+        match sifted {
+            Ok(article) => {
+                position += 1;
+                settle(&app, guild, thread_id, position, article.as_new()).await;
+            },
+            Err(rejected) => {
+                info!(
+                    %thread_id,
+                    title = rejected.title,
+                    rejection = ?rejected.rejection,
+                    "related faq article rejected"
+                );
+            },
+        }
+    }
+}
+
+async fn settle(
+    app: &AppState,
+    guild: i64,
+    thread_id: ThreadId,
+    position: i16,
+    new: NewArticle<'_>,
+) {
+    match reconcile(app, guild, thread_id, new).await {
+        Outcome::Create => publish(app, guild, thread_id, position, new).await,
         Outcome::Unresolved { reason } => {
             info!(%thread_id, reason, "faq reconcile unresolved, publishing new article");
-            publish(&app, guild, thread_id, new).await;
+            publish(app, guild, thread_id, position, new).await;
         },
         Outcome::Discard { target, reason } => {
             info!(%thread_id, target, reason, "discarded article already covered");
@@ -76,7 +116,7 @@ async fn run(
                 },
                 Ok(None) => {
                     debug!(%thread_id, target, "merge target vanished");
-                    publish(&app, guild, thread_id, new).await;
+                    publish(app, guild, thread_id, position, new).await;
                 },
                 Err(e) => {
                     error!(error = ?e, %thread_id, target, "faq article merge failed");
@@ -117,14 +157,21 @@ async fn publish(
     app: &AppState,
     guild: i64,
     thread_id: ThreadId,
+    position: i16,
     new: NewArticle<'_>,
 ) {
-    match FaqArticle::insert_generated(&app.db, guild, as_i64(thread_id.get()), new)
-        .await
+    match FaqArticle::insert_generated(
+        &app.db,
+        guild,
+        as_i64(thread_id.get()),
+        position,
+        new,
+    )
+    .await
     {
         Ok(Some(_)) => {},
         Ok(None) => {
-            debug!(%thread_id, "thread already has a faq article");
+            debug!(%thread_id, position, "thread already has this faq article");
         },
         Err(e) => {
             error!(error = ?e, %thread_id, "faq article insert failed");

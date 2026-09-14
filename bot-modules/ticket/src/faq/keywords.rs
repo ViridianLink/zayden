@@ -4,14 +4,12 @@ use serde::Deserialize;
 use zayden_app::state::AppState;
 
 const SYSTEM_PROMPT: &str = "You are a keyword extraction assistant for a \
-Discord support bot backed by a self-hosted documentation wiki. The wiki is a \
-large collection of short setup guides, each on its own page named after the \
-app or service it documents.
+Discord support bot backed by a documentation wiki.
 
 Given a user's support message, extract 1 to 5 short search keywords or phrases \
-(app names, service names, or specific technical terms) that would find the most \
-relevant wiki page(s) via a plain text search against page titles and descriptions. \
-Prefer proper nouns (app or service names) over generic words. Do not include full \
+(names of products, features or services, or other specific terms) that would find \
+the most relevant wiki page(s) via a plain text search against page titles and \
+descriptions. Prefer proper nouns over generic words. Do not include full \
 questions, greetings, or filler words.";
 
 const SCHEMA_NAME: &str = "keyword_extraction";

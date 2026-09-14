@@ -7,6 +7,7 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use sqlx::PgPool;
+use ticket::faq::article::PRIMARY_POSITION;
 use ticket::faq::scrub::redact;
 use ticket::faq::{FaqArticle, NewArticle};
 use tokio::time::sleep;
@@ -129,8 +130,14 @@ async fn main() -> Result<(), BoxError> {
             tags: &import.tags,
         };
 
-        match FaqArticle::insert_generated(pool, GUILD_ID, import.thread_id, article)
-            .await?
+        match FaqArticle::insert_generated(
+            pool,
+            GUILD_ID,
+            import.thread_id,
+            PRIMARY_POSITION,
+            article,
+        )
+        .await?
         {
             Some(row) => {
                 println!("inserted #{}: {}", row.id, row.title);

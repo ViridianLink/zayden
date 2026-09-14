@@ -3,6 +3,8 @@ use sqlx::{PgExecutor, PgPool};
 const DISCORD_EPOCH_MS: i64 = 1_420_070_400_000;
 const SNOWFLAKE_TIMESTAMP_SHIFT: u32 = 22;
 
+pub const PRIMARY_POSITION: i16 = 0;
+
 #[derive(Debug, Clone)]
 pub struct FaqArticle {
     pub id: i32,
@@ -171,14 +173,16 @@ impl FaqArticle {
         pool: &PgPool,
         guild_id: i64,
         thread_id: i64,
+        position: i16,
         draft: NewArticle<'_>,
     ) -> sqlx::Result<Option<Self>> {
         sqlx::query_as!(
             Self,
             r#"
             INSERT INTO faq_articles (guild_id, title, summary, content, category,
-                                      tags, source_thread_id, generated)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE)
+                                      tags, source_thread_id, source_position,
+                                      generated)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, TRUE)
             ON CONFLICT DO NOTHING
             RETURNING id, guild_id, title, summary, content, category, tags,
                       source_thread_id, generated,
@@ -190,7 +194,8 @@ impl FaqArticle {
             draft.content,
             draft.category,
             draft.tags,
-            thread_id
+            thread_id,
+            position
         )
         .fetch_optional(pool)
         .await

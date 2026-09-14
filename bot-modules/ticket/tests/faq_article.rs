@@ -7,11 +7,15 @@
 //!   `custom_id`, which a user can forge, so an unscoped lookup would serve one
 //!   guild's article to another. Dropping `guild_id` from the `WHERE` clause fails
 //!   `an_article_is_invisible_to_another_guild`.
-//! - One article per source thread. A double invocation of `/ticket solved` must not
-//!   publish the same article twice. Dropping `faq_articles_thread_idx` fails
-//!   `a_second_insert_for_the_same_thread_is_refused`.
+//! - One article per source thread and position. A double invocation of `/ticket
+//!   solved` must not publish the same article twice, while one thread may still
+//!   yield a primary article and related ones. Dropping `faq_articles_thread_idx`
+//!   fails `a_second_insert_for_the_same_thread_is_refused`, and leaving
+//!   `source_position` out of it fails
+//!   `each_position_on_a_thread_is_its_own_article`.
 
 use sqlx::PgPool;
+use ticket::faq::article::PRIMARY_POSITION;
 use ticket::{FaqArticle, NewArticle};
 
 const GUILD: i64 = 1;
@@ -121,6 +125,7 @@ async fn a_second_insert_for_the_same_thread_is_refused(
         &pool,
         GUILD,
         THREAD,
+        PRIMARY_POSITION,
         article("First", "a", &[]),
     )
     .await?;
@@ -131,6 +136,7 @@ async fn a_second_insert_for_the_same_thread_is_refused(
         &pool,
         GUILD,
         THREAD,
+        PRIMARY_POSITION,
         article("Second", "b", &[]),
     )
     .await?;
@@ -142,11 +148,44 @@ async fn a_second_insert_for_the_same_thread_is_refused(
 }
 
 #[sqlx::test(migrations = "../../migrations", fixtures("faq_articles"))]
+async fn each_position_on_a_thread_is_its_own_article(
+    pool: PgPool,
+) -> sqlx::Result<()> {
+    for position in [PRIMARY_POSITION, 1, 2] {
+        let stored = FaqArticle::insert_generated(
+            &pool,
+            GUILD,
+            THREAD,
+            position,
+            article("Related", "a", &[]),
+        )
+        .await?;
+
+        assert!(stored.is_some(), "position {position} was refused");
+    }
+
+    let repeat = FaqArticle::insert_generated(
+        &pool,
+        GUILD,
+        THREAD,
+        1,
+        article("Related again", "b", &[]),
+    )
+    .await?;
+
+    assert!(repeat.is_none());
+    assert_eq!(FaqArticle::list(&pool, GUILD, 25).await?.len(), 3);
+
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("faq_articles"))]
 async fn a_generated_article_records_its_thread(pool: PgPool) -> sqlx::Result<()> {
     let stored = FaqArticle::insert_generated(
         &pool,
         GUILD,
         THREAD,
+        PRIMARY_POSITION,
         article("First", "a", &[]),
     )
     .await?
