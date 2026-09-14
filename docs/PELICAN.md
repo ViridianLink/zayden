@@ -241,3 +241,103 @@ Delegate all build/lint/test runs to the `verifier` subagent.
 - `/server start|stop|console` (users get the panel)
 - A dashboard settings page for hosting
 - Patreon as a payment source; refunds, proration, currency conversion
+
+---
+
+## Execution checklist
+
+Derived from the sections above (the design doc carried no task list of its own).
+Note: `0040` and `0041` are already taken, so the migration is **`0042_hosting`**,
+not `0040_hosting` as written under "Data model".
+
+### Phase 0 — workspace prep
+
+- [x] 0.1 Root `Cargo.toml`: drop the stale `servers-at-home` path dep, add
+      `hosting` to `[workspace] members` and `[workspace.dependencies]`
+- [x] 0.2 `migrations/0042_hosting.up.sql` / `.down.sql` — `hosted_servers`,
+      `hosting_pelican_users`, `hosting_payments` + partial sweep indexes
+
+### Phase 1 — shared config
+
+- [x] 1.1 Lift `PelicanConfig` so palworld and hosting share one definition
+- [x] 1.2 Add `HostingConfig` to `zayden-app/src/config/bot_config.rs`
+- [x] 1.3 `config.toml` + `bot/config.toml.example` — `[hosting]` section
+
+### Phase 2 — `bot-modules/hosting`
+
+- [x] 2.1 `Cargo.toml`, `src/lib.rs`, `src/error.rs`
+- [x] 2.2 `catalog.rs` — game key → egg id, autocomplete source
+- [x] 2.3 `pricing.rs` — 4-rung ladder, plan × tier, included-server credit
+- [x] 2.4 `pelican/model.rs` + `pelican/client.rs` — Application API client
+- [x] 2.5 `store.rs` — `query!`-based persistence
+- [x] 2.6 `provision.rs` — ensure user, create server, poll install, roll back
+- [x] 2.7 `modal.rs` + `components.rs` — spec modal, confirm/cancel
+- [x] 2.8 `commands/mod.rs` — `host` / `list` / `info` / `cancel`
+- [x] 2.9 `sweep.rs` + `cron.rs` — reminder, expire, delete
+
+### Phase 3 — wiring
+
+- [x] 3.1 `AppEvent::HostingPaid` in `zayden-app/src/events/`
+- [x] 3.2 `bot/src/bindings/hosting/**` + register in `bot/src/bindings/mod.rs`
+- [x] 3.3 `bot/src/state.rs` — cron registration + `HostingPaid` listener
+- [x] 3.4 `dashboard/src/web/routes_kofi.rs` — additive hosting branch
+
+### Phase 4 — tests
+
+- [x] 4.1 `bot-modules/hosting/tests/` — pricing, tier mapping, idempotency,
+      sweep selection, mocked Pelican client
+- [x] 4.2 `tests/pelican_live.rs` — `#[ignore]`d live integration
+
+### Phase 5 — verification gate
+
+- [x] 5.1 `sqlx migrate run` + `cargo sqlx prepare --workspace -- --features ssr`
+      against a throwaway DB
+- [x] 5.2 Full gate: `cargo build --workspace --all-targets`, dashboard
+      `ssr` + `hydrate` clippy, `cargo test`
+- [x] 5.3 `cargo machete` + `cargo deny check`
+
+### Deferred — ops prerequisites (not code, require host access)
+
+These are listed under "Ops prerequisites" and are **not** executed by this pass:
+rootfs resize, allocation creation, Ko-fi tier creation, `KOFI_VERIFICATION_TOKEN`
+in Doppler. Items 4.2 and the plan's live/end-to-end verification steps depend on
+them.
+
+
+### Deviations from the design above
+
+Recorded rather than silently absorbed; each changed something the doc states.
+
+1. **Migration is `0042_hosting`, not `0040`.** `0040` and `0041` were already
+   taken by `user_timezones` and `jellyfin`.
+2. **One plan dropdown, not three resource dropdowns.** The doc asks for a
+   dropdown per resource, but RAM/CPU/disk move together on the ladder and
+   independent dropdowns would produce prices no Ko-fi tier can charge —
+   contradicting the "every reachable price is a rung" invariant that makes four
+   tiers sufficient. The rate card still shows all four plans priced at the
+   caller's tier.
+3. **The Ko-fi handler's existing logic *is* touched, by one guard.** The doc
+   says to add the hosting branch "without altering" the existing path. Left
+   alone, every hosting subscription would also have granted `Tier::Pro` — and
+   Pro makes a Small server free, so renting one would have paid for itself.
+   The branch is gated on the tier name resolving to a ladder rung, which is
+   also what keeps the Pro/Ultra membership tiers falling through untouched.
+4. **`PelicanConfig` was reshaped, not merely shared.** It already lived in
+   `zayden-app`, but collapsed to `None` unless the Palworld-only `server_id`
+   and `save_path` were set — so hosting would have had no credentials. Those
+   two moved into an optional `PelicanSaveConfig`.
+5. **`kofi.rs` was added to the crate.** Not in the doc's file list. The
+   settlement and ladder-matching logic is called from the dashboard; keeping it
+   here avoids a second copy of the ladder in the web tier, and carries no
+   credentials, so the "panel key never reaches the web tier" rule holds.
+6. **The Pelican mock is hand-rolled over `tokio::net`.** No mock-server crate
+   is in the workspace, and the three behaviours worth pinning (404 tolerance, a
+   JSON shape, a poll deadline) did not justify a new third-party dependency.
+7. **`users.username` is `NOT NULL`.** `store::ensure_user` now inserts a
+   username. Worth knowing: `bot-modules/jellyfin/src/identity/link.rs:50` still
+   does a bare `INSERT INTO users (id)`, which will fail the same way at runtime.
+   Out of scope here, but it is a live bug.
+8. **Game catalog is configuration, not code.** Egg ids are panel-local, so
+   `catalog.rs` holds the lookup and `[[hosting.games]]` holds the ids. The live
+   `config.toml` ships the section commented out — provisioning against a
+   placeholder egg id would fail at the panel.
