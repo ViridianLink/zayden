@@ -37,3 +37,7 @@ tokio = { workspace = true, features = ["macros"] }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }
+
+[[example]]
+name = "import_serversathome_faq"
+path = "tooling/import_serversathome_faq.rs"
