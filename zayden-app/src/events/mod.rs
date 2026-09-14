@@ -7,6 +7,7 @@ use crate::entitlement::EntitlementScope;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AppEvent {
     ConfigChanged(u64),
+    ModulesChanged(u64),
     EntitlementChanged(EntitlementScope),
     PatreonPost(String),
     HostingPaid(i64),

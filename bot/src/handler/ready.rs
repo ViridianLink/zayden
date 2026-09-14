@@ -8,7 +8,7 @@ use crate::bindings::ai::Ai;
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
 use crate::patreon_webhook::spawn_patreon_listener;
-use crate::{BotState, Result};
+use crate::{BotState, Result, module_sync};
 
 impl Handler {
     pub async fn ready(&self, ctx: &Context, ready: &Ready) -> Result<()> {
@@ -42,6 +42,11 @@ impl Handler {
         tokio::spawn(async move { palworld.warm().await });
 
         spawn_patreon_listener(ctx.clone(), Arc::clone(&self.app));
+        module_sync::spawn_listener(
+            Arc::clone(&ctx.http),
+            Arc::clone(&self.app),
+            Arc::clone(&self.registry),
+        );
 
         let http = Arc::clone(&ctx.http);
         let app = Arc::clone(&self.app);

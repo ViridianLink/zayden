@@ -17,6 +17,10 @@ impl ModuleCommand for Send {
         Cow::Borrowed("send")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("gambling")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Commands::register_send()
     }

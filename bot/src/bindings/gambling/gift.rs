@@ -17,6 +17,10 @@ impl ModuleCommand for Gift {
         Cow::Borrowed("gift")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("gambling")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Commands::register_gift()
     }

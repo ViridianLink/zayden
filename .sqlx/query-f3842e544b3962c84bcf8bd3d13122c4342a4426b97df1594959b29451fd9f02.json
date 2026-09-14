@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_modules (guild_id, module, enabled)\n             SELECT $1, module, enabled FROM UNNEST($2::text[], $3::bool[]) AS t (module, enabled)\n             ON CONFLICT (guild_id, module) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "TextArray",
+        "BoolArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f3842e544b3962c84bcf8bd3d13122c4342a4426b97df1594959b29451fd9f02"
+}

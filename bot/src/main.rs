@@ -13,6 +13,7 @@ pub mod bindings;
 pub mod cron;
 mod error;
 mod handler;
+pub mod module_sync;
 pub mod patreon_webhook;
 pub mod registry;
 pub mod sqlx_lib;
@@ -29,6 +30,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Layer, Registry, filter, fmt};
 use zayden_app::config::BotConfig;
 use zayden_app::events::listener::EventListener;
+use zayden_app::modules;
 
 use crate::sqlx_lib::new_pool_with_retry;
 use crate::webhook_logger::WebhookLogger;
@@ -76,6 +78,7 @@ async fn main() -> Result<()> {
 
     let registry = bindings::build_registry(bot_config.llamad2_guild)
         .map_err(|e| BotError::Other(e.to_string()))?;
+    modules::validate(&registry.commands_by_module())?;
 
     let mut client = ClientBuilder::new(
         bot_config.discord_token.parse::<Token>().map_err(serenity::Error::Token)?,

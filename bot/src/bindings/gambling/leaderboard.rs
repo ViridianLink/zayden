@@ -18,6 +18,10 @@ impl ModuleCommand for Leaderboard {
         Cow::Borrowed("leaderboard")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("gambling")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Commands::register_leaderboard()
     }

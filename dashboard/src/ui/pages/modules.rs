@@ -23,8 +23,8 @@ pub(crate) fn GuildOverviewPage() -> impl IntoView {
                 <div>
                     <h1>"Modules"</h1>
                     <p class="page-lead">
-                        "Turn modules on or off for this server. Toggling drives "
-                        "Discord's own command-permission system."
+                        "Turn modules on or off for this server. A module that's "
+                        "off has its commands removed from the server."
                     </p>
                 </div>
                 <A href=settings_href attr:class="btn btn-secondary">"Server settings"</A>

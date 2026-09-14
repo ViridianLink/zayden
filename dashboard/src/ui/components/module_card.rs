@@ -9,7 +9,7 @@ use crate::ui::nav;
 
 #[component]
 pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView {
-    let ModuleView { id, label, description, enabled, locked, commands: _ } = module;
+    let ModuleView { id, label, description, enabled, locked } = module;
     let locked_reason = locked;
     let locked = locked_reason.is_some();
     let icon = module_icon(&id);
@@ -100,8 +100,8 @@ pub(crate) fn ModuleCard(module: ModuleView, guild_id: String) -> impl IntoView 
     let unknown_note = unknown.then(|| {
         view! {
             <p class="module-locked">
-                "Zayden couldn't read this module's current state, so it can't \
-                 be changed right now."
+                "Zayden hasn't set this module up for this server yet, so it \
+                 can't be changed right now."
             </p>
         }
     });

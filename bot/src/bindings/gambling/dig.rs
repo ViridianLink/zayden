@@ -17,6 +17,10 @@ impl ModuleCommand for Dig {
         Cow::Borrowed("dig")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("gambling")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Commands::register_dig()
     }

@@ -26,6 +26,7 @@ pub fn spawn_patreon_listener(ctx: Context, app: Arc<AppState>) {
                 },
                 Ok(
                     AppEvent::ConfigChanged(_)
+                    | AppEvent::ModulesChanged(_)
                     | AppEvent::EntitlementChanged(_)
                     | AppEvent::HostingPaid(_),
                 ) => {},

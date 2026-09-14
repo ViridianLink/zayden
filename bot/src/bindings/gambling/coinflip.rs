@@ -17,6 +17,10 @@ impl ModuleCommand for Coinflip {
         Cow::Borrowed("coinflip")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("gambling")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Commands::register_coinflip()
     }

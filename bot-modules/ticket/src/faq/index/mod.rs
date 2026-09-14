@@ -76,6 +76,7 @@ impl WikiIndex {
                     },
                     Ok(
                         AppEvent::EntitlementChanged(_)
+                        | AppEvent::ModulesChanged(_)
                         | AppEvent::PatreonPost(_)
                         | AppEvent::HostingPaid(_),
                     ) => {},

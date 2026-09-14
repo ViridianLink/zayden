@@ -14,6 +14,7 @@ use serenity::all::{
 };
 use tracing::warn;
 use zayden_app::entitlement::{EntitlementScope, Tier};
+use zayden_app::modules::ModuleStates;
 use zayden_app::state::AppState;
 use zayden_core::DispatchMap;
 pub use zayden_core::OverlapError;
@@ -104,13 +105,20 @@ pub struct CommandRegistry {
 
 impl CommandRegistry {
     #[must_use]
-    pub fn definitions_for(&self, guild_id: GuildId) -> Vec<CreateCommand<'static>> {
+    pub fn definitions_for(
+        &self,
+        guild_id: GuildId,
+        states: &ModuleStates,
+    ) -> Vec<CreateCommand<'static>> {
         self.commands
             .values()
             .filter(|cmd| match cmd.scope() {
                 CommandScope::Global => true,
                 CommandScope::Guilds(ids) => ids.contains(&guild_id),
                 CommandScope::ExcludeGuilds(ids) => !ids.contains(&guild_id),
+            })
+            .filter(|cmd| {
+                cmd.module().is_none_or(|module| states.get(module) != Some(&false))
             })
             .map(|cmd| cmd.definition())
             .collect()
@@ -140,7 +148,18 @@ impl CommandRegistry {
     ) -> Option<Result<(), HandlerError>> {
         let cmd = Arc::clone(self.commands.get(interaction.data.name.as_str())?);
 
-        // Entitlement gate
+        if let (Some(module), Some(guild_id)) = (cmd.module(), interaction.guild_id)
+            && module_disabled(&app, guild_id, module).await
+        {
+            reply_ephemeral(
+                ctx,
+                interaction,
+                "This module is turned off for this server.".to_string(),
+            )
+            .await;
+            return Some(Ok(()));
+        }
+
         let required = cmd.metadata().required_tier;
         if required != Tier::Free {
             let scope = interaction.guild_id.map_or_else(
@@ -162,16 +181,7 @@ impl CommandRegistry {
                     },
                 );
 
-                let response = CreateInteractionResponse::Message(
-                    CreateInteractionResponseMessage::new()
-                        .ephemeral(true)
-                        .content(content),
-                );
-                if let Err(e) =
-                    interaction.create_response(&ctx.http, response).await
-                {
-                    warn!(?e, "failed to send upgrade prompt");
-                }
+                reply_ephemeral(ctx, interaction, content).await;
                 return Some(Ok(()));
             }
         }
@@ -212,5 +222,29 @@ impl CommandRegistry {
             Arc::clone(self.autocompletes.get(interaction.data.name.as_str())?);
         let cx = AutocompleteCtx { ctx, interaction, app };
         Some(auto.run(&cx).await)
+    }
+}
+
+async fn module_disabled(app: &AppState, guild_id: GuildId, module: &str) -> bool {
+    match app.modules.states(guild_id.get().cast_signed()).await {
+        Ok(states) => states.get(module) == Some(&false),
+        Err(e) => {
+            warn!(?e, %guild_id, module, "failed to read module state; allowing command");
+            false
+        },
+    }
+}
+
+async fn reply_ephemeral(
+    ctx: &Context,
+    interaction: &CommandInteraction,
+    content: String,
+) {
+    let response = CreateInteractionResponse::Message(
+        CreateInteractionResponseMessage::new().ephemeral(true).content(content),
+    );
+
+    if let Err(e) = interaction.create_response(&ctx.http, response).await {
+        warn!(?e, "failed to send ephemeral command reply");
     }
 }

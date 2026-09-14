@@ -21,6 +21,7 @@ impl EventListener {
         if let Err(e) = listener
             .listen_all([
                 "config_changed",
+                "modules_changed",
                 "entitlement_changed",
                 "patreon_post",
                 "hosting_paid",
@@ -40,6 +41,16 @@ impl EventListener {
                         } else {
                             warn!(
                                 "EventListener: unparseable config_changed payload: {}",
+                                notification.payload()
+                            );
+                        }
+                    },
+                    "modules_changed" => {
+                        if let Ok(guild_id) = notification.payload().parse::<u64>() {
+                            let _ = events.send(AppEvent::ModulesChanged(guild_id));
+                        } else {
+                            warn!(
+                                "EventListener: unparseable modules_changed payload: {}",
                                 notification.payload()
                             );
                         }

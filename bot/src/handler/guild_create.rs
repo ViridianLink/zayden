@@ -1,18 +1,12 @@
 use std::sync::Arc;
-use std::time::Duration;
 
-use serenity::all::{Context, CreateCommand, Guild, GuildId};
+use serenity::all::{Context, Guild};
 use sqlx::PgPool;
 use tokio::sync::RwLock;
-use tokio::time::sleep;
-use tracing::{info, warn};
-use zayden_core::is_transient;
+use tracing::info;
 
 use super::Handler;
-use crate::{BotState, Result};
-
-const COMMAND_SYNC_ATTEMPTS: u32 = 4;
-const COMMAND_SYNC_BACKOFF: Duration = Duration::from_secs(2);
+use crate::{BotState, Result, module_sync};
 
 impl Handler {
     pub async fn guild_create(
@@ -41,42 +35,13 @@ impl Handler {
                 .await;
         }
 
-        let commands = self.registry.definitions_for(guild.id);
+        let states =
+            module_sync::seed(&ctx.http, &self.app, &self.registry, guild).await?;
 
-        set_commands(ctx, guild.id, &commands).await?;
+        module_sync::sync_commands(&ctx.http, &self.registry, guild.id, &states)
+            .await?;
         info!("Registered {}", guild.name);
 
         Ok(())
     }
-}
-
-async fn set_commands(
-    ctx: &Context,
-    guild_id: GuildId,
-    commands: &[CreateCommand<'_>],
-) -> serenity::Result<()> {
-    let mut backoff = COMMAND_SYNC_BACKOFF;
-
-    for attempt in 1..=COMMAND_SYNC_ATTEMPTS {
-        let Err(e) = guild_id.set_commands(&ctx.http, commands).await else {
-            return Ok(());
-        };
-
-        if attempt == COMMAND_SYNC_ATTEMPTS || !is_transient(&e) {
-            return Err(e);
-        }
-
-        warn!(
-            error = ?e,
-            %guild_id,
-            attempt,
-            ?backoff,
-            "command registration failed, retrying",
-        );
-
-        sleep(backoff).await;
-        backoff = backoff.saturating_mul(2);
-    }
-
-    Ok(())
 }

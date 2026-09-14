@@ -17,6 +17,10 @@ impl ModuleCommand for Lotto {
         Cow::Borrowed("lotto")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("gambling")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Commands::register_lotto()
     }

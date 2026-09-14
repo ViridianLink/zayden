@@ -8,6 +8,7 @@ use tokio::sync::broadcast::Sender;
 use crate::config::{BotConfig, RadioStation, SettingsRegistry};
 use crate::entitlement::{EntitlementService, Tier};
 use crate::events::AppEvent;
+use crate::modules::ModuleStore;
 use crate::services::http::ClientBuilderExt;
 
 fn http_client() -> reqwest::Client {
@@ -25,7 +26,7 @@ pub struct AppState {
     pub db: PgPool,
     pub settings: SettingsRegistry,
     pub entitlements: Arc<EntitlementService>,
-
+    pub modules: Arc<ModuleStore>,
     pub events: Sender<AppEvent>,
     pub http: reqwest::Client,
     pub discord_token: String,
@@ -60,6 +61,8 @@ impl AppState {
             events.subscribe(),
         );
 
+        let modules = Arc::new(ModuleStore::new(pool.clone()));
+
         let mut sku_tiers = HashMap::new();
         if let Some(sku) = config.discord_sku_pro {
             sku_tiers.insert(sku, Tier::Pro);
@@ -72,6 +75,7 @@ impl AppState {
             db: pool,
             settings,
             entitlements,
+            modules,
             events,
             http: http_client(),
             discord_token: config.discord_token.clone(),

@@ -15,4 +15,10 @@ pub enum AppError {
 
     #[error("i/o error reading config file: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("commands {commands:?} are tagged with unknown module `{module}`")]
+    UnknownModule { module: String, commands: Vec<String> },
+
+    #[error("module `{0}` is command-backed but no command is tagged with it")]
+    ModuleWithoutCommands(&'static str),
 }

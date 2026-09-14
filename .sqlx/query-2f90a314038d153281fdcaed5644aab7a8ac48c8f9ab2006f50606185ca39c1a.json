@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_modules (guild_id, module, enabled) VALUES ($1, $2, $3)\n             ON CONFLICT (guild_id, module) DO UPDATE SET enabled = EXCLUDED.enabled",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2f90a314038d153281fdcaed5644aab7a8ac48c8f9ab2006f50606185ca39c1a"
+}

@@ -17,6 +17,10 @@ impl ModuleCommand for Profile {
         Cow::Borrowed("profile")
     }
 
+    fn module(&self) -> Option<&'static str> {
+        Some("gambling")
+    }
+
     fn definition(&self) -> CreateCommand<'static> {
         Commands::register_profile()
     }
