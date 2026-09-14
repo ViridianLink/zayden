@@ -15,6 +15,8 @@ pub enum TicketError {
     NotTicketParticipant,
     TicketAlreadyClosed,
     FaqNotConfigured,
+    NothingToTriage,
+    Ai(ai::Error),
     Wiki(String),
     Internal(String),
 
@@ -56,6 +58,11 @@ impl std::fmt::Display for TicketError {
                 "No wiki is configured for this server. Set one in the dashboard \
                  under Support."
             ),
+            Self::NothingToTriage => write!(
+                f,
+                "This ticket has no message, screenshot or title to triage."
+            ),
+            Self::Ai(e) => write!(f, "AI request failed: {e}"),
             Self::Wiki(msg) => write!(f, "The wiki could not be reached: {msg}"),
             Self::Internal(msg) => write!(f, "internal error: {msg}"),
             Self::ZaydenCore(e) => e.fmt(f),
@@ -67,6 +74,7 @@ impl std::error::Error for TicketError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::ZaydenCore(e) => Some(e),
+            Self::Ai(e) => Some(e),
             Self::NotInSupportChannel
             | Self::SupportNotFound
             | Self::ArticleNotFound
@@ -75,6 +83,7 @@ impl std::error::Error for TicketError {
             | Self::NotTicketParticipant
             | Self::TicketAlreadyClosed
             | Self::FaqNotConfigured
+            | Self::NothingToTriage
             | Self::Wiki(_)
             | Self::Internal(_) => None,
         }
@@ -92,7 +101,11 @@ impl Respond for TicketError {
             | Self::NotTicketParticipant
             | Self::TicketAlreadyClosed
             | Self::FaqNotConfigured
+            | Self::NothingToTriage
             | Self::Wiki(_) => Some(Cow::Owned(self.to_string())),
+            Self::Ai(_) => Some(Cow::Borrowed(
+                "The AI provider could not finish the request. Try again in a moment.",
+            )),
             Self::Internal(_) => None,
             Self::ZaydenCore(e) => e.user_message(),
         }
@@ -102,6 +115,12 @@ impl Respond for TicketError {
 impl From<serenity::Error> for TicketError {
     fn from(value: serenity::Error) -> Self {
         Self::ZaydenCore(ZaydenError::Serenity(value))
+    }
+}
+
+impl From<ai::Error> for TicketError {
+    fn from(value: ai::Error) -> Self {
+        Self::Ai(value)
     }
 }
 

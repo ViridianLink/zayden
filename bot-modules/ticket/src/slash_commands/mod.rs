@@ -4,6 +4,7 @@ mod faq;
 mod open;
 mod remove;
 mod solved;
+mod triage;
 
 use std::sync::Arc;
 
@@ -70,6 +71,9 @@ impl Ticket {
             "solved" => {
                 Self::solved(http, interaction, stores, app, guild_id).await?;
             },
+            "triage" => {
+                Self::triage(http, interaction, stores, app, guild_id).await?;
+            },
             name => {
                 return Err(TicketError::Internal(format!(
                     "unrecognized ticket subcommand: {name}"
@@ -128,6 +132,12 @@ impl Ticket {
             "Mark the ticket as solved",
         );
 
+        let triage = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "triage",
+            "Run FAQ triage on this ticket",
+        );
+
         CreateCommand::new("ticket")
             .description("Ticket and FAQ commands")
             .add_option(Self::faq_option())
@@ -135,6 +145,7 @@ impl Ticket {
             .add_option(create)
             .add_option(open)
             .add_option(solved)
+            .add_option(triage)
 
         // CreateCommand::new("Ticket Remove").kind(CommandType::Message),
     }

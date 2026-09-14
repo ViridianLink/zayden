@@ -649,3 +649,66 @@ async fn a_request_caps_total_tokens_and_holds_reasoning_down() {
         "reasoning must be held down, got {sent}"
     );
 }
+
+/// Vision models only see an image sent as a content part; a URL pasted into
+/// the text is just text.
+#[tokio::test]
+async fn images_ride_as_content_parts_after_the_text() {
+    let (base_url, requests) =
+        spawn_recording_mock_server(STOP_RESPONSE).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    client
+        .chat(
+            vec![Message::with_images("read this", vec![String::from(
+                "https://cdn.example/error.png",
+            )])],
+            64,
+            None,
+        )
+        .await
+        .expect("well-formed response should parse");
+
+    let body = requests
+        .lock()
+        .expect("recorder lock")
+        .first()
+        .cloned()
+        .expect("the client should have sent a request");
+    let sent: serde_json::Value =
+        serde_json::from_str(&body).expect("request body should be JSON");
+
+    assert_eq!(
+        sent.pointer("/messages/0/content"),
+        Some(&serde_json::json!([
+            { "type": "text", "text": "read this" },
+            { "type": "image_url", "image_url": { "url": "https://cdn.example/error.png" } }
+        ])),
+        "got {sent}"
+    );
+}
+
+#[tokio::test]
+async fn a_message_without_images_stays_plain_text() {
+    let (base_url, requests) =
+        spawn_recording_mock_server(STOP_RESPONSE).await.expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    client
+        .chat(vec![Message::new(Role::User, "hi")], 64, None)
+        .await
+        .expect("well-formed response should parse");
+
+    let body = requests
+        .lock()
+        .expect("recorder lock")
+        .first()
+        .cloned()
+        .expect("the client should have sent a request");
+    let sent: serde_json::Value =
+        serde_json::from_str(&body).expect("request body should be JSON");
+
+    assert_eq!(sent.pointer("/messages/0/content"), Some(&serde_json::json!("hi")));
+}

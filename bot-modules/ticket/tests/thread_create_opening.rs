@@ -10,11 +10,12 @@
 //!   function's rendered output — a change to either side surfaces here rather than
 //!   as tickets triaged at the wrong user.
 //! - A support channel run as a forum reaches neither flow. The post *is* the
-//!   thread, so the opening message is the reporter's own plain text.
+//!   thread, so the opening message is the reporter's own plain text, often nothing
+//!   but a screenshot.
 
 use serenity::all::{Mention, RoleId, UserId};
+use ticket::opening::{OpeningMessage, author, opening, title_only};
 use ticket::support_mentions;
-use ticket::thread_create::{author, opening};
 
 const AUTHOR: UserId = UserId::new(1_000_000_000_000_000_001);
 const OWNER: UserId = UserId::new(1_000_000_000_000_000_002);
@@ -73,6 +74,16 @@ fn out_of_range_ids_are_rejected() {
 // --- Which message in the thread is the ticket -------------------------------
 
 const REPORTER: UserId = UserId::new(1_000_000_000_000_000_005);
+const BOT: UserId = UserId::new(1_000_000_000_000_000_006);
+const SCREENSHOT: &str = "https://cdn.discordapp.com/attachments/1/2/error.png";
+
+fn message(author: UserId, text: &str, images: &[&str]) -> OpeningMessage {
+    OpeningMessage {
+        author,
+        text: String::from(text),
+        images: images.iter().map(|url| String::from(*url)).collect(),
+    }
+}
 
 /// A support channel run as a forum never reaches either bot ticket flow: the
 /// post *is* the thread, so the opening message is the reporter's own plain
@@ -81,8 +92,8 @@ const REPORTER: UserId = UserId::new(1_000_000_000_000_000_005);
 #[test]
 fn a_forum_post_is_its_own_ticket() {
     assert_eq!(
-        opening(false, REPORTER, "my mod menu wont load", None),
-        Some((REPORTER, String::from("my mod menu wont load"))),
+        opening(false, REPORTER, "my mod menu wont load", None, Vec::new()),
+        Some(message(REPORTER, "my mod menu wont load", &[])),
     );
 }
 
@@ -91,8 +102,8 @@ fn a_bot_ticket_still_prefers_the_issue_embed() {
     let content = rendered(&support_mentions(&[SUPPORT], AUTHOR, None));
 
     assert_eq!(
-        opening(true, OWNER, &content, Some("printer is on fire")),
-        Some((AUTHOR, String::from("printer is on fire"))),
+        opening(true, OWNER, &content, Some("printer is on fire"), Vec::new()),
+        Some(message(AUTHOR, "printer is on fire", &[])),
     );
 }
 
@@ -102,19 +113,55 @@ fn a_bot_ticket_still_prefers_the_issue_embed() {
 fn the_bots_ping_line_is_never_mistaken_for_a_ticket() {
     let content = rendered(&support_mentions(&[SUPPORT], AUTHOR, None));
 
-    assert_eq!(opening(true, OWNER, &content, None), None);
+    assert_eq!(opening(true, OWNER, &content, None, Vec::new()), None);
 }
 
 #[test]
-fn a_post_with_no_words_is_not_triaged() {
-    assert_eq!(opening(false, REPORTER, "   ", None), None);
-    assert_eq!(opening(false, REPORTER, "", None), None);
+fn a_post_with_neither_words_nor_images_is_not_an_opening() {
+    assert_eq!(opening(false, REPORTER, "   ", None, Vec::new()), None);
+    assert_eq!(opening(false, REPORTER, "", None, Vec::new()), None);
+}
+
+/// A post that is only a screenshot of the error used to be dropped as having
+/// no readable message.
+#[test]
+fn a_screenshot_alone_is_an_opening() {
+    assert_eq!(
+        opening(false, REPORTER, "  ", None, vec![String::from(SCREENSHOT)]),
+        Some(message(REPORTER, "", &[SCREENSHOT])),
+    );
+}
+
+#[test]
+fn a_bots_screenshot_is_not_an_opening() {
+    assert_eq!(opening(true, BOT, "", None, vec![String::from(SCREENSHOT)]), None);
+}
+
+#[test]
+fn the_title_stands_in_when_no_message_is_readable() {
+    assert_eq!(
+        title_only(REPORTER, Some(BOT), "Server crashes on start"),
+        Some(message(REPORTER, "", &[])),
+    );
+}
+
+#[test]
+fn a_title_only_triage_never_pings_the_bot() {
+    assert_eq!(
+        title_only(BOT, Some(BOT), "12 - someone - printer is on fire"),
+        None
+    );
+}
+
+#[test]
+fn a_blank_title_is_not_triaged() {
+    assert_eq!(title_only(REPORTER, Some(BOT), "   "), None);
 }
 
 #[test]
 fn the_reporters_text_is_trimmed() {
     assert_eq!(
-        opening(false, REPORTER, "  spaced out  ", None),
-        Some((REPORTER, String::from("spaced out"))),
+        opening(false, REPORTER, "  spaced out  ", None, Vec::new()),
+        Some(message(REPORTER, "spaced out", &[])),
     );
 }

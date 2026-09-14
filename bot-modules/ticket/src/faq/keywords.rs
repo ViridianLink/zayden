@@ -1,3 +1,5 @@
+use std::fmt::Write as _;
+
 use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
 use serde::Deserialize;
@@ -6,7 +8,8 @@ use zayden_app::state::AppState;
 const SYSTEM_PROMPT: &str = "You are a keyword extraction assistant for a \
 Discord support bot backed by a documentation wiki.
 
-Given a user's support message, extract 1 to 5 short search keywords or phrases \
+Given a user's support ticket (its title, their message and any text read from \
+their screenshots), extract 1 to 5 short search keywords or phrases \
 (names of products, features or services, or other specific terms) that would find \
 the most relevant wiki page(s) via a plain text search against page titles and \
 descriptions. Prefer proper nouns over generic words. Do not include full \
@@ -34,6 +37,27 @@ fn schema() -> serde_json::Value {
         "required": ["keywords"],
         "additionalProperties": false
     })
+}
+
+#[must_use]
+pub fn query(title: &str, message: &str, screenshots: &str) -> String {
+    let mut query = String::new();
+
+    for (label, text) in
+        [("Title", title), ("Message", message), ("Screenshots", screenshots)]
+    {
+        let text = text.trim();
+
+        if !text.is_empty() {
+            let _ = write!(
+                query,
+                "{}{label}:\n{text}",
+                if query.is_empty() { "" } else { "\n\n" }
+            );
+        }
+    }
+
+    query
 }
 
 pub(crate) async fn extract(

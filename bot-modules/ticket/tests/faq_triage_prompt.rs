@@ -41,6 +41,7 @@ fn the_title_reaches_the_model() {
             title: "Server will not start",
             tags: &[],
             message: "it just dies",
+            screenshots: "",
             links: &[],
         },
         &[],
@@ -58,6 +59,7 @@ fn the_tags_the_user_picked_reach_the_model() {
             title: "Crash on join",
             tags: &tags,
             message: "it crashes",
+            screenshots: "",
             links: &[],
         },
         &[],
@@ -74,6 +76,7 @@ fn a_ticket_with_no_tags_says_so_rather_than_leaving_a_blank() {
             title: "Crash on join",
             tags: &[],
             message: "it crashes",
+            screenshots: "",
             links: &[],
         },
         &[],
@@ -91,6 +94,7 @@ fn a_linked_page_arrives_as_text_not_just_a_url() {
             title: "Server will not start",
             tags: &[],
             message: "log is at https://paste.ee/r/abc",
+            screenshots: "",
             links: &links,
         },
         &[],
@@ -109,6 +113,7 @@ fn the_candidate_articles_still_ride_along() {
             title: "Server will not start",
             tags: &[],
             message: "it just dies",
+            screenshots: "",
             links: &[],
         },
         &hits,
@@ -125,6 +130,7 @@ fn the_users_own_words_are_never_dropped() {
             title: "Server will not start",
             tags: &[String::from("Palworld")],
             message: "exit code 137 after about a minute",
+            screenshots: "",
             links: &[page()],
         },
         &[hit()],
@@ -145,6 +151,7 @@ fn an_internal_article_is_context_and_not_a_candidate() {
             title: "Charged twice",
             tags: &[],
             message: "my card was billed two times",
+            screenshots: "",
             links: &[],
         },
         &hits,
@@ -165,10 +172,43 @@ fn a_ticket_with_no_internal_notes_gets_no_internal_section() {
             title: "Server will not start",
             tags: &[],
             message: "it just dies",
+            screenshots: "",
             links: &[],
         },
         &[hit()],
     );
 
     assert!(!prompt.contains("Internal notes"), "{prompt}");
+}
+
+#[test]
+fn screenshot_text_reaches_the_model() {
+    let prompt = user_prompt(
+        Opening {
+            title: "Server will not start",
+            tags: &[],
+            message: "see screenshot",
+            screenshots: "Image 1: java.net.BindException: Address already in use",
+            links: &[],
+        },
+        &[],
+    );
+
+    assert!(prompt.contains("java.net.BindException"), "{prompt}");
+}
+
+#[test]
+fn a_screenshot_only_ticket_says_so_rather_than_leaving_a_blank() {
+    let prompt = user_prompt(
+        Opening {
+            title: "Server will not start",
+            tags: &[],
+            message: "   ",
+            screenshots: "Image 1: exit code 137",
+            links: &[],
+        },
+        &[],
+    );
+
+    assert!(prompt.contains("(no text; see the title and screenshots)"), "{prompt}");
 }

@@ -16,7 +16,8 @@ use crate::wiki::WikiConfig;
 const SYSTEM_PROMPT: &str = "You are a support-ticket triage assistant for a \
 Discord server and its documentation wiki. A new support ticket has just been opened. \
 You are given its title, the forum tags the user picked, their message, the text \
-of every page their message linked to, a fixed list of candidate wiki \
+read from any screenshots they attached, the text of every page their message linked \
+to, a fixed list of candidate wiki \
 articles (title, description, path) found by a keyword search of that message, and \
 some internal notes this server's helpers keep.
 
@@ -29,10 +30,11 @@ It is fine to select none if nothing fits.
 before they can assist (e.g. software/version, exact error message, what was already \
 tried). Return an empty list when nothing is left to ask.
 
-Never ask for something the ticket already provides. The title, the forum tags and \
-the linked page contents are part of the ticket: a tag naming the product, platform \
-or version has answered that question, and a linked log, paste or issue has answered \
-every question its text covers. Read the linked pages before deciding what to ask.
+Never ask for something the ticket already provides. The title, the forum tags, the \
+screenshot text and the linked page contents are part of the ticket: a tag naming the \
+product, platform or version has answered that question, and a screenshot of an error \
+or a linked log, paste or issue has answered every question its text covers. Read the \
+screenshots and linked pages before deciding what to ask.
 
 Do not use em dashes, emojis, or filler pleasantries. Be concise.";
 
@@ -74,6 +76,7 @@ pub struct Opening<'a> {
     pub title: &'a str,
     pub tags: &'a [String],
     pub message: &'a str,
+    pub screenshots: &'a str,
     pub links: &'a [LinkedPage],
 }
 
@@ -95,7 +98,24 @@ pub fn user_prompt(opening: Opening<'_>, hits: &[FaqHit]) -> String {
         }
     );
 
-    let _ = writeln!(prompt, "\nUser's message:\n{}", opening.message);
+    let message = opening.message.trim();
+    let _ = writeln!(
+        prompt,
+        "\nUser's message:\n{}",
+        if message.is_empty() {
+            "(no text; see the title and screenshots)"
+        } else {
+            message
+        }
+    );
+
+    let screenshots = opening.screenshots.trim();
+    if !screenshots.is_empty() {
+        let _ = writeln!(
+            prompt,
+            "\nText read from the screenshots the user attached:\n{screenshots}"
+        );
+    }
 
     for page in opening.links {
         let _ = writeln!(

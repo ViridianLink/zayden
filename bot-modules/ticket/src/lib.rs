@@ -20,6 +20,7 @@ pub mod helper_links;
 pub mod idle;
 pub mod message_command;
 pub mod modal;
+pub mod opening;
 pub mod slash_commands;
 pub mod solve;
 pub mod state;
