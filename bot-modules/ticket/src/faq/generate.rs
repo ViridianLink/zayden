@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
+use jiff::Timestamp;
 use serenity::all::{GuildId, Http, ThreadId};
 use tracing::{debug, error, info, warn};
 use zayden_app::state::AppState;
 use zayden_core::as_i64;
 
 use crate::faq::article::{FaqArticle, NewArticle};
+use crate::faq::reconcile::{Outcome, Reconciler, Subject, candidates};
 use crate::faq::{FaqContext, scrub, transcript, writer};
 use crate::support_guild_manager::TicketStores;
-
-const DUPLICATE_RANK: f32 = 0.9;
 
 pub(crate) async fn on_ticket_solved(
     http: &Arc<Http>,
@@ -58,27 +58,67 @@ async fn run(
     }
 
     let guild = as_i64(guild_id.get());
+    let new = draft.article.as_new();
 
-    match FaqArticle::best_match_rank(&app.db, guild, &draft.title).await {
-        Ok(Some(rank)) if rank >= DUPLICATE_RANK => {
-            info!(%thread_id, title = draft.title, rank, "skipped duplicate article");
-            return;
+    match reconcile(&app, guild, thread_id, new).await {
+        Outcome::Create => publish(&app, guild, thread_id, new).await,
+        Outcome::Unresolved { reason } => {
+            info!(%thread_id, reason, "faq reconcile unresolved, publishing new article");
+            publish(&app, guild, thread_id, new).await;
         },
-        Ok(_) => {},
-        Err(e) => {
-            error!(error = ?e, %thread_id, "faq duplicate check failed");
-            return;
+        Outcome::Discard { target, reason } => {
+            info!(%thread_id, target, reason, "discarded article already covered");
+        },
+        Outcome::Merge { target, article, reason } => {
+            match FaqArticle::merge(&app.db, guild, target, article.as_new()).await {
+                Ok(Some(_)) => {
+                    info!(%thread_id, target, reason, "merged article into existing");
+                },
+                Ok(None) => {
+                    debug!(%thread_id, target, "merge target vanished");
+                    publish(&app, guild, thread_id, new).await;
+                },
+                Err(e) => {
+                    error!(error = ?e, %thread_id, target, "faq article merge failed");
+                },
+            }
         },
     }
+}
 
-    let new = NewArticle {
-        title: &draft.title,
-        summary: &draft.summary,
-        content: &draft.markdown,
-        category: draft.category.as_deref(),
-        tags: &draft.tags,
+async fn reconcile(
+    app: &AppState,
+    guild: i64,
+    thread_id: ThreadId,
+    new: NewArticle<'_>,
+) -> Outcome {
+    let existing = match candidates(&app.db, guild, new, None).await {
+        Ok(existing) => existing,
+        Err(e) => {
+            warn!(error = ?e, %thread_id, "faq similar article lookup failed");
+            return Outcome::Create;
+        },
     };
 
+    let subject = Subject { article: new, dated: Timestamp::now() };
+
+    let result = match Reconciler::from_app(app) {
+        Ok(reconciler) => reconciler.reconcile(subject, &existing).await,
+        Err(e) => Err(e),
+    };
+
+    result.unwrap_or_else(|e| {
+        warn!(error = ?e, %thread_id, "faq reconcile failed");
+        Outcome::Create
+    })
+}
+
+async fn publish(
+    app: &AppState,
+    guild: i64,
+    thread_id: ThreadId,
+    new: NewArticle<'_>,
+) {
     match FaqArticle::insert_generated(&app.db, guild, as_i64(thread_id.get()), new)
         .await
     {

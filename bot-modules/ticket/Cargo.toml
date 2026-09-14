@@ -41,3 +41,7 @@ cynic-codegen = { workspace = true }
 [[example]]
 name = "import_serversathome_faq"
 path = "tooling/import_serversathome_faq.rs"
+
+[[example]]
+name = "consolidate_faq"
+path = "tooling/consolidate_faq.rs"

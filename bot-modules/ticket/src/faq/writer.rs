@@ -3,6 +3,8 @@ use ai::openai::AiClient;
 use serde::Deserialize;
 use zayden_app::state::AppState;
 
+use crate::faq::article::NewArticle;
+
 const SYSTEM_PROMPT: &str = "You are a technical writer for a self-hosted \
 documentation wiki. You are given the transcript of a Discord support ticket \
 that has just been marked solved. Turn it into one reusable FAQ article.
@@ -10,8 +12,13 @@ that has just been marked solved. Turn it into one reusable FAQ article.
 Speakers are already anonymised. Never reintroduce a name, and never repeat an \
 identifier, address, or credential that appears in the transcript.
 
-Structure the article body with these headers, in this order, omitting \
-Prevention when you have nothing to say there:
+If the transcript does not contain a solution anyone could follow, for example \
+the user resolved it themselves without saying how, or the thread was closed \
+without a fix, set status to insufficient_data and leave the other fields \
+empty. Do not invent a solution.";
+
+pub(crate) const ARTICLE_FORMAT: &str = "Structure the article body with these \
+headers, in this order, omitting Prevention when you have nothing to say there:
 ## Problem
 ## Cause
 ## Solution
@@ -24,12 +31,7 @@ conversational filler. Do not use em dashes or emojis.
 
 The title must name the specific symptom the way someone hitting it would \
 search for it. The summary is one sentence, under 100 characters, and does not \
-repeat the title verbatim.
-
-If the transcript does not contain a solution anyone could follow, for example \
-the user resolved it themselves without saying how, or the thread was closed \
-without a fix, set status to insufficient_data and leave the other fields \
-empty. Do not invent a solution.";
+repeat the title verbatim.";
 
 const SCHEMA_NAME: &str = "faq_article_draft";
 const MAX_TOKENS: u32 = 1200;
@@ -46,6 +48,18 @@ pub(crate) enum DraftStatus {
 #[derive(Debug, Deserialize)]
 pub(crate) struct Draft {
     pub status: DraftStatus,
+    #[serde(flatten)]
+    pub article: WrittenArticle,
+}
+
+impl Draft {
+    pub(crate) fn is_usable(&self) -> bool {
+        self.status == DraftStatus::Ok && self.article.is_usable()
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct WrittenArticle {
     pub title: String,
     pub summary: String,
     pub category: Option<String>,
@@ -53,7 +67,7 @@ pub(crate) struct Draft {
     pub markdown: String,
 }
 
-impl Draft {
+impl WrittenArticle {
     pub(crate) fn tidy(&mut self) {
         self.title = self.title.trim().to_owned();
         self.summary = self.summary.trim().to_owned();
@@ -79,29 +93,58 @@ impl Draft {
         self.tags = tags;
     }
 
-    pub(crate) fn is_usable(&self) -> bool {
-        self.status == DraftStatus::Ok
-            && !self.title.is_empty()
-            && !self.markdown.is_empty()
+    pub(crate) const fn is_usable(&self) -> bool {
+        !self.title.is_empty() && !self.markdown.is_empty()
+    }
+
+    #[must_use]
+    pub fn as_new(&self) -> NewArticle<'_> {
+        NewArticle {
+            title: &self.title,
+            summary: &self.summary,
+            content: &self.markdown,
+            category: self.category.as_deref(),
+            tags: &self.tags,
+        }
     }
 }
 
-fn schema() -> serde_json::Value {
+pub(crate) fn article_schema(
+    extra: Option<(&str, serde_json::Value)>,
+) -> serde_json::Value {
+    let mut properties = serde_json::Map::from_iter([
+        (String::from("title"), serde_json::json!({ "type": "string" })),
+        (String::from("summary"), serde_json::json!({ "type": "string" })),
+        (
+            String::from("category"),
+            serde_json::json!({ "type": ["string", "null"] }),
+        ),
+        (
+            String::from("tags"),
+            serde_json::json!({ "type": "array", "items": { "type": "string" } }),
+        ),
+        (String::from("markdown"), serde_json::json!({ "type": "string" })),
+    ]);
+    let mut required = properties.keys().cloned().collect::<Vec<_>>();
+
+    if let Some((name, schema)) = extra {
+        properties.insert(name.to_owned(), schema);
+        required.push(name.to_owned());
+    }
+
     serde_json::json!({
         "type": "object",
-        "properties": {
-            "status": { "type": "string", "enum": ["ok", "insufficient_data"] },
-            "title": { "type": "string" },
-            "summary": { "type": "string" },
-            "category": { "type": ["string", "null"] },
-            "tags": { "type": "array", "items": { "type": "string" } },
-            "markdown": { "type": "string" }
-        },
-        "required": [
-            "status", "title", "summary", "category", "tags", "markdown"
-        ],
+        "properties": properties,
+        "required": required,
         "additionalProperties": false
     })
+}
+
+fn schema() -> serde_json::Value {
+    article_schema(Some((
+        "status",
+        serde_json::json!({ "type": "string", "enum": ["ok", "insufficient_data"] }),
+    )))
 }
 
 pub(crate) async fn draft(
@@ -109,7 +152,10 @@ pub(crate) async fn draft(
     transcript: &str,
 ) -> Result<Draft, ai::Error> {
     let messages = vec![
-        ChatMessage::new(Role::System, SYSTEM_PROMPT),
+        ChatMessage::new(
+            Role::System,
+            format!("{SYSTEM_PROMPT}\n\n{ARTICLE_FORMAT}"),
+        ),
         ChatMessage::new(Role::User, format!("Ticket transcript:\n{transcript}")),
     ];
 
@@ -123,7 +169,7 @@ pub(crate) async fn draft(
         .chat_json(messages, MAX_TOKENS, Some(TEMPERATURE), SCHEMA_NAME, schema())
         .await?;
 
-    draft.tidy();
+    draft.article.tidy();
 
     Ok(draft)
 }

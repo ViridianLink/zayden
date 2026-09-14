@@ -322,6 +322,50 @@ async fn an_aborted_upstream_is_retried() {
     assert_eq!(served.load(Ordering::SeqCst), 2, "expected exactly one retry");
 }
 
+const OVERLOADED_MID_STREAM_BODY: &str = r#"{"id":"gen-1","object":"chat.completion","created":1789348757,"model":"google/gemini-3.7-flash","choices":[{"index":0,"logprobs":null,"finish_reason":"error","native_finish_reason":null,"error":{"code":503,"message":"JSON error injected into SSE stream","metadata":{"error_type":"provider_overloaded"}},"message":{"role":"assistant","content":"{\n  \"action\": \"create\",\n  ","refusal":null}}]}"#;
+
+#[tokio::test]
+async fn a_provider_failing_mid_stream_reads_as_a_provider_error() {
+    let (base_url, _served) = spawn_sequenced_mock_server(vec![(
+        "HTTP/1.1 200 OK",
+        OVERLOADED_MID_STREAM_BODY,
+    )])
+    .await
+    .expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let err = client
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
+        .await
+        .expect_err("an errored choice must surface as an error");
+
+    assert!(
+        matches!(&err, AiError::Provider { code: Some(503), .. }),
+        "expected AiError::Provider(503), got {err:?}"
+    );
+}
+
+#[tokio::test]
+async fn a_provider_failing_mid_stream_is_retried() {
+    let (base_url, served) = spawn_sequenced_mock_server(vec![
+        ("HTTP/1.1 200 OK", OVERLOADED_MID_STREAM_BODY),
+        ("HTTP/1.1 200 OK", COMPLETION_BODY),
+    ])
+    .await
+    .expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let content = client
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
+        .await
+        .expect("the second attempt should succeed");
+
+    assert_eq!(content, "Hello there!");
+    assert_eq!(served.load(Ordering::SeqCst), 2, "expected exactly one retry");
+}
+
 #[tokio::test]
 async fn a_rejected_request_is_not_retried() {
     // A 400 is the model refusing the request as written; asking again only

@@ -189,7 +189,14 @@ fn truncate_content(content: &str) -> String {
 }
 
 #[derive(Deserialize)]
-struct ErrorEnvelope {
+#[serde(untagged)]
+enum ErrorEnvelope {
+    Response { error: ProviderError },
+    Choice { choices: Vec<ChoiceError> },
+}
+
+#[derive(Deserialize)]
+struct ChoiceError {
     error: ProviderError,
 }
 
@@ -212,14 +219,14 @@ fn classify(err: OpenAIError) -> Error {
 }
 
 fn provider_error(body: &str) -> Option<Error> {
-    let envelope: ErrorEnvelope = serde_json::from_str(body.trim()).ok()?;
+    let error = match serde_json::from_str(body.trim()).ok()? {
+        ErrorEnvelope::Response { error } => error,
+        ErrorEnvelope::Choice { choices } => choices.into_iter().next()?.error,
+    };
 
     Some(Error::Provider {
-        code: envelope.error.code.as_ref().and_then(status_code),
-        message: envelope
-            .error
-            .message
-            .unwrap_or_else(|| String::from("no message given")),
+        code: error.code.as_ref().and_then(status_code),
+        message: error.message.unwrap_or_else(|| String::from("no message given")),
     })
 }
 

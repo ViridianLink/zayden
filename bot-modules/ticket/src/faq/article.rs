@@ -1,4 +1,7 @@
-use sqlx::PgPool;
+use sqlx::{PgExecutor, PgPool};
+
+const DISCORD_EPOCH_MS: i64 = 1_420_070_400_000;
+const SNOWFLAKE_TIMESTAMP_SHIFT: u32 = 22;
 
 #[derive(Debug, Clone)]
 pub struct FaqArticle {
@@ -15,6 +18,29 @@ pub struct FaqArticle {
 }
 
 impl FaqArticle {
+    #[must_use]
+    pub fn as_new(&self) -> NewArticle<'_> {
+        NewArticle {
+            title: &self.title,
+            summary: &self.summary,
+            content: &self.content,
+            category: self.category.as_deref(),
+            tags: &self.tags,
+        }
+    }
+
+    #[must_use]
+    pub fn dated(&self) -> jiff::Timestamp {
+        self.source_thread_id
+            .and_then(|id| {
+                jiff::Timestamp::from_millisecond(
+                    (id >> SNOWFLAKE_TIMESTAMP_SHIFT) + DISCORD_EPOCH_MS,
+                )
+                .ok()
+            })
+            .unwrap_or_else(|| self.updated_at.to_jiff())
+    }
+
     pub async fn list(
         pool: &PgPool,
         guild_id: i64,
@@ -108,6 +134,39 @@ impl FaqArticle {
         .await
     }
 
+    pub async fn similar(
+        pool: &PgPool,
+        guild_id: i64,
+        text: &str,
+        exclude: Option<i32>,
+        limit: i64,
+    ) -> sqlx::Result<Vec<Self>> {
+        sqlx::query_as!(
+            Self,
+            r#"
+            WITH q AS (
+                SELECT replace(plainto_tsquery('english', $2)::text, ' & ', ' | ')::tsquery
+                           AS query
+            )
+            SELECT a.id, a.guild_id, a.title, a.summary, a.content, a.category,
+                   a.tags, a.source_thread_id, a.generated,
+                   a.updated_at AS "updated_at: jiff_sqlx::Timestamp"
+            FROM faq_articles a, q
+            WHERE a.guild_id = $1
+              AND a.id IS DISTINCT FROM $3
+              AND a.search @@ q.query
+            ORDER BY ts_rank(a.search, q.query) DESC, a.updated_at DESC
+            LIMIT $4
+            "#,
+            guild_id,
+            text,
+            exclude,
+            limit
+        )
+        .fetch_all(pool)
+        .await
+    }
+
     pub async fn insert_generated(
         pool: &PgPool,
         guild_id: i64,
@@ -192,8 +251,37 @@ impl FaqArticle {
         .await
     }
 
+    pub async fn merge(
+        executor: impl PgExecutor<'_>,
+        guild_id: i64,
+        id: i32,
+        article: NewArticle<'_>,
+    ) -> sqlx::Result<Option<Self>> {
+        sqlx::query_as!(
+            Self,
+            r#"
+            UPDATE faq_articles
+            SET title = $3, summary = $4, content = $5, category = $6, tags = $7,
+                generated = TRUE, updated_at = now()
+            WHERE guild_id = $1 AND id = $2
+            RETURNING id, guild_id, title, summary, content, category, tags,
+                      source_thread_id, generated,
+                      updated_at AS "updated_at: jiff_sqlx::Timestamp"
+            "#,
+            guild_id,
+            id,
+            article.title,
+            article.summary,
+            article.content,
+            article.category,
+            article.tags
+        )
+        .fetch_optional(executor)
+        .await
+    }
+
     pub async fn delete(
-        pool: &PgPool,
+        executor: impl PgExecutor<'_>,
         guild_id: i64,
         id: i32,
     ) -> sqlx::Result<bool> {
@@ -202,7 +290,7 @@ impl FaqArticle {
             guild_id,
             id
         )
-        .execute(pool)
+        .execute(executor)
         .await?;
 
         Ok(result.rows_affected() == 1)

@@ -18,7 +18,7 @@ const GUILD: i64 = 1;
 const OTHER_GUILD: i64 = 2;
 const THREAD: i64 = 500;
 
-/// Kept in step with `DUPLICATE_RANK` in `faq/generate.rs`.
+/// Kept in step with `DUPLICATE_RANK` in `tooling/import_serversathome_faq.rs`.
 const DUPLICATE_RANK: f32 = 0.9;
 
 const fn article<'a>(
@@ -225,6 +225,105 @@ async fn an_update_replaces_the_body(pool: PgPool) -> sqlx::Result<()> {
             OTHER_GUILD,
             stored.id,
             article("Radarr 502", "hijacked", &[])
+        )
+        .await?
+        .is_none()
+    );
+
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("faq_articles"))]
+async fn similar_finds_an_article_sharing_only_some_terms(
+    pool: PgPool,
+) -> sqlx::Result<()> {
+    FaqArticle::create(
+        &pool,
+        GUILD,
+        article("Radarr 502 bad gateway", "Restart the reverse proxy", &[]),
+    )
+    .await?;
+
+    FaqArticle::create(
+        &pool,
+        GUILD,
+        article("Plex remote access", "Forward 32400", &[]),
+    )
+    .await?;
+
+    let hits = FaqArticle::similar(
+        &pool,
+        GUILD,
+        "radarr gateway timeout after update",
+        None,
+        5,
+    )
+    .await?;
+
+    assert_eq!(hits.len(), 1);
+    assert_eq!(hits[0].title, "Radarr 502 bad gateway");
+
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("faq_articles"))]
+async fn similar_skips_the_excluded_article_and_other_guilds(
+    pool: PgPool,
+) -> sqlx::Result<()> {
+    let stored =
+        FaqArticle::create(&pool, GUILD, article("Radarr 502", "gateway", &[]))
+            .await?;
+
+    assert!(
+        FaqArticle::similar(&pool, GUILD, "radarr", Some(stored.id), 5)
+            .await?
+            .is_empty()
+    );
+    assert!(
+        FaqArticle::similar(&pool, OTHER_GUILD, "radarr", None, 5).await?.is_empty()
+    );
+
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("faq_articles"))]
+async fn similar_takes_input_with_no_search_terms(pool: PgPool) -> sqlx::Result<()> {
+    FaqArticle::create(&pool, GUILD, article("Radarr 502", "gateway", &[])).await?;
+
+    for text in ["", "the and of", "& | ! :"] {
+        assert!(FaqArticle::similar(&pool, GUILD, text, None, 5).await?.is_empty());
+    }
+
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("faq_articles"))]
+async fn a_merge_rewrites_and_marks_the_article_generated(
+    pool: PgPool,
+) -> sqlx::Result<()> {
+    let stored =
+        FaqArticle::create(&pool, GUILD, article("Radarr 502", "old", &[])).await?;
+
+    assert!(!stored.generated);
+
+    let merged = FaqArticle::merge(
+        &pool,
+        GUILD,
+        stored.id,
+        article("Radarr 502", "merged", &[]),
+    )
+    .await?
+    .expect("the article belongs to this guild");
+
+    assert_eq!(merged.content, "merged");
+    assert!(merged.generated);
+
+    assert!(
+        FaqArticle::merge(
+            &pool,
+            OTHER_GUILD,
+            stored.id,
+            article("x", "hijacked", &[])
         )
         .await?
         .is_none()
