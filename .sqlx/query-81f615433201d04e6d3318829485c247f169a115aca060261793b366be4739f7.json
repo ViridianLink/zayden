@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM jellyfin_library_items\n                WHERE item_type = $1 AND tmdb_id = $2 AND item_id <> $3\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "81f615433201d04e6d3318829485c247f169a115aca060261793b366be4739f7"
+}

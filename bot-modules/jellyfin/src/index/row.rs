@@ -61,6 +61,22 @@ impl LibraryItemRow {
     }
 
     pub async fn upsert(&self, pool: &PgPool) -> sqlx::Result<()> {
+        let mut tx = pool.begin().await?;
+
+        if let Some(tmdb_id) = self.tmdb_id {
+            sqlx::query!(
+                r#"
+                DELETE FROM jellyfin_library_items
+                WHERE item_type = $1 AND tmdb_id = $2 AND item_id <> $3
+                "#,
+                self.item_type,
+                tmdb_id,
+                self.item_id
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+
         sqlx::query!(
             r#"
             INSERT INTO jellyfin_library_items
@@ -95,10 +111,10 @@ impl LibraryItemRow {
             &self.genres,
             self.parent_path,
         )
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
 
-        Ok(())
+        tx.commit().await
     }
 
     pub async fn count(pool: &PgPool, item_type: &str) -> sqlx::Result<i64> {
