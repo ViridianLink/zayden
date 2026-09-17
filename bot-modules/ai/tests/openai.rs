@@ -712,3 +712,27 @@ async fn a_message_without_images_stays_plain_text() {
 
     assert_eq!(sent.pointer("/messages/0/content"), Some(&serde_json::json!("hi")));
 }
+
+/// `OpenRouter` decorates the `OpenAI` schema with provider-specific values the
+/// upstream spec has never heard of — here `service_tier: "provisioned"` and
+/// per-choice `reasoning_details`. A perfectly good completion must not be
+/// thrown away over fields we never read.
+const UNKNOWN_FIELDS_BODY: &str = r#"{"id":"gen-1789670849-xpJ7slfC4Bre8044cGMM","object":"chat.completion","created":1789670849,"model":"google/gemini-3.7-flash","provider":"Google","system_fingerprint":null,"service_tier":"provisioned","choices":[{"index":0,"logprobs":null,"finish_reason":"stop","native_finish_reason":"STOP","message":{"role":"assistant","content":"Hello there!","refusal":null,"reasoning":null,"reasoning_details":[{"type":"reasoning.text","signature":"AY89a1","format":"google-gemini-v1","index":0}]}}],"usage":{"prompt_tokens":904,"completion_tokens":44,"total_tokens":948,"cost":0.00083457,"is_byok":false}}"#;
+
+#[tokio::test]
+async fn a_completion_survives_provider_specific_fields() {
+    let (base_url, served) =
+        spawn_sequenced_mock_server(vec![("HTTP/1.1 200 OK", UNKNOWN_FIELDS_BODY)])
+            .await
+            .expect("start mock server");
+
+    let client =
+        AiClient::new("test-key", &base_url, "test-model").expect("build client");
+    let content = client
+        .chat(vec![Message::new(Role::User, "hi")], 16, None)
+        .await
+        .expect("an unknown service tier must not discard the completion");
+
+    assert_eq!(content, "Hello there!");
+    assert_eq!(served.load(Ordering::SeqCst), 1, "a good response is not retried");
+}

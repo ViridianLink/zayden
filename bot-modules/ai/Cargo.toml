@@ -14,7 +14,7 @@ workspace = true
 zayden-app = { workspace = true }
 zayden-core = { workspace = true }
 
-async-openai = { workspace = true, features = ["chat-completion"] }
+async-openai = { workspace = true, features = ["byot", "chat-completion"] }
 reqwest = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }

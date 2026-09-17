@@ -6,18 +6,17 @@ use async_openai::error::OpenAIError;
 use async_openai::types::chat::{
     CreateChatCompletionRequest,
     CreateChatCompletionRequestArgs,
-    FinishReason,
     ReasoningEffort,
     ResponseFormat,
     ResponseFormatJsonSchema,
 };
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
-use serde::Deserialize;
 use serde::de::DeserializeOwned;
 use zayden_app::services::http::ClientBuilderExt;
 
 use crate::chat::Message;
 use crate::error::AiError as Error;
+use crate::response::{ChatCompletion, Completion, ErrorEnvelope};
 
 const HTTP_REFERER: &str = "https://zayden.discord.bot";
 const APP_TITLE: &str = "Zayden";
@@ -69,9 +68,9 @@ impl AiClient {
     ) -> Result<String, Error> {
         let request =
             self.build_request(messages, max_completion_tokens, temperature, None)?;
-        let (content, _) = self.chat_with_retry(request).await?;
+        let completion = self.chat_with_retry(request).await?;
 
-        Ok(content)
+        Ok(completion.content)
     }
 
     pub async fn chat_json<T: DeserializeOwned>(
@@ -96,9 +95,10 @@ impl AiClient {
             temperature,
             Some(response_format),
         )?;
-        let (content, finish_reason) = self.chat_with_retry(request).await?;
+        let Completion { content, truncated } =
+            self.chat_with_retry(request).await?;
 
-        if finish_reason == Some(FinishReason::Length) {
+        if truncated {
             return Err(Error::Truncated { content: truncate_content(&content) });
         }
 
@@ -136,7 +136,7 @@ impl AiClient {
     async fn chat_with_retry(
         &self,
         request: CreateChatCompletionRequest,
-    ) -> Result<(String, Option<FinishReason>), Error> {
+    ) -> Result<Completion, Error> {
         let mut attempt = 1;
 
         loop {
@@ -164,15 +164,15 @@ impl AiClient {
     async fn send(
         &self,
         request: CreateChatCompletionRequest,
-    ) -> Result<(String, Option<FinishReason>), Error> {
-        let response = self.client.chat().create(request).await.map_err(classify)?;
+    ) -> Result<Completion, Error> {
+        let response = self
+            .client
+            .chat()
+            .create_byot::<CreateChatCompletionRequest, ChatCompletion>(request)
+            .await
+            .map_err(classify)?;
 
-        response
-            .choices
-            .into_iter()
-            .next()
-            .and_then(|c| Some((c.message.content?, c.finish_reason)))
-            .ok_or(Error::NoContent)
+        response.into_completion()
     }
 }
 
@@ -188,26 +188,6 @@ fn truncate_content(content: &str) -> String {
     }
 }
 
-#[derive(Deserialize)]
-#[serde(untagged)]
-enum ErrorEnvelope {
-    Response { error: ProviderError },
-    Choice { choices: Vec<ChoiceError> },
-}
-
-#[derive(Deserialize)]
-struct ChoiceError {
-    error: ProviderError,
-}
-
-#[derive(Deserialize)]
-struct ProviderError {
-    #[serde(default)]
-    message: Option<String>,
-    #[serde(default)]
-    code: Option<serde_json::Value>,
-}
-
 fn classify(err: OpenAIError) -> Error {
     if let OpenAIError::JSONDeserialize(_, body) = &err
         && let Some(provider) = provider_error(body)
@@ -219,26 +199,7 @@ fn classify(err: OpenAIError) -> Error {
 }
 
 fn provider_error(body: &str) -> Option<Error> {
-    let error = match serde_json::from_str(body.trim()).ok()? {
-        ErrorEnvelope::Response { error } => error,
-        ErrorEnvelope::Choice { choices } => choices.into_iter().next()?.error,
-    };
-
-    Some(Error::Provider {
-        code: error.code.as_ref().and_then(status_code),
-        message: error.message.unwrap_or_else(|| String::from("no message given")),
-    })
-}
-
-fn status_code(code: &serde_json::Value) -> Option<u16> {
-    match code {
-        serde_json::Value::Number(n) => {
-            n.as_u64().and_then(|n| u16::try_from(n).ok())
-        },
-        serde_json::Value::String(s) => s.parse().ok(),
-        serde_json::Value::Null
-        | serde_json::Value::Bool(_)
-        | serde_json::Value::Array(_)
-        | serde_json::Value::Object(_) => None,
-    }
+    serde_json::from_str::<ErrorEnvelope>(body.trim())
+        .ok()
+        .map(ErrorEnvelope::into_error)
 }
