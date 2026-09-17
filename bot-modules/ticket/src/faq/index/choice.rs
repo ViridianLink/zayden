@@ -34,14 +34,15 @@ impl Target {
     }
 }
 
-pub fn ask(query: &str) -> AutocompleteChoice<'static> {
-    let label = if query.trim().is_empty() {
-        "Ask a question".to_owned()
-    } else {
-        format!("Ask: {}", query.trim())
-    };
+#[must_use]
+pub fn ask(query: &str) -> Option<AutocompleteChoice<'static>> {
+    let query = query.trim();
 
-    AutocompleteChoice::new(clamp(&label), clamp(query))
+    if query.is_empty() {
+        return None;
+    }
+
+    Some(AutocompleteChoice::new(clamp(&format!("Ask: {query}")), truncate(query)))
 }
 
 pub fn jump(label: &str, target: &Target) -> AutocompleteChoice<'static> {
@@ -54,4 +55,17 @@ fn clamp(text: &str) -> String {
     }
 
     text.chars().take(CHOICE_LIMIT - 1).collect::<String>() + "\u{2026}"
+}
+
+fn truncate(text: &str) -> String {
+    if text.chars().count() <= CHOICE_LIMIT {
+        return text.to_owned();
+    }
+
+    let cut = text.chars().take(CHOICE_LIMIT).collect::<String>();
+
+    match cut.rsplit_once(char::is_whitespace) {
+        Some((head, _tail)) if !head.trim().is_empty() => head.trim_end().to_owned(),
+        _ => cut,
+    }
 }

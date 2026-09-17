@@ -32,10 +32,11 @@ impl Ticket {
         // unusable config just means no suggestions.
         let Ok(Some(context)) = FaqContext::load(&app.settings.faq, guild_id).await
         else {
-            return respond(http, interaction, vec![ask(query)]).await;
+            return respond(http, interaction, ask(query).into_iter().collect())
+                .await;
         };
 
-        let choices = index.choices(guild_id, &context.wiki, query).await;
+        let choices = index.choices(guild_id, &context.wiki, query);
 
         respond(http, interaction, choices).await
     }

@@ -3,7 +3,7 @@ mod entry;
 mod policy;
 
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use dashmap::{DashMap, DashSet};
 use futures::StreamExt;
@@ -21,8 +21,6 @@ use crate::faq::index::policy::Policy;
 use crate::faq::render;
 use crate::wiki::{self, WikiConfig};
 
-const PROBE_BUDGET: Duration = Duration::from_millis(1500);
-const POLL: Duration = Duration::from_millis(100);
 const MAX_HEADINGS: usize = 5000;
 const HEADING_LEVELS: std::ops::RangeInclusive<usize> = 1..=3;
 
@@ -90,15 +88,17 @@ impl WikiIndex {
         });
     }
 
-    pub async fn choices(
+    #[must_use]
+    pub fn choices(
         self: &Arc<Self>,
         guild_id: GuildId,
         config: &WikiConfig,
         query: &str,
     ) -> Vec<AutocompleteChoice<'static>> {
-        let mut choices = vec![ask(query)];
+        let mut choices = Vec::with_capacity(MAX_CHOICES);
+        choices.extend(ask(query));
 
-        let Some(snapshot) = self.snapshot(guild_id, config).await else {
+        let Some(snapshot) = self.snapshot(guild_id, config) else {
             return choices;
         };
 
@@ -115,7 +115,7 @@ impl WikiIndex {
         choices.extend(
             ranked
                 .iter()
-                .take(MAX_CHOICES - 1)
+                .take(MAX_CHOICES - choices.len())
                 .map(|(_score, entry)| jump(&entry.label, &entry.target())),
         );
 
@@ -124,34 +124,19 @@ impl WikiIndex {
         choices
     }
 
-    async fn snapshot(
+    fn snapshot(
         self: &Arc<Self>,
         guild_id: GuildId,
         config: &WikiConfig,
     ) -> Option<Arc<Snapshot>> {
-        if let Some(snapshot) = self.fresh(guild_id) {
-            return Some(snapshot);
+        let snapshot =
+            self.guilds.get(&guild_id).map(|entry| Arc::clone(entry.value()));
+
+        if !snapshot.as_ref().is_some_and(|snapshot| snapshot.is_fresh()) {
+            self.spawn_build(guild_id, config);
         }
 
-        self.spawn_build(guild_id, config);
-
-        let deadline = Instant::now() + PROBE_BUDGET;
-
-        while Instant::now() < deadline {
-            tokio::time::sleep(POLL).await;
-
-            if let Some(snapshot) = self.fresh(guild_id) {
-                return Some(snapshot);
-            }
-        }
-
-        None
-    }
-
-    fn fresh(&self, guild_id: GuildId) -> Option<Arc<Snapshot>> {
-        let snapshot = Arc::clone(self.guilds.get(&guild_id)?.value());
-
-        snapshot.is_fresh().then_some(snapshot)
+        snapshot
     }
 
     fn spawn_build(self: &Arc<Self>, guild_id: GuildId, config: &WikiConfig) {
