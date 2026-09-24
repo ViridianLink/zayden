@@ -57,6 +57,20 @@ impl ThreadActivity {
         .await
     }
 
+    pub async fn op_id(
+        pool: &PgPool,
+        thread_id: ThreadId,
+    ) -> sqlx::Result<Option<UserId>> {
+        let op_id = sqlx::query_scalar!(
+            "SELECT op_id FROM support_thread_activity WHERE thread_id = $1",
+            as_i64(thread_id.get())
+        )
+        .fetch_optional(pool)
+        .await?;
+
+        Ok(op_id.map(|id| UserId::new(as_u64(id))))
+    }
+
     pub async fn track(
         pool: &PgPool,
         thread_id: ThreadId,

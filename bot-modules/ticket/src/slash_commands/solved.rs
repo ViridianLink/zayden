@@ -6,10 +6,12 @@ use serenity::all::{
     EditInteractionResponse,
     GuildId,
     Http,
+    Permissions,
 };
 use zayden_app::state::AppState;
 
 use crate::archive::notice;
+use crate::idle::{ThreadActivity, may_act};
 use crate::{
     Result,
     Ticket,
@@ -40,6 +42,24 @@ impl Ticket {
             row.channel_id().ok_or(TicketError::NotInSupportChannel)?;
 
         let thread = support_thread(&interaction.channel, support_channel_id)?;
+
+        let op = ThreadActivity::op_id(pool, thread.id).await?;
+
+        let (roles, manage) = interaction.member.as_ref().map_or_else(
+            || (Vec::new(), false),
+            |member| {
+                (
+                    member.roles.to_vec(),
+                    member.permissions.is_some_and(|permissions| {
+                        permissions.contains(Permissions::MANAGE_MESSAGES)
+                    }),
+                )
+            },
+        );
+
+        if !may_act(interaction.user.id, op, &roles, row.role_ids(), manage) {
+            return Err(TicketError::NotTicketParticipant);
+        }
 
         let deadline = solve::mark_solved(
             http,

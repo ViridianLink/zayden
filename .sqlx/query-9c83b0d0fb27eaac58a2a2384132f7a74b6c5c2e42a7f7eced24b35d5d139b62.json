@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT op_id FROM support_thread_activity WHERE thread_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "op_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "support_thread_activity",
+            "name": "op_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9c83b0d0fb27eaac58a2a2384132f7a74b6c5c2e42a7f7eced24b35d5d139b62"
+}

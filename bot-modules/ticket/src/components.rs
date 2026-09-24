@@ -207,7 +207,7 @@ impl TicketComponent {
 
         if !may_act(
             interaction.user.id,
-            activity.op(),
+            Some(activity.op()),
             &roles,
             row.role_ids(),
             manage,

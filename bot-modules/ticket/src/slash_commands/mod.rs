@@ -52,7 +52,11 @@ impl Ticket {
             return Self::faq(http, interaction, pool, app, options, guild_id).await;
         }
 
-        require_manage(interaction)?;
+        // `solved` runs its own check: the poster and helpers without Manage
+        // Messages are allowed to close out their own ticket.
+        if name != "solved" {
+            require_manage(interaction)?;
+        }
 
         let options = parse_options(options);
 

@@ -48,7 +48,7 @@ impl std::fmt::Display for TicketError {
             Self::NotTicketParticipant => write!(
                 f,
                 "Only the person who opened this ticket or the support team can \
-                 use these buttons."
+                 do that."
             ),
             Self::TicketAlreadyClosed => {
                 write!(f, "This ticket has already been solved or closed.")
