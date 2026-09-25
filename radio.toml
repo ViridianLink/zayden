@@ -22,11 +22,11 @@ homepage = "https://www.181.fm/"
 
 # Rock
 [[stations]]
-id = "indiepop"
-name = "Indie Pop Rocks!"
+id = "rock181"
+name = "Rock 181"
 genre = "rock"
-stream_url = "https://ice2.somafm.com/indiepop-128-mp3"
-homepage = "https://somafm.com/indiepop/"
+stream_url = "https://listen.181fm.com/181-rock_128k.mp3"
+homepage = "https://www.181.fm/"
 
 [[stations]]
 id = "rp-rock"
@@ -141,6 +141,13 @@ homepage = "https://somafm.com/doomed/"
 
 # Indie
 [[stations]]
+id = "indiepop"
+name = "Indie Pop Rocks!"
+genre = "indie"
+stream_url = "https://ice2.somafm.com/indiepop-128-mp3"
+homepage = "https://somafm.com/indiepop/"
+
+[[stations]]
 id = "digitalis"
 name = "Digitalis"
 genre = "indie"
@@ -214,13 +221,6 @@ genre = "latin"
 stream_url = "https://listen.181fm.com/181-salsa_128k.mp3"
 homepage = "https://www.181.fm/"
 
-[[stations]]
-id = "rp-global"
-name = "Radio Paradise Global Mix"
-genre = "latin"
-stream_url = "https://stream.radioparadise.com/global-192"
-homepage = "https://radioparadise.com/player/global-mix"
-
 # Funk & Soul
 [[stations]]
 id = "7soul"
@@ -239,10 +239,10 @@ homepage = "https://www.181.fm/"
 # Lo-Fi
 [[stations]]
 id = "lofi"
-name = "Lofi Hip Hop"
+name = "FluxFM Chillhop"
 genre = "lofi"
-stream_url = "https://usa9.fastcast4u.com/proxy/jamz?mp=/1"
-homepage = "https://zeno.fm/radio/lofi-hip-hop/"
+stream_url = "https://streams.fluxfm.de/Chillhop/mp3-320/streams.fluxfm.de/"
+homepage = "https://www.fluxfm.de/"
 
 [[stations]]
 id = "gsclassic"
@@ -287,6 +287,13 @@ name = "Groove Salad 2"
 genre = "chill"
 stream_url = "https://ice2.somafm.com/groovesalad2-128-mp3"
 homepage = "https://somafm.com/groovesalad2/"
+
+[[stations]]
+id = "rp-global"
+name = "Radio Paradise Global Mix"
+genre = "chill"
+stream_url = "https://stream.radioparadise.com/global-192"
+homepage = "https://radioparadise.com/player/global-mix"
 
 # Relax
 [[stations]]
