@@ -122,8 +122,7 @@ impl Create {
                         .find(|a| {
                             activity.to_lowercase().contains(&a.name.to_lowercase())
                         })
-                        .map(|a| a.category.to_string())
-                        .unwrap_or_default()
+                        .map_or_default(|a| a.category.to_string())
                         .to_lowercase()
             })
             .map(|tag| tag.id)

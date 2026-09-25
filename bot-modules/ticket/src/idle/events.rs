@@ -7,8 +7,7 @@ use crate::Result;
 use crate::idle::ThreadActivity;
 
 pub async fn message(msg: &Message, app: &Arc<AppState>) -> Result<()> {
-    let roles =
-        msg.member.as_ref().map(|member| member.roles.to_vec()).unwrap_or_default();
+    let roles = msg.member.as_ref().map_or_default(|member| member.roles.to_vec());
 
     ThreadActivity::track(
         &app.db,

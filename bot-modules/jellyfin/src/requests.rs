@@ -53,7 +53,7 @@ pub async fn plan(
 
             (
                 details.as_ref().is_some_and(|d| is_anime(&d.keywords)),
-                details.as_ref().map(all_seasons).unwrap_or_default(),
+                details.as_ref().map_or_default(all_seasons),
             )
         },
     };

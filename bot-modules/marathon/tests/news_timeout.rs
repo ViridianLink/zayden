@@ -74,7 +74,7 @@ impl MockUpstream {
     /// The start line of every request the upstream has served, in order — the
     /// attempt counter the retry assertions read.
     fn request_lines(&self) -> Vec<String> {
-        self.requests.lock().map(|requests| requests.clone()).unwrap_or_default()
+        self.requests.lock().map_or_default(|requests| requests.clone())
     }
 }
 

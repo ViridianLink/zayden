@@ -34,48 +34,24 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &MarathonClient) -> Result<()
     let query_lower = query.to_lowercase();
 
     let choices: Vec<AutocompleteChoice<'static>> = match name {
-        "weapon" => client
-            .weapons()
-            .await
-            .map(|items| {
-                filter_choices(&items, &query_lower, |w| (&w.slug, &w.name))
-            })
-            .unwrap_or_default(),
-        "attachment" => client
-            .attachments()
-            .await
-            .map(|items| {
-                filter_choices(&items, &query_lower, |a| (&a.slug, &a.name))
-            })
-            .unwrap_or_default(),
-        "runner" => client
-            .runners()
-            .await
-            .map(|items| {
-                filter_choices(&items, &query_lower, |r| (&r.slug, &r.name))
-            })
-            .unwrap_or_default(),
-        "build" => client
-            .builds()
-            .await
-            .map(|items| {
-                filter_choices(&items, &query_lower, |b| (&b.slug, &b.name))
-            })
-            .unwrap_or_default(),
-        "map" => client
-            .maps()
-            .await
-            .map(|items| {
-                filter_choices(&items, &query_lower, |m| (&m.slug, &m.name))
-            })
-            .unwrap_or_default(),
-        "faction" => client
-            .factions()
-            .await
-            .map(|items| {
-                filter_choices(&items, &query_lower, |f| (&f.slug, &f.name))
-            })
-            .unwrap_or_default(),
+        "weapon" => client.weapons().await.map_or_default(|items| {
+            filter_choices(&items, &query_lower, |w| (&w.slug, &w.name))
+        }),
+        "attachment" => client.attachments().await.map_or_default(|items| {
+            filter_choices(&items, &query_lower, |a| (&a.slug, &a.name))
+        }),
+        "runner" => client.runners().await.map_or_default(|items| {
+            filter_choices(&items, &query_lower, |r| (&r.slug, &r.name))
+        }),
+        "build" => client.builds().await.map_or_default(|items| {
+            filter_choices(&items, &query_lower, |b| (&b.slug, &b.name))
+        }),
+        "map" => client.maps().await.map_or_default(|items| {
+            filter_choices(&items, &query_lower, |m| (&m.slug, &m.name))
+        }),
+        "faction" => client.factions().await.map_or_default(|items| {
+            filter_choices(&items, &query_lower, |f| (&f.slug, &f.name))
+        }),
         _ => Vec::new(),
     };
 

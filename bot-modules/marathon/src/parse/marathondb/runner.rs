@@ -23,10 +23,8 @@ pub fn marathondb_runner_to_model(slug: &str, data: &Value) -> Runner {
     let portrait_url =
         data.get("portrait_url").and_then(Value::as_str).map(str::to_string);
 
-    let abilities = data
-        .get("abilities")
-        .and_then(Value::as_array)
-        .map(|abilities| {
+    let abilities = data.get("abilities").and_then(Value::as_array).map_or_default(
+        |abilities| {
             abilities
                 .iter()
                 .filter_map(|a| {
@@ -48,13 +46,11 @@ pub fn marathondb_runner_to_model(slug: &str, data: &Value) -> Runner {
                     })
                 })
                 .collect()
-        })
-        .unwrap_or_default();
+        },
+    );
 
-    let stats = data
-        .get("stats")
-        .and_then(current_or_last_stats)
-        .map(|s| {
+    let stats =
+        data.get("stats").and_then(current_or_last_stats).map_or_default(|s| {
             s.iter()
                 .filter(|(k, _)| !RUNNER_STAT_META_FIELDS.contains(&k.as_str()))
                 .filter_map(|(k, v)| {
@@ -62,8 +58,7 @@ pub fn marathondb_runner_to_model(slug: &str, data: &Value) -> Runner {
                         .map(|v| Stat { name: k.clone(), value: v })
                 })
                 .collect()
-        })
-        .unwrap_or_default();
+        });
 
     Runner {
         slug: slug.to_string(),

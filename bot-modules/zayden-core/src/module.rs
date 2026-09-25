@@ -17,8 +17,7 @@ pub trait ModuleCommand: Send + Sync {
                 value
                     .get("name")
                     .and_then(|v| v.as_str())
-                    .map(String::from)
-                    .unwrap_or_default()
+                    .map_or_default(String::from)
             },
         );
 

@@ -17,7 +17,7 @@ impl ParsedEmoji {
             ReactionType::Custom { id, name, .. } => Ok(Self {
                 stored,
                 custom_id: Some(id.get()),
-                name: name.map(|n| n.to_string()).unwrap_or_default(),
+                name: name.map_or_default(|n| n.to_string()),
             }),
             ReactionType::Unicode(unicode) => {
                 Ok(Self { stored, custom_id: None, name: unicode.to_string() })

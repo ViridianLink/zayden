@@ -48,7 +48,7 @@ impl Egg {
         self.relationships
             .as_ref()
             .and_then(|r| r.variables.as_ref())
-            .map(|vars| {
+            .map_or_default(|vars| {
                 vars.data
                     .iter()
                     .map(|v| {
@@ -59,7 +59,6 @@ impl Egg {
                     })
                     .collect()
             })
-            .unwrap_or_default()
     }
 }
 

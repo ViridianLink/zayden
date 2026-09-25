@@ -51,28 +51,24 @@ fn panel_button_ids() -> Vec<String> {
     let panel = build_panel();
     let value = serde_json::to_value(&panel).unwrap_or_default();
 
-    value
-        .as_array()
-        .map(|rows| {
-            rows.iter()
-                .flat_map(|row| {
-                    row.get("components")
-                        .and_then(Value::as_array)
-                        .map(|comps| {
-                            comps
-                                .iter()
-                                .filter_map(|c| {
-                                    c.get("custom_id")
-                                        .and_then(Value::as_str)
-                                        .map(String::from)
-                                })
-                                .collect::<Vec<_>>()
-                        })
-                        .unwrap_or_default()
-                })
-                .collect()
-        })
-        .unwrap_or_default()
+    value.as_array().map_or_default(|rows| {
+        rows.iter()
+            .flat_map(|row| {
+                row.get("components").and_then(Value::as_array).map_or_default(
+                    |comps| {
+                        comps
+                            .iter()
+                            .filter_map(|c| {
+                                c.get("custom_id")
+                                    .and_then(Value::as_str)
+                                    .map(String::from)
+                            })
+                            .collect::<Vec<_>>()
+                    },
+                )
+            })
+            .collect()
+    })
 }
 
 #[test]

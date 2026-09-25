@@ -438,13 +438,12 @@ impl Weapon {
                         (Some(hash), None, items) => {
                             let reusable = plug_manifest
                                 .get(hash.format_into(&mut buf))
-                                .map(|s| {
+                                .map_or_default(|s| {
                                     s.reusable_plug_items
                                         .iter()
                                         .map(|i| i.plug_item_hash)
                                         .collect::<Vec<_>>()
-                                })
-                                .unwrap_or_default();
+                                });
                             reusable
                                 .into_iter()
                                 .chain(items.iter().map(|item| item.plug_item_hash))
@@ -453,13 +452,12 @@ impl Weapon {
                         (None, Some(hash), items) => {
                             let reusable = plug_manifest
                                 .get(hash.format_into(&mut buf))
-                                .map(|s| {
+                                .map_or_default(|s| {
                                     s.reusable_plug_items
                                         .iter()
                                         .map(|i| i.plug_item_hash)
                                         .collect::<Vec<_>>()
-                                })
-                                .unwrap_or_default();
+                                });
                             reusable
                                 .into_iter()
                                 .chain(items.iter().map(|item| item.plug_item_hash))
@@ -468,22 +466,20 @@ impl Weapon {
                         (Some(random_hash), Some(reusable_hash), items) => {
                             let random_hashes = plug_manifest
                                 .get(random_hash.format_into(&mut buf))
-                                .map(|s| {
+                                .map_or_default(|s| {
                                     s.reusable_plug_items
                                         .iter()
                                         .map(|i| i.plug_item_hash)
                                         .collect::<Vec<_>>()
-                                })
-                                .unwrap_or_default();
+                                });
                             let reusable_hashes = plug_manifest
                                 .get(reusable_hash.format_into(&mut buf))
-                                .map(|s| {
+                                .map_or_default(|s| {
                                     s.reusable_plug_items
                                         .iter()
                                         .map(|i| i.plug_item_hash)
                                         .collect::<Vec<_>>()
-                                })
-                                .unwrap_or_default();
+                                });
                             random_hashes
                                 .into_iter()
                                 .chain(reusable_hashes)
@@ -564,11 +560,9 @@ impl Weapon {
 
 impl<'a> From<&'a Weapon> for CreateEmbed<'a> {
     fn from(value: &'a Weapon) -> Self {
-        let frame =
-            value.frame.as_ref().map(|f| format!("{f} ")).unwrap_or_default();
+        let frame = value.frame.as_ref().map_or_default(|f| format!("{f} "));
 
-        let affinity =
-            value.affinity.as_ref().map(ToString::to_string).unwrap_or_default();
+        let affinity = value.affinity.as_ref().map_or_default(ToString::to_string);
 
         let mut description =
             format!("Tier: {} (#{})", value.tier.tier(), value.rank);

@@ -37,10 +37,9 @@ pub fn parse_weapon(slug: &str, doc_data: &Value) -> Weapon {
 
     let attachment_slots = find_widget_containing(content, "compatible mods")
         .or_else(|| find_widget_containing(content, "attachment"))
-        .map(|w| {
+        .map_or_default(|w| {
             parse_attachment_slots(widget_data(w), name.as_deref().unwrap_or(slug))
-        })
-        .unwrap_or_default();
+        });
 
     Weapon {
         slug: slug.to_string(),

@@ -17,14 +17,12 @@ pub fn parse_cradle(doc_data: &Value) -> Cradle {
         .map(|w| plain_paragraphs(widget_data(w)).join(" "))
         .filter(|s| !s.is_empty());
 
-    let nodes = find_widget_containing(content, "node")
-        .map(|w| {
-            single_cell_rows(widget_data(w))
-                .into_iter()
-                .map(|name| CradleNode { name, description: None })
-                .collect()
-        })
-        .unwrap_or_default();
+    let nodes = find_widget_containing(content, "node").map_or_default(|w| {
+        single_cell_rows(widget_data(w))
+            .into_iter()
+            .map(|name| CradleNode { name, description: None })
+            .collect()
+    });
 
     Cradle { description, nodes }
 }

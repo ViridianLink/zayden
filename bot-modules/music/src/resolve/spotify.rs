@@ -218,12 +218,12 @@ pub fn parse_spotify_url(raw: &str) -> Result<(SpotifyKind, String)> {
 }
 
 fn search_query(name: &str, artists: &[SimplifiedArtist]) -> String {
-    let artist = artists.first().map(|a| a.name.as_str()).unwrap_or_default();
+    let artist = artists.first().map_or_default(|a| a.name.as_str());
     format!("{artist} - {name}")
 }
 
 fn from_full_track(track: &FullTrack, requested_by: UserId) -> ResolvedTrack {
-    let source_id = track.id.as_ref().map(ToString::to_string).unwrap_or_default();
+    let source_id = track.id.as_ref().map_or_default(ToString::to_string);
 
     ResolvedTrack {
         title: search_query(&track.name, &track.artists),
@@ -241,7 +241,7 @@ fn from_simplified_track(
     track: &SimplifiedTrack,
     requested_by: UserId,
 ) -> ResolvedTrack {
-    let source_id = track.id.as_ref().map(ToString::to_string).unwrap_or_default();
+    let source_id = track.id.as_ref().map_or_default(ToString::to_string);
 
     ResolvedTrack {
         title: search_query(&track.name, &track.artists),

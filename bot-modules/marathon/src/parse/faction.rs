@@ -49,7 +49,7 @@ pub fn parse_faction(slug: &str, doc_data: &Value) -> Faction {
     let (name, _description, _thumbnail) = header_fields(content);
 
     let priority_contracts = find_widget_containing(content, "contract")
-        .map(|w| {
+        .map_or_default(|w| {
             single_cell_rows(widget_data(w))
                 .into_iter()
                 .filter(|line| !line.eq_ignore_ascii_case("contract"))
@@ -60,27 +60,24 @@ pub fn parse_faction(slug: &str, doc_data: &Value) -> Faction {
                     difficulty: None,
                 })
                 .collect()
-        })
-        .unwrap_or_default();
+        });
 
-    let upgrades = find_widget_containing(content, "upgrade")
-        .map(|w| {
-            tables_in_widget(widget_data(w))
-                .into_iter()
-                .flatten()
-                .filter_map(|row| {
-                    let mut cells = row.into_iter();
-                    let name = cells.next()?;
-                    if name.eq_ignore_ascii_case("upgrade") {
-                        return None;
-                    }
-                    let cost = cells.next();
-                    let requirements = cells.next();
-                    Some(Upgrade { name, cost, requirements })
-                })
-                .collect()
-        })
-        .unwrap_or_default();
+    let upgrades = find_widget_containing(content, "upgrade").map_or_default(|w| {
+        tables_in_widget(widget_data(w))
+            .into_iter()
+            .flatten()
+            .filter_map(|row| {
+                let mut cells = row.into_iter();
+                let name = cells.next()?;
+                if name.eq_ignore_ascii_case("upgrade") {
+                    return None;
+                }
+                let cost = cells.next();
+                let requirements = cells.next();
+                Some(Upgrade { name, cost, requirements })
+            })
+            .collect()
+    });
 
     Faction {
         slug: slug.to_string(),

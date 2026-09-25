@@ -18,23 +18,19 @@ pub fn parse_runner(slug: &str, doc_data: &Value) -> Runner {
     let (name, description, portrait_url) = header_fields(content);
 
     let stats = find_widget(content, "Stats")
-        .map(|w| stats_from_widget(widget_data(w)))
-        .unwrap_or_default();
+        .map_or_default(|w| stats_from_widget(widget_data(w)));
 
     let abilities = find_widget_containing(content, "abilities")
-        .map(|w| parse_abilities(widget_data(w)))
-        .unwrap_or_default();
+        .map_or_default(|w| parse_abilities(widget_data(w)));
 
-    let cores = find_widget_containing(content, "cores")
-        .map(|w| {
-            tables_in_widget(widget_data(w))
-                .into_iter()
-                .flatten()
-                .filter_map(|row| row.into_iter().next())
-                .filter(|name| !name.eq_ignore_ascii_case("core"))
-                .collect()
-        })
-        .unwrap_or_default();
+    let cores = find_widget_containing(content, "cores").map_or_default(|w| {
+        tables_in_widget(widget_data(w))
+            .into_iter()
+            .flatten()
+            .filter_map(|row| row.into_iter().next())
+            .filter(|name| !name.eq_ignore_ascii_case("core"))
+            .collect()
+    });
 
     Runner {
         slug: slug.to_string(),

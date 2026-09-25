@@ -274,10 +274,8 @@ fn upsell_url(app: &AppState, tier: Tier) -> Option<&str> {
 }
 
 fn cooldown_label(remaining: SignedDuration) -> String {
-    let unix = Timestamp::now()
-        .checked_add(remaining)
-        .map(Timestamp::as_second)
-        .unwrap_or_default();
+    let unix =
+        Timestamp::now().checked_add(remaining).map_or_default(Timestamp::as_second);
     format!("<t:{unix}:R>")
 }
 

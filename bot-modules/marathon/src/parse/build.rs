@@ -34,7 +34,7 @@ pub fn parse_build(slug: &str, doc_data: &Value) -> BuildRecipe {
                 variant.pointer("/genericBuilder/slots").and_then(Value::as_array)
             })
         })
-        .map(|slots| {
+        .map_or_default(|slots| {
             slots
                 .iter()
                 .filter_map(|slot| {
@@ -45,8 +45,7 @@ pub fn parse_build(slug: &str, doc_data: &Value) -> BuildRecipe {
                     Some(format!("{slot_name}: {title}"))
                 })
                 .collect()
-        })
-        .unwrap_or_default();
+        });
 
     let content = content_array(doc_data);
     let notes = find_widget_containing(content, "overview")

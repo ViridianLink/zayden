@@ -63,7 +63,7 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
             let discord_id = as_i64(cx.interaction.user.id.get());
             return player_names(client, &cx.app.db, discord_id, host)
                 .await
-                .map(|players| {
+                .map_or_default(|players| {
                     players
                         .iter()
                         .filter(|p| p.search_key.contains(&query_lower))
@@ -72,32 +72,21 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
                             AutocompleteChoice::new(p.name.clone(), p.name.clone())
                         })
                         .collect()
-                })
-                .unwrap_or_default();
+                });
         }
 
         match name {
-            "pal" | "breeding" | "breed-for" | "breed-plan" => client
-                .pals_basic()
-                .await
-                .map(|items| {
+            "pal" | "breeding" | "breed-for" | "breed-plan" => {
+                client.pals_basic().await.map_or_default(|items| {
                     filter_choices(items.iter(), &query_lower, |p| (&p.key, &p.name))
                 })
-                .unwrap_or_default(),
-            "item" => client
-                .items()
-                .await
-                .map(|items| {
-                    filter_choices(items.iter(), &query_lower, |i| (&i.key, &i.name))
-                })
-                .unwrap_or_default(),
-            "passive" => client
-                .passives()
-                .await
-                .map(|items| {
-                    filter_choices(items.iter(), &query_lower, |p| (&p.key, &p.name))
-                })
-                .unwrap_or_default(),
+            },
+            "item" => client.items().await.map_or_default(|items| {
+                filter_choices(items.iter(), &query_lower, |i| (&i.key, &i.name))
+            }),
+            "passive" => client.passives().await.map_or_default(|items| {
+                filter_choices(items.iter(), &query_lower, |p| (&p.key, &p.name))
+            }),
             _ => Vec::new(),
         }
     };

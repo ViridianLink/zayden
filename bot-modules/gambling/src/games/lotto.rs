@@ -182,8 +182,7 @@ impl Lotto {
                     let display_name = winner
                         .to_user(&ctx)
                         .await
-                        .map(|u| u.display_name().to_string())
-                        .unwrap_or_default();
+                        .map_or_default(|u| u.display_name().to_string());
 
                     let line = format!(
                         "{} ({display_name}) has won {} <:coin:{coin}> from the lottery!",

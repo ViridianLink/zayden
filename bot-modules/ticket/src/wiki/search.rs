@@ -51,8 +51,7 @@ pub async fn search(
 
     let data = graphql::run(client, config, &operation).await?;
 
-    Ok(data
-        .pages
-        .map(|pages| pages.search.results.into_iter().flatten().collect())
-        .unwrap_or_default())
+    Ok(data.pages.map_or_default(|pages| {
+        pages.search.results.into_iter().flatten().collect()
+    }))
 }

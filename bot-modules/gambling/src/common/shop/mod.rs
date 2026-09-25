@@ -611,8 +611,7 @@ fn create_embed<'a>(
                 .0
                 .iter()
                 .find(|inv_item| inv_item.item_id == item.id)
-                .map(|item| item.quantity)
-                .unwrap_or_default()
+                .map_or_default(|item| item.quantity)
         );
 
         if costs.len() == 1 {

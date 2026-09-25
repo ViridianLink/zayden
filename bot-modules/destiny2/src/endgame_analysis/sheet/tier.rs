@@ -34,10 +34,8 @@ impl TryFrom<CellData> for Tier {
     type Error = EndgameAnalysisError;
 
     fn try_from(value: CellData) -> Result<Self, Self::Error> {
-        let tier = value
-            .formatted_value
-            .map(|s| s.parse().unwrap_or_default())
-            .unwrap_or_default();
+        let tier =
+            value.formatted_value.map_or_default(|s| s.parse().unwrap_or_default());
         let effective_format = value
             .effective_format
             .ok_or_else(|| ZaydenError::missing_data("effective_format"))?;

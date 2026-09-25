@@ -118,7 +118,7 @@ pub fn render(
     messages: &[RawMessage],
     limit: usize,
 ) -> Option<String> {
-    let mut speakers = author(messages).map(|id| vec![id]).unwrap_or_default();
+    let mut speakers = author(messages).map_or_default(|id| vec![id]);
 
     let lines = messages
         .iter()

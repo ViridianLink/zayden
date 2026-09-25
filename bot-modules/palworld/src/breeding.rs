@@ -47,15 +47,12 @@ impl BreedingIndex {
 
     #[must_use]
     pub fn breed_for(&self, target: &str) -> Vec<ParentPair> {
-        self.reverse
-            .get(target)
-            .map(|pairs| {
-                pairs
-                    .iter()
-                    .map(|p| ParentPair { a: p[0].clone(), b: p[1].clone() })
-                    .collect()
-            })
-            .unwrap_or_default()
+        self.reverse.get(target).map_or_default(|pairs| {
+            pairs
+                .iter()
+                .map(|p| ParentPair { a: p[0].clone(), b: p[1].clone() })
+                .collect()
+        })
     }
 
     #[must_use]

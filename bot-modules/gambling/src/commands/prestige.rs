@@ -414,8 +414,7 @@ impl Commands {
             .0
             .iter()
             .find(|item| item.item_id == LOTTO_TICKET.id)
-            .map(|item| item.quantity)
-            .unwrap_or_default()
+            .map_or_default(|item| item.quantity)
             .min(100_000);
 
         let expected_prestige = prestige_row.prestige;

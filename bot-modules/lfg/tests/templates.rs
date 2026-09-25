@@ -52,15 +52,12 @@ fn render(embed: &CreateEmbed<'_>) -> String {
 fn fields(embed: &CreateEmbed<'_>) -> Vec<(String, String)> {
     let json = serde_json::to_value(embed).unwrap_or(Value::Null);
 
-    json.get("fields")
-        .and_then(Value::as_array)
-        .map(|fields| {
-            fields
-                .iter()
-                .map(|field| (text(field, "name"), text(field, "value")))
-                .collect()
-        })
-        .unwrap_or_default()
+    json.get("fields").and_then(Value::as_array).map_or_default(|fields| {
+        fields
+            .iter()
+            .map(|field| (text(field, "name"), text(field, "value")))
+            .collect()
+    })
 }
 
 fn text(field: &Value, key: &str) -> String {

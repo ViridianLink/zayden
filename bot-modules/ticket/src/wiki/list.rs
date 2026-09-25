@@ -45,10 +45,7 @@ pub async fn list(
 
     let data = graphql::run(client, config, &operation).await?;
 
-    Ok(data
-        .pages
-        .map(|pages| {
-            pages.list.into_iter().filter(|page| page.is_published).collect()
-        })
-        .unwrap_or_default())
+    Ok(data.pages.map_or_default(|pages| {
+        pages.list.into_iter().filter(|page| page.is_published).collect()
+    }))
 }

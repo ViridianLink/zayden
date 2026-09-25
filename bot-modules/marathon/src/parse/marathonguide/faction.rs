@@ -23,11 +23,8 @@ pub fn marathonguide_html_to_faction(
     Faction {
         slug: slug.to_string(),
         name,
-        priority_contracts: contracts_doc
-            .as_ref()
-            .map(contracts)
-            .unwrap_or_default(),
-        upgrades: upgrades_doc.as_ref().map(upgrades).unwrap_or_default(),
+        priority_contracts: contracts_doc.as_ref().map_or_default(contracts),
+        upgrades: upgrades_doc.as_ref().map_or_default(upgrades),
     }
 }
 
