@@ -169,6 +169,7 @@ pub fn spawn_listener(
                     AppEvent::ConfigChanged(_)
                     | AppEvent::EntitlementChanged(_)
                     | AppEvent::PatreonPost(_)
+                    | AppEvent::YoutubeUpload(_)
                     | AppEvent::HostingPaid(_),
                 ) => {},
                 Err(RecvError::Lagged(n)) => {

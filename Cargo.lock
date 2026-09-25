@@ -591,6 +591,7 @@ dependencies = [
  "tracing-subscriber",
  "verify",
  "watch",
+ "youtube",
  "zayden-app",
  "zayden-core",
 ]
@@ -1348,6 +1349,7 @@ dependencies = [
  "twilight-model",
  "url",
  "wasm-bindgen",
+ "youtube",
  "zayden-app",
 ]
 
@@ -8517,6 +8519,28 @@ dependencies = [
  "quote",
  "syn 3.0.6",
  "synstructure",
+]
+
+[[package]]
+name = "youtube"
+version = "1.0.0"
+dependencies = [
+ "futures",
+ "hmac 0.13.0",
+ "jiff",
+ "jiff-cron",
+ "jiff-sqlx",
+ "reqwest 0.13.5",
+ "serde",
+ "serde_json",
+ "serenity",
+ "sha1 0.11.0",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "url",
+ "zayden-core",
 ]
 
 [[package]]

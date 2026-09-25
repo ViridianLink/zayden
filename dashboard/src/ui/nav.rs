@@ -122,6 +122,14 @@ pub(crate) const MODULES: &[ModuleNav] = &[
         },
         module_id: None,
     },
+    ModuleNav {
+        label: "YouTube",
+        dest: Dest::Section {
+            slug: "youtube",
+            lead: "Connect a YouTube channel and choose where its uploads are announced.",
+        },
+        module_id: Some("youtube"),
+    },
 ];
 
 pub(crate) fn section(slug: &str) -> &'static ModuleNav {

@@ -17,6 +17,7 @@ use oauth2::{
     TokenUrl,
 };
 use patreon::oauth::PatreonApp;
+use youtube::{YoutubeApp, YoutubeRuntime};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
@@ -47,6 +48,8 @@ pub(crate) struct DiscordState {
 pub(crate) struct IntegrationsState {
     pub(crate) patreon: Option<PatreonApp>,
     pub(crate) patreon_webhook_uri: String,
+    pub(crate) youtube: Option<YoutubeApp>,
+    pub(crate) youtube_runtime: Option<YoutubeRuntime>,
     pub(crate) kofi_verification_token: Option<String>,
 }
 
@@ -99,13 +102,21 @@ impl WebState {
                 }),
                 // Patreon delivers to a fixed URL, so it is derived from the
                 // callback the app is already registered against.
-                patreon_webhook_uri: config.patreon.as_ref().map_or_else(
-                    String::new,
-                    |p| {
-                        p.redirect_uri
-                            .replace("/patreon/callback", "/webhooks/patreon")
-                    },
-                ),
+                patreon_webhook_uri: config
+                    .patreon
+                    .as_ref()
+                    .map_or_else(String::new, |p| {
+                        patreon_webhook_uri(&p.redirect_uri)
+                    }),
+                youtube: config.youtube.as_ref().map(|y| YoutubeApp {
+                    client_id: y.client_id.clone(),
+                    client_secret: y.client_secret.clone(),
+                    redirect_uri: y.redirect_uri.clone(),
+                }),
+                youtube_runtime: config.youtube.as_ref().map(|y| YoutubeRuntime {
+                    api_key: Arc::from(config.google_api_key.as_str()),
+                    webhook_uri: Arc::from(y.webhook_uri.as_str()),
+                }),
                 kofi_verification_token: config.kofi_verification_token.clone(),
             }),
             urls: Arc::new(SiteUrls {
@@ -157,6 +168,18 @@ impl FromRef<WebState> for LeptosOptions {
     fn from_ref(state: &WebState) -> Self {
         state.leptos_options.clone()
     }
+}
+
+fn patreon_webhook_uri(redirect_uri: &str) -> String {
+    if !redirect_uri.contains("/patreon/callback") {
+        tracing::warn!(
+            redirect_uri,
+            "Patreon redirect URI has no /patreon/callback path; the webhook URI \
+             derived from it will not reach /webhooks/patreon"
+        );
+    }
+
+    redirect_uri.replace("/patreon/callback", "/webhooks/patreon")
 }
 
 fn cache<K, V>() -> Cache<K, V>

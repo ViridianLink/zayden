@@ -35,6 +35,7 @@ use ticket::{
 };
 use tokio::sync::RwLock;
 use watch::JellyfinPartyReaperCron;
+use youtube::{YoutubeLeaseCron, YoutubePollCron, YoutubeRuntime};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState;
 use zayden_core::cache::GuildMembersCache;
@@ -57,6 +58,7 @@ pub struct BotState {
     pub hosting: Option<Arc<HostingRuntime>>,
     marathon_bungie_api_key: String,
     pub patreon: Option<Arc<PatreonApp>>,
+    pub youtube: Option<YoutubeRuntime>,
     emoji_cache: Arc<EmojiCache>,
     cron_jobs: Vec<CronJob>,
     guild_members: DashMap<GuildId, Vec<UserId>>,
@@ -107,6 +109,11 @@ impl BotState {
             })
         });
 
+        let youtube = config.youtube.as_ref().map(|y| YoutubeRuntime {
+            api_key: Arc::from(config.google_api_key.as_str()),
+            webhook_uri: Arc::from(y.webhook_uri.as_str()),
+        });
+
         let jellyfin = config
             .jellyfin
             .as_ref()
@@ -149,6 +156,7 @@ impl BotState {
             hosting,
             marathon_bungie_api_key: config.bungie_api_key.clone(),
             patreon,
+            youtube,
             emoji_cache: Arc::default(),
             cron_jobs: Vec::new(),
             guild_members: DashMap::new(),
@@ -158,12 +166,32 @@ impl BotState {
     }
 
     pub fn setup_static_cron(&mut self) {
-        // Patreon is optional: without an app registration no guild can connect,
-        // so the poll would have nothing to do.
         if let Some(app) = self.patreon.as_ref() {
             match PatreonPollCron::cron_job(self.app.http.clone(), Arc::clone(app)) {
                 Ok(job) => self.cron_jobs.push(job),
                 Err(e) => tracing::error!(error = ?e, "failed to create cron job"),
+            }
+        }
+
+        if let Some(runtime) = self.youtube.as_ref() {
+            let youtube_jobs = [
+                YoutubePollCron::cron_job(
+                    self.app.http.clone(),
+                    Arc::clone(&runtime.api_key),
+                ),
+                YoutubeLeaseCron::cron_job(
+                    self.app.http.clone(),
+                    Arc::clone(&runtime.webhook_uri),
+                ),
+            ];
+
+            for job in youtube_jobs {
+                match job {
+                    Ok(j) => self.cron_jobs.push(j),
+                    Err(e) => {
+                        tracing::error!(error = ?e, "failed to create cron job");
+                    },
+                }
             }
         }
 

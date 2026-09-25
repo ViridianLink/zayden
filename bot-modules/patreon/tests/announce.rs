@@ -162,15 +162,31 @@ async fn a_post_inserted_as_announced_is_never_claimed(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "../../migrations", fixtures("patreon"))]
-async fn a_successful_poll_advances_the_cursor_and_seeds(pool: PgPool) {
+async fn a_poll_that_reaches_the_last_page_advances_the_cursor_and_seeds(
+    pool: PgPool,
+) {
     PatreonCampaignRow::ensure(&pool, "300").await.unwrap();
-    PatreonCampaignRow::record_success(&pool, "300", Some("cursor-9"))
+    PatreonCampaignRow::record_success(&pool, "300", Some("cursor-9"), true)
         .await
         .unwrap();
 
     let row = campaign(&pool, "300").await;
     assert_eq!(row.next_cursor.as_deref(), Some("cursor-9"));
-    assert!(row.is_seeded(), "the first successful poll seeds the campaign");
+    assert!(row.is_seeded(), "a caught-up poll seeds the campaign");
+}
+
+/// A back catalogue deeper than one poll's page budget is absorbed over
+/// several polls; seeding after the first would announce the rest of it.
+#[sqlx::test(migrations = "../../migrations", fixtures("patreon"))]
+async fn a_poll_cut_short_by_the_page_budget_does_not_seed(pool: PgPool) {
+    PatreonCampaignRow::ensure(&pool, "300").await.unwrap();
+    PatreonCampaignRow::record_success(&pool, "300", Some("cursor-25"), false)
+        .await
+        .unwrap();
+
+    let row = campaign(&pool, "300").await;
+    assert_eq!(row.next_cursor.as_deref(), Some("cursor-25"));
+    assert!(!row.is_seeded());
 }
 
 /// `seeded_at` is the boundary between absorbing and announcing, so a later
@@ -179,7 +195,7 @@ async fn a_successful_poll_advances_the_cursor_and_seeds(pool: PgPool) {
 async fn a_later_poll_does_not_reseed(pool: PgPool) {
     let before = campaign(&pool, "100").await.seeded_at;
 
-    PatreonCampaignRow::record_success(&pool, "100", Some("cursor-2"))
+    PatreonCampaignRow::record_success(&pool, "100", Some("cursor-2"), true)
         .await
         .unwrap();
 
@@ -191,7 +207,7 @@ async fn failures_accumulate_and_a_success_clears_them(pool: PgPool) {
     assert_eq!(PatreonCampaignRow::record_failure(&pool, "100").await.unwrap(), 1);
     assert_eq!(PatreonCampaignRow::record_failure(&pool, "100").await.unwrap(), 2);
 
-    PatreonCampaignRow::record_success(&pool, "100", None).await.unwrap();
+    PatreonCampaignRow::record_success(&pool, "100", None, true).await.unwrap();
 
     assert_eq!(campaign(&pool, "100").await.consecutive_failures, 0);
 }

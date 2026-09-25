@@ -27,6 +27,14 @@ pub struct PatreonStatus {
     pub(crate) public_only: bool,
 }
 
+#[derive(Clone, Default, Serialize, Deserialize)]
+pub struct YoutubeStatus {
+    pub(crate) connected: bool,
+    pub(crate) channel_title: Option<String>,
+    pub(crate) push_active: bool,
+    pub(crate) channel_id: Option<String>,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct GuildDirectory {
     pub(crate) channels: Result<Vec<ChannelInfo>, String>,
@@ -137,4 +145,5 @@ pub enum SectionSettings {
     Patreon(Result<PatreonStatus, String>),
     Support(Box<SupportSection>),
     TempVoice(TempVoiceSection),
+    Youtube(Result<YoutubeStatus, String>),
 }

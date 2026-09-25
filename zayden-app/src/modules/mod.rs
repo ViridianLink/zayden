@@ -54,6 +54,13 @@ pub const MODULES: &[ModuleDef] = &[
         introduced: None,
     },
     ModuleDef {
+        id: "youtube",
+        label: "YouTube",
+        description: "Announce a connected YouTube channel's new uploads.",
+        backing: Backing::Derived,
+        introduced: None,
+    },
+    ModuleDef {
         id: "marathon",
         label: "Marathon",
         description: "Marathon wiki lookups and news.",

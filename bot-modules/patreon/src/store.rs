@@ -56,18 +56,20 @@ impl PatreonCampaignRow {
         pool: &PgPool,
         campaign_id: &str,
         next_cursor: Option<&str>,
+        caught_up: bool,
     ) -> Result<()> {
         sqlx::query!(
             r#"
             UPDATE patreon_campaigns
             SET next_cursor = $2,
-                seeded_at = COALESCE(seeded_at, now()),
+                seeded_at = CASE WHEN $3 THEN COALESCE(seeded_at, now()) ELSE seeded_at END,
                 last_polled_at = now(),
                 consecutive_failures = 0
             WHERE campaign_id = $1
             "#,
             campaign_id,
-            next_cursor
+            next_cursor,
+            caught_up
         )
         .execute(pool)
         .await?;

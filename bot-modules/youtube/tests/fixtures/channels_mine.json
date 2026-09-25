@@ -1,0 +1,10 @@
+{
+  "kind": "youtube#channelListResponse",
+  "items": [
+    {
+      "id": "UCexample",
+      "snippet": { "title": "Example Creator" },
+      "contentDetails": { "relatedPlaylists": { "likes": "", "uploads": "UUexample" } }
+    }
+  ]
+}

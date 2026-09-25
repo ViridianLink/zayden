@@ -12,6 +12,7 @@ use dashboard::server::auth::{
     session_identity,
 };
 use dashboard::ui::nav;
+use patreon::oauth::PatreonApp;
 use patreon::{
     PATREON_EVENT_HEADER,
     PATREON_SIGNATURE_HEADER,
@@ -196,6 +197,15 @@ pub(super) async fn patreon_callback_handler(
         },
     };
 
+    let previous = previous_webhook(
+        &app,
+        &patreon_app,
+        context.guild_id,
+        &campaign_id,
+        &tokens.access_token,
+    )
+    .await;
+
     let stored = PatreonConnection::connect(
         &app.db,
         context.guild_id,
@@ -212,7 +222,34 @@ pub(super) async fn patreon_callback_handler(
         return redirect(&settings_url(guild, PatreonOutcome::Error));
     }
 
+    // The overwritten secret can no longer verify the old webhook's
+    // deliveries, so leaving it registered only produces rejected requests.
+    if let Some((webhook_id, token)) = previous {
+        patreon::webhook::unregister(&app.http, &token, &webhook_id).await;
+    }
+
     redirect(&settings_url(guild, PatreonOutcome::Connected))
+}
+
+async fn previous_webhook(
+    app: &ZaydenAppState,
+    patreon_app: &PatreonApp,
+    guild_id: i64,
+    campaign_id: &str,
+    new_token: &str,
+) -> Option<(String, String)> {
+    let previous = PatreonConnection::select(&app.db, guild_id).await.ok()??;
+    let webhook_id = previous.webhook_id.clone()?;
+
+    let token = if previous.campaign_id == campaign_id {
+        new_token.to_owned()
+    } else {
+        patreon::oauth::access_token(&app.db, &app.http, patreon_app, &previous)
+            .await
+            .ok()?
+    };
+
+    Some((webhook_id, token))
 }
 
 pub(super) async fn patreon_webhook_handler(

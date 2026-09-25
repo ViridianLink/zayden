@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE youtube_channels\n            SET websub_expires_at = now() + make_interval(secs => $2::bigint::double precision)\n            WHERE channel_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0a2b02040e7da4df86676c565b6946e8af5aff5426fbb3f40c6fac3bd6d455d6"
+}

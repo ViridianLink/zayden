@@ -13,6 +13,7 @@ zayden_id = 787490197943091211
 [dashboard]
 redirect_uri = "http://localhost:3000/auth/callback"
 patreon_redirect_uri = "http://localhost:3000/patreon/callback"
+youtube_redirect_uri = "http://localhost:3000/youtube/callback"
 bind_addr = "0.0.0.0:3000"
 invite_url = "https://discord.com/oauth2/authorize?client_id=787490197943091211&permissions=8&integration_type=0&scope=bot+applications.commands"
 upgrade_url = "https://ko-fi.com/viridianlink"

@@ -2,6 +2,7 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     crate::server::auth::admin_guild_id,
+    crate::server::discord::ensure_guild_channel,
     crate::server::guild::admin_app,
     patreon::oauth::PatreonApp,
     patreon::{PatreonAnnounceRow, PatreonConnection},
@@ -40,6 +41,7 @@ pub(crate) async fn fetch_patreon_status(
 pub async fn get_patreon_status(
     guild: String,
 ) -> Result<PatreonStatus, ServerFnError> {
+    tracing::warn!(guild, "get_patreon_status called; it has no known caller");
     let (guild_id, app) = admin_app(&guild).await?;
     fetch_patreon_status(&app, guild_id).await
 }
@@ -69,6 +71,8 @@ pub async fn save_patreon_settings(
         return Err(ServerFnError::ServerError("invalid channel id".to_string()));
     };
 
+    ensure_guild_channel(guild_id, channel_id).await?;
+
     PatreonAnnounceRow::upsert(
         &app.db,
         guild_id,
@@ -81,6 +85,7 @@ pub async fn save_patreon_settings(
 
 #[server]
 pub async fn can_manage_patreon(guild: String) -> Result<bool, ServerFnError> {
+    tracing::warn!(guild, "can_manage_patreon called; it has no known caller");
     admin_guild_id(&guild).await.map(|_id| true)
 }
 

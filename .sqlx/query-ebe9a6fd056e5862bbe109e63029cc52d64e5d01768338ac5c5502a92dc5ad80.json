@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO youtube_connections (guild_id, channel_id, connected_by)\n         VALUES (5, 'UCorphan', 1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "ebe9a6fd056e5862bbe109e63029cc52d64e5d01768338ac5c5502a92dc5ad80"
+}

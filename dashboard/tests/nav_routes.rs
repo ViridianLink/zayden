@@ -39,3 +39,11 @@ fn an_unknown_slug_does_not_invent_a_route() {
     assert_eq!(settings_href("1", "patron"), None);
     assert_eq!(settings_href("1", "greetings"), None);
 }
+
+#[test]
+fn youtube_redirects_at_the_settings_section_route() {
+    assert_eq!(
+        settings_href("428610928000876544", "youtube").as_deref(),
+        Some("/guild/428610928000876544/settings/youtube")
+    );
+}

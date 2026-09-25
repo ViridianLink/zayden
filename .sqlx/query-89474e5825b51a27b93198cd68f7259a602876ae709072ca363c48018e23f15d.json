@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT c.channel_id,\n                   c.title,\n                   c.uploads_playlist_id,\n                   c.websub_secret,\n                   c.seeded_at AS \"seeded_at: Timestamp\"\n            FROM youtube_channels c\n            WHERE (c.websub_expires_at IS NULL\n                   OR c.websub_expires_at < now() + interval '1 day')\n              AND EXISTS (\n                  SELECT 1 FROM youtube_connections o\n                  WHERE o.channel_id = c.channel_id\n              )\n            ORDER BY c.channel_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "channel_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "uploads_playlist_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "uploads_playlist_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "websub_secret",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "websub_secret"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "seeded_at: Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "seeded_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "89474e5825b51a27b93198cd68f7259a602876ae709072ca363c48018e23f15d"
+}

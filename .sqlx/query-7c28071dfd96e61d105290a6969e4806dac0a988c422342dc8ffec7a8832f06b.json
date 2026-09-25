@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE youtube_channels\n            SET last_polled_at = now(), consecutive_failures = consecutive_failures + 1\n            WHERE channel_id = $1\n            RETURNING consecutive_failures\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "consecutive_failures",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "consecutive_failures"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7c28071dfd96e61d105290a6969e4806dac0a988c422342dc8ffec7a8832f06b"
+}

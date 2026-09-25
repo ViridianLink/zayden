@@ -47,6 +47,24 @@ pub(crate) async fn fetch_guild_channels(
 }
 
 #[cfg(feature = "ssr")]
+pub(crate) async fn ensure_guild_channel(
+    guild_id: i64,
+    channel_id: i64,
+) -> Result<(), ServerFnError> {
+    let channel = channel_id.to_string();
+    let http = discord_client()?;
+    let channels = fetch_guild_channels(&http, guild_id.cast_unsigned()).await?;
+
+    if channels.iter().any(|c| c.id == channel) {
+        Ok(())
+    } else {
+        Err(ServerFnError::ServerError(
+            "that channel is not in this server".to_string(),
+        ))
+    }
+}
+
+#[cfg(feature = "ssr")]
 pub(crate) async fn fetch_guild_roles(
     http: &Client,
     guild_id: u64,

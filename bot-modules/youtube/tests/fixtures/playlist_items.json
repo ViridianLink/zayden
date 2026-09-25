@@ -1,0 +1,50 @@
+{
+  "kind": "youtube#playlistItemListResponse",
+  "items": [
+    {
+      "id": "item-new",
+      "snippet": {
+        "publishedAt": "2026-09-20T18:00:05Z",
+        "title": "Brand new upload",
+        "resourceId": { "kind": "youtube#video", "videoId": "vid-new" }
+      },
+      "contentDetails": { "videoId": "vid-new", "videoPublishedAt": "2026-09-20T18:00:00Z" },
+      "status": { "privacyStatus": "public" }
+    },
+    {
+      "id": "item-scheduled",
+      "snippet": {
+        "publishedAt": "2026-09-19T12:00:00Z",
+        "title": "Scheduled premiere",
+        "resourceId": { "kind": "youtube#video", "videoId": "vid-scheduled" }
+      },
+      "contentDetails": { "videoId": "vid-scheduled" },
+      "status": { "privacyStatus": "private" }
+    },
+    {
+      "id": "item-unlisted",
+      "snippet": {
+        "publishedAt": "2026-09-18T12:00:00Z",
+        "title": "Unlisted",
+        "resourceId": { "kind": "youtube#video", "videoId": "vid-unlisted" }
+      },
+      "contentDetails": { "videoId": "vid-unlisted", "videoPublishedAt": "2026-09-18T12:00:00Z" },
+      "status": { "privacyStatus": "unlisted" }
+    },
+    {
+      "id": "item-no-video-date",
+      "snippet": {
+        "publishedAt": "2026-09-17T09:30:00Z",
+        "title": "Falls back to the playlist date",
+        "resourceId": { "kind": "youtube#video", "videoId": "vid-fallback" }
+      },
+      "contentDetails": { "videoId": "vid-fallback" },
+      "status": { "privacyStatus": "public" }
+    },
+    {
+      "id": "item-broken",
+      "snippet": { "title": "No id or date" },
+      "status": { "privacyStatus": "public" }
+    }
+  ]
+}

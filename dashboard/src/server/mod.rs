@@ -14,3 +14,4 @@ pub mod reaction_roles;
 #[cfg(feature = "ssr")]
 pub mod supersede;
 pub mod tier;
+pub mod youtube;

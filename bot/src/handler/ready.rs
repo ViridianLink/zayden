@@ -8,6 +8,7 @@ use crate::bindings::ai::Ai;
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
 use crate::patreon_webhook::spawn_patreon_listener;
+use crate::youtube_webhook::spawn_youtube_listener;
 use crate::{BotState, Result, module_sync};
 
 impl Handler {
@@ -42,6 +43,10 @@ impl Handler {
         tokio::spawn(async move { palworld.warm().await });
 
         spawn_patreon_listener(ctx.clone(), Arc::clone(&self.app));
+        let youtube = self.bot_state.read().await.youtube.clone();
+        if let Some(runtime) = youtube {
+            spawn_youtube_listener(ctx.clone(), Arc::clone(&self.app), runtime);
+        }
         module_sync::spawn_listener(
             Arc::clone(&ctx.http),
             Arc::clone(&self.app),

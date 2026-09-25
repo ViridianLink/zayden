@@ -19,6 +19,7 @@ pub mod registry;
 pub mod sqlx_lib;
 pub mod state;
 pub mod webhook_logger;
+pub mod youtube_webhook;
 
 pub use error::{BotError, Result};
 pub use handler::Handler;

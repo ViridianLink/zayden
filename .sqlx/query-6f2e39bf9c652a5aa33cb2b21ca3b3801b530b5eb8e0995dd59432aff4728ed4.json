@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT o.guild_id,\n                   o.channel_id,\n                   c.title AS channel_title,\n                   COALESCE(c.websub_expires_at > now(), FALSE) AS \"lease_active!\"\n            FROM youtube_connections o\n            JOIN youtube_channels c ON c.channel_id = o.channel_id\n            WHERE o.guild_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "youtube_connections",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_connections",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "lease_active!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "6f2e39bf9c652a5aa33cb2b21ca3b3801b530b5eb8e0995dd59432aff4728ed4"
+}

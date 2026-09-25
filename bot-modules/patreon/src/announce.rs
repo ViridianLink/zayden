@@ -1,8 +1,9 @@
 use futures::StreamExt;
+use jiff::{SignedDuration, Timestamp};
 use reqwest::Client;
 use serenity::all::{CreateMessage, Http, MessageFlags};
 use sqlx::PgPool;
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::error::Result;
 use crate::store::{self, PatreonAnnounceRow, PendingPost};
@@ -11,6 +12,8 @@ use crate::{embeds, thumbnail};
 const CLAIM_BATCH: i64 = 20;
 const CONCURRENCY: usize = 5;
 
+pub const MAX_AGE: SignedDuration = SignedDuration::from_hours(48);
+
 pub async fn announce_pending(
     http: &Http,
     client: &Client,
@@ -18,7 +21,14 @@ pub async fn announce_pending(
 ) -> Result<()> {
     let pending = store::claim_pending(pool, CLAIM_BATCH).await?;
 
+    let cutoff = Timestamp::now() - MAX_AGE;
+
     for mut post in pending {
+        if post.published_at.to_jiff() < cutoff {
+            debug!(post_id = post.post_id, "patreon: skipping a stale post");
+            continue;
+        }
+
         if post.thumbnail_url.is_none()
             && let Some(url) = thumbnail::fetch(client, &post.url).await
         {
@@ -40,7 +50,7 @@ pub async fn announce_pending(
                 error!(
                     error = ?e,
                     campaign_id = post.campaign_id,
-                    "patreon: failed to load announce rows"
+                    "patreon: failed to load announce rows; the claimed item is dropped, not retried"
                 );
                 continue;
             },
@@ -67,7 +77,7 @@ async fn broadcast(http: &Http, post: &PendingPost, rows: Vec<PatreonAnnounceRow
                     error = ?e,
                     guild_id = row.guild_id,
                     post_id = post.post_id,
-                    "patreon: failed to post announcement"
+                    "patreon: failed to post announcement; it is not retried"
                 );
             }
         }

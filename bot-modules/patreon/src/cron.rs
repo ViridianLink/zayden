@@ -96,7 +96,19 @@ async fn poll_all(client: &Client, app: &PatreonApp, pool: &PgPool) {
                     stored, "patreon: campaign polled"
                 );
             },
-            Err(e) => on_failure(pool, &campaign.campaign_id, &e).await,
+            Err(e) => {
+                if matches!(e, PatreonError::Unauthorized) {
+                    warn!(
+                        guild_id = connection.guild_id,
+                        campaign_id = campaign.campaign_id,
+                        expires_at = %connection.expires_at.to_jiff(),
+                        "patreon: API rejected an unexpired access token; it is \
+                         neither refreshed nor disabled, so this campaign keeps \
+                         failing until the creator reconnects"
+                    );
+                }
+                on_failure(pool, &campaign.campaign_id, &e).await;
+            },
         }
     }
 }
@@ -111,6 +123,7 @@ async fn poll_campaign(
     let mut cursor = campaign.next_cursor.clone();
     let mut resume_from = cursor.clone();
     let mut stored = 0_usize;
+    let mut caught_up = false;
 
     for _page in 0..MAX_PAGES {
         let page = api::fetch_posts(
@@ -127,7 +140,10 @@ async fn poll_campaign(
             }
         }
 
-        let Some(next) = page.next_cursor else { break };
+        let Some(next) = page.next_cursor else {
+            caught_up = true;
+            break;
+        };
 
         resume_from = Some(next.clone());
         cursor = Some(next);
@@ -137,6 +153,7 @@ async fn poll_campaign(
         pool,
         &campaign.campaign_id,
         resume_from.as_deref(),
+        caught_up,
     )
     .await?;
 

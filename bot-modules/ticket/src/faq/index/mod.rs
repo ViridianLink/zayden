@@ -76,6 +76,7 @@ impl WikiIndex {
                         AppEvent::EntitlementChanged(_)
                         | AppEvent::ModulesChanged(_)
                         | AppEvent::PatreonPost(_)
+                        | AppEvent::YoutubeUpload(_)
                         | AppEvent::HostingPaid(_),
                     ) => {},
                     Err(RecvError::Lagged(n)) => {

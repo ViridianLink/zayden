@@ -1,6 +1,6 @@
 use hmac::{Hmac, KeyInit, Mac};
 use md5::Md5;
-use reqwest::Client;
+use reqwest::{Client, Response};
 use serde_json::{Value, json};
 
 use crate::api::{self, API_ROOT};
@@ -61,7 +61,8 @@ pub async fn unregister(client: &Client, access_token: &str, webhook_id: &str) {
         .delete(format!("{API_ROOT}/webhooks/{webhook_id}"))
         .bearer_auth(access_token)
         .send()
-        .await;
+        .await
+        .and_then(Response::error_for_status);
 
     if let Err(e) = result {
         tracing::warn!(error = ?e, webhook_id, "patreon: failed to delete webhook");

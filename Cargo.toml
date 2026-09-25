@@ -165,6 +165,7 @@ temp-voice = { path = "./bot-modules/temp-voice" }
 ticket = { path = "./bot-modules/ticket" }
 verify = { path = "./bot-modules/verify" }
 watch = { path = "./bot-modules/watch" }
+youtube = { path = "./bot-modules/youtube" }
 zayden-core = { path = "./bot-modules/zayden-core" }
 zayden-graphics = { path = "./bot-modules/zayden-graphics" }
 zayden-app = { path = "./zayden-app" }
@@ -313,11 +314,12 @@ oozextract = { version = "=0.5.0" }
 zip = { version = "*", default-features = false }
 
 # -- Text and hashing
-# Majors pinned together: `hmac` 0.13 and `md-5` 0.11 both build on `digest`
-# 0.11, and `*` resolves `hmac` to 0.12 (digest 0.10), which will not compose.
+# Majors pinned together: `hmac` 0.13, `md-5` 0.11 and `sha1` 0.11 all build on
+# `digest` 0.11, and `*` resolves `hmac` to 0.12 (digest 0.10), which will not compose.
 hmac = { version = "0.13", default-features = false }
 md-5 = { version = "0.11", default-features = false }
 regex = { version = "*", default-features = false }
+sha1 = { version = "0.11", default-features = false }
 sha2 = { version = "*", default-features = false }
 
 # -- Frontend (Leptos)

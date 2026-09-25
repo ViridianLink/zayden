@@ -7,6 +7,7 @@ pub mod modules;
 pub mod patreon;
 pub mod reaction_roles;
 pub mod tier;
+pub mod youtube;
 
 pub use discord::{ChannelInfo, ForumTagInfo, RoleInfo, SessionUser};
 pub use faq::FaqArticleInfo;
@@ -26,9 +27,11 @@ pub use guild::{
     SectionSettings,
     SupportSection,
     TempVoiceSection,
+    YoutubeStatus,
 };
 pub use levels::{LeaderboardEntry, LeaderboardPage};
 pub use modules::ModuleView;
 pub use patreon::PatreonOutcome;
 pub use reaction_roles::ReactionRoleInfo;
 pub use tier::{Tier, UserTierInfo};
+pub use youtube::YoutubeOutcome;

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE youtube_channels\n            SET seeded_at = COALESCE(seeded_at, now()),\n                last_polled_at = now(),\n                consecutive_failures = 0\n            WHERE channel_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "96c2942acd0ab9cfa3fea722c2b3572efadb93a067fd69074d2c6eb406c75e66"
+}

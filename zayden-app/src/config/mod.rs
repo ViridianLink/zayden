@@ -12,6 +12,7 @@ pub use bot_config::{
     PatreonConfig,
     PelicanConfig,
     PelicanSaveConfig,
+    YoutubeConfig,
 };
 pub use radio::{Genre, RadioStation};
 pub use registry::SettingsRegistry;

@@ -24,6 +24,7 @@ impl EventListener {
                 "modules_changed",
                 "entitlement_changed",
                 "patreon_post",
+                "youtube_upload",
                 "hosting_paid",
             ])
             .await
@@ -72,6 +73,11 @@ impl EventListener {
                     },
                     "patreon_post" => {
                         let _ = events.send(AppEvent::PatreonPost(
+                            notification.payload().to_owned(),
+                        ));
+                    },
+                    "youtube_upload" => {
+                        let _ = events.send(AppEvent::YoutubeUpload(
                             notification.payload().to_owned(),
                         ));
                     },

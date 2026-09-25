@@ -23,6 +23,7 @@ const DEFAULT_AI_MODEL_PRO: &str = "google/gemini-2.5-flash";
 
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 const DEFAULT_PATREON_REDIRECT_URI: &str = "http://localhost:3000/patreon/callback";
+const DEFAULT_YOUTUBE_REDIRECT_URI: &str = "http://localhost:3000/youtube/callback";
 const DEFAULT_BIND_ADDR: &str = "0.0.0.0:3000";
 
 const DEFAULT_PALWORLD_SAVE_DIR: &str = "056C426C55974CFCA115EB695A224F67";
@@ -92,6 +93,16 @@ pub struct PatreonConfig {
 }
 
 #[derive(Debug, Clone)]
+pub struct YoutubeConfig {
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_uri: String,
+    /// Where the `WebSub` hub delivers upload notifications. Both processes
+    /// need it: the dashboard subscribes on connect, the bot renews leases.
+    pub webhook_uri: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct BotConfig {
     pub discord_token: String,
     pub bungie_api_key: String,
@@ -138,6 +149,7 @@ pub struct BotConfig {
     pub kofi_verification_token: Option<String>,
 
     pub patreon: Option<PatreonConfig>,
+    pub youtube: Option<YoutubeConfig>,
 
     pub discord_sku_pro: Option<u64>,
     pub discord_sku_ultra: Option<u64>,
@@ -182,6 +194,13 @@ impl BotConfig {
                 .patreon_redirect_uri
                 .clone()
                 .unwrap_or_else(|| DEFAULT_PATREON_REDIRECT_URI.to_owned()),
+        );
+        let youtube = load_youtube_config(
+            toml_cfg
+                .dashboard
+                .youtube_redirect_uri
+                .clone()
+                .unwrap_or_else(|| DEFAULT_YOUTUBE_REDIRECT_URI.to_owned()),
         );
 
         Ok(Self {
@@ -262,6 +281,7 @@ impl BotConfig {
             kofi_verification_token: env::var("KOFI_VERIFICATION_TOKEN").ok(),
 
             patreon,
+            youtube,
 
             discord_sku_pro: toml_cfg.entitlements.discord.skus.pro,
             discord_sku_ultra: toml_cfg.entitlements.discord.skus.ultra,
@@ -486,6 +506,42 @@ fn load_patreon_config(redirect_uri: String) -> Option<PatreonConfig> {
     }
 }
 
+fn load_youtube_config(redirect_uri: String) -> Option<YoutubeConfig> {
+    match (
+        env::var("YOUTUBE_CLIENT_ID").ok(),
+        env::var("YOUTUBE_CLIENT_SECRET").ok(),
+    ) {
+        (Some(client_id), Some(client_secret)) => {
+            if !redirect_uri.contains("/youtube/callback") {
+                warn!(
+                    redirect_uri,
+                    "YouTube redirect URI has no /youtube/callback path; the \
+                     WebSub callback derived from it will not reach \
+                     /webhooks/youtube"
+                );
+            }
+
+            let webhook_uri =
+                redirect_uri.replace("/youtube/callback", "/webhooks/youtube");
+
+            Some(YoutubeConfig {
+                client_id,
+                client_secret,
+                redirect_uri,
+                webhook_uri,
+            })
+        },
+        (None, None) => None,
+        _ => {
+            warn!(
+                "YouTube config is incomplete; upload announcements disabled until \
+                 both YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET are set"
+            );
+            None
+        },
+    }
+}
+
 fn save_dir_from_path(save_path: &str) -> PathBuf {
     let name =
         save_path.trim_end_matches('/').rsplit('/').next().unwrap_or(save_path);
@@ -622,6 +678,7 @@ struct TomlIds {
 struct TomlDashboard {
     redirect_uri: Option<String>,
     patreon_redirect_uri: Option<String>,
+    youtube_redirect_uri: Option<String>,
     bind_addr: Option<String>,
     invite_url: Option<String>,
     upgrade_url: Option<String>,

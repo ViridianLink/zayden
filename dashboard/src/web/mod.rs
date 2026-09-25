@@ -2,6 +2,7 @@ pub(crate) mod cookie;
 mod routes_kofi;
 mod routes_login;
 mod routes_patreon;
+mod routes_youtube;
 
 use axum::Router;
 use axum::extract::FromRef;
@@ -19,6 +20,8 @@ pub(crate) fn routes(state: &WebState) -> Router<WebState> {
         .route("/kofi/link", post(routes_kofi::kofi_link_handler))
         .route("/patreon/connect", get(routes_patreon::patreon_connect_handler))
         .route("/patreon/callback", get(routes_patreon::patreon_callback_handler))
+        .route("/youtube/connect", get(routes_youtube::youtube_connect_handler))
+        .route("/youtube/callback", get(routes_youtube::youtube_callback_handler))
         .route_layer(from_fn_with_state(
             SessionState::from_ref(state),
             require_auth,
@@ -29,6 +32,11 @@ pub(crate) fn routes(state: &WebState) -> Router<WebState> {
         .route("/logout", get(logout_handler))
         .route("/webhooks/kofi", post(routes_kofi::kofi_webhook_handler))
         .route("/webhooks/patreon", post(routes_patreon::patreon_webhook_handler))
+        .route(
+            "/webhooks/youtube",
+            get(routes_youtube::youtube_verify_handler)
+                .post(routes_youtube::youtube_notify_handler),
+        )
         .merge(protected)
 }
 

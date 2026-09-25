@@ -26,6 +26,7 @@ use {
     },
     crate::server::discord::{fetch_guild_channels, fetch_guild_roles},
     crate::server::patreon::fetch_patreon_status,
+    crate::server::youtube::fetch_youtube_status,
     honeypot::{HoneypotConfig, HoneypotSettings},
     leptos_axum::redirect,
     sqlx::PgPool,
@@ -354,6 +355,9 @@ pub async fn get_section_settings(
         },
         "patreon" => SectionSettings::Patreon(
             fetch_patreon_status(&app, guild_id).await.map_err(|e| e.to_string()),
+        ),
+        "youtube" => SectionSettings::Youtube(
+            fetch_youtube_status(&app, guild_id).await.map_err(|e| e.to_string()),
         ),
         "support" => {
             let pool = db_pool()?;

@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO youtube_videos (video_id, channel_id, title, published_at, announced_at)\n        VALUES ($1, $2, $3, $4, CASE WHEN $5 THEN now() END)\n        ON CONFLICT (video_id) DO NOTHING\n        RETURNING TRUE AS \"inserted!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "inserted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f47f1e871f09bba1261448baf83e2e830c4b14d5654d21bba8e4141cc3a37637"
+}

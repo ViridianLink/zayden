@@ -28,6 +28,7 @@ pub fn spawn_patreon_listener(ctx: Context, app: Arc<AppState>) {
                     AppEvent::ConfigChanged(_)
                     | AppEvent::ModulesChanged(_)
                     | AppEvent::EntitlementChanged(_)
+                    | AppEvent::YoutubeUpload(_)
                     | AppEvent::HostingPaid(_),
                 ) => {},
                 Err(RecvError::Lagged(n)) => {

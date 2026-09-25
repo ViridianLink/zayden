@@ -10,5 +10,6 @@ pub enum AppEvent {
     ModulesChanged(u64),
     EntitlementChanged(EntitlementScope),
     PatreonPost(String),
+    YoutubeUpload(String),
     HostingPaid(i64),
 }

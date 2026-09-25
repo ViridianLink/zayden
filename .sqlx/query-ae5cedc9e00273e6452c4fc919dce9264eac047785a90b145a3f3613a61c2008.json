@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guilds (id) VALUES (4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "ae5cedc9e00273e6452c4fc919dce9264eac047785a90b145a3f3613a61c2008"
+}

@@ -4,6 +4,7 @@ use {
     crate::server::auth::{app_state, guild_admin_context, server_err},
     crate::server::patreon::fetch_patreon_status,
     crate::server::supersede,
+    crate::server::youtube::fetch_youtube_status,
     std::collections::HashMap,
     twilight_model::id::Id,
     zayden_app::modules::{self, Backing, MODULES, ModuleDef, ModuleStates},
@@ -50,16 +51,22 @@ async fn settings_flags(
 ) -> Result<HashMap<&'static str, bool>, ServerFnError> {
     let app = app_state()?;
 
-    let (ai, patreon) = tokio::try_join!(
+    let (ai, patreon, youtube) = tokio::try_join!(
         async { app.settings.ai.get(guild_id).await.map_err(server_err) },
         fetch_patreon_status(&app, guild_id),
+        fetch_youtube_status(&app, guild_id),
     )?;
 
     // Announcements only fire on a live connection with somewhere to post.
     let patreon_on =
         patreon.connected && !patreon.disabled && patreon.channel_id.is_some();
+    let youtube_on = youtube.connected && youtube.channel_id.is_some();
 
-    Ok(HashMap::from([("ai", ai.enabled), ("patreon", patreon_on)]))
+    Ok(HashMap::from([
+        ("ai", ai.enabled),
+        ("patreon", patreon_on),
+        ("youtube", youtube_on),
+    ]))
 }
 
 #[server]

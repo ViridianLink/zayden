@@ -7,6 +7,7 @@ pub mod music;
 pub mod patreon;
 pub mod support;
 pub mod temp_voice;
+pub mod youtube;
 
 use leptos::prelude::*;
 use leptos_meta::Title;
@@ -24,6 +25,7 @@ use crate::server::guild::{
     get_section_settings,
 };
 use crate::server::patreon::DisconnectPatreon;
+use crate::server::youtube::DisconnectYoutube;
 use crate::ui::components::skeleton::Skeleton;
 use crate::ui::nav;
 
@@ -42,8 +44,6 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let params = use_params_map();
     let guild_id = move || params.with(|p| p.get("id").unwrap_or_default());
 
-    // Which module's panel to show. An unknown or missing section falls back to
-    // General rather than rendering an empty page.
     let active = Memo::new(move |_| {
         let slug = params.with(|p| p.get("section").unwrap_or_default());
         nav::section(&slug)
@@ -55,6 +55,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
     let add_helper_link = ServerAction::<AddHelperLink>::new();
     let remove_helper_link = ServerAction::<RemoveHelperLink>::new();
     let disconnect_patreon = ServerAction::<DisconnectPatreon>::new();
+    let disconnect_youtube = ServerAction::<DisconnectYoutube>::new();
 
     // Channel and role lists are the same on every tab, so they are keyed on
     // the guild alone and survive a section change untouched. Discord does not
@@ -72,6 +73,7 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                 add_helper_link.version().get(),
                 remove_helper_link.version().get(),
                 disconnect_patreon.version().get(),
+                disconnect_youtube.version().get(),
             )
         },
         |(gid, section, ..)| async move { get_section_settings(gid, section).await },
@@ -156,6 +158,14 @@ pub(crate) fn GuildSettingsPage() -> impl IntoView {
                                         status=status
                                         channels=channels
                                         disconnect=disconnect_patreon
+                                    />
+                                }.into_any(),
+                                SectionSettings::Youtube(status) => view! {
+                                    <youtube::YoutubeTab
+                                        guild_id=gid
+                                        status=status
+                                        channels=channels
+                                        disconnect=disconnect_youtube
                                     />
                                 }.into_any(),
                                 SectionSettings::Honeypot(s) => view! {

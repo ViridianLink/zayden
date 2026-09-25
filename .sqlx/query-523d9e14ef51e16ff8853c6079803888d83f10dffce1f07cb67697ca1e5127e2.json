@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (\n            SELECT 1\n            FROM youtube_connections o\n            JOIN youtube_announce a ON a.guild_id = o.guild_id\n            WHERE o.channel_id = $1\n        ) AS \"exists!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "523d9e14ef51e16ff8853c6079803888d83f10dffce1f07cb67697ca1e5127e2"
+}

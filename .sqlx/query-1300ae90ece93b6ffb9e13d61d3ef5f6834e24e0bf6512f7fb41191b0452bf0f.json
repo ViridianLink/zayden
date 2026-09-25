@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH due AS (\n            SELECT v.video_id\n            FROM youtube_videos v\n            WHERE v.announced_at IS NULL\n            ORDER BY v.channel_id, v.published_at\n            LIMIT $1\n            FOR UPDATE OF v SKIP LOCKED\n        )\n        UPDATE youtube_videos v\n        SET announced_at = now()\n        FROM due, youtube_channels c\n        WHERE v.video_id = due.video_id AND c.channel_id = v.channel_id\n        RETURNING v.video_id,\n                  v.channel_id,\n                  c.title AS channel_title,\n                  v.title,\n                  v.published_at AS \"published_at: Timestamp\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "video_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_videos",
+            "name": "video_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_videos",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_channels",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_videos",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "published_at: Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "youtube_videos",
+            "name": "published_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1300ae90ece93b6ffb9e13d61d3ef5f6834e24e0bf6512f7fb41191b0452bf0f"
+}

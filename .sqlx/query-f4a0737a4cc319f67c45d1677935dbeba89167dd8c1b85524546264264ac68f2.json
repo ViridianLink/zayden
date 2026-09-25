@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO youtube_announce (guild_id, channel_id)\n            VALUES ($1, $2)\n            ON CONFLICT (guild_id) DO UPDATE\n            SET channel_id = EXCLUDED.channel_id,\n                updated_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f4a0737a4cc319f67c45d1677935dbeba89167dd8c1b85524546264264ac68f2"
+}
