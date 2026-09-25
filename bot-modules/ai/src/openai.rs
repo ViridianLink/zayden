@@ -21,7 +21,7 @@ use crate::response::{ChatCompletion, Completion, ErrorEnvelope};
 const HTTP_REFERER: &str = "https://zayden.discord.bot";
 const APP_TITLE: &str = "Zayden";
 
-const MAX_ATTEMPTS: u32 = 2;
+const MAX_ATTEMPTS: u32 = 3;
 const RETRY_BACKOFF: Duration = Duration::from_secs(1);
 
 const REASONING_EFFORT: ReasoningEffort = ReasoningEffort::Low;
@@ -138,6 +138,7 @@ impl AiClient {
         request: CreateChatCompletionRequest,
     ) -> Result<Completion, Error> {
         let mut attempt = 1;
+        let mut backoff = RETRY_BACKOFF;
 
         loop {
             let error = match self.send(request.clone()).await {
@@ -156,7 +157,8 @@ impl AiClient {
                 "AI request failed; retrying"
             );
 
-            tokio::time::sleep(RETRY_BACKOFF).await;
+            tokio::time::sleep(backoff).await;
+            backoff = backoff.saturating_mul(2);
             attempt += 1;
         }
     }

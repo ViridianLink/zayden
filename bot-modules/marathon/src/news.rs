@@ -23,7 +23,7 @@ const BLUESKY_ITEMS_PER_ACTOR: usize = 5;
 pub const NEWS_TIMEOUT: Duration = Duration::from_secs(10);
 pub const NEWS_RETRY: RetryBudget = RetryBudget::new(3, Duration::from_millis(500));
 
-fn is_transient(error: &MarathonError) -> bool {
+pub(crate) fn is_transient(error: &MarathonError) -> bool {
     let MarathonError::Reqwest(error) = error else { return false };
 
     error.is_timeout()

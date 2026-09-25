@@ -9,7 +9,7 @@ use reqwest::Client;
 use scraper::{Html, Selector};
 use tracing::debug;
 
-use crate::wiki::{WikiConfig, WikiError, graphql, schema};
+use crate::wiki::{self, WikiConfig, WikiError, graphql, schema};
 
 #[derive(QueryVariables)]
 struct IdVariables {
@@ -74,12 +74,40 @@ pub async fn page_by_id(
     config: &WikiConfig,
     id: i32,
 ) -> Result<Page, WikiError> {
+    match page_by_id_via_graphql(client, config, id).await {
+        Err(WikiError::PageForbidden) => {
+            debug!(id, "graphql page source forbidden; resolving the page path");
+            let path = path_of(client, config, id).await?;
+            page(client, config, &path).await
+        },
+        result => result,
+    }
+}
+
+async fn page_by_id_via_graphql(
+    client: &Client,
+    config: &WikiConfig,
+    id: i32,
+) -> Result<Page, WikiError> {
     let operation = GetPageById::build(IdVariables { id });
 
     let data = graphql::run(client, config, &operation).await?;
 
     data.pages
         .and_then(|pages| pages.single)
+        .ok_or_else(|| WikiError::PageNotFound(id.to_string()))
+}
+
+async fn path_of(
+    client: &Client,
+    config: &WikiConfig,
+    id: i32,
+) -> Result<String, WikiError> {
+    wiki::list(client, config)
+        .await?
+        .into_iter()
+        .find(|page| page.id == id)
+        .map(|page| page.path)
         .ok_or_else(|| WikiError::PageNotFound(id.to_string()))
 }
 

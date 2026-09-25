@@ -33,7 +33,7 @@ tracing = { workspace = true }
 url = { workspace = true }
 
 [dev-dependencies]
-tokio = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["io-util", "macros", "net"] }
 
 [build-dependencies]
 cynic-codegen = { workspace = true }

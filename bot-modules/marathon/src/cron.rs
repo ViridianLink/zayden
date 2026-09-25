@@ -4,7 +4,7 @@ use futures::future;
 use reqwest::Client;
 use serenity::all::{ChannelId, CreateMessage, MessageFlags};
 use sqlx::PgPool;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 use zayden_core::{CronJob, as_u64};
 
 use crate::announce::{MarathonAnnounceRow, NewsSeenRow};
@@ -114,6 +114,10 @@ async fn collect_feed(
 ) {
     let items = match fetched {
         Ok(items) => items,
+        Err(e) if news::is_transient(&e) => {
+            warn!(error = ?e, feed_key, "marathon: news feed unreachable; next poll retries");
+            return;
+        },
         Err(e) => {
             error!(error = ?e, feed_key, "marathon: failed to fetch news feed");
             return;
