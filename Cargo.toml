@@ -191,18 +191,14 @@ twilight-model = { version = "*" }
 thiserror = { version = "*", default-features = false }
 
 # -- Collections and concurrency
-ahash = { version = "*", default-features = false, features = ["std"] }
-arrayvec = { version = "*", default-features = false }
-compact_str = { version = "*", default-features = false, features = ["std"] }
 dashmap = { version = "*", default-features = false }
 itertools = { version = "*", default-features = false, features = ["use_std"] }
 moka = { version = "*", default-features = false }
 rayon = { version = "*", default-features = false }
-smallvec = { version = "*", default-features = false }
 
 # -- Randomness and numerics
 bigdecimal = { version = "*", default-features = false }
-rand = { version = "*", default-features = false }
+rand = { version = "0.10", default-features = false }
 rand_distr = { version = "*", default-features = false }
 
 # -- Serialization
@@ -222,15 +218,16 @@ jiff-cron = { version = "*", default-features = false }
 jiff-sqlx = { version = "*", default-features = false }
 
 # -- CLI and configuration
-clap = { version = "*", default-features = false, features = [
-  "std",
-  "help",
-  "usage",
-  "error-context",
-  "suggestions",
-  "derive",
-  "env",
-] }
+# Unused; uncomment instead of hand-rolling argument parsing.
+# clap = { version = "*", default-features = false, features = [
+#   "std",
+#   "help",
+#   "usage",
+#   "error-context",
+#   "suggestions",
+#   "derive",
+#   "env",
+# ] }
 dotenvy = { version = "*", default-features = false }
 
 # -- HTTP client
@@ -258,15 +255,15 @@ axum = { version = "*", default-features = false, features = [
   "tower-log",
   "tracing",
 ] }
-tower = { version = "*", default-features = false, features = ["util"] }
 tower-cookies = { version = "*", default-features = false, features = [
   "axum-core",
 ] }
-utoipa = { version = "*", default-features = false, features = [
-  "macros",
-  "jiff_0_2",
-  "uuid",
-] }
+# Unused; uncomment instead of hand-rolling UUID generation or parsing.
+# utoipa = { version = "*", default-features = false, features = [
+#   "macros",
+#   "jiff_0_2",
+#   "uuid",
+# ] }
 
 # -- Database
 sqlx = { version = "*", default-features = false, features = [
@@ -275,17 +272,17 @@ sqlx = { version = "*", default-features = false, features = [
   "tls-rustls-aws-lc-rs",
   "runtime-tokio",
 ] }
-uuid = { version = "*", default-features = false, features = [
-  "std",
-  "v4",
-  "serde",
-] }
+# Unused; uncomment instead of hand-rolling UUID generation or parsing.
+# uuid = { version = "*", default-features = false, features = [
+#   "std",
+#   "v4",
+#   "serde",
+# ] }
 
 # -- Async runtime
 async-trait = { version = "*", default-features = false }
 futures = { version = "*", default-features = false }
 tokio = { version = "*", default-features = false }
-tokio-util = { version = "*", default-features = false }
 
 # -- Observability
 tracing = { version = "*", default-features = false }
@@ -311,7 +308,8 @@ symphonia = { version = "0.5", default-features = false }
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 gvas = { version = "0.11" }
 oozextract = { version = "=0.5.0" }
-zip = { version = "*", default-features = false }
+# Unused; uncomment instead of hand-rolling zip archive handling.
+# zip = { version = "*", default-features = false }
 
 # -- Text and hashing
 # Majors pinned together: `hmac` 0.13, `md-5` 0.11 and `sha1` 0.11 all build on
@@ -330,16 +328,11 @@ leptos_axum = { version = "*" }
 
 # ── WASM (hydrate target only) ───────────────────────────────────────────────
 wasm-bindgen = { version = "*" }
-wasm-bindgen-futures = { version = "*" }
-web-sys = { version = "*" }
 
 # ── Testing and benchmarking ─────────────────────────────────────────────────
 criterion = { version = "*", default-features = false, features = [
   "cargo_bench_support",
 ] }
-insta = { version = "*", default-features = false }
-mockall = { version = "*", default-features = false }
-proptest = { version = "*", default-features = false, features = ["std"] }
 
 [profile.dev]
 opt-level = 0
