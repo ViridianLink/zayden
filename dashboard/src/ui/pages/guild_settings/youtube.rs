@@ -126,7 +126,7 @@ fn YoutubePanel(
                         }}
                     </p>
                     <div class="settings-actions">
-                        <a class="btn btn-secondary" href=connect_href>
+                        <a class="btn btn-secondary" href=connect_href rel="external">
                             "Reconnect YouTube"
                         </a>
                         <ActionForm action=disconnect>
@@ -155,7 +155,7 @@ fn YoutubePanel(
                          access to the account afterwards."
                     </p>
                     <div class="settings-actions">
-                        <a class="btn btn-primary" href=connect_href>
+                        <a class="btn btn-primary" href=connect_href rel="external">
                             "Connect YouTube"
                         </a>
                     </div>

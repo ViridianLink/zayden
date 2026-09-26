@@ -143,7 +143,7 @@ fn PatreonPanel(
                         }}
                     </p>
                     <div class="settings-actions">
-                        <a class="btn btn-secondary" href=connect_href>
+                        <a class="btn btn-secondary" href=connect_href rel="external">
                             "Reconnect Patreon"
                         </a>
                         <ActionForm action=disconnect>
@@ -173,7 +173,7 @@ fn PatreonPanel(
                          so nobody else can grant it."
                     </p>
                     <div class="settings-actions">
-                        <a class="btn btn-primary" href=connect_href>
+                        <a class="btn btn-primary" href=connect_href rel="external">
                             "Connect Patreon"
                         </a>
                     </div>
