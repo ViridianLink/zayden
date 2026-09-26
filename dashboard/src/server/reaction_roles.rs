@@ -2,6 +2,7 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     crate::server::auth::{admin_guild_id, db_pool, discord_client, server_err},
+    crate::server::ownership::GuildIds,
     reaction_roles::{
         GenericChannelId,
         GuildId,
@@ -90,6 +91,12 @@ pub async fn add_reaction_role(
     let emoji = ParsedEmoji::parse(&emoji).map_err(server_err)?;
     let reaction = request_reaction(&emoji)?;
 
+    GuildIds::default()
+        .channel(Some(channel.cast_signed()))
+        .role(Some(role.cast_signed()))
+        .ensure_in(guild_id)
+        .await?;
+
     let channel = Id::new_checked(channel).ok_or_else(|| invalid("channel"))?;
 
     let message = if message_id.trim().is_empty() {
@@ -156,7 +163,7 @@ pub async fn remove_reaction_role(
     let parsed = ParsedEmoji::parse(&emoji).map_err(server_err)?;
     let reaction = request_reaction(&parsed)?;
 
-    ReactionRole::delete(
+    let deleted = ReactionRole::delete(
         &pool,
         GuildId::new(guild_id.cast_unsigned()),
         GenericChannelId::new(channel),
@@ -165,6 +172,11 @@ pub async fn remove_reaction_role(
     )
     .await
     .map_err(server_err)?;
+
+    // The channel may be another guild's and its reactions are not ours to clear.
+    if deleted.rows_affected() == 0 {
+        return Ok(());
+    }
 
     let (Some(channel), Some(message)) =
         (Id::new_checked(channel), Id::new_checked(message))

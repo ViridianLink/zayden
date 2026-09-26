@@ -51,6 +51,7 @@ ssr = [
   "dep:sha2",
   "dep:sqlx",
   "dep:suggestions",
+  "dep:thiserror",
   "dep:tokio",
   "dep:ticket",
   "dep:tower-cookies",
@@ -96,6 +97,7 @@ sqlx = { workspace = true, features = [
   "migrate",
 ], optional = true }
 suggestions = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
 ticket = { workspace = true, optional = true }
 tokio = { workspace = true, features = [
   "macros",

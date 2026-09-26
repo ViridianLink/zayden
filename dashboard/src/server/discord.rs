@@ -3,6 +3,7 @@ use leptos::prelude::*;
 use {
     crate::dto::ForumTagInfo,
     crate::server::auth::{admin_guild_id, discord_client, server_err},
+    crate::server::ownership::GuildIds,
     std::sync::Arc,
     twilight_http::Client,
     twilight_model::id::Id,
@@ -51,17 +52,7 @@ pub(crate) async fn ensure_guild_channel(
     guild_id: i64,
     channel_id: i64,
 ) -> Result<(), ServerFnError> {
-    let channel = channel_id.to_string();
-    let http = discord_client()?;
-    let channels = fetch_guild_channels(&http, guild_id.cast_unsigned()).await?;
-
-    if channels.iter().any(|c| c.id == channel) {
-        Ok(())
-    } else {
-        Err(ServerFnError::ServerError(
-            "that channel is not in this server".to_string(),
-        ))
-    }
+    GuildIds::default().channel(Some(channel_id)).ensure_in(guild_id).await
 }
 
 #[cfg(feature = "ssr")]

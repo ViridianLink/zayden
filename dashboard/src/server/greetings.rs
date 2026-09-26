@@ -15,6 +15,7 @@ use {
         store,
         with_channel_allowlist,
     },
+    crate::server::ownership::GuildIds,
     crate::server::tier::guild_server_tier,
     greetings::{
         Cooldowns,
@@ -64,21 +65,20 @@ fn parse_channel(raw: &str) -> Result<Id<ChannelMarker>, ServerFnError> {
 }
 
 #[cfg(feature = "ssr")]
-async fn edit_allowlist<F>(guild: &str, edit: F) -> Result<(), ServerFnError>
+async fn edit_allowlist<F>(ctx: &GuildContext, edit: F) -> Result<(), ServerFnError>
 where
     F: FnOnce(&mut Vec<Id<ChannelMarker>>) -> Result<(), ServerFnError>,
 {
-    let ctx = guild_context(guild).await?;
-    let cmd = command_id(&ctx, COMMAND).await?;
+    let cmd = command_id(ctx, COMMAND).await?;
 
-    let current = fetch(&ctx, cmd).await?;
+    let current = fetch(ctx, cmd).await?;
     let mut allowed = channel_allowlist(ctx.guild_id, &current);
 
     edit(&mut allowed)?;
 
     let updated = with_channel_allowlist(ctx.guild_id, &current, &allowed);
 
-    store(&ctx, cmd, COMMAND, &updated).await
+    store(ctx, cmd, COMMAND, &updated).await
 }
 
 #[cfg(feature = "ssr")]
@@ -246,8 +246,14 @@ pub async fn add_greeting_channel(
     channel_id: String,
 ) -> Result<(), ServerFnError> {
     let channel = parse_channel(&channel_id)?;
+    let ctx = guild_context(&guild).await?;
 
-    edit_allowlist(&guild, |allowed| {
+    GuildIds::default()
+        .channel(Some(channel.get().cast_signed()))
+        .ensure_in(ctx.guild_id.get().cast_signed())
+        .await?;
+
+    edit_allowlist(&ctx, |allowed| {
         if allowed.contains(&channel) {
             return Err(ServerFnError::ServerError(
                 "that channel is already on the list".to_string(),
@@ -274,8 +280,9 @@ pub async fn remove_greeting_channel(
     channel_id: String,
 ) -> Result<(), ServerFnError> {
     let channel = parse_channel(&channel_id)?;
+    let ctx = guild_context(&guild).await?;
 
-    edit_allowlist(&guild, |allowed| {
+    edit_allowlist(&ctx, |allowed| {
         let before = allowed.len();
         allowed.retain(|existing| *existing != channel);
 

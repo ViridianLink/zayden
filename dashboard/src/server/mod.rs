@@ -9,6 +9,8 @@ pub mod kofi;
 pub mod levels;
 pub mod modules;
 pub mod operator;
+#[cfg(feature = "ssr")]
+pub mod ownership;
 pub mod patreon;
 pub mod reaction_roles;
 #[cfg(feature = "ssr")]

@@ -614,11 +614,11 @@ checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
 name = "bungie-api"
-version = "1.0.0"
-source = "git+https://github.com/ViridianLink/bungie-api.git?branch=main#fd4f1f51de805861ad99b14c21cc2329b92546a0"
+version = "2.0.0"
+source = "git+https://github.com/ViridianLink/bungie-api.git?branch=main#0a980c0f2d0107a3a13bfc4eb5a456aa42a97c19"
 dependencies = [
  "bitflags 2.13.2",
- "chrono",
+ "jiff",
  "reqwest 0.13.5",
  "serde",
  "serde_json",
@@ -1340,6 +1340,7 @@ dependencies = [
  "sha2 0.11.0",
  "sqlx",
  "suggestions",
+ "thiserror 2.0.21",
  "ticket",
  "tokio",
  "tower-cookies",

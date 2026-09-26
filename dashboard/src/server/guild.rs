@@ -25,6 +25,7 @@ use {
         server_err,
     },
     crate::server::discord::{fetch_guild_channels, fetch_guild_roles},
+    crate::server::ownership::GuildIds,
     crate::server::patreon::fetch_patreon_status,
     crate::server::youtube::fetch_youtube_status,
     honeypot::{HoneypotConfig, HoneypotSettings},
@@ -465,11 +466,14 @@ pub async fn save_support_settings(
     let (guild_id, app) = admin_app(&guild).await?;
 
     let archive_secs = parse_archive_secs(&solved_archive_secs);
+    let support_channel_id = parse_id(&support_channel_id);
+
+    GuildIds::default().channel(support_channel_id).ensure_in(guild_id).await?;
 
     app.settings
         .support
         .update(guild_id, |p| {
-            p.support_channel_id = parse_id(&support_channel_id);
+            p.support_channel_id = support_channel_id;
             p.solved_tag_id = parse_id(&solved_tag_id);
             p.closed_tag_id = parse_id(&closed_tag_id);
             p.solved_archive_secs = archive_secs;
@@ -543,12 +547,20 @@ pub async fn save_suggestions_settings(
     let (guild_id, app) = admin_app(&guild).await?;
 
     let thresholds = ReviewThresholds::parse(&promote_threshold, &demote_threshold);
+    let suggestions_channel_id = parse_id(&suggestions_channel_id);
+    let review_channel_id = parse_id(&review_channel_id);
+
+    GuildIds::default()
+        .channel(suggestions_channel_id)
+        .channel(review_channel_id)
+        .ensure_in(guild_id)
+        .await?;
 
     app.settings
         .suggestions
         .update(guild_id, |p| {
-            p.suggestions_channel_id = parse_id(&suggestions_channel_id);
-            p.review_channel_id = parse_id(&review_channel_id);
+            p.suggestions_channel_id = suggestions_channel_id;
+            p.review_channel_id = review_channel_id;
             p.promote_threshold = thresholds.promote();
             p.demote_threshold = thresholds.demote();
         })
@@ -588,6 +600,11 @@ pub async fn add_support_role(
     let pool = db_pool()?;
 
     let role = parse_role(&role_id)?;
+
+    GuildIds::default()
+        .role(Some(role.get().cast_signed()))
+        .ensure_in(guild_id)
+        .await?;
 
     let added =
         SupportRoles::add(&pool, GuildId::new(guild_id.cast_unsigned()), role)
@@ -768,12 +785,23 @@ pub async fn save_channel_settings(
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
+    let rules_channel_id = parse_id(&rules_channel_id);
+    let general_channel_id = parse_id(&general_channel_id);
+    let spoiler_channel_id = parse_id(&spoiler_channel_id);
+
+    GuildIds::default()
+        .channel(rules_channel_id)
+        .channel(general_channel_id)
+        .channel(spoiler_channel_id)
+        .ensure_in(guild_id)
+        .await?;
+
     app.settings
         .channels
         .update(guild_id, |p| {
-            p.rules_channel_id = parse_id(&rules_channel_id);
-            p.general_channel_id = parse_id(&general_channel_id);
-            p.spoiler_channel_id = parse_id(&spoiler_channel_id);
+            p.rules_channel_id = rules_channel_id;
+            p.general_channel_id = general_channel_id;
+            p.spoiler_channel_id = spoiler_channel_id;
         })
         .await
         .map(|_| ())
@@ -789,12 +817,23 @@ pub async fn save_role_settings(
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
+    let artist_role_id = parse_id(&artist_role_id);
+    let sleep_role_id = parse_id(&sleep_role_id);
+    let verified_role_id = parse_id(&verified_role_id);
+
+    GuildIds::default()
+        .role(artist_role_id)
+        .role(sleep_role_id)
+        .role(verified_role_id)
+        .ensure_in(guild_id)
+        .await?;
+
     app.settings
         .roles
         .update(guild_id, |p| {
-            p.artist_role_id = parse_id(&artist_role_id);
-            p.sleep_role_id = parse_id(&sleep_role_id);
-            p.verified_role_id = parse_id(&verified_role_id);
+            p.artist_role_id = artist_role_id;
+            p.sleep_role_id = sleep_role_id;
+            p.verified_role_id = verified_role_id;
         })
         .await
         .map(|_| ())
@@ -809,11 +848,20 @@ pub async fn save_temp_voice_settings(
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
+    let category = parse_id(&temp_voice_category);
+    let creator_channel = parse_id(&temp_voice_creator_channel);
+
+    GuildIds::default()
+        .channel(category)
+        .channel(creator_channel)
+        .ensure_in(guild_id)
+        .await?;
+
     app.settings
         .temp_voice
         .update(guild_id, |p| {
-            p.temp_voice_category = parse_id(&temp_voice_category);
-            p.temp_voice_creator_channel = parse_id(&temp_voice_creator_channel);
+            p.temp_voice_category = category;
+            p.temp_voice_creator_channel = creator_channel;
         })
         .await
         .map(|_| ())
@@ -837,6 +885,11 @@ pub async fn create_temp_voice_creator_channel(
             "select a category first".to_string(),
         ));
     };
+
+    GuildIds::default()
+        .channel(Some(category.get().cast_signed()))
+        .ensure_in(guild_id)
+        .await?;
 
     let channel = discord_client()?
         .create_guild_channel(
@@ -894,14 +947,22 @@ pub async fn save_music_settings(
     let auto_disconnect_secs =
         MusicSettingsRow::parse_auto_disconnect_secs(&auto_disconnect_secs);
     let announce_now_playing = announce_now_playing.trim() == "true";
+    let dj_role_id = parse_id(&dj_role_id);
+    let announce_channel_id = parse_id(&announce_channel_id);
+
+    GuildIds::default()
+        .role(dj_role_id)
+        .channel(announce_channel_id)
+        .ensure_in(guild_id)
+        .await?;
 
     app.settings
         .music
         .update(guild_id, |p| {
-            p.dj_role_id = parse_id(&dj_role_id);
+            p.dj_role_id = dj_role_id;
             p.auto_disconnect_secs = auto_disconnect_secs;
             p.announce_now_playing = announce_now_playing;
-            p.announce_channel_id = parse_id(&announce_channel_id);
+            p.announce_channel_id = announce_channel_id;
         })
         .await
         .map(|_| ())
@@ -926,6 +987,12 @@ pub async fn save_honeypot_settings(
     )
     .map_err(server_err)?;
 
+    GuildIds::default()
+        .channel(config.channel_id.map(|id| id.get().cast_signed()))
+        .role(config.exempt_role_id.map(|id| id.get().cast_signed()))
+        .ensure_in(guild_id)
+        .await?;
+
     HoneypotSettings::save(
         &app.settings.honeypot,
         GuildId::new(guild_id.cast_unsigned()),
@@ -947,6 +1014,8 @@ pub async fn save_ai_settings(
     let enabled = enabled.trim() == "true";
     let channel_id = parse_id(&channel_id);
 
+    GuildIds::default().channel(channel_id).ensure_in(guild_id).await?;
+
     app.settings
         .ai
         .update(guild_id, |p| {
@@ -967,12 +1036,23 @@ pub async fn save_lfg_settings(
 ) -> Result<(), ServerFnError> {
     let (guild_id, app) = admin_app(&guild).await?;
 
+    let channel_id = parse_id(&lfg_channel_id);
+    let role_id = parse_id(&lfg_role_id);
+    let scheduled_thread_id = parse_id(&lfg_scheduled_thread_id);
+
+    GuildIds::default()
+        .channel(channel_id)
+        .role(role_id)
+        .thread(scheduled_thread_id)
+        .ensure_in(guild_id)
+        .await?;
+
     app.settings
         .lfg
         .update(guild_id, |p| {
-            p.lfg_channel_id = parse_id(&lfg_channel_id);
-            p.lfg_role_id = parse_id(&lfg_role_id);
-            p.lfg_scheduled_thread_id = parse_id(&lfg_scheduled_thread_id);
+            p.lfg_channel_id = channel_id;
+            p.lfg_role_id = role_id;
+            p.lfg_scheduled_thread_id = scheduled_thread_id;
         })
         .await
         .map(|_| ())
