@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serenity::all::{
+    ApplicationId,
     CommandId,
     CommandPermissionType,
     CreateCommand,
@@ -15,6 +16,7 @@ use tokio::sync::broadcast::error::RecvError;
 use tokio::time::sleep;
 use tracing::{error, warn};
 use zayden_app::events::AppEvent;
+use zayden_app::guilds::GuildPresence;
 use zayden_app::modules::ModuleStates;
 use zayden_app::state::AppState;
 use zayden_core::is_transient;
@@ -133,8 +135,20 @@ async fn resync(
     http: &Http,
     app: &AppState,
     registry: &CommandRegistry,
+    application_id: ApplicationId,
     guild_id: GuildId,
 ) -> Result<()> {
+    let present = GuildPresence::is_present(
+        &app.db,
+        guild_id.get().cast_signed(),
+        application_id.get().cast_signed(),
+    )
+    .await?;
+
+    if !present {
+        return Ok(());
+    }
+
     let states = app.modules.refresh(guild_id.get().cast_signed()).await?;
     sync_commands(http, registry, guild_id, &states).await?;
     Ok(())
@@ -144,6 +158,7 @@ pub fn spawn_listener(
     http: Arc<Http>,
     app: Arc<AppState>,
     registry: Arc<CommandRegistry>,
+    application_id: ApplicationId,
 ) {
     tokio::spawn(async move {
         let mut rx = app.subscribe();
@@ -157,7 +172,10 @@ pub fn spawn_listener(
 
                     let guild_id = GuildId::new(guild_id);
 
-                    if let Err(e) = resync(&http, &app, &registry, guild_id).await {
+                    if let Err(e) =
+                        resync(&http, &app, &registry, application_id, guild_id)
+                            .await
+                    {
                         error!(
                             error = ?e,
                             %guild_id,

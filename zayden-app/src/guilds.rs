@@ -58,6 +58,23 @@ impl GuildPresence {
         Ok(())
     }
 
+    pub async fn is_present(
+        pool: &PgPool,
+        guild_id: i64,
+        application_id: i64,
+    ) -> sqlx::Result<bool> {
+        sqlx::query_scalar!(
+            r#"SELECT EXISTS (
+                   SELECT 1 FROM guild_presence
+                   WHERE guild_id = $1 AND application_id = $2 AND left_at IS NULL
+               ) AS "present!""#,
+            guild_id,
+            application_id
+        )
+        .fetch_one(pool)
+        .await
+    }
+
     pub async fn reconcile(
         pool: &PgPool,
         application_id: i64,

@@ -81,6 +81,7 @@ impl Handler {
             Arc::clone(&ctx.http),
             Arc::clone(&self.app),
             Arc::clone(&self.registry),
+            ready.application.id,
         );
 
         let http = Arc::clone(&ctx.http);
