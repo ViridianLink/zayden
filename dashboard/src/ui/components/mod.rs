@@ -2,6 +2,7 @@ pub mod confirm;
 pub mod guild_grid;
 pub mod icons;
 pub mod layout;
+pub mod legal;
 pub mod module_card;
 pub mod public_layout;
 pub mod select;

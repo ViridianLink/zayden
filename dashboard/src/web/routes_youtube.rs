@@ -210,8 +210,13 @@ pub(super) async fn youtube_callback_handler(
     };
 
     if let Some(previous) = previous {
-        dashboard::server::youtube::release_subscription(&app, &runtime, &previous)
-            .await;
+        youtube::release_channel(
+            &app.http,
+            &app.db,
+            Some(&runtime.webhook_uri),
+            &previous,
+        )
+        .await;
     }
 
     // Best-effort: without push, uploads still arrive on the 15-minute poll.

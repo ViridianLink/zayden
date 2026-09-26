@@ -40,6 +40,24 @@ impl PatreonCampaignRow {
         Ok(row)
     }
 
+    pub async fn forget(pool: &PgPool, campaign_id: &str) -> Result<bool> {
+        let deleted = sqlx::query!(
+            r#"
+            DELETE FROM patreon_campaigns c
+            WHERE c.campaign_id = $1
+              AND NOT EXISTS (
+                  SELECT 1 FROM patreon_oauth o WHERE o.campaign_id = c.campaign_id
+              )
+            "#,
+            campaign_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(deleted > 0)
+    }
+
     pub async fn ensure(pool: &PgPool, campaign_id: &str) -> Result<()> {
         sqlx::query!(
             "INSERT INTO patreon_campaigns (campaign_id) VALUES ($1)
@@ -295,14 +313,15 @@ impl PatreonConnection {
         Ok(())
     }
 
-    pub async fn delete(pool: &PgPool, guild_id: i64) -> Result<bool> {
-        let deleted =
-            sqlx::query!("DELETE FROM patreon_oauth WHERE guild_id = $1", guild_id)
-                .execute(pool)
-                .await?
-                .rows_affected();
+    pub async fn delete(pool: &PgPool, guild_id: i64) -> Result<Option<String>> {
+        let campaign_id = sqlx::query_scalar!(
+            "DELETE FROM patreon_oauth WHERE guild_id = $1 RETURNING campaign_id",
+            guild_id
+        )
+        .fetch_optional(pool)
+        .await?;
 
-        Ok(deleted > 0)
+        Ok(campaign_id)
     }
 }
 

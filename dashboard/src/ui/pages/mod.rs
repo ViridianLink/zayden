@@ -7,5 +7,7 @@ pub mod login;
 pub mod modules;
 pub mod not_found;
 pub mod operator_servers;
+pub mod privacy;
 pub mod reaction_roles;
+pub mod terms;
 pub mod upgrade;

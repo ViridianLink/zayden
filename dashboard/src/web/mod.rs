@@ -17,7 +17,6 @@ use crate::state::{SessionState, WebState};
 
 pub(crate) fn routes(state: &WebState) -> Router<WebState> {
     let protected = Router::new()
-        .route("/kofi/link", post(routes_kofi::kofi_link_handler))
         .route("/patreon/connect", get(routes_patreon::patreon_connect_handler))
         .route("/patreon/callback", get(routes_patreon::patreon_callback_handler))
         .route("/youtube/connect", get(routes_youtube::youtube_connect_handler))

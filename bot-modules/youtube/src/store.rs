@@ -155,6 +155,41 @@ impl YoutubeChannelRow {
 
         Ok(())
     }
+
+    pub async fn forget_videos(pool: &PgPool, channel_id: &str) -> Result<u64> {
+        let mut tx = pool.begin().await?;
+
+        let unseeded = sqlx::query!(
+            r#"
+            UPDATE youtube_channels c
+            SET seeded_at = NULL
+            WHERE c.channel_id = $1
+              AND NOT EXISTS (
+                  SELECT 1 FROM youtube_connections o WHERE o.channel_id = c.channel_id
+              )
+            "#,
+            channel_id
+        )
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+
+        if unseeded == 0 {
+            return Ok(0);
+        }
+
+        let deleted = sqlx::query!(
+            "DELETE FROM youtube_videos WHERE channel_id = $1",
+            channel_id
+        )
+        .execute(&mut *tx)
+        .await?
+        .rows_affected();
+
+        tx.commit().await?;
+
+        Ok(deleted)
+    }
 }
 
 #[derive(Debug, Clone)]

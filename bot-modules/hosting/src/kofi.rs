@@ -40,7 +40,6 @@ pub async fn settle(
     let first_seen = store::insert_payment(pool, &store::NewPayment {
         kofi_message_id: payment.message_id,
         server_id: None,
-        email: None,
         tier_name: payment.tier_name,
         amount_cents: amount,
         currency: payment.currency,

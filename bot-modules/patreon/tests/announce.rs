@@ -234,12 +234,50 @@ async fn disable_reports_whether_anything_was_removed(pool: PgPool) {
 /// once: no poll, no webhook, no announcement.
 #[sqlx::test(migrations = "../../migrations", fixtures("patreon"))]
 async fn deleting_a_connection_unsubscribes_the_guild(pool: PgPool) {
-    assert!(PatreonConnection::delete(&pool, 2).await.unwrap());
+    assert_eq!(
+        PatreonConnection::delete(&pool, 2).await.unwrap().as_deref(),
+        Some("100")
+    );
 
     let recipients = PatreonAnnounceRow::for_post(&pool, "100", true).await.unwrap();
     assert_eq!(recipients.iter().map(|row| row.guild_id).collect::<Vec<_>>(), [1]);
 
     assert_eq!(webhook_secrets(&pool, "100").await.unwrap(), ["secret-1"]);
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("patreon"))]
+async fn a_campaign_with_a_connection_is_not_forgotten(pool: PgPool) {
+    PatreonConnection::delete(&pool, 2).await.unwrap();
+
+    assert!(!PatreonCampaignRow::forget(&pool, "100").await.unwrap());
+    assert_eq!(post_count(&pool, "100").await, 3);
+}
+
+/// The cached posts only exist to be announced, so they go with the last
+/// connection; the guild's announcement settings stay.
+#[sqlx::test(migrations = "../../migrations", fixtures("patreon"))]
+async fn the_last_disconnect_forgets_the_campaign_and_its_posts(pool: PgPool) {
+    PatreonConnection::delete(&pool, 1).await.unwrap();
+    PatreonConnection::delete(&pool, 2).await.unwrap();
+
+    assert!(PatreonCampaignRow::forget(&pool, "100").await.unwrap());
+    assert!(PatreonCampaignRow::select(&pool, "100").await.unwrap().is_none());
+    assert_eq!(post_count(&pool, "100").await, 0);
+    assert!(PatreonAnnounceRow::select(&pool, 1).await.unwrap().is_some());
+}
+
+#[expect(
+    clippy::expect_used,
+    reason = "a free helper sits outside the #[test] items clippy.toml exempts"
+)]
+async fn post_count(pool: &PgPool, campaign_id: &str) -> i64 {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM patreon_posts WHERE campaign_id = $1"#,
+        campaign_id
+    )
+    .fetch_one(pool)
+    .await
+    .expect("the post count runs")
 }
 
 #[expect(

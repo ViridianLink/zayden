@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE guild_presence SET left_at = now() - make_interval(days => $2)\n         WHERE guild_id = $1 AND left_at IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cd84532ab2dc462107244597e6ea2b25f3553049ed069647c0a3fc1212b7400f"
+}

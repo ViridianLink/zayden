@@ -3,6 +3,7 @@ use leptos_meta::Title;
 use leptos_router::components::Redirect;
 
 use crate::server::auth::check_session;
+use crate::ui::components::legal::LegalLinks;
 
 #[component]
 pub(crate) fn LoginPage() -> impl IntoView {
@@ -41,6 +42,7 @@ fn LoginCard() -> impl IntoView {
                     "Sign in with Discord"
                 </a>
             </div>
+            <LegalLinks/>
         </div>
     }
 }

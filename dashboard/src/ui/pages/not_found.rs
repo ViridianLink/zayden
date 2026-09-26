@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use leptos_meta::Title;
 
+use crate::ui::components::legal::LegalLinks;
+
 #[component]
 pub(crate) fn NotFound() -> impl IntoView {
     view! {
@@ -16,6 +18,7 @@ pub(crate) fn NotFound() -> impl IntoView {
                 <p>"We couldn't find that page."</p>
                 <a href="/" class="btn btn-primary btn-lg">"Back home"</a>
             </div>
+            <LegalLinks/>
         </div>
     }
 }

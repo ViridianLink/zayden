@@ -12,6 +12,7 @@ use tracing::info;
 pub mod bindings;
 pub mod cron;
 mod error;
+pub mod guild_retention;
 mod handler;
 pub mod module_sync;
 pub mod patreon_webhook;

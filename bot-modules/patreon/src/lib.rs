@@ -6,6 +6,7 @@ pub mod embeds;
 pub mod error;
 pub mod model;
 pub mod oauth;
+pub mod release;
 pub mod store;
 pub mod thumbnail;
 pub mod webhook;
@@ -15,6 +16,7 @@ pub use cron::PatreonPollCron;
 pub use error::{PatreonError, Result};
 pub use model::PatreonPost;
 pub use oauth::{PatreonApp, TokenPair};
+pub use release::{forget_campaign, release};
 pub use store::{
     PatreonAnnounceRow,
     PatreonCampaignRow,

@@ -355,7 +355,6 @@ pub async fn record_payment(
 pub struct NewPayment<'a> {
     pub kofi_message_id: &'a str,
     pub server_id: Option<i64>,
-    pub email: Option<&'a str>,
     pub tier_name: Option<&'a str>,
     pub amount_cents: i32,
     pub currency: &'a str,
@@ -368,13 +367,12 @@ pub async fn insert_payment(
 ) -> Result<bool> {
     let inserted = sqlx::query!(
         "INSERT INTO hosting_payments ( \
-            kofi_message_id, server_id, kofi_email, tier_name, amount_cents, \
-            currency, matched_by \
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7) \
+            kofi_message_id, server_id, tier_name, amount_cents, currency, \
+            matched_by \
+         ) VALUES ($1, $2, $3, $4, $5, $6) \
          ON CONFLICT (kofi_message_id) DO NOTHING",
         payment.kofi_message_id,
         payment.server_id,
-        payment.email,
         payment.tier_name,
         payment.amount_cents,
         payment.currency,

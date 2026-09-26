@@ -293,13 +293,15 @@
 }
 
 .footer-inner {
+  flex-wrap: wrap;
   color: var(--text-tertiary);
   font-size: 13px;
 }
 
 .footer-links {
   display: flex;
-  gap: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
 }
 
 .footer-links a {

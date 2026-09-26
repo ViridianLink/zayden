@@ -3,6 +3,7 @@ use leptos_router::components::{A, Outlet};
 use leptos_router::hooks::{use_location, use_params_map};
 
 use super::icons::Icon;
+use super::legal::LegalLinks;
 use super::server_switcher::ServerSwitcher;
 use super::skeleton::Skeleton;
 use super::tier_badge::TierBadge;
@@ -127,6 +128,7 @@ fn GuildSidebar(guild_id: Signal<String>) -> impl IntoView {
             <SidebarLink href="/guilds".to_string() icon="server" label="All servers" exact=true/>
             <OperatorLink/>
             <SidebarLink href="/upgrade".to_string() icon="zap" label="Upgrade to Pro"/>
+            <LegalLinks/>
         </aside>
     }
 }
@@ -250,6 +252,7 @@ fn TopSidebar() -> impl IntoView {
             <SidebarLink href="/guilds".to_string() icon="server" label="Servers" exact=true/>
             <OperatorLink/>
             <SidebarLink href="/upgrade".to_string() icon="zap" label="Upgrade to Pro"/>
+            <LegalLinks/>
         </aside>
     }
 }

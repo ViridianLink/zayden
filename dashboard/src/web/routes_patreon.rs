@@ -197,6 +197,13 @@ pub(super) async fn patreon_callback_handler(
         },
     };
 
+    let previous_campaign = PatreonConnection::select(&app.db, context.guild_id)
+        .await
+        .ok()
+        .flatten()
+        .map(|c| c.campaign_id)
+        .filter(|previous| *previous != campaign_id);
+
     let previous = previous_webhook(
         &app,
         &patreon_app,
@@ -226,6 +233,10 @@ pub(super) async fn patreon_callback_handler(
     // deliveries, so leaving it registered only produces rejected requests.
     if let Some((webhook_id, token)) = previous {
         patreon::webhook::unregister(&app.http, &token, &webhook_id).await;
+    }
+
+    if let Some(previous) = previous_campaign {
+        patreon::forget_campaign(&app.db, &previous).await;
     }
 
     redirect(&settings_url(guild, PatreonOutcome::Connected))

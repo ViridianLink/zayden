@@ -212,3 +212,54 @@ async fn a_confirmed_lease_is_recorded_and_can_be_cleared(pool: PgPool) {
         !YoutubeConnection::select(&pool, 5).await.unwrap().unwrap().lease_active
     );
 }
+
+#[sqlx::test(migrations = "../../migrations", fixtures("youtube"))]
+async fn a_connected_channel_keeps_its_videos(pool: PgPool) {
+    YoutubeConnection::delete(&pool, 1).await.unwrap();
+
+    assert_eq!(
+        YoutubeChannelRow::forget_videos(&pool, "UCshared").await.unwrap(),
+        0
+    );
+    assert_eq!(video_count(&pool, "UCshared").await, 3);
+    assert!(
+        YoutubeChannelRow::select(&pool, "UCshared")
+            .await
+            .unwrap()
+            .unwrap()
+            .is_seeded()
+    );
+}
+
+/// The channel record survives so a reconnect keeps its hub secret, but it is
+/// unseeded: the next poll absorbs the back catalogue rather than announcing it.
+#[sqlx::test(migrations = "../../migrations", fixtures("youtube"))]
+async fn the_last_disconnect_forgets_videos_but_keeps_the_channel(pool: PgPool) {
+    YoutubeConnection::delete(&pool, 1).await.unwrap();
+    YoutubeConnection::delete(&pool, 2).await.unwrap();
+
+    assert_eq!(
+        YoutubeChannelRow::forget_videos(&pool, "UCshared").await.unwrap(),
+        3
+    );
+    assert_eq!(video_count(&pool, "UCshared").await, 0);
+
+    let channel =
+        YoutubeChannelRow::select(&pool, "UCshared").await.unwrap().unwrap();
+    assert!(!channel.is_seeded());
+    assert_eq!(channel.websub_secret, "secret-shared");
+}
+
+#[expect(
+    clippy::expect_used,
+    reason = "a free helper sits outside the #[test] items clippy.toml exempts"
+)]
+async fn video_count(pool: &PgPool, channel_id: &str) -> i64 {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!" FROM youtube_videos WHERE channel_id = $1"#,
+        channel_id
+    )
+    .fetch_one(pool)
+    .await
+    .expect("the video count runs")
+}

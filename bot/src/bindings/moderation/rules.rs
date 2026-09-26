@@ -255,6 +255,13 @@ async fn config(
     };
 
     sqlx::query!(
+        "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+        as_i64(guild_id.get()),
+    )
+    .execute(pool)
+    .await?;
+
+    sqlx::query!(
         "INSERT INTO guild_rules (guild_id, channel_id, title, description, colour)
          VALUES ($1, $2, COALESCE($3, $6), $4, COALESCE($5::integer, $7::integer))
          ON CONFLICT (guild_id) DO UPDATE SET
@@ -290,6 +297,13 @@ async fn add(
     let guild_id = as_i64(guild_id.get());
 
     let mut tx = pool.begin().await?;
+
+    sqlx::query!(
+        "INSERT INTO guilds (id) VALUES ($1) ON CONFLICT (id) DO NOTHING",
+        guild_id,
+    )
+    .execute(&mut *tx)
+    .await?;
 
     sqlx::query!(
         "INSERT INTO guild_rules (guild_id) VALUES ($1) ON CONFLICT DO NOTHING",

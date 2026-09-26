@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM guilds g\n             WHERE g.id = $1\n               AND EXISTS (SELECT 1 FROM guild_presence p WHERE p.guild_id = g.id)\n               AND NOT EXISTS (\n                   SELECT 1 FROM guild_presence p\n                   WHERE p.guild_id = g.id\n                     AND (p.left_at IS NULL\n                          OR p.left_at > now() - make_interval(days => $2))\n               )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "af0ea969dd37f0ca40c115dd0ccb0b8e5388193368a8b04238f50a80ff8df989"
+}

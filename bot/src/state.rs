@@ -42,6 +42,7 @@ use zayden_core::cache::GuildMembersCache;
 use zayden_core::{CronJob, CronJobData, EmojiCache, EmojiCacheData};
 
 use crate::cron::EntitlementSweepCron;
+use crate::guild_retention::GuildRetentionCron;
 use crate::{Result, ZAYDEN_TOKEN, zayden_token};
 
 pub struct BotState {
@@ -256,6 +257,7 @@ impl BotState {
             PalworldSaveRefreshCron::cron_job(Arc::clone(&self.palworld)),
             PalworldWarmCron::cron_job(Arc::clone(&self.palworld)),
             EntitlementSweepCron::cron_job(),
+            GuildRetentionCron::cron_job(),
             SupportIdleCron::cron_job(),
             SupportIdleCloseCron::cron_job(),
             SupportIdleStaleCron::cron_job(),

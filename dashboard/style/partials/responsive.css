@@ -35,7 +35,17 @@
 }
 
 @media (max-width: 640px) {
-    .public-user-name {
+    .public-nav {
+        padding: 0 var(--space-4);
+    }
+
+    .public-nav-links {
+        gap: var(--space-3);
+    }
+
+    .public-user-name,
+    .public-nav-extra,
+    .public-nav-label {
         display: none;
     }
 }

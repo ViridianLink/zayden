@@ -13,7 +13,9 @@ use crate::ui::pages::login::LoginPage;
 use crate::ui::pages::modules::GuildOverviewPage;
 use crate::ui::pages::not_found::NotFound;
 use crate::ui::pages::operator_servers::OperatorServersPage;
+use crate::ui::pages::privacy::PrivacyPage;
 use crate::ui::pages::reaction_roles::ReactionRolesPage;
+use crate::ui::pages::terms::TermsPage;
 use crate::ui::pages::upgrade::UpgradePage;
 
 #[derive(Clone)]
@@ -56,6 +58,8 @@ pub fn App() -> impl IntoView {
                 <Route path=path!("/") view=LandingPage/>
                 <Route path=path!("/login") view=LoginPage/>
                 <Route path=path!("/upgrade") view=UpgradePage/>
+                <Route path=path!("/privacy") view=PrivacyPage/>
+                <Route path=path!("/terms") view=TermsPage/>
                 <Route path=path!("/guilds") view=GuildListPage/>
                 <ParentRoute path=path!("/guild/:id") view=GuildShell>
                     <Route path=path!("") view=GuildOverviewPage/>

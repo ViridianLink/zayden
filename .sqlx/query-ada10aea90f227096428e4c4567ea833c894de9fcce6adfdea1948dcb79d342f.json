@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM patreon_campaigns c\n            WHERE c.campaign_id = $1\n              AND NOT EXISTS (\n                  SELECT 1 FROM patreon_oauth o WHERE o.campaign_id = c.campaign_id\n              )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ada10aea90f227096428e4c4567ea833c894de9fcce6adfdea1948dcb79d342f"
+}

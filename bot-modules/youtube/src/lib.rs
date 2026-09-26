@@ -5,6 +5,7 @@ pub mod error;
 pub mod model;
 pub mod oauth;
 pub mod poll;
+pub mod release;
 pub mod runtime;
 pub mod store;
 pub mod websub;
@@ -14,6 +15,7 @@ pub use cron::{YoutubeLeaseCron, YoutubePollCron};
 pub use error::{Result, YoutubeError};
 pub use model::YoutubeVideo;
 pub use oauth::YoutubeApp;
+pub use release::release_channel;
 pub use runtime::YoutubeRuntime;
 pub use store::{
     PendingVideo,

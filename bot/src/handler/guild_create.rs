@@ -3,7 +3,9 @@ use std::sync::Arc;
 use serenity::all::{Context, Guild};
 use sqlx::PgPool;
 use tokio::sync::RwLock;
-use tracing::info;
+use tracing::{info, warn};
+use zayden_app::guilds::GuildPresence;
+use zayden_core::as_i64;
 
 use super::Handler;
 use crate::{BotState, Result, module_sync};
@@ -15,6 +17,24 @@ impl Handler {
         guild: &Guild,
         pool: &PgPool,
     ) -> Result<()> {
+        // Re-adding the bot within the retention window cancels the purge.
+        match ctx.http.application_id() {
+            Some(application_id) => {
+                if let Err(e) = GuildPresence::joined(
+                    pool,
+                    as_i64(guild.id.get()),
+                    as_i64(application_id.get()),
+                )
+                .await
+                {
+                    warn!(error = ?e, guild_id = %guild.id, "failed to record guild presence");
+                }
+            },
+            None => {
+                warn!(guild_id = %guild.id, "guild seen before the application id");
+            },
+        }
+
         let data = ctx.data::<RwLock<BotState>>();
 
         // Party provisioning and cleanup are lost with the in-memory cron jobs,

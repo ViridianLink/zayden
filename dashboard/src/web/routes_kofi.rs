@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use axum::Form;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::{Extension, Form, Json};
+use axum::response::IntoResponse;
 use dashboard::util;
 use hosting::kofi::{Payment, Settlement};
 use hosting::{kofi, pricing};
@@ -21,7 +21,6 @@ use zayden_app::entitlement::{
 };
 use zayden_app::state::AppState as ZaydenAppState;
 
-use crate::middleware::auth::AuthUser;
 use crate::state::IntegrationsState;
 
 #[derive(Deserialize)]
@@ -154,45 +153,6 @@ async fn settle_hosting(
                 transaction_id = %payload.kofi_transaction_id,
                 "hosting: failed to record payment"
             );
-        },
-    }
-}
-
-#[derive(Deserialize)]
-pub(super) struct KoFiLinkBody {
-    email: String,
-}
-
-pub(super) async fn kofi_link_handler(
-    Extension(user): Extension<AuthUser>,
-    State(app): State<Arc<ZaydenAppState>>,
-    Json(body): Json<KoFiLinkBody>,
-) -> Response {
-    let email_hash = util::email_hash(&body.email);
-
-    let Ok(discord_user_id) = user.id.parse::<i64>() else {
-        return StatusCode::BAD_REQUEST.into_response();
-    };
-
-    match sqlx::query!(
-        "INSERT INTO kofi_links (email_hash, discord_user_id) VALUES ($1, $2)", &email_hash, discord_user_id
-    )
-    .execute(&app.db)
-    .await
-    {
-        Ok(_) => StatusCode::CREATED.into_response(),
-        Err(sqlx::Error::Database(e))
-            if e.constraint() == Some("kofi_links_email_hash_key") =>
-        {
-            (
-                StatusCode::CONFLICT,
-                Json(serde_json::json!({"error": "This Ko-fi email is already linked to another account"})),
-            )
-                .into_response()
-        },
-        Err(e) => {
-            warn!(?e, "failed to insert kofi_links row");
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
         },
     }
 }

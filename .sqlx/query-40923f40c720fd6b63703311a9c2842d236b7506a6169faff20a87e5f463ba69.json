@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM patreon_oauth WHERE guild_id = $1",
+  "query": "INSERT INTO guild_rules (guild_id) VALUES ($1)",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "f9a1900470dd5484ad7eb9b7ba5b0362f27b6cf6ce128b63f36567c1085844e0"
+  "hash": "40923f40c720fd6b63703311a9c2842d236b7506a6169faff20a87e5f463ba69"
 }

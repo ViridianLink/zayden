@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT g.id\n             FROM guilds g\n             WHERE EXISTS (SELECT 1 FROM guild_presence p WHERE p.guild_id = g.id)\n               AND NOT EXISTS (\n                   SELECT 1 FROM guild_presence p\n                   WHERE p.guild_id = g.id\n                     AND (p.left_at IS NULL\n                          OR p.left_at > now() - make_interval(days => $1))\n               )\n             ORDER BY g.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "guilds",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3133f3896dec63190545d73965204ba382f2dee3545052363bcff622fbdd6ea3"
+}

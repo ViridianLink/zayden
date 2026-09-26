@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_presence (guild_id, application_id, left_at)\n             SELECT g.id, $1, now()\n             FROM guilds g\n             WHERE (g.id >> 22) % $2 = $3 AND g.id <> ALL($4)\n             ON CONFLICT (guild_id, application_id) DO UPDATE\n             SET left_at = COALESCE(guild_presence.left_at, now())\n             WHERE guild_presence.left_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e952ef216fe97a2ef475cebdeb5f964131c96056f3dcc0904a43f76e9190c94a"
+}

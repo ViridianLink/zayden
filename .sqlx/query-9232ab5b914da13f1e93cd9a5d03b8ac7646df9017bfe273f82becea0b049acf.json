@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE youtube_channels c\n            SET seeded_at = NULL\n            WHERE c.channel_id = $1\n              AND NOT EXISTS (\n                  SELECT 1 FROM youtube_connections o WHERE o.channel_id = c.channel_id\n              )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9232ab5b914da13f1e93cd9a5d03b8ac7646df9017bfe273f82becea0b049acf"
+}

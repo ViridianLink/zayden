@@ -28,8 +28,8 @@ fn PublicNav() -> AnyView {
                     "Zayden"
                 </a>
                 <nav class="public-nav-links">
-                    <a href="#features">"Features"</a>
-                    <a href="/upgrade">"Pricing"</a>
+                    <a href="/#features" rel="external" class="public-nav-extra">"Features"</a>
+                    <a href="/upgrade" class="public-nav-extra">"Pricing"</a>
                     <Suspense fallback=|| view! { <Skeleton class="skeleton-btn"/> }>
                         {move || {
                             session_user.get().and_then(Result::ok).map(|user| {
@@ -42,9 +42,9 @@ fn PublicNav() -> AnyView {
                             })
                         }}
                     </Suspense>
-                    <a href="/invite" rel="external" class="btn btn-primary">
+                    <a href="/invite" rel="external" class="btn btn-primary" aria-label="Add to Discord">
                         <Icon name="plus"/>
-                        "Add to Discord"
+                        <span class="public-nav-label">"Add to Discord"</span>
                     </a>
                 </nav>
             </div>
@@ -69,9 +69,9 @@ fn PublicUser(user: SessionUser) -> impl IntoView {
             {avatar}
             <span class="public-user-name">{user.name}</span>
         </span>
-        <a href="/guilds" class="btn btn-secondary">
+        <a href="/guilds" class="btn btn-secondary" aria-label="My Servers">
             <Icon name="server"/>
-            "My Servers"
+            <span class="public-nav-label">"My Servers"</span>
         </a>
     }
 }
@@ -86,6 +86,8 @@ pub(crate) fn Footer() -> AnyView {
                     <a href="/invite" rel="external">"Invite"</a>
                     <a href="/upgrade">"Pricing"</a>
                     <a href="/auth/discord" rel="external">"Dashboard"</a>
+                    <a href="/privacy">"Privacy Policy"</a>
+                    <a href="/terms">"Terms of Service"</a>
                 </div>
             </div>
         </footer>

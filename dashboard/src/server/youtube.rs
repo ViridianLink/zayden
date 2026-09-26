@@ -4,13 +4,7 @@ use {
     crate::server::auth::server_err,
     crate::server::discord::ensure_guild_channel,
     crate::server::guild::admin_app,
-    youtube::websub::{self, Mode},
-    youtube::{
-        YoutubeAnnounceRow,
-        YoutubeChannelRow,
-        YoutubeConnection,
-        YoutubeRuntime,
-    },
+    youtube::{YoutubeAnnounceRow, YoutubeConnection, YoutubeRuntime},
     zayden_app::state::AppState,
 };
 
@@ -77,46 +71,14 @@ pub async fn disconnect_youtube(guild: String) -> Result<(), ServerFnError> {
         return Ok(());
     };
 
-    // Best effort: the hub subscription is shared by every guild on the
-    // channel, so it only goes once the last of them has left.
-    if let Some(runtime) = use_context::<YoutubeRuntime>() {
-        release_subscription(&app, &runtime, &channel_id).await;
-    }
+    let runtime = use_context::<YoutubeRuntime>();
+    youtube::release_channel(
+        &app.http,
+        &app.db,
+        runtime.as_ref().map(|r| &*r.webhook_uri),
+        &channel_id,
+    )
+    .await;
 
     Ok(())
-}
-
-#[cfg(feature = "ssr")]
-pub async fn release_subscription(
-    app: &AppState,
-    runtime: &YoutubeRuntime,
-    channel_id: &str,
-) {
-    if !matches!(
-        YoutubeConnection::channel_has_connections(&app.db, channel_id).await,
-        Ok(false)
-    ) {
-        return;
-    }
-
-    let Ok(Some(channel)) = YoutubeChannelRow::select(&app.db, channel_id).await
-    else {
-        return;
-    };
-
-    if let Err(e) = websub::request(
-        &app.http,
-        Mode::Unsubscribe,
-        &runtime.webhook_uri,
-        channel_id,
-        &channel.websub_secret,
-    )
-    .await
-    {
-        tracing::warn!(?e, channel_id, "failed to unsubscribe from YouTube uploads");
-    }
-
-    if let Err(e) = YoutubeChannelRow::clear_lease(&app.db, channel_id).await {
-        tracing::warn!(?e, channel_id, "failed to clear the YouTube lease");
-    }
 }

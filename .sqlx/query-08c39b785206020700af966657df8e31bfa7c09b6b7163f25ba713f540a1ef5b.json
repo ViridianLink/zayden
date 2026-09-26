@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT left_at IS NOT NULL AS \"left!\" FROM guild_presence\n           WHERE guild_id = $1 AND application_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "left!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "08c39b785206020700af966657df8e31bfa7c09b6b7163f25ba713f540a1ef5b"
+}

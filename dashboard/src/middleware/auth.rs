@@ -9,15 +9,10 @@ use tracing::{debug, warn};
 use crate::state::SessionState;
 use crate::web::cookie::SESSION_COOKIE;
 
-#[derive(Clone)]
-pub(crate) struct AuthUser {
-    pub(crate) id: String,
-}
-
 pub(crate) async fn require_auth(
     cookies: Cookies,
     State(session): State<SessionState>,
-    mut req: Request,
+    req: Request,
     next: Next,
 ) -> Response {
     let Some(session_token) =
@@ -39,6 +34,5 @@ pub(crate) async fn require_auth(
         };
 
     debug!(user_id = identity.user_id, "authenticated request");
-    req.extensions_mut().insert(AuthUser { id: identity.user_id.to_string() });
     next.run(req).await
 }

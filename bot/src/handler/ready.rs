@@ -2,7 +2,9 @@ use std::num::NonZeroU16;
 use std::sync::Arc;
 
 use serenity::all::{Context, OnlineStatus, Ready};
-use tracing::info;
+use tracing::{info, warn};
+use zayden_app::guilds::{GuildPresence, Shard};
+use zayden_core::as_i64;
 
 use crate::bindings::ai::Ai;
 use crate::cron::start_cron_jobs;
@@ -26,12 +28,40 @@ impl Handler {
 
         let pool = self.app.db.clone();
         BotState::ready(ctx, ready, &pool, self.app.zayden_id).await?;
+        Self::reconcile_presence(ready, &pool).await;
 
         if self.cron_started.set(()).is_ok() {
             self.background_tasks(ctx, ready).await;
         }
 
         Ok(())
+    }
+
+    async fn reconcile_presence(ready: &Ready, pool: &sqlx::PgPool) {
+        let shard = ready.shard.map_or(Shard { id: 0, total: 1 }, |info| Shard {
+            id: info.id.0,
+            total: info.total.get(),
+        });
+        let present = ready
+            .guilds
+            .iter()
+            .map(|guild| as_i64(guild.id.get()))
+            .collect::<Vec<_>>();
+
+        match GuildPresence::reconcile(
+            pool,
+            as_i64(ready.application.id.get()),
+            shard,
+            &present,
+        )
+        .await
+        {
+            Ok(0) => {},
+            Ok(marked) => {
+                info!(marked, "guilds removed while offline enter retention");
+            },
+            Err(e) => warn!(error = ?e, "failed to reconcile guild presence"),
+        }
     }
 
     async fn background_tasks(&self, ctx: &Context, ready: &Ready) {
