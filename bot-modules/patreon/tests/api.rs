@@ -8,7 +8,8 @@
 
 use std::fs;
 
-use patreon::api::parse_posts_page;
+use patreon::api::{parse_campaign, parse_posts_page, truncate_log};
+use patreon::error::PatreonError;
 use serde_json::Value;
 
 const CAMPAIGN: &str = "555000";
@@ -45,7 +46,7 @@ fn attributes_are_mapped() {
     let post = page.posts.first().expect("the fixture has a first post");
 
     assert_eq!(post.title.as_deref(), Some("August devlog"));
-    assert_eq!(post.url, "https://www.patreon.com/posts/august-devlog-1001");
+    assert_eq!(post.url, "https://www.patreon.com/creator/posts/august-devlog-1001");
     assert!(post.is_public);
     assert_eq!(post.published_at.to_string(), "2026-08-01T12:00:00Z");
     assert!(
@@ -53,6 +54,18 @@ fn attributes_are_mapped() {
         "{:?}",
         post.content_html
     );
+}
+
+/// The live API returns a site-relative path; an already-absolute URL is kept.
+#[test]
+fn post_urls_are_made_absolute() {
+    let page = parse_posts_page(&load("patreon_posts_page"), CAMPAIGN);
+
+    let urls: Vec<&str> = page.posts.iter().map(|post| post.url.as_str()).collect();
+    assert_eq!(urls, [
+        "https://www.patreon.com/creator/posts/august-devlog-1001",
+        "https://www.patreon.com/posts/1002",
+    ]);
 }
 
 #[test]
@@ -98,4 +111,40 @@ fn an_empty_or_unexpected_body_yields_an_empty_page() {
 
     assert_eq!(page.posts, []);
     assert_eq!(page.next_cursor, None);
+}
+
+/// `creation_name` is the campaign's tagline, so the name comes from the
+/// included creator.
+#[test]
+fn the_campaign_is_named_after_its_creator() {
+    let (id, name) = parse_campaign(&load("patreon_campaign")).unwrap();
+
+    assert_eq!(id, "555000");
+    assert_eq!(name.as_deref(), Some("Creator Name"));
+}
+
+#[test]
+fn a_campaign_without_its_creator_falls_back_to_the_vanity() {
+    let body = serde_json::json!({
+        "data": [{ "id": "555000", "type": "campaign", "attributes": { "vanity": "creatorvanity" } }]
+    });
+
+    let (_, name) = parse_campaign(&body).unwrap();
+
+    assert_eq!(name.as_deref(), Some("creatorvanity"));
+}
+
+#[test]
+fn an_account_without_a_campaign_is_rejected() {
+    let body = serde_json::json!({ "data": [] });
+
+    assert!(matches!(parse_campaign(&body), Err(PatreonError::NoCampaign)));
+}
+
+#[test]
+fn a_long_log_body_is_cut_on_a_char_boundary() {
+    let body = "\u{e9}".repeat(600);
+
+    assert_eq!(truncate_log(&body).chars().count(), 500);
+    assert_eq!(truncate_log("short"), "short");
 }

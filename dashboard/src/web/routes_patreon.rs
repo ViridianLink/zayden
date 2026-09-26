@@ -23,7 +23,7 @@ use rand::RngExt;
 use serde::Deserialize;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
-use tracing::warn;
+use tracing::{info, warn};
 use zayden_app::state::AppState as ZaydenAppState;
 
 use crate::state::{DiscordState, IntegrationsState};
@@ -199,6 +199,9 @@ pub(super) async fn patreon_callback_handler(
 
     let previous_campaign = PatreonConnection::select(&app.db, context.guild_id)
         .await
+        .inspect_err(|e| {
+            warn!(?e, guild, "failed to load the previous Patreon connection");
+        })
         .ok()
         .flatten()
         .map(|c| c.campaign_id)
@@ -239,6 +242,13 @@ pub(super) async fn patreon_callback_handler(
         patreon::forget_campaign(&app.db, &previous).await;
     }
 
+    info!(
+        guild,
+        campaign_id,
+        webhook = webhook.is_some(),
+        "Patreon campaign connected"
+    );
+
     redirect(&settings_url(guild, PatreonOutcome::Connected))
 }
 
@@ -257,6 +267,15 @@ async fn previous_webhook(
     } else {
         patreon::oauth::access_token(&app.db, &app.http, patreon_app, &previous)
             .await
+            .inspect_err(|e| {
+                warn!(
+                    ?e,
+                    guild_id,
+                    webhook_id,
+                    "no usable token for the previous campaign; its webhook stays \
+                     registered on Patreon"
+                );
+            })
             .ok()?
     };
 
@@ -274,13 +293,19 @@ pub(super) async fn patreon_webhook_handler(
         .unwrap_or_default();
 
     if event != POST_PUBLISH {
+        warn!(event, "Patreon webhook ignored: unexpected event");
         return StatusCode::OK;
     }
 
     let post = match patreon::webhook::parse_post(&body) {
         Ok(post) => post,
         Err(e) => {
-            warn!(?e, "failed to parse Patreon webhook payload");
+            let raw = String::from_utf8_lossy(&body);
+            warn!(
+                ?e,
+                body = patreon::api::truncate_log(&raw),
+                "failed to parse Patreon webhook payload"
+            );
             return StatusCode::OK;
         },
     };
@@ -295,10 +320,25 @@ pub(super) async fn patreon_webhook_handler(
         },
     };
 
+    if secrets.is_empty() {
+        warn!(
+            campaign_id = %post.campaign_id,
+            post_id = %post.id,
+            "Patreon webhook rejected: no active connection holds a secret for \
+             this campaign"
+        );
+        return StatusCode::OK;
+    }
+
     let signature = headers
         .get(PATREON_SIGNATURE_HEADER)
         .and_then(|value| value.to_str().ok())
         .unwrap_or_default();
+
+    if signature.is_empty() {
+        warn!(campaign_id = %post.campaign_id, "Patreon webhook rejected: no signature header");
+        return StatusCode::OK;
+    }
 
     if !patreon::webhook::verify_any(&body, signature, &secrets) {
         warn!(campaign_id = %post.campaign_id, "Patreon webhook rejected: signature mismatch");
@@ -307,7 +347,15 @@ pub(super) async fn patreon_webhook_handler(
 
     match patreon::is_subscribed(&app.db, &post.campaign_id).await {
         Ok(true) => {},
-        Ok(false) => return StatusCode::OK,
+        Ok(false) => {
+            warn!(
+                campaign_id = %post.campaign_id,
+                post_id = %post.id,
+                "Patreon webhook ignored: no guild has an announce channel for \
+                 this campaign"
+            );
+            return StatusCode::OK;
+        },
         Err(e) => {
             warn!(?e, campaign_id = %post.campaign_id, "failed to check Patreon subscribers");
             return StatusCode::OK;
@@ -315,10 +363,17 @@ pub(super) async fn patreon_webhook_handler(
     }
 
     match patreon::insert_post(&app.db, &post, false).await {
-        // Already stored by a poll or an earlier delivery; the announce path
-        // has it either way.
-        Ok(false) => return StatusCode::OK,
-        Ok(true) => {},
+        Ok(false) => {
+            info!(post_id = %post.id, "Patreon webhook: post already stored");
+            return StatusCode::OK;
+        },
+        Ok(true) => {
+            info!(
+                post_id = %post.id,
+                campaign_id = %post.campaign_id,
+                "Patreon webhook: post stored"
+            );
+        },
         Err(e) => {
             warn!(?e, post_id = %post.id, "failed to store Patreon post");
             return StatusCode::OK;

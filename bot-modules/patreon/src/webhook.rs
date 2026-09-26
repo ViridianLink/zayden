@@ -2,6 +2,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use md5::Md5;
 use reqwest::{Client, Response};
 use serde_json::{Value, json};
+use tracing::{info, warn};
 
 use crate::api::{self, API_ROOT};
 use crate::error::{PatreonError, Result};
@@ -33,10 +34,21 @@ pub async fn register(
         .bearer_auth(access_token)
         .json(&body)
         .send()
-        .await?
-        .error_for_status()?
-        .json::<Value>()
         .await?;
+
+    if let Some(error) = response.error_for_status_ref().err() {
+        let body = response.text().await.unwrap_or_default();
+        warn!(
+            status = ?error.status(),
+            campaign_id,
+            uri,
+            body = api::truncate_log(&body),
+            "patreon: webhook registration rejected"
+        );
+        return Err(error.into());
+    }
+
+    let response = response.json::<Value>().await?;
 
     let data = response
         .get("data")
@@ -53,6 +65,8 @@ pub async fn register(
         .and_then(Value::as_str)
         .ok_or_else(|| PatreonError::Payload("webhook has no secret".to_owned()))?;
 
+    info!(campaign_id, webhook_id = id, uri, "patreon: webhook registered");
+
     Ok((id.to_owned(), secret.to_owned()))
 }
 
@@ -64,8 +78,9 @@ pub async fn unregister(client: &Client, access_token: &str, webhook_id: &str) {
         .await
         .and_then(Response::error_for_status);
 
-    if let Err(e) = result {
-        tracing::warn!(error = ?e, webhook_id, "patreon: failed to delete webhook");
+    match result {
+        Ok(_) => info!(webhook_id, "patreon: webhook deleted"),
+        Err(e) => warn!(error = ?e, webhook_id, "patreon: failed to delete webhook"),
     }
 }
 

@@ -4,7 +4,7 @@
 
 use std::fs;
 
-use patreon::thumbnail::og_image;
+use patreon::thumbnail::{content_image, og_image};
 
 fn load(name: &str) -> String {
     let path = format!("{}/tests/fixtures/{name}.html", env!("CARGO_MANIFEST_DIR"));
@@ -44,4 +44,19 @@ fn an_empty_content_attribute_is_not_a_url() {
 #[test]
 fn a_non_html_body_does_not_panic() {
     assert_eq!(og_image("{\"error\": \"nope\"}"), None);
+}
+
+#[test]
+fn the_first_https_image_in_the_body_is_the_fallback() {
+    let html = r#"<p>Intro</p><img src="data:image/png;base64,AA"><img src="https://c10.patreonusercontent.com/a.png?token-hash=x&amp;token-time=1"><img src="https://c10.patreonusercontent.com/b.png">"#;
+
+    assert_eq!(
+        content_image(html).as_deref(),
+        Some("https://c10.patreonusercontent.com/a.png?token-hash=x&token-time=1")
+    );
+}
+
+#[test]
+fn a_body_without_images_yields_none() {
+    assert_eq!(content_image("<p>No pictures here.</p>"), None);
 }

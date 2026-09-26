@@ -25,7 +25,11 @@ pub fn post_component(post: &PendingPost) -> CreateComponent<'static> {
         post.published_at.to_jiff().as_second()
     );
 
-    let body = post.content_html.as_deref().map(content::to_discord);
+    let body = post
+        .content_html
+        .as_deref()
+        .filter(|_| post.is_public)
+        .map(content::to_discord);
 
     let mut components: Vec<CreateContainerComponent<'static>> =
         Vec::with_capacity(4);
@@ -38,10 +42,13 @@ pub fn post_component(post: &PendingPost) -> CreateComponent<'static> {
                 post.thumbnail_url.as_deref(),
             ));
         },
-        // With no body there is nothing to sit beside the thumbnail, so the
-        // heading itself carries the accessory.
         None => {
-            let _ = write!(header, "\n\n-# _(no post text)_");
+            let note = if post.is_public {
+                "_(no post text)_"
+            } else {
+                "_(patrons only \u{2014} become a patron to read it on Patreon)_"
+            };
+            let _ = write!(header, "\n\n-# {note}");
             components.push(body_component(header, post.thumbnail_url.as_deref()));
         },
     }

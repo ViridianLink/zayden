@@ -2,7 +2,7 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     crate::server::auth::admin_guild_id,
-    crate::server::discord::ensure_guild_channel,
+    crate::server::discord::{ensure_bot_can_post, ensure_guild_channel},
     crate::server::guild::admin_app,
     patreon::oauth::PatreonApp,
     patreon::{PatreonAnnounceRow, PatreonConnection},
@@ -72,6 +72,7 @@ pub async fn save_patreon_settings(
     };
 
     ensure_guild_channel(guild_id, channel_id).await?;
+    ensure_bot_can_post(guild_id, channel_id).await?;
 
     PatreonAnnounceRow::upsert(
         &app.db,

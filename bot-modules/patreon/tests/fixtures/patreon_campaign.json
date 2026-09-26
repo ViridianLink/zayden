@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "attributes": { "vanity": "creatorvanity" },
+      "id": "555000",
+      "relationships": {
+        "creator": { "data": { "id": "9001", "type": "user" } }
+      },
+      "type": "campaign"
+    }
+  ],
+  "included": [
+    {
+      "attributes": { "full_name": "Creator Name", "vanity": "creatorvanity" },
+      "id": "9001",
+      "type": "user"
+    }
+  ]
+}

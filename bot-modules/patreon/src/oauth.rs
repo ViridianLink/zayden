@@ -2,9 +2,10 @@ use jiff::{SignedDuration, Timestamp};
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use sqlx::PgPool;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use url::Url;
 
+use crate::api;
 use crate::error::{PatreonError, Result};
 use crate::store::PatreonConnection;
 
@@ -78,17 +79,41 @@ impl PatreonApp {
         client: &Client,
         form: &[(&str, &str)],
     ) -> Result<TokenPair> {
-        let response = client.post(TOKEN_ENDPOINT).form(form).send().await?;
+        let grant_type = form
+            .iter()
+            .find_map(|(key, value)| (*key == "grant_type").then_some(*value))
+            .unwrap_or_default();
 
-        // Patreon answers a spent or revoked grant with 400, not 401.
-        if matches!(
-            response.status(),
-            StatusCode::UNAUTHORIZED | StatusCode::BAD_REQUEST
-        ) {
-            return Err(PatreonError::Unauthorized);
+        let response = client.post(TOKEN_ENDPOINT).form(form).send().await?;
+        let status = response.status();
+
+        if !status.is_success() {
+            let error = response.error_for_status_ref().err();
+            let body = response.text().await.unwrap_or_default();
+            warn!(
+                %status,
+                grant_type,
+                body = api::truncate_log(&body),
+                "patreon: token request failed"
+            );
+
+            if matches!(status, StatusCode::UNAUTHORIZED | StatusCode::BAD_REQUEST) {
+                return Err(PatreonError::Unauthorized);
+            }
+
+            return Err(error.map_or_else(
+                || {
+                    PatreonError::Payload(format!(
+                        "token endpoint answered {status}"
+                    ))
+                },
+                PatreonError::from,
+            ));
         }
 
-        let pair = response.error_for_status()?.json::<TokenPair>().await?;
+        let pair = response.json::<TokenPair>().await.inspect_err(|e| {
+            error!(error = ?e, grant_type, "patreon: token response did not parse");
+        })?;
 
         Ok(pair)
     }

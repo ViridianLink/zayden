@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use reqwest::Client;
 use sqlx::PgPool;
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 use zayden_core::CronJob;
 
 use crate::error::{PatreonError, Result};
@@ -90,10 +90,23 @@ async fn poll_all(client: &Client, app: &PatreonApp, pool: &PgPool) {
         };
 
         match poll_campaign(client, pool, &access_token, &campaign).await {
-            Ok(stored) => {
+            Ok(0) => {
                 debug!(
                     campaign_id = campaign.campaign_id,
-                    stored, "patreon: campaign polled"
+                    "patreon: campaign polled"
+                );
+            },
+            Ok(stored) if campaign.is_seeded() => {
+                info!(
+                    campaign_id = campaign.campaign_id,
+                    stored, "patreon: poll found new posts"
+                );
+            },
+            Ok(stored) => {
+                info!(
+                    campaign_id = campaign.campaign_id,
+                    stored,
+                    "patreon: backfilled existing posts as already announced"
                 );
             },
             Err(e) => {
