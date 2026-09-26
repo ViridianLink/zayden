@@ -18,32 +18,32 @@ When validation is requested:
 
 - **Bacon** runs in the background. If `pgrep bacon` is empty, inform the user or fall back to raw commands. Touch a file after config/migration edits to prevent stale `.bacon-locations`.
 - **Traps**:
-    - Never use `--all-features` (`dashboard`'s `ssr` and `hydrate` conflict).
-    - Clippy does not codegen or link; full build is required to verify compilation.
+  - Never use `--all-features` (`dashboard`'s `ssr` and `hydrate` conflict).
+  - Clippy does not codegen or link; full build is required to verify compilation.
 - **Full Validation Suite**:
-    ```sh
-    cargo fmt --check
-    cargo clippy --workspace --exclude dashboard --all-targets -- -D warnings
-    cargo clippy -p dashboard --features ssr -- -D warnings
-    cargo clippy -p dashboard --target wasm32-unknown-unknown --features hydrate -- -D warnings
-    cargo build --workspace --all-targets
-    cargo test --workspace
-    ```
+  ```sh
+  cargo fmt --check
+  cargo clippy --workspace --exclude dashboard --all-targets -- -D warnings
+  cargo clippy -p dashboard --features ssr -- -D warnings
+  cargo clippy -p dashboard --target wasm32-unknown-unknown --features hydrate -- -D warnings
+  cargo build --workspace --all-targets
+  cargo test --workspace
+  ```
 
 ## Database
 
 - **Local/Throwaway**: Free to run migrations, create/drop DBs, and run `cargo test` / `cargo sqlx prepare`.
-    ```sh
-    docker run --rm -d --name zayden-prepare -p 55432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=zayden_prepare postgres:18-alpine
-    export DATABASE_URL="postgres://postgres:postgres@localhost:55432/zayden_prepare"
-    sqlx migrate run
-    ```
+  ```sh
+  docker run --rm -d --name zayden-prepare -p 55432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=zayden_prepare postgres:18-alpine
+  export DATABASE_URL="postgres://postgres:postgres@localhost:55432/zayden_prepare"
+  sqlx migrate run
+  ```
 - **Live DB (`.env`)**: Never mutate without explicit user confirmation. Read-only queries are fine.
 - **Regenerating `.sqlx`**: Required when `query!` changes. Run against an empty, freshly-migrated DB (plan-sensitive nullability inference):
-    ```sh
-    cargo sqlx prepare --workspace -- --features ssr
-    ```
-    If prepare fails, revert via `git restore .sqlx`.
+  ```sh
+  cargo sqlx prepare --workspace -- --all-targets --features ssr
+  ```
+  If prepare fails, revert via `git restore .sqlx`.
 
 ## Code Style
 
