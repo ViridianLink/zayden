@@ -24,11 +24,11 @@ pub(super) async fn join(
 ) -> Result<()> {
     interaction.defer_ephemeral(http).await?;
 
-    let Some(ResolvedValue::String(pass)) = options.remove("pass") else {
+    let Some(ResolvedValue::String(pass)) = options.remove("password") else {
         return Err(TempVoiceError::IneligibleChannel);
     };
 
-    if !row.verify_password(pass) {
+    if !row.verify_password(pass.trim()) {
         return Err(TempVoiceError::InvalidPassword);
     }
 

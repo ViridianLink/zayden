@@ -28,6 +28,8 @@ pub enum MusicError {
     NoResults,
     #[error("That doesn't look like a supported YouTube or Spotify link.")]
     UnsupportedSource,
+    #[error("Please enter a single search term or link on one line.")]
+    MultilineQuery,
     #[error("Spotify support isn't configured on this bot.")]
     SpotifyDisabled,
     #[error("Seeking isn't supported on live streams.")]
@@ -75,6 +77,7 @@ impl Respond for MusicError {
             | Self::PlaylistTruncated { .. }
             | Self::NoResults
             | Self::UnsupportedSource
+            | Self::MultilineQuery
             | Self::SpotifyDisabled
             | Self::SeekOnLiveStream
             | Self::InvalidTimestamp

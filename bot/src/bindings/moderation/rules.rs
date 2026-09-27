@@ -33,6 +33,12 @@ use zayden_core::{
 };
 
 const MAX_FIELDS: usize = 25;
+const MAX_TITLE_LEN: u16 = 256;
+const MAX_DESCRIPTION_LEN: u16 = 4096;
+const MAX_FIELD_NAME_LEN: u16 = 256;
+const MAX_FIELD_VALUE_LEN: u16 = 1024;
+const MAX_EMBED_LEN: usize = 6000;
+const MAX_CONTENT_LEN: usize = 2000;
 
 const DEFAULT_TITLE: &str = "Server Rules";
 const DEFAULT_COLOUR: i32 = 0x00ff_0000; // red
@@ -59,16 +65,22 @@ impl ModuleCommand for RulesCommand {
             )
             .required(true),
         )
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "title",
-            "The embed title (default \"Server Rules\")",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "description",
-            "Text shown above the rules",
-        ))
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "title",
+                "The embed title (default \"Server Rules\")",
+            )
+            .max_length(MAX_TITLE_LEN),
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "description",
+                "Text shown above the rules",
+            )
+            .max_length(MAX_DESCRIPTION_LEN),
+        )
         .add_sub_option(CreateCommandOption::new(
             CommandOptionType::String,
             "colour",
@@ -86,6 +98,7 @@ impl ModuleCommand for RulesCommand {
                 "title",
                 "The rule heading",
             )
+            .max_length(MAX_FIELD_NAME_LEN)
             .required(true),
         )
         .add_sub_option(
@@ -94,6 +107,7 @@ impl ModuleCommand for RulesCommand {
                 "body",
                 "The rule text",
             )
+            .max_length(MAX_FIELD_VALUE_LEN)
             .required(true),
         );
 
@@ -111,16 +125,22 @@ impl ModuleCommand for RulesCommand {
             .min_int_value(1)
             .required(true),
         )
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "title",
-            "The new rule heading",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "body",
-            "The new rule text",
-        ));
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "title",
+                "The new rule heading",
+            )
+            .max_length(MAX_FIELD_NAME_LEN),
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "body",
+                "The new rule text",
+            )
+            .max_length(MAX_FIELD_VALUE_LEN),
+        );
 
         let remove = CreateCommandOption::new(
             CommandOptionType::SubCommand,
@@ -506,9 +526,18 @@ async fn list(pool: &PgPool, guild_id: GuildId) -> Result<String, HandlerError> 
         return Ok(out);
     }
 
-    for rule in &rules {
-        let _ =
-            write!(out, "\n**{}. {}**\n{}\n", rule.position, rule.title, rule.body);
+    for (shown, rule) in rules.iter().enumerate() {
+        let entry =
+            format!("\n**{}. {}**\n{}\n", rule.position, rule.title, rule.body);
+        let remaining = rules.len() - shown;
+        let more = format!("\n…and {remaining} more");
+        if out.chars().count() + entry.chars().count() + more.chars().count()
+            > MAX_CONTENT_LEN
+        {
+            out.push_str(&more);
+            break;
+        }
+        out.push_str(&entry);
     }
 
     Ok(out)
@@ -544,6 +573,14 @@ async fn post(
             "A rules embed supports at most {MAX_FIELDS} rules; you have {}. \
              Please consolidate some before posting.",
             rules.len()
+        ));
+    }
+
+    let embed_len = embed_len(&config, &rules);
+    if embed_len > MAX_EMBED_LEN {
+        return Ok(format!(
+            "The rules embed would be {embed_len} characters; Discord allows at \
+             most {MAX_EMBED_LEN}. Please shorten some rules before posting."
         ));
     }
 
@@ -631,6 +668,15 @@ fn build_embed(config: &RulesConfig, rules: &[RuleEntry]) -> CreateEmbed<'static
     }
 
     embed
+}
+
+fn embed_len(config: &RulesConfig, rules: &[RuleEntry]) -> usize {
+    config.title.chars().count()
+        + config.description.as_deref().map_or(0, |d| d.chars().count())
+        + rules
+            .iter()
+            .map(|rule| rule.title.chars().count() + rule.body.chars().count())
+            .sum::<usize>()
 }
 
 fn parse_colour(raw: &str) -> Option<i32> {

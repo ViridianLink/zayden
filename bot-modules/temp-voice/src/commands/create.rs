@@ -16,7 +16,9 @@ use serenity::all::{
 use serenity::nonmax::NonMaxU16;
 use sqlx::PgPool;
 use tracing::debug;
+use zayden_core::optional_option;
 
+use super::name::channel_name;
 use crate::{
     TempVoiceError,
     TempVoiceRow,
@@ -34,10 +36,8 @@ pub(super) async fn create(
 ) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
-    let name = match options.remove("name") {
-        Some(ResolvedValue::String(name)) => name.to_string(),
-        _ => format!("{}'s Channel", interaction.user.name),
-    };
+    let name =
+        channel_name(optional_option(&mut options, "name"), &interaction.user.name);
 
     let limit = match options.remove("limit") {
         Some(ResolvedValue::Integer(limit)) => {

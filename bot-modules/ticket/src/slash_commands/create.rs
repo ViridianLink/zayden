@@ -36,9 +36,7 @@ impl Ticket {
 
         interaction.defer_ephemeral(http).await?;
 
-        let embed = CreateEmbed::new()
-            .title(title)
-            .description(description.replace("\\n", "\n"));
+        let embed = CreateEmbed::new().title(title).description(description);
 
         let button = CreateButton::new("ticket_create")
             .style(ButtonStyle::Primary)

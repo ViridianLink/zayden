@@ -80,10 +80,13 @@ impl GiveStar {
                 )
                 .required(true),
             )
-            .add_option(CreateCommandOption::new(
-                CommandOptionType::String,
-                "reason",
-                "The reason for giving a star",
-            ))
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::String,
+                    "reason",
+                    "The reason for giving a star",
+                )
+                .max_length(1024),
+            )
     }
 }

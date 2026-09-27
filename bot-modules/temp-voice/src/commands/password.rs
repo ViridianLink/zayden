@@ -34,7 +34,7 @@ pub(super) async fn password(
         channel_id,
         row,
         interaction.user.id,
-        pass.to_string(),
+        pass.trim().to_string(),
     )
     .await?;
 

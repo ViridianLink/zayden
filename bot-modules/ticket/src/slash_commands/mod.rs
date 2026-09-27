@@ -100,6 +100,7 @@ impl Ticket {
                 "message",
                 "Message to send before closing the ticket",
             )
+            .max_length(1975)
             .required(false),
         );
 
@@ -108,21 +109,33 @@ impl Ticket {
             "create",
             "Create a ticket embed and button",
         )
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "title",
-            "The title of the ticket embed",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "description",
-            "The description of the ticket embed",
-        ))
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "label",
-            "The label of the ticket button",
-        ));
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "title",
+                "The title of the ticket embed",
+            )
+            .max_length(256)
+            .required(true),
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "description",
+                "The description of the ticket embed",
+            )
+            .max_length(4096)
+            .required(true),
+        )
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "label",
+                "The label of the ticket button",
+            )
+            .max_length(80)
+            .required(true),
+        );
 
         let open = CreateCommandOption::new(
             CommandOptionType::SubCommand,

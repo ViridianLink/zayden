@@ -55,11 +55,14 @@ impl ModuleCommand for Infraction {
                 )
                 .min_int_value(1),
             )
-            .add_option(CreateCommandOption::new(
-                CommandOptionType::String,
-                "reason",
-                "The reason for the infraction",
-            ))
+            .add_option(
+                CreateCommandOption::new(
+                    CommandOptionType::String,
+                    "reason",
+                    "The reason for the infraction",
+                )
+                .max_length(512),
+            )
     }
 
     async fn run(&self, cx: &InvocationCtx<'_>) -> Result<(), HandlerError> {

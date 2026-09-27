@@ -50,6 +50,11 @@ pub(super) async fn resolve_head(
     ctx: &MusicCtx<'_>,
     query: &str,
 ) -> Result<(ResolvedTrack, Option<LazyTail>)> {
+    let query = query.trim();
+    if query.contains('\n') {
+        return Err(MusicError::MultilineQuery);
+    }
+
     let user_id = ctx.interaction.user.id;
 
     let settings = ctx.settings().await?;

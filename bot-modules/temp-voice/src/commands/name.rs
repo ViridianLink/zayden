@@ -7,6 +7,7 @@ use serenity::all::{
     Http,
     ResolvedValue,
 };
+use zayden_core::optional_option;
 
 use crate::{TempVoiceError, VoiceChannelRow, actions};
 
@@ -19,10 +20,8 @@ pub(super) async fn name(
 ) -> Result<(), TempVoiceError> {
     interaction.defer_ephemeral(http).await?;
 
-    let name = match options.remove("name") {
-        Some(ResolvedValue::String(name)) => name.to_string(),
-        _ => format!("{}'s Channel", interaction.user.name),
-    };
+    let name =
+        channel_name(optional_option(&mut options, "name"), &interaction.user.name);
 
     let msg =
         actions::rename(http, channel_id, row, interaction.user.id, name).await?;
@@ -32,4 +31,12 @@ pub(super) async fn name(
         .await?;
 
     Ok(())
+}
+
+pub(super) fn channel_name(raw: Option<&str>, username: &str) -> String {
+    let name = raw.map_or_else(String::new, |name| {
+        name.split_whitespace().collect::<Vec<_>>().join(" ")
+    });
+
+    if name.is_empty() { format!("{username}'s Channel") } else { name }
 }

@@ -222,11 +222,14 @@ impl VoiceCommand {
             "create",
             "Create a temporary voice channel.",
         )
-        .add_sub_option(CreateCommandOption::new(
-            CommandOptionType::String,
-            "name",
-            "The name of the voice channel.",
-        ))
+        .add_sub_option(
+            CreateCommandOption::new(
+                CommandOptionType::String,
+                "name",
+                "The name of the voice channel.",
+            )
+            .max_length(100),
+        )
         .add_sub_option(CreateCommandOption::new(
             CommandOptionType::Integer,
             "limit",
@@ -261,6 +264,7 @@ impl VoiceCommand {
                         "name",
                         "The new name of the voice channel.",
                     )
+                    .max_length(100)
                     .required(true),
                 ),
             )
@@ -486,15 +490,15 @@ impl VoiceCommand {
                         "channel",
                         "The voice channel to join.",
                     )
-                    .required(true)
-                    .add_sub_option(
-                        CreateCommandOption::new(
-                            CommandOptionType::String,
-                            "password",
-                            "The password for the voice channel.",
-                        )
-                        .required(true),
-                    ),
+                    .required(true),
+                )
+                .add_sub_option(
+                    CreateCommandOption::new(
+                        CommandOptionType::String,
+                        "password",
+                        "The password for the voice channel.",
+                    )
+                    .required(true),
                 ),
             )
             .add_option(CreateCommandOption::new(
