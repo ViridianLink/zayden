@@ -67,16 +67,17 @@ impl Handler {
     async fn background_tasks(&self, ctx: &Context, ready: &Ready) {
         if ready.application.id.get() == self.app.zayden_id {
             self.bot_state.write().await.setup_static_cron();
+
+            spawn_patreon_listener(ctx.clone(), Arc::clone(&self.app));
+            let youtube = self.bot_state.read().await.youtube.clone();
+            if let Some(runtime) = youtube {
+                spawn_youtube_listener(ctx.clone(), Arc::clone(&self.app), runtime);
+            }
         }
 
         let palworld = Arc::clone(&self.bot_state.read().await.palworld);
         tokio::spawn(async move { palworld.warm().await });
 
-        spawn_patreon_listener(ctx.clone(), Arc::clone(&self.app));
-        let youtube = self.bot_state.read().await.youtube.clone();
-        if let Some(runtime) = youtube {
-            spawn_youtube_listener(ctx.clone(), Arc::clone(&self.app), runtime);
-        }
         module_sync::spawn_listener(
             Arc::clone(&ctx.http),
             Arc::clone(&self.app),

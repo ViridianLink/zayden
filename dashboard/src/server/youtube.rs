@@ -2,7 +2,7 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
     crate::server::auth::server_err,
-    crate::server::discord::ensure_guild_channel,
+    crate::server::discord::{ensure_bot_can_post, ensure_guild_channel},
     crate::server::guild::admin_app,
     youtube::{YoutubeAnnounceRow, YoutubeConnection, YoutubeRuntime},
     zayden_app::state::AppState,
@@ -55,6 +55,7 @@ pub async fn save_youtube_settings(
     };
 
     ensure_guild_channel(guild_id, channel_id).await?;
+    ensure_bot_can_post(guild_id, channel_id).await?;
 
     YoutubeAnnounceRow::upsert(&app.db, guild_id, channel_id)
         .await
