@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO _sqlx_migrations\n             (version, description, success, checksum, execution_time)\n         VALUES (99999999, 'applied by a newer binary', TRUE, '\\x00', 0)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "58ebf154c3fcc2b17686f684eb78932fcf52ea07e218fb6125ab62c09a77dc0b"
+}

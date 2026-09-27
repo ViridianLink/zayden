@@ -32,7 +32,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Layer, Registry, filter, fmt};
 use zayden_app::config::BotConfig;
 use zayden_app::events::listener::EventListener;
-use zayden_app::modules;
+use zayden_app::{migrations, modules};
 
 use crate::sqlx_lib::new_pool_with_retry;
 use crate::webhook_logger::WebhookLogger;
@@ -56,7 +56,7 @@ async fn main() -> Result<()> {
 
     let pool = new_pool_with_retry().await?;
 
-    sqlx::migrate!("../migrations")
+    migrations::migrator()
         .run(&pool)
         .await
         .map_err(|e| BotError::Other(format!("failed to run migrations: {e}")))?;
