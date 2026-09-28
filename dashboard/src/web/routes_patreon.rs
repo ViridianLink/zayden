@@ -24,6 +24,7 @@ use serde::Deserialize;
 use tower_cookies::cookie::time::Duration;
 use tower_cookies::{Cookie, Cookies};
 use tracing::{info, warn};
+use zayden_app::events::Channel;
 use zayden_app::state::AppState as ZaydenAppState;
 
 use crate::state::{DiscordState, IntegrationsState};
@@ -382,10 +383,7 @@ pub(super) async fn patreon_webhook_handler(
 
     // The bot is a separate process, so the wake-up travels over the same
     // Postgres LISTEN/NOTIFY bus the settings cache uses.
-    if let Err(e) = sqlx::query!("SELECT pg_notify('patreon_post', $1)", post.id)
-        .execute(&app.db)
-        .await
-    {
+    if let Err(e) = Channel::PatreonPost.notify(&app.db, &post.id).await {
         warn!(?e, post_id = %post.id, "failed to notify the bot of a Patreon post");
     }
 

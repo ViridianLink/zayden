@@ -14,6 +14,7 @@ pub mod cron;
 mod error;
 pub mod guild_retention;
 mod handler;
+mod legacy_bot_tokens;
 pub mod module_sync;
 pub mod patreon_webhook;
 pub mod registry;
@@ -70,6 +71,7 @@ async fn main() -> Result<()> {
     info!("AppState constructed successfully");
 
     EventListener::spawn(pool.clone(), app_state.events.clone());
+    legacy_bot_tokens::spawn(pool.clone(), bot_config.bot_owner);
 
     let music_resolver = bindings::music::build_resolver(&bot_config).await?;
 

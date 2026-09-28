@@ -47,6 +47,7 @@ jiff = { workspace = true }
 jiff-cron = { workspace = true }
 rand = { workspace = true, features = ["thread_rng"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
+secrecy = { workspace = true }
 serenity = { workspace = true, features = [
   "rustls_backend",
   "builder",

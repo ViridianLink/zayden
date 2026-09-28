@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, HashSet};
 use jiff::{SignedDuration, Timestamp};
 use sqlx::PgPool;
 use zayden_app::AppError;
+use zayden_app::guilds::JoinKind;
 use zayden_app::modules::{
     Backing,
     ModuleDef,
@@ -88,8 +89,9 @@ fn validate_rejects_a_command_module_without_commands() {
 
 #[sqlx::test(migrations = "../migrations")]
 async fn first_seed_enables_every_module(pool: PgPool) -> sqlx::Result<()> {
-    let states =
-        ModuleStore::new(pool).seed(GUILD, joined(), &HashSet::new()).await?;
+    let states = ModuleStore::new(pool)
+        .seed(GUILD, joined(), JoinKind::First, &HashSet::new())
+        .await?;
 
     assert_eq!(states.len(), command_modules().count());
     assert!(states.values().all(|enabled| *enabled));
@@ -100,7 +102,7 @@ async fn first_seed_enables_every_module(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../migrations")]
 async fn first_seed_applies_imported_overrides(pool: PgPool) -> sqlx::Result<()> {
     let states = ModuleStore::new(pool)
-        .seed(GUILD, joined(), &HashSet::from(["music"]))
+        .seed(GUILD, joined(), JoinKind::First, &HashSet::from(["music"]))
         .await?;
 
     assert_eq!(states.get("music"), Some(&false));
@@ -114,7 +116,7 @@ async fn guild_needs_import_until_seeded(pool: PgPool) -> sqlx::Result<()> {
     let store = ModuleStore::new(pool);
 
     assert!(store.needs_import(GUILD).await?);
-    store.seed(GUILD, joined(), &HashSet::new()).await?;
+    store.seed(GUILD, joined(), JoinKind::First, &HashSet::new()).await?;
     assert!(!store.needs_import(GUILD).await?);
 
     Ok(())
@@ -124,9 +126,10 @@ async fn guild_needs_import_until_seeded(pool: PgPool) -> sqlx::Result<()> {
 async fn reseed_keeps_toggles(pool: PgPool) -> sqlx::Result<()> {
     let store = ModuleStore::new(pool);
 
-    store.seed(GUILD, joined(), &HashSet::new()).await?;
+    store.seed(GUILD, joined(), JoinKind::First, &HashSet::new()).await?;
     store.set(GUILD, "music", false).await?;
-    let states = store.seed(GUILD, joined(), &HashSet::new()).await?;
+    let states =
+        store.seed(GUILD, joined(), JoinKind::Reconnect, &HashSet::new()).await?;
 
     assert_eq!(states.get("music"), Some(&false));
 
@@ -137,8 +140,10 @@ async fn reseed_keeps_toggles(pool: PgPool) -> sqlx::Result<()> {
 async fn reseed_ignores_imported_overrides(pool: PgPool) -> sqlx::Result<()> {
     let store = ModuleStore::new(pool);
 
-    store.seed(GUILD, joined(), &HashSet::new()).await?;
-    let states = store.seed(GUILD, joined(), &HashSet::from(["music"])).await?;
+    store.seed(GUILD, joined(), JoinKind::First, &HashSet::new()).await?;
+    let states = store
+        .seed(GUILD, joined(), JoinKind::Reconnect, &HashSet::from(["music"]))
+        .await?;
 
     assert_eq!(states.get("music"), Some(&true));
 
@@ -149,10 +154,12 @@ async fn reseed_ignores_imported_overrides(pool: PgPool) -> sqlx::Result<()> {
 async fn reinvite_resets_toggles(pool: PgPool) -> sqlx::Result<()> {
     let store = ModuleStore::new(pool);
 
-    store.seed(GUILD, joined(), &HashSet::new()).await?;
+    store.seed(GUILD, joined(), JoinKind::First, &HashSet::new()).await?;
     store.set(GUILD, "music", false).await?;
     let rejoined = joined() + SignedDuration::from_hours(24);
-    let states = store.seed(GUILD, rejoined, &HashSet::from(["gambling"])).await?;
+    let states = store
+        .seed(GUILD, rejoined, JoinKind::Rejoin, &HashSet::from(["gambling"]))
+        .await?;
 
     assert_eq!(states.get("music"), Some(&true));
     assert_eq!(states.get("gambling"), Some(&true));
@@ -164,12 +171,45 @@ async fn reinvite_resets_toggles(pool: PgPool) -> sqlx::Result<()> {
 async fn set_is_visible_through_the_cache(pool: PgPool) -> sqlx::Result<()> {
     let store = ModuleStore::new(pool);
 
-    store.seed(GUILD, joined(), &HashSet::new()).await?;
+    store.seed(GUILD, joined(), JoinKind::First, &HashSet::new()).await?;
     store.set(GUILD, "music", false).await?;
     assert_eq!(store.states(GUILD).await?.get("music"), Some(&false));
 
     store.set(GUILD, "music", true).await?;
     assert_eq!(store.states(GUILD).await?.get("music"), Some(&true));
+
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_second_bot_joining_keeps_toggles(pool: PgPool) -> sqlx::Result<()> {
+    let store = ModuleStore::new(pool);
+
+    store.seed(GUILD, joined(), JoinKind::First, &HashSet::new()).await?;
+    store.set(GUILD, "music", false).await?;
+    let custom_joined = joined() + SignedDuration::from_hours(24);
+    let states = store
+        .seed(GUILD, custom_joined, JoinKind::Additional, &HashSet::new())
+        .await?;
+
+    assert_eq!(states.get("music"), Some(&false));
+
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_reconnect_with_a_new_join_time_keeps_toggles(
+    pool: PgPool,
+) -> sqlx::Result<()> {
+    let store = ModuleStore::new(pool);
+
+    store.seed(GUILD, joined(), JoinKind::First, &HashSet::new()).await?;
+    store.set(GUILD, "music", false).await?;
+    let other = joined() + SignedDuration::from_hours(24);
+    let states =
+        store.seed(GUILD, other, JoinKind::Reconnect, &HashSet::new()).await?;
+
+    assert_eq!(states.get("music"), Some(&false));
 
     Ok(())
 }

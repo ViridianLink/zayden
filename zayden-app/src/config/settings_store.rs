@@ -111,6 +111,7 @@ impl<Row: SettingsRow> SettingsStore<Row> {
                             .invalidate(&i64::try_from(guild_id).unwrap_or(i64::MAX))
                             .await;
                     },
+                    Ok(AppEvent::Resync) => store.cache.invalidate_all(),
                     Ok(_) => {},
                     Err(RecvError::Lagged(n)) => {
                         warn!(

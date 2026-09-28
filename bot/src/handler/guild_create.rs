@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
+use jiff::Timestamp;
 use serenity::all::{Context, Guild};
 use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
-use zayden_app::guilds::GuildPresence;
+use zayden_app::guilds::{GuildPresence, JoinKind};
 use zayden_core::as_i64;
 
 use super::Handler;
@@ -17,23 +18,26 @@ impl Handler {
         guild: &Guild,
         pool: &PgPool,
     ) -> Result<()> {
-        // Re-adding the bot within the retention window cancels the purge.
-        match ctx.http.application_id() {
-            Some(application_id) => {
-                if let Err(e) = GuildPresence::joined(
-                    pool,
-                    as_i64(guild.id.get()),
-                    as_i64(application_id.get()),
-                )
-                .await
-                {
-                    warn!(error = ?e, guild_id = %guild.id, "failed to record guild presence");
-                }
-            },
+        let joined_at =
+            Timestamp::from_millisecond(guild.joined_at.unix_timestamp_millis())?;
+
+        let join = match ctx.http.application_id() {
+            Some(application_id) => GuildPresence::joined(
+                pool,
+                as_i64(guild.id.get()),
+                as_i64(application_id.get()),
+                joined_at,
+            )
+            .await
+            .unwrap_or_else(|e| {
+                warn!(error = ?e, guild_id = %guild.id, "failed to record guild presence");
+                JoinKind::Reconnect
+            }),
             None => {
                 warn!(guild_id = %guild.id, "guild seen before the application id");
+                JoinKind::Reconnect
             },
-        }
+        };
 
         let data = ctx.data::<RwLock<BotState>>();
 
@@ -55,8 +59,15 @@ impl Handler {
                 .await;
         }
 
-        let states =
-            module_sync::seed(&ctx.http, &self.app, &self.registry, guild).await?;
+        let states = module_sync::seed(
+            &ctx.http,
+            &self.app,
+            &self.registry,
+            guild,
+            joined_at,
+            join,
+        )
+        .await?;
 
         module_sync::sync_commands(&ctx.http, &self.registry, guild.id, &states)
             .await?;

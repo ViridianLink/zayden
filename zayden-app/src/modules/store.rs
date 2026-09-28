@@ -8,6 +8,8 @@ use moka::future::Cache;
 use sqlx::PgPool;
 
 use super::command_modules;
+use crate::events::Channel;
+use crate::guilds::JoinKind;
 
 pub type ModuleStates = HashMap<String, bool>;
 
@@ -72,6 +74,7 @@ impl ModuleStore {
         &self,
         guild_id: i64,
         bot_joined_at: Timestamp,
+        join: JoinKind,
         imported_disabled: &HashSet<&str>,
     ) -> Result<Arc<ModuleStates>, sqlx::Error> {
         let mut tx = self.db.begin().await?;
@@ -95,11 +98,14 @@ impl ModuleStore {
             UPDATE guilds
             SET bot_joined_at = $2
             FROM previous
-            WHERE guilds.id = $1 AND previous.bot_joined_at IS DISTINCT FROM $2
+            WHERE guilds.id = $1
+              AND (previous.bot_joined_at IS NULL
+                   OR ($3 AND previous.bot_joined_at IS DISTINCT FROM $2))
             RETURNING previous.bot_joined_at AS "previous?: jiff_sqlx::Timestamp"
             "#,
             guild_id,
             bot_joined_at.to_sqlx() as jiff_sqlx::Timestamp,
+            join.resets_modules(),
         )
         .fetch_optional(&mut *tx)
         .await?;
@@ -161,12 +167,7 @@ impl ModuleStore {
         .execute(&mut *tx)
         .await?;
 
-        sqlx::query!(
-            "SELECT pg_notify('modules_changed', $1)",
-            guild_id.to_string()
-        )
-        .execute(&mut *tx)
-        .await?;
+        Channel::ModulesChanged.notify(&mut *tx, &guild_id.to_string()).await?;
 
         tx.commit().await?;
 

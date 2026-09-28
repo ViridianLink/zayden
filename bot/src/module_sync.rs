@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
+use jiff::Timestamp;
 use serenity::all::{
     ApplicationId,
     CommandId,
@@ -16,7 +17,7 @@ use tokio::sync::broadcast::error::RecvError;
 use tokio::time::sleep;
 use tracing::{error, warn};
 use zayden_app::events::AppEvent;
-use zayden_app::guilds::GuildPresence;
+use zayden_app::guilds::{GuildPresence, JoinKind};
 use zayden_app::modules::ModuleStates;
 use zayden_app::state::AppState;
 use zayden_core::is_transient;
@@ -31,6 +32,8 @@ pub async fn seed(
     app: &AppState,
     registry: &CommandRegistry,
     guild: &Guild,
+    joined_at: Timestamp,
+    join: JoinKind,
 ) -> Result<Arc<ModuleStates>> {
     let guild_id = guild.id.get().cast_signed();
 
@@ -40,10 +43,7 @@ pub async fn seed(
         HashSet::new()
     };
 
-    let joined_at =
-        jiff::Timestamp::from_millisecond(guild.joined_at.unix_timestamp_millis())?;
-
-    Ok(app.modules.seed(guild_id, joined_at, &imported).await?)
+    Ok(app.modules.seed(guild_id, joined_at, join, &imported).await?)
 }
 
 async fn imported_disabled(
@@ -154,6 +154,34 @@ async fn resync(
     Ok(())
 }
 
+async fn resync_all(
+    http: &Http,
+    app: &AppState,
+    registry: &CommandRegistry,
+    application_id: ApplicationId,
+) {
+    let guilds = match GuildPresence::present_guilds(
+        &app.db,
+        application_id.get().cast_signed(),
+    )
+    .await
+    {
+        Ok(guilds) => guilds,
+        Err(e) => {
+            error!(error = ?e, "failed to list guilds for a command resync");
+            return;
+        },
+    };
+
+    for guild_id in guilds {
+        let guild_id = GuildId::new(guild_id.cast_unsigned());
+
+        if let Err(e) = resync(http, app, registry, application_id, guild_id).await {
+            error!(error = ?e, %guild_id, "failed to re-register commands on resync");
+        }
+    }
+}
+
 pub fn spawn_listener(
     http: Arc<Http>,
     app: Arc<AppState>,
@@ -183,12 +211,17 @@ pub fn spawn_listener(
                         );
                     }
                 },
+                Ok(AppEvent::Resync) => {
+                    resync_all(&http, &app, &registry, application_id).await;
+                },
                 Ok(
                     AppEvent::ConfigChanged(_)
                     | AppEvent::EntitlementChanged(_)
                     | AppEvent::PatreonPost(_)
                     | AppEvent::YoutubeUpload(_)
-                    | AppEvent::HostingPaid(_),
+                    | AppEvent::HostingPaid(_)
+                    | AppEvent::ServingChanged(_)
+                    | AppEvent::CustomBotsChanged(_),
                 ) => {},
                 Err(RecvError::Lagged(n)) => {
                     warn!(

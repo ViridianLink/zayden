@@ -1,23 +1,23 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT pg_notify('hosting_paid', $1)",
+  "query": "SELECT custom_bot_entitled($1) AS \"entitled!\"",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "pg_notify",
-        "type_info": "Void",
+        "name": "entitled!",
+        "type_info": "Bool",
         "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
       null
     ]
   },
-  "hash": "4d3fa47a0624052b798043c2369c34a576116af2d506a953f934e20cad773cb7"
+  "hash": "50af350e0131b5d2c54173cc9dad87c8ab744f1037760212aeaa3f8590986c22"
 }

@@ -75,6 +75,8 @@ impl HostingExpireCron {
 
                     revalidate(&ctx.http, &runtime, &entitlements, &pool, grace)
                         .await;
+
+                    runtime.unsuspend_due(&pool).await;
                 }
             })
         })

@@ -19,6 +19,7 @@ use tower_cookies::{Cookie, Cookies};
 use tracing::warn;
 use youtube::websub::{self, Mode};
 use youtube::{YoutubeChannelRow, YoutubeConnection, YoutubeError};
+use zayden_app::events::Channel;
 use zayden_app::state::AppState as ZaydenAppState;
 
 use crate::state::{DiscordState, IntegrationsState};
@@ -334,11 +335,7 @@ pub(super) async fn youtube_notify_handler(
 
     // The notification is only a wake-up: the bot re-reads the uploads
     // playlist, so edits and deletions the hub also reports are harmless.
-    if let Err(e) =
-        sqlx::query!("SELECT pg_notify('youtube_upload', $1)", channel_id)
-            .execute(&app.db)
-            .await
-    {
+    if let Err(e) = Channel::YoutubeUpload.notify(&app.db, &channel_id).await {
         warn!(?e, channel_id, "failed to notify the bot of a YouTube upload");
     }
 

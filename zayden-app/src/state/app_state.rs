@@ -10,6 +10,7 @@ use crate::entitlement::{EntitlementService, Tier};
 use crate::events::AppEvent;
 use crate::modules::ModuleStore;
 use crate::services::http::ClientBuilderExt;
+use crate::serving::ServingResolver;
 
 fn http_client() -> reqwest::Client {
     reqwest::Client::builder().with_timeouts().build().unwrap_or_else(|e| {
@@ -27,6 +28,7 @@ pub struct AppState {
     pub settings: SettingsRegistry,
     pub entitlements: Arc<EntitlementService>,
     pub modules: Arc<ModuleStore>,
+    pub serving: Arc<ServingResolver>,
     pub events: Sender<AppEvent>,
     pub http: reqwest::Client,
     pub discord_token: String,
@@ -63,6 +65,9 @@ impl AppState {
 
         let modules = Arc::new(ModuleStore::new(pool.clone()));
 
+        let serving = Arc::new(ServingResolver::new(pool.clone(), config.zayden_id));
+        ServingResolver::spawn_invalidator(Arc::clone(&serving), events.subscribe());
+
         let mut sku_tiers = HashMap::new();
         if let Some(sku) = config.discord_sku_pro {
             sku_tiers.insert(sku, Tier::Pro);
@@ -76,6 +81,7 @@ impl AppState {
             settings,
             entitlements,
             modules,
+            serving,
             events,
             http: http_client(),
             discord_token: config.discord_token.clone(),

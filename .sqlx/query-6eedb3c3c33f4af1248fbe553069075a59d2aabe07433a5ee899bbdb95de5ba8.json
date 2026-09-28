@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hosted_servers SET unsuspend_due = NULL WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6eedb3c3c33f4af1248fbe553069075a59d2aabe07433a5ee899bbdb95de5ba8"
+}

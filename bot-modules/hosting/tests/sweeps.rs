@@ -160,3 +160,75 @@ async fn global_usage_excludes_deleted_memory(pool: PgPool) {
 
     assert_eq!(servers, 10, "ten of the eleven fixture rows are live");
 }
+
+fn next_month() -> jiff::Timestamp {
+    jiff::Timestamp::now() + jiff::SignedDuration::from_hours(24 * 30)
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("hosting"))]
+async fn paying_for_a_suspended_server_queues_its_unsuspend(pool: PgPool) {
+    store::record_payment(&pool, 6, next_month()).await.unwrap();
+
+    let first = ids(sweep::claim_unsuspends(&pool, 40).await);
+    let second = ids(sweep::claim_unsuspends(&pool, 40).await);
+
+    assert_eq!(first, vec![6]);
+    assert!(
+        second.is_empty(),
+        "the lease must hold long enough for the panel call to finish"
+    );
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("hosting"))]
+async fn paying_for_a_running_server_queues_nothing(pool: PgPool) {
+    store::record_payment(&pool, 4, next_month()).await.unwrap();
+
+    let claimed = ids(sweep::claim_unsuspends(&pool, 40).await);
+
+    assert!(claimed.is_empty(), "row 4 was never suspended on the panel");
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("hosting"))]
+async fn a_failed_unsuspend_retries_until_cleared(pool: PgPool) {
+    store::record_payment(&pool, 6, next_month()).await.unwrap();
+    assert_eq!(ids(sweep::claim_unsuspends(&pool, 40).await), vec![6]);
+
+    sqlx::query!(
+        "UPDATE hosted_servers SET unsuspend_due = now() - interval '1 second' \
+         WHERE id = 6"
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    assert_eq!(
+        ids(sweep::claim_unsuspends(&pool, 40).await),
+        vec![6],
+        "an expired lease means the panel call never finished"
+    );
+
+    store::clear_unsuspend(&pool, 6).await.unwrap();
+    sqlx::query!(
+        "UPDATE hosted_servers SET unsuspend_due = now() - interval '1 second' \
+         WHERE id = 6 AND unsuspend_due IS NOT NULL"
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    assert_eq!(
+        ids(sweep::claim_unsuspends(&pool, 40).await),
+        Vec::<i64>::new(),
+        "a cleared row is done, whatever its lease says"
+    );
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("hosting"))]
+async fn a_server_suspended_again_is_not_unsuspended(pool: PgPool) {
+    store::record_payment(&pool, 6, next_month()).await.unwrap();
+    sweep::suspend(&pool, 6, 3).await.unwrap();
+
+    let claimed = ids(sweep::claim_unsuspends(&pool, 40).await);
+
+    assert!(claimed.is_empty(), "the panel should stay suspended");
+}

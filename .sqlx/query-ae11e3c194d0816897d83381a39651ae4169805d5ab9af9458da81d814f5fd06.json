@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO custom_bot_guilds (guild_id, application_id, attached_by)\n             VALUES ($1, $2, $3)\n             ON CONFLICT (guild_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ae11e3c194d0816897d83381a39651ae4169805d5ab9af9458da81d814f5fd06"
+}

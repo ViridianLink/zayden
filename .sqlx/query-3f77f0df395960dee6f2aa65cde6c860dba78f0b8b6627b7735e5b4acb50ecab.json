@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.prosrc AS \"prosrc!\"\n           FROM pg_proc p\n           JOIN pg_namespace n ON n.oid = p.pronamespace\n           WHERE n.nspname = 'public' AND p.prosrc LIKE '%pg_notify(%'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "prosrc!",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pg_proc",
+            "name": "prosrc"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3f77f0df395960dee6f2aa65cde6c860dba78f0b8b6627b7735e5b4acb50ecab"
+}

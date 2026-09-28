@@ -2,6 +2,7 @@ use jiff::Timestamp;
 use jiff_sqlx::{Timestamp as SqlxTimestamp, ToSqlx as _};
 use serenity::all::{GuildId, UserId};
 use sqlx::PgPool;
+use zayden_app::events::Channel;
 use zayden_core::{as_i64, as_u64};
 
 use crate::error::{HostingError, Result};
@@ -341,6 +342,8 @@ pub async fn record_payment(
         "UPDATE hosted_servers \
          SET paid_until = $2, state = 'active', billing_source = 'kofi', \
              suspended_at = NULL, delete_after = NULL, reminded_at = NULL, \
+             unsuspend_due = CASE WHEN state = 'suspended' THEN now() \
+                                  ELSE unsuspend_due END, \
              updated_at = now() \
          WHERE id = $1",
         id,
@@ -468,10 +471,16 @@ pub async fn attach_payment(
     Ok(())
 }
 
-pub async fn notify_paid(pool: &PgPool, id: i64) -> Result<()> {
-    sqlx::query!("SELECT pg_notify('hosting_paid', $1)", id.to_string())
+pub async fn clear_unsuspend(pool: &PgPool, id: i64) -> Result<()> {
+    sqlx::query!("UPDATE hosted_servers SET unsuspend_due = NULL WHERE id = $1", id)
         .execute(pool)
         .await?;
+
+    Ok(())
+}
+
+pub async fn notify_paid(pool: &PgPool, id: i64) -> Result<()> {
+    Channel::HostingPaid.notify(pool, &id.to_string()).await?;
 
     Ok(())
 }

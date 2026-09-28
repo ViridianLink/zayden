@@ -580,6 +580,7 @@ dependencies = [
  "rand 0.10.3",
  "reaction-roles",
  "rustls",
+ "secrecy",
  "serenity",
  "songbird",
  "sqlx",
@@ -8549,10 +8550,13 @@ name = "zayden-app"
 version = "1.0.0"
 dependencies = [
  "async-trait",
+ "aws-lc-rs",
+ "base64 0.23.1",
  "jiff",
  "jiff-sqlx",
  "moka",
  "reqwest 0.13.5",
+ "secrecy",
  "serde",
  "serde_json",
  "sqlx",

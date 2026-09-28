@@ -23,6 +23,7 @@ pub enum BotError {
     ZaydenCore(CoreError),
 
     Config(zayden_app::AppError),
+    CustomBot(zayden_app::custom_bots::CustomBotError),
     Jiff(jiff::Error),
     EnvVar(std::env::VarError),
     Other(String),
@@ -51,6 +52,7 @@ impl std::fmt::Display for BotError {
             Self::TempVoice(e) => e.fmt(f),
             Self::Ai(e) => e.fmt(f),
             Self::Config(e) => e.fmt(f),
+            Self::CustomBot(e) => e.fmt(f),
             Self::Jiff(e) => e.fmt(f),
             Self::EnvVar(e) => e.fmt(f),
             Self::Other(msg) => write!(f, "{msg}"),
@@ -72,6 +74,7 @@ impl std::error::Error for BotError {
             Self::TempVoice(e) => Some(e),
             Self::Ai(e) => Some(e),
             Self::Config(e) => Some(e),
+            Self::CustomBot(e) => Some(e),
             Self::ZaydenCore(e) => Some(e),
             Self::Jiff(e) => Some(e),
             Self::EnvVar(e) => Some(e),
@@ -103,6 +106,7 @@ impl Respond for BotError {
 
             Self::Ai(_)
             | Self::Config(_)
+            | Self::CustomBot(_)
             | Self::Jiff(_)
             | Self::EnvVar(_)
             | Self::Other(_) => None,
@@ -209,6 +213,12 @@ impl From<std::env::VarError> for BotError {
 impl From<zayden_app::AppError> for BotError {
     fn from(e: zayden_app::AppError) -> Self {
         Self::Config(e)
+    }
+}
+
+impl From<zayden_app::custom_bots::CustomBotError> for BotError {
+    fn from(e: zayden_app::custom_bots::CustomBotError) -> Self {
+        Self::CustomBot(e)
     }
 }
 

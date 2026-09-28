@@ -1,109 +1,85 @@
-use sqlx::PgPool;
-use sqlx::postgres::PgListener;
-use tokio::sync::broadcast;
-use tracing::warn;
+use std::time::Duration;
 
-use super::AppEvent;
-use crate::entitlement::EntitlementScope;
+use sqlx::PgPool;
+use sqlx::postgres::{PgListener, PgNotification};
+use tokio::sync::broadcast::{self, Sender};
+use tokio::time::sleep;
+use tracing::{info, warn};
+
+use super::{AppEvent, Channel};
+
+const MIN_BACKOFF: Duration = Duration::from_secs(1);
+const MAX_BACKOFF: Duration = Duration::from_secs(60);
 
 pub struct EventListener;
 
 impl EventListener {
-    pub async fn listen(pool: &PgPool, events: broadcast::Sender<AppEvent>) {
-        let mut listener = match PgListener::connect_with(pool).await {
-            Ok(l) => l,
-            Err(e) => {
-                warn!("EventListener: failed to connect: {e}");
-                return;
-            },
-        };
-
-        if let Err(e) = listener
-            .listen_all([
-                "config_changed",
-                "modules_changed",
-                "entitlement_changed",
-                "patreon_post",
-                "youtube_upload",
-                "hosting_paid",
-            ])
-            .await
-        {
-            warn!("EventListener: LISTEN failed: {e}");
-            return;
-        }
+    pub async fn listen(pool: &PgPool, events: Sender<AppEvent>) {
+        let mut backoff = MIN_BACKOFF;
+        let mut missed = false;
 
         loop {
-            match listener.recv().await {
-                Ok(notification) => match notification.channel() {
-                    "config_changed" => {
-                        if let Ok(guild_id) = notification.payload().parse::<u64>() {
-                            let _ = events.send(AppEvent::ConfigChanged(guild_id));
-                        } else {
-                            warn!(
-                                "EventListener: unparseable config_changed payload: {}",
-                                notification.payload()
-                            );
-                        }
-                    },
-                    "modules_changed" => {
-                        if let Ok(guild_id) = notification.payload().parse::<u64>() {
-                            let _ = events.send(AppEvent::ModulesChanged(guild_id));
-                        } else {
-                            warn!(
-                                "EventListener: unparseable modules_changed payload: {}",
-                                notification.payload()
-                            );
-                        }
-                    },
-                    "entitlement_changed" => {
-                        match EntitlementScope::from_notify_payload(
-                            notification.payload(),
-                        ) {
-                            Ok(scope) => {
-                                let _ =
-                                    events.send(AppEvent::EntitlementChanged(scope));
-                            },
-                            Err(e) => {
-                                warn!(
-                                    "EventListener: unparseable entitlement_changed payload: {e}"
-                                );
-                            },
-                        }
-                    },
-                    "patreon_post" => {
-                        let _ = events.send(AppEvent::PatreonPost(
-                            notification.payload().to_owned(),
-                        ));
-                    },
-                    "youtube_upload" => {
-                        let _ = events.send(AppEvent::YoutubeUpload(
-                            notification.payload().to_owned(),
-                        ));
-                    },
-                    "hosting_paid" => {
-                        if let Ok(id) = notification.payload().parse::<i64>() {
-                            let _ = events.send(AppEvent::HostingPaid(id));
-                        } else {
-                            warn!(
-                                "EventListener: unparseable hosting_paid payload: {}",
-                                notification.payload()
-                            );
-                        }
-                    },
-                    other => {
-                        warn!("EventListener: unexpected channel: {other}");
-                    },
+            let error = match Self::subscribe(pool).await {
+                Ok(mut listener) => {
+                    backoff = MIN_BACKOFF;
+                    if missed {
+                        info!("EventListener: reconnected; resyncing caches");
+                        let _ = events.send(AppEvent::Resync);
+                    }
+                    Self::pump(&mut listener, &events).await
                 },
-                Err(e) => {
-                    warn!("EventListener: fatal recv error: {e}");
-                    break;
-                },
+                Err(e) => Some(e),
+            };
+
+            match error {
+                Some(sqlx::Error::PoolClosed) => return,
+                Some(e) => warn!(?backoff, "EventListener: connection failed: {e}"),
+                None => warn!(?backoff, "EventListener: connection lost"),
+            }
+
+            missed = true;
+            sleep(backoff).await;
+            backoff = backoff.saturating_mul(2).min(MAX_BACKOFF);
+        }
+    }
+
+    async fn subscribe(pool: &PgPool) -> sqlx::Result<PgListener> {
+        let mut listener = PgListener::connect_with(pool).await?;
+        listener.listen_all(Channel::ALL.map(Channel::as_str)).await?;
+        Ok(listener)
+    }
+
+    async fn pump(
+        listener: &mut PgListener,
+        events: &Sender<AppEvent>,
+    ) -> Option<sqlx::Error> {
+        loop {
+            match listener.try_recv().await {
+                Ok(Some(notification)) => Self::dispatch(&notification, events),
+                Ok(None) => return None,
+                Err(e) => return Some(e),
             }
         }
     }
 
-    pub fn spawn(pool: PgPool, events: broadcast::Sender<AppEvent>) {
+    fn dispatch(notification: &PgNotification, events: &Sender<AppEvent>) {
+        let name = notification.channel();
+        let payload = notification.payload();
+
+        let Some(channel) = Channel::from_name(name) else {
+            warn!("EventListener: unexpected channel: {name}");
+            return;
+        };
+
+        match channel.decode(payload) {
+            Some(event) => {
+                let _ = events.send(event);
+            },
+            None => warn!("EventListener: unparseable {name} payload: {payload}"),
+        }
+    }
+
+    pub fn spawn(pool: PgPool, events: Sender<AppEvent>) {
         tokio::spawn(async move {
             Self::listen(&pool, events).await;
         });

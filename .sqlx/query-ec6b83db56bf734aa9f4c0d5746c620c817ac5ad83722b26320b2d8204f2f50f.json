@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH s AS (SELECT serving_application($1) AS custom)\n               SELECT s.custom,\n                      EXISTS (\n                          SELECT 1 FROM guild_presence p\n                          WHERE p.guild_id = $1\n                            AND p.application_id = COALESCE(s.custom, $2)\n                            AND p.left_at IS NULL\n                      ) AS \"present!\"\n               FROM s",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "custom",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "present!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "ec6b83db56bf734aa9f4c0d5746c620c817ac5ad83722b26320b2d8204f2f50f"
+}

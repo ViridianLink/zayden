@@ -14,23 +14,17 @@ pub fn spawn_patreon_listener(ctx: Context, app: Arc<AppState>) {
             match rx.recv().await {
                 Ok(AppEvent::PatreonPost(post_id)) => {
                     info!(post_id, "patreon: webhook post received, announcing");
-                    if let Err(e) =
-                        patreon::announce_pending(&ctx.http, &app.http, &app.db)
-                            .await
-                    {
-                        error!(
-                            error = ?e,
-                            post_id,
-                            "patreon: failed to announce a webhook post"
-                        );
-                    }
+                    announce(&ctx, &app).await;
                 },
+                Ok(AppEvent::Resync) => announce(&ctx, &app).await,
                 Ok(
                     AppEvent::ConfigChanged(_)
                     | AppEvent::ModulesChanged(_)
                     | AppEvent::EntitlementChanged(_)
                     | AppEvent::YoutubeUpload(_)
-                    | AppEvent::HostingPaid(_),
+                    | AppEvent::HostingPaid(_)
+                    | AppEvent::ServingChanged(_)
+                    | AppEvent::CustomBotsChanged(_),
                 ) => {},
                 Err(RecvError::Lagged(n)) => {
                     warn!(
@@ -45,4 +39,10 @@ pub fn spawn_patreon_listener(ctx: Context, app: Arc<AppState>) {
             }
         }
     });
+}
+
+async fn announce(ctx: &Context, app: &AppState) {
+    if let Err(e) = patreon::announce_pending(&ctx.http, &app.http, &app.db).await {
+        error!(error = ?e, "patreon: failed to announce pending posts");
+    }
 }

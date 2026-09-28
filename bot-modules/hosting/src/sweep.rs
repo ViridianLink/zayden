@@ -228,3 +228,35 @@ pub async fn claim_deletions(pool: &PgPool, limit: i64) -> Result<Vec<Claimed>> 
 
     Ok(rows)
 }
+
+pub async fn claim_unsuspends(pool: &PgPool, limit: i64) -> Result<Vec<Claimed>> {
+    let rows = sqlx::query_as!(
+        Claimed,
+        r#"
+        WITH due AS (
+            SELECT s.id
+            FROM hosted_servers s
+            WHERE s.state = 'active'
+              AND s.unsuspend_due IS NOT NULL
+              AND s.unsuspend_due <= now()
+            ORDER BY s.unsuspend_due
+            LIMIT $1
+            FOR UPDATE OF s SKIP LOCKED
+        )
+        UPDATE hosted_servers s
+        SET unsuspend_due = now() + interval '10 minutes'
+        FROM due
+        WHERE s.id = due.id
+        RETURNING
+            s.id, s.owner_id, s.game_key, s.plan, s.pelican_server_id,
+            s.price_cents, s.billing_source, s.claim_code,
+            s.paid_until IS NOT NULL AS "has_paid!",
+            coalesce(s.paid_until, s.trial_ends_at) AS "expires_at: jiff_sqlx::Timestamp"
+        "#,
+        limit
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(rows)
+}

@@ -156,6 +156,7 @@ impl EntitlementService {
                     Ok(AppEvent::EntitlementChanged(scope)) => {
                         this.cache.invalidate(&scope).await;
                     },
+                    Ok(AppEvent::Resync) => this.cache.invalidate_all(),
                     Ok(_) => {},
                     Err(broadcast::error::RecvError::Lagged(n)) => {
                         warn!(

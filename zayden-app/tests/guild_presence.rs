@@ -2,8 +2,15 @@
 //! gone from it for the whole retention window, and re-adding any of them
 //! within the window cancels the purge.
 
+use jiff::{SignedDuration, Timestamp};
 use sqlx::PgPool;
-use zayden_app::guilds::{GuildPresence, RETENTION_DAYS, Shard};
+use zayden_app::guilds::{
+    GuildPresence,
+    JoinKind,
+    OwnPresence,
+    RETENTION_DAYS,
+    Shard,
+};
 
 const ZAYDEN: i64 = 100;
 const VIKTOR: i64 = 200;
@@ -11,6 +18,25 @@ const VIKTOR: i64 = 200;
 /// `(id >> 22) % 2` puts these on shards 0 and 1 respectively.
 const SHARD_0_GUILD: i64 = 1;
 const SHARD_1_GUILD: i64 = 1 << 22;
+
+const fn joined() -> Timestamp {
+    Timestamp::constant(1_750_000_000, 0)
+}
+
+fn later() -> Timestamp {
+    joined() + SignedDuration::from_hours(24)
+}
+
+#[expect(
+    clippy::expect_used,
+    reason = "a free helper sits outside the #[test] items clippy.toml exempts"
+)]
+async fn mark_seeded(pool: &PgPool, guild_id: i64) {
+    sqlx::query!("UPDATE guilds SET bot_joined_at = now() WHERE id = $1", guild_id)
+        .execute(pool)
+        .await
+        .expect("the seed marker is written");
+}
 
 #[expect(
     clippy::expect_used,
@@ -60,7 +86,7 @@ async fn left_at_is_set(pool: &PgPool, guild_id: i64, application_id: i64) -> bo
 
 #[sqlx::test(migrations = "../migrations")]
 async fn a_guild_inside_the_window_is_kept(pool: PgPool) {
-    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
     GuildPresence::left(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
     backdate(&pool, SHARD_0_GUILD, RETENTION_DAYS - 1).await;
 
@@ -75,7 +101,7 @@ async fn a_guild_inside_the_window_is_kept(pool: PgPool) {
 
 #[sqlx::test(migrations = "../migrations")]
 async fn a_guild_past_the_window_is_purged_with_its_data(pool: PgPool) {
-    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
     sqlx::query!("INSERT INTO music_settings (guild_id) VALUES ($1)", SHARD_0_GUILD)
         .execute(&pool)
         .await
@@ -109,11 +135,11 @@ async fn a_guild_past_the_window_is_purged_with_its_data(pool: PgPool) {
 
 #[sqlx::test(migrations = "../migrations")]
 async fn re_adding_the_bot_cancels_the_purge(pool: PgPool) {
-    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
     GuildPresence::left(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
     backdate(&pool, SHARD_0_GUILD, RETENTION_DAYS + 1).await;
 
-    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
 
     assert_eq!(
         GuildPresence::expired(&pool, RETENTION_DAYS).await.unwrap(),
@@ -127,8 +153,8 @@ async fn re_adding_the_bot_cancels_the_purge(pool: PgPool) {
 
 #[sqlx::test(migrations = "../migrations")]
 async fn a_sibling_bot_still_present_keeps_the_guild(pool: PgPool) {
-    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
-    GuildPresence::joined(&pool, SHARD_0_GUILD, VIKTOR).await.unwrap();
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
+    GuildPresence::joined(&pool, SHARD_0_GUILD, VIKTOR, joined()).await.unwrap();
     GuildPresence::left(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
     backdate(&pool, SHARD_0_GUILD, RETENTION_DAYS + 1).await;
 
@@ -140,7 +166,7 @@ async fn a_sibling_bot_still_present_keeps_the_guild(pool: PgPool) {
 
 #[sqlx::test(migrations = "../migrations")]
 async fn a_repeated_removal_keeps_the_first_departure_time(pool: PgPool) {
-    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
     GuildPresence::left(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
     backdate(&pool, SHARD_0_GUILD, RETENTION_DAYS + 1).await;
 
@@ -164,7 +190,7 @@ async fn leaving_a_guild_with_no_data_records_nothing(pool: PgPool) {
 async fn reconcile_marks_only_missing_guilds_on_its_own_shard(pool: PgPool) {
     let listed = SHARD_0_GUILD + 2;
     for guild_id in [SHARD_0_GUILD, listed, SHARD_1_GUILD] {
-        GuildPresence::joined(&pool, guild_id, ZAYDEN).await.unwrap();
+        GuildPresence::joined(&pool, guild_id, ZAYDEN, joined()).await.unwrap();
     }
 
     let marked =
@@ -194,4 +220,117 @@ async fn reconcile_covers_guilds_stored_before_tracking(pool: PgPool) {
         .unwrap();
 
     assert!(left_at_is_set(&pool, SHARD_0_GUILD, ZAYDEN).await);
+}
+
+#[test]
+fn an_unseeded_guild_is_a_first_join() {
+    assert_eq!(JoinKind::classify(false, None, false, joined()), JoinKind::First);
+}
+
+#[test]
+fn the_same_membership_is_a_reconnect() {
+    let own = OwnPresence { joined_at: Some(joined()), present: true };
+    assert_eq!(
+        JoinKind::classify(true, Some(own), true, joined()),
+        JoinKind::Reconnect
+    );
+}
+
+#[test]
+fn a_row_from_before_joined_at_was_tracked_is_a_reconnect() {
+    let own = OwnPresence { joined_at: None, present: true };
+    assert_eq!(
+        JoinKind::classify(true, Some(own), false, later()),
+        JoinKind::Reconnect
+    );
+}
+
+#[test]
+fn joining_beside_a_present_bot_is_additional() {
+    assert_eq!(JoinKind::classify(true, None, true, joined()), JoinKind::Additional);
+}
+
+#[test]
+fn a_reconcile_placeholder_row_does_not_count_as_membership() {
+    let own = OwnPresence { joined_at: None, present: false };
+    assert_eq!(
+        JoinKind::classify(true, Some(own), true, joined()),
+        JoinKind::Additional
+    );
+}
+
+#[test]
+fn returning_after_every_bot_left_is_a_rejoin() {
+    let own = OwnPresence { joined_at: Some(joined()), present: false };
+    assert_eq!(
+        JoinKind::classify(true, Some(own), false, later()),
+        JoinKind::Rejoin
+    );
+}
+
+#[test]
+fn being_re_added_while_offline_is_a_rejoin() {
+    let own = OwnPresence { joined_at: Some(joined()), present: true };
+    assert_eq!(
+        JoinKind::classify(true, Some(own), false, later()),
+        JoinKind::Rejoin
+    );
+}
+
+#[test]
+fn only_a_rejoin_resets_modules() {
+    assert!(JoinKind::Rejoin.resets_modules());
+    assert!(!JoinKind::First.resets_modules());
+    assert!(!JoinKind::Reconnect.resets_modules());
+    assert!(!JoinKind::Additional.resets_modules());
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_second_bot_joining_is_additional(pool: PgPool) {
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
+    mark_seeded(&pool, SHARD_0_GUILD).await;
+
+    let kind =
+        GuildPresence::joined(&pool, SHARD_0_GUILD, VIKTOR, later()).await.unwrap();
+
+    assert_eq!(kind, JoinKind::Additional);
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_bot_absent_since_reconcile_joining_beside_another_is_additional(
+    pool: PgPool,
+) {
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
+    mark_seeded(&pool, SHARD_0_GUILD).await;
+    GuildPresence::reconcile(&pool, VIKTOR, Shard { id: 0, total: 1 }, &[])
+        .await
+        .unwrap();
+
+    let kind =
+        GuildPresence::joined(&pool, SHARD_0_GUILD, VIKTOR, later()).await.unwrap();
+
+    assert_eq!(kind, JoinKind::Additional);
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_gateway_reconnect_is_a_reconnect(pool: PgPool) {
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
+    mark_seeded(&pool, SHARD_0_GUILD).await;
+
+    let kind =
+        GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
+
+    assert_eq!(kind, JoinKind::Reconnect);
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn re_adding_after_being_removed_is_a_rejoin(pool: PgPool) {
+    GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, joined()).await.unwrap();
+    mark_seeded(&pool, SHARD_0_GUILD).await;
+    GuildPresence::left(&pool, SHARD_0_GUILD, ZAYDEN).await.unwrap();
+
+    let kind =
+        GuildPresence::joined(&pool, SHARD_0_GUILD, ZAYDEN, later()).await.unwrap();
+
+    assert_eq!(kind, JoinKind::Rejoin);
 }

@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT key_id, token_nonce, token_ct FROM custom_bots\n             WHERE application_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key_id",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "custom_bots",
+            "name": "key_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "token_nonce",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "custom_bots",
+            "name": "token_nonce"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "token_ct",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "custom_bots",
+            "name": "token_ct"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e9a1f06775b6c083402932d81a0586963fda1fb1183185c30f922e1240952c6d"
+}

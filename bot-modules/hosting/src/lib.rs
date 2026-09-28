@@ -13,6 +13,7 @@ pub mod sweep;
 
 use std::sync::Arc;
 
+use sqlx::PgPool;
 use tokio::sync::broadcast::Receiver;
 use zayden_app::config::HostingConfig;
 use zayden_app::events::AppEvent;
@@ -50,7 +51,7 @@ pub const COMMAND_NAME: &str = "server";
 impl HostingRuntime {
     pub fn spawn_paid_listener(
         this: Arc<Self>,
-        pool: sqlx::PgPool,
+        pool: PgPool,
         mut rx: Receiver<AppEvent>,
     ) {
         use tokio::sync::broadcast::error::RecvError;
@@ -58,44 +59,49 @@ impl HostingRuntime {
         tokio::spawn(async move {
             loop {
                 match rx.recv().await {
-                    Ok(AppEvent::HostingPaid(id)) => {
-                        unsuspend_paid(&this, &pool, id).await;
+                    Ok(AppEvent::HostingPaid(_) | AppEvent::Resync)
+                    | Err(RecvError::Lagged(_)) => {
+                        this.unsuspend_due(&pool).await;
                     },
                     Ok(_) => {},
-                    Err(RecvError::Lagged(n)) => {
-                        tracing::warn!(
-                            n,
-                            "hosting paid listener lagged; suspended servers \
-                             will be picked up by the next payment or by hand"
-                        );
-                    },
                     Err(RecvError::Closed) => break,
                 }
             }
         });
     }
-}
 
-async fn unsuspend_paid(runtime: &HostingRuntime, pool: &sqlx::PgPool, id: i64) {
-    let row = match store::get(pool, id).await {
-        Ok(row) => row,
-        Err(e) => {
-            tracing::error!(error = %e, row = id, "hosting: paid row vanished");
-            return;
-        },
-    };
+    pub async fn unsuspend_due(&self, pool: &PgPool) {
+        const BATCH: i64 = 50;
 
-    let Some(server_id) = row.pelican_server_id else {
-        return;
-    };
+        let rows = match sweep::claim_unsuspends(pool, BATCH).await {
+            Ok(rows) => rows,
+            Err(e) => {
+                tracing::error!(error = %e, "hosting: unsuspend sweep failed");
+                return;
+            },
+        };
 
-    if let Err(e) = runtime.pelican.unsuspend(server_id).await {
-        tracing::error!(
-            error = %e,
-            row = id,
-            server_id,
-            "hosting: unsuspend failed after payment; the owner has paid for a \
-             server that is still down"
-        );
+        for row in rows {
+            if let Some(server_id) = row.pelican_server_id
+                && let Err(e) = self.pelican.unsuspend(server_id).await
+            {
+                // The lease runs out and the next sweep retries.
+                tracing::error!(
+                    error = %e,
+                    row = row.id,
+                    server_id,
+                    "hosting: unsuspend failed after payment; will retry"
+                );
+                continue;
+            }
+
+            if let Err(e) = store::clear_unsuspend(pool, row.id).await {
+                tracing::error!(
+                    error = %e,
+                    row = row.id,
+                    "hosting: could not clear the unsuspend marker"
+                );
+            }
+        }
     }
 }

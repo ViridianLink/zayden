@@ -38,7 +38,11 @@ pub fn spawn_youtube_listener(
                     | AppEvent::ModulesChanged(_)
                     | AppEvent::EntitlementChanged(_)
                     | AppEvent::PatreonPost(_)
-                    | AppEvent::HostingPaid(_),
+                    | AppEvent::HostingPaid(_)
+                    | AppEvent::ServingChanged(_)
+                    | AppEvent::CustomBotsChanged(_)
+                    // The next poll re-reads every channel, so nothing is lost.
+                    | AppEvent::Resync,
                 ) => {},
                 Err(RecvError::Lagged(n)) => {
                     warn!(

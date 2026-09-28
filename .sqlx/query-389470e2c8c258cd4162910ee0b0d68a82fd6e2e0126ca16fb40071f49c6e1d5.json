@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE hosted_servers SET unsuspend_due = now() - interval '1 second' WHERE id = 6 AND unsuspend_due IS NOT NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "389470e2c8c258cd4162910ee0b0d68a82fd6e2e0126ca16fb40071f49c6e1d5"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO custom_bots\n                 (application_id, bot_user_id, name, avatar, public_key,\n                  token_ct, token_nonce, key_id, registered_by)\n             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n             ON CONFLICT (application_id) DO UPDATE SET\n                 bot_user_id = EXCLUDED.bot_user_id,\n                 name = EXCLUDED.name,\n                 avatar = EXCLUDED.avatar,\n                 public_key = EXCLUDED.public_key,\n                 token_ct = EXCLUDED.token_ct,\n                 token_nonce = EXCLUDED.token_nonce,\n                 key_id = EXCLUDED.key_id,\n                 status = 'active',\n                 last_error = NULL,\n                 token_rotated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Bytea",
+        "Bytea",
+        "Int2",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a97f1f311c316638cf8fd40662c9a6ee11959acd27d0720433bbe818af5e1d8c"
+}

@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT joined_at AS \"joined_at: jiff_sqlx::Timestamp\",\n                      left_at IS NULL AS \"present!\"\n               FROM guild_presence\n               WHERE guild_id = $1 AND application_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "joined_at: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "guild_presence",
+            "name": "joined_at"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "present!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      null
+    ]
+  },
+  "hash": "3c607b5bfb4d872b92c105e7dc6491afad0231cf52332597d37e88144dd5997b"
+}

@@ -72,12 +72,15 @@ impl WikiIndex {
                             index.invalidate(GuildId::new(guild_id));
                         }
                     },
+                    Ok(AppEvent::Resync) => index.guilds.clear(),
                     Ok(
                         AppEvent::EntitlementChanged(_)
                         | AppEvent::ModulesChanged(_)
                         | AppEvent::PatreonPost(_)
                         | AppEvent::YoutubeUpload(_)
-                        | AppEvent::HostingPaid(_),
+                        | AppEvent::HostingPaid(_)
+                        | AppEvent::ServingChanged(_)
+                        | AppEvent::CustomBotsChanged(_),
                     ) => {},
                     Err(RecvError::Lagged(n)) => {
                         warn!(n, "wiki index invalidator lagged; dropping all");

@@ -320,6 +320,11 @@ regex = { version = "*", default-features = false }
 sha1 = { version = "0.11", default-features = false }
 sha2 = { version = "*", default-features = false }
 
+# -- Encryption
+# Already built as rustls' crypto provider; reused rather than adding a cipher crate.
+aws-lc-rs = { version = "*", default-features = false }
+secrecy = { version = "*", default-features = false }
+
 # -- Frontend (Leptos)
 leptos = { version = "*", default-features = false }
 leptos_meta = { version = "*", default-features = false }

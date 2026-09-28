@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE guilds SET bot_joined_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "940025acfcf12fcd1afbc5ff30abe77c53f2a6d8f8bacc37421d9edb30086b82"
+}

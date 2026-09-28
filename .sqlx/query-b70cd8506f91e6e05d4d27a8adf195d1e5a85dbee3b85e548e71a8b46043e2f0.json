@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_presence (guild_id, application_id, joined_at)\n             VALUES ($1, $2, $3)\n             ON CONFLICT (guild_id, application_id)\n             DO UPDATE SET left_at = NULL, joined_at = EXCLUDED.joined_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b70cd8506f91e6e05d4d27a8adf195d1e5a85dbee3b85e548e71a8b46043e2f0"
+}
