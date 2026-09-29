@@ -29,3 +29,28 @@ pub enum LoadoutFormError {
     #[error("stat value `{0}` is not a whole number")]
     StatValue(String),
 }
+
+#[cfg(feature = "ssr")]
+#[derive(Debug, thiserror::Error)]
+pub enum EmojiUploadError {
+    #[error("emoji names are 2-32 lowercase letters, digits or underscores")]
+    InvalidName,
+    #[error("`{0}` is reserved for a built-in class, element, weapon or stat icon")]
+    ReservedName(String),
+    #[error("Zayden already has an emoji named `{0}`")]
+    NameTaken(String),
+    #[error("the image link must be an https:// URL")]
+    NotHttps,
+    #[error("that link points at a private network address")]
+    PrivateAddress,
+    #[error("couldn't download the image: {0}")]
+    Fetch(String),
+    #[error("images must be 256 KiB or smaller")]
+    TooLarge,
+    #[error("images must be PNG, JPEG, GIF or WebP")]
+    UnsupportedType,
+    #[error("the chosen file couldn't be read")]
+    BadDataUri,
+    #[error("Discord refused the emoji: {0}")]
+    Discord(String),
+}

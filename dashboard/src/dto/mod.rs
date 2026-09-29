@@ -1,4 +1,5 @@
 pub mod destiny2;
+pub mod destiny2_keys;
 pub mod discord;
 pub mod faq;
 pub mod greetings;

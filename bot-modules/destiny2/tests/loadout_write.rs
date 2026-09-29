@@ -151,10 +151,62 @@ async fn the_seeded_loadouts_still_load(pool: PgPool) {
 }
 
 #[sqlx::test(migrations = "../../migrations")]
-async fn emoji_keys_in_use_include_seeded_keys(pool: PgPool) {
-    let keys = loadout_catalog::emoji_keys_in_use(&pool).await.unwrap();
-    assert!(keys.iter().any(|k| k == "thundercrash"));
-    assert!(keys.iter().any(|k| k == "spark_of_shock"));
+async fn usage_counts_keys_per_field_class_and_element(pool: PgPool) {
+    let usage = loadout_catalog::usage(&pool).await.unwrap();
+    assert!(usage.iter().any(|u| u.field == "super"
+        && u.key == "thundercrash"
+        && u.class == Class::Titan
+        && u.element == Element::Arc
+        && u.uses >= 1));
+    assert!(
+        usage.iter().any(|u| u.field == "fragment" && u.key == "spark_of_shock")
+    );
+    assert!(usage.iter().any(|u| u.field == "weapon_perk"));
+    assert!(usage.iter().any(|u| u.field == "weapon"));
+    assert!(usage.iter().all(|u| !u.key.is_empty()));
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn usage_rows_are_unique_per_field_key_class_and_element(pool: PgPool) {
+    let usage = loadout_catalog::usage(&pool).await.unwrap();
+    let mut seen = std::collections::HashSet::new();
+    for u in &usage {
+        assert!(seen.insert((&u.field, &u.key, u.class, u.element)), "{u:?}");
+    }
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn super_names_follow_the_latest_loadout(pool: PgPool) {
+    let names = loadout_catalog::super_names(&pool).await.unwrap();
+    assert!(names.contains(&("thundercrash".to_owned(), "Thundercrash".to_owned())));
+
+    let mut renamed = raw("Rename");
+    renamed.super_emoji = "thundercrash".into();
+    renamed.super_name = "Thunder Crash".into();
+    save!(&pool, None, renamed).unwrap();
+
+    let names = loadout_catalog::super_names(&pool).await.unwrap();
+    let crash: Vec<_> = names.iter().filter(|(e, _)| e == "thundercrash").collect();
+    assert_eq!(crash, [&("thundercrash".to_owned(), "Thunder Crash".to_owned())]);
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn known_perks_name_catalog_weapons(pool: PgPool) {
+    let known = loadout_catalog::weapon_known_perks(&pool).await.unwrap();
+    let weapons = loadout_catalog::weapons(&pool).await.unwrap();
+    assert_ne!(known.len(), 0);
+    assert!(known.iter().all(|(w, _)| weapons.iter().any(|c| &c.name == w)));
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn armour_pieces_are_distinct_per_slot_and_name(pool: PgPool) {
+    let pieces = loadout_catalog::armour_pieces(&pool).await.unwrap();
+    assert_ne!(pieces.len(), 0);
+    let mut seen = std::collections::HashSet::new();
+    for p in &pieces {
+        assert_ne!(p.name, "");
+        assert!(seen.insert((p.slot, p.class, &p.name)), "{p:?}");
+    }
 }
 
 #[sqlx::test(migrations = "../../migrations")]

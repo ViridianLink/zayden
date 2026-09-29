@@ -4,12 +4,15 @@ use leptos::server_fn::codec::Json;
 use {
     crate::dto::destiny2::{
         ArmourForm,
+        ArmourPieceInfo,
         AspectForm,
         CatalogWeaponInfo,
         LoadoutOptions,
         StatForm,
+        UsageInfo,
         WeaponForm,
     },
+    crate::dto::destiny2_keys::{enum_key, is_valid_key},
     crate::server::auth::{
         WebRole,
         app_state,
@@ -18,10 +21,13 @@ use {
         require_role,
         server_err,
     },
-    crate::server::error::LoadoutFormError,
+    crate::server::emoji_upload,
+    crate::server::error::{EmojiUploadError, LoadoutFormError},
+    destiny2::DraftError,
     destiny2::db::loadout_catalog as catalog_db,
     destiny2::db::{loadout_writes, loadouts},
     destiny2::endgame_analysis::sheet::Affinity,
+    destiny2::loadouts::budget,
     destiny2::loadouts::{
         Archetype,
         ArmourSlot,
@@ -34,6 +40,7 @@ use {
         RawLoadout,
         RawWeapon,
         StatKind,
+        limits,
     },
     std::fmt::Display,
     std::str::FromStr,
@@ -41,7 +48,14 @@ use {
     twilight_model::id::Id,
 };
 
-use crate::dto::destiny2::{LoadoutCatalog, LoadoutForm, LoadoutSummary};
+use crate::dto::destiny2::{
+    EmojiInfo,
+    EmojiSource,
+    LoadoutCatalog,
+    LoadoutCheck,
+    LoadoutForm,
+    LoadoutSummary,
+};
 
 #[cfg(feature = "ssr")]
 fn pick<T: FromStr<Err = ()>>(
@@ -89,6 +103,7 @@ pub fn raw_loadout(f: &LoadoutForm) -> Result<RawLoadout, LoadoutFormError> {
         aspects: f
             .aspects
             .iter()
+            .filter(|a| !a.aspect.trim().is_empty())
             .map(|a| RawAspect {
                 aspect: a.aspect.clone(),
                 fragments: a.fragments.clone(),
@@ -97,6 +112,7 @@ pub fn raw_loadout(f: &LoadoutForm) -> Result<RawLoadout, LoadoutFormError> {
         weapons: f
             .weapons
             .iter()
+            .filter(|w| !w.name.trim().is_empty())
             .map(|w| {
                 Ok(RawWeapon {
                     name: w.name.clone(),
@@ -201,6 +217,9 @@ pub fn editor_form(id: Option<i32>, r: RawLoadout) -> LoadoutForm {
         })
         .collect();
 
+    form.aspects
+        .resize_with(form.aspects.len().max(limits::ASPECTS), AspectForm::default);
+
     for stat in StatKind::ALL.iter().map(ToString::to_string) {
         if !form.stats.iter().any(|s| s.stat == stat) {
             form.stats.push(StatForm { stat, value: String::new() });
@@ -216,12 +235,7 @@ fn blank() -> LoadoutForm {
         class: Class::Hunter.to_string(),
         element: Element::Arc.to_string(),
         mode: Mode::All.to_string(),
-        aspects: vec![AspectForm::default()],
-        weapons: vec![WeaponForm {
-            affinity: Affinity::Kinetic.to_string(),
-            archetype: Archetype::AutoRifle.to_string(),
-            ..WeaponForm::default()
-        }],
+        aspects: vec![AspectForm::default(); limits::ASPECTS],
         armour: ArmourSlot::ALL
             .iter()
             .map(|s| ArmourForm { slot: s.to_string(), ..ArmourForm::default() })
@@ -235,7 +249,7 @@ fn blank() -> LoadoutForm {
 }
 
 #[cfg(feature = "ssr")]
-async fn zayden_emoji_names() -> Vec<String> {
+pub(crate) async fn zayden_emojis() -> Vec<EmojiInfo> {
     let (http, app) = match (discord_client(), app_state()) {
         (Ok(http), Ok(app)) => (http, app),
         (Err(e), _) | (_, Err(e)) => {
@@ -249,7 +263,11 @@ async fn zayden_emoji_names() -> Vec<String> {
     };
     match http.get_application_emojis(application).await {
         Ok(response) => match response.model().await {
-            Ok(list) => list.items.into_iter().map(|e| e.name).collect(),
+            Ok(list) => list
+                .items
+                .into_iter()
+                .map(|e| EmojiInfo { name: e.name, id: e.id.to_string() })
+                .collect(),
             Err(e) => {
                 warn!(error = %e, "could not decode Zayden's application emojis");
                 Vec::new()
@@ -259,6 +277,37 @@ async fn zayden_emoji_names() -> Vec<String> {
             warn!(error = %e, "could not list Zayden's application emojis");
             Vec::new()
         },
+    }
+}
+
+#[cfg(feature = "ssr")]
+fn count(n: usize) -> u32 {
+    u32::try_from(n).unwrap_or(u32::MAX)
+}
+
+#[cfg(feature = "ssr")]
+#[must_use]
+pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
+    let armour = form.armour.iter().filter(|a| !a.name.trim().is_empty()).count();
+    let weapons = form.weapons.iter().filter(|w| !w.name.trim().is_empty()).count();
+    let components = budget::components(form.tags.len(), weapons, armour);
+    let (text, error) = match raw_loadout(form) {
+        Err(e) => (None, Some(e.to_string())),
+        Ok(raw) => match LoadoutDraft::try_from(raw) {
+            Ok(draft) => (Some(budget::text(&draft)), None),
+            Err(e @ DraftError::TooMuchText { estimate, .. }) => {
+                (Some(estimate), Some(e.to_string()))
+            },
+            Err(e) => (None, Some(e.to_string())),
+        },
+    };
+
+    LoadoutCheck {
+        components: count(components),
+        max_components: count(budget::MAX_COMPONENTS),
+        text: text.map(count),
+        max_text: count(budget::MAX_TEXT),
+        error,
     }
 }
 
@@ -303,14 +352,21 @@ pub async fn loadout_catalog() -> Result<LoadoutCatalog, ServerFnError> {
 
     let weapons = catalog_db::weapons(&pool).await.map_err(server_err)?;
     let perks = catalog_db::perks(&pool).await.map_err(server_err)?;
-    let emoji_keys =
-        catalog_db::emoji_keys_in_use(&pool).await.map_err(server_err)?;
-    let known_emoji = zayden_emoji_names().await;
+    let usage = catalog_db::usage(&pool).await.map_err(server_err)?;
+    let super_names = catalog_db::super_names(&pool).await.map_err(server_err)?;
+    let known = catalog_db::weapon_known_perks(&pool).await.map_err(server_err)?;
+    let armour = catalog_db::armour_pieces(&pool).await.map_err(server_err)?;
+    let emojis = zayden_emojis().await;
 
     Ok(LoadoutCatalog {
         weapons: weapons
             .into_iter()
             .map(|w| CatalogWeaponInfo {
+                known_perks: known
+                    .iter()
+                    .filter(|(weapon, _)| *weapon == w.name)
+                    .map(|(_, perk)| perk.clone())
+                    .collect(),
                 name: w.name,
                 affinity: w.affinity.to_string(),
                 archetype: w.archetype.to_string(),
@@ -318,8 +374,27 @@ pub async fn loadout_catalog() -> Result<LoadoutCatalog, ServerFnError> {
             })
             .collect(),
         perks,
-        emoji_keys,
-        known_emoji,
+        emojis,
+        usage: usage
+            .into_iter()
+            .map(|u| UsageInfo {
+                field: u.field,
+                key: u.key,
+                class: u.class.to_string(),
+                element: u.element.to_string(),
+                uses: u32::try_from(u.uses).unwrap_or(u32::MAX),
+            })
+            .collect(),
+        super_names,
+        armour: armour
+            .into_iter()
+            .map(|a| ArmourPieceInfo {
+                slot: a.slot.to_string(),
+                class: a.class.to_string(),
+                name: a.name,
+                icon_url: a.icon_url,
+            })
+            .collect(),
         options: LoadoutOptions {
             classes: strings(&Class::ALL),
             elements: strings(&Element::ALL),
@@ -327,9 +402,79 @@ pub async fn loadout_catalog() -> Result<LoadoutCatalog, ServerFnError> {
             affinities: strings(&Affinity::ALL),
             archetypes: strings(&Archetype::ALL),
             stats: strings(&StatKind::ALL),
+            armour_slots: strings(&ArmourSlot::ALL),
         },
         blank: blank(),
     })
+}
+
+#[server(input = Json)]
+pub async fn check_loadout(
+    form: LoadoutForm,
+) -> Result<LoadoutCheck, ServerFnError> {
+    require_role(WebRole::Admin).await?;
+    Ok(loadout_check(&form))
+}
+
+#[cfg(feature = "ssr")]
+#[must_use]
+pub fn reserved_keys() -> Vec<String> {
+    [
+        strings(&Class::ALL),
+        strings(&Element::ALL),
+        strings(&Mode::ALL),
+        strings(&Affinity::ALL),
+        strings(&Archetype::ALL),
+        strings(&StatKind::ALL),
+        strings(&ArmourSlot::ALL),
+    ]
+    .concat()
+    .iter()
+    .map(|label| enum_key(label))
+    .collect()
+}
+
+#[cfg(feature = "ssr")]
+async fn emoji_image(source: EmojiSource) -> Result<String, EmojiUploadError> {
+    let bytes = match source {
+        EmojiSource::Url(raw) => {
+            emoji_upload::fetch(&emoji_upload::https_url(&raw)?).await?
+        },
+        EmojiSource::DataUri(uri) => emoji_upload::decode_data_uri(&uri)?,
+    };
+    emoji_upload::data_uri(&bytes)
+}
+
+#[server(input = Json)]
+pub async fn create_zayden_emoji(
+    name: String,
+    source: EmojiSource,
+) -> Result<EmojiInfo, ServerFnError> {
+    require_role(WebRole::Admin).await?;
+
+    if !is_valid_key(&name) {
+        return Err(server_err(EmojiUploadError::InvalidName));
+    }
+    if reserved_keys().contains(&name) {
+        return Err(server_err(EmojiUploadError::ReservedName(name)));
+    }
+    if zayden_emojis().await.iter().any(|e| e.name == name) {
+        return Err(server_err(EmojiUploadError::NameTaken(name)));
+    }
+    let image = emoji_image(source).await.map_err(server_err)?;
+
+    let http = discord_client()?;
+    let application = Id::new_checked(app_state()?.zayden_id)
+        .ok_or_else(|| ServerFnError::new("zayden_id is not configured"))?;
+    let emoji = http
+        .add_application_emoji(application, &name, &image)
+        .await
+        .map_err(|e| server_err(EmojiUploadError::Discord(e.to_string())))?
+        .model()
+        .await
+        .map_err(|e| server_err(EmojiUploadError::Discord(e.to_string())))?;
+
+    Ok(EmojiInfo { name: emoji.name, id: emoji.id.to_string() })
 }
 
 #[server(input = Json)]

@@ -2,17 +2,19 @@ use leptos::prelude::*;
 
 #[component]
 pub(crate) fn TextInput(
+    #[prop(into)] id: String,
     label: &'static str,
     value: RwSignal<String>,
-    #[prop(optional)] list: Option<&'static str>,
     #[prop(default = "")] placeholder: &'static str,
+    #[prop(default = "text")] kind: &'static str,
 ) -> impl IntoView {
     view! {
         <div class="setting-field">
-            <label>{label}</label>
+            <label for=id.clone()>{label}</label>
             <input
+                id=id
                 class="input"
-                list=list
+                type=kind
                 placeholder=placeholder
                 prop:value=move || value.get()
                 on:input=move |ev| value.set(event_target_value(&ev))
@@ -23,14 +25,16 @@ pub(crate) fn TextInput(
 
 #[component]
 pub(crate) fn OptionSelect(
+    #[prop(into)] id: String,
     label: &'static str,
     value: RwSignal<String>,
     options: Vec<String>,
 ) -> impl IntoView {
     view! {
         <div class="setting-field">
-            <label>{label}</label>
+            <label for=id.clone()>{label}</label>
             <select
+                id=id
                 class="input"
                 prop:value=move || value.get()
                 on:change=move |ev| value.set(event_target_value(&ev))
@@ -45,14 +49,5 @@ pub(crate) fn OptionSelect(
                     .collect_view()}
             </select>
         </div>
-    }
-}
-
-#[component]
-pub(crate) fn Datalist(id: &'static str, values: Vec<String>) -> impl IntoView {
-    view! {
-        <datalist id=id>
-            {values.into_iter().map(|v| view! { <option value=v/> }).collect_view()}
-        </datalist>
     }
 }

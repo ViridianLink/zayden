@@ -72,6 +72,7 @@ pub struct CatalogWeaponInfo {
     pub affinity: String,
     pub archetype: String,
     pub icon_url: String,
+    pub known_perks: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -82,14 +83,55 @@ pub struct LoadoutOptions {
     pub affinities: Vec<String>,
     pub archetypes: Vec<String>,
     pub stats: Vec<String>,
+    pub armour_slots: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LoadoutCatalog {
     pub weapons: Vec<CatalogWeaponInfo>,
     pub perks: Vec<String>,
-    pub emoji_keys: Vec<String>,
-    pub known_emoji: Vec<String>,
+    pub emojis: Vec<EmojiInfo>,
+    pub usage: Vec<UsageInfo>,
+    pub super_names: Vec<(String, String)>,
+    pub armour: Vec<ArmourPieceInfo>,
     pub options: LoadoutOptions,
     pub blank: LoadoutForm,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EmojiInfo {
+    pub name: String,
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UsageInfo {
+    pub field: String,
+    pub key: String,
+    pub class: String,
+    pub element: String,
+    pub uses: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ArmourPieceInfo {
+    pub slot: String,
+    pub class: String,
+    pub name: String,
+    pub icon_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoadoutCheck {
+    pub components: u32,
+    pub max_components: u32,
+    pub text: Option<u32>,
+    pub max_text: u32,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EmojiSource {
+    Url(String),
+    DataUri(String),
 }

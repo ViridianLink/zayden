@@ -333,6 +333,7 @@ leptos_axum = { version = "*" }
 
 # ── WASM (hydrate target only) ───────────────────────────────────────────────
 wasm-bindgen = { version = "*" }
+web-sys = { version = "*" }
 
 # ── Testing and benchmarking ─────────────────────────────────────────────────
 criterion = { version = "*", default-features = false, features = [

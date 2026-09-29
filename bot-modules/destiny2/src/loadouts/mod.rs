@@ -1,4 +1,4 @@
-pub(crate) mod budget;
+pub mod budget;
 pub(crate) mod domain;
 pub(crate) mod draft;
 pub(crate) mod mode;

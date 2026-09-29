@@ -1,12 +1,12 @@
 use super::draft::{EmojiKey, LoadoutDraft};
 use super::record::{GEAR_HEADING, SUBCLASS_HEADING};
 
-pub(crate) const MAX_COMPONENTS: usize = 40;
-pub(crate) const MAX_TEXT: usize = 4000;
+pub const MAX_COMPONENTS: usize = 40;
+pub const MAX_TEXT: usize = 4000;
 const EMOJI_WRAPPER: usize = "<::>".len() + 20;
 
 #[must_use]
-pub(crate) const fn components(tags: usize, weapons: usize, armour: usize) -> usize {
+pub const fn components(tags: usize, weapons: usize, armour: usize) -> usize {
     const FIXED: usize = 16;
     let spacer = if weapons > 0 { 1 } else { 0 };
     FIXED + tags + 3 * (weapons + armour) + spacer
@@ -25,7 +25,7 @@ fn emojis<'a>(keys: impl IntoIterator<Item = &'a EmojiKey>) -> usize {
 }
 
 #[must_use]
-pub(crate) fn text(draft: &LoadoutDraft) -> usize {
+pub fn text(draft: &LoadoutDraft) -> usize {
     let class = chars(&draft.class.to_string());
     let element = chars(&draft.element.to_string());
 

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT w.name AS \"weapon!\", p.name AS \"perk!\"\n           FROM destiny2_weapon_perks wp\n           JOIN destiny2_weapons w ON w.id = wp.weapon_id\n           JOIN destiny2_perks p ON p.id = wp.perk_id\n           UNION\n           SELECT w.name, p.name\n           FROM destiny2_loadout_weapon_perks lwp\n           JOIN destiny2_loadout_weapons lw ON lw.id = lwp.loadout_weapon_id\n           JOIN destiny2_weapons w ON w.id = lw.weapon_id\n           JOIN destiny2_perks p ON p.id = lwp.perk_id\n           ORDER BY 1, 2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "weapon!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "perk!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "2650ffc128c0507d7aa3c9969fb642c2492f0040cefbc6e5d57672060e3f1dfa"
+}

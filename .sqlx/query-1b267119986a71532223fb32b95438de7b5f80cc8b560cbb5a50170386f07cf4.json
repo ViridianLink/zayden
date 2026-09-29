@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (super_emoji) super_emoji, super_name\n         FROM destiny2_loadouts\n         WHERE super_emoji <> ''\n         ORDER BY super_emoji, id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "super_emoji",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "super_emoji"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "super_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "super_name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "1b267119986a71532223fb32b95438de7b5f80cc8b560cbb5a50170386f07cf4"
+}

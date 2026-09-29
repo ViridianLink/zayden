@@ -59,3 +59,12 @@ fn emoji_keys_collects_every_key_field() {
         }
     });
 }
+
+#[test]
+fn the_tracked_snapshot_matches_the_untracked_form() {
+    let owner = Owner::new();
+    owner.with(|| {
+        let state = EditorState::from_form(form());
+        assert_eq!(state.snapshot(), state.to_form());
+    });
+}

@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (ar.slot, l.class, ar.name)\n                  ar.slot AS \"slot!: ArmourSlot\", l.class AS \"class!: Class\",\n                  ar.name, ar.icon_url\n           FROM destiny2_loadout_armour ar\n           JOIN destiny2_loadouts l ON l.id = ar.loadout_id\n           WHERE ar.name <> ''\n           ORDER BY ar.slot, l.class, ar.name, ar.id DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "slot!: ArmourSlot",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_armour_slot",
+            "kind": {
+              "Enum": [
+                "helmet",
+                "arms",
+                "chest",
+                "legs",
+                "class_item"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "slot"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "class!: Class",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_class",
+            "kind": {
+              "Enum": [
+                "hunter",
+                "titan",
+                "warlock"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "class"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "icon_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "icon_url"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "0aa5c37f707ad17853c750e255dad50e027312c9443ce1232e05d5c6bda5fc4e"
+}

@@ -233,6 +233,60 @@ impl EditorState {
         }
     }
 
+    #[must_use]
+    pub fn snapshot(&self) -> LoadoutForm {
+        for s in [
+            self.name,
+            self.class,
+            self.element,
+            self.mode,
+            self.super_name,
+            self.super_emoji,
+            self.class_ability,
+            self.jump,
+            self.melee,
+            self.grenade,
+            self.artifact_name,
+            self.author,
+            self.dim_link,
+            self.video_url,
+            self.how_it_works,
+        ] {
+            s.track();
+        }
+        self.tags.track();
+        self.artifact_perks.track();
+        self.aspects.with(|rows| {
+            for r in rows {
+                r.aspect.track();
+                r.fragments.track();
+            }
+        });
+        self.weapons.with(|rows| {
+            for r in rows {
+                r.name.track();
+                r.affinity.track();
+                r.archetype.track();
+                r.icon_url.track();
+                r.perks.track();
+            }
+        });
+        self.armour.with(|rows| {
+            for r in rows {
+                r.name.track();
+                r.icon_url.track();
+                r.mods.track();
+            }
+        });
+        self.stats.with(|rows| {
+            for r in rows {
+                r.stat.track();
+                r.value.track();
+            }
+        });
+        self.to_form()
+    }
+
     fn key(&self) -> u32 {
         let k = self.next_key.get_untracked();
         self.next_key.set(k.wrapping_add(1));

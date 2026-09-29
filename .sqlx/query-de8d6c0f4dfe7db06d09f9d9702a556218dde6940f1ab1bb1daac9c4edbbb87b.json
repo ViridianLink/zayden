@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.field AS \"field!\", u.key AS \"key!\",\n                  l.class AS \"class!: Class\", l.element AS \"element!: Element\",\n                  COUNT(*) AS \"uses!\"\n           FROM (\n               SELECT id AS loadout_id, 'super' AS field, super_emoji AS key FROM destiny2_loadouts\n               UNION ALL SELECT id, 'class_ability', class_ability FROM destiny2_loadouts\n               UNION ALL SELECT id, 'jump', jump FROM destiny2_loadouts\n               UNION ALL SELECT id, 'melee', melee FROM destiny2_loadouts\n               UNION ALL SELECT id, 'grenade', grenade FROM destiny2_loadouts\n               UNION ALL SELECT loadout_id, 'aspect', aspect_emoji FROM destiny2_loadout_aspects\n               UNION ALL SELECT a.loadout_id, 'fragment', f.fragment_emoji\n                   FROM destiny2_loadout_aspect_fragments f\n                   JOIN destiny2_loadout_aspects a ON a.id = f.aspect_id\n               UNION ALL SELECT lw.loadout_id, 'weapon_perk', p.name\n                   FROM destiny2_loadout_weapon_perks wp\n                   JOIN destiny2_loadout_weapons lw ON lw.id = wp.loadout_weapon_id\n                   JOIN destiny2_perks p ON p.id = wp.perk_id\n               UNION ALL SELECT lw.loadout_id, 'weapon', w.name\n                   FROM destiny2_loadout_weapons lw\n                   JOIN destiny2_weapons w ON w.id = lw.weapon_id\n               UNION ALL SELECT ar.loadout_id, 'armour_mod', m.mod_emoji\n                   FROM destiny2_loadout_armour_mods m\n                   JOIN destiny2_loadout_armour ar ON ar.id = m.armour_id\n               UNION ALL SELECT loadout_id, 'artifact_perk', perk_emoji\n                   FROM destiny2_loadout_artifact_perks\n           ) u\n           JOIN destiny2_loadouts l ON l.id = u.loadout_id\n           WHERE u.key <> ''\n           GROUP BY u.field, u.key, l.class, l.element\n           ORDER BY u.field, u.key",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "field!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "key!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "class!: Class",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_class",
+            "kind": {
+              "Enum": [
+                "hunter",
+                "titan",
+                "warlock"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "class"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "element!: Element",
+        "type_info": {
+          "Custom": {
+            "name": "destiny2_element",
+            "kind": {
+              "Enum": [
+                "arc",
+                "solar",
+                "void",
+                "strand",
+                "stasis",
+                "prismatic"
+              ]
+            }
+          }
+        },
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "element"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "uses!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "de8d6c0f4dfe7db06d09f9d9702a556218dde6940f1ab1bb1daac9c4edbbb87b"
+}

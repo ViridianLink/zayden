@@ -3,6 +3,8 @@ pub mod auth;
 pub mod command_permissions;
 pub mod destiny2;
 pub mod discord;
+#[cfg(feature = "ssr")]
+pub mod emoji_upload;
 pub mod error;
 pub mod faq;
 pub mod greetings;
