@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadout_stats (loadout_id, ordinal, stat, value) VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int2",
+        {
+          "Custom": {
+            "name": "destiny2_stat",
+            "kind": {
+              "Enum": [
+                "health",
+                "melee",
+                "grenade",
+                "super",
+                "class",
+                "weapons"
+              ]
+            }
+          }
+        },
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5a67866af53b560a3c55743e46d5ed80c7c4657f8266c831688efa7f156fa686"
+}

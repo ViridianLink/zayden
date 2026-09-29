@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadouts (\n                name, class, element, mode, super_name, super_emoji, class_ability,\n                jump, melee, grenade, artifact_name, author, dim_link, video_url,\n                how_it_works\n            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)\n            RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "destiny2_class",
+            "kind": {
+              "Enum": [
+                "hunter",
+                "titan",
+                "warlock"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "destiny2_element",
+            "kind": {
+              "Enum": [
+                "arc",
+                "solar",
+                "void",
+                "strand",
+                "stasis",
+                "prismatic"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "destiny2_mode",
+            "kind": {
+              "Enum": [
+                "all",
+                "pve",
+                "pvp"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "43a6c448f3415fcc0d71372d3bd67f58002d194f7ebf1d701460ad6807ce5454"
+}

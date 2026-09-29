@@ -80,7 +80,8 @@ impl WikiIndex {
                         | AppEvent::YoutubeUpload(_)
                         | AppEvent::HostingPaid(_)
                         | AppEvent::ServingChanged(_)
-                        | AppEvent::CustomBotsChanged(_),
+                        | AppEvent::CustomBotsChanged(_)
+                        | AppEvent::LoadoutsChanged,
                     ) => {},
                     Err(RecvError::Lagged(n)) => {
                         warn!(n, "wiki index invalidator lagged; dropping all");

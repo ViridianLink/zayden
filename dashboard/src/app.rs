@@ -4,6 +4,8 @@ use leptos_router::components::{ParentRoute, Route, Router, Routes};
 use leptos_router::path;
 
 use crate::ui::components::layout::{GuildShell, ModulesOpen};
+use crate::ui::pages::destiny2_loadouts::editor::LoadoutEditorPage;
+use crate::ui::pages::destiny2_loadouts::list::LoadoutListPage;
 use crate::ui::pages::greetings::GreetingsPage;
 use crate::ui::pages::guild_settings::GuildSettingsPage;
 use crate::ui::pages::guilds::GuildListPage;
@@ -70,6 +72,9 @@ pub fn App() -> impl IntoView {
                     <Route path=path!("/greetings") view=GreetingsPage/>
                 </ParentRoute>
                 <Route path=path!("/admin/servers") view=OperatorServersPage/>
+                <Route path=path!("/admin/destiny2/loadouts") view=LoadoutListPage/>
+                <Route path=path!("/admin/destiny2/loadouts/new") view=LoadoutEditorPage/>
+                <Route path=path!("/admin/destiny2/loadouts/:id") view=LoadoutEditorPage/>
             </Routes>
         </Router>
     }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT lwp.loadout_weapon_id, p.name AS perk\n        FROM destiny2_loadout_weapon_perks lwp\n        JOIN destiny2_perks p ON p.id = lwp.perk_id\n        ORDER BY lwp.loadout_weapon_id, lwp.ordinal",
+  "query": "SELECT lwp.loadout_weapon_id, p.name AS perk\n        FROM destiny2_loadout_weapon_perks lwp\n        JOIN destiny2_perks p ON p.id = lwp.perk_id\n        JOIN destiny2_loadout_weapons lw ON lw.id = lwp.loadout_weapon_id\n        WHERE ($1::int IS NULL OR lw.loadout_id = $1)\n        ORDER BY lwp.loadout_weapon_id, lwp.ordinal",
   "describe": {
     "columns": [
       {
@@ -27,12 +27,14 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
       false
     ]
   },
-  "hash": "cc070a5af4307b4691093e7bdd77f646c3b51839a797bbe9f4247a0d57df3768"
+  "hash": "114e5305a382121750bf3e2a9e3c3dcd20bf6e0a3ce5bc3c161d21edebe7fff0"
 }

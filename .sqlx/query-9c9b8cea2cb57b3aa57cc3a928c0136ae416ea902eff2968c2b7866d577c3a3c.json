@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadout_armour (loadout_id, slot, name, icon_url)\n             VALUES ($1, $2, $3, $4) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_armour",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        {
+          "Custom": {
+            "name": "destiny2_armour_slot",
+            "kind": {
+              "Enum": [
+                "helmet",
+                "arms",
+                "chest",
+                "legs",
+                "class_item"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9c9b8cea2cb57b3aa57cc3a928c0136ae416ea902eff2968c2b7866d577c3a3c"
+}

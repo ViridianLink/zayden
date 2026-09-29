@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM destiny2_loadout_weapons WHERE loadout_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fe14f5cf9811da6dbf0d6e9f5ac33a6ff6e67a24be6d0a85e70419476904aae3"
+}

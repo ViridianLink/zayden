@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM destiny2_loadout_aspects WHERE loadout_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b69b5ec41f747e1266af2b02a4dacc83ffe831f1ddd099f5b5ddc87a73738a16"
+}

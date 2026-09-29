@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT key AS \"key!\" FROM (\n               SELECT super_emoji AS key FROM destiny2_loadouts\n               UNION SELECT class_ability FROM destiny2_loadouts\n               UNION SELECT jump FROM destiny2_loadouts\n               UNION SELECT melee FROM destiny2_loadouts\n               UNION SELECT grenade FROM destiny2_loadouts\n               UNION SELECT aspect_emoji FROM destiny2_loadout_aspects\n               UNION SELECT fragment_emoji FROM destiny2_loadout_aspect_fragments\n               UNION SELECT mod_emoji FROM destiny2_loadout_armour_mods\n               UNION SELECT perk_emoji FROM destiny2_loadout_artifact_perks\n               UNION SELECT name FROM destiny2_perks\n           ) keys ORDER BY key",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "dd045521e6aa929807840cef9e3b72326c80e770d339079d900413353a7ae2ab"
+}

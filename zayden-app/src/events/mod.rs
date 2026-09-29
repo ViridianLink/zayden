@@ -16,5 +16,6 @@ pub enum AppEvent {
     HostingPaid(i64),
     ServingChanged(u64),
     CustomBotsChanged(u64),
+    LoadoutsChanged,
     Resync,
 }

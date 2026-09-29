@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM destiny2_loadout_artifact_perks WHERE loadout_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5b2f52c5a789e947951ef9aaec6873b1e72d6a1fadfe4351bea11a326afa6634"
+}

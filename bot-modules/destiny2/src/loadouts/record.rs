@@ -26,6 +26,11 @@ use super::{DUPLICATE, resolve_emoji};
 use crate::Result;
 use crate::endgame_analysis::sheet::Affinity;
 
+pub(crate) const SUBCLASS_HEADING: &str = "### SUBCLASS\nSuper       Abilities                                       Aspects";
+pub(crate) const GEAR_HEADING: &str = "### GEAR AND MODS";
+
+const CHOICE_LABEL: usize = 100;
+
 #[derive(Debug, Clone)]
 pub struct AspectRecord {
     pub emoji: String,
@@ -84,6 +89,9 @@ impl LoadoutRecord {
     #[must_use]
     pub fn choice_label(&self) -> String {
         format!("{} | {}", self.element, self.name)
+            .chars()
+            .take(CHOICE_LABEL)
+            .collect()
     }
 
     pub async fn into_component<Data: EmojiCacheData>(
@@ -148,9 +156,7 @@ impl LoadoutRecord {
             ]));
 
         let subclass_heading = CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new(
-                "### SUBCLASS\nSuper       Abilities                                       Aspects",
-            ),
+            CreateTextDisplay::new(SUBCLASS_HEADING),
         );
 
         let aspects = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
@@ -210,7 +216,7 @@ impl LoadoutRecord {
         );
 
         let gear_and_mods_heading = CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new("### GEAR AND MODS"),
+            CreateTextDisplay::new(GEAR_HEADING),
         );
 
         let weapons = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {

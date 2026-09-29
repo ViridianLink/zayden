@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE destiny2_loadouts SET\n                name = $2, class = $3, element = $4, mode = $5, super_name = $6,\n                super_emoji = $7, class_ability = $8, jump = $9, melee = $10,\n                grenade = $11, artifact_name = $12, author = $13, dim_link = $14,\n                video_url = $15, how_it_works = $16\n            WHERE id = $1\n            RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadouts",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        {
+          "Custom": {
+            "name": "destiny2_class",
+            "kind": {
+              "Enum": [
+                "hunter",
+                "titan",
+                "warlock"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "destiny2_element",
+            "kind": {
+              "Enum": [
+                "arc",
+                "solar",
+                "void",
+                "strand",
+                "stasis",
+                "prismatic"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "destiny2_mode",
+            "kind": {
+              "Enum": [
+                "all",
+                "pve",
+                "pvp"
+              ]
+            }
+          }
+        },
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "cd54d7bfb3028d6d5c04c636528902a584d8463fc1625d94d452253bc90ab174"
+}

@@ -24,7 +24,8 @@ pub fn spawn_patreon_listener(ctx: Context, app: Arc<AppState>) {
                     | AppEvent::YoutubeUpload(_)
                     | AppEvent::HostingPaid(_)
                     | AppEvent::ServingChanged(_)
-                    | AppEvent::CustomBotsChanged(_),
+                    | AppEvent::CustomBotsChanged(_)
+                    | AppEvent::LoadoutsChanged,
                 ) => {},
                 Err(RecvError::Lagged(n)) => {
                     warn!(

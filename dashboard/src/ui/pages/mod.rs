@@ -1,3 +1,4 @@
+pub mod destiny2_loadouts;
 pub mod greetings;
 pub mod guild_settings;
 pub mod guilds;

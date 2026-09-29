@@ -8,7 +8,8 @@
 
 use std::str::FromStr;
 
-use destiny2::loadouts::{ArmourSlot, Class, Element, Mode, StatKind};
+use destiny2::endgame_analysis::sheet::Affinity;
+use destiny2::loadouts::{Archetype, ArmourSlot, Class, Element, Mode, StatKind};
 
 #[test]
 fn class_display_fromstr_round_trip() {
@@ -68,4 +69,38 @@ fn armour_render_order_is_head_to_class_item() {
         ArmourSlot::Legs,
         ArmourSlot::ClassItem,
     ]);
+}
+
+fn round_trips<T>(all: &[T])
+where
+    T: Copy + PartialEq + std::fmt::Debug + std::fmt::Display + FromStr<Err = ()>,
+{
+    for value in all {
+        assert_eq!(T::from_str(&value.to_string()), Ok(*value));
+    }
+}
+
+#[test]
+fn every_form_enum_round_trips_through_its_display_string() {
+    round_trips(&Class::ALL);
+    round_trips(&Element::ALL);
+    round_trips(&Mode::ALL);
+    round_trips(&ArmourSlot::ALL);
+    round_trips(&StatKind::ALL);
+    round_trips(&Archetype::ALL);
+    round_trips(&Affinity::ALL);
+}
+
+#[test]
+fn all_lists_have_no_duplicates() {
+    assert_eq!(Archetype::ALL.len(), 20);
+    assert_eq!(ArmourSlot::ALL, ArmourSlot::render_order());
+}
+
+#[test]
+fn unknown_option_strings_are_rejected() {
+    assert!(Mode::from_str("Gambit").is_err());
+    assert!(Archetype::from_str("Crossbow").is_err());
+    assert!(StatKind::from_str("mobility").is_err());
+    assert!(ArmourSlot::from_str("Ghost").is_err());
 }

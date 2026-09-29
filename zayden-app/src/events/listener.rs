@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use sqlx::PgPool;
 use sqlx::postgres::{PgListener, PgNotification};
-use tokio::sync::broadcast::{self, Sender};
+use tokio::sync::broadcast::Sender;
 use tokio::time::sleep;
 use tracing::{info, warn};
 

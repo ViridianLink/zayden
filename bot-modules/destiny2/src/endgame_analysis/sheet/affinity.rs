@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, sqlx::Type)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "destiny2_affinity", rename_all = "lowercase")]
 pub enum Affinity {
     Kinetic,
@@ -10,6 +10,17 @@ pub enum Affinity {
     Solar,
     Stasis,
     Strand,
+}
+
+impl Affinity {
+    pub const ALL: [Self; 6] = [
+        Self::Kinetic,
+        Self::Arc,
+        Self::Void,
+        Self::Solar,
+        Self::Stasis,
+        Self::Strand,
+    ];
 }
 
 impl FromStr for Affinity {

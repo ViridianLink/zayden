@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use moka::future::Cache;
 use sqlx::PgPool;
+use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
-use tokio::sync::broadcast::{self, Receiver};
 use tracing::warn;
 
 use crate::events::AppEvent;

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT armour_id, mod_emoji\n        FROM destiny2_loadout_armour_mods\n        ORDER BY armour_id, ordinal",
+  "query": "SELECT m.armour_id, m.mod_emoji\n        FROM destiny2_loadout_armour_mods m\n        JOIN destiny2_loadout_armour la ON la.id = m.armour_id\n        WHERE ($1::int IS NULL OR la.loadout_id = $1)\n        ORDER BY m.armour_id, m.ordinal",
   "describe": {
     "columns": [
       {
@@ -27,12 +27,14 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
       false
     ]
   },
-  "hash": "443face479a4b2fe6cbc96ca080890e191c567250c05c6bbd4c658ab7d0bf218"
+  "hash": "7da8efc6b7a8469a1b3a0778a1b8c53279a730de51d916e814227ba1694937ef"
 }

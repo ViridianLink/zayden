@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, loadout_id, aspect_emoji\n        FROM destiny2_loadout_aspects\n        ORDER BY loadout_id, ordinal",
+  "query": "SELECT id, loadout_id, aspect_emoji\n        FROM destiny2_loadout_aspects\n        WHERE ($1::int IS NULL OR loadout_id = $1)\n        ORDER BY loadout_id, ordinal",
   "describe": {
     "columns": [
       {
@@ -38,7 +38,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
@@ -46,5 +48,5 @@
       false
     ]
   },
-  "hash": "b3f6c9857f648f0c2df7cc975c7e93d0ccd8617f2df9f45a6dcc815570b02e9b"
+  "hash": "d94c29a2dc1ac59ac43337df1d364146df2aeca4d59d5a10c8edfec8ef04aa39"
 }

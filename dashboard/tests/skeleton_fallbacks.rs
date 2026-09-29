@@ -14,8 +14,9 @@ use std::path::{Path, PathBuf};
 const CRATE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
 /// The three `fallback=|| ()` sites kept on purpose, by file. Two in
-/// `layout.rs` (operator badge, operator sidebar link) resolve to nothing
-/// for nearly every viewer, and login.rs must paint nothing until the
+/// `layout.rs` (the operator badge, and the shared `GatedLink` behind the
+/// operator and admin sidebar links) resolve to nothing for nearly every
+/// viewer, and login.rs must paint nothing until the
 /// session resolves so an authenticated visitor never sees the sign-in
 /// card flash before redirecting away.
 const ALLOWLISTED_ZERO_HEIGHT: [(&str, usize); 2] =

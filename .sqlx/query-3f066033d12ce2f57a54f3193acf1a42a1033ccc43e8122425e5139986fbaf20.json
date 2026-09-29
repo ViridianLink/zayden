@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadout_aspect_fragments (aspect_id, ordinal, fragment_emoji)\n             SELECT $1, (t.ord - 1)::smallint, t.key\n             FROM UNNEST($2::text[]) WITH ORDINALITY AS t(key, ord)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3f066033d12ce2f57a54f3193acf1a42a1033ccc43e8122425e5139986fbaf20"
+}

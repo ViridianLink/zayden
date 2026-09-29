@@ -1,11 +1,23 @@
+pub(crate) mod budget;
 pub(crate) mod domain;
+pub(crate) mod draft;
 pub(crate) mod mode;
 pub(crate) mod record;
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock};
 
 pub use domain::{Archetype, ArmourSlot, Class, Element, StatKind};
+pub use draft::{
+    EmojiKey,
+    LoadoutDraft,
+    RawArmour,
+    RawAspect,
+    RawLoadout,
+    RawWeapon,
+    limits,
+};
 pub use mode::Mode;
 pub use record::{ArmourRecord, AspectRecord, LoadoutRecord, WeaponRecord};
 use serenity::all::{
@@ -45,6 +57,8 @@ const DUPLICATE: EmojiId = EmojiId::new(1_395_743_560_388_706_374);
 static CACHE: LazyLock<RwLock<Option<Arc<[LoadoutRecord]>>>> =
     LazyLock::new(|| RwLock::new(None));
 
+static GENERATION: AtomicU64 = AtomicU64::new(0);
+
 async fn cached(pool: &PgPool) -> Result<Arc<[LoadoutRecord]>> {
     {
         let guard = CACHE.read().await;
@@ -53,13 +67,21 @@ async fn cached(pool: &PgPool) -> Result<Arc<[LoadoutRecord]>> {
         }
     }
 
+    let generation = GENERATION.load(Ordering::Acquire);
     let loaded: Arc<[LoadoutRecord]> = loadout_db::all(pool).await?.into();
-    let mut guard = CACHE.write().await;
-    Ok(Arc::clone(guard.get_or_insert(loaded)))
+    {
+        let mut guard = CACHE.write().await;
+        if GENERATION.load(Ordering::Acquire) == generation {
+            *guard = Some(Arc::clone(&loaded));
+        }
+    }
+    Ok(loaded)
 }
 
 pub async fn invalidate_cache() {
-    *CACHE.write().await = None;
+    let mut guard = CACHE.write().await;
+    GENERATION.fetch_add(1, Ordering::AcqRel);
+    *guard = None;
 }
 
 pub struct Loadout;

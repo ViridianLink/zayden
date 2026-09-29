@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_perks (name) SELECT UNNEST($1::text[]) ON CONFLICT (name) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "76744229db1accf4ee190c990b9d43e3cfed230724e875c39514043f294b66f3"
+}

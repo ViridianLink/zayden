@@ -7,6 +7,7 @@ use zayden_app::guilds::{GuildPresence, Shard};
 use zayden_core::as_i64;
 
 use crate::bindings::ai::Ai;
+use crate::bindings::destiny2;
 use crate::cron::start_cron_jobs;
 use crate::handler::Handler;
 use crate::patreon_webhook::spawn_patreon_listener;
@@ -84,6 +85,7 @@ impl Handler {
             Arc::clone(&self.registry),
             ready.application.id,
         );
+        destiny2::spawn_cache_listener(Arc::clone(&self.app));
 
         let http = Arc::clone(&ctx.http);
         let app = Arc::clone(&self.app);

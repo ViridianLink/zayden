@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT aspect_id, fragment_emoji\n        FROM destiny2_loadout_aspect_fragments\n        ORDER BY aspect_id, ordinal",
+  "query": "SELECT f.aspect_id, f.fragment_emoji\n        FROM destiny2_loadout_aspect_fragments f\n        JOIN destiny2_loadout_aspects a ON a.id = f.aspect_id\n        WHERE ($1::int IS NULL OR a.loadout_id = $1)\n        ORDER BY f.aspect_id, f.ordinal",
   "describe": {
     "columns": [
       {
@@ -27,12 +27,14 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
       false
     ]
   },
-  "hash": "be7cd8886a7dc29ba5084c95d2a6b7c48f2971bca55dd7e20663a9c8d902846a"
+  "hash": "798d59c0cbb343ac2a406ab782e05495b6dc018126e412f20ba1f56fe66cd402"
 }

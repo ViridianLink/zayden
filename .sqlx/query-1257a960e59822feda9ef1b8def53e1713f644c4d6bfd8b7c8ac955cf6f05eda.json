@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadout_tags (loadout_id, ordinal, tag)\n         SELECT $1, (t.ord - 1)::smallint, t.tag FROM UNNEST($2::text[]) WITH ORDINALITY AS t(tag, ord)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1257a960e59822feda9ef1b8def53e1713f644c4d6bfd8b7c8ac955cf6f05eda"
+}

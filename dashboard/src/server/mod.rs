@@ -1,5 +1,7 @@
+pub mod admin;
 pub mod auth;
 pub mod command_permissions;
+pub mod destiny2;
 pub mod discord;
 pub mod error;
 pub mod faq;

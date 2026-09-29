@@ -63,6 +63,23 @@ pub(crate) fn create_feedback(r: Result<(), ServerFnError>) -> AnyView {
     }
 }
 
+pub(crate) fn delete_feedback(r: Result<(), ServerFnError>) -> AnyView {
+    match r {
+        Ok(()) => view! {
+            <Alert class="alert success" role="status" message="Loadout deleted."/>
+        }
+        .into_any(),
+        Err(e) => view! {
+            <Alert
+                class="alert error"
+                role="alert"
+                message=format!("Failed to delete: {e}")
+            />
+        }
+        .into_any(),
+    }
+}
+
 #[component]
 pub(crate) fn SaveButton(#[prop(into)] pending: Signal<bool>) -> impl IntoView {
     view! {

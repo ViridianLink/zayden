@@ -221,7 +221,8 @@ pub fn spawn_listener(
                     | AppEvent::YoutubeUpload(_)
                     | AppEvent::HostingPaid(_)
                     | AppEvent::ServingChanged(_)
-                    | AppEvent::CustomBotsChanged(_),
+                    | AppEvent::CustomBotsChanged(_)
+                    | AppEvent::LoadoutsChanged,
                 ) => {},
                 Err(RecvError::Lagged(n)) => {
                     warn!(

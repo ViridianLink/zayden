@@ -7,4 +7,4 @@ pub mod loadouts;
 pub mod raid_guides;
 pub mod slash_commands;
 pub use endgame_analysis::EndgameAnalysisError;
-pub use error::{DestinyError, Result};
+pub use error::{DestinyError, DraftError, Result, SaveError};

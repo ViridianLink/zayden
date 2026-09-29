@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT loadout_id, tag\n        FROM destiny2_loadout_tags\n        ORDER BY loadout_id, ordinal",
+  "query": "SELECT loadout_id, perk_emoji\n        FROM destiny2_loadout_artifact_perks\n        WHERE ($1::int IS NULL OR loadout_id = $1)\n        ORDER BY loadout_id, ordinal",
   "describe": {
     "columns": [
       {
@@ -9,30 +9,32 @@
         "type_info": "Int4",
         "origin": {
           "Table": {
-            "table": "destiny2_loadout_tags",
+            "table": "destiny2_loadout_artifact_perks",
             "name": "loadout_id"
           }
         }
       },
       {
         "ordinal": 1,
-        "name": "tag",
+        "name": "perk_emoji",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "destiny2_loadout_tags",
-            "name": "tag"
+            "table": "destiny2_loadout_artifact_perks",
+            "name": "perk_emoji"
           }
         }
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
       false
     ]
   },
-  "hash": "f1993a5ff12562f5e95c0305d178bb0d9c73de381530e466c9681424983fbfa2"
+  "hash": "f44452b425066826427860be74d8e49ee3e58da2084a5a34dad0a99fbdbd5a09"
 }

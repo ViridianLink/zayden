@@ -32,7 +32,11 @@ struct LoadoutBase {
     how_it_works: Option<String>,
 }
 
-pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
+async fn load(pool: &PgPool, only: Option<i32>) -> sqlx::Result<Vec<LoadoutRecord>> {
+    let mut tx = pool
+        .begin_with("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        .await?;
+
     let bases = sqlx::query_as!(
         LoadoutBase,
         r#"SELECT
@@ -53,17 +57,22 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
             video_url,
             how_it_works
         FROM destiny2_loadouts
-        ORDER BY class, element, name"#
+        WHERE ($1::int IS NULL OR id = $1)
+        ORDER BY class, element, name"#,
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
 
     let fragment_rows = sqlx::query!(
-        "SELECT aspect_id, fragment_emoji
-        FROM destiny2_loadout_aspect_fragments
-        ORDER BY aspect_id, ordinal"
+        r#"SELECT f.aspect_id, f.fragment_emoji
+        FROM destiny2_loadout_aspect_fragments f
+        JOIN destiny2_loadout_aspects a ON a.id = f.aspect_id
+        WHERE ($1::int IS NULL OR a.loadout_id = $1)
+        ORDER BY f.aspect_id, f.ordinal"#,
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut fragments_by_aspect: HashMap<i32, Vec<String>> = fragment_rows
         .into_iter()
@@ -73,9 +82,11 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     let aspect_rows = sqlx::query!(
         "SELECT id, loadout_id, aspect_emoji
         FROM destiny2_loadout_aspects
-        ORDER BY loadout_id, ordinal"
+        WHERE ($1::int IS NULL OR loadout_id = $1)
+        ORDER BY loadout_id, ordinal",
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut aspects_by_loadout: HashMap<i32, Vec<AspectRecord>> = aspect_rows
         .into_iter()
@@ -88,12 +99,15 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
         .into_group_map();
 
     let weapon_perk_rows = sqlx::query!(
-        "SELECT lwp.loadout_weapon_id, p.name AS perk
+        r#"SELECT lwp.loadout_weapon_id, p.name AS perk
         FROM destiny2_loadout_weapon_perks lwp
         JOIN destiny2_perks p ON p.id = lwp.perk_id
-        ORDER BY lwp.loadout_weapon_id, lwp.ordinal"
+        JOIN destiny2_loadout_weapons lw ON lw.id = lwp.loadout_weapon_id
+        WHERE ($1::int IS NULL OR lw.loadout_id = $1)
+        ORDER BY lwp.loadout_weapon_id, lwp.ordinal"#,
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut perks_by_weapon: HashMap<i32, Vec<String>> = weapon_perk_rows
         .into_iter()
@@ -110,9 +124,11 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
             w.icon_url
         FROM destiny2_loadout_weapons lw
         JOIN destiny2_weapons w ON w.id = lw.weapon_id
-        ORDER BY lw.loadout_id, lw.slot_ordinal"#
+        WHERE ($1::int IS NULL OR lw.loadout_id = $1)
+        ORDER BY lw.loadout_id, lw.slot_ordinal"#,
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut weapons_by_loadout: HashMap<i32, Vec<WeaponRecord>> = weapon_rows
         .into_iter()
@@ -128,11 +144,14 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
         .into_group_map();
 
     let armour_mod_rows = sqlx::query!(
-        "SELECT armour_id, mod_emoji
-        FROM destiny2_loadout_armour_mods
-        ORDER BY armour_id, ordinal"
+        r#"SELECT m.armour_id, m.mod_emoji
+        FROM destiny2_loadout_armour_mods m
+        JOIN destiny2_loadout_armour la ON la.id = m.armour_id
+        WHERE ($1::int IS NULL OR la.loadout_id = $1)
+        ORDER BY m.armour_id, m.ordinal"#,
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut mods_by_armour: HashMap<i32, Vec<String>> = armour_mod_rows
         .into_iter()
@@ -147,9 +166,11 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
             name,
             icon_url
         FROM destiny2_loadout_armour
-        ORDER BY loadout_id, slot"#
+        WHERE ($1::int IS NULL OR loadout_id = $1)
+        ORDER BY loadout_id, slot"#,
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut armour_by_loadout: HashMap<i32, Vec<ArmourRecord>> = armour_rows
         .into_iter()
@@ -166,9 +187,11 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     let stat_rows = sqlx::query!(
         r#"SELECT loadout_id, stat AS "stat!: StatKind", value
         FROM destiny2_loadout_stats
-        ORDER BY loadout_id, ordinal"#
+        WHERE ($1::int IS NULL OR loadout_id = $1)
+        ORDER BY loadout_id, ordinal"#,
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut stats_by_loadout: HashMap<i32, Vec<(StatKind, i16)>> = stat_rows
         .into_iter()
@@ -178,9 +201,11 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     let tag_rows = sqlx::query!(
         "SELECT loadout_id, tag
         FROM destiny2_loadout_tags
-        ORDER BY loadout_id, ordinal"
+        WHERE ($1::int IS NULL OR loadout_id = $1)
+        ORDER BY loadout_id, ordinal",
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut tags_by_loadout: HashMap<i32, Vec<String>> =
         tag_rows.into_iter().map(|row| (row.loadout_id, row.tag)).into_group_map();
@@ -188,14 +213,18 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
     let artifact_rows = sqlx::query!(
         "SELECT loadout_id, perk_emoji
         FROM destiny2_loadout_artifact_perks
-        ORDER BY loadout_id, ordinal"
+        WHERE ($1::int IS NULL OR loadout_id = $1)
+        ORDER BY loadout_id, ordinal",
+        only
     )
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
     let mut artifact_by_loadout: HashMap<i32, Vec<String>> = artifact_rows
         .into_iter()
         .map(|row| (row.loadout_id, row.perk_emoji))
         .into_group_map();
+
+    tx.commit().await?;
 
     let records = bases
         .into_iter()
@@ -226,6 +255,14 @@ pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
         .collect();
 
     Ok(records)
+}
+
+pub async fn all(pool: &PgPool) -> sqlx::Result<Vec<LoadoutRecord>> {
+    load(pool, None).await
+}
+
+pub async fn by_id(pool: &PgPool, id: i32) -> sqlx::Result<Option<LoadoutRecord>> {
+    Ok(load(pool, Some(id)).await?.into_iter().next())
 }
 
 pub async fn is_empty(pool: &PgPool) -> sqlx::Result<bool> {

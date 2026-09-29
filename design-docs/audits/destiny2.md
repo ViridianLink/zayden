@@ -55,9 +55,10 @@ yet on the DB. Does not exhibit CC-1 (already concrete).
 ### 4. Tier-list / loadout browsing are better as dashboard read-views  ·  #8  ·  low
 - **Status:** `open`
 - **Where:** `src/endgame_analysis/tierlist.rs`, `src/loadouts/*` render paths.
-- **What:** Loadout *editing* already moved to the website (M3 3c). The read side
-  — tier lists and browsable loadouts — is data-dense catalog content that a web
-  page presents better than embeds.
+- **What:** Loadout *editing* now lives at `/admin/destiny2/loadouts`, admin-gated
+  (M3 3c). The read side — tier lists and browsable loadouts — is still
+  data-dense catalog content that a web page presents better than embeds, and
+  those views remain open (not yet dashboard pages).
 - **Why it matters:** Completes the destiny2→web direction already in motion; the
   catalog is DB-backed already, so a read view is cheap.
 - **Suggested fix:** Add dashboard browse/tier-list views; keep autocomplete +

@@ -7,6 +7,7 @@ use super::legal::LegalLinks;
 use super::server_switcher::ServerSwitcher;
 use super::skeleton::Skeleton;
 use super::tier_badge::TierBadge;
+use crate::server::admin::is_admin;
 use crate::server::auth::check_session;
 use crate::server::operator::{guild_operator_access, is_operator};
 use crate::ui::nav::MODULES;
@@ -127,6 +128,7 @@ fn GuildSidebar(guild_id: Signal<String>) -> impl IntoView {
             <div class="app-sidebar-spacer"></div>
             <SidebarLink href="/guilds".to_string() icon="server" label="All servers" exact=true/>
             <OperatorLink/>
+            <AdminLink/>
             <SidebarLink href="/upgrade".to_string() icon="zap" label="Upgrade to Pro"/>
             <LegalLinks/>
         </aside>
@@ -158,17 +160,45 @@ fn OperatorLink() -> impl IntoView {
     let operator = Resource::new_blocking(|| (), |()| is_operator());
 
     view! {
+        <GatedLink
+            allowed=operator
+            href="/admin/servers"
+            icon="shield"
+            label="All bot servers"
+            exact=true
+        />
+    }
+}
+
+#[component]
+fn AdminLink() -> impl IntoView {
+    let admin = Resource::new_blocking(|| (), |()| is_admin());
+
+    view! {
+        <GatedLink
+            allowed=admin
+            href="/admin/destiny2/loadouts"
+            icon="gamepad"
+            label="Loadout builder"
+        />
+    }
+}
+
+#[component]
+fn GatedLink(
+    allowed: Resource<Result<bool, ServerFnError>>,
+    href: &'static str,
+    icon: &'static str,
+    label: &'static str,
+    #[prop(default = false)] exact: bool,
+) -> impl IntoView {
+    view! {
         <Suspense fallback=|| ()>
-            {move || operator.get()
+            {move || allowed.get()
                 .and_then(Result::ok)
                 .unwrap_or(false)
                 .then(|| view! {
-                    <SidebarLink
-                        href="/admin/servers".to_string()
-                        icon="shield"
-                        label="All bot servers"
-                        exact=true
-                    />
+                    <SidebarLink href=href.to_string() icon=icon label=label exact=exact/>
                 })}
         </Suspense>
     }
@@ -251,6 +281,7 @@ fn TopSidebar() -> impl IntoView {
             <div class="app-sidebar-heading">"Dashboard"</div>
             <SidebarLink href="/guilds".to_string() icon="server" label="Servers" exact=true/>
             <OperatorLink/>
+            <AdminLink/>
             <SidebarLink href="/upgrade".to_string() icon="zap" label="Upgrade to Pro"/>
             <LegalLinks/>
         </aside>

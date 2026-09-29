@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadout_armour_mods (armour_id, ordinal, mod_emoji)\n             SELECT $1, (t.ord - 1)::smallint, t.key\n             FROM UNNEST($2::text[]) WITH ORDINALITY AS t(key, ord)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ee2f65cb94131637fc585c71cfee7e34426e6e1a12f70f49bab0acdfdfd73c57"
+}

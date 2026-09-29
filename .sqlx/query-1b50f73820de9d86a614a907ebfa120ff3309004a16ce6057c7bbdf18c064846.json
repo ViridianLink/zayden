@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT loadout_id, stat AS \"stat!: StatKind\", value\n        FROM destiny2_loadout_stats\n        ORDER BY loadout_id, ordinal",
+  "query": "SELECT loadout_id, stat AS \"stat!: StatKind\", value\n        FROM destiny2_loadout_stats\n        WHERE ($1::int IS NULL OR loadout_id = $1)\n        ORDER BY loadout_id, ordinal",
   "describe": {
     "columns": [
       {
@@ -52,7 +52,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
@@ -60,5 +62,5 @@
       false
     ]
   },
-  "hash": "0a76f462cb6a3137980f26c8b491193d262819cb0ff97a0ecd302e0c9b79d9c6"
+  "hash": "1b50f73820de9d86a614a907ebfa120ff3309004a16ce6057c7bbdf18c064846"
 }

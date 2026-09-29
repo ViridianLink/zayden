@@ -13,10 +13,11 @@ pub enum Channel {
     HostingPaid,
     ServingChanged,
     CustomBotsChanged,
+    LoadoutsChanged,
 }
 
 impl Channel {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::ConfigChanged,
         Self::ModulesChanged,
         Self::EntitlementChanged,
@@ -25,6 +26,7 @@ impl Channel {
         Self::HostingPaid,
         Self::ServingChanged,
         Self::CustomBotsChanged,
+        Self::LoadoutsChanged,
     ];
 
     #[must_use]
@@ -38,6 +40,7 @@ impl Channel {
             Self::HostingPaid => "hosting_paid",
             Self::ServingChanged => "serving_changed",
             Self::CustomBotsChanged => "custom_bots_changed",
+            Self::LoadoutsChanged => "loadouts_changed",
         }
     }
 
@@ -61,6 +64,7 @@ impl Channel {
             Self::CustomBotsChanged => {
                 AppEvent::CustomBotsChanged(payload.parse().ok()?)
             },
+            Self::LoadoutsChanged => AppEvent::LoadoutsChanged,
         };
 
         Some(event)

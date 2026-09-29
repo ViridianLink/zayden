@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadout_artifact_perks (loadout_id, ordinal, perk_emoji)\n         SELECT $1, (t.ord - 1)::smallint, t.key FROM UNNEST($2::text[]) WITH ORDINALITY AS t(key, ord)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a486de165136312966ac19a36616ad8299622ccd6b93ca881930e45fff518e0b"
+}

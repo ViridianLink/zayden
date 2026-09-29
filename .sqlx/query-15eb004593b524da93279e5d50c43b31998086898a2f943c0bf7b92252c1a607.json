@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n            id,\n            name,\n            class AS \"class!: Class\",\n            element AS \"element!: Element\",\n            mode AS \"mode!: Mode\",\n            super_name,\n            super_emoji,\n            class_ability,\n            jump,\n            melee,\n            grenade,\n            artifact_name,\n            author,\n            dim_link,\n            video_url,\n            how_it_works\n        FROM destiny2_loadouts\n        ORDER BY class, element, name",
+  "query": "SELECT\n            id,\n            name,\n            class AS \"class!: Class\",\n            element AS \"element!: Element\",\n            mode AS \"mode!: Mode\",\n            super_name,\n            super_emoji,\n            class_ability,\n            jump,\n            melee,\n            grenade,\n            artifact_name,\n            author,\n            dim_link,\n            video_url,\n            how_it_works\n        FROM destiny2_loadouts\n        WHERE ($1::int IS NULL OR id = $1)\n        ORDER BY class, element, name",
   "describe": {
     "columns": [
       {
@@ -217,7 +217,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int4"
+      ]
     },
     "nullable": [
       false,
@@ -238,5 +240,5 @@
       true
     ]
   },
-  "hash": "c2999d07b1f284a4c9f83f59d29f60c83d864c1917711c61b63a59a86f2fded6"
+  "hash": "15eb004593b524da93279e5d50c43b31998086898a2f943c0bf7b92252c1a607"
 }

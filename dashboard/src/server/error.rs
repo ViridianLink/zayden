@@ -20,3 +20,12 @@ pub enum ForeignIdError {
     #[error("that role is not in this server")]
     Role,
 }
+
+#[cfg(feature = "ssr")]
+#[derive(Debug, thiserror::Error)]
+pub enum LoadoutFormError {
+    #[error("unknown {field} `{value}`")]
+    UnknownOption { field: &'static str, value: String },
+    #[error("stat value `{0}` is not a whole number")]
+    StatValue(String),
+}

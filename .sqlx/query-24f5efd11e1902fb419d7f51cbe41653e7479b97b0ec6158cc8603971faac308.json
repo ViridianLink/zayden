@@ -1,0 +1,73 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_weapons (name, affinity, archetype, icon_url)\n             VALUES ($1, $2, $3, $4)\n             ON CONFLICT (name) DO UPDATE SET\n                affinity = EXCLUDED.affinity,\n                archetype = EXCLUDED.archetype,\n                icon_url = EXCLUDED.icon_url\n             RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_weapons",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        {
+          "Custom": {
+            "name": "destiny2_affinity",
+            "kind": {
+              "Enum": [
+                "kinetic",
+                "arc",
+                "void",
+                "solar",
+                "stasis",
+                "strand"
+              ]
+            }
+          }
+        },
+        {
+          "Custom": {
+            "name": "destiny2_archetype",
+            "kind": {
+              "Enum": [
+                "auto_rifle",
+                "bow",
+                "fusion_rifle",
+                "glaive",
+                "breech_grenade_launcher",
+                "grenade_launcher",
+                "hand_cannon",
+                "linear_fusion_rifle",
+                "machine_gun",
+                "rocket_pulse_rifle",
+                "pulse_rifle",
+                "rocket_launcher",
+                "scout_rifle",
+                "shotgun",
+                "rocket_sidearm",
+                "sidearm",
+                "smg",
+                "sniper_rifle",
+                "sword",
+                "trace_rifle"
+              ]
+            }
+          }
+        },
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "24f5efd11e1902fb419d7f51cbe41653e7479b97b0ec6158cc8603971faac308"
+}
