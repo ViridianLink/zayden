@@ -409,6 +409,8 @@
 /* Picker dialog */
 
 .picker {
+    margin: auto;
+    overflow: hidden;
     width: min(34rem, calc(100vw - 2 * var(--space-4)));
     max-height: min(40rem, calc(100vh - 2 * var(--space-6)));
     padding: 0;

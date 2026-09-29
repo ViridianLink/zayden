@@ -138,6 +138,7 @@ web-sys = { workspace = true, features = [
 output-name = "dashboard"
 site-root = "target/site"
 site-pkg-dir = "pkg"
+hash-files = true
 assets-dir = "public"
 tailwind-input-file = "style/input.css"
 site-addr = "0.0.0.0:3000"

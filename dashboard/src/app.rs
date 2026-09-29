@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_meta::{Stylesheet, provide_meta_context};
+use leptos_meta::provide_meta_context;
 use leptos_router::components::{ParentRoute, Route, Router, Routes};
 use leptos_router::path;
 
@@ -23,13 +23,11 @@ use crate::ui::pages::upgrade::UpgradePage;
 #[derive(Clone)]
 pub struct UpgradeUrl(pub Option<String>);
 
-const STYLESHEET_HREF: &str = concat!("/pkg/dashboard.css?v=", env!("STYLE_HASH"));
-
 #[cfg(feature = "ssr")]
 #[must_use]
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     use leptos::hydration::{AutoReload, HydrationScripts};
-    use leptos_meta::MetaTags;
+    use leptos_meta::{HashedStylesheet, MetaTags};
 
     view! {
         <!DOCTYPE html>
@@ -38,6 +36,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <AutoReload options=options.clone()/>
+                <HashedStylesheet options=options.clone() id="leptos"/>
                 <HydrationScripts options=options/>
                 <MetaTags/>
             </head>
@@ -54,7 +53,6 @@ pub fn App() -> impl IntoView {
     provide_context(ModulesOpen(RwSignal::new(true)));
 
     view! {
-        <Stylesheet id="leptos" href=STYLESHEET_HREF/>
         <Router>
             <Routes fallback=|| view! { <NotFound/> }>
                 <Route path=path!("/") view=LandingPage/>

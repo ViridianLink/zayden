@@ -42,6 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd --system zayden && useradd --system --gid zayden zayden
 
 COPY --from=builder /app/target/release/dashboard /usr/local/bin/dashboard
+COPY --from=builder /app/target/release/hash.txt  /usr/local/bin/hash.txt
 COPY --from=builder /app/target/site              /app/target/site
 COPY --from=builder /app/dashboard/Cargo.toml     /app/dashboard/Cargo.toml
 
