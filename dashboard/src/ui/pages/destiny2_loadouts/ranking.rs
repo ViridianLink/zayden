@@ -17,6 +17,7 @@ pub enum Field {
     ArtifactPerk,
     Weapon,
     Armour,
+    Artifact,
 }
 
 impl Field {
@@ -35,12 +36,13 @@ impl Field {
             Self::ArtifactPerk => "artifact_perk",
             Self::Weapon => "weapon",
             Self::Armour => "armour",
+            Self::Artifact => "artifact",
         }
     }
 
     #[must_use]
     pub const fn is_emoji(self) -> bool {
-        !matches!(self, Self::Weapon | Self::Armour)
+        !matches!(self, Self::Weapon | Self::Armour | Self::Artifact)
     }
 
     #[must_use]
@@ -58,11 +60,12 @@ impl Field {
             Self::ArtifactPerk => "artifact perk",
             Self::Weapon => "weapon",
             Self::Armour => "armour piece",
+            Self::Artifact => "artifact",
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Candidate {
     pub key: String,
     pub label: String,
@@ -71,7 +74,7 @@ pub struct Candidate {
     pub selected: bool,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Section {
     pub title: String,
     pub items: Vec<Candidate>,
@@ -233,6 +236,18 @@ pub fn sections(
                 here.iter().filter_map(by_name).map(weapon_candidate),
             );
             b.push("All weapons".to_owned(), c.weapons.iter().map(weapon_candidate));
+        },
+        Field::Artifact => {
+            let (here, elsewhere) = used_keys(c, scope);
+            let named = |name: &String| Candidate {
+                key: name.clone(),
+                label: name.clone(),
+                detail: String::new(),
+                image: None,
+                selected: false,
+            };
+            b.push(here_title, here.iter().map(named));
+            b.push("Used elsewhere".to_owned(), elsewhere.iter().map(named));
         },
         Field::Armour => {
             let slot = scope.armour_slot.unwrap_or_default();

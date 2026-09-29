@@ -127,9 +127,11 @@ zayden-app = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }
 web-sys = { workspace = true, features = [
   "Blob",
+  "DataTransfer",
   "File",
   "FileList",
   "FileReader",
+  "Storage",
 ], optional = true }
 
 # ── cargo-leptos build configuration ─────────────────────────────────────────

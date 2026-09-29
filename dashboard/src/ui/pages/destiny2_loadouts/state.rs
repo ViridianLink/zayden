@@ -140,49 +140,86 @@ pub struct EditorState {
     pub armour: RwSignal<Vec<ArmourRow>>,
     pub stats: RwSignal<Vec<StatRow>>,
     next_key: RwSignal<u32>,
+    owner: StoredValue<Owner>,
 }
 
 impl EditorState {
     #[must_use]
     pub fn from_form(f: LoadoutForm) -> Self {
         let state = Self {
-            id: RwSignal::new(f.id),
-            name: RwSignal::new(f.name),
-            class: RwSignal::new(f.class),
-            element: RwSignal::new(f.element),
-            mode: RwSignal::new(f.mode),
-            super_name: RwSignal::new(f.super_name),
-            super_emoji: RwSignal::new(f.super_emoji),
-            class_ability: RwSignal::new(f.class_ability),
-            jump: RwSignal::new(f.jump),
-            melee: RwSignal::new(f.melee),
-            grenade: RwSignal::new(f.grenade),
-            artifact_name: RwSignal::new(f.artifact_name),
-            author: RwSignal::new(f.author),
-            dim_link: RwSignal::new(f.dim_link),
-            video_url: RwSignal::new(f.video_url),
-            how_it_works: RwSignal::new(f.how_it_works),
-            tags: RwSignal::new(f.tags),
-            artifact_perks: RwSignal::new(f.artifact_perks),
+            id: RwSignal::new(None),
+            name: RwSignal::new(String::new()),
+            class: RwSignal::new(String::new()),
+            element: RwSignal::new(String::new()),
+            mode: RwSignal::new(String::new()),
+            super_name: RwSignal::new(String::new()),
+            super_emoji: RwSignal::new(String::new()),
+            class_ability: RwSignal::new(String::new()),
+            jump: RwSignal::new(String::new()),
+            melee: RwSignal::new(String::new()),
+            grenade: RwSignal::new(String::new()),
+            artifact_name: RwSignal::new(String::new()),
+            author: RwSignal::new(String::new()),
+            dim_link: RwSignal::new(String::new()),
+            video_url: RwSignal::new(String::new()),
+            how_it_works: RwSignal::new(String::new()),
+            tags: RwSignal::new(Vec::new()),
+            artifact_perks: RwSignal::new(Vec::new()),
             aspects: RwSignal::new(Vec::new()),
             weapons: RwSignal::new(Vec::new()),
             armour: RwSignal::new(Vec::new()),
             stats: RwSignal::new(Vec::new()),
             next_key: RwSignal::new(0),
+            owner: StoredValue::new(Owner::current().unwrap_or_default()),
         };
-        let aspects =
-            f.aspects.into_iter().map(|a| AspectRow::new(state.key(), a)).collect();
-        let weapons =
-            f.weapons.into_iter().map(|w| WeaponRow::new(state.key(), w)).collect();
-        let armour =
-            f.armour.into_iter().map(|a| ArmourRow::new(state.key(), a)).collect();
-        let stats =
-            f.stats.into_iter().map(|s| StatRow::new(state.key(), s)).collect();
-        state.aspects.set(aspects);
-        state.weapons.set(weapons);
-        state.armour.set(armour);
-        state.stats.set(stats);
+        state.apply(f);
         state
+    }
+
+    pub fn apply(&self, f: LoadoutForm) {
+        self.id.set(f.id);
+        self.name.set(f.name);
+        self.class.set(f.class);
+        self.element.set(f.element);
+        self.mode.set(f.mode);
+        self.super_name.set(f.super_name);
+        self.super_emoji.set(f.super_emoji);
+        self.class_ability.set(f.class_ability);
+        self.jump.set(f.jump);
+        self.melee.set(f.melee);
+        self.grenade.set(f.grenade);
+        self.artifact_name.set(f.artifact_name);
+        self.author.set(f.author);
+        self.dim_link.set(f.dim_link);
+        self.video_url.set(f.video_url);
+        self.how_it_works.set(f.how_it_works);
+        self.tags.set(f.tags);
+        self.artifact_perks.set(f.artifact_perks);
+        let (aspects, weapons, armour, stats) = self.in_editor(|| {
+            (
+                f.aspects
+                    .into_iter()
+                    .map(|a| AspectRow::new(self.key(), a))
+                    .collect(),
+                f.weapons
+                    .into_iter()
+                    .map(|w| WeaponRow::new(self.key(), w))
+                    .collect(),
+                f.armour
+                    .into_iter()
+                    .map(|a| ArmourRow::new(self.key(), a))
+                    .collect(),
+                f.stats.into_iter().map(|s| StatRow::new(self.key(), s)).collect(),
+            )
+        });
+        self.aspects.set(aspects);
+        self.weapons.set(weapons);
+        self.armour.set(armour);
+        self.stats.set(stats);
+    }
+
+    fn in_editor<T>(&self, f: impl FnOnce() -> T) -> T {
+        self.owner.get_value().with(f)
     }
 
     #[must_use]
@@ -294,7 +331,8 @@ impl EditorState {
     }
 
     pub fn add_aspect(&self) {
-        let row = AspectRow::new(self.key(), AspectForm::default());
+        let row =
+            self.in_editor(|| AspectRow::new(self.key(), AspectForm::default()));
         self.aspects.update(|rows| rows.push(row));
     }
 
@@ -303,8 +341,12 @@ impl EditorState {
     }
 
     pub fn add_weapon(&self, blank: WeaponForm) {
-        let row = WeaponRow::new(self.key(), blank);
+        let row = self.in_editor(|| WeaponRow::new(self.key(), blank));
         self.weapons.update(|rows| rows.push(row));
+    }
+
+    pub fn move_stat(&self, from: usize, to: usize) {
+        self.stats.update(|rows| move_item(rows, from, to));
     }
 
     pub fn remove_weapon(&self, key: u32) {
@@ -333,5 +375,12 @@ impl EditorState {
         keys.extend(self.artifact_perks.get());
         keys.retain(|k| !k.trim().is_empty());
         keys
+    }
+}
+
+pub fn move_item<T>(items: &mut Vec<T>, from: usize, to: usize) {
+    if from != to && from < items.len() && to < items.len() {
+        let item = items.remove(from);
+        items.insert(to, item);
     }
 }

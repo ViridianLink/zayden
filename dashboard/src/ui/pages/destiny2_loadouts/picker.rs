@@ -85,7 +85,8 @@ fn resolve(ctx: PickerCtx, field: Field, key: String) -> Option<Picked> {
         | Field::Fragment
         | Field::WeaponPerk
         | Field::ArmourMod
-        | Field::ArtifactPerk => Some(Picked::Key(key)),
+        | Field::ArtifactPerk
+        | Field::Artifact => Some(Picked::Key(key)),
     })
 }
 
@@ -111,10 +112,12 @@ pub fn Picker() -> AnyView {
             query.set(String::new());
             active.set(0);
             creating.set(false);
-            if d.show_modal().is_ok()
-                && let Some(input) = search.get()
-            {
-                let _ = input.focus();
+            if d.show_modal().is_ok() {
+                request_animation_frame(move || {
+                    if let Some(input) = search.get_untracked() {
+                        let _ = input.focus();
+                    }
+                });
             }
         } else if !open && d.open() {
             d.close();
@@ -211,6 +214,7 @@ pub fn Picker() -> AnyView {
                 }
             }
         >
+            <Show when=move || ctx.request.with(Option::is_some)>
             <div class="picker-panel">
                 <header class="picker-header">
                     <h2 id="picker-title" class="picker-title">{title}</h2>
@@ -246,22 +250,27 @@ pub fn Picker() -> AnyView {
                             />
                         </div>
                         <ul id="picker-results" class="picker-results" role="listbox">
-                            {move || {
-                                let mut i = 0_usize;
-                                results.get().into_iter().map(|section| {
-                                    let items = section.items.into_iter().map(|c| {
-                                        let index = i;
-                                        i += 1;
-                                        view! { <PickerOption c index active choose/> }
-                                    }).collect_view();
-                                    view! {
-                                        <li role="presentation" class="picker-section">
-                                            <span class="picker-section-title">{section.title}</span>
-                                            <ul role="group" class="picker-group">{items}</ul>
-                                        </li>
-                                    }
-                                }).collect_view()
-                            }}
+                            <For
+                                each=move || {
+                                    let mut offset = 0_usize;
+                                    results.get().into_iter().map(|section| {
+                                        let start = offset;
+                                        offset += section.items.len();
+                                        (start, section)
+                                    }).collect::<Vec<_>>()
+                                }
+                                key=|row| row.clone()
+                                children=move |(start, section)| view! {
+                                    <li role="presentation" class="picker-section">
+                                        <span class="picker-section-title">{section.title}</span>
+                                        <ul role="group" class="picker-group">
+                                            {section.items.into_iter().enumerate().map(|(n, c)| {
+                                                view! { <PickerOption c index=start + n active choose/> }
+                                            }).collect_view()}
+                                        </ul>
+                                    </li>
+                                }
+                            />
                             <li
                                 id=move || option_id(flat.with(Vec::len))
                                 role="option"
@@ -300,6 +309,7 @@ pub fn Picker() -> AnyView {
                     })}
                 </Show>
             </div>
+            </Show>
         </dialog>
     }
     .into_any()

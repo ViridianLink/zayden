@@ -68,3 +68,53 @@ fn the_tracked_snapshot_matches_the_untracked_form() {
         assert_eq!(state.snapshot(), state.to_form());
     });
 }
+
+/// A row added from a picker callback or a `<Show>`-guarded button is created
+/// while a short-lived owner is current. Its signals must belong to the editor,
+/// or disposing that owner kills the row and the next read aborts the page.
+#[test]
+fn rows_added_under_a_short_lived_owner_outlive_it() {
+    let owner = Owner::new();
+    owner.with(|| {
+        let state = EditorState::from_form(form());
+        let transient = Owner::new();
+        transient.with(|| {
+            state.add_weapon(WeaponForm::default());
+            state.add_aspect();
+        });
+        transient.cleanup();
+
+        let weapons = state.weapons.get_untracked();
+        let aspects = state.aspects.get_untracked();
+        assert!(
+            weapons.last().is_some_and(|w| w.perks.try_get_untracked().is_some())
+        );
+        assert!(
+            aspects
+                .last()
+                .is_some_and(|a| a.fragments.try_get_untracked().is_some())
+        );
+    });
+}
+
+#[test]
+fn move_item_reorders_and_ignores_out_of_range() {
+    use dashboard::ui::pages::destiny2_loadouts::state::move_item;
+    let mut v = vec!['a', 'b', 'c', 'd'];
+    move_item(&mut v, 0, 2);
+    assert_eq!(v, ['b', 'c', 'a', 'd']);
+    move_item(&mut v, 3, 0);
+    assert_eq!(v, ['d', 'b', 'c', 'a']);
+    move_item(&mut v, 1, 9);
+    assert_eq!(v, ['d', 'b', 'c', 'a']);
+}
+
+#[test]
+fn applying_a_draft_replaces_every_field() {
+    let owner = Owner::new();
+    owner.with(|| {
+        let state = EditorState::from_form(LoadoutForm::default());
+        state.apply(form());
+        assert_eq!(state.to_form(), form());
+    });
+}

@@ -2,6 +2,8 @@ use leptos::prelude::*;
 
 use super::picker::{PickRequest, Picked, PickerCtx};
 use super::ranking::Field;
+use super::reorder::{Axis, Reorder};
+use super::state::move_item;
 use crate::dto::destiny2_keys::display_name;
 use crate::ui::components::icons::Icon;
 
@@ -59,6 +61,7 @@ fn SlotFace(
     diamond: bool,
     on_open: Callback<()>,
     on_clear: Callback<()>,
+    #[prop(optional)] id: Option<String>,
 ) -> AnyView {
     let filled = move || key.with(|k| !k.is_empty());
     let aria = {
@@ -82,6 +85,7 @@ fn SlotFace(
             <button
                 type="button"
                 class="slot-button"
+                id=id
                 aria-label=aria
                 title=tooltip
                 on:click=move |_| on_open.run(())
@@ -158,8 +162,11 @@ pub fn KeySlotList(
     max: usize,
     #[prop(optional, into)] weapon: Option<Signal<String>>,
     #[prop(optional)] round: bool,
+    #[prop(optional)] reorderable: bool,
 ) -> AnyView {
     let ctx = expect_context::<PickerCtx>();
+    let reorder =
+        Reorder::new(move |from, to| values.update(|v| move_item(v, from, to)));
     let weapon_name =
         move || weapon.map(|w| w.get_untracked()).filter(|w| !w.is_empty());
     let noun = field.noun();
@@ -182,26 +189,54 @@ pub fn KeySlotList(
                 }
             });
         });
-        view! {
+        let filled = !key.is_empty();
+        let face = view! {
             <SlotFace
                 key=key
                 label=format!("{label} {noun} {}", index + 1)
                 diamond=false
                 on_open=open
                 on_clear=clear
+                id=reorder.item_id(index)
             />
+        };
+        if !(reorderable && filled) {
+            return face.into_any();
         }
+        view! {
+            <div
+                class="slot-drag"
+                draggable="true"
+                title="Drag, or press Alt + arrow keys, to reorder"
+                class:drop-target=move || reorder.is_target(index)
+                on:dragstart=move |ev| reorder.start(index, &ev)
+                on:dragover=move |ev| reorder.over(index, &ev)
+                on:drop=move |ev| reorder.drop(index, &ev)
+                on:dragend=move |_| reorder.end()
+                on:keydown=move |ev| {
+                    reorder.key(index, values.with_untracked(Vec::len), Axis::Row, true, &ev);
+                }
+            >
+                {face}
+            </div>
+        }
+        .into_any()
     };
 
     view! {
         <div class="slot-list" class:slot-list-round=round role="group" aria-label=label>
-            {move || {
-                let keys = values.get();
-                let len = keys.len();
-                let filled = keys.into_iter().enumerate().map(|(i, k)| slot(i, k)).collect_view();
-                let add = (len < max).then(|| slot(len, String::new()));
-                view! { {filled} {add} }
-            }}
+            <For
+                each=move || {
+                    let keys = values.get();
+                    let len = keys.len();
+                    keys.into_iter()
+                        .enumerate()
+                        .chain((len < max).then(|| (len, String::new())))
+                        .collect::<Vec<_>>()
+                }
+                key=|slot| slot.clone()
+                children=move |(i, k)| slot(i, k)
+            />
             <span class="slot-count" aria-hidden="true">
                 {move || format!("{}/{max}", values.with(Vec::len))}
             </span>

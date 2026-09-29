@@ -5,6 +5,7 @@ use leptos_meta::Title;
 use leptos_router::NavigateOptions;
 use leptos_router::hooks::{use_navigate, use_params_map};
 
+use super::draft;
 use super::extras::{ArtifactCard, DetailsCard, StatsCard};
 use super::fields::TextInput;
 use super::gear::GearCard;
@@ -56,12 +57,32 @@ pub(crate) fn LoadoutEditorPage() -> impl IntoView {
                         Err(e) => view! {
                             <p class="error">"Couldn't load the loadout: " {e.to_string()}</p>
                         }.into_any(),
-                        Ok((catalog, form)) => view! { <Editor catalog form/> }.into_any(),
+                        Ok((catalog, form)) => view! { <ClientEditor catalog form/> }.into_any(),
                     })}
                 </Suspense>
             </div>
         </AppShell>
     }
+}
+
+#[component]
+fn ClientEditor(catalog: LoadoutCatalog, form: LoadoutForm) -> AnyView {
+    let mounted = RwSignal::new(false);
+    Effect::new(move |_| mounted.set(true));
+    let data = StoredValue::new((catalog, form));
+
+    view! {
+        <Show
+            when=move || mounted.get()
+            fallback=|| view! { <div class="skeleton-list"><Skeleton class="skeleton-row" count=8/></div> }
+        >
+            {move || {
+                let (catalog, form) = data.get_value();
+                view! { <Editor catalog form/> }
+            }}
+        </Show>
+    }
+    .into_any()
 }
 
 #[component]
@@ -112,8 +133,37 @@ fn BudgetMeter(state: EditorState) -> AnyView {
 
 #[component]
 fn Editor(catalog: LoadoutCatalog, form: LoadoutForm) -> AnyView {
+    let key = StoredValue::new(draft::draft_key(form.id));
+    let saved = StoredValue::new(form.clone());
     let state = EditorState::from_form(form);
     let ctx = PickerCtx::new(catalog, state.class, state.element);
+    let restored = RwSignal::new(false);
+    let checked_draft = StoredValue::new(false);
+
+    Effect::new(move |_| {
+        if !checked_draft.get_value() {
+            checked_draft.set_value(true);
+            if let Some(draft) = key.with_value(|k| draft::load(k))
+                && saved.with_value(|s| *s != draft)
+            {
+                state.apply(draft);
+                restored.set(true);
+            }
+        }
+        let current = state.snapshot();
+        key.with_value(|k| {
+            if saved.with_value(|s| *s == current) {
+                draft::clear(k);
+            } else {
+                draft::store(k, &current);
+            }
+        });
+    });
+    let discard = move |_| {
+        key.with_value(|k| draft::clear(k));
+        state.apply(saved.get_value());
+        restored.set(false);
+    };
     provide_context(ctx);
     let options = ctx.catalog.with_untracked(|c| c.options.clone());
 
@@ -122,6 +172,11 @@ fn Editor(catalog: LoadoutCatalog, form: LoadoutForm) -> AnyView {
     let navigate = use_navigate();
 
     Effect::new(move |_| {
+        if matches!(result.get(), Some(Ok(_))) {
+            key.with_value(|k| draft::clear(k));
+            saved.set_value(state.to_form());
+            restored.set(false);
+        }
         if let Some(Ok(id)) = result.get()
             && state.id.get_untracked().is_none()
         {
@@ -166,6 +221,14 @@ fn Editor(catalog: LoadoutCatalog, form: LoadoutForm) -> AnyView {
                 <BudgetMeter state/>
             </header>
             {move || result.get().map(|r| save_feedback(r.map(|_| ())))}
+            <Show when=move || restored.get()>
+                <div class="draft-banner" role="status">
+                    <span>"Restored your unsaved changes from this tab."</span>
+                    <button type="button" class="btn btn-ghost" on:click=discard>
+                        "Discard changes"
+                    </button>
+                </div>
+            </Show>
             <Show when=images_down>
                 <p class="loadout-warning" role="status">
                     "Zayden's emoji list couldn't be loaded, so icons are hidden. You can still edit and save."
@@ -184,7 +247,7 @@ fn Editor(catalog: LoadoutCatalog, form: LoadoutForm) -> AnyView {
                 <SubclassCard state/>
                 <GearCard state/>
                 <ArtifactCard state/>
-                <StatsCard state stats=options.stats/>
+                <StatsCard state/>
                 <DetailsCard state/>
             </div>
             <SaveButton pending=save.pending()/>

@@ -163,6 +163,9 @@ async fn usage_counts_keys_per_field_class_and_element(pool: PgPool) {
     );
     assert!(usage.iter().any(|u| u.field == "weapon_perk"));
     assert!(usage.iter().any(|u| u.field == "weapon"));
+    assert!(
+        usage.iter().any(|u| u.field == "artifact" && u.key == "Tablet of Ruin")
+    );
     assert!(usage.iter().all(|u| !u.key.is_empty()));
 }
 

@@ -84,6 +84,8 @@ fn catalog() -> LoadoutCatalog {
             usage("fragment", "ember_of_ashes", "Warlock", "Solar", 2),
             usage("fragment", "spark_of_shock", "Hunter", "Arc", 1),
             usage("weapon", "Adamantite", "Titan", "Arc", 1),
+            usage("artifact", "Tablet of Ruin", "Titan", "Arc", 2),
+            usage("artifact", "Nether Codex", "Warlock", "Void", 1),
         ],
         super_names: vec![],
         armour: vec![
@@ -261,4 +263,13 @@ fn emoji_images_resolve_through_the_index() {
     assert_eq!(idx.enum_image("Auto Rifle"), idx.image("auto_rifle"));
     assert!(idx.is_reserved("titan"));
     assert!(!idx.has_emoji("nope"));
+}
+
+#[test]
+fn artifacts_are_named_as_typed_and_ranked_by_build() {
+    let s = run(Field::Artifact, &[], None, None, "");
+    assert_eq!(keys(&s[0]), ["Tablet of Ruin"]);
+    assert_eq!(keys(&s[1]), ["Nether Codex"]);
+    assert_eq!(s.len(), 2, "artifacts never list emojis");
+    assert_eq!(s[1].items[0].label, "Nether Codex");
 }

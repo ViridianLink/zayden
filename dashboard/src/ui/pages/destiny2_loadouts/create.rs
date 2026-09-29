@@ -33,6 +33,7 @@ pub fn CreatePanel(
     let form = match field {
         Field::Weapon => view! { <WeaponCreate query on_done/> }.into_any(),
         Field::Armour => view! { <ArmourCreate query on_done/> }.into_any(),
+        Field::Artifact => view! { <ArtifactCreate query on_done/> }.into_any(),
         Field::Super
         | Field::ClassAbility
         | Field::Jump
@@ -343,6 +344,35 @@ fn ArmourCreate(query: String, on_done: Callback<Picked>) -> AnyView {
                 })
             >
                 "Use this armour"
+            </button>
+        </div>
+    }
+    .into_any()
+}
+
+#[component]
+fn ArtifactCreate(query: String, on_done: Callback<Picked>) -> AnyView {
+    let name = RwSignal::new(query.trim().to_owned());
+    let blocked = move || name.with(|n| n.trim().is_empty());
+
+    view! {
+        <div class="setting-field">
+            <label for="new-artifact-name">"Artifact name"</label>
+            <input
+                id="new-artifact-name"
+                class="input"
+                prop:value=move || name.get()
+                on:input=move |ev| name.set(event_target_value(&ev))
+            />
+        </div>
+        <div class="picker-actions">
+            <button
+                type="button"
+                class="btn btn-primary"
+                disabled=blocked
+                on:click=move |_| on_done.run(Picked::Key(name.get_untracked().trim().to_owned()))
+            >
+                "Use this artifact"
             </button>
         </div>
     }

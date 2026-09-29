@@ -199,7 +199,7 @@ fn ArmourLine(row: ArmourRow) -> AnyView {
                 </span>
                 <span class="gear-meta"><EnumIcon label=slot.clone()/>{slot}</span>
             </div>
-            <KeySlotList label="Mods" values=row.mods field=Field::ArmourMod max=5/>
+            <KeySlotList label="Mods" values=row.mods field=Field::ArmourMod max=5 reorderable=true/>
         </div>
     }
     .into_any()

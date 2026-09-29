@@ -1,6 +1,5 @@
 use leptos::prelude::*;
 
-use super::fields::TextInput;
 use super::picker::PickerCtx;
 use super::ranking::Field;
 use super::slots::{KeySlot, KeySlotList};
@@ -29,7 +28,6 @@ pub fn SubclassCard(state: EditorState) -> AnyView {
             <div class="subclass-top">
                 <div class="super-field">
                     <KeySlot label="Super" value=state.super_emoji field=Field::Super diamond=true on_picked=name_super/>
-                    <TextInput id="super-name" label="Super name" value=state.super_name/>
                 </div>
                 <div class="ability-row" role="group" aria-label="Abilities">
                     <KeySlot label="Class ability" value=state.class_ability field=Field::ClassAbility/>

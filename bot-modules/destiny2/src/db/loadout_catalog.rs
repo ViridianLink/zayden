@@ -48,6 +48,7 @@ pub async fn usage(pool: &PgPool) -> sqlx::Result<Vec<UsageRow>> {
                UNION ALL SELECT id, 'jump', jump FROM destiny2_loadouts
                UNION ALL SELECT id, 'melee', melee FROM destiny2_loadouts
                UNION ALL SELECT id, 'grenade', grenade FROM destiny2_loadouts
+               UNION ALL SELECT id, 'artifact', COALESCE(artifact_name, '') FROM destiny2_loadouts
                UNION ALL SELECT loadout_id, 'aspect', aspect_emoji FROM destiny2_loadout_aspects
                UNION ALL SELECT a.loadout_id, 'fragment', f.fragment_emoji
                    FROM destiny2_loadout_aspect_fragments f

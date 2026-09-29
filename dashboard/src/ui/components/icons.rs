@@ -32,6 +32,9 @@ fn icon_paths(name: &str) -> &'static str {
             r#"<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>"#
         },
         "chevron-down" => r#"<path d="m6 9 6 6 6-6"/>"#,
+        "grip" => {
+            r#"<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>"#
+        },
         "chevron-right" => r#"<path d="m9 18 6-6-6-6"/>"#,
         "arrow-right" => r#"<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>"#,
         "external-link" => {

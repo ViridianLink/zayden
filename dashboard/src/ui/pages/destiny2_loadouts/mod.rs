@@ -1,4 +1,5 @@
 pub mod create;
+pub mod draft;
 pub mod editor;
 pub mod extras;
 pub mod fields;
@@ -6,6 +7,7 @@ pub mod gear;
 pub mod list;
 pub mod picker;
 pub mod ranking;
+pub mod reorder;
 pub mod slots;
 pub mod state;
 pub mod subclass;
