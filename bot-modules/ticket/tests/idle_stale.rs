@@ -131,7 +131,7 @@ async fn clearing_happens_once(pool: PgPool) {
 async fn a_tracked_reply_queues_the_tag_for_removal(pool: PgPool) {
     claim_due(&pool, 40).await.expect("stale sweep");
 
-    ThreadActivity::track(&pool, thread(10), OP, &[]).await.expect("track");
+    ThreadActivity::track(&pool, thread(10), OP, &[], false).await.expect("track");
 
     assert!(cleared(&pool).await.contains(&10));
 }
@@ -140,7 +140,7 @@ async fn a_tracked_reply_queues_the_tag_for_removal(pool: PgPool) {
 async fn a_helper_reply_also_queues_the_tag_for_removal(pool: PgPool) {
     claim_due(&pool, 40).await.expect("stale sweep");
 
-    ThreadActivity::track(&pool, thread(11), HELPER, &[SUPPORT])
+    ThreadActivity::track(&pool, thread(11), HELPER, &[SUPPORT], false)
         .await
         .expect("track");
 

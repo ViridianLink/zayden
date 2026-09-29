@@ -248,3 +248,24 @@ impl GuildPresence {
         Ok(deleted > 0)
     }
 }
+
+pub struct GuildOwner;
+
+impl GuildOwner {
+    pub async fn record(
+        pool: &PgPool,
+        guild_id: i64,
+        owner_id: i64,
+    ) -> sqlx::Result<()> {
+        sqlx::query!(
+            "UPDATE guilds SET owner_id = $2
+             WHERE id = $1 AND owner_id IS DISTINCT FROM $2",
+            guild_id,
+            owner_id
+        )
+        .execute(pool)
+        .await?;
+
+        Ok(())
+    }
+}

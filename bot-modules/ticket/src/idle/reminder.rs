@@ -84,7 +84,7 @@ impl Reminder {
                  you take another look when you get a chance?"
             ),
             Nudge::Unanswered => format!(
-                "This ticket has been waiting for a first reply since \
+                "This ticket has been waiting on the support team since \
                  <t:{since}:R>."
             ),
         };

@@ -11,6 +11,7 @@ use zayden_app::state::AppState;
 mod entitlement;
 mod guild_create;
 mod guild_delete;
+mod guild_update;
 mod interaction;
 mod message_create;
 mod presence_update;
@@ -40,6 +41,7 @@ impl EventHandler for Handler {
         match &*event {
             Event::GuildCreate(_)
             | Event::GuildDelete(_)
+            | Event::GuildUpdate(_)
             | Event::MessageCreate(_)
             | Event::ReactionAdd(_)
             | Event::ReactionRemove(_)
@@ -74,7 +76,6 @@ impl EventHandler for Handler {
             | Event::GuildRoleDelete(_)
             | Event::GuildRoleUpdate(_)
             | Event::GuildStickersUpdate(_)
-            | Event::GuildUpdate(_)
             | Event::InviteCreate(_)
             | Event::InviteDelete(_)
             | Event::MessageDelete(_)
@@ -144,6 +145,9 @@ impl EventHandler for Handler {
             },
             FullEvent::GuildDelete { incomplete, .. } => {
                 Self::guild_delete(ctx, incomplete, &pool).await
+            },
+            FullEvent::GuildUpdate { new_data, .. } => {
+                Self::guild_update(new_data, &pool).await
             },
             FullEvent::Message { new_message, .. } => {
                 let app = Arc::clone(&self.app);

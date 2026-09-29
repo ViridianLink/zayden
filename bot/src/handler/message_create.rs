@@ -23,6 +23,14 @@ impl Handler {
         app: Arc<AppState>,
     ) -> Result<()> {
         if msg.author.bot() {
+            if ctx
+                .http
+                .application_id()
+                .is_some_and(|id| id.get() != msg.author.id.get())
+            {
+                track_activity(msg, &app).await?;
+            }
+
             debug!(author_id = %msg.author.id, "message author is a bot; ignoring");
             return Ok(());
         }

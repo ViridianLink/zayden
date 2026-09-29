@@ -5,7 +5,7 @@ use serenity::all::{Context, Guild};
 use sqlx::PgPool;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
-use zayden_app::guilds::{GuildPresence, JoinKind};
+use zayden_app::guilds::{GuildOwner, GuildPresence, JoinKind};
 use zayden_core::as_i64;
 
 use super::Handler;
@@ -38,6 +38,16 @@ impl Handler {
                 JoinKind::Reconnect
             },
         };
+
+        if let Err(e) = GuildOwner::record(
+            pool,
+            as_i64(guild.id.get()),
+            as_i64(guild.owner_id.get()),
+        )
+        .await
+        {
+            warn!(error = ?e, guild_id = %guild.id, "failed to record guild owner");
+        }
 
         let data = ctx.data::<RwLock<BotState>>();
 

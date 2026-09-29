@@ -14,6 +14,8 @@ const GUILD: GuildId = GuildId::new(1);
 const OP: UserId = UserId::new(1000);
 const HELPER: UserId = UserId::new(2000);
 const BYSTANDER: UserId = UserId::new(3000);
+const OWNER: UserId = UserId::new(4000);
+const HELPER_BOT: UserId = UserId::new(5000);
 const SUPPORT: RoleId = RoleId::new(100);
 const UNRELATED: RoleId = RoleId::new(999);
 
@@ -65,7 +67,7 @@ async fn the_sweep_reports_the_ball_and_the_roles(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
 async fn a_helper_reply_moves_the_ball_to_the_poster(pool: PgPool) {
-    ThreadActivity::track(&pool, thread(10), HELPER, &[SUPPORT])
+    ThreadActivity::track(&pool, thread(10), HELPER, &[SUPPORT], false)
         .await
         .expect("track");
 
@@ -81,7 +83,7 @@ async fn a_helper_reply_moves_the_ball_to_the_poster(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
 async fn a_poster_reply_moves_the_ball_back_to_the_helpers(pool: PgPool) {
-    ThreadActivity::track(&pool, thread(11), OP, &[]).await.expect("track");
+    ThreadActivity::track(&pool, thread(11), OP, &[], false).await.expect("track");
 
     let row = ThreadActivity::active(&pool, thread(11))
         .await
@@ -96,7 +98,57 @@ async fn a_poster_reply_moves_the_ball_back_to_the_helpers(pool: PgPool) {
 /// forum ticket, and a passer-by is neither side of the conversation.
 #[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
 async fn a_bystander_does_not_move_the_ball(pool: PgPool) {
-    ThreadActivity::track(&pool, thread(10), BYSTANDER, &[UNRELATED])
+    ThreadActivity::track(&pool, thread(10), BYSTANDER, &[UNRELATED], false)
+        .await
+        .expect("track");
+
+    assert!(claimed(&pool).await.contains(&10));
+}
+
+/// Owners often help out without holding the support role themselves.
+#[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
+async fn the_guild_owner_counts_as_a_helper(pool: PgPool) {
+    ThreadActivity::track(&pool, thread(10), OWNER, &[], false)
+        .await
+        .expect("track");
+
+    let row = ThreadActivity::active(&pool, thread(10))
+        .await
+        .expect("active")
+        .expect("row");
+
+    assert_eq!(row.ball(), Ball::Op);
+    assert_eq!(row.helper_id, Some(4000));
+}
+
+/// A helper bot answers the ticket, but it is never the one to nudge later.
+#[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
+async fn a_support_bot_moves_the_ball_without_becoming_the_helper(pool: PgPool) {
+    ThreadActivity::track(&pool, thread(10), HELPER_BOT, &[SUPPORT], true)
+        .await
+        .expect("track");
+    ThreadActivity::track(&pool, thread(12), HELPER_BOT, &[SUPPORT], true)
+        .await
+        .expect("track");
+
+    let unanswered = ThreadActivity::active(&pool, thread(10))
+        .await
+        .expect("active")
+        .expect("row");
+    assert_eq!(unanswered.ball(), Ball::Op);
+    assert_eq!(unanswered.helper_id, None);
+
+    let helped = ThreadActivity::active(&pool, thread(12))
+        .await
+        .expect("active")
+        .expect("row");
+    assert_eq!(helped.ball(), Ball::Op);
+    assert_eq!(helped.helper_id, Some(2000));
+}
+
+#[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
+async fn a_bot_without_a_support_role_does_not_move_the_ball(pool: PgPool) {
+    ThreadActivity::track(&pool, thread(10), HELPER_BOT, &[UNRELATED], true)
         .await
         .expect("track");
 
@@ -107,7 +159,9 @@ async fn a_bystander_does_not_move_the_ball(pool: PgPool) {
 /// they are never nudged to answer themselves.
 #[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
 async fn the_poster_holding_a_support_role_is_still_the_poster(pool: PgPool) {
-    ThreadActivity::track(&pool, thread(10), OP, &[SUPPORT]).await.expect("track");
+    ThreadActivity::track(&pool, thread(10), OP, &[SUPPORT], false)
+        .await
+        .expect("track");
 
     let row = ThreadActivity::active(&pool, thread(10))
         .await
@@ -120,7 +174,7 @@ async fn the_poster_holding_a_support_role_is_still_the_poster(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../migrations", fixtures("support_idle"))]
 async fn the_poster_does_not_overwrite_the_helper(pool: PgPool) {
-    ThreadActivity::track(&pool, thread(12), OP, &[]).await.expect("track");
+    ThreadActivity::track(&pool, thread(12), OP, &[], false).await.expect("track");
 
     let row = ThreadActivity::active(&pool, thread(12))
         .await
@@ -135,7 +189,7 @@ async fn the_poster_does_not_overwrite_the_helper(pool: PgPool) {
 async fn a_reply_clears_a_spent_nudge(pool: PgPool) {
     assert!(!claimed(&pool).await.contains(&14));
 
-    ThreadActivity::track(&pool, thread(14), HELPER, &[SUPPORT])
+    ThreadActivity::track(&pool, thread(14), HELPER, &[SUPPORT], false)
         .await
         .expect("track");
 
@@ -151,7 +205,7 @@ async fn a_paused_thread_is_not_active_and_ignores_replies(pool: PgPool) {
         ThreadActivity::active(&pool, thread(15)).await.expect("active").is_none()
     );
 
-    ThreadActivity::track(&pool, thread(15), HELPER, &[SUPPORT])
+    ThreadActivity::track(&pool, thread(15), HELPER, &[SUPPORT], false)
         .await
         .expect("track");
 

@@ -76,6 +76,7 @@ impl ThreadActivity {
         thread_id: ThreadId,
         author: UserId,
         roles: &[RoleId],
+        bot: bool,
     ) -> sqlx::Result<()> {
         let role_ids =
             roles.iter().map(|role| as_i64(role.get())).collect::<Vec<_>>();
@@ -83,18 +84,22 @@ impl ThreadActivity {
         sqlx::query!(
             "UPDATE support_thread_activity a \
              SET waiting_on_helper = (a.op_id = $2), \
-                 helper_id = CASE WHEN a.op_id <> $2 THEN $2 ELSE a.helper_id END, \
+                 helper_id = CASE WHEN a.op_id <> $2 AND NOT $4 THEN $2 \
+                                  ELSE a.helper_id END, \
                  since = now(), \
                  nudged_at = NULL \
              WHERE a.thread_id = $1 \
                AND NOT a.paused \
                AND (a.op_id = $2 \
+                    OR EXISTS (SELECT 1 FROM guilds g \
+                               WHERE g.id = a.guild_id AND g.owner_id = $2) \
                     OR EXISTS (SELECT 1 FROM guild_support_roles r \
                                WHERE r.guild_id = a.guild_id \
                                  AND r.role_id = ANY($3::bigint[])))",
             as_i64(thread_id.get()),
             as_i64(author.get()),
-            &role_ids
+            &role_ids,
+            bot
         )
         .execute(pool)
         .await?;

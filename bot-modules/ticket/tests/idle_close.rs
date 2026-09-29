@@ -52,7 +52,7 @@ async fn a_thread_waiting_on_the_support_team_is_never_closed(pool: PgPool) {
 /// ever looks at it.
 #[sqlx::test(migrations = "../../migrations", fixtures("support_idle_close"))]
 async fn a_reply_after_the_reminder_cancels_the_close(pool: PgPool) {
-    ThreadActivity::track(&pool, thread(10), OP, &[]).await.expect("track");
+    ThreadActivity::track(&pool, thread(10), OP, &[], false).await.expect("track");
 
     assert_eq!(claimed(&pool).await, vec![11]);
 }
@@ -61,7 +61,7 @@ async fn a_reply_after_the_reminder_cancels_the_close(pool: PgPool) {
 /// back to the poster with a fresh clock, not a spent reminder.
 #[sqlx::test(migrations = "../../migrations", fixtures("support_idle_close"))]
 async fn a_helper_reply_after_the_reminder_cancels_the_close(pool: PgPool) {
-    ThreadActivity::track(&pool, thread(11), HELPER, &[SUPPORT])
+    ThreadActivity::track(&pool, thread(11), HELPER, &[SUPPORT], false)
         .await
         .expect("track");
 

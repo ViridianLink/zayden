@@ -2,8 +2,8 @@
 -- `cargo sqlx prepare` does not walk test targets, so test-only SQL would break
 -- an offline build. Ages are baked in here for the same reason: the sweep has to
 -- see rows older than the interval, and a test cannot issue its own UPDATE.
-INSERT INTO guilds (id)
-    VALUES (1), (2);
+INSERT INTO guilds (id, owner_id)
+    VALUES (1, 4000), (2, NULL);
 
 INSERT INTO support_settings (guild_id, support_channel_id, idle_enabled, idle_after_secs)
     VALUES (1, 500, TRUE, 3600),

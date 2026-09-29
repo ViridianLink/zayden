@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE guilds SET owner_id = $2\n             WHERE id = $1 AND owner_id IS DISTINCT FROM $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ed7a8c587fa29c5a4d27c046b1e32500380ae4aa17b5835503774e60f53f16d1"
+}

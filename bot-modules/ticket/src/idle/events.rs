@@ -14,6 +14,7 @@ pub async fn message(msg: &Message, app: &Arc<AppState>) -> Result<()> {
         msg.channel_id.expect_thread(),
         msg.author.id,
         &roles,
+        msg.author.bot(),
     )
     .await?;
 
