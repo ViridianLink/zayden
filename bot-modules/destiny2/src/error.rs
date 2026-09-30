@@ -85,11 +85,6 @@ pub enum DraftError {
     #[error("{field} must be an https:// link")]
     NotHttps { field: &'static str },
     #[error(
-        "this build needs {needed} discord components, the limit is {max}; /destiny2 \
-         builds may fail to show it until you remove a weapon, armour piece or tag"
-    )]
-    TooManyComponents { needed: usize, max: usize },
-    #[error(
         "this build may render up to {estimate} characters of text, discord's limit \
          is {max}; shorten how it works or remove some perks, mods or fragments"
     )]

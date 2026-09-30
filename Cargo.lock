@@ -1547,6 +1547,7 @@ dependencies = [
  "google-sheets-api",
  "itertools 0.15.0",
  "jiff-cron",
+ "serde_json",
  "serenity",
  "sqlx",
  "thiserror 2.0.21",

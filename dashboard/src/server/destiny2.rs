@@ -290,7 +290,10 @@ fn count(n: usize) -> u32 {
 pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
     let armour = form.armour.iter().filter(|a| !a.name.trim().is_empty()).count();
     let weapons = form.weapons.iter().filter(|w| !w.name.trim().is_empty()).count();
-    let components = budget::components(form.tags.len(), weapons, armour);
+    let misc = form.stats.iter().any(|s| !s.value.trim().is_empty())
+        || !form.artifact_perks.is_empty()
+        || !form.how_it_works.trim().is_empty();
+    let components = budget::components(form.tags.len(), weapons, armour, misc);
     let (text, error) = match raw_loadout(form) {
         Err(e) => (None, Some(e.to_string())),
         Ok(raw) => match LoadoutDraft::try_from(raw) {
@@ -301,13 +304,6 @@ pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
             Err(e) => (None, Some(e.to_string())),
         },
     };
-    let warning = (components > budget::MAX_COMPONENTS).then(|| {
-        DraftError::TooManyComponents {
-            needed: components,
-            max: budget::MAX_COMPONENTS,
-        }
-        .to_string()
-    });
 
     LoadoutCheck {
         components: count(components),
@@ -315,7 +311,6 @@ pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
         text: text.map(count),
         max_text: count(budget::MAX_TEXT),
         error,
-        warning,
     }
 }
 

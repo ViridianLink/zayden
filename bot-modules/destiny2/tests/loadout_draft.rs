@@ -19,7 +19,6 @@ use destiny2::loadouts::{
     RawLoadout,
     RawWeapon,
     StatKind,
-    budget,
     limits,
 };
 
@@ -197,28 +196,6 @@ fn the_largest_build_discord_can_render_parses() {
     raw.armour = ArmourSlot::ALL[..4].iter().copied().map(armour).collect();
     raw.tags = vec!["Raid".into(), "GM".into()];
     assert!(LoadoutDraft::try_from(raw).is_ok());
-}
-
-#[test]
-fn a_build_over_discords_component_limit_saves_with_a_warning() {
-    let mut raw = valid();
-    raw.weapons = vec![raw.weapons[0].clone(); limits::WEAPONS];
-    raw.armour = ArmourSlot::ALL.iter().copied().map(armour).collect();
-    raw.tags = vec![];
-    let draft = LoadoutDraft::try_from(raw).unwrap();
-    let warning = budget::component_warning(&draft);
-    assert_eq!(warning, Some(DraftError::TooManyComponents { needed: 41, max: 40 }));
-    assert_eq!(
-        warning.unwrap().to_string(),
-        "this build needs 41 discord components, the limit is 40; /destiny2 builds \
-         may fail to show it until you remove a weapon, armour piece or tag"
-    );
-}
-
-#[test]
-fn a_build_within_discords_component_limit_has_no_warning() {
-    let draft = LoadoutDraft::try_from(valid()).unwrap();
-    assert_eq!(budget::component_warning(&draft), None);
 }
 
 #[test]

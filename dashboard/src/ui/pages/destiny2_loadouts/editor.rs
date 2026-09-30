@@ -120,7 +120,6 @@ fn BudgetMeter(state: EditorState) -> AnyView {
                             </label>
                         })}
                     </div>
-                    {c.warning.map(|w| view! { <p class="budget-warning">{w}</p> })}
                     {c.error.map(|e| view! { <p class="budget-error">{e}</p> })}
                 }.into_any(),
                 Err(_) => view! {

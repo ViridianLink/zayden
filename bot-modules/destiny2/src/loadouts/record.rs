@@ -23,7 +23,7 @@ use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 use super::domain::{Archetype, ArmourSlot, Class, Element, StatKind};
 use super::markdown::{emoji_section, with_emoji_row};
 use super::mode::Mode;
-use super::{DUPLICATE, resolve_emoji};
+use super::{DUPLICATE, budget, resolve_emoji};
 use crate::Result;
 use crate::endgame_analysis::sheet::Affinity;
 
@@ -106,20 +106,34 @@ impl LoadoutRecord {
             let data = data_lock.read().await;
             (*data.emojis()).clone()
         };
-        let emoji_cache = &mut owned_cache;
 
-        let mut components = Vec::with_capacity(21);
+        let component =
+            resolve_emoji(&mut owned_cache, ctx, parent_token, |cache| {
+                self.container(cache)
+            })
+            .await?;
 
-        let subclass_btn = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            let key = self.element.key();
-            let emoji = cache.emoji(&key)?;
-            Ok(CreateButton::new(key)
-                .label(self.element.to_string())
-                .emoji(emoji)
-                .style(ButtonStyle::Secondary))
-        })
-        .await?;
+        data_lock.write().await.emojis_mut().merge_from(&owned_cache);
 
+        Ok(component)
+    }
+
+    pub fn container(
+        &self,
+        cache: &EmojiCache,
+    ) -> EmojiResult<CreateComponent<'static>> {
+        let text = |content: String| {
+            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(content))
+        };
+        let line_sep = || {
+            CreateContainerComponent::Separator(CreateSeparator::new().divider(true))
+        };
+
+        let element_key = self.element.key();
+        let subclass_btn = CreateButton::new(element_key.clone())
+            .label(self.element.to_string())
+            .emoji(cache.emoji(&element_key)?)
+            .style(ButtonStyle::Secondary);
         let tag_buttons = iter::once(subclass_btn)
             .chain(iter::once(button(self.mode.to_string())))
             .chain(self.tags.iter().cloned().map(button))
@@ -128,26 +142,17 @@ impl LoadoutRecord {
             tag_buttons,
         ));
 
-        let heading1 =
-            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
-                "-# {} {} Build",
-                self.element, self.class
-            )));
-
         let mut details = format!("By {}", self.author);
         if let Some(url) = &self.video_url {
             let _ = write!(details, " • [Video Guide]({url})");
         }
-
-        let heading2 =
-            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
-                "# {}  •  {}  •  {}\n{details}",
-                self.class, self.super_name, self.name
-            )));
-
-        let line_sep = CreateContainerComponent::Separator(
-            CreateSeparator::new().divider(true),
-        );
+        let heading = text(format!(
+            "-# {element} {class} Build\n# {class}  •  {}  •  {}\n{details}",
+            self.super_name,
+            self.name,
+            element = self.element,
+            class = self.class,
+        ));
 
         let dim_link =
             CreateContainerComponent::ActionRow(CreateActionRow::buttons(vec![
@@ -156,98 +161,39 @@ impl LoadoutRecord {
                     .emoji(DUPLICATE),
             ]));
 
-        let subclass_heading = CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new(SUBCLASS_HEADING),
+        let aspects = self
+            .aspects
+            .iter()
+            .map(|a| cache.emoji_str(&a.emoji))
+            .collect::<EmojiResult<Vec<String>>>()?
+            .join(" ");
+        let fragments = self
+            .aspects
+            .iter()
+            .flat_map(|a| &a.fragments)
+            .map(|frag| Ok(format!(" {}", cache.emoji_str(frag)?)))
+            .collect::<EmojiResult<String>>()?;
+        let mut subclass = format!(
+            "{SUBCLASS_HEADING}\n# {}    {} {} {} {}    {aspects}",
+            cache.emoji_str(&self.super_emoji)?,
+            cache.emoji_str(&self.class_ability)?,
+            cache.emoji_str(&self.jump)?,
+            cache.emoji_str(&self.melee)?,
+            cache.emoji_str(&self.grenade)?,
         );
+        if !fragments.is_empty() {
+            let _ = write!(subclass, "\n\nFragments\n#{fragments}");
+        }
 
-        let aspects = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            self.aspects
-                .iter()
-                .map(|a| cache.emoji_str(&a.emoji))
-                .collect::<EmojiResult<Vec<String>>>()
-                .map(|v| v.join(" "))
-        })
-        .await?;
-
-        let super_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            cache.emoji_str(&self.super_emoji)
-        })
-        .await?;
-
-        let class_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            cache.emoji_str(&self.class_ability)
-        })
-        .await?;
-
-        let jump_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            cache.emoji_str(&self.jump)
-        })
-        .await?;
-
-        let melee_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            cache.emoji_str(&self.melee)
-        })
-        .await?;
-
-        let grenade_emoji = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            cache.emoji_str(&self.grenade)
-        })
-        .await?;
-
-        let has_fragments = self.aspects.iter().any(|a| !a.fragments.is_empty());
-
-        let subclass = CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new(format!(
-                "# {super_emoji}    {class_emoji} {jump_emoji} {melee_emoji} {grenade_emoji}    {aspects}{}",
-                if has_fragments { "\n\nFragments" } else { "" },
-            )),
-        );
-
-        let fragments_str = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            self.aspects
-                .iter()
-                .flat_map(|a| &a.fragments)
-                .map(|frag| {
-                    let emoji = cache.emoji_str(frag)?;
-                    Ok(format!(" {emoji}"))
-                })
-                .collect::<EmojiResult<String>>()
-        })
-        .await?;
-
-        let fragments = has_fragments.then(|| {
-            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
-                "#{fragments_str}"
-            )))
-        });
-
-        let gear_and_mods_heading = CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new(GEAR_HEADING),
-        );
-
-        let weapons = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            self.weapon_components(cache)
-        })
-        .await?;
-
-        let armour = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            self.armour_components(cache)
-        })
-        .await?;
-
-        let stat_prio = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            self.stat_prio_str(cache)
-        })
-        .await?;
-
-        let artifact = resolve_emoji(emoji_cache, ctx, parent_token, |cache| {
-            self.artifact_perks
-                .iter()
-                .map(|p| cache.emoji_str(p))
-                .collect::<EmojiResult<Vec<String>>>()
-                .map(|v| v.join(" "))
-        })
-        .await?;
+        let weapons = self.weapon_components(cache)?;
+        let armour = self.armour_components(cache)?;
+        let stat_prio = self.stat_prio_str(cache)?;
+        let artifact = self
+            .artifact_perks
+            .iter()
+            .map(|p| cache.emoji_str(p))
+            .collect::<EmojiResult<Vec<String>>>()?
+            .join(" ");
 
         let misc_sections: Vec<String> = [
             emoji_section("### Stats Priority", &stat_prio),
@@ -257,34 +203,36 @@ impl LoadoutRecord {
         .into_iter()
         .flatten()
         .collect();
-        let misc = (!misc_sections.is_empty()).then(|| {
-            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-                misc_sections.join("\n"),
-            ))
+        let misc =
+            (!misc_sections.is_empty()).then(|| text(misc_sections.join("\n")));
+
+        let base = budget::base_components(
+            self.tags.len(),
+            weapons.len(),
+            armour.len(),
+            misc.is_some(),
+        );
+        let spacer = budget::has_spacer(weapons.len(), base).then(|| {
+            CreateContainerComponent::Separator(
+                CreateSeparator::new().spacing(SeparatorSpacingSize::Large),
+            )
         });
 
+        let mut components = Vec::with_capacity(base);
         components.extend([
-            heading1,
-            heading2,
+            heading,
             tags,
-            line_sep.clone(),
+            line_sep(),
             dim_link,
-            line_sep.clone(),
-            subclass_heading,
-            subclass,
+            line_sep(),
+            text(subclass),
+            line_sep(),
+            text(GEAR_HEADING.to_owned()),
         ]);
-        components.extend(fragments);
-        components.extend([line_sep, gear_and_mods_heading]);
-        if !weapons.is_empty() {
-            components.extend(weapons);
-            components.push(CreateContainerComponent::Separator(
-                CreateSeparator::new().spacing(SeparatorSpacingSize::Large),
-            ));
-        }
+        components.extend(weapons);
+        components.extend(spacer);
         components.extend(armour);
         components.extend(misc);
-
-        data_lock.write().await.emojis_mut().merge_from(&owned_cache);
 
         Ok(CreateComponent::Container(CreateContainer::new(components)))
     }

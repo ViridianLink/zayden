@@ -128,7 +128,6 @@ pub struct LoadoutCheck {
     pub text: Option<u32>,
     pub max_text: u32,
     pub error: Option<String>,
-    pub warning: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
