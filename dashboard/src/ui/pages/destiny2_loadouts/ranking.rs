@@ -41,6 +41,11 @@ impl Field {
     }
 
     #[must_use]
+    pub const fn allows_repeats(self) -> bool {
+        matches!(self, Self::ArmourMod)
+    }
+
+    #[must_use]
     pub const fn is_emoji(self) -> bool {
         !matches!(self, Self::Weapon | Self::Armour | Self::Artifact)
     }

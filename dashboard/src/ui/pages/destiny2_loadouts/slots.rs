@@ -173,7 +173,11 @@ pub fn KeySlotList(
 
     let slot = move |index: usize, key: String| {
         let open = Callback::new(move |()| {
-            let taken = values.get_untracked();
+            let taken = if field.allows_repeats() {
+                Vec::new()
+            } else {
+                values.get_untracked()
+            };
             let title = format!("{label}: {noun} {}", index + 1);
             open_key_picker(ctx, field, title, weapon_name(), taken, move |key| {
                 values.update(|v| match v.get_mut(index) {

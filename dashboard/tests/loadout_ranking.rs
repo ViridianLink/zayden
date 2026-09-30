@@ -273,3 +273,13 @@ fn artifacts_are_named_as_typed_and_ranked_by_build() {
     assert_eq!(s.len(), 2, "artifacts never list emojis");
     assert_eq!(s[1].items[0].label, "Nether Codex");
 }
+
+#[test]
+fn only_armour_mods_may_repeat_in_one_list() {
+    assert!(Field::ArmourMod.allows_repeats());
+    for field in
+        [Field::Fragment, Field::WeaponPerk, Field::ArtifactPerk, Field::Aspect]
+    {
+        assert!(!field.allows_repeats(), "{field:?}");
+    }
+}
