@@ -1,5 +1,6 @@
 use super::draft::{EmojiKey, LoadoutDraft};
 use super::record::{GEAR_HEADING, SUBCLASS_HEADING};
+use crate::DraftError;
 
 pub const MAX_COMPONENTS: usize = 40;
 pub const MAX_TEXT: usize = 4000;
@@ -10,6 +11,14 @@ pub const fn components(tags: usize, weapons: usize, armour: usize) -> usize {
     const FIXED: usize = 16;
     let spacer = if weapons > 0 { 1 } else { 0 };
     FIXED + tags + 3 * (weapons + armour) + spacer
+}
+
+#[must_use]
+pub fn component_warning(draft: &LoadoutDraft) -> Option<DraftError> {
+    let needed =
+        components(draft.tags.len(), draft.weapons.len(), draft.armour.len());
+    (needed > MAX_COMPONENTS)
+        .then_some(DraftError::TooManyComponents { needed, max: MAX_COMPONENTS })
 }
 
 fn chars(s: &str) -> usize {

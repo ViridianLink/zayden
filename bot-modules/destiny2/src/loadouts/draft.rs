@@ -254,17 +254,6 @@ impl TryFrom<RawLoadout> for LoadoutDraft {
 }
 
 fn within_discord_limits(draft: &LoadoutDraft) -> Result<(), DraftError> {
-    let needed = budget::components(
-        draft.tags.len(),
-        draft.weapons.len(),
-        draft.armour.len(),
-    );
-    if needed > budget::MAX_COMPONENTS {
-        return Err(DraftError::TooManyComponents {
-            needed,
-            max: budget::MAX_COMPONENTS,
-        });
-    }
     let estimate = budget::text(draft);
     if estimate > budget::MAX_TEXT {
         return Err(DraftError::TooMuchText { estimate, max: budget::MAX_TEXT });

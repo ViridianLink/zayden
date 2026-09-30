@@ -62,6 +62,7 @@ fn form() -> LoadoutForm {
 fn a_valid_form_reports_its_budget_and_no_error() {
     let check = loadout_check(&form());
     assert_eq!(check.error, None);
+    assert_eq!(check.warning, None);
     assert!(check.text.is_some_and(|t| t > 0 && t <= check.max_text));
     assert_eq!(check.components, 16 + 1 + 3 * (1 + 1) + 1);
     assert_eq!(check.max_components, 40);
@@ -75,7 +76,7 @@ fn blank_armour_rows_do_not_count_towards_components() {
 }
 
 #[test]
-fn an_oversized_build_reports_the_component_error() {
+fn an_oversized_build_warns_without_blocking() {
     let mut f = form();
     f.tags = vec!["a".into(), "b".into(), "c".into()];
     f.weapons = vec![f.weapons[0].clone(); 3];
@@ -94,7 +95,9 @@ fn an_oversized_build_reports_the_component_error() {
 
     let check = loadout_check(&f);
     assert!(check.components > check.max_components);
-    assert!(check.error.is_some_and(|e| e.contains("component")));
+    assert_eq!(check.error, None, "over the component limit must not block saving");
+    assert!(check.warning.is_some_and(|w| w.contains("component")));
+    assert!(check.text.is_some());
 }
 
 #[test]

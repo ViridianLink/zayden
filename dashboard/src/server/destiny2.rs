@@ -301,6 +301,13 @@ pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
             Err(e) => (None, Some(e.to_string())),
         },
     };
+    let warning = (components > budget::MAX_COMPONENTS).then(|| {
+        DraftError::TooManyComponents {
+            needed: components,
+            max: budget::MAX_COMPONENTS,
+        }
+        .to_string()
+    });
 
     LoadoutCheck {
         components: count(components),
@@ -308,6 +315,7 @@ pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
         text: text.map(count),
         max_text: count(budget::MAX_TEXT),
         error,
+        warning,
     }
 }
 

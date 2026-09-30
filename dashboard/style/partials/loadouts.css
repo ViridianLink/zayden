@@ -516,9 +516,14 @@
     color: var(--text-secondary);
 }
 
-.budget-error {
+.budget-error,
+.budget-warning {
     margin: var(--space-1) 0 0;
     font-size: 12px;
+}
+
+.budget-warning {
+    color: var(--warning);
 }
 
 /* Picker dialog */
