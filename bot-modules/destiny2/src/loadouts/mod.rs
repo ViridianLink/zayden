@@ -1,6 +1,7 @@
 pub mod budget;
 pub(crate) mod domain;
 pub(crate) mod draft;
+pub mod markdown;
 pub(crate) mod mode;
 pub(crate) mod record;
 

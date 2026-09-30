@@ -21,6 +21,7 @@ use serenity::all::{
 use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
 use super::domain::{Archetype, ArmourSlot, Class, Element, StatKind};
+use super::markdown::{emoji_section, with_emoji_row};
 use super::mode::Mode;
 use super::{DUPLICATE, resolve_emoji};
 use crate::Result;
@@ -193,9 +194,12 @@ impl LoadoutRecord {
         })
         .await?;
 
+        let has_fragments = self.aspects.iter().any(|a| !a.fragments.is_empty());
+
         let subclass = CreateContainerComponent::TextDisplay(
             CreateTextDisplay::new(format!(
-                "# {super_emoji}    {class_emoji} {jump_emoji} {melee_emoji} {grenade_emoji}    {aspects}\n\nFragments",
+                "# {super_emoji}    {class_emoji} {jump_emoji} {melee_emoji} {grenade_emoji}    {aspects}{}",
+                if has_fragments { "\n\nFragments" } else { "" },
             )),
         );
 
@@ -211,9 +215,11 @@ impl LoadoutRecord {
         })
         .await?;
 
-        let fragments = CreateContainerComponent::TextDisplay(
-            CreateTextDisplay::new(format!("#{fragments_str}")),
-        );
+        let fragments = has_fragments.then(|| {
+            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(format!(
+                "#{fragments_str}"
+            )))
+        });
 
         let gear_and_mods_heading = CreateContainerComponent::TextDisplay(
             CreateTextDisplay::new(GEAR_HEADING),
@@ -243,18 +249,19 @@ impl LoadoutRecord {
         })
         .await?;
 
-        let mut misc_content = format!(
-            "### Stats Priority\n#{stat_prio}\n### ARTIFACT PERKS\n# {artifact}",
-        );
-
-        if let Some(how_it_works) = &self.how_it_works {
-            misc_content.push_str("\n### HOW IT WORKS\n# ");
-            misc_content.push_str(how_it_works);
-        }
-
-        let misc = CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
-            misc_content,
-        ));
+        let misc_sections: Vec<String> = [
+            emoji_section("### Stats Priority", &stat_prio),
+            emoji_section("### ARTIFACT PERKS", &format!(" {artifact}")),
+            self.how_it_works.as_ref().map(|h| format!("### HOW IT WORKS\n# {h}")),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        let misc = (!misc_sections.is_empty()).then(|| {
+            CreateContainerComponent::TextDisplay(CreateTextDisplay::new(
+                misc_sections.join("\n"),
+            ))
+        });
 
         components.extend([
             heading1,
@@ -265,10 +272,9 @@ impl LoadoutRecord {
             line_sep.clone(),
             subclass_heading,
             subclass,
-            fragments,
-            line_sep,
-            gear_and_mods_heading,
         ]);
+        components.extend(fragments);
+        components.extend([line_sep, gear_and_mods_heading]);
         if !weapons.is_empty() {
             components.extend(weapons);
             components.push(CreateContainerComponent::Separator(
@@ -276,7 +282,7 @@ impl LoadoutRecord {
             ));
         }
         components.extend(armour);
-        components.push(misc);
+        components.extend(misc);
 
         data_lock.write().await.emojis_mut().merge_from(&owned_cache);
 
@@ -302,9 +308,12 @@ impl LoadoutRecord {
                 let affinity_emoji = emoji_cache
                     .emoji_str(&weapon.affinity.to_string().to_lowercase())?;
 
-                let text = CreateTextDisplay::new(format!(
-                    "**{}**\n{affinity_emoji} {}\n#{perks}",
-                    weapon.name, weapon.archetype,
+                let text = CreateTextDisplay::new(with_emoji_row(
+                    &format!(
+                        "**{}**\n{affinity_emoji} {}",
+                        weapon.name, weapon.archetype
+                    ),
+                    &perks,
                 ));
 
                 let thumbnail = CreateThumbnail::new(CreateUnfurledMediaItem::new(
@@ -335,11 +344,7 @@ impl LoadoutRecord {
                     })
                     .collect::<EmojiResult<String>>()?;
 
-                let content = if mods.is_empty() {
-                    format!("**{}**", armour.name)
-                } else {
-                    format!("**{}**\n#{mods}", armour.name)
-                };
+                let content = with_emoji_row(&format!("**{}**", armour.name), &mods);
 
                 let thumbnail = CreateThumbnail::new(CreateUnfurledMediaItem::new(
                     armour.icon_url.clone(),
