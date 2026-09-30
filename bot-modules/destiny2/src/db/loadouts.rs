@@ -119,7 +119,7 @@ async fn load(pool: &PgPool, only: Option<i32>) -> sqlx::Result<Vec<LoadoutRecor
             lw.id,
             lw.loadout_id,
             w.name,
-            w.affinity AS "affinity!: Affinity",
+            lw.affinity AS "affinity!: Affinity",
             w.archetype AS "archetype!: Archetype",
             w.icon_url
         FROM destiny2_loadout_weapons lw

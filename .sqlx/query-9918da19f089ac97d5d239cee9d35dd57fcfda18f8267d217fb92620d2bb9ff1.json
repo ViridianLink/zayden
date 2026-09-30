@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO destiny2_loadout_weapons (loadout_id, slot_ordinal, weapon_id, affinity)\n             VALUES ($1, $2, $3, $4) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "destiny2_loadout_weapons",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int2",
+        "Int4",
+        {
+          "Custom": {
+            "name": "destiny2_affinity",
+            "kind": {
+              "Enum": [
+                "kinetic",
+                "arc",
+                "void",
+                "solar",
+                "stasis",
+                "strand"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9918da19f089ac97d5d239cee9d35dd57fcfda18f8267d217fb92620d2bb9ff1"
+}

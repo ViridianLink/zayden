@@ -362,6 +362,30 @@
     color: var(--text-secondary);
 }
 
+.gear-affinity {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 0 var(--space-1);
+    border: 1px dashed transparent;
+    border-radius: var(--radius-lg);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.gear-affinity:hover,
+.gear-affinity:focus-visible,
+.gear-affinity[aria-expanded="true"] {
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+.gear-hint {
+    color: var(--text-tertiary);
+}
+
 .gear-remove {
     padding: var(--space-2);
 }

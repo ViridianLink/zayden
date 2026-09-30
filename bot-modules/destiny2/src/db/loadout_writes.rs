@@ -117,7 +117,6 @@ pub async fn save(
             "INSERT INTO destiny2_weapons (name, affinity, archetype, icon_url)
              VALUES ($1, $2, $3, $4)
              ON CONFLICT (name) DO UPDATE SET
-                affinity = EXCLUDED.affinity,
                 archetype = EXCLUDED.archetype,
                 icon_url = EXCLUDED.icon_url
              RETURNING id",
@@ -129,11 +128,12 @@ pub async fn save(
         .fetch_one(&mut *conn)
         .await?;
         let loadout_weapon_id = sqlx::query_scalar!(
-            "INSERT INTO destiny2_loadout_weapons (loadout_id, slot_ordinal, weapon_id)
-             VALUES ($1, $2, $3) RETURNING id",
+            "INSERT INTO destiny2_loadout_weapons (loadout_id, slot_ordinal, weapon_id, affinity)
+             VALUES ($1, $2, $3, $4) RETURNING id",
             id,
             slot,
             weapon_id,
+            weapon.affinity as _,
         )
         .fetch_one(&mut *conn)
         .await?;

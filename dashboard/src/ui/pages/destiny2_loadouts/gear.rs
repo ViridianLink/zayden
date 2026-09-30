@@ -2,7 +2,7 @@ use leptos::prelude::*;
 
 use super::picker::{PickRequest, Picked, PickerCtx};
 use super::ranking::Field;
-use super::slots::{EnumIcon, KeySlotList};
+use super::slots::{EnumIcon, IconChoice, KeySlotList};
 use super::state::{ArmourRow, EditorState, WeaponRow};
 use crate::dto::destiny2::WeaponForm;
 use crate::ui::components::icons::Icon;
@@ -138,6 +138,28 @@ fn WeaponLine(state: EditorState, row: WeaponRow) -> AnyView {
             row.icon_url.set(w.icon_url);
         });
     });
+    let choosing = RwSignal::new(false);
+    Effect::watch(
+        move || row.affinity.get(),
+        move |_, _, _| choosing.set(false),
+        false,
+    );
+    let affinities = StoredValue::new(
+        ctx.catalog.with_untracked(|c| c.options.affinities.clone()),
+    );
+    let usual = Memo::new(move |_| {
+        let name = row.name.get();
+        ctx.catalog.with(|c| {
+            c.weapons.iter().find(|w| w.name == name).map(|w| w.affinity.clone())
+        })
+    });
+    let hint = move || {
+        usual.get().filter(|u| *u != row.affinity.get()).map(|u| {
+            view! {
+                <span class="gear-hint">{format!("Normally {u}")}</span>
+            }
+        })
+    };
 
     view! {
         <div class="gear-row">
@@ -145,9 +167,22 @@ fn WeaponLine(state: EditorState, row: WeaponRow) -> AnyView {
             <div class="gear-info">
                 <span class="gear-name">{move || row.name.get()}</span>
                 <span class="gear-meta">
-                    <EnumIcon label=row.affinity/>
-                    {move || format!("{} {}", row.affinity.get(), row.archetype.get())}
+                    <button
+                        type="button"
+                        class="gear-affinity"
+                        aria-expanded=move || choosing.get().to_string()
+                        aria-label=move || format!("Damage type: {}, change", row.affinity.get())
+                        on:click=move |_| choosing.update(|c| *c = !*c)
+                    >
+                        <EnumIcon label=row.affinity/>
+                        {move || row.affinity.get()}
+                    </button>
+                    {move || row.archetype.get()}
+                    {hint}
                 </span>
+                <Show when=move || choosing.get()>
+                    <IconChoice label="Damage type" value=row.affinity options=affinities.get_value()/>
+                </Show>
             </div>
             <KeySlotList label="Perks" values=row.perks field=Field::WeaponPerk max=5 weapon=row.name round=true/>
             <button

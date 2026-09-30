@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n            lw.id,\n            lw.loadout_id,\n            w.name,\n            w.affinity AS \"affinity!: Affinity\",\n            w.archetype AS \"archetype!: Archetype\",\n            w.icon_url\n        FROM destiny2_loadout_weapons lw\n        JOIN destiny2_weapons w ON w.id = lw.weapon_id\n        WHERE ($1::int IS NULL OR lw.loadout_id = $1)\n        ORDER BY lw.loadout_id, lw.slot_ordinal",
+  "query": "SELECT\n            lw.id,\n            lw.loadout_id,\n            w.name,\n            lw.affinity AS \"affinity!: Affinity\",\n            w.archetype AS \"archetype!: Archetype\",\n            w.icon_url\n        FROM destiny2_loadout_weapons lw\n        JOIN destiny2_weapons w ON w.id = lw.weapon_id\n        WHERE ($1::int IS NULL OR lw.loadout_id = $1)\n        ORDER BY lw.loadout_id, lw.slot_ordinal",
   "describe": {
     "columns": [
       {
@@ -56,7 +56,7 @@
         },
         "origin": {
           "Table": {
-            "table": "destiny2_weapons",
+            "table": "destiny2_loadout_weapons",
             "name": "affinity"
           }
         }
@@ -126,5 +126,5 @@
       false
     ]
   },
-  "hash": "817983251c930c93897088d6ee0489e2ebaefb7caffdb680e38283bde026ec9e"
+  "hash": "9a2f6c27b2d7461c5f4a2ed26a5e20e69cbbfea4cc2925b895b444708a684c12"
 }

@@ -150,6 +150,57 @@ async fn the_seeded_loadouts_still_load(pool: PgPool) {
     assert_eq!(loadouts::all(&pool).await.unwrap().len(), 11);
 }
 
+fn with_weapon_affinity(name: &str, affinity: Affinity) -> RawLoadout {
+    let mut r = raw(name);
+    for w in &mut r.weapons {
+        w.name = "Dead Messenger".into();
+        w.affinity = affinity;
+    }
+    r
+}
+
+async fn catalog_affinity(pool: &PgPool, weapon: &str) -> Option<Affinity> {
+    loadout_catalog::weapons(pool)
+        .await
+        .ok()?
+        .into_iter()
+        .find(|w| w.name == weapon)
+        .map(|w| w.affinity)
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn loadouts_sharing_a_weapon_keep_their_own_affinity(pool: PgPool) {
+    let arc =
+        save!(&pool, None, with_weapon_affinity("Arc Spam", Affinity::Arc)).unwrap();
+    let void = save!(&pool, None, with_weapon_affinity("Void Spam", Affinity::Void))
+        .unwrap();
+
+    let arc = loadouts::by_id(&pool, arc).await.unwrap().unwrap();
+    let void = loadouts::by_id(&pool, void).await.unwrap().unwrap();
+    assert_eq!(arc.weapons[0].affinity, Affinity::Arc);
+    assert_eq!(void.weapons[0].affinity, Affinity::Void);
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn a_new_weapon_takes_its_first_affinity_and_keeps_it(pool: PgPool) {
+    save!(&pool, None, with_weapon_affinity("First", Affinity::Arc)).unwrap();
+    assert_eq!(catalog_affinity(&pool, "Dead Messenger").await, Some(Affinity::Arc));
+
+    save!(&pool, None, with_weapon_affinity("Second", Affinity::Void)).unwrap();
+    assert_eq!(catalog_affinity(&pool, "Dead Messenger").await, Some(Affinity::Arc));
+}
+
+#[sqlx::test(migrations = "../../migrations")]
+async fn seeded_weapons_keep_their_catalog_affinity(pool: PgPool) {
+    let catalog = loadout_catalog::weapons(&pool).await.unwrap();
+    for loadout in loadouts::all(&pool).await.unwrap() {
+        for w in &loadout.weapons {
+            let default = catalog.iter().find(|c| c.name == w.name).unwrap();
+            assert_eq!(w.affinity, default.affinity, "{}", w.name);
+        }
+    }
+}
+
 #[sqlx::test(migrations = "../../migrations")]
 async fn usage_counts_keys_per_field_class_and_element(pool: PgPool) {
     let usage = loadout_catalog::usage(&pool).await.unwrap();

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO destiny2_weapons (name, affinity, archetype, icon_url)\n             VALUES ($1, $2, $3, $4)\n             ON CONFLICT (name) DO UPDATE SET\n                affinity = EXCLUDED.affinity,\n                archetype = EXCLUDED.archetype,\n                icon_url = EXCLUDED.icon_url\n             RETURNING id",
+  "query": "INSERT INTO destiny2_weapons (name, affinity, archetype, icon_url)\n             VALUES ($1, $2, $3, $4)\n             ON CONFLICT (name) DO UPDATE SET\n                archetype = EXCLUDED.archetype,\n                icon_url = EXCLUDED.icon_url\n             RETURNING id",
   "describe": {
     "columns": [
       {
@@ -69,5 +69,5 @@
       false
     ]
   },
-  "hash": "24f5efd11e1902fb419d7f51cbe41653e7479b97b0ec6158cc8603971faac308"
+  "hash": "c182437a7d62ae910e6e7253323895b553a8416736435af68ee2b178edaf2fd8"
 }
