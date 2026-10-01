@@ -1,7 +1,7 @@
 ---
 name: test-generator
 description: Generates unit test boilerplate, mock data, property-based tests, and edge case fixtures for Rust modules.
-model: claude-sonnet-5
+model: claude-sonnet-5.5
 tools: Read, Glob, Grep, Write, Edit
 ---
 
