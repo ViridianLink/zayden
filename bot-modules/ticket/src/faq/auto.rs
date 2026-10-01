@@ -5,6 +5,7 @@ use tracing::{error, warn};
 use zayden_app::state::AppState;
 
 use crate::Result;
+use crate::faq::article::FaqArticle;
 use crate::faq::triage::Opening;
 use crate::faq::{
     FaqContext,
@@ -46,7 +47,7 @@ pub(crate) async fn triage_ticket(
     app: &AppState,
     context: &FaqContext,
     opening: TicketOpening,
-) -> Result<()> {
+) -> Result<bool> {
     let TicketOpening { thread_id, guild_id, author, title, tags, content, images } =
         opening;
 
@@ -62,19 +63,19 @@ pub(crate) async fn triage_ticket(
     let query = keywords::query(&title, &content, &screenshots);
     let keywords = keywords::extract(app, &query).await?;
 
-    let results = lookup::search_keywords(
-        &app.db,
-        guild_id,
-        &app.http,
-        &context.wiki,
-        &keywords,
-    )
-    .await;
-
-    let (links, essential) = tokio::join!(
+    let (findings, links, essential) = tokio::join!(
+        lookup::search_keywords(
+            &app.db,
+            guild_id,
+            &app.http,
+            &context.wiki,
+            &keywords,
+        ),
         linked::pages(&app.http, &content),
         essential::pages(&app.http, &context.wiki),
     );
+
+    let notes = findings.solved.iter().map(FaqArticle::as_new).collect::<Vec<_>>();
 
     let triage = triage::synthesize(
         app,
@@ -85,11 +86,16 @@ pub(crate) async fn triage_ticket(
             screenshots: &screenshots,
             links: &links,
         },
-        &results,
+        &findings.articles,
+        &notes,
     )
     .await?;
 
-    let embed = triage::embed(&context.wiki, &triage, &results, &essential);
+    let Some(embed) =
+        triage::embed(&context.wiki, &triage, &findings.articles, &essential)
+    else {
+        return Ok(false);
+    };
 
     thread_id
         .widen()
@@ -99,5 +105,5 @@ pub(crate) async fn triage_ticket(
         )
         .await?;
 
-    Ok(())
+    Ok(true)
 }

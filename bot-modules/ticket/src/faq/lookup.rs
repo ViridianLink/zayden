@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use futures::future::join_all;
 use reqwest::Client;
 use serenity::all::GuildId;
 use sqlx::PgPool;
@@ -10,7 +11,13 @@ use crate::faq::article::FaqArticle;
 use crate::faq::hit::FaqHit;
 use crate::wiki::{WikiConfig, search};
 
-const RESULTS_PER_KEYWORD: i64 = 3;
+const RESULTS_PER_KEYWORD: usize = 3;
+const SOLVED_LIMIT: i64 = 4;
+
+pub(crate) struct Findings {
+    pub articles: Vec<FaqHit>,
+    pub solved: Vec<FaqArticle>,
+}
 
 pub(crate) async fn search_keywords(
     pool: &PgPool,
@@ -18,47 +25,68 @@ pub(crate) async fn search_keywords(
     client: &Client,
     config: &WikiConfig,
     keywords: &[String],
+) -> Findings {
+    let (articles, solved) = tokio::join!(
+        wiki_articles(client, config, keywords),
+        solved_tickets(pool, guild_id, keywords),
+    );
+
+    Findings { articles, solved }
+}
+
+async fn wiki_articles(
+    client: &Client,
+    config: &WikiConfig,
+    keywords: &[String],
 ) -> Vec<FaqHit> {
+    let searches =
+        join_all(keywords.iter().map(|keyword| search(client, config, keyword)))
+            .await;
+
+    let per_keyword = keywords
+        .iter()
+        .zip(searches)
+        .filter_map(|(keyword, result)| {
+            result
+                .inspect_err(|e| {
+                    warn!(error = ?e, keyword, "wiki search failed for keyword");
+                })
+                .ok()
+        })
+        .collect::<Vec<_>>();
+
     let mut seen = HashSet::new();
-    let mut aggregated = Vec::new();
 
-    for keyword in keywords {
-        match FaqArticle::search(
-            pool,
-            as_i64(guild_id.get()),
-            keyword,
-            RESULTS_PER_KEYWORD,
-        )
-        .await
-        {
-            Ok(articles) => aggregated.extend(
-                articles
-                    .iter()
-                    .map(FaqHit::from)
-                    .filter(|hit| seen.insert(hit.path.clone())),
-            ),
-            Err(e) => warn!(error = ?e, keyword, "faq article search failed"),
-        }
+    let mut hits = (0..RESULTS_PER_KEYWORD)
+        .flat_map(|rank| per_keyword.iter().filter_map(move |pages| pages.get(rank)))
+        .cloned()
+        .map(FaqHit::from)
+        .filter(|hit| seen.insert(hit.path.clone()))
+        .collect::<Vec<_>>();
+
+    hits.truncate(config.max_results());
+    hits
+}
+
+async fn solved_tickets(
+    pool: &PgPool,
+    guild_id: GuildId,
+    keywords: &[String],
+) -> Vec<FaqArticle> {
+    if keywords.is_empty() {
+        return Vec::new();
     }
 
-    for keyword in keywords {
-        let pages = match search(client, config, keyword).await {
-            Ok(pages) => pages,
-            Err(e) => {
-                warn!(error = ?e, keyword, "wiki search failed for keyword");
-                continue;
-            },
-        };
-
-        aggregated.extend(
-            pages
-                .into_iter()
-                .take(usize::try_from(RESULTS_PER_KEYWORD).unwrap_or(3))
-                .map(FaqHit::from)
-                .filter(|hit| seen.insert(hit.path.clone())),
-        );
-    }
-
-    aggregated.truncate(config.max_results());
-    aggregated
+    FaqArticle::similar(
+        pool,
+        as_i64(guild_id.get()),
+        &keywords.join(" "),
+        None,
+        SOLVED_LIMIT,
+    )
+    .await
+    .unwrap_or_else(|e| {
+        warn!(error = ?e, "solved ticket lookup failed");
+        Vec::new()
+    })
 }

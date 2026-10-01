@@ -43,13 +43,14 @@ impl Ticket {
             .await
             .ok_or(TicketError::NothingToTriage)?;
 
-        triage_ticket(http, app, &context, opening).await?;
+        let content = if triage_ticket(http, app, &context, opening).await? {
+            "Triage posted"
+        } else {
+            "Nothing to post: no relevant articles or follow-up questions"
+        };
 
         interaction
-            .edit_response(
-                http,
-                EditInteractionResponse::new().content("Triage posted"),
-            )
+            .edit_response(http, EditInteractionResponse::new().content(content))
             .await?;
 
         Ok(())

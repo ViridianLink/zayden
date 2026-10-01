@@ -5,6 +5,7 @@
 //! otherwise ask, so both have to reach it. These tests pin the presence of
 //! that context, not its wording.
 
+use ticket::faq::NewArticle;
 use ticket::faq::hit::{FaqHit, FaqSource};
 use ticket::faq::linked::LinkedPage;
 use ticket::faq::triage::{Opening, user_prompt};
@@ -27,6 +28,16 @@ fn internal() -> FaqHit {
     }
 }
 
+const fn solved(content: &str) -> NewArticle<'_> {
+    NewArticle {
+        title: "Charged twice after a store switch",
+        summary: "Ask which store the purchase went through",
+        content,
+        category: None,
+        tags: &[],
+    }
+}
+
 fn page() -> LinkedPage {
     LinkedPage {
         url: String::from("https://paste.ee/r/abc"),
@@ -44,6 +55,7 @@ fn the_title_reaches_the_model() {
             screenshots: "",
             links: &[],
         },
+        &[],
         &[],
     );
 
@@ -63,6 +75,7 @@ fn the_tags_the_user_picked_reach_the_model() {
             links: &[],
         },
         &[],
+        &[],
     );
 
     assert!(prompt.contains("Palworld"), "{prompt}");
@@ -79,6 +92,7 @@ fn a_ticket_with_no_tags_says_so_rather_than_leaving_a_blank() {
             screenshots: "",
             links: &[],
         },
+        &[],
         &[],
     );
 
@@ -97,6 +111,7 @@ fn a_linked_page_arrives_as_text_not_just_a_url() {
             screenshots: "",
             links: &links,
         },
+        &[],
         &[],
     );
 
@@ -117,6 +132,7 @@ fn the_candidate_articles_still_ride_along() {
             links: &[],
         },
         &hits,
+        &[],
     );
 
     assert!(prompt.contains("servers/ports"), "{prompt}");
@@ -134,6 +150,7 @@ fn the_users_own_words_are_never_dropped() {
             links: &[page()],
         },
         &[hit()],
+        &[],
     );
 
     assert!(prompt.contains("exit code 137 after about a minute"), "{prompt}");
@@ -143,8 +160,9 @@ fn the_users_own_words_are_never_dropped() {
 /// questions - but they are kept out of the list it is allowed to recommend
 /// from, because a link to them is a link the user cannot open.
 #[test]
-fn an_internal_article_is_context_and_not_a_candidate() {
+fn an_internal_note_is_context_and_not_a_candidate() {
     let hits = [hit(), internal()];
+    let notes = [solved("Refunded once the duplicate store charge was found")];
 
     let prompt = user_prompt(
         Opening {
@@ -155,6 +173,7 @@ fn an_internal_article_is_context_and_not_a_candidate() {
             links: &[],
         },
         &hits,
+        &notes,
     );
 
     let (candidates, notes) =
@@ -163,6 +182,51 @@ fn an_internal_article_is_context_and_not_a_candidate() {
     assert!(candidates.contains("servers/ports"), "{prompt}");
     assert!(!candidates.contains("local:7"), "{prompt}");
     assert!(notes.contains("Ask which store the purchase went through"), "{prompt}");
+}
+
+/// The resolution is what tells the model which question separated this cause
+/// from the others, so it has to arrive, not just the title.
+#[test]
+fn a_solved_ticket_brings_its_resolution() {
+    let notes = [solved("Fixed by clearing the duplicate Stripe customer")];
+
+    let prompt = user_prompt(
+        Opening {
+            title: "Charged twice",
+            tags: &[],
+            message: "my card was billed two times",
+            screenshots: "",
+            links: &[],
+        },
+        &[],
+        &notes,
+    );
+
+    assert!(
+        prompt.contains("Fixed by clearing the duplicate Stripe customer"),
+        "{prompt}"
+    );
+}
+
+#[test]
+fn a_long_resolution_is_cut_down() {
+    let long = "step ".repeat(2_000);
+    let notes = [solved(&long)];
+
+    let prompt = user_prompt(
+        Opening {
+            title: "Charged twice",
+            tags: &[],
+            message: "my card was billed two times",
+            screenshots: "",
+            links: &[],
+        },
+        &[],
+        &notes,
+    );
+
+    assert!(prompt.len() < long.len(), "{}", prompt.len());
+    assert!(prompt.contains("(truncated)"), "{prompt}");
 }
 
 #[test]
@@ -176,6 +240,7 @@ fn a_ticket_with_no_internal_notes_gets_no_internal_section() {
             links: &[],
         },
         &[hit()],
+        &[],
     );
 
     assert!(!prompt.contains("Internal notes"), "{prompt}");
@@ -192,6 +257,7 @@ fn screenshot_text_reaches_the_model() {
             links: &[],
         },
         &[],
+        &[],
     );
 
     assert!(prompt.contains("java.net.BindException"), "{prompt}");
@@ -207,6 +273,7 @@ fn a_screenshot_only_ticket_says_so_rather_than_leaving_a_blank() {
             screenshots: "Image 1: exit code 137",
             links: &[],
         },
+        &[],
         &[],
     );
 
