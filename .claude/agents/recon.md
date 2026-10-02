@@ -1,7 +1,7 @@
 ---
 name: recon
 description: Performs codebase reconnaissance, symbol searches, and interface discovery without polluting core context.
-model: claude-sonnet-5.5
+model: claude-sonnet-5-5
 tools: Read, Grep, Glob
 ---
 

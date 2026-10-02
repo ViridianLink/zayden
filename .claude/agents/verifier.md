@@ -1,7 +1,7 @@
 ---
 name: verifier
 description: Executes Rust compilation, clippy linter, and cargo test suites; distills terminal output to root-cause errors.
-model: claude-sonnet-5.5
+model: claude-sonnet-5-5
 tools: Bash
 ---
 
