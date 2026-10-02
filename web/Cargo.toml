@@ -1,0 +1,47 @@
+[package]
+name = "web"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+dotenvy = { workspace = true }
+moka = { workspace = true, features = ["future"] }
+oauth2 = { workspace = true }
+patreon = { workspace = true }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
+sha2 = { workspace = true }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = [
+  "macros",
+  "net",
+  "rt-multi-thread",
+  "time",
+] }
+topcoat = { workspace = true, features = [
+  "asset",
+  "compression",
+  "router",
+  "runtime",
+  "serve",
+  "view",
+] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["ansi", "fmt"] }
+twilight-http = { workspace = true }
+twilight-model = { workspace = true }
+youtube = { workspace = true }
+zayden-app = { workspace = true }
+
+[dev-dependencies]
+http-body-util = { workspace = true }
+
+[build-dependencies]
+topcoat = { workspace = true, features = ["tailwind"] }

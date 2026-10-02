@@ -1,0 +1,68 @@
+use topcoat::Result;
+use topcoat::asset::{Asset, asset};
+use topcoat::context::Cx;
+use topcoat::router::error::NotFoundError;
+use topcoat::router::{Slot, StatusCode, layout, try_endpoint};
+use topcoat::view::{Child, View, component, error_boundary, view};
+
+use crate::pages::not_found::not_found_page;
+
+pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
+
+pub const NOT_FOUND_TITLE: &str = "Not found - Zayden";
+
+/// Document titles keyed by route pattern, as registered on the router.
+pub const PAGE_TITLES: &[(&str, &str)] = &[("/{*rest}", NOT_FOUND_TITLE)];
+
+/// The `<title>` for the route that matched the current request.
+#[must_use]
+pub fn page_title(cx: &Cx) -> &'static str {
+    try_endpoint(cx)
+        .and_then(|endpoint| title_for(endpoint.path().as_str()))
+        .unwrap_or(NOT_FOUND_TITLE)
+}
+
+fn title_for(pattern: &str) -> Option<&'static str> {
+    PAGE_TITLES.iter().find(|(route, _)| *route == pattern).map(|(_, title)| *title)
+}
+
+/// Wraps every page. A page that fails with a not-found error is replaced by
+/// the whole not-found document, so its `<title>` is the not-found title too.
+#[layout("/")]
+pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
+    let title = page_title(cx);
+
+    Ok(view! {
+        error_boundary(
+            fallback: |error| {
+                if error.downcast_ref::<NotFoundError>().is_none() {
+                    return Err(error);
+                }
+                Ok(
+                    view! {
+                        (StatusCode::NOT_FOUND)
+                        document(title: NOT_FOUND_TITLE, not_found_page())
+                    },
+                )
+            },
+            document(title: title, (slot))
+        )
+    })
+}
+
+#[component]
+async fn document(title: &str, #[default] child: Child<'_>) -> Result<impl View> {
+    Ok(view! {
+        <!DOCTYPE html>
+        <html lang="en" data-bot="zayden">
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <link rel="stylesheet" href=(STYLESHEET)>
+                topcoat::runtime::script()
+                <title>(title)</title>
+            </head>
+            <body>(child)</body>
+        </html>
+    })
+}
