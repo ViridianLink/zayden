@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["bot", "bot-modules/*", "dashboard", "zayden-app"]
+members = ["bot", "bot-modules/*", "dashboard", "web", "zayden-app"]
 
 [workspace.package]
 version = "1.0.0"
@@ -331,6 +331,9 @@ leptos_meta = { version = "*", default-features = false }
 leptos_router = { version = "*", default-features = false }
 leptos_axum = { version = "*" }
 
+# -- Frontend (Topcoat)
+topcoat = { version = "=0.9.0", default-features = false }
+
 # ── WASM (hydrate target only) ───────────────────────────────────────────────
 wasm-bindgen = { version = "*" }
 web-sys = { version = "*" }
@@ -339,6 +342,7 @@ web-sys = { version = "*" }
 criterion = { version = "*", default-features = false, features = [
   "cargo_bench_support",
 ] }
+http-body-util = { version = "*", default-features = false }
 
 [profile.dev]
 opt-level = 0

@@ -1,0 +1,247 @@
+/* Pages */
+
+.page {
+    max-width: var(--content-max);
+    animation: fade-up 0.4s var(--ease-spring);
+}
+
+.page-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.page h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.page-lead {
+    color: var(--text-secondary);
+    margin: var(--space-2) 0 0;
+}
+
+/* Login page */
+
+.login-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--space-6);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-card {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 400px;
+    padding: var(--space-7) var(--space-6);
+    box-shadow: var(--shadow-pop);
+    animation: fade-up 0.4s var(--ease-spring);
+}
+
+.login-card .brand {
+    justify-content: center;
+    margin-bottom: var(--space-5);
+    font-size: 20px;
+}
+
+.login-card h1 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 var(--space-2);
+}
+
+.login-card p {
+    color: var(--text-secondary);
+    margin: 0 0 var(--space-6);
+}
+
+.login-card .btn {
+    width: 100%;
+}
+
+/* State messages */
+
+.error {
+    color: var(--error);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xl);
+    background-color: rgb(248 113 113 / 0.1);
+}
+
+.warning {
+    color: var(--warning);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xl);
+    background-color: rgb(251 191 36 / 0.1);
+}
+
+.success {
+    color: var(--success);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-xl);
+    background-color: rgb(74 222 128 / 0.1);
+}
+
+.empty {
+    color: var(--text-secondary);
+    padding: var(--space-8) var(--space-4);
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-2xl);
+}
+
+/* Guild picker (card grid) */
+
+.guild-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-4);
+}
+
+.guild-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    color: var(--text-primary);
+    transition:
+        background-color 0.2s var(--ease-spring),
+        border-color 0.2s var(--ease-spring),
+        transform 0.2s var(--ease-spring);
+}
+
+.guild-card:hover {
+    background-color: var(--bg-surface);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+.guild-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-xl);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.guild-icon.placeholder {
+    display: grid;
+    place-items: center;
+    background: var(--accent-gradient);
+    color: var(--on-accent);
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.guild-card-body {
+    min-width: 0;
+}
+
+.guild-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guild-card-hint {
+    font-size: 12.5px;
+    color: var(--text-tertiary);
+}
+
+/* Tier badge */
+
+.tier-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.tier-free {
+    background-color: var(--overlay-3);
+    color: var(--text-secondary);
+}
+
+.tier-pro {
+    background-color: var(--accent-weak);
+    color: var(--accent);
+}
+
+.tier-ultra {
+    background-color: rgb(251 191 36 / 0.16);
+    color: var(--warning);
+}
+
+.btn-upgrade {
+    font-size: 12px;
+    font-weight: 600;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    background: var(--accent-gradient);
+    color: var(--on-accent);
+    transition: transform 0.2s var(--ease-spring);
+}
+
+.btn-upgrade:hover {
+    color: var(--on-accent);
+    transform: translateY(-1px);
+}
+
+/* Pro banner */
+
+.banner-pro {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-6);
+    background-color: var(--accent-weak);
+    border: 1px solid rgb(91 141 239 / 0.24);
+    border-radius: var(--radius-xl);
+    color: var(--text-primary);
+}
+
+.banner-pro .icon {
+    color: var(--accent);
+    font-size: 18px;
+}
+
+.alert {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.alert-dismiss {
+    flex-shrink: 0;
+    display: inline-flex;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 0.18s var(--ease-spring);
+}
+
+.alert-dismiss:hover {
+    opacity: 1;
+}

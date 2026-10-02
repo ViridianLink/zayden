@@ -86,6 +86,25 @@ command = [
 ]
 need_stdout = false
 
+[jobs.clippy-web]
+command = [
+    "cargo",
+    "clippy",
+    "-p",
+    "web",
+    "--all-targets",
+    "--color",
+    "always",
+    "--",
+    "-D",
+    "warnings",
+]
+need_stdout = false
+
+[jobs.test-web]
+command = ["cargo", "test", "-p", "web", "--all-targets", "--color", "always"]
+need_stdout = true
+
 [jobs.check-offline]
 command = ["cargo", "check", "--workspace", "--all-targets", "--color", "always"]
 need_stdout = false

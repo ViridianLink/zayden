@@ -12,6 +12,7 @@ them. Serenity for Discord, Leptos for the dashboard, Postgres via `sqlx`.
 | `bot-modules/zayden-core` | command/event routing traits shared by every module             |
 | `zayden-app`              | application layer: config, entitlements, shared state           |
 | `dashboard/`              | Leptos SSR + WASM hydration operator dashboard                  |
+| `web/`                    | Topcoat server-rendered operator dashboard                      |
 | `migrations/`             | sqlx migrations, immutable once written                         |
 | `.sqlx/`                  | offline query cache; committed, regenerated on any query change |
 | `design-docs/`            | specs, plans, and per-module audits                             |
@@ -52,11 +53,62 @@ bacon fmt              # cargo fmt --all --check
 bacon build            # link check
 bacon check-ssr        # dashboard, server side
 bacon check-hydrate    # dashboard, wasm32 side
+bacon clippy-web       # web, clippy
+bacon test-web         # web, tests
 bacon nextest          # needs `cargo install cargo-nextest`
 ```
 
 Keep the flags identical across this README, `bacon.toml` and CI. A local
 command weaker than CI is how drift starts.
+
+## Web dashboard (`web/`)
+
+`web` is a [Topcoat](https://github.com/tokio-rs/topcoat) 0.9 app: every page
+renders on the server, and `web/src/router.rs` registers every layout, page and
+route in one `router()` function that the binary and the `tests/` harness share.
+It reads the same `bot/config.toml` `[dashboard]` keys and environment as
+`dashboard`.
+
+It needs the Topcoat CLI, pinned to the same version as the crate:
+
+```bash
+cargo install topcoat-cli@0.9.0 --locked
+```
+
+Run it from the workspace root against a throwaway database:
+
+```bash
+topcoat asset bundle -p web
+DATABASE_URL=postgres://postgres:postgres@localhost:55432/zayden_prepare \
+DASHBOARD_BIND_ADDR=127.0.0.1:3100 \
+cargo run -p web
+```
+
+- **`topcoat asset bundle -p web`** builds the binary and writes its asset
+  bundle (the compiled stylesheet and every other `asset!`) to `assets/` beside
+  it, e.g. `target/debug/assets/`. The server refuses to start without a bundle,
+  and a bundle only matches the build it came from: re-run the command after any
+  change, before `cargo run`. `--release` bundles the release build. The CLI
+  clears `RUSTUP_TOOLCHAIN` and `RUSTFLAGS` for its inner build, so it always
+  builds with the toolchain `rust-toolchain.toml` selects.
+- **`DASHBOARD_BIND_ADDR`** overrides `[dashboard].bind_addr`, so `web` can run
+  next to `dashboard` on `:3000`. Discord OAuth redirects are registered for
+  `:3000`, so log-in flows only complete when `web` runs there.
+- **`TAILWIND_CLI`** points `web/build.rs` at a Tailwind CLI binary (v4.3.2).
+  Unset, the build downloads that release itself (about 112 MB) and, on
+  x86-64 Linux, checks it against a pinned SHA-256; on nightly the download
+  repeats whenever the build script's output directory changes. Point it at a
+  local copy to build offline; CI and `docker/Dockerfile.web` always set it to a
+  checksummed download.
+- Styles live in `web/style/` (`input.css` plus partials). Tailwind only sees
+  class names written literally in `web/src/**/*.rs`.
+- `view!` bodies are formatted by `topcoat fmt`, which has no `--check` mode;
+  pass explicit paths (`topcoat fmt web/src web/tests`) so it skips `target/`,
+  then run `cargo fmt`.
+
+`docker/Dockerfile.web` builds the release image on stable. It is built
+locally (`docker build -f docker/Dockerfile.web .`) and is not part of the
+image publish matrix yet.
 
 ## Conventions
 
@@ -84,16 +136,19 @@ codegen backend is not used.
 
 ## CI
 
-`.github/workflows/ci.yml` runs `rustfmt`, `clippy`, the dashboard's two extra
-targets, tests, `cargo-deny` and an `sqlx prepare --check` in parallel, then a
-link-checking `build` gated on the first three. It builds on **stable**
+`.github/workflows/ci.yml` runs these jobs in parallel: `rustfmt`, workspace
+`clippy`, the dashboard's two extra clippy targets (`ssr` and wasm32 `hydrate`),
+workspace tests against a Postgres service, `cargo-deny`, and
+`sqlx prepare --check`. Jobs that compile `web` set `TAILWIND_CLI` to a
+checksummed Tailwind download. Everything builds on **stable**
 (`RUSTUP_TOOLCHAIN=stable` outranks `rust-toolchain.toml`, and `RUSTFLAGS=""`
 clears the nightly-only flags in `.cargo/config.toml`), so the CI format gate is
 weaker than `cargo fmt` locally — stable `rustfmt` ignores the unstable options
 rather than erroring.
 
-`.github/workflows/docker-publish.yml` builds and pushes the two release images
-to GHCR on pushes to `main` and on tags.
+The `images` job in the same workflow builds the `bot` and `dashboard` release
+images once `rustfmt`, both dashboard clippy jobs and `cargo-deny` pass, and
+pushes them to GHCR for every event except pull requests.
 
 ## Database
 
