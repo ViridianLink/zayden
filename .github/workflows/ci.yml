@@ -25,6 +25,8 @@ env:
   CARGO_NET_RETRY: 10
   RUSTUP_MAX_RETRIES: 10
   SQLX_OFFLINE: true
+  TAILWIND_VERSION: 4.3.2
+  TAILWIND_SHA256: 5036c4fb4328e0bcdbb6065c70d8ac9452e0d4c947113a788a8f94fd390425c1
 
 jobs:
   fmt:
@@ -56,6 +58,15 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-on-failure: true
+      # Every job that compiles `web` reuses this step through the alias.
+      - &fetch-tailwind
+        name: Fetch Tailwind CLI
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/tailwindcss" \
+            "https://github.com/tailwindlabs/tailwindcss/releases/download/v${TAILWIND_VERSION}/tailwindcss-linux-x64"
+          echo "${TAILWIND_SHA256}  $RUNNER_TEMP/tailwindcss" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/tailwindcss"
+          echo "TAILWIND_CLI=$RUNNER_TEMP/tailwindcss" >> "$GITHUB_ENV"
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - uses: ./.github/actions/cancel-run
         if: failure()
@@ -123,6 +134,7 @@ jobs:
         with:
           save-if: ${{ github.ref == 'refs/heads/main' }}
           cache-on-failure: true
+      - *fetch-tailwind
       - run: cargo test --workspace --all-targets --locked
       - uses: ./.github/actions/cancel-run
         if: failure()
@@ -174,6 +186,7 @@ jobs:
           --features postgres,rustls
       - name: Apply migrations
         run: sqlx migrate run
+      - *fetch-tailwind
       - name: Check the offline cache is current
         run: >-
           cargo sqlx prepare --workspace --check -- --features ssr --locked

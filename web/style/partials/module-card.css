@@ -1,0 +1,134 @@
+/* Module grid (guild overview) */
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.module-card {
+  display: flex;
+  flex-direction: column;
+  transition:
+    border-color 0.2s var(--ease-spring),
+    background-color 0.2s var(--ease-spring);
+}
+
+.module-card:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface);
+}
+
+.module-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.module-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-xl);
+  font-size: 21px;
+  color: var(--tint, var(--accent));
+  background: color-mix(in srgb, var(--tint, var(--accent)) 14%, transparent);
+}
+
+.module-name {
+  font-weight: 600;
+  font-size: 15.5px;
+  color: var(--text-primary);
+}
+
+.module-desc {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  flex: 1;
+  margin: 0 0 var(--space-4);
+}
+
+.module-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.module-status {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.module-status.on {
+  color: var(--success);
+}
+
+.module-status.saving {
+  color: var(--warning);
+}
+
+.module-status.failed {
+  color: var(--error);
+}
+
+.module-error {
+  margin: 0 0 var(--space-4);
+  font-size: 12.5px;
+  color: var(--error);
+}
+
+.module-configure {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background-color: var(--overlay-1);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    background-color 0.2s var(--ease-spring),
+    border-color 0.2s var(--ease-spring),
+    color 0.2s var(--ease-spring);
+}
+
+.module-configure .icon {
+  font-size: 15px;
+  transition: transform 0.2s var(--ease-spring);
+}
+
+/* Hovering anywhere on the card hints that the button is there; hovering the
+   button itself commits to the accent fill. */
+.module-card:hover .module-configure {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.module-configure:hover {
+  background-color: var(--accent-weak);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.module-configure:hover .icon {
+  transform: translateX(2px);
+}
+
+.module-configure:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}

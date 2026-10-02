@@ -1,0 +1,38 @@
+.input {
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s var(--ease-spring);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+.input::placeholder {
+    color: var(--text-tertiary);
+}
+
+textarea.input {
+    resize: vertical;
+    line-height: 1.5;
+}
+
+select.input {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    padding-right: var(--space-6);
+    cursor: pointer;
+}
+
+select.input:disabled {
+    color: var(--text-tertiary);
+    cursor: not-allowed;
+}
