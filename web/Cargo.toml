@@ -12,9 +12,12 @@ workspace = true
 
 [dependencies]
 dotenvy = { workspace = true }
+jiff = { workspace = true, features = ["std"] }
+jiff-sqlx = { workspace = true, features = ["postgres"] }
 moka = { workspace = true, features = ["future"] }
 oauth2 = { workspace = true }
 patreon = { workspace = true }
+rand = { workspace = true, features = ["thread_rng"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 sha2 = { workspace = true }
 sqlx = { workspace = true }
@@ -28,6 +31,7 @@ tokio = { workspace = true, features = [
 topcoat = { workspace = true, features = [
   "asset",
   "compression",
+  "cookie",
   "router",
   "runtime",
   "serve",
