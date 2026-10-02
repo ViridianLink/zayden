@@ -1,0 +1,68 @@
+/* Removable chips for set-valued settings (e.g. support roles) */
+
+.chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin: var(--space-2) 0;
+}
+
+.chip-list:empty {
+    display: none;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    background-color: var(--overlay-1);
+}
+
+.chip-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: none;
+    border-radius: var(--radius-full);
+    background: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+.chip-remove:hover:not(:disabled) {
+    background-color: var(--overlay-2);
+    color: var(--text-primary);
+}
+
+.chip-remove:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.chip-remove .icon {
+    width: 13px;
+    height: 13px;
+}
+
+.chip-add {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+}
+
+.chip-add .setting-field {
+    flex: 1;
+    margin-bottom: 0;
+}

@@ -28,6 +28,8 @@ skills-lock.json
 # Docs and tooling
 *.md
 design-docs/
+docs/
+scratch/
 deny.toml
 clippy.toml
 rustfmt.toml

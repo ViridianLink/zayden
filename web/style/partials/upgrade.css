@@ -1,0 +1,132 @@
+/* Upgrade (Pro) page */
+
+.pro-features {
+    list-style: none;
+    margin: 0 0 var(--space-6);
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-4);
+}
+
+.pro-feature {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+}
+
+.pro-feature .icon {
+    color: var(--accent);
+    font-size: 22px;
+    margin-bottom: var(--space-1);
+}
+
+.pro-feature strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.pro-feature span {
+    color: var(--text-secondary);
+    font-size: 13.5px;
+}
+
+.upgrade-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-6);
+}
+
+.plan-ladder {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.plan-ladder:has(> .plan-card:only-child) {
+    grid-template-columns: minmax(240px, 360px);
+}
+
+.plan-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.plan-card.plan-ultra {
+    border-color: rgb(251 191 36 / 0.35);
+}
+
+.plan-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.plan-price {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.plan-price small {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.plan-specs {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex: 1;
+}
+
+.plan-specs li {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+}
+
+.plan-specs strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.plan-current,
+.plan-included {
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    padding: var(--space-2) 0;
+    border-radius: var(--radius-xl);
+}
+
+.plan-current {
+    background-color: var(--accent-weak);
+    color: var(--accent);
+}
+
+.plan-included {
+    background-color: var(--overlay-3);
+    color: var(--text-secondary);
+}
+
+.kofi-link-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    align-items: center;
+    margin-top: var(--space-3);
+}
+
+.kofi-link-form .input {
+    flex: 1;
+    min-width: 220px;
+}
