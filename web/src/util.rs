@@ -14,3 +14,9 @@ pub fn hex_encode(bytes: &[u8]) -> String {
 pub fn email_hash(email: &str) -> String {
     hex_encode(&Sha256::digest(email.trim().to_lowercase()))
 }
+
+/// Formats a failure message the way the dashboard has always shown server errors.
+#[must_use]
+pub fn server_error_text(message: impl std::fmt::Display) -> String {
+    format!("error running server function: {message}")
+}
