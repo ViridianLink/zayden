@@ -13,3 +13,11 @@ fn email_hash_normalizes_case_and_whitespace() {
     );
     assert_eq!(email_hash("someone@example.com").len(), 64);
 }
+
+#[test]
+fn server_error_text_keeps_the_established_prefix() {
+    assert_eq!(
+        web::util::server_error_text("invalid guild id"),
+        "error running server function: invalid guild id"
+    );
+}
