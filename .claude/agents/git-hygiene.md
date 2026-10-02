@@ -1,7 +1,7 @@
 ---
 name: git-hygiene
 description: Formats Rust code, reviews diffs, stages clean files, and drafts commit messages for human approval.
-model: claude-sonnet-5.5
+model: claude-sonnet-5-5
 tools: Bash, Read
 ---
 
