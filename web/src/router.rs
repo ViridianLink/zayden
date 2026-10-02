@@ -1,7 +1,8 @@
+use topcoat::cookie::RouterBuilderCookieExt;
 use topcoat::router::{Router, RouterBuilder};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 
-use crate::{document, pages};
+use crate::{auth, document, pages};
 
 /// Registers every layout, page and route on `base`.
 ///
@@ -10,8 +11,10 @@ use crate::{document, pages};
 /// [`WebState`](crate::state::WebState).
 #[must_use]
 pub fn router(base: RouterBuilder) -> Router {
-    base.layout(document::root_layout)
-        .page(pages::not_found::not_found)
-        .runtime()
-        .build()
+    auth::routes(
+        base.layout(document::root_layout).page(pages::not_found::not_found),
+    )
+    .runtime()
+    .cookies()
+    .build()
 }
