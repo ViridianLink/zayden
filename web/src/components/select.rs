@@ -88,11 +88,6 @@ impl From<&RoleInfo> for Role {
     }
 }
 
-/// A labelled `<select name>` with a leading "(not set)" option.
-///
-/// `Err(reason)` renders the locked variant: a disabled select showing the
-/// stored value, a hidden input that posts `selected` back unchanged, and the
-/// reason as a warning.
 #[component]
 pub async fn select_field(
     label: &str,
@@ -206,7 +201,6 @@ const fn channel_prefix(kind: ChannelType) -> &'static str {
     }
 }
 
-/// An empty `kinds` offers every channel.
 pub fn channel_options(
     channels: Result<&[Channel], &str>,
     kinds: &[ChannelType],

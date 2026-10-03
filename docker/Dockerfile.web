@@ -39,8 +39,6 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json -p web
 
 COPY . .
-# `topcoat asset bundle` clears RUSTUP_TOOLCHAIN for its inner `cargo build`,
-# so a toolchain file would switch that build to nightly.
 RUN rm -f rust-toolchain.toml \
     && topcoat asset bundle --release -p web
 
@@ -54,8 +52,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN groupadd --system zayden && useradd --system --gid zayden zayden
 
-# The binary loads its asset bundle from `assets/` beside the executable; both
-# come from the same build.
 COPY --from=builder /app/target/release/web    /app/web
 COPY --from=builder /app/target/release/assets /app/assets
 

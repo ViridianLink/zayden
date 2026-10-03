@@ -13,7 +13,6 @@ use super::error::{AuthError, ForeignIdError};
 use super::guild::admin_guild_id;
 use super::ownership::GuildIds;
 
-/// Permissions the bot needs to announce in a channel.
 pub const ANNOUNCE_PERMISSIONS: Permissions =
     Permissions::VIEW_CHANNEL.union(Permissions::SEND_MESSAGES);
 
@@ -30,7 +29,6 @@ async fn admin_discord<'a>(
     Ok((guild_id.cast_unsigned(), discord_client(cx)?))
 }
 
-/// The guild's channels in display order, for a user who may manage it.
 pub async fn list_guild_channels(
     cx: &Cx,
     guild: &str,
@@ -39,8 +37,6 @@ pub async fn list_guild_channels(
     fetch_guild_channels(http, guild_id).await
 }
 
-/// The guild's roles, highest first and without `@everyone`, for a user who
-/// may manage it.
 pub async fn list_guild_roles(
     cx: &Cx,
     guild: &str,
@@ -92,7 +88,6 @@ pub(crate) async fn fetch_guild_roles(
         .collect())
 }
 
-/// Fails with [`ForeignIdError::Channel`] unless the guild lists the channel.
 pub async fn ensure_guild_channel(
     cx: &Cx,
     guild_id: i64,
@@ -101,9 +96,6 @@ pub async fn ensure_guild_channel(
     GuildIds::default().channel(Some(channel_id)).ensure_in(cx, guild_id).await
 }
 
-/// A member's permissions in a channel, resolved the way Discord does: the
-/// `@everyone` and held roles' permissions, Administrator granting all, then
-/// the `@everyone`, role and member overwrites in that order.
 #[must_use]
 pub fn channel_permissions(
     guild_id: u64,
@@ -150,8 +142,6 @@ pub fn channel_permissions(
     permissions
 }
 
-/// Fails with [`AuthError::BotCannotPost`] unless the bot can view and send
-/// messages in the channel.
 pub async fn ensure_bot_can_post(
     cx: &Cx,
     guild_id: i64,

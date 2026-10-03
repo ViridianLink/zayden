@@ -6,9 +6,6 @@
 use topcoat::Result;
 use topcoat::view::{View, component, view};
 
-/// A placeholder shape sized by `style/partials/skeleton.css` to match the
-/// element it stands in for. Wrap repeated shapes in a `skeleton-grid`,
-/// `skeleton-list` or `skeleton-stack` container.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SkeletonShape {
     Btn,

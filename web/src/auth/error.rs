@@ -6,10 +6,6 @@ use super::session::LOGIN_PATH;
 pub const UNAUTHENTICATED: &str = "unauthenticated";
 pub const FORBIDDEN: &str = "forbidden";
 
-/// Why an access check or a Discord lookup failed.
-///
-/// Each message is the exact text pages render, through
-/// [`server_error_text`](crate::util::server_error_text).
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum AuthError {
     #[error("unauthenticated")]
@@ -37,16 +33,11 @@ pub enum AuthError {
 }
 
 impl AuthError {
-    /// Whether the caller was refused, as opposed to the server failing to
-    /// serve them.
     #[must_use]
     pub const fn is_denied(&self) -> bool {
         matches!(self, Self::Unauthenticated | Self::Forbidden)
     }
 
-    /// A 303 to [`LOGIN_PATH`] for [`AuthError::Unauthenticated`], so `?` sends
-    /// a signed-out visitor to the login page; any other error comes back for
-    /// the page to render inline.
     pub fn redirect_unauthenticated(self) -> Result<Self, SeeOther> {
         if self == Self::Unauthenticated {
             return Err(see_other(LOGIN_PATH));
@@ -73,7 +64,6 @@ impl From<DeserializeBodyError> for AuthError {
     }
 }
 
-/// A submitted id that the guild being edited does not own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum ForeignIdError {
     #[error("that channel is not in this server")]

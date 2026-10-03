@@ -26,8 +26,6 @@ pub(crate) struct DiscordAuthCallback {
     state: String,
 }
 
-/// Starts a Discord sign-in: remembers a CSRF state in a cookie and sends the
-/// browser to Discord's consent screen.
 #[route(GET "/auth/discord")]
 pub(crate) async fn login_handler(cx: &Cx) -> Result<SeeOther> {
     let oauth = &web_state(cx)?.oauth;
@@ -52,8 +50,6 @@ pub(crate) async fn login_handler(cx: &Cx) -> Result<SeeOther> {
     Ok(see_other(auth_url.as_str()))
 }
 
-/// Finishes a Discord sign-in: checks the CSRF state, exchanges the code,
-/// stores a session and signs the browser in.
 #[route(GET "/auth/callback")]
 pub(crate) async fn discord_auth_callback_handler(cx: &Cx) -> Result<SeeOther> {
     let query = query_params::<DiscordAuthCallback>(cx)?;
@@ -117,11 +113,6 @@ pub(crate) async fn discord_auth_callback_handler(cx: &Cx) -> Result<SeeOther> {
     Ok(see_other(SIGNED_IN_PATH))
 }
 
-/// Stores a new `web_sessions` row for the user and sets its `session`
-/// cookie. Both expire after [`SESSION_TTL_HOURS`].
-///
-/// This signs the browser in as `discord_user_id` unconditionally: callers
-/// must already have verified that identity with Discord.
 pub async fn start_session(
     cx: &Cx,
     pool: &PgPool,
@@ -164,8 +155,6 @@ pub async fn start_session(
     Ok(())
 }
 
-/// Signs the browser out: deletes its session row, drops the cached identity
-/// and clears the cookie. Always succeeds.
 #[route(GET "/logout")]
 pub(crate) async fn logout_handler(cx: &Cx) -> Result<SeeOther> {
     let state = web_state(cx)?;

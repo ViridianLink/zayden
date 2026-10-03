@@ -8,8 +8,6 @@ use super::context::discord_client;
 use super::discord::{fetch_guild_channels, fetch_guild_roles};
 use super::error::{AuthError, ForeignIdError};
 
-/// The first submitted id that `known` does not list. Negative ids are never
-/// snowflakes, so they are always foreign.
 pub fn first_foreign<'a>(
     known: impl IntoIterator<Item = &'a str>,
     submitted: &[i64],
@@ -23,8 +21,6 @@ pub fn first_foreign<'a>(
         .find(|&id| u64::try_from(id).map_or(true, |id| !known.contains(&id)))
 }
 
-/// Channel, role and thread ids submitted for one guild, checked against what
-/// Discord lists for it before they are stored.
 #[derive(Debug, Default)]
 pub struct GuildIds {
     channels: Vec<i64>,
@@ -51,8 +47,6 @@ impl GuildIds {
         self
     }
 
-    /// Fails with a [`ForeignIdError`] if any id is not in the guild. Makes no
-    /// Discord call when nothing was submitted.
     pub async fn ensure_in(self, cx: &Cx, guild_id: i64) -> Result<(), AuthError> {
         if self.channels.is_empty()
             && self.roles.is_empty()
