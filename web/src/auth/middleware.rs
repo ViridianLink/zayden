@@ -7,9 +7,6 @@ use super::context::cookie_jar;
 use super::cookie::SESSION_COOKIE;
 use super::session::session_for_token;
 
-/// A layer that admits only requests carrying a live session to the routes
-/// under `path`. Others get an empty `401`, or an empty `500` when the
-/// session store fails.
 #[must_use]
 pub fn require_auth(path: &'static str) -> LayerFn {
     LayerFn::new(Some(path), require_auth_handler)

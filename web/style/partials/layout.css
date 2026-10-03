@@ -108,7 +108,7 @@
     margin-bottom: var(--space-2);
 }
 
-.server-switcher > summary {
+.server-switcher>summary {
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -121,15 +121,15 @@
     transition: border-color 0.18s var(--ease-spring);
 }
 
-.server-switcher > summary::-webkit-details-marker {
+.server-switcher>summary::-webkit-details-marker {
     display: none;
 }
 
-.server-switcher > summary:hover {
+.server-switcher>summary:hover {
     border-color: var(--border-strong);
 }
 
-.server-switcher[open] > summary {
+.server-switcher[open]>summary {
     border-color: var(--accent);
 }
 
@@ -161,7 +161,7 @@
     text-overflow: ellipsis;
 }
 
-.server-switcher > summary .icon {
+.server-switcher>summary .icon {
     color: var(--text-tertiary);
     font-size: 16px;
 }

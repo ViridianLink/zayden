@@ -17,26 +17,19 @@ use super::roles::{WebRole, has_role};
 use super::session::session_for_token;
 use crate::state::{SessionIdentity, UserGuildsCache};
 
-/// How the signed-in user reached a guild's pages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GuildAccess {
-    /// The user manages the guild in Discord.
     Member,
-    /// A dashboard operator viewing a guild the bot is in.
     Operator,
 }
 
 impl GuildAccess {
-    /// Discord accepts command-permission writes only from a bearer token of
-    /// a member who manages the guild.
     #[must_use]
     pub const fn can_write_command_permissions(self) -> bool {
         matches!(self, Self::Member)
     }
 }
 
-/// Proof that the signed-in user may manage a guild. `access_token` is the
-/// user's Discord bearer token, so `Debug` leaves it out.
 #[derive(Clone, PartialEq, Eq)]
 pub struct GuildAdminContext {
     pub guild_id: i64,
@@ -53,8 +46,6 @@ impl fmt::Debug for GuildAdminContext {
     }
 }
 
-/// Administrator or Manage Server, the rights that let a member manage a
-/// guild here.
 #[must_use]
 pub fn manages_guild(guild: &CurrentUserGuild) -> bool {
     guild
@@ -70,12 +61,6 @@ pub fn find_user_guild(
     guilds.iter().find(|g| g.id.get() == guild_id)
 }
 
-/// The user's guilds from Discord's `GET /users/@me/guilds`, through the
-/// cache.
-///
-/// This is the only call of that endpoint: the server switcher and every
-/// per-guild authorization read this one payload. The cache TTL bounds how
-/// long a revoked guild permission stays honoured.
 pub async fn lookup_user_guilds(
     cache: Option<&UserGuildsCache>,
     identity: &SessionIdentity,
@@ -100,7 +85,6 @@ pub async fn lookup_user_guilds(
     Ok(guilds)
 }
 
-/// [`lookup_user_guilds`] through the app's cache.
 pub async fn user_guilds(
     cx: &Cx,
     identity: &SessionIdentity,
@@ -117,9 +101,6 @@ async fn bot_is_in_guild(discord: Option<&Client>, guild_id: u64) -> bool {
     http.guild(id).await.is_ok()
 }
 
-/// Decides whether `identity` may manage the guild `guild_id_str`: as a
-/// member with Administrator or Manage Server, or as an operator when the bot
-/// is in the guild.
 pub async fn guild_admin_for(
     pool: &PgPool,
     identity: &SessionIdentity,
@@ -160,7 +141,6 @@ pub async fn guild_admin_for(
     })
 }
 
-/// [`guild_admin_for`] the request's session.
 pub async fn guild_admin_context(
     cx: &Cx,
     guild_id_str: &str,

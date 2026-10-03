@@ -55,7 +55,7 @@
   padding-left: var(--space-5);
 }
 
-.legal li + li {
+.legal li+li {
   margin-top: var(--space-2);
 }
 

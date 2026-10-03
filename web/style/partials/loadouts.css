@@ -207,7 +207,7 @@
     transform: rotate(45deg) scale(0.8);
 }
 
-.slot-diamond .slot-button > * {
+.slot-diamond .slot-button>* {
     transform: rotate(-45deg);
 }
 

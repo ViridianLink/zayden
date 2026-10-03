@@ -12,7 +12,6 @@ pub enum WebRole {
 }
 
 impl WebRole {
-    /// The literal stored in `web_user_roles.role`.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -37,8 +36,6 @@ pub async fn has_role(
     .map(|row| row.is_some())?)
 }
 
-/// The signed-in user's id if they hold `role`; otherwise
-/// [`AuthError::Unauthenticated`] or [`AuthError::Forbidden`].
 pub async fn require_role(cx: &Cx, role: WebRole) -> Result<i64, AuthError> {
     let user_id = current_user_id(cx).await?;
     let pool = db_pool(cx)?;

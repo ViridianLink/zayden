@@ -1,7 +1,7 @@
 ---
 name: planner
 description: Triages backlog, reads design specs, checks prerequisites, and prepares task scopes.
-model: claude-sonnet-5-5
+model: sonnet
 tools: Read, Grep, Glob
 ---
 

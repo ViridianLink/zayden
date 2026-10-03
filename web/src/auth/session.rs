@@ -8,13 +8,8 @@ use super::dto::SessionUser;
 use super::error::AuthError;
 use crate::state::{SessionCache, SessionIdentity};
 
-/// Where signed-out visitors of a members-only page are sent.
 pub const LOGIN_PATH: &str = "/login";
 
-/// Resolves a session token through the cache, then `web_sessions`.
-///
-/// This is the only read of `web_sessions`. A miss fills the cache, so later
-/// checks in this and other requests skip the query for the cache TTL.
 pub async fn lookup_session(
     cache: Option<&SessionCache>,
     pool: &PgPool,
@@ -59,8 +54,6 @@ pub(super) async fn session_for_token(
     Ok(lookup_session(cache, pool, token).await?)
 }
 
-/// The identity behind the request's `session` cookie, if it names a live
-/// session.
 pub async fn current_session_identity(
     cx: &Cx,
 ) -> Result<Option<SessionIdentity>, AuthError> {
@@ -83,20 +76,10 @@ pub async fn current_user_id(cx: &Cx) -> Result<i64, AuthError> {
         .ok_or(AuthError::Unauthenticated)
 }
 
-/// The signed-in identity for a members-only page.
-///
-/// Without a live session this is [`AuthError::Unauthenticated`]; pass it
-/// through [`AuthError::redirect_unauthenticated`] to answer with a 303 to
-/// [`LOGIN_PATH`]. Any other error is a session-store failure that the page
-/// renders inline.
 pub async fn require_user(cx: &Cx) -> Result<SessionIdentity, AuthError> {
     current_session_identity(cx).await?.ok_or(AuthError::Unauthenticated)
 }
 
-/// The signed-in user's Discord profile.
-///
-/// A failed Discord call is logged and reads as signed out, so public pages
-/// keep rendering.
 pub async fn current_session_user(
     cx: &Cx,
 ) -> Result<Option<SessionUser>, AuthError> {

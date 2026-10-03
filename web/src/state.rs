@@ -64,10 +64,6 @@ pub struct SiteUrls {
     pub upgrade: Option<String>,
 }
 
-/// Process-wide state, registered once as router app context.
-///
-/// The moka caches live here because request memoization does not outlive a
-/// request.
 pub struct WebState {
     pub app: Arc<ZaydenAppState>,
     pub sessions: SessionCache,

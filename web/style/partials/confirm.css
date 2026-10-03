@@ -3,21 +3,21 @@
     display: inline-block;
 }
 
-.confirm > summary {
+.confirm>summary {
     list-style: none;
     cursor: pointer;
 }
 
-.confirm > summary::-webkit-details-marker {
+.confirm>summary::-webkit-details-marker {
     display: none;
 }
 
-.confirm > summary .confirm-cancel,
-.confirm[open] > summary .confirm-label {
+.confirm>summary .confirm-cancel,
+.confirm[open]>summary .confirm-label {
     display: none;
 }
 
-.confirm[open] > summary .confirm-cancel {
+.confirm[open]>summary .confirm-cancel {
     display: inline;
 }
 

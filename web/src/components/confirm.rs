@@ -6,8 +6,6 @@
 use topcoat::Result;
 use topcoat::view::{View, component, view};
 
-/// A two-step destructive submit: the summary opens a popover whose button
-/// submits the enclosing form. Must be placed inside a `<form>`.
 #[component]
 pub async fn confirm_button(
     label: &str,

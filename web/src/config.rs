@@ -3,8 +3,6 @@ use std::net::{AddrParseError, SocketAddr};
 
 use zayden_app::config::BotConfig;
 
-/// Overrides `[dashboard].bind_addr` so this server can run beside another
-/// process that reads the same config file.
 pub const BIND_ADDR_ENV: &str = "DASHBOARD_BIND_ADDR";
 
 pub fn bind_addr(config: &BotConfig) -> Result<SocketAddr, AddrParseError> {

@@ -8,9 +8,6 @@ use topcoat::view::{View, component, view};
 
 use super::icons::{Icon, icon};
 
-/// A chip list of keys with an input suggesting from the `<datalist>` whose
-/// id is `list`. "Add" is disabled once `keys` holds `max` entries. The field
-/// posts nothing itself; the enclosing editor owns the list.
 #[component]
 pub async fn key_list_field(
     label: &str,

@@ -33,8 +33,6 @@ pub fn discord_client(cx: &Cx) -> Result<&Arc<twilight_http::Client>, AuthError>
         .ok_or(AuthError::MissingContext("missing Discord client"))
 }
 
-/// The request's cookie jar, or an error instead of a panic when the router
-/// has no cookie layer.
 pub(super) fn cookie_jar(cx: &Cx) -> Result<&CookieJar, AuthError> {
     if try_request_context::<CookieJarCell>(cx).is_none() {
         return Err(AuthError::MissingContext("missing cookie jar"));

@@ -37,7 +37,14 @@ analyzer = "nextest"
 need_stdout = true
 
 [jobs.build]
-command = ["cargo", "build", "--workspace", "--all-targets", "--color", "always"]
+command = [
+    "cargo",
+    "build",
+    "--workspace",
+    "--all-targets",
+    "--color",
+    "always",
+]
 need_stdout = false
 
 [jobs.check-ssr]
@@ -106,7 +113,14 @@ command = ["cargo", "test", "-p", "web", "--all-targets", "--color", "always"]
 need_stdout = true
 
 [jobs.check-offline]
-command = ["cargo", "check", "--workspace", "--all-targets", "--color", "always"]
+command = [
+    "cargo",
+    "check",
+    "--workspace",
+    "--all-targets",
+    "--color",
+    "always",
+]
 need_stdout = false
 env.SQLX_OFFLINE = "true"
 
