@@ -1,2 +1,5 @@
 [build]
 rustflags = ["-Z", "threads=8"]
+
+[env]
+RUST_TEST_THREADS = "8"

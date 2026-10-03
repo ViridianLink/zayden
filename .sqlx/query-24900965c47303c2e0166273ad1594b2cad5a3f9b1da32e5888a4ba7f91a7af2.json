@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT websub_expires_at IS NOT NULL AS \"leased!\"\n           FROM youtube_channels WHERE channel_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "leased!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "24900965c47303c2e0166273ad1594b2cad5a3f9b1da32e5888a4ba7f91a7af2"
+}

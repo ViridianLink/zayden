@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM patreon_announce",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "871e86d4f76e6b76036300439c449c6e1269d92d5483b1252ccab4f815e6d82c"
+}

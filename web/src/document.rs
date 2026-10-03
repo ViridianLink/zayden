@@ -11,7 +11,13 @@ pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
 
 pub const NOT_FOUND_TITLE: &str = "Not found - Zayden";
 
-pub const PAGE_TITLES: &[(&str, &str)] = &[("/{*rest}", NOT_FOUND_TITLE)];
+pub const PAGE_TITLES: &[(&str, &str)] = &[
+    ("/{*rest}", NOT_FOUND_TITLE),
+    ("/", crate::public::LANDING_TITLE),
+    ("/login", crate::public::LOGIN_TITLE),
+    ("/privacy", crate::public::PRIVACY_TITLE),
+    ("/terms", crate::public::TERMS_TITLE),
+];
 
 #[must_use]
 pub fn page_title(cx: &Cx) -> &'static str {
@@ -21,6 +27,7 @@ pub fn page_title(cx: &Cx) -> &'static str {
 }
 
 fn title_for(pattern: &str) -> Option<&'static str> {
+    let pattern = if pattern.is_empty() { "/" } else { pattern };
     PAGE_TITLES.iter().find(|(route, _)| *route == pattern).map(|(_, title)| *title)
 }
 
