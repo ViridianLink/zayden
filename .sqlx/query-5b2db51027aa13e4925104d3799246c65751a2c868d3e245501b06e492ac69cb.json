@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO greeting_images (guild_id, kind, url) VALUES (11, 'morning', 'https://example.com/theirs.gif')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "5b2db51027aa13e4925104d3799246c65751a2c868d3e245501b06e492ac69cb"
+}

@@ -23,4 +23,5 @@ fn main() {
     println!("cargo::rerun-if-env-changed={TAILWIND_CLI}");
     println!("cargo::rerun-if-changed=style");
     println!("cargo::rerun-if-changed=src");
+    println!("cargo::rerun-if-changed=assets");
 }

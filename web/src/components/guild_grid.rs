@@ -7,6 +7,8 @@ use topcoat::Result;
 use topcoat::view::{View, component, view};
 use twilight_model::user::CurrentUserGuild;
 
+use crate::guild::dto::GuildInfo;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GuildCard {
     pub id: String,
@@ -20,6 +22,16 @@ impl From<&CurrentUserGuild> for GuildCard {
             id: guild.id.to_string(),
             name: guild.name.clone(),
             icon: guild.icon.map(|hash| hash.to_string()),
+        }
+    }
+}
+
+impl From<&GuildInfo> for GuildCard {
+    fn from(guild: &GuildInfo) -> Self {
+        Self {
+            id: guild.id.clone(),
+            name: guild.name.clone(),
+            icon: guild.icon.clone(),
         }
     }
 }
