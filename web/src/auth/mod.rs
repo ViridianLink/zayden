@@ -11,6 +11,7 @@ mod roles;
 mod session;
 pub mod supersede;
 
+pub(crate) use context::cookie_jar;
 pub use context::{app_state, db_pool, discord_client, web_state};
 pub use cookie::{
     OAUTH_STATE_COOKIE,
@@ -27,6 +28,7 @@ pub use discord::{
     list_guild_channels,
     list_guild_roles,
 };
+pub(crate) use discord::{fetch_guild_channels, fetch_guild_roles};
 pub use dto::{ChannelInfo, ForumTagInfo, RoleInfo, SessionUser};
 pub use error::{AuthError, FORBIDDEN, ForeignIdError, UNAUTHENTICATED};
 pub use guild::{

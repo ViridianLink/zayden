@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO patreon_announce (guild_id, channel_id) VALUES ($1, 1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "74ed21db534b864f7913adb273d3364d60fe2737979b96f1cb196b66b6a92d6f"
+}

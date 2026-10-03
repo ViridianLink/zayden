@@ -11,17 +11,25 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+base64 = { workspace = true, features = ["alloc"] }
+destiny2 = { workspace = true }
 dotenvy = { workspace = true }
+honeypot = { workspace = true }
+hosting = { workspace = true }
 jiff = { workspace = true, features = ["std"] }
 jiff-sqlx = { workspace = true, features = ["postgres"] }
 moka = { workspace = true, features = ["future"] }
 oauth2 = { workspace = true }
 patreon = { workspace = true }
 rand = { workspace = true, features = ["thread_rng"] }
+reqwest = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
+serde = { workspace = true, features = ["derive"] }
 sha2 = { workspace = true }
 sqlx = { workspace = true }
+suggestions = { workspace = true }
 thiserror = { workspace = true }
+ticket = { workspace = true }
 tokio = { workspace = true, features = [
   "macros",
   "net",
@@ -41,11 +49,15 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "fmt"] }
 twilight-http = { workspace = true }
 twilight-model = { workspace = true }
+url = { workspace = true }
 youtube = { workspace = true }
 zayden-app = { workspace = true }
 
 [dev-dependencies]
+hmac = { workspace = true }
 http-body-util = { workspace = true }
+md-5 = { workspace = true }
+sha1 = { workspace = true }
 
 [build-dependencies]
 topcoat = { workspace = true, features = ["tailwind"] }
