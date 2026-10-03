@@ -137,13 +137,11 @@ pub const MODULES: &[ModuleNav] = &[
     },
 ];
 
-/// Unknown slugs fall back to General.
 #[must_use]
 pub fn section(slug: &str) -> &'static ModuleNav {
     MODULES.iter().find(|module| module.slug() == Some(slug)).unwrap_or(&GENERAL)
 }
 
-/// `None` for pages and unknown slugs.
 #[must_use]
 pub fn settings_href(guild_id: impl Display, slug: &str) -> Option<String> {
     MODULES

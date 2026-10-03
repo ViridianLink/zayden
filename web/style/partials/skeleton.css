@@ -70,6 +70,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .skeleton-btn,
     .skeleton-badge,
     .skeleton-switcher,

@@ -5,7 +5,6 @@ use tracing::warn;
 
 const PRUNE_INTERVAL: Duration = Duration::from_hours(1);
 
-/// Deletes expired `web_sessions` rows now and then once per interval.
 pub fn spawn(pool: PgPool) {
     tokio::spawn(async move {
         let mut ticker = tokio::time::interval(PRUNE_INTERVAL);

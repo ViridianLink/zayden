@@ -15,16 +15,12 @@ struct Slot {
 static SLOTS: LazyLock<Mutex<HashMap<Key, Slot>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-/// A ticket for one write to a guild's module. Writes to the same module run
-/// one at a time, and a write that a newer one has claimed past can be
-/// skipped, so rapid toggles settle on the last request.
 pub struct Claim {
     key: Key,
     ticket: u64,
     gate: Arc<AsyncMutex<()>>,
 }
 
-/// Bumps the ticket before any await, so an older run sees itself superseded.
 #[must_use]
 pub fn claim(guild_id: Id<GuildMarker>, module: &'static str) -> Claim {
     let key = (guild_id, module);

@@ -8,7 +8,7 @@
   margin-bottom: var(--space-5);
 }
 
-.operator-tools > .input[type="search"] {
+.operator-tools>.input[type="search"] {
   flex: 1 1 16rem;
   min-width: 0;
 }
