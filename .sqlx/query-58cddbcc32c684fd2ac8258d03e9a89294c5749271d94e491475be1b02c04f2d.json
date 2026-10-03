@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO patreon_oauth (guild_id, campaign_id, access_token, refresh_token, expires_at, webhook_id, webhook_secret, connected_by) VALUES ($1, $2, 'a', 'r', now() + interval '1 day', 'wh', $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "58cddbcc32c684fd2ac8258d03e9a89294c5749271d94e491475be1b02c04f2d"
+}

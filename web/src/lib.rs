@@ -1,10 +1,14 @@
+pub mod admin;
 pub mod auth;
 pub mod components;
 pub mod config;
 pub mod document;
 pub mod error;
+pub mod guild;
 pub mod nav;
 pub mod pages;
+pub mod providers;
+pub mod public;
 mod router;
 pub mod session_pruning;
 pub mod state;

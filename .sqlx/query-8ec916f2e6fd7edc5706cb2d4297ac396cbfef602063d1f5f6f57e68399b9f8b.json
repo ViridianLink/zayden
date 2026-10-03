@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT tier, scope_type, scope_id,\n                  (expires_at > now() + interval '31 days'\n                   AND expires_at < now() + interval '33 days') AS \"about_a_month!\"\n           FROM entitlements WHERE provider = 'kofi' AND external_id = 'txn-1'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tier",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "entitlements",
+            "name": "tier"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "scope_type",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "entitlements",
+            "name": "scope_type"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "scope_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "entitlements",
+            "name": "scope_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "about_a_month!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "8ec916f2e6fd7edc5706cb2d4297ac396cbfef602063d1f5f6f57e68399b9f8b"
+}
