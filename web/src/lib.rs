@@ -3,7 +3,9 @@ pub mod auth;
 pub mod components;
 pub mod config;
 pub mod document;
+pub mod engagement;
 pub mod error;
+pub mod form;
 pub mod guild;
 pub mod nav;
 pub mod pages;
@@ -11,6 +13,7 @@ pub mod providers;
 pub mod public;
 mod router;
 pub mod session_pruning;
+pub mod shell;
 pub mod state;
 pub mod util;
 
