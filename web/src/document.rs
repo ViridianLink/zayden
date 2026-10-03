@@ -6,12 +6,19 @@ use topcoat::router::{Slot, StatusCode, layout, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
 use crate::pages::not_found::not_found_page;
+use crate::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
 
 pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
 
 pub const NOT_FOUND_TITLE: &str = "Not found - Zayden";
 
-pub const PAGE_TITLES: &[(&str, &str)] = &[("/{*rest}", NOT_FOUND_TITLE)];
+pub const PAGE_TITLES: &[(&str, &str)] = &[
+    ("/{*rest}", NOT_FOUND_TITLE),
+    ("/", LANDING_TITLE),
+    ("/login", LOGIN_TITLE),
+    ("/privacy", PRIVACY_TITLE),
+    ("/terms", TERMS_TITLE),
+];
 
 #[must_use]
 pub fn page_title(cx: &Cx) -> &'static str {
@@ -21,6 +28,7 @@ pub fn page_title(cx: &Cx) -> &'static str {
 }
 
 fn title_for(pattern: &str) -> Option<&'static str> {
+    let pattern = if pattern.is_empty() { "/" } else { pattern };
     PAGE_TITLES.iter().find(|(route, _)| *route == pattern).map(|(_, title)| *title)
 }
 

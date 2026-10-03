@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO youtube_announce (guild_id, channel_id) VALUES ($1, 1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c212b605854ecb1e2dba267255808f4c0f7cf48a70afbc9842a9bef467b3969b"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO web_user_roles (discord_user_id, role) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "963a7cfc85d83ca239681e8b2199b5d79a9750eeef23ff403a0ec54570c4ef6d"
+}
