@@ -1,6 +1,5 @@
 use zayden_app::entitlement;
 
-/// A membership tier, as the dashboard labels and prices it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Tier {
     Free,
@@ -9,10 +8,8 @@ pub enum Tier {
 }
 
 impl Tier {
-    /// The tiers offered for purchase, lowest first.
     pub const PAID_LADDER: [Self; 1] = [Self::Pro];
 
-    /// The first purchasable tier above this one.
     #[must_use]
     pub fn next_paid(self) -> Option<Self> {
         Self::PAID_LADDER.into_iter().find(|plan| *plan > self)
@@ -83,7 +80,6 @@ impl Tier {
     }
 }
 
-/// The signed-in user's tier, if any, and where to buy an upgrade.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserTierInfo {
     pub tier: Option<Tier>,

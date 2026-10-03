@@ -11,9 +11,6 @@ use crate::auth::{
     web_state,
 };
 
-/// The guild's effective tier: the guild's own or its owner's, whichever is
-/// higher. It runs no access check: the caller must already have authorized
-/// the guild.
 pub async fn guild_server_tier(cx: &Cx, guild_id: u64) -> Result<Tier, GuildError> {
     let app = app_state(cx)?;
 
@@ -26,8 +23,6 @@ pub async fn guild_server_tier(cx: &Cx, guild_id: u64) -> Result<Tier, GuildErro
     Ok(Tier::from_key(tier.as_str()).unwrap_or(Tier::Free))
 }
 
-/// The signed-in user's tier (`None` when signed out) and the configured
-/// upgrade link.
 pub async fn get_user_tier(cx: &Cx) -> Result<UserTierInfo, GuildError> {
     let app = app_state(cx)?;
     let upgrade_url =

@@ -6,8 +6,6 @@ use super::error::{FieldError, RequestRejection};
 
 const FORM_CONTENT_TYPE: &str = "application/x-www-form-urlencoded";
 
-/// Reads the named keys out of `pairs`. A key that repeats is an error and
-/// every other key is ignored; an empty value stays `Some("")`.
 fn pick<const N: usize>(
     pairs: &[(String, String)],
     keys: [&'static str; N],
@@ -35,7 +33,6 @@ fn parse_pairs(bytes: &[u8]) -> Vec<(String, String)> {
         .map_or_default(|Form(pairs)| pairs)
 }
 
-/// The named keys of the request's query string.
 pub(super) fn query<const N: usize>(
     cx: &Cx,
     keys: [&'static str; N],
@@ -44,8 +41,6 @@ pub(super) fn query<const N: usize>(
     pick(&parse_pairs(query.as_bytes()), keys).map_err(RequestRejection::Query)
 }
 
-/// The named keys of a form post: the request must declare the form content
-/// type, and a repeated key is rejected.
 pub(super) fn form<const N: usize>(
     cx: &Cx,
     body: &[u8],
@@ -58,7 +53,6 @@ pub(super) fn form<const N: usize>(
     pick(&parse_pairs(body), keys).map_err(RequestRejection::FormBody)
 }
 
-/// A query key the route cannot do without.
 pub(super) fn required_query(
     value: Option<String>,
     key: &'static str,
@@ -66,7 +60,6 @@ pub(super) fn required_query(
     value.ok_or(RequestRejection::Query(FieldError::Missing(key)))
 }
 
-/// A form key the route cannot do without.
 pub(super) fn required_form(
     value: Option<String>,
     key: &'static str,
@@ -74,7 +67,6 @@ pub(super) fn required_form(
     value.ok_or(RequestRejection::FormBody(FieldError::Missing(key)))
 }
 
-/// An integer-valued key.
 pub(super) fn integer(
     value: Option<&str>,
     key: &'static str,

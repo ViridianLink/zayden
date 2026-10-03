@@ -170,8 +170,6 @@ async fn support_section(
     })
 }
 
-/// The stored settings of one section, by its slug. An unknown slug reads
-/// the general section.
 pub async fn get_section_settings(
     cx: &Cx,
     guild: &str,

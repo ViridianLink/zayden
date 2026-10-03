@@ -42,8 +42,6 @@ pub(crate) async fn fetch_patreon_status(
     })
 }
 
-/// The Patreon status of a guild the signed-in user manages. Nothing calls it;
-/// it logs when something does.
 pub async fn get_patreon_status(
     cx: &Cx,
     guild: &str,
@@ -53,8 +51,6 @@ pub async fn get_patreon_status(
     fetch_patreon_status(app, guild_id).await
 }
 
-/// Sets where Patreon posts are announced. A blank channel stops
-/// announcements and keeps the connection.
 pub async fn save_patreon_settings(
     cx: &Cx,
     form: &PatreonSettingsForm,
@@ -63,8 +59,6 @@ pub async fn save_patreon_settings(
 
     let channel_id = form.channel_id.trim();
 
-    // Clearing the channel is how a guild stops announcements without giving
-    // up the connection, so an empty submission deletes the row.
     if channel_id.is_empty() {
         PatreonAnnounceRow::delete(&app.db, guild_id)
             .await
@@ -91,15 +85,11 @@ pub async fn save_patreon_settings(
     .map_err(server_err)
 }
 
-/// Whether the signed-in user may manage `guild`'s Patreon connection.
-/// Nothing calls it; it logs when something does.
 pub async fn can_manage_patreon(cx: &Cx, guild: &str) -> Result<bool, GuildError> {
     tracing::warn!(guild, "can_manage_patreon called; it has no known caller");
     admin_guild_id(cx, guild).await.map(|_id| true).map_err(GuildError::from)
 }
 
-/// Drops the guild's Patreon connection, then releases its webhook and
-/// campaign.
 pub async fn disconnect_patreon(
     cx: &Cx,
     form: &GuildForm,

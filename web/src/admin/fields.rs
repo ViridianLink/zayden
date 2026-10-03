@@ -1,27 +1,8 @@
-//! Flat form field names for [`LoadoutForm`].
-//!
-//! - Scalars use the struct field name: `id` (blank = new loadout), `name`, `class`,
-//!   `element`, `mode`, `super_name`, `super_emoji`, `class_ability`, `jump`,
-//!   `melee`, `grenade`, `artifact_name`, `author`, `dim_link`, `video_url`,
-//!   `how_it_works`.
-//! - Key lists repeat their name once per entry, in order: `tags`, `artifact_perks`.
-//! - Rows use `{list}[{index}].{field}` ([`row_name`]): `aspects[i].aspect`,
-//!   `aspects[i].fragments`*, `weapons[i].name`, `weapons[i].affinity`,
-//!   `weapons[i].archetype`, `weapons[i].icon_url`, `weapons[i].perks`*,
-//!   `armour[i].slot`, `armour[i].name`, `armour[i].icon_url`, `armour[i].mods`*,
-//!   `stats[i].stat`, `stats[i].value`. Fields marked * repeat once per entry. Rows
-//!   are ordered by index; gaps close up. An index is written without sign or
-//!   leading zeros.
-//!
-//! Every single-valued name may appear once, and absent fields are empty. Any
-//! other name is refused, so the fold cannot silently drop input.
-
 use std::collections::{BTreeMap, HashSet};
 
 use super::dto::{ArmourForm, AspectForm, LoadoutForm, StatForm, WeaponForm};
 use super::error::LoadoutFieldError;
 
-/// The flat name of `field` in row `index` of `list`.
 #[must_use]
 pub fn row_name(list: &str, index: usize, field: &str) -> String {
     format!("{list}[{index}].{field}")
@@ -166,7 +147,6 @@ impl Fold {
     }
 }
 
-/// Folds a flat form post into the loadout form a JSON body would carry.
 pub fn fold_loadout_form<I>(pairs: I) -> Result<LoadoutForm, LoadoutFieldError>
 where
     I: IntoIterator<Item = (String, String)>,
@@ -192,7 +172,6 @@ impl TryFrom<Vec<(String, String)>> for LoadoutForm {
     }
 }
 
-/// The flat pairs [`fold_loadout_form`] reads back into `form`.
 #[must_use]
 pub fn loadout_pairs(form: &LoadoutForm) -> Vec<(String, String)> {
     let mut pairs = Vec::new();

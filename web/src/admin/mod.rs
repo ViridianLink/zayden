@@ -1,24 +1,3 @@
-//! Operator and Destiny 2 loadout administration: role checks, the bot's
-//! server list, loadout reads and writes, and Zayden emoji uploads.
-//!
-//! Every call takes the request `cx` and authorizes itself, so pages render
-//! with HTTP 200 and show refusals inline. Errors are [`AdminError`] (or
-//! [`AuthError`](crate::auth::AuthError) for the role checks), and their
-//! `Display` is the bare message. Pages that show a load, save or delete
-//! failure prefix it with [`server_error_text`](crate::util::server_error_text);
-//! the emoji-create panel shows [`create_zayden_emoji`]'s error as is, and
-//! [`LoadoutCheck::error`] is never prefixed. Use [`AdminError::is_denied`] to
-//! choose the "access required" copy over the generic error copy.
-//!
-//! - [`is_admin`], [`is_operator`] and [`guild_operator_access`] are `false` for a
-//!   signed-out visitor.
-//! - [`list_bot_guilds`] needs the `operator` role; every loadout and emoji call
-//!   needs `admin`.
-//! - A flat form post folds into a [`LoadoutForm`] with [`fold_loadout_form`].
-//! - The pool-level helpers ([`summaries`], [`stored_form`], [`catalog`],
-//!   [`write_unchecked`], [`remove_unchecked`]) skip the role check; callers must
-//!   have passed `require_role(cx, WebRole::Admin)`.
-
 mod access;
 pub mod convert;
 pub mod dto;

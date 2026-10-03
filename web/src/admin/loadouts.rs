@@ -18,13 +18,11 @@ use super::emoji::zayden_emojis;
 use super::error::AdminError;
 use crate::auth::{WebRole, db_pool, require_role};
 
-/// Every loadout, ordered by class, element and name.
 pub async fn list_loadouts(cx: &Cx) -> Result<Vec<LoadoutSummary>, AdminError> {
     require_role(cx, WebRole::Admin).await?;
     summaries(db_pool(cx)?).await
 }
 
-/// [`list_loadouts`] without the role check.
 pub async fn summaries(pool: &PgPool) -> Result<Vec<LoadoutSummary>, AdminError> {
     let records = loadouts::all(pool).await?;
 
@@ -42,13 +40,11 @@ pub async fn summaries(pool: &PgPool) -> Result<Vec<LoadoutSummary>, AdminError>
         .collect())
 }
 
-/// The editor form of loadout `id`.
 pub async fn get_loadout(cx: &Cx, id: i32) -> Result<LoadoutForm, AdminError> {
     require_role(cx, WebRole::Admin).await?;
     stored_form(db_pool(cx)?, id).await
 }
 
-/// [`get_loadout`] without the role check.
 pub async fn stored_form(pool: &PgPool, id: i32) -> Result<LoadoutForm, AdminError> {
     let record =
         loadouts::by_id(pool, id).await?.ok_or(AdminError::LoadoutNotFound(id))?;
@@ -56,14 +52,11 @@ pub async fn stored_form(pool: &PgPool, id: i32) -> Result<LoadoutForm, AdminErr
     Ok(editor_form(Some(id), RawLoadout::from(record)))
 }
 
-/// Everything the editor's pickers offer, plus the blank form.
 pub async fn loadout_catalog(cx: &Cx) -> Result<LoadoutCatalog, AdminError> {
     require_role(cx, WebRole::Admin).await?;
     catalog(db_pool(cx)?, zayden_emojis(cx)).await
 }
 
-/// [`loadout_catalog`] without the role check; `emojis` is awaited only
-/// once the rows load.
 pub async fn catalog(
     pool: &PgPool,
     emojis: impl Future<Output = Vec<EmojiInfo>>,
@@ -118,7 +111,6 @@ pub async fn catalog(
     })
 }
 
-/// [`loadout_check`] for an admin.
 pub async fn check_loadout(
     cx: &Cx,
     form: &LoadoutForm,
@@ -127,7 +119,6 @@ pub async fn check_loadout(
     Ok(loadout_check(form))
 }
 
-/// Creates (`id` absent) or replaces loadout `form.id` and returns its id.
 pub async fn save_loadout(cx: &Cx, form: &LoadoutForm) -> Result<i32, AdminError> {
     require_role(cx, WebRole::Admin).await?;
 
@@ -135,14 +126,11 @@ pub async fn save_loadout(cx: &Cx, form: &LoadoutForm) -> Result<i32, AdminError
     write_unchecked(db_pool(cx)?, form.id, &draft).await
 }
 
-/// The validated draft a save of `form` would write.
 pub fn draft(form: &LoadoutForm) -> Result<LoadoutDraft, AdminError> {
     let raw = raw_loadout(form)?;
     Ok(LoadoutDraft::try_from(raw)?)
 }
 
-/// Saves `draft` as loadout `id` (new when `None`) without checking the
-/// caller's role.
 pub async fn write_unchecked(
     pool: &PgPool,
     id: Option<i32>,
@@ -155,13 +143,11 @@ pub async fn write_unchecked(
     Ok(id)
 }
 
-/// Deletes loadout `id`.
 pub async fn delete_loadout(cx: &Cx, id: i32) -> Result<(), AdminError> {
     require_role(cx, WebRole::Admin).await?;
     remove_unchecked(db_pool(cx)?, id).await
 }
 
-/// Deletes loadout `id` without checking the caller's role.
 pub async fn remove_unchecked(pool: &PgPool, id: i32) -> Result<(), AdminError> {
     if loadout_writes::delete(pool, id).await? {
         Ok(())

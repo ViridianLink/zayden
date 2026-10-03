@@ -58,8 +58,6 @@ pub async fn save_faq_settings(
         .map_err(server_err)
 }
 
-/// Replaces or clears the wiki API key. A blank key with
-/// `keep_wiki_api_key=true` keeps the stored one and succeeds.
 pub async fn save_faq_wiki_key(
     cx: &Cx,
     form: &FaqWikiKeyForm,

@@ -1,5 +1,3 @@
-//! Reads and writes a slash command's permission overwrites in one guild.
-
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -33,13 +31,11 @@ use crate::auth::{
 
 pub const MAX_ALLOWED_CHANNELS: usize = 90;
 
-/// Discord's "all channels" sentinel: the guild id minus one.
 #[must_use]
 pub const fn all_channels(guild_id: Id<GuildMarker>) -> Option<Id<ChannelMarker>> {
     Id::new_checked(guild_id.get().saturating_sub(1))
 }
 
-/// The `@everyone` role, whose id is the guild's.
 #[must_use]
 pub const fn everyone(guild_id: Id<GuildMarker>) -> Id<RoleMarker> {
     guild_id.cast()
@@ -80,8 +76,6 @@ pub fn with_everyone_denied(
     out
 }
 
-/// The channels a command is restricted to; empty when it is allowed
-/// everywhere.
 #[must_use]
 pub fn channel_allowlist(
     guild_id: Id<GuildMarker>,
@@ -115,8 +109,6 @@ pub fn channel_allowlist(
         .collect()
 }
 
-/// `permissions` with its channel entries replaced by `allowlist`; an empty
-/// allowlist lifts the restriction. Role and user entries are kept.
 #[must_use]
 pub fn with_channel_allowlist(
     guild_id: Id<GuildMarker>,
@@ -156,9 +148,6 @@ pub fn with_channel_allowlist(
     out
 }
 
-/// What reading or writing a guild's command permissions needs.
-/// `access_token` is the user's Discord bearer token, so `Debug` is not
-/// derived.
 pub struct GuildContext {
     pub guild_id: Id<GuildMarker>,
     pub access_token: String,
@@ -167,7 +156,6 @@ pub struct GuildContext {
     pub access: GuildAccess,
 }
 
-/// The command-permission context for a guild the signed-in user manages.
 pub async fn guild_context(
     cx: &Cx,
     guild: &str,
@@ -200,8 +188,6 @@ async fn command_ids(
     Ok(commands.into_iter().filter_map(|c| c.id.map(|id| (c.name, id))).collect())
 }
 
-/// The bot's global and guild commands by name; a guild command shadows a
-/// global one of the same name.
 pub async fn fetch_command_ids(
     ctx: &GuildContext,
 ) -> Result<HashMap<String, Id<CommandMarker>>, GuildError> {
@@ -234,11 +220,10 @@ pub async fn command_id(
 
 const fn unconfigured(error: &Error) -> bool {
     // Discord answers 404 for a command that carries no permission overwrites
-    // at all, which is a genuinely empty array rather than a failed read.
+    // at all
     matches!(error.kind(), ErrorType::Response { status, .. } if status.get() == 404)
 }
 
-/// The command's permission overwrites in the guild.
 pub async fn fetch(
     ctx: &GuildContext,
     command: Id<CommandMarker>,
@@ -256,8 +241,6 @@ pub async fn fetch(
     Ok(resp.model().await?.permissions)
 }
 
-/// Replaces the command's permission overwrites with the user's own token,
-/// the only credential Discord accepts for this write.
 pub async fn store(
     ctx: &GuildContext,
     command: Id<CommandMarker>,

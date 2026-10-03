@@ -9,8 +9,6 @@ use super::error::{AdminError, EmojiUploadError};
 use super::keys::is_valid_key;
 use crate::auth::{WebRole, app_state, discord_client, require_role};
 
-/// Zayden's application emojis. Never fails: a missing client, an unset
-/// `zayden_id` or a Discord error is logged and reads as no emojis.
 pub async fn zayden_emojis(cx: &Cx) -> Vec<EmojiInfo> {
     let (http, app) = match (discord_client(cx), app_state(cx)) {
         (Ok(http), Ok(app)) => (http, app),
@@ -42,8 +40,6 @@ pub async fn zayden_emojis(cx: &Cx) -> Vec<EmojiInfo> {
     }
 }
 
-/// The `data:` URI Discord accepts for `source`, after the link or file
-/// checks.
 pub async fn emoji_image(source: EmojiSource) -> Result<String, EmojiUploadError> {
     let bytes = match source {
         EmojiSource::Url(raw) => {
@@ -54,7 +50,6 @@ pub async fn emoji_image(source: EmojiSource) -> Result<String, EmojiUploadError
     emoji_upload::data_uri(&bytes)
 }
 
-/// Uploads a new Zayden application emoji named `name`.
 pub async fn create_zayden_emoji(
     cx: &Cx,
     name: String,

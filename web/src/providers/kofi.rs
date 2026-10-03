@@ -1,5 +1,5 @@
-use hosting::kofi::{self, Payment, Settlement};
-use hosting::pricing;
+use hosting::kofi::{Payment, Settlement};
+use hosting::{kofi, pricing};
 use jiff::Timestamp;
 use topcoat::Result;
 use topcoat::context::Cx;
@@ -24,8 +24,6 @@ use super::reply::{acknowledge, reject};
 use crate::auth::{app_state, web_state};
 use crate::util::email_hash;
 
-/// Receives a Ko-fi payment event. Every outcome, including a payload that
-/// fails to parse or verify, is a `200` so Ko-fi does not retry.
 #[route(POST "/webhooks/kofi")]
 pub(super) async fn kofi_webhook_handler(cx: &Cx, body: Bytes) -> Result<Response> {
     let [data] = match fields::form(cx, &body, ["data"]) {
@@ -114,9 +112,6 @@ async fn process(app: &AppState, verification_token: Option<&str>, data: &str) {
     }
 }
 
-/// Hosting tiers are named for their ladder rung, which separates them from
-/// the Pro/Ultra membership tiers. They must not fall through to the grant: a
-/// rented Small server would otherwise buy Pro, and Pro makes Small free.
 async fn settle_hosting(app: &AppState, payload: &KoFiPayload, email_hash: &str) {
     let Some(message_id) = payload.message_id.as_deref() else {
         warn!(

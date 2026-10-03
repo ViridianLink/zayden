@@ -1,8 +1,5 @@
 use super::error::GuildError;
 
-/// Folds submitted `(name, value)` pairs into one value per expected name, in
-/// the order given. Every name must appear exactly once and no other name may
-/// appear.
 pub(crate) fn fold<const N: usize>(
     pairs: Vec<(String, String)>,
     names: [&'static str; N],
@@ -42,8 +39,6 @@ macro_rules! form_args {
         }
 
         impl $name {
-            /// Reads the form from its submitted pairs, rejecting unknown,
-            /// repeated and missing fields.
             pub fn from_pairs(
                 pairs: Vec<(String, String)>,
             ) -> Result<Self, $crate::guild::GuildError> {

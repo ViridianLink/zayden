@@ -1,9 +1,5 @@
-/// The query parameter the YouTube routes append to the settings URL to
-/// report how a connect or disconnect ended.
 pub const OUTCOME_PARAM: &str = "youtube";
 
-/// How a YouTube connect or disconnect ended, as reported back to the guild's
-/// YouTube settings.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum YoutubeOutcome {
     Connected,

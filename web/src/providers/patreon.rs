@@ -37,8 +37,6 @@ fn outcome_url(guild: &str, outcome: PatreonOutcome) -> String {
     settings_url(guild, SETTINGS_SLUG, OUTCOME_PARAM, outcome.as_key())
 }
 
-/// Starts the Patreon authorization: proves the caller administers the
-/// guild, remembers a nonce in a cookie and sends the browser to Patreon.
 #[route(GET "/patreon/connect")]
 pub(super) async fn patreon_connect_handler(cx: &Cx) -> Result<Response> {
     let [guild] = match fields::query(cx, ["guild"]) {
@@ -70,8 +68,6 @@ pub(super) async fn patreon_connect_handler(cx: &Cx) -> Result<Response> {
     redirect(cx, &url)
 }
 
-/// Finishes the Patreon authorization: checks the nonce and the caller's
-/// rights again, then binds the creator's campaign to the guild.
 #[route(GET "/patreon/callback")]
 pub(super) async fn patreon_callback_handler(cx: &Cx) -> Result<Response> {
     let [code, state] = match fields::query(cx, ["code", "state"]) {
@@ -104,8 +100,7 @@ pub(super) async fn patreon_callback_handler(cx: &Cx) -> Result<Response> {
         return redirect(cx, &outcome_url(guild, PatreonOutcome::Unconfigured));
     };
 
-    // Re-checked after the round trip: the cookie proves the browser started
-    // the flow, this proves it still has the right to bind this guild.
+    // Re-checked after the round trip
     let Some(admin) = guild_admin(cx, guild).await else {
         warn!(guild, "Patreon callback rejected: not a guild admin");
         return redirect(cx, &outcome_url(guild, PatreonOutcome::Forbidden));
@@ -207,8 +202,6 @@ async fn connect(
         return PatreonOutcome::Error;
     }
 
-    // The overwritten secret can no longer verify the old webhook's
-    // deliveries, so leaving it registered only produces rejected requests.
     if let Some((webhook_id, token)) = previous {
         ::patreon::webhook::unregister(&app.http, &token, &webhook_id).await;
     }
@@ -257,8 +250,6 @@ async fn previous_webhook(
     Some((webhook_id, token))
 }
 
-/// Receives a Patreon post event. Every outcome is a `200` so Patreon does
-/// not retry or disable the webhook.
 #[route(POST "/webhooks/patreon")]
 pub(super) async fn patreon_webhook_handler(
     cx: &Cx,
@@ -301,8 +292,6 @@ async fn process(app: &AppState, event: &str, signature: &str, body: &[u8]) {
         },
     };
 
-    // The campaign in an unverified payload only selects which secrets to try;
-    // a forged one simply fails every signature check below.
     let secrets = match ::patreon::webhook_secrets(&app.db, &post.campaign_id).await
     {
         Ok(secrets) => secrets,
@@ -367,8 +356,6 @@ async fn process(app: &AppState, event: &str, signature: &str, body: &[u8]) {
         },
     }
 
-    // The bot is a separate process, so the wake-up travels over the same
-    // Postgres LISTEN/NOTIFY bus the settings cache uses.
     if let Err(e) = Channel::PatreonPost.notify(&app.db, &post.id).await {
         warn!(?e, post_id = %post.id, "failed to notify the bot of a Patreon post");
     }

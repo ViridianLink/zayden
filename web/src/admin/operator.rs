@@ -8,7 +8,6 @@ use crate::components::guild_grid::GuildCard;
 
 const GUILD_PAGE_LIMIT: u16 = 200;
 
-/// Every server the bot is in, sorted by lowercased name.
 pub async fn list_bot_guilds(cx: &Cx) -> Result<Vec<GuildCard>, AdminError> {
     require_role(cx, WebRole::Operator).await?;
 
@@ -40,7 +39,6 @@ pub async fn list_bot_guilds(cx: &Cx) -> Result<Vec<GuildCard>, AdminError> {
     Ok(guilds)
 }
 
-/// A typed server id: trimmed ASCII digits that fit a `u64` and are not `0`.
 #[must_use]
 pub fn parse_guild_id(raw: &str) -> Option<u64> {
     let trimmed = raw.trim();

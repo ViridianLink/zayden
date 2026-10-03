@@ -175,7 +175,6 @@ pub async fn save_suggestions_settings(
         .map_err(server_err)
 }
 
-/// The guild's support role ids, lowest first.
 pub(crate) async fn fetch_support_roles(
     pool: &PgPool,
     guild_id: i64,
@@ -187,8 +186,6 @@ pub(crate) async fn fetch_support_roles(
         .collect())
 }
 
-/// The support role ids of a guild the signed-in user manages. Nothing calls
-/// it.
 pub async fn list_support_roles(
     cx: &Cx,
     guild: &str,
@@ -232,8 +229,6 @@ pub async fn remove_support_role(
     Ok(())
 }
 
-/// The guild's helper links, each with the helper's display name from
-/// Discord: one member lookup per link.
 pub(crate) async fn fetch_helper_links(
     pool: &PgPool,
     http: &Client,
@@ -257,7 +252,6 @@ pub(crate) async fn fetch_helper_links(
     Ok(out)
 }
 
-/// The helper links of a guild the signed-in user manages. Nothing calls it.
 pub async fn list_helper_links(
     cx: &Cx,
     guild: &str,
@@ -268,8 +262,6 @@ pub async fn list_helper_links(
     fetch_helper_links(pool, http, guild_id).await
 }
 
-/// The member's nickname, else global name, else username; `unknown ({id})`
-/// when Discord cannot say.
 async fn display_name(http: &Client, guild_id: u64, user_id: u64) -> String {
     let member = async {
         let resp = http
