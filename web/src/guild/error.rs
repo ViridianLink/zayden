@@ -4,6 +4,7 @@ use topcoat::router::error::SeeOther;
 use twilight_http::response::DeserializeBodyError;
 
 use crate::auth::AuthError;
+use crate::form::FieldError;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum GuildError {
@@ -91,6 +92,16 @@ impl GuildError {
 
 pub(crate) fn server_err(e: impl Display) -> GuildError {
     GuildError::Server(e.to_string())
+}
+
+impl From<FieldError> for GuildError {
+    fn from(e: FieldError) -> Self {
+        match e {
+            FieldError::Unknown(name) => Self::UnknownField(name),
+            FieldError::Duplicate(name) => Self::DuplicateField(name),
+            FieldError::Missing(name) => Self::MissingField(name),
+        }
+    }
 }
 
 impl From<sqlx::Error> for GuildError {

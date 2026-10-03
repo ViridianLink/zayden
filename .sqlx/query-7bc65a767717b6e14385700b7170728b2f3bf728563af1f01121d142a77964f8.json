@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO web_user_roles (discord_user_id, role) VALUES (44, 'operator')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "7bc65a767717b6e14385700b7170728b2f3bf728563af1f01121d142a77964f8"
+}

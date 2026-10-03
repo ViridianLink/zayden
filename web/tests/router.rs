@@ -10,13 +10,15 @@ use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Method, Router, StatusCode, header, page};
 use topcoat::view::{View, view};
-use web::document::{NOT_FOUND_TITLE, PAGE_TITLES, STYLESHEET};
+use web::document::{NOT_FOUND_TITLE, PAGE_TITLES, PENDING_SUBMIT, STYLESHEET};
 use web::router;
 
 const STYLESHEET_FILE: &str = "tailwind-0123456789abcdef.css";
 const STYLESHEET_BODY: &str = ".login-page{display:grid}";
 const RUNTIME_FILE: &str = "topcoat-0123456789abcdef.js";
 const RUNTIME_BODY: &str = "export {};";
+const PENDING_FILE: &str = "pending-submit-0123456789abcdef.js";
+const PENDING_BODY: &str = "export {};";
 
 type TestResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -42,14 +44,17 @@ fn write_bundle() -> TestResult<PathBuf> {
     std::fs::create_dir_all(&dir)?;
     std::fs::write(dir.join(STYLESHEET_FILE), STYLESHEET_BODY)?;
     std::fs::write(dir.join(RUNTIME_FILE), RUNTIME_BODY)?;
+    std::fs::write(dir.join(PENDING_FILE), PENDING_BODY)?;
     std::fs::write(
         dir.join("manifest.toml"),
         format!(
             "version = 1\n\n\
              [[assets]]\nid = {}\nfile = \"{STYLESHEET_FILE}\"\nhash = \"0\"\ncontent_type = \"text/css\"\n\n\
-             [[assets]]\nid = {}\nfile = \"{RUNTIME_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
+             [[assets]]\nid = {}\nfile = \"{RUNTIME_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
+             [[assets]]\nid = {}\nfile = \"{PENDING_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
             STYLESHEET.id().as_u64(),
             topcoat::runtime::SCRIPT.id().as_u64(),
+            PENDING_SUBMIT.id().as_u64(),
         ),
     )?;
     Ok(dir)
@@ -131,6 +136,7 @@ async fn document_head_renders_shell_stylesheet_and_runtime() {
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
          <link rel=\"stylesheet\" href=\"/_topcoat/assets/{STYLESHEET_FILE}\">\
          <script type=\"module\" src=\"/_topcoat/assets/{RUNTIME_FILE}\"></script>\
+         <script type=\"module\" src=\"/_topcoat/assets/{PENDING_FILE}\"></script>\
          <title>{NOT_FOUND_TITLE}</title></head><body>"
     )));
 }
@@ -164,6 +170,7 @@ async fn bundled_assets_are_served() {
     for (file, content_type, body) in [
         (STYLESHEET_FILE, "text/css", STYLESHEET_BODY),
         (RUNTIME_FILE, "text/javascript", RUNTIME_BODY),
+        (PENDING_FILE, "text/javascript", PENDING_BODY),
     ] {
         let response =
             send(Method::GET, &format!("/_topcoat/assets/{file}")).await.unwrap();

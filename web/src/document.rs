@@ -7,8 +7,11 @@ use topcoat::view::{Child, View, component, error_boundary, view};
 
 use crate::pages::not_found::not_found_page;
 use crate::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
+use crate::shell::{GUILDS_TITLE, OVERVIEW_TITLE, UPGRADE_TITLE};
 
 pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
+
+pub const PENDING_SUBMIT: Asset = asset!("../assets/pending-submit.js");
 
 pub const NOT_FOUND_TITLE: &str = "Not found - Zayden";
 
@@ -18,6 +21,9 @@ pub const PAGE_TITLES: &[(&str, &str)] = &[
     ("/login", LOGIN_TITLE),
     ("/privacy", PRIVACY_TITLE),
     ("/terms", TERMS_TITLE),
+    ("/guilds", GUILDS_TITLE),
+    ("/guild/{guild_id}", OVERVIEW_TITLE),
+    ("/upgrade", UPGRADE_TITLE),
 ];
 
 #[must_use]
@@ -64,6 +70,7 @@ async fn document(title: &str, #[default] child: Child<'_>) -> Result<impl View>
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <link rel="stylesheet" href=(STYLESHEET)>
                 topcoat::runtime::script()
+                <script type="module" src=(PENDING_SUBMIT)></script>
                 <title>(title)</title>
             </head>
             <body>(child)</body>

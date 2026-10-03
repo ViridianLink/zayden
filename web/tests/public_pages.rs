@@ -13,7 +13,7 @@ use topcoat::router::{Body, Router, RouterBuilder, StatusCode, header, page};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 use topcoat::view::{View, view};
 use web::auth::SessionUser;
-use web::document::STYLESHEET;
+use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::public::layout::{SessionSlot, public_nav};
 use web::state::{SessionIdentity, WebState};
 use zayden_app::config::BotConfig;
@@ -34,14 +34,17 @@ fn write_bundle() -> TestResult<PathBuf> {
     std::fs::create_dir_all(&dir)?;
     std::fs::write(dir.join("tailwind-0123456789abcdef.css"), "")?;
     std::fs::write(dir.join("topcoat-0123456789abcdef.js"), "")?;
+    std::fs::write(dir.join("pending-submit-0123456789abcdef.js"), "")?;
     std::fs::write(
         dir.join("manifest.toml"),
         format!(
             "version = 1\n\n\
              [[assets]]\nid = {}\nfile = \"tailwind-0123456789abcdef.css\"\nhash = \"0\"\ncontent_type = \"text/css\"\n\n\
-             [[assets]]\nid = {}\nfile = \"topcoat-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
+             [[assets]]\nid = {}\nfile = \"topcoat-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
+             [[assets]]\nid = {}\nfile = \"pending-submit-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
             STYLESHEET.id().as_u64(),
             topcoat::runtime::SCRIPT.id().as_u64(),
+            PENDING_SUBMIT.id().as_u64(),
         ),
     )?;
     Ok(dir)

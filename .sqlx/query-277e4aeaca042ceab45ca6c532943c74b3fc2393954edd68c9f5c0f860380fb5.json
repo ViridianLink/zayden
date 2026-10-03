@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_levels (guild_id, user_id, xp, level, message_count) VALUES (9, 1012, 5000, 90, 1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "277e4aeaca042ceab45ca6c532943c74b3fc2393954edd68c9f5c0f860380fb5"
+}
