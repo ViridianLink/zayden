@@ -38,8 +38,6 @@ fn outcome_url(guild: &str, outcome: YoutubeOutcome) -> String {
     settings_url(guild, SETTINGS_SLUG, OUTCOME_PARAM, outcome.as_key())
 }
 
-/// Starts the Google authorization: proves the caller administers the guild,
-/// remembers a nonce in a cookie and sends the browser to Google.
 #[route(GET "/youtube/connect")]
 pub(super) async fn youtube_connect_handler(cx: &Cx) -> Result<Response> {
     let [guild] = match fields::query(cx, ["guild"]) {
@@ -71,8 +69,6 @@ pub(super) async fn youtube_connect_handler(cx: &Cx) -> Result<Response> {
     redirect(cx, &url)
 }
 
-/// Finishes the Google authorization: checks the nonce and the caller's
-/// rights again, then binds the authorised channel to the guild.
 #[route(GET "/youtube/callback")]
 pub(super) async fn youtube_callback_handler(cx: &Cx) -> Result<Response> {
     let [code, state] = match fields::query(cx, ["code", "state"]) {
@@ -107,8 +103,7 @@ pub(super) async fn youtube_callback_handler(cx: &Cx) -> Result<Response> {
         return redirect(cx, &outcome_url(guild, YoutubeOutcome::Unconfigured));
     };
 
-    // Re-checked after the round trip: the cookie proves the browser started
-    // the flow, this proves it still has the right to bind this guild.
+    // Re-checked after the round trip
     let Some(admin) = guild_admin(cx, guild).await else {
         warn!(guild, "YouTube callback rejected: not a guild admin");
         return redirect(cx, &outcome_url(guild, YoutubeOutcome::Forbidden));
@@ -206,8 +201,6 @@ async fn connect(
         warn!(?e, guild, "YouTube WebSub subscription failed; polling only");
     }
 
-    // Absorbs the back catalogue now, so an upload between connecting and the
-    // first scheduled poll is announced rather than mistaken for history.
     if let Err(e) = ::youtube::poll::poll_by_id(
         &app.http,
         &app.db,
@@ -222,8 +215,6 @@ async fn connect(
     YoutubeOutcome::Connected
 }
 
-/// Answers the `WebSub` hub's subscription check: echoes the challenge when the
-/// request matches a channel the dashboard wants (or no longer wants).
 #[route(GET "/webhooks/youtube")]
 pub(super) async fn youtube_verify_handler(cx: &Cx) -> Result<Response> {
     let [channel, mode, topic, challenge, lease_seconds] = match fields::query(cx, [
@@ -279,8 +270,6 @@ pub(super) async fn youtube_verify_handler(cx: &Cx) -> Result<Response> {
     (StatusCode::OK, challenge).into_response(cx)
 }
 
-/// Receives a `WebSub` upload notification. Every outcome is a `200` so the
-/// hub does not retry.
 #[route(POST "/webhooks/youtube")]
 pub(super) async fn youtube_notify_handler(
     cx: &Cx,
@@ -322,8 +311,6 @@ async fn notify(app: &AppState, channel_id: &str, signature: &str, body: &[u8]) 
         return;
     }
 
-    // The notification is only a wake-up: the bot re-reads the uploads
-    // playlist, so edits and deletions the hub also reports are harmless.
     if let Err(e) = Channel::YoutubeUpload.notify(&app.db, channel_id).await {
         warn!(?e, channel_id, "failed to notify the bot of a YouTube upload");
     }

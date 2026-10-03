@@ -11,8 +11,6 @@ form_args! {
 
 const EMAIL_HASH_KEY: &str = "kofi_links_email_hash_key";
 
-/// Links a Ko-fi email to the signed-in user, storing only its hash, so
-/// later Ko-fi payments from that email credit their account.
 pub async fn link_kofi_email(
     cx: &Cx,
     form: &KofiEmailForm,

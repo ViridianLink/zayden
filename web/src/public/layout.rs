@@ -12,7 +12,6 @@ use crate::components::icons::{Icon, icon};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SessionSlot {
-    /// The session or profile lookup failed: the slot stays empty.
     Unavailable,
     SignedOut,
     SignedIn(SessionUser),
@@ -28,8 +27,6 @@ impl From<Result<Option<SessionUser>, AuthError>> for SessionSlot {
     }
 }
 
-/// Resolves the visitor's Discord profile on every render, so a signed-in
-/// visitor costs one Discord `/users/@me` request per page load.
 #[component]
 pub async fn public_layout(
     cx: &Cx,

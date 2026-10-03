@@ -1,9 +1,5 @@
-/// The query parameter the Patreon routes append to the settings URL to
-/// report how a connect or disconnect ended.
 pub const OUTCOME_PARAM: &str = "patreon";
 
-/// How a Patreon connect or disconnect ended, as reported back to the guild's
-/// Patreon settings.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PatreonOutcome {
     Connected,

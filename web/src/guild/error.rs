@@ -5,10 +5,6 @@ use twilight_http::response::DeserializeBodyError;
 
 use crate::auth::AuthError;
 
-/// Why a guild data call failed.
-///
-/// Each message is the exact text the dashboard shows: render it through
-/// [`server_error_text`](crate::util::server_error_text).
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum GuildError {
     #[error(transparent)]
@@ -69,15 +65,11 @@ pub enum GuildError {
 }
 
 impl GuildError {
-    /// Whether the caller was refused, as opposed to the server failing to
-    /// serve them.
     #[must_use]
     pub const fn is_denied(&self) -> bool {
         matches!(self, Self::Auth(auth) if auth.is_denied())
     }
 
-    /// Whether the submitted form did not have the shape the save expects:
-    /// an unknown, repeated or missing field. Pages answer these with 422.
     #[must_use]
     pub const fn is_invalid_form(&self) -> bool {
         matches!(
@@ -89,9 +81,6 @@ impl GuildError {
         )
     }
 
-    /// A 303 to the login page for an unauthenticated caller, so `?` sends a
-    /// signed-out visitor there; any other error comes back for the page to
-    /// render inline.
     pub fn redirect_unauthenticated(self) -> Result<Self, SeeOther> {
         let Self::Auth(auth) = self else {
             return Ok(self);

@@ -155,8 +155,6 @@ pub async fn save_temp_voice_settings(
         .map_err(server_err)
 }
 
-/// Creates the temp voice creator channel under the chosen category, then
-/// stores both ids. This writes to Discord.
 pub async fn create_temp_voice_creator_channel(
     cx: &Cx,
     form: &CreatorChannelForm,

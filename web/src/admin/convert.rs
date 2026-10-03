@@ -45,8 +45,6 @@ pub(super) fn strings<T: Display>(all: &[T]) -> Vec<String> {
     all.iter().map(ToString::to_string).collect()
 }
 
-/// Parses the editor's strings into the destiny2 domain types. Blank stat,
-/// aspect, weapon and armour rows are dropped.
 pub fn raw_loadout(f: &LoadoutForm) -> Result<RawLoadout, LoadoutFormError> {
     let stats = f
         .stats
@@ -119,7 +117,6 @@ pub fn raw_loadout(f: &LoadoutForm) -> Result<RawLoadout, LoadoutFormError> {
     })
 }
 
-/// The editor's string form of a stored loadout.
 #[must_use]
 pub fn loadout_form(id: Option<i32>, r: RawLoadout) -> LoadoutForm {
     LoadoutForm {
@@ -175,8 +172,6 @@ pub fn loadout_form(id: Option<i32>, r: RawLoadout) -> LoadoutForm {
     }
 }
 
-/// [`loadout_form`] with one row per armour slot, at least
-/// [`limits::ASPECTS`] aspect rows, and every missing stat appended blank.
 #[must_use]
 pub fn editor_form(id: Option<i32>, r: RawLoadout) -> LoadoutForm {
     let mut form = loadout_form(id, r);
@@ -205,7 +200,6 @@ pub fn editor_form(id: Option<i32>, r: RawLoadout) -> LoadoutForm {
     form
 }
 
-/// The new-loadout form.
 #[must_use]
 pub fn blank() -> LoadoutForm {
     LoadoutForm {
@@ -225,7 +219,6 @@ pub fn blank() -> LoadoutForm {
     }
 }
 
-/// The option labels each enum selector offers.
 #[must_use]
 pub fn options() -> LoadoutOptions {
     LoadoutOptions {
@@ -239,7 +232,6 @@ pub fn options() -> LoadoutOptions {
     }
 }
 
-/// Emoji names that illustrate an enum option and so may not name a new emoji.
 #[must_use]
 pub fn reserved_keys() -> Vec<String> {
     [
@@ -261,7 +253,6 @@ pub(super) fn count(n: usize) -> u32 {
     u32::try_from(n).unwrap_or(u32::MAX)
 }
 
-/// The budget meter and the first error a save of `form` would report.
 #[must_use]
 pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
     let armour = form.armour.iter().filter(|a| !a.name.trim().is_empty()).count();

@@ -1,7 +1,5 @@
 use crate::auth::{ChannelInfo, RoleInfo};
 
-/// A guild as the server switcher and guild list show it. `icon` is the
-/// Discord icon hash.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GuildInfo {
     pub id: String,
@@ -35,12 +33,6 @@ pub struct YoutubeStatus {
     pub channel_id: Option<String>,
 }
 
-/// The guild's channels and roles for the settings pickers. Each list fails
-/// on its own, so one outage locks only the pickers that need it.
-///
-/// Every `Err(String)` in these settings types is the full text the dashboard
-/// shows, already formatted through
-/// [`server_error_text`](crate::util::server_error_text).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GuildDirectory {
     pub channels: Result<Vec<ChannelInfo>, String>,
@@ -132,8 +124,6 @@ pub struct SupportSection {
     pub helper_links: Result<Vec<HelperLinkInfo>, String>,
 }
 
-/// One settings section's stored values, ready for the section's form. Ids
-/// and numbers are strings, as the inputs take them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SectionSettings {
     General(GeneralSection),

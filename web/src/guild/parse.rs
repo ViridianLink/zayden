@@ -1,5 +1,3 @@
-//! Reads the string values settings forms submit.
-
 use url::Url;
 use zayden_app::config::ARCHIVE_NEVER;
 
@@ -7,7 +5,6 @@ use super::error::GuildError;
 
 const MAX_LINK_LEN: usize = 200;
 
-/// A snowflake column value: blank or unparsable input clears the setting.
 #[must_use]
 pub fn parse_id(s: &str) -> Option<i64> {
     let t = s.trim();
@@ -20,7 +17,6 @@ pub fn parse_optional(s: &str) -> Option<String> {
     if t.is_empty() { None } else { Some(t.to_owned()) }
 }
 
-/// A select or toggle value: only `"true"` is on.
 #[must_use]
 pub fn parse_flag(s: &str) -> bool {
     s.trim() == "true"
@@ -31,7 +27,6 @@ pub fn opt_str(v: Option<i64>) -> Option<String> {
     v.map(|n| n.to_string())
 }
 
-/// A wiki base URL with its trailing `/` removed, or `None` when blank.
 pub fn parse_wiki_url(s: &str) -> Result<Option<String>, GuildError> {
     let Some(raw) = parse_optional(s) else {
         return Ok(None);
@@ -48,12 +43,10 @@ pub fn parse_wiki_url(s: &str) -> Result<Option<String>, GuildError> {
     Ok(Some(url.as_str().trim_end_matches('/').to_owned()))
 }
 
-/// A role snowflake. `u64::MAX` is no snowflake, so it is refused too.
 pub fn parse_role(s: &str) -> Result<u64, GuildError> {
     parse_snowflake(s).ok_or(GuildError::InvalidRole)
 }
 
-/// A user snowflake. `u64::MAX` is no snowflake, so it is refused too.
 pub fn parse_user(s: &str) -> Result<u64, GuildError> {
     parse_snowflake(s).ok_or(GuildError::InvalidUserId)
 }
@@ -62,8 +55,6 @@ fn parse_snowflake(s: &str) -> Option<u64> {
     s.trim().parse::<u64>().ok().filter(|id| *id != u64::MAX)
 }
 
-/// A helper's link: an http(s) URL without credentials, at most 200
-/// characters once normalized.
 pub fn parse_link(s: &str) -> Result<String, GuildError> {
     let url = match Url::parse(s.trim()) {
         Ok(url) => url,
@@ -87,8 +78,6 @@ pub fn parse_link(s: &str) -> Result<String, GuildError> {
     Ok(link)
 }
 
-/// The solved-thread archive delay: negative never archives, unparsable
-/// input is 60 seconds.
 #[must_use]
 pub fn parse_archive_secs(s: &str) -> i32 {
     match s.trim().parse::<i32>() {
@@ -98,8 +87,6 @@ pub fn parse_archive_secs(s: &str) -> i32 {
     }
 }
 
-/// An idle or stale delay, clamped to the columns' one-hour floor and a
-/// one-month ceiling.
 #[must_use]
 pub fn parse_idle_secs(s: &str, default: i32) -> i32 {
     s.trim().parse::<i32>().unwrap_or(default).clamp(3_600, 2_592_000)

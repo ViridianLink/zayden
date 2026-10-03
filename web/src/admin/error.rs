@@ -3,11 +3,6 @@ use twilight_http::response::DeserializeBodyError;
 
 use crate::auth::AuthError;
 
-/// Why an admin or operator call failed.
-///
-/// Each `Display` is the bare message. Load, save and delete failures are
-/// shown through [`server_error_text`](crate::util::server_error_text); emoji
-/// creation errors are shown as is.
 #[derive(Debug, thiserror::Error)]
 pub enum AdminError {
     #[error(transparent)]
@@ -31,8 +26,6 @@ pub enum AdminError {
 }
 
 impl AdminError {
-    /// Whether the caller was refused (`unauthenticated`, `forbidden`), as
-    /// opposed to the request failing.
     #[must_use]
     pub const fn is_denied(&self) -> bool {
         matches!(self, Self::Auth(e) if e.is_denied())
@@ -57,7 +50,6 @@ impl From<DeserializeBodyError> for AdminError {
     }
 }
 
-/// A loadout form value that names no known option.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum LoadoutFormError {
     #[error("unknown {field} `{value}`")]
@@ -66,7 +58,6 @@ pub enum LoadoutFormError {
     StatValue(String),
 }
 
-/// A flat form post that does not describe a loadout form.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum LoadoutFieldError {
     #[error("unknown field `{0}`")]

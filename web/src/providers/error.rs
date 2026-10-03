@@ -1,7 +1,5 @@
 use topcoat::router::StatusCode;
 
-/// Why a query string or form body could not be read into the fields a
-/// handler needs.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(super) enum FieldError {
     #[error("missing field `{0}`")]
@@ -12,8 +10,6 @@ pub(super) enum FieldError {
     Invalid { key: &'static str, reason: String },
 }
 
-/// A request a provider route refuses before running its handler, with the
-/// status and text of the matching HTTP extractor failure.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(super) enum RequestRejection {
     #[error("Failed to deserialize query string: {0}")]

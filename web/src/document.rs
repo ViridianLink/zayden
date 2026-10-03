@@ -6,6 +6,7 @@ use topcoat::router::{Slot, StatusCode, layout, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
 use crate::pages::not_found::not_found_page;
+use crate::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
 
 pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
 
@@ -13,10 +14,10 @@ pub const NOT_FOUND_TITLE: &str = "Not found - Zayden";
 
 pub const PAGE_TITLES: &[(&str, &str)] = &[
     ("/{*rest}", NOT_FOUND_TITLE),
-    ("/", crate::public::LANDING_TITLE),
-    ("/login", crate::public::LOGIN_TITLE),
-    ("/privacy", crate::public::PRIVACY_TITLE),
-    ("/terms", crate::public::TERMS_TITLE),
+    ("/", LANDING_TITLE),
+    ("/login", LOGIN_TITLE),
+    ("/privacy", PRIVACY_TITLE),
+    ("/terms", TERMS_TITLE),
 ];
 
 #[must_use]

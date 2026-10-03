@@ -17,7 +17,6 @@ form_args! {
 }
 
 impl ModuleToggleForm {
-    /// The requested state: `"true"` or `"false"`.
     pub fn enabled(&self) -> Result<bool, GuildError> {
         match self.enabled.as_str() {
             "true" => Ok(true),
@@ -37,8 +36,6 @@ const fn locked_for(module: &ModuleDef) -> Option<&'static str> {
     }
 }
 
-/// A module's card: command-backed modules read their stored state, the rest
-/// read the settings that switch them on.
 #[must_use]
 pub fn view<S: BuildHasher>(
     module: &ModuleDef,
@@ -73,7 +70,6 @@ async fn settings_flags(
         fetch_youtube_status(app, guild_id),
     )?;
 
-    // Announcements only fire on a live connection with somewhere to post.
     let patreon_on =
         patreon.connected && !patreon.disabled && patreon.channel_id.is_some();
     let youtube_on = youtube.connected && youtube.channel_id.is_some();
@@ -85,7 +81,6 @@ async fn settings_flags(
     ]))
 }
 
-/// Every module's card for a guild the signed-in user manages.
 pub async fn list_guild_modules(
     cx: &Cx,
     guild: &str,
@@ -120,9 +115,6 @@ async fn set_settings_enabled(
     }
 }
 
-/// Switches a module on or off. Concurrent toggles of one module collapse to
-/// the latest: an earlier request still waiting its turn returns without
-/// writing.
 pub async fn set_module_enabled(
     cx: &Cx,
     guild: &str,

@@ -12,7 +12,6 @@ form_args! {
     YoutubeSettingsForm { guild, channel_id }
 }
 
-/// The guild's YouTube connection and announcement channel.
 pub(crate) async fn fetch_youtube_status(
     app: &ZaydenAppState,
     guild_id: i64,
@@ -31,8 +30,6 @@ pub(crate) async fn fetch_youtube_status(
     })
 }
 
-/// Sets where YouTube uploads are announced. A blank channel stops
-/// announcements and keeps the connection.
 pub async fn save_youtube_settings(
     cx: &Cx,
     form: &YoutubeSettingsForm,
@@ -41,8 +38,6 @@ pub async fn save_youtube_settings(
 
     let channel_id = form.channel_id.trim();
 
-    // Clearing the channel stops announcements without giving up the
-    // connection.
     if channel_id.is_empty() {
         YoutubeAnnounceRow::delete(&app.db, guild_id)
             .await
@@ -64,8 +59,6 @@ pub async fn save_youtube_settings(
         .map_err(server_err)
 }
 
-/// Drops the guild's YouTube connection, then releases the channel if no
-/// other guild still follows it.
 pub async fn disconnect_youtube(
     cx: &Cx,
     form: &GuildForm,

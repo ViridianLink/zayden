@@ -9,8 +9,6 @@ use crate::util::hex_encode;
 
 const STATE_TTL_MINUTES: i64 = 10;
 
-/// Where a flow's outcome is reported: the provider's settings section, with
-/// the outcome key in the provider's query parameter.
 pub(super) fn settings_url(
     guild_id: &str,
     slug: &str,
@@ -29,12 +27,10 @@ pub(super) fn random_hex() -> String {
     hex_encode(&bytes)
 }
 
-/// The `state` parameter sent to the provider: `<nonce>.<guild>`.
 pub(super) fn oauth_state(nonce: &str, guild: &str) -> String {
     format!("{nonce}.{guild}")
 }
 
-/// Remembers `nonce` in the flow's cookie for ten minutes.
 pub(super) fn remember_nonce(
     cx: &Cx,
     cookie_name: &'static str,
@@ -48,8 +44,6 @@ pub(super) fn remember_nonce(
     Ok(())
 }
 
-/// Reads and clears the flow's nonce cookie. The cookie is single-use: it is
-/// removed whether or not the callback goes on to succeed.
 pub(super) fn take_nonce(
     cx: &Cx,
     cookie_name: &'static str,
@@ -62,12 +56,10 @@ pub(super) fn take_nonce(
     Ok(nonce)
 }
 
-/// Splits a returned `state` into its nonce and guild at the first `.`.
 pub(super) fn split_state(state: Option<&str>) -> Option<(&str, &str)> {
     state.and_then(|s| s.split_once('.'))
 }
 
-/// Whether the cookie holds the nonce the provider sent back.
 pub(super) fn nonce_matches(cookie: Option<&str>, returned: &str) -> bool {
     matches!(cookie, Some(n) if n == returned && !n.is_empty())
 }
