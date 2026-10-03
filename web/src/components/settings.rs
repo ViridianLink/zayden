@@ -11,9 +11,6 @@ use topcoat::view::{View, component, view};
 use super::icons::{Icon, icon};
 use crate::util::server_error_text;
 
-/// A dismissible banner. `role` is `"status"` for confirmations and
-/// `"alert"` for failures. Inside a `for` loop, key the loop; never render it
-/// from a memoized helper, since its signal needs a distinct identity.
 #[component]
 pub async fn alert(
     cx: &Cx,
@@ -38,13 +35,11 @@ pub async fn alert(
     })
 }
 
-/// `Err` carries the raw server message; it is shown as a server error.
 #[component]
 pub async fn save_feedback(outcome: Result<(), &str>) -> Result<impl View> {
     Ok(view! { feedback(outcome: outcome, ok: "Saved.", err: "Failed to save") })
 }
 
-/// `Err` carries the raw server message; it is shown as a server error.
 #[component]
 pub async fn create_feedback(outcome: Result<(), &str>) -> Result<impl View> {
     Ok(view! {
@@ -56,7 +51,6 @@ pub async fn create_feedback(outcome: Result<(), &str>) -> Result<impl View> {
     })
 }
 
-/// `Err` carries the raw server message; it is shown as a server error.
 #[component]
 pub async fn delete_feedback(outcome: Result<(), &str>) -> Result<impl View> {
     Ok(view! {
@@ -85,8 +79,6 @@ async fn feedback(
     })
 }
 
-/// While its form submits, the button reads "Saving…" (`data-pending-label`).
-/// Put it in a `<form method="post" data-pending="">`.
 #[component]
 pub async fn save_button() -> Result<impl View> {
     Ok(view! {
@@ -124,8 +116,6 @@ pub async fn toggle_field(
     })
 }
 
-/// A labelled text input. `pattern` is enforced by the browser on submit;
-/// the default accepts digits only, for Discord ids.
 #[component]
 pub async fn setting_field(
     label: &str,

@@ -11,10 +11,8 @@ pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
 
 pub const NOT_FOUND_TITLE: &str = "Not found - Zayden";
 
-/// Document titles keyed by route pattern, as registered on the router.
 pub const PAGE_TITLES: &[(&str, &str)] = &[("/{*rest}", NOT_FOUND_TITLE)];
 
-/// The `<title>` for the route that matched the current request.
 #[must_use]
 pub fn page_title(cx: &Cx) -> &'static str {
     try_endpoint(cx)
@@ -26,8 +24,6 @@ fn title_for(pattern: &str) -> Option<&'static str> {
     PAGE_TITLES.iter().find(|(route, _)| *route == pattern).map(|(_, title)| *title)
 }
 
-/// Wraps every page. A page that fails with a not-found error is replaced by
-/// the whole not-found document, so its `<title>` is the not-found title too.
 #[layout("/")]
 pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
     let title = page_title(cx);

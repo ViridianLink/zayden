@@ -32,7 +32,7 @@
 }
 
 /* FAQ article rows collapse to their title until opened. */
-.setting-field > summary {
+.setting-field>summary {
   cursor: pointer;
   font-weight: 600;
   color: var(--text-primary);
