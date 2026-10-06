@@ -46,7 +46,11 @@ pub(super) fn form<const N: usize>(
     body: &[u8],
     keys: [&'static str; N],
 ) -> Result<[Option<String>; N], RequestRejection> {
-    if !content_type(cx).is_some_and(|value| value.starts_with(FORM_CONTENT_TYPE)) {
+    if !content_type(cx).is_some_and(|value| {
+        value.split(';').next().is_some_and(|media| {
+            media.trim().eq_ignore_ascii_case(FORM_CONTENT_TYPE)
+        })
+    }) {
         return Err(RequestRejection::FormContentType);
     }
 
