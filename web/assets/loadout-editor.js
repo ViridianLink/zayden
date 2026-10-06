@@ -62,12 +62,16 @@ function trim(value) {
     return value.replace(TRIM, "");
 }
 
+const ESCAPES = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+};
+
 function esc(value) {
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
+    return String(value).replace(/[&<>"']/g, (c) => ESCAPES[c]);
 }
 
 function displayName(key) {
