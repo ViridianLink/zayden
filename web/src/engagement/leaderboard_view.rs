@@ -17,9 +17,6 @@ impl Default for LeaderboardView {
 }
 
 impl LeaderboardView {
-    /// Reads `?scope=..&page=..` from the request. A repeated key reads as
-    /// its first value and an unusable value as the default, so no query
-    /// string is refused.
     #[must_use]
     pub fn from_request(cx: &Cx) -> Self {
         Self::from_query_string(uri(cx).query())
@@ -43,8 +40,6 @@ impl LeaderboardView {
         Self::parse(scope.as_deref(), page.as_deref())
     }
 
-    /// `scope` is the global board only when it is exactly `global`. `page` is
-    /// a whole number of at least 1, otherwise page 1.
     #[must_use]
     pub fn parse(scope: Option<&str>, page: Option<&str>) -> Self {
         let page = page
