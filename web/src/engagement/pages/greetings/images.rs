@@ -4,7 +4,7 @@ use topcoat::view::{View, component, view};
 use super::{GreetingAction, PAGE};
 use crate::components::icons::{Icon, icon};
 use crate::engagement::GreetingImageInfo;
-use crate::engagement::pages::action::form_action;
+use crate::engagement::pages::action::{Submitted, form_action, typed};
 
 #[component]
 pub(super) async fn image_section(
@@ -12,8 +12,12 @@ pub(super) async fn image_section(
     kind: &str,
     title: &str,
     images: &[GreetingImageInfo],
+    submitted: Option<&Submitted<GreetingAction>>,
 ) -> Result<impl View> {
     let add = form_action(guild_id, PAGE, GreetingAction::AddImage);
+    let link = typed(submitted, GreetingAction::AddImage, "kind")
+        .filter(|submitted_kind| *submitted_kind == kind)
+        .and_then(|_| typed(submitted, GreetingAction::AddImage, "url"));
 
     Ok(view! {
         <fieldset class="settings-section">
@@ -31,6 +35,7 @@ pub(super) async fn image_section(
                         class="input"
                         type="url"
                         name="url"
+                        value=(link)
                         placeholder="https://example.com/sunrise.gif"
                         pattern="https://.*"
                         required=""

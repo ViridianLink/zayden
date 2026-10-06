@@ -4,7 +4,7 @@ use topcoat::view::{View, component, view};
 use super::{GreetingAction, PAGE};
 use crate::components::icons::{Icon, icon};
 use crate::components::settings::{save_button, save_feedback, setting_field};
-use crate::engagement::pages::action::form_action;
+use crate::engagement::pages::action::{Submitted, feedback, form_action, typed};
 
 const ANY_TEXT: &str = ".*";
 
@@ -13,9 +13,14 @@ pub(super) async fn messages_section(
     guild_id: &str,
     morning: &str,
     night: &str,
-    outcome: Option<std::result::Result<(), &str>>,
+    submitted: Option<&Submitted<GreetingAction>>,
 ) -> Result<impl View> {
     let action = form_action(guild_id, PAGE, GreetingAction::SaveMessages);
+    let outcome = feedback(submitted, GreetingAction::SaveMessages);
+    let morning = typed(submitted, GreetingAction::SaveMessages, "morning_message")
+        .unwrap_or(morning);
+    let night = typed(submitted, GreetingAction::SaveMessages, "night_message")
+        .unwrap_or(night);
 
     Ok(view! {
         <fieldset class="settings-section">

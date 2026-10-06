@@ -14,7 +14,15 @@ pub use self::channels::channel_section;
 use self::cooldowns::cooldown_section;
 use self::images::image_section;
 use self::messages::messages_section;
-use super::action::{FormAction, Submitted, feedback, flagged, loaded, requested};
+use super::action::{
+    FormAction,
+    Submitted,
+    feedback,
+    flagged,
+    loaded,
+    requested,
+    typed,
+};
 use crate::components::settings::save_feedback;
 use crate::engagement::EngagementError;
 use crate::engagement::greetings::{
@@ -95,7 +103,9 @@ pub(super) async fn submit(
         return Err(not_found().into());
     };
 
-    let submitted = Submitted::new(action, save(cx, action, guild_id, pairs).await)?;
+    let values = pairs.clone();
+    let submitted =
+        Submitted::new(action, values, save(cx, action, guild_id, pairs).await)?;
     if let Some(location) = submitted.success_location(guild_id, PAGE) {
         return Err(see_other(location).into());
     }
@@ -196,7 +206,7 @@ async fn greeting_sections(
             guild_id: guild_id,
             morning: page.view.morning_message.as_str(),
             night: page.view.night_message.as_str(),
-            outcome: feedback(submitted, GreetingAction::SaveMessages)
+            submitted: submitted
         )
         channel_section(
             guild_id: guild_id,
@@ -204,12 +214,14 @@ async fn greeting_sections(
             channels: &page.channels,
             locked: page.view.channels_locked,
             added: feedback(submitted, GreetingAction::AddChannel),
-            removed: feedback(submitted, GreetingAction::RemoveChannel)
+            removed: feedback(submitted, GreetingAction::RemoveChannel),
+            chosen: typed(submitted, GreetingAction::AddChannel, "channel_id")
+                .unwrap_or_default()
         )
         cooldown_section(
             guild_id: guild_id,
             cooldowns: page.view.cooldowns,
-            outcome: feedback(submitted, GreetingAction::SaveCooldowns)
+            submitted: submitted
         )
         if let Some(outcome) = feedback(submitted, GreetingAction::AddImage) {
             save_feedback(outcome: outcome)
@@ -221,13 +233,15 @@ async fn greeting_sections(
             guild_id: guild_id,
             kind: "morning",
             title: "Good morning images",
-            images: &page.view.morning
+            images: &page.view.morning,
+            submitted: submitted
         )
         image_section(
             guild_id: guild_id,
             kind: "night",
             title: "Good night images",
-            images: &page.view.night
+            images: &page.view.night,
+            submitted: submitted
         )
     }
     .boxed())

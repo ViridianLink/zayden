@@ -22,6 +22,7 @@ pub async fn channel_section(
     locked: bool,
     added: Option<std::result::Result<(), &str>>,
     removed: Option<std::result::Result<(), &str>>,
+    #[default] chosen: &str,
 ) -> Result<impl View> {
     let unknown = allowed.is_none();
     let allowed = allowed.unwrap_or_default();
@@ -82,7 +83,7 @@ pub async fn channel_section(
                     channel_select(
                         label: "Allow a channel",
                         name: "channel_id",
-                        selected: "",
+                        selected: chosen,
                         channels: Ok(unconfigured.as_slice()),
                         kinds: GATE_KINDS
                     )

@@ -1538,7 +1538,7 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     assert!(
         saved.html.contains(&format!(
             "{MESSAGES_FORM_HEAD}{SAVED_ALERT}{}",
-            messages_form("Good morning {user}!", "Night, {author}")
+            messages_form("  Good morning {user}!  ", "Night, {author}")
         )),
         "{}",
         saved.html
@@ -1563,9 +1563,7 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
         refused.html
     );
     assert!(
-        refused
-            .html
-            .contains(&messages_form("Good morning {user}!", "Night, {author}")),
+        refused.html.contains(&messages_form(&too_long, "kept?")),
         "{}",
         refused.html
     );
@@ -1577,7 +1575,7 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     .await
     .unwrap();
     assert_eq!(cooldowns.status, StatusCode::OK);
-    assert!(saved_before(&cooldowns.html, &cooldowns_form("30", "10", (15, 3))));
+    assert!(saved_before(&cooldowns.html, &cooldowns_form("30", " 10 ", (15, 3))));
     assert!(cooldowns.html.contains(SEE_PLANS), "{}", cooldowns.html);
 
     let below = submit(&app, "save-cooldowns", vec![
@@ -1596,7 +1594,7 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
         below.html
     );
     assert!(
-        below.html.contains(&cooldowns_form("30", "10", (15, 3))),
+        below.html.contains(&cooldowns_form("5", "", (15, 3))),
         "{}",
         below.html
     );
@@ -1757,6 +1755,114 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
         "Failed to load greetings: error running server function: forbidden"
     ));
     assert_eq!(app.images(7, "morning").await.unwrap().len(), 0);
+
+    app.pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_refused_greetings_save_keeps_what_was_typed_in_its_own_form_only(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(pool.clone(), |base| base).await.unwrap();
+    app.mock_free_guild(7);
+    app.guild_directory(7);
+
+    let low = submit(&app, "save-cooldowns", vec![
+        ("user_cooldown", "1"),
+        ("guild_cooldown", "1"),
+    ])
+    .await
+    .unwrap();
+    assert_eq!(low.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(
+        low.html.contains(&format!(
+            "{FAILED_SAVE}On the Free plan the per-member cooldown can't go below 15s. Pro servers can go as low as 3s.</span>"
+        )),
+        "{}",
+        low.html
+    );
+    assert!(low.html.contains(&cooldowns_form("1", "1", (15, 3))), "{}", low.html);
+    assert!(low.html.contains(&messages_form("", "")), "{}", low.html);
+
+    let sibling = submit(&app, "save-messages", vec![
+        ("morning_message", &"x".repeat(1501)),
+        ("night_message", "typed night"),
+    ])
+    .await
+    .unwrap();
+    assert_eq!(sibling.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(
+        sibling.html.contains(&messages_form(&"x".repeat(1501), "typed night")),
+        "{}",
+        sibling.html
+    );
+    assert!(
+        sibling.html.contains(&cooldowns_form("15", "3", (15, 3))),
+        "{}",
+        sibling.html
+    );
+
+    let insecure = submit(&app, "add-image", vec![
+        ("kind", "night"),
+        ("url", "http://example.com/a.gif"),
+    ])
+    .await
+    .unwrap();
+    assert_eq!(insecure.status, StatusCode::UNPROCESSABLE_ENTITY);
+    let typed = r#"name="url" value="http://example.com/a.gif""#;
+    assert_eq!(count(&insecure.html, typed), 1, "{}", insecure.html);
+    let night_at = insecure.html.find("Good night images</legend>").unwrap();
+    assert!(night_at < insecure.html.find(typed).unwrap(), "{}", insecure.html);
+
+    let unregistered =
+        submit(&app, "add-channel", vec![("channel_id", "21")]).await.unwrap();
+    assert_eq!(unregistered.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(
+        unregistered
+            .html
+            .contains(r#"<option value="21" selected=""># chat</option>"#),
+        "{}",
+        unregistered.html
+    );
+
+    app.pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_refused_reaction_role_add_keeps_what_was_typed(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(pool.clone(), |base| base).await.unwrap();
+    app.guild_directory(7);
+
+    let refused = app
+        .post(
+            RR_ADD,
+            &[
+                ("guild", "7"),
+                ("channel_id", "21"),
+                ("message_id", "4242"),
+                ("role_id", "31"),
+                ("emoji", "\u{1f514}"),
+            ],
+            Some(ADMIN),
+        )
+        .await
+        .unwrap();
+    assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(refused.html.contains(FAILED_SAVE), "{}", refused.html);
+    for typed in [
+        r#"<option value="21" selected=""># chat</option>"#,
+        r#"<option value="31" selected="">@Mod</option>"#,
+        r#"name="message_id" value="4242""#,
+        "name=\"emoji\" value=\"\u{1f514}\"",
+    ] {
+        assert_eq!(count(&refused.html, typed), 1, "{typed}: {}", refused.html);
+    }
 
     app.pool.close().await;
 }
