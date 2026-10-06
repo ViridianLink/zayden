@@ -54,7 +54,7 @@ pub(super) fn flagged<A: FormAction>(cx: &Cx) -> Option<Submitted<A>> {
         .find_map(|(key, _)| {
             A::ALL.iter().copied().find(|action| action.flag() == Some(&*key))
         })
-        .map(|action| Submitted { action, outcome: Ok(()) })
+        .map(|action| Submitted { action, values: Vec::new(), outcome: Ok(()) })
 }
 
 pub(super) fn loaded<T>(
@@ -68,12 +68,14 @@ pub(super) fn loaded<T>(
 
 pub(super) struct Submitted<A> {
     action: A,
+    values: Vec<(String, String)>,
     outcome: std::result::Result<(), String>,
 }
 
 impl<A: FormAction> Submitted<A> {
     pub(super) fn new(
         action: A,
+        values: Vec<(String, String)>,
         result: std::result::Result<(), EngagementError>,
     ) -> Result<Self> {
         let outcome = match result {
@@ -81,7 +83,7 @@ impl<A: FormAction> Submitted<A> {
             Err(error) => Err(error.redirect_unauthenticated()?.to_string()),
         };
 
-        Ok(Self { action, outcome })
+        Ok(Self { action, values, outcome })
     }
 
     pub(super) fn success_location(
@@ -111,4 +113,17 @@ pub(super) fn feedback<A: FormAction>(
     submitted
         .filter(|submitted| submitted.action == action)
         .map(|submitted| submitted.outcome.as_ref().copied().map_err(String::as_str))
+}
+
+pub(super) fn typed<'a, A: FormAction>(
+    submitted: Option<&'a Submitted<A>>,
+    action: A,
+    name: &str,
+) -> Option<&'a str> {
+    submitted
+        .filter(|submitted| submitted.action == action)?
+        .values
+        .iter()
+        .find(|(key, _)| key == name)
+        .map(|(_, value)| value.as_str())
 }
