@@ -5,19 +5,23 @@ use super::{GreetingAction, PAGE};
 use crate::components::icons::{Icon, icon};
 use crate::components::settings::{save_button, save_feedback, setting_field};
 use crate::engagement::CooldownView;
-use crate::engagement::pages::action::form_action;
+use crate::engagement::pages::action::{Submitted, feedback, form_action, typed};
 
 #[component]
 pub(super) async fn cooldown_section(
     guild_id: &str,
     cooldowns: CooldownView,
-    outcome: Option<std::result::Result<(), &str>>,
+    submitted: Option<&Submitted<GreetingAction>>,
 ) -> Result<impl View> {
     let action = form_action(guild_id, PAGE, GreetingAction::SaveCooldowns);
     let user_label = cooldowns.user_label();
     let guild_label = cooldowns.guild_label();
-    let user_secs = cooldowns.user_secs.to_string();
-    let guild_secs = cooldowns.guild_secs.to_string();
+    let user_secs = typed(submitted, GreetingAction::SaveCooldowns, "user_cooldown")
+        .map_or_else(|| cooldowns.user_secs.to_string(), str::to_owned);
+    let guild_secs =
+        typed(submitted, GreetingAction::SaveCooldowns, "guild_cooldown")
+            .map_or_else(|| cooldowns.guild_secs.to_string(), str::to_owned);
+    let outcome = feedback(submitted, GreetingAction::SaveCooldowns);
 
     Ok(view! {
         <fieldset class="settings-section">

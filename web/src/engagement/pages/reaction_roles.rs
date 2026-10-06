@@ -13,6 +13,7 @@ use super::action::{
     form_action,
     loaded,
     requested,
+    typed,
 };
 use crate::auth::{ChannelInfo, RoleInfo};
 use crate::components::confirm::confirm_button;
@@ -81,7 +82,9 @@ pub(super) async fn submit(
         return Err(not_found().into());
     };
 
-    let submitted = Submitted::new(action, save(cx, action, guild_id, pairs).await)?;
+    let values = pairs.clone();
+    let submitted =
+        Submitted::new(action, values, save(cx, action, guild_id, pairs).await)?;
     if let Some(location) = submitted.success_location(guild_id, PAGE) {
         return Err(see_other(location).into());
     }
@@ -152,7 +155,8 @@ async fn reaction_roles_page(
                         guild_id: guild_id,
                         channels: &page.channels,
                         roles: &page.roles,
-                        outcome: added
+                        outcome: added,
+                        submitted: submitted.as_ref()
                     )
                 }
             }
@@ -255,7 +259,9 @@ async fn add_mapping(
     channels: &[ChannelInfo],
     roles: &[RoleInfo],
     outcome: Option<std::result::Result<(), &str>>,
+    submitted: Option<&Submitted<RoleAction>>,
 ) -> Result<impl View> {
+    let field = move |name: &str| typed(submitted, RoleAction::Add, name);
     let channels: Vec<Channel> = channels.iter().map(Channel::from).collect();
     let roles: Vec<Role> = roles.iter().map(Role::from).collect();
     let action = form_action(guild_id, PAGE, RoleAction::Add);
@@ -274,14 +280,14 @@ async fn add_mapping(
                 channel_select(
                     label: "Channel",
                     name: "channel_id",
-                    selected: "",
+                    selected: field("channel_id").unwrap_or_default(),
                     channels: Ok(channels.as_slice()),
                     kinds: TEXT_KINDS
                 )
                 setting_field(
                     label: "Message ID (blank posts a new panel)",
                     name: "message_id",
-                    value: ""
+                    value: field("message_id").unwrap_or_default()
                 )
                 <div class="setting-field">
                     <label>"Emoji"</label>
@@ -289,13 +295,14 @@ async fn add_mapping(
                         class="input"
                         type="text"
                         name="emoji"
+                        value=(field("emoji"))
                         placeholder="\u{2705} or <:name:id>"
                     >
                 </div>
                 role_select(
                     label: "Role",
                     name: "role_id",
-                    selected: "",
+                    selected: field("role_id").unwrap_or_default(),
                     roles: Ok(roles.as_slice())
                 )
                 <div class="form-actions">
