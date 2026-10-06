@@ -8,6 +8,7 @@ Discord bot (`bot/`, `bot-modules/*`), Leptos dashboard (`dashboard/`), shared a
 - **Routing**: Manual Serenity routing and builders only. Never use `poise`.
 - **Database**: `sqlx` compile-time macros only (`query!`, `query_as!`, `query_scalar!`). Never runtime `query()`.
 - **Dependencies**: Workspace pins in root `Cargo.toml`. Crates set `dep.workspace = true` and may add features, never redefine versions. Do not downgrade. Run `cargo machete` when editing dependencies.
+- **Topcoat**: Pre-1.0 and volatile. Write Topcoat code only from `design-docs/topcoat/` (version-pinned, verified entries) or the pinned crate source, never from memory. Keep that reference in step when bumping Topcoat (`web/tests/topcoat_reference.rs` enforces the version).
 - **Lints**: Fix code instead of silencing lints. Use `#[expect(..., reason = "...")]` only when a code fix is demonstrably infeasible.
 
 ## Validation
@@ -60,6 +61,7 @@ When validation is requested:
 ## References
 
 - `design-docs/build-and-toolchain.md` — Toolchain, profile configurations, Cranelift notes.
+- `design-docs/topcoat/` — Topcoat reference for the pinned version: core APIs, UI components, tooling, release changes.
 - `.claude/skills/rust-skills/` — Rust guidelines.
 - `.claude/agents/` — Perimeter subagents.
 - `README.md` — Layout, build commands, Docker/CI setup.
