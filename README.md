@@ -92,8 +92,8 @@ cargo run -p web
   it, e.g. `target/debug/assets/`. The server refuses to start without a bundle,
   and a bundle only matches the build it came from: re-run the command after any
   change, before `cargo run`. `--release` bundles the release build. The CLI
-  clears `RUSTUP_TOOLCHAIN` and `RUSTFLAGS` for its inner build, so it always
-  builds with the toolchain `rust-toolchain.toml` selects.
+  passes `RUSTUP_TOOLCHAIN`, `RUSTFLAGS` and `CARGO_TARGET_DIR` through to its
+  inner build.
 - **`DASHBOARD_BIND_ADDR`** overrides `[dashboard].bind_addr`, so `web` can run
   next to `dashboard` on `:3000`. Discord OAuth redirects are registered for
   `:3000`, so log-in flows only complete when `web` runs there.
@@ -105,9 +105,11 @@ cargo run -p web
   checksummed download.
 - Styles live in `web/style/` (`input.css` plus partials). Tailwind only sees
   class names written literally in `web/src/**/*.rs`.
-- `view!` bodies are formatted by `topcoat fmt`, which has no `--check` mode;
-  pass explicit paths (`topcoat fmt web/src web/tests`) so it skips `target/`,
-  then run `cargo fmt`.
+- `view!` bodies are formatted by `topcoat fmt`; `topcoat fmt --check` exits
+  non-zero when a file would change. Pass explicit paths
+  (`topcoat fmt web/src web/tests`) so it skips `target/`, then run `cargo fmt`.
+- `design-docs/topcoat/` documents the Topcoat APIs, UI components and tooling
+  for the pinned version.
 
 ### Dev loop
 
