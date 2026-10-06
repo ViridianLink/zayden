@@ -1,5 +1,3 @@
-//! Text the engagement pages derive from their data.
-
 use twilight_model::channel::ChannelType;
 
 use crate::auth::{ChannelInfo, RoleInfo};
@@ -14,8 +12,6 @@ pub const GATE_KINDS: &[ChannelType] = &[
     ChannelType::GuildCategory,
 ];
 
-/// The id of a stored custom emoji (`<:name:id>` or `<a:name:id>`); `None` for
-/// a Unicode emoji.
 #[must_use]
 pub fn custom_emoji_id(emoji: &str) -> Option<&str> {
     let inner = emoji.strip_prefix('<')?.strip_suffix('>')?;
