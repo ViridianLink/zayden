@@ -741,9 +741,9 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.5.1"
+version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f360145194ee8e21db5ee7f3fcd4fe52210864c75c985dae33218202c8bbe040"
+checksum = "f74872d07caf508b30a21f6836e7d7016a2eaf7d9ff4f48deaa58cd8a0407630"
 dependencies = [
  "find-msvc-tools",
  "jobserver",
@@ -1264,7 +1264,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.6",
 ]
 
 [[package]]
@@ -2103,9 +2103,9 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "font-types"
-version = "0.12.5"
+version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8eb065f3251655b3c90e22e5e363f310fc5332fb3402e37bbc94752283248f6"
+checksum = "6c92d9081c7ab3bd83ef1eecdfad090f3d966e3ce74106779664114cfe1a6274"
 dependencies = [
  "bytemuck",
 ]
@@ -3666,9 +3666,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.189"
+version = "0.2.190"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
+checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
 
 [[package]]
 name = "libcrux-aead"
@@ -4165,9 +4165,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "1.2.3"
+version = "1.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8"
+checksum = "1788edb87fdc09c7e26304471e2f5be8cdefb1b6930d6e3985fc02ff53bf86ee"
 dependencies = [
  "libc",
  "wasi",
@@ -5066,9 +5066,9 @@ dependencies = [
 
 [[package]]
 name = "powerfmt"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
+checksum = "4a6394b9e965e73d0a289ee54f589087e2c676aedf60885baf52c76b771e4958"
 
 [[package]]
 name = "ppv-lite86"
@@ -6252,7 +6252,7 @@ dependencies = [
 [[package]]
 name = "serenity"
 version = "0.12.5"
-source = "git+https://github.com/serenity-rs/serenity?branch=next#ad216ee1669a61c0d5c052fa7e2080b7f65951e0"
+source = "git+https://github.com/serenity-rs/serenity?branch=next#f2b6648837e03ba3bf9d43bd7cad116db87b29c7"
 dependencies = [
  "aformat",
  "arrayvec",
@@ -7433,9 +7433,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.53.1"
+version = "1.53.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed"
+checksum = "e95f91fcc7a621e8b030f6aa23c71fe9838ae2fb4d8118b75602a328f5144044"
 dependencies = [
  "bytes",
  "libc",
@@ -7648,9 +7648,9 @@ checksum = "7d56353a2a665ad0f41a421187180aab746c8c325620617ad883a99a1cbe66d2"
 
 [[package]]
 name = "topcoat"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2f2d2ade409750d9dd4fa69ab474d63baf313497f2b1919e5d63d22dc31fcd7"
+checksum = "c7802e424033acc38249ada210b380d9846243b2830e097163780569990f8dfe"
 dependencies = [
  "futures-util",
  "serde",
@@ -7669,15 +7669,16 @@ dependencies = [
  "topcoat-runtime-macro",
  "topcoat-session",
  "topcoat-tailwind",
+ "topcoat-ui-registry",
  "topcoat-view",
  "topcoat-view-macro",
 ]
 
 [[package]]
 name = "topcoat-asset"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "134daa7da7b821e2207a67bdf1501ae2013e0a22c68415c530048d607386c1d8"
+checksum = "c227236b1910fc45d5fe42bdd0841c9d48a77b58a23c2bc937f80c6ca7fccd10"
 dependencies = [
  "http",
  "memchr",
@@ -7693,9 +7694,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-cookie"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b32f5506886e33b83422519eebbda0c8eead7e146cf2efc24394418529047d7e"
+checksum = "bc66c765a1b4b3c967e76f298e11444a8372f1e04e3406f12118d9212df5c338"
 dependencies = [
  "cookie",
  "getrandom 0.2.17",
@@ -7708,9 +7709,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-core"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c5ec122218c570f00b4ad6d3cb102e3f8d8054877919f595ce233bc10a1dce8"
+checksum = "0e50a7a9c7df454982f9103ac0ff0c1f7a0dacc304bf5273686d9652c56dbf24"
 dependencies = [
  "anymap3",
  "base64 0.22.1",
@@ -7724,9 +7725,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-core-grammar"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "867a7a12e3c543a0046ae9a7d4695aca4674a23938c54f728fbb0e31fe211551"
+checksum = "80e281c766230381a4d1b2827c4177487342210b4673f850864c2749e071ee81"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -7736,9 +7737,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-core-macro"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ebc6936490c2bdab46dab7deea7e7dfce5094d743b7a16d3f57640ea109e457"
+checksum = "1b7a0f2d5d7faaa2cdf48e19b042b26d5da185f1d42be87dc3c16a6868dcdeb5"
 dependencies = [
  "quote",
  "syn 3.0.6",
@@ -7747,9 +7748,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-font"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eadcc0557a6a65481f088326815eb57026f4b7115a656fde5e8254d12ad87b33"
+checksum = "4ccfde441afe9559296586891317bc8bd332bed8bfb4daaf78578d2f4f5f08ae"
 dependencies = [
  "heck 0.5.0",
  "serde",
@@ -7763,9 +7764,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-font-grammar"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "167c1fc2f6d4ea890be37eb7881a47af0108904fd39352117049b532525b133d"
+checksum = "c962dddbbf22479c3a65cae250fdd6fc30b28c1d67eba0f2284f7848d204e9f3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7776,9 +7777,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-font-macro"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3534caf965e1183186986dfab12669ec3c8bc3aab817170024df24d60fcc3a7a"
+checksum = "b9d7f98899e3ad0ed2d008c175a28880e4e4158cf92fce04ca2f2715d7f1241c"
 dependencies = [
  "quote",
  "syn 3.0.6",
@@ -7787,9 +7788,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-mail"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8fcd4584f698ab8399dbbe8b38957d77d57b12323dbaccb83bfbafbb1893931"
+checksum = "93bc296044ec4945461a93c3eb42cf887ef0e64e31b5f0942b7cf20a621eb2cf"
 dependencies = [
  "lettre",
  "thiserror 2.0.21",
@@ -7801,9 +7802,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-router"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff1ffdf4aea30d4c974d181c8ce0031a08730022cacfc51c88c07a4a94ab162d"
+checksum = "d903046add534dab250b97bf3218775b9e6e52cfea384e4002e34d2bda9e69ea"
 dependencies = [
  "bytes",
  "form_urlencoded",
@@ -7835,9 +7836,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-router-grammar"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d61553949e66539fca626f8655d882c5726ab5f0b4aa1a4c081b9ce7174c36c1"
+checksum = "e1cc97394f6c390931f8d5d02f9d3377b2a29567c33aec6f23de49da5b6e860f"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -7848,9 +7849,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-router-macro"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14b1828bf8b822ed93342358e4fa5d80975307165fed9ef9972095e69f37af6c"
+checksum = "c8fe80d329fdbdfea59a39bc8a6ceffe8fedefcc9ee27351abbb52bc2021b8e5"
 dependencies = [
  "quote",
  "syn 3.0.6",
@@ -7859,9 +7860,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-runtime"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4c4dc39a1c6ef6f0f604ecba3949baf401a30b5b44e7b3f830c3509e6b560dd"
+checksum = "25f9a64354f18773739d7c3a544831f87252fd9b6ec9223188e3f71dcddf71a5"
 dependencies = [
  "futures-util",
  "pin-project-lite",
@@ -7873,15 +7874,15 @@ dependencies = [
  "topcoat-core",
  "topcoat-router",
  "topcoat-view",
+ "topcoat-view-macro",
 ]
 
 [[package]]
 name = "topcoat-runtime-grammar"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28108d14091f55793d218ff88336b4778365d7db5fd3aaa6dc9c633b50e4cf42"
+checksum = "c06ec39c3d5d030d3682ecb1e065db908ec83b85e8a813d1d907ca483a24394c"
 dependencies = [
- "getrandom 0.4.3",
  "proc-macro2",
  "quote",
  "serde",
@@ -7894,9 +7895,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-runtime-macro"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e0254480c5e20c859811e2b805f8d2d5f7656307c7cdec3ab9af6bf1b83c930"
+checksum = "a8aac99e8ff2cf5cd11b010048515fe5a4e5b7e5feefe6c55f30795b778a90eb"
 dependencies = [
  "quote",
  "syn 3.0.6",
@@ -7905,9 +7906,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-session"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "910543ebbd1691257d784c9c5270802e9c1aa8e1015558e6e6a91ea96612cdc9"
+checksum = "48c743c2684511c2d95ed6084b7043aed69782fd254154c3340c1697fc0044e8"
 dependencies = [
  "base64 0.22.1",
  "getrandom 0.4.3",
@@ -7922,9 +7923,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-tailwind"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56251c5c3c8d73e6209056e55c3b1abc04a4f35762c853c4940bdb3a1d282b6e"
+checksum = "212e5ad84c0e3af06f938b35f91e4079178d865560b5f4ec5fa21a3e00316630"
 dependencies = [
  "sha2 0.11.0",
  "thiserror 2.0.21",
@@ -7933,10 +7934,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "topcoat-view"
-version = "0.9.0"
+name = "topcoat-ui-registry"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3d9c5990611483814e265c0bde5687c9fc99fbac346f53a047474f5f1d00483"
+checksum = "26f89db150ff2c4c2086b134f73886b7883b204729f6325b61c8c100825359df"
+
+[[package]]
+name = "topcoat-view"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f46315fff49446cdaf8a748fd9fb525f0345e9540b5ea4fdbacf9b9412907d12"
 dependencies = [
  "futures-core",
  "futures-util",
@@ -7950,9 +7957,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-view-grammar"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a549cea292c6730460a91dfa43a64d5badfc17217c198e023991b74591a0170e"
+checksum = "59d799180330985df38cd4e1666dd6cada55bd1fa9b083760f9872c0f520b47b"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -7964,9 +7971,9 @@ dependencies = [
 
 [[package]]
 name = "topcoat-view-macro"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7a76ea39a7045a551ba08a0e99716f4cb8ef1c96ec4999af2c72e2611a8c928"
+checksum = "a4e36b4ab1ed15cef987723953520ccfae60e015211b0a4f6df93ec6f1270a4a"
 dependencies = [
  "quote",
  "syn 3.0.6",
@@ -8503,9 +8510,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.26.1"
+version = "1.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ef6dac1e96601b4fb3acccccff2139741fcb757cb9a36089bf5be91cfb285ce"
+checksum = "97277d36b9c3ace13e58fa6e753f8b0bbbf302a18dd193240d70f9e29681059a"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
@@ -8693,7 +8700,7 @@ dependencies = [
 name = "web"
 version = "1.0.0"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "destiny2",
  "dotenvy",
  "greetings",
@@ -8712,6 +8719,7 @@ dependencies = [
  "reqwest 0.13.5",
  "rustls",
  "serde",
+ "serde_json",
  "sha1 0.11.0",
  "sha2 0.11.0",
  "sqlx",

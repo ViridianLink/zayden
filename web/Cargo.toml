@@ -27,6 +27,7 @@ reaction-roles = { workspace = true }
 reqwest = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
 sqlx = { workspace = true }
 suggestions = { workspace = true }
@@ -62,4 +63,4 @@ md-5 = { workspace = true }
 sha1 = { workspace = true }
 
 [build-dependencies]
-topcoat = { workspace = true, features = ["tailwind"] }
+topcoat = { workspace = true, features = ["tailwind", "ui"] }
