@@ -22,7 +22,7 @@ use crate::admin::{
 };
 use crate::components::confirm::confirm_button;
 use crate::components::settings::delete_feedback;
-use crate::components::skeleton::{SkeletonShape, skeleton};
+use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::form::fold;
 use crate::shell::app_shell;
 use crate::shell::link::aria_current;
@@ -114,7 +114,7 @@ pub async fn loadout_list_page(
             suspense(
                 fallback: view! {
                     <div class="skeleton-list">
-                        skeleton(shape: SkeletonShape::Row, count: 6)
+                        shape_skeleton(shape: SkeletonShape::Row, count: 6)
                     </div>
                 },
                 loadout_table(class: &class)

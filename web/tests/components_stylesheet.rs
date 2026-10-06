@@ -20,7 +20,7 @@ use web::components::settings::{
     setting_field,
     toggle_field,
 };
-use web::components::skeleton::{SkeletonShape, skeleton};
+use web::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
@@ -107,12 +107,12 @@ async fn everything() -> ViewResult<impl View> {
         toggle_field(label: "D", name: "d", value: true)
         save_feedback(outcome: Ok(()))
         save_feedback(outcome: Err("nope"))
-        skeleton(shape: SkeletonShape::Btn)
-        skeleton(shape: SkeletonShape::Badge)
-        skeleton(shape: SkeletonShape::Switcher)
-        skeleton(shape: SkeletonShape::Row)
-        skeleton(shape: SkeletonShape::Card)
-        skeleton(shape: SkeletonShape::Panel)
+        shape_skeleton(shape: SkeletonShape::Btn)
+        shape_skeleton(shape: SkeletonShape::Badge)
+        shape_skeleton(shape: SkeletonShape::Switcher)
+        shape_skeleton(shape: SkeletonShape::Row)
+        shape_skeleton(shape: SkeletonShape::Card)
+        shape_skeleton(shape: SkeletonShape::Panel)
     })
 }
 

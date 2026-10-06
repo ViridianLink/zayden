@@ -12,7 +12,7 @@ use super::link::aria_current;
 use super::sidebar::top_sidebar;
 use crate::auth::check_session;
 use crate::components::icons::{Icon, icon};
-use crate::components::skeleton::{SkeletonShape, skeleton};
+use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::guild::dto::Tier;
 use crate::guild::tier::get_user_tier;
 
@@ -55,7 +55,7 @@ async fn app_navbar(cx: &Cx) -> Result<impl View> {
             </a>
             <div class="app-navbar-links">
                 suspense(
-                    fallback: view! { skeleton(shape: SkeletonShape::Badge) },
+                    fallback: view! { shape_skeleton(shape: SkeletonShape::Badge) },
                     tier_badge()
                 )
                 match session {

@@ -6,7 +6,7 @@ use topcoat::view::{View, ViewExt, component, suspense, view};
 use super::{DELETE_ARTICLE, SAVE_ARTICLE, form_action};
 use crate::components::confirm::confirm_button;
 use crate::components::settings::{save_button, save_feedback, setting_field};
-use crate::components::skeleton::{SkeletonShape, skeleton};
+use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::settings::faq::{FaqArticleInfo, list_faq_articles, parse_article_id};
 use crate::settings::{Submission, shown};
 use crate::util::server_error_text;
@@ -51,7 +51,7 @@ pub(super) async fn pane(
             suspense(
                 fallback: view! {
                     <div class="skeleton-list">
-                        skeleton(shape: SkeletonShape::Row, count: 4)
+                        shape_skeleton(shape: SkeletonShape::Row, count: 4)
                     </div>
                 },
                 article_list(guild_id: guild_id, action: &action)
