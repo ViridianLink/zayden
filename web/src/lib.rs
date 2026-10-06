@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 pub mod admin;
 pub mod auth;
 pub mod components;
@@ -13,6 +15,7 @@ pub mod providers;
 pub mod public;
 mod router;
 pub mod session_pruning;
+pub mod settings;
 pub mod shell;
 pub mod state;
 pub mod util;

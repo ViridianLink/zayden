@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use topcoat::Result;
 use topcoat::asset::{Asset, asset};
 use topcoat::context::Cx;
@@ -5,8 +7,16 @@ use topcoat::router::error::NotFoundError;
 use topcoat::router::{Slot, StatusCode, layout, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
+use crate::admin::editor::EDITOR_TITLE;
+use crate::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
+use crate::engagement::pages::{
+    GREETINGS_TITLE,
+    LEVELS_TITLE,
+    REACTION_ROLES_TITLE,
+};
 use crate::pages::not_found::not_found_page;
 use crate::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
+use crate::settings::route_title;
 use crate::shell::{GUILDS_TITLE, OVERVIEW_TITLE, UPGRADE_TITLE};
 
 pub const STYLESHEET: Asset = asset!(concat!(env!("OUT_DIR"), "/tailwind.css"));
@@ -24,13 +34,26 @@ pub const PAGE_TITLES: &[(&str, &str)] = &[
     ("/guilds", GUILDS_TITLE),
     ("/guild/{guild_id}", OVERVIEW_TITLE),
     ("/upgrade", UPGRADE_TITLE),
+    ("/guild/{guild_id}/levels", LEVELS_TITLE),
+    ("/guild/{guild_id}/reaction-roles", REACTION_ROLES_TITLE),
+    ("/guild/{guild_id}/greetings", GREETINGS_TITLE),
+    ("/admin/servers", SERVERS_TITLE),
+    ("/admin/destiny2/loadouts", LOADOUTS_TITLE),
+    ("/admin/destiny2/loadouts/new", EDITOR_TITLE),
+    ("/admin/destiny2/loadouts/{loadout_id}", EDITOR_TITLE),
 ];
 
 #[must_use]
-pub fn page_title(cx: &Cx) -> &'static str {
-    try_endpoint(cx)
-        .and_then(|endpoint| title_for(endpoint.path().as_str()))
-        .unwrap_or(NOT_FOUND_TITLE)
+pub fn page_title(cx: &Cx) -> Cow<'static, str> {
+    let Some(endpoint) = try_endpoint(cx) else {
+        return Cow::Borrowed(NOT_FOUND_TITLE);
+    };
+    let pattern = endpoint.path().as_str();
+
+    route_title(cx, pattern).map_or_else(
+        || Cow::Borrowed(title_for(pattern).unwrap_or(NOT_FOUND_TITLE)),
+        Cow::Owned,
+    )
 }
 
 fn title_for(pattern: &str) -> Option<&'static str> {
@@ -55,7 +78,7 @@ pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
                     },
                 )
             },
-            document(title: title, (slot))
+            document(title: &title, (slot))
         )
     })
 }

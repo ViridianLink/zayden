@@ -1,6 +1,7 @@
 mod access;
 pub mod convert;
 pub mod dto;
+pub mod editor;
 mod emoji;
 pub mod emoji_upload;
 mod error;
@@ -8,6 +9,7 @@ pub mod fields;
 pub mod keys;
 mod loadouts;
 mod operator;
+pub mod pages;
 
 pub use access::{guild_operator_access, is_admin, is_operator};
 pub use convert::{
