@@ -3,6 +3,7 @@ name: zayden
 x-images:
   bot: &bot-image "ghcr.io/viridianlink/zayden-bot:${IMAGE_TAG:-latest}"
   dashboard: &dashboard-image "ghcr.io/viridianlink/zayden-dashboard:${IMAGE_TAG:-latest}"
+  web: &web-image "ghcr.io/viridianlink/zayden-web:${IMAGE_TAG:-latest}"
 
 services:
   # postgres:
@@ -64,6 +65,17 @@ services:
     volumes:
       - ./dashboard/config.toml:/app/config.toml:ro
       - palworld_uploads:/app/palworld_uploads
+
+  web:
+    image: *web-image
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "3100:3000"
+    volumes:
+      - ./dashboard/config.toml:/app/config.toml:ro
 
 volumes:
   palworld_uploads:
