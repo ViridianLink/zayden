@@ -47,15 +47,18 @@ cargo build --workspace --all-targets
 `bacon.toml` defines all of the above as watch jobs:
 
 ```bash
-bacon                  # clippy, the default job
-bacon test             # cargo test
-bacon fmt              # cargo fmt --all --check
-bacon build            # link check
-bacon check-ssr        # dashboard, server side
-bacon check-hydrate    # dashboard, wasm32 side
-bacon clippy-web       # web, clippy
-bacon test-web         # web, tests
-bacon nextest          # needs `cargo install cargo-nextest`
+bacon                    # clippy, the default job
+bacon test               # cargo test
+bacon fmt                # cargo fmt --all --check
+bacon build              # link check
+bacon check-ssr          # dashboard, server side
+bacon check-hydrate      # dashboard, wasm32 side
+bacon check-web          # web, check
+bacon check-offline-web  # web, check with SQLX_OFFLINE=true
+bacon clippy-web         # web, clippy
+bacon test-web           # web, tests
+bacon bundle-web         # web, topcoat asset bundle
+bacon nextest             # needs `cargo install cargo-nextest`
 ```
 
 Keep the flags identical across this README, `bacon.toml` and CI. A local
@@ -63,7 +66,7 @@ command weaker than CI is how drift starts.
 
 ## Web dashboard (`web/`)
 
-`web` is a [Topcoat](https://github.com/tokio-rs/topcoat) 0.9 app: every page
+`web` is a [Topcoat](https://github.com/tokio-rs/topcoat) 0.10 app: every page
 renders on the server, and `web/src/router.rs` registers every layout, page and
 route in one `router()` function that the binary and the `tests/` harness share.
 It reads the same `bot/config.toml` `[dashboard]` keys and environment as
@@ -72,7 +75,7 @@ It reads the same `bot/config.toml` `[dashboard]` keys and environment as
 It needs the Topcoat CLI, pinned to the same version as the crate:
 
 ```bash
-cargo install topcoat-cli@0.9.0 --locked
+cargo install topcoat-cli@0.10.0 --locked
 ```
 
 Run it from the workspace root against a throwaway database:
@@ -106,9 +109,50 @@ cargo run -p web
   pass explicit paths (`topcoat fmt web/src web/tests`) so it skips `target/`,
   then run `cargo fmt`.
 
-`docker/Dockerfile.web` builds the release image on stable. It is built
-locally (`docker build -f docker/Dockerfile.web .`) and is not part of the
-image publish matrix yet.
+### Dev loop
+
+```bash
+export TAILWIND_CLI=/path/to/tailwindcss-4.3.2     # optional, see above
+topcoat asset bundle -p web                        # after every change
+cargo run -p web
+topcoat fmt web/src web/tests && cargo fmt         # format view! bodies, then the rest
+```
+
+`bacon bundle-web` runs the bundle step, `bacon check-web` and `bacon clippy-web`
+watch the crate. `cargo run` alone serves the bundle from the last
+`topcoat asset bundle`, so a stale bundle shows stale CSS or a missing-asset
+error.
+
+### Tests
+
+```bash
+cargo test -p web
+```
+
+Most files in `web/tests/` render pages through the real router. The ones that
+touch Postgres use `#[sqlx::test]`, which needs `DATABASE_URL` pointing at a
+**throwaway** server (see Database below); `cargo test` creates and drops one
+database per test. Nothing in `web` is feature-gated, so the plain workspace
+commands run every test. `tests/legacy_*.rs` hold the source and stylesheet
+scans carried over from the `dashboard` crate.
+
+### Docker
+
+`docker/Dockerfile.web` builds the release image on stable: a separate build target
+downloads the Tailwind CLI and checks its SHA-256, the builder installs
+`topcoat-cli`, cooks the dependencies with cargo-chef, removes
+`rust-toolchain.toml` and runs `topcoat asset bundle --release -p web`, and the
+runtime image copies `/app/web` and `/app/assets` side by side (the binary
+looks for `assets/` next to itself). It runs as the `zayden` user, listens on
+`0.0.0.0:3000` (`DASHBOARD_BIND_ADDR`) and reads `/app/config.toml` like the
+dashboard image.
+
+```bash
+docker build -f docker/Dockerfile.web -t zayden-web .
+```
+
+The image is not in the publish matrix and has no `docker-compose.yml`
+service yet; CI only builds it.
 
 ## Conventions
 
@@ -139,8 +183,10 @@ codegen backend is not used.
 `.github/workflows/ci.yml` runs these jobs in parallel: `rustfmt`, workspace
 `clippy`, the dashboard's two extra clippy targets (`ssr` and wasm32 `hydrate`),
 workspace tests against a Postgres service, `cargo-deny`, and
-`sqlx prepare --check`. Jobs that compile `web` set `TAILWIND_CLI` to a
-checksummed Tailwind download. Everything builds on **stable**
+`sqlx prepare --check`. `web` is covered by the workspace `clippy` and `test`
+jobs; `web-bundle` runs `topcoat asset bundle -p web` and `web-image` builds
+`docker/Dockerfile.web` without pushing. Jobs that compile `web` set
+`TAILWIND_CLI` to a checksummed Tailwind download. Everything builds on **stable**
 (`RUSTUP_TOOLCHAIN=stable` outranks `rust-toolchain.toml`, and `RUSTFLAGS=""`
 clears the nightly-only flags in `.cargo/config.toml`), so the CI format gate is
 weaker than `cargo fmt` locally — stable `rustfmt` ignores the unstable options
@@ -179,7 +225,7 @@ populated DB will fail CI's `prepare --check`.
 docker compose up --build
 ```
 
-`docker/Dockerfile.bot` and `docker/Dockerfile.dashboard` are cargo-chef builds:
+`docker/Dockerfile.bot`, `docker/Dockerfile.dashboard` and `docker/Dockerfile.web` are cargo-chef builds:
 dependencies are cooked into a cached layer, then the binary is compiled and
 copied into a `debian:trixie-slim` runtime that runs as a non-root `zayden`
 user. Both build on **stable** — `.dockerignore` keeps `rust-toolchain.toml` and

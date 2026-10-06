@@ -112,6 +112,35 @@ need_stdout = false
 command = ["cargo", "test", "-p", "web", "--all-targets", "--color", "always"]
 need_stdout = true
 
+[jobs.check-web]
+command = [
+    "cargo",
+    "check",
+    "-p",
+    "web",
+    "--all-targets",
+    "--color",
+    "always",
+]
+need_stdout = false
+
+[jobs.check-offline-web]
+command = [
+    "cargo",
+    "check",
+    "-p",
+    "web",
+    "--all-targets",
+    "--color",
+    "always",
+]
+need_stdout = false
+env.SQLX_OFFLINE = "true"
+
+[jobs.bundle-web]
+command = ["topcoat", "asset", "bundle", "-p", "web"]
+need_stdout = true
+
 [jobs.check-offline]
 command = [
     "cargo",
