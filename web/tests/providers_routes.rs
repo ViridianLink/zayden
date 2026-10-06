@@ -347,6 +347,26 @@ async fn kofi_refuses_what_is_not_a_single_data_form(pool: PgPool) {
     let response = app.post("/webhooks/kofi", &[], "data=x").await.unwrap();
     assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 
+    let response = app
+        .post(
+            "/webhooks/kofi",
+            &[("content-type", "application/x-www-form-urlencodedx")],
+            "data=x",
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+
+    let response = app
+        .post(
+            "/webhooks/kofi",
+            &[("content-type", "Application/X-WWW-Form-Urlencoded; charset=UTF-8")],
+            "other=1",
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
     let response = app.post_form("/webhooks/kofi", "other=1").await.unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(

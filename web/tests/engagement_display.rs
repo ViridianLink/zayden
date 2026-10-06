@@ -48,6 +48,8 @@ fn custom_emoji_are_told_from_unicode_ones() {
     assert_eq!(custom_emoji_id("\u{2705}"), None);
     assert_eq!(custom_emoji_id("<:wave:abc>"), None);
     assert_eq!(custom_emoji_id("<:wave:12"), None);
+    assert_eq!(custom_emoji_id("<:wave:>"), None);
+    assert_eq!(custom_emoji_id("<>"), None);
     assert_eq!(custom_emoji_id(":wave:12>"), None);
     assert_eq!(custom_emoji_id("plain"), None);
 }
