@@ -4,7 +4,7 @@ use topcoat::router::{page, path_param};
 use topcoat::view::{View, component, suspense, view};
 
 use super::action::path_segment;
-use crate::components::skeleton::{SkeletonShape, skeleton};
+use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::engagement::levels::get_leaderboard;
 use crate::engagement::{LeaderboardEntry, LeaderboardView};
 use crate::shell::GuildId;
@@ -34,7 +34,7 @@ async fn levels_page(guild_id: &str, board: LeaderboardView) -> Result<impl View
             suspense(
                 fallback: view! {
                     <div class="skeleton-list">
-                        skeleton(shape: SkeletonShape::Row, count: 10)
+                        shape_skeleton(shape: SkeletonShape::Row, count: 10)
                     </div>
                 },
                 leaderboard(guild_id: guild_id, board: board)

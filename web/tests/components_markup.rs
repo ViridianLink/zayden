@@ -35,7 +35,7 @@ use web::components::settings::{
     setting_field,
     toggle_field,
 };
-use web::components::skeleton::{SkeletonShape, skeleton};
+use web::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 
 /// Every icon's path markup, in `Icon::ALL` order.
 const ICON_PATHS: [(Icon, &str); 25] = [
@@ -238,13 +238,13 @@ async fn confirm_button_class_styles_only_the_summary() {
 
 #[page("/skeleton/one")]
 async fn skeleton_one() -> ViewResult<impl View> {
-    Ok(view! { skeleton(shape: SkeletonShape::Btn) })
+    Ok(view! { shape_skeleton(shape: SkeletonShape::Btn) })
 }
 
 #[page("/skeleton/grid")]
 async fn skeleton_grid() -> ViewResult<impl View> {
     Ok(view! {
-        <div class="skeleton-grid">skeleton(shape: SkeletonShape::Card, count: 6)</div>
+        <div class="skeleton-grid">shape_skeleton(shape: SkeletonShape::Card, count: 6)</div>
     })
 }
 

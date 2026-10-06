@@ -7,7 +7,7 @@ use topcoat::view::{View, component, suspense, view};
 
 use super::card::module_card;
 use super::guild_layout::GuildId;
-use crate::components::skeleton::{SkeletonShape, skeleton};
+use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::guild::GuildError;
 use crate::guild::modules::{
     ModuleToggleForm,
@@ -94,7 +94,7 @@ async fn overview(
             suspense(
                 fallback: view! {
                     <div class="skeleton-grid">
-                        skeleton(shape: SkeletonShape::Panel, count: 6)
+                        shape_skeleton(shape: SkeletonShape::Panel, count: 6)
                     </div>
                 },
                 module_grid(guild_id: guild_id, failure: failure)
