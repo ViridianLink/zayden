@@ -130,12 +130,13 @@ async fn document_head_renders_shell_stylesheet_and_runtime() {
     let html = body_text(send(Method::GET, "/does-not-exist").await.unwrap())
         .await
         .unwrap();
+    let bits = usize::BITS;
     assert!(html.starts_with(&format!(
         "<!DOCTYPE html><html lang=\"en\" data-bot=\"zayden\"><head>\
          <meta charset=\"utf-8\">\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
          <link rel=\"stylesheet\" href=\"/_topcoat/assets/{STYLESHEET_FILE}\">\
-         <script type=\"module\" src=\"/_topcoat/assets/{RUNTIME_FILE}\"></script>\
+         <script type=\"module\" src=\"/_topcoat/assets/{RUNTIME_FILE}\" data-topcoat-usize-bits=\"{bits}\"></script>\
          <script type=\"module\" src=\"/_topcoat/assets/{PENDING_FILE}\"></script>\
          <title>{NOT_FOUND_TITLE}</title></head><body>"
     )));
