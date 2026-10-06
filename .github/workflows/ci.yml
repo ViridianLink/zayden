@@ -264,6 +264,10 @@ jobs:
             dockerfile: docker/Dockerfile.dashboard
             image: zayden-dashboard
             needs_ytdlp: false
+          - name: web
+            dockerfile: docker/Dockerfile.web
+            image: zayden-web
+            needs_ytdlp: false
 
     steps:
       - name: Checkout
