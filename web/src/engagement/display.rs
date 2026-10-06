@@ -20,7 +20,7 @@ pub const GATE_KINDS: &[ChannelType] = &[
 pub fn custom_emoji_id(emoji: &str) -> Option<&str> {
     let inner = emoji.strip_prefix('<')?.strip_suffix('>')?;
     let id = inner.rsplit(':').next()?;
-    id.chars().all(|c| c.is_ascii_digit()).then_some(id)
+    (!id.is_empty() && id.chars().all(|c| c.is_ascii_digit())).then_some(id)
 }
 
 #[must_use]
