@@ -331,7 +331,7 @@ leptos_router = { version = "*", default-features = false }
 leptos_axum = { version = "*" }
 
 # -- Frontend (Topcoat)
-topcoat = { version = "*", default-features = false }
+topcoat = { version = "0.10", default-features = false, }
 
 # ── WASM (hydrate target only) ───────────────────────────────────────────────
 wasm-bindgen = { version = "*" }

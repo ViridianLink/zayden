@@ -54,10 +54,9 @@ impl LeaderboardView {
         Self { global: scope == Some(GLOBAL_SCOPE), page }
     }
 
-    /// The address of this view. The default view is the bare path.
     #[must_use]
-    pub fn href(self, guild: &str) -> String {
-        let base = format!("/guild/{guild}/levels");
+    pub fn href(self, guild_segment: &str) -> String {
+        let base = format!("/guild/{guild_segment}/levels");
 
         match (self.global, self.page) {
             (false, 1) => base,

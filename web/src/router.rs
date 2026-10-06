@@ -2,10 +2,28 @@ use topcoat::cookie::RouterBuilderCookieExt;
 use topcoat::router::{Router, RouterBuilder};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 
-use crate::{auth, document, pages, providers, public, shell};
+use crate::{
+    admin,
+    auth,
+    document,
+    engagement,
+    pages,
+    providers,
+    public,
+    settings,
+    shell,
+};
 
-const ROUTE_GROUPS: [fn(RouterBuilder) -> RouterBuilder; 4] =
-    [public::routes, auth::routes, providers::routes, shell::routes];
+const ROUTE_GROUPS: [fn(RouterBuilder) -> RouterBuilder; 8] = [
+    public::routes,
+    auth::routes,
+    providers::routes,
+    shell::routes,
+    settings::routes,
+    engagement::pages::routes,
+    admin::pages::routes,
+    admin::editor::routes,
+];
 
 #[must_use]
 pub fn router(base: RouterBuilder) -> Router {
