@@ -156,8 +156,6 @@ jobs:
       - *fetch-tailwind
       - name: Install the Topcoat CLI
         run: cargo install topcoat-cli@0.10.0 --locked
-      # The CLI clears RUSTUP_TOOLCHAIN and RUSTFLAGS for its inner build, so
-      # the nightly pin and the nightly-only flags must not be on disk.
       - name: Bundle the web assets
         run: |
           rm -f rust-toolchain.toml
