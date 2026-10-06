@@ -8,7 +8,7 @@ use topcoat::view::{View, component, suspense, view};
 
 use super::chrome::app_shell;
 use crate::components::icons::{Icon, icon};
-use crate::components::skeleton::{SkeletonShape, skeleton};
+use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::guild::GuildError;
 use crate::guild::dto::Tier;
 use crate::guild::kofi::{KofiEmailForm, link_kofi_email};
@@ -112,7 +112,7 @@ async fn upgrade_page(
             suspense(
                 fallback: view! {
                     <div class="skeleton-grid">
-                        skeleton(shape: SkeletonShape::Panel, count: 2)
+                        shape_skeleton(shape: SkeletonShape::Panel, count: 2)
                     </div>
                 },
                 plan_ladder()
