@@ -1,16 +1,20 @@
 //! The app frame and its pages through the app router, against Postgres.
 //!
-//! Sessions and Discord guild lists come from seeded caches, so no case
-//! reaches Discord. Each `#[sqlx::test]` builds one full app state and runs
-//! its scenarios in sequence. Pages hide or replace what the database fails
-//! to load (tier, role links), so every such value is read directly before
-//! the markup is checked: a database fault then fails with its own error.
+//! Sessions, Discord users and guild lists come from seeded caches, and the
+//! bot's Discord client talks to a local stand-in that rejects its token the
+//! way Discord does, so no case reaches Discord. Each `#[sqlx::test]` builds one
+//! full app state and runs its scenarios in sequence. Pages hide or replace what the
+//! database fails to load (tier, role links), so every such value is read directly
+//! before the markup is checked: a database fault then fails with its own error.
 
 use std::error::Error;
 use std::fmt::Write as _;
+use std::io::{BufRead, BufReader, Write};
+use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::sync::{Arc, OnceLock};
-use std::time::Duration;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use http_body_util::BodyExt;
 use sqlx::PgPool;
@@ -25,10 +29,11 @@ use topcoat::view::{View, view};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
-use web::auth::{WebRole, has_role};
+use web::auth::{SessionUser, WebRole, has_role};
 use web::document::{PENDING_SUBMIT, STYLESHEET};
+use web::nav::{GENERAL, MODULES};
 use web::shell::GuildId;
-use web::state::{SessionIdentity, WebState};
+use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState as ZaydenAppState;
@@ -167,6 +172,40 @@ async fn test_pool(
     Ok(options.max_connections(TEST_POOL_CONNECTIONS).connect_with(connect).await?)
 }
 
+/// A local Discord API that answers every request with the 401 Discord gives
+/// the test bot token. Returns its address.
+fn unauthorized_discord() -> TestResult<String> {
+    let listener = TcpListener::bind("127.0.0.1:0")?;
+    let addr = listener.local_addr()?.to_string();
+    thread::spawn(move || {
+        for stream in listener.incoming().flatten() {
+            thread::spawn(move || {
+                let _ = reject(stream);
+            });
+        }
+    });
+    Ok(addr)
+}
+
+fn reject(stream: TcpStream) -> std::io::Result<()> {
+    let mut reader = BufReader::new(stream.try_clone()?);
+    let mut stream = stream;
+    loop {
+        let mut line = String::new();
+        if reader.read_line(&mut line)? == 0 || line.trim().is_empty() {
+            break;
+        }
+    }
+
+    let body = r#"{"message":"401: Unauthorized","code":0}"#;
+    let response = format!(
+        "HTTP/1.1 401 Unauthorized\r\ncontent-type: application/json\r\n\
+         content-length: {}\r\nconnection: close\r\n\r\n{body}",
+        body.len()
+    );
+    stream.write_all(response.as_bytes())
+}
+
 struct Harness {
     router: Router,
     app: Arc<ZaydenAppState>,
@@ -180,7 +219,18 @@ async fn web_state(
 
     let config = config(upgrade_url);
     let app = Arc::new(ZaydenAppState::new(pool, &config));
-    let state = WebState::new(Arc::clone(&app), &config)?;
+    let mut state = WebState::new(Arc::clone(&app), &config)?;
+    state.discord = DiscordState {
+        http: Arc::new(
+            twilight_http::Client::builder()
+                .token("test-bot-token".to_owned())
+                .proxy(unauthorized_discord()?, true)
+                .ratelimiter(None)
+                .build(),
+        ),
+        user_guilds: state.discord.user_guilds,
+        users: state.discord.users,
+    };
 
     for (token, user_id) in
         [("member-token", 41), ("staff-token", 42), ("pro-token", 44)]
@@ -214,6 +264,7 @@ async fn web_state(
         state.discord.user_guilds.insert(user_id, Arc::from([])).await;
     }
 
+    seed_users(&state.discord.users, &[41, 42, 44]).await;
     Ok((state, app))
 }
 
@@ -313,22 +364,30 @@ async fn grant_role(pool: &PgPool, user_id: i64, role: &str) -> TestResult {
     Ok(())
 }
 
-fn sidebar_link(
-    href: &str,
-    icon: &str,
-    label: &str,
-    current: bool,
-    active: bool,
-) -> String {
+fn nav_link(href: &str, icon: Option<&str>, label: &str, current: bool) -> String {
     let aria = if current { r#" aria-current="page""# } else { "" };
-    let class = if active { "app-sidebar-link active" } else { "app-sidebar-link" };
+    let icon = icon.map_or_else(String::new, |icon| format!("{ICON_OPEN}{icon}"));
     format!(
-        r#"<a href="{href}"{aria} class="{class}">{ICON_OPEN}{icon}<span>{label}</span></a>"#
+        r#"<li><a href="{href}" class="nav-link"{aria}>{icon}<span>{label}</span></a></li>"#
+    )
+}
+
+/// The dashboard links outside a guild: servers, plans and, for staff, the
+/// admin group. The rail and the menu sheet each render them once.
+fn outer_nav(servers: bool, plans: bool, admin: &str) -> String {
+    format!(
+        r#"<nav class="nav" aria-label="Dashboard"><ul class="nav-list">{}</ul><ul class="nav-list nav-group">{}</ul>{admin}</nav>"#,
+        nav_link("/guilds", Some(SERVER), "Servers", servers),
+        nav_link("/upgrade", Some(ZAP), "Plans", plans),
     )
 }
 
 const SERVER: &str = r#"<rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>"#;
 const ZAP: &str = r#"<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg>"#;
+const GRID: &str = r#"<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>"#;
+const SETTINGS: &str = r#"<line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>"#;
+const MAIN: &str = r#"<main id="main" class="app-main" tabindex="-1">"#;
+const FREE_CHIP: &str = r#"<a href="/upgrade" class="plan-chip" aria-label="Upgrade, current plan: Free">Upgrade</a>"#;
 const LEGAL: &str = r#"<nav class="legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></nav>"#;
 
 const SHIELD: &str = r#"<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>"#;
@@ -351,25 +410,28 @@ async fn the_guild_list_frames_the_managed_guilds(
 
     assert!(html.contains("<title>Servers - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(
-        r#"<body><div class="app"><nav class="app-navbar"><a href="/guilds" aria-current="page" class="brand"><span class="brand-mark">Z</span>Zayden</a><div class="app-navbar-links">"#
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="app"><header class="app-header"><div class="topbar"><button type="button" class="topbar-button menu-button" popovertarget="nav-sheet" aria-controls="nav-sheet" aria-expanded="false" aria-label="Menu">"##
+    ), "{html}");
+    assert!(html.contains(
+        r#"<a href="/guilds" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span class="brand-name">Zayden</span></a>"#
     ), "{html}");
     assert!(
         html.contains(&format!(
-            r#"<a href="/logout" rel="external" class="btn btn-ghost">{ICON_OPEN}"#
+            r#"<a href="/logout" rel="external" class="menu-item">{ICON_OPEN}"#
         )),
         "{html}"
     );
+    assert!(html.contains(FREE_CHIP), "{html}");
+    let nav = outer_nav(true, false, "");
+    assert_eq!(count(&html, &nav), 2, "{html}");
     assert!(
-        html.contains(r#"<span class="tier-badge tier-free">Free</span>"#),
+        html.contains(&format!(
+            r#"<div class="rail">{nav}<div class="nav-spacer"></div>{LEGAL}</div>"#
+        )),
         "{html}"
     );
     assert!(html.contains(&format!(
-        r#"<a href="{UPGRADE_URL}" class="btn-upgrade" target="_blank" rel="noopener noreferrer">Upgrade to Pro</a>"#
-    )), "{html}");
-    assert!(html.contains(&format!(
-        r#"<div class="app-body"><aside class="app-sidebar"><div class="app-sidebar-heading">Dashboard</div>{}{}{LEGAL}</aside><main class="app-main"><div class="page"><div class="page-header"><div><h1>Your Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="btn btn-secondary">Add to a server</a></div><div class="guild-grid">"#,
-        sidebar_link("/guilds", SERVER, "Servers", true, true),
-        sidebar_link("/upgrade", ZAP, "Upgrade to Pro", false, false),
+        r#"</header>{MAIN}<div class="page"><div class="page-header"><div><h1>Your Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="btn btn-secondary">Add to a server</a></div><div class="guild-grid">"#
     )), "{html}");
     assert!(html.contains(
         r#"<a href="/guild/7" class="guild-card"><span class="guild-icon placeholder">G</span><div class="guild-card-body"><div class="guild-name">Guild 7</div>"#
@@ -378,25 +440,25 @@ async fn the_guild_list_frames_the_managed_guilds(
         r#"<a href="/guild/9" class="guild-card"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="guild-icon">"#
     ), "{html}");
     assert!(!html.contains("Guild 8"), "{html}");
-    assert!(html.contains("</div></div></main></div></div></body>"), "{html}");
+    assert!(html.contains("</div></div></main></div></body>"), "{html}");
     assert!(!html.contains("server-switcher"));
 
     assert!(has_role(&pool, 42, WebRole::Admin).await.unwrap());
     assert!(has_role(&pool, 42, WebRole::Operator).await.unwrap());
     let html = app.page("/guilds", Some(STAFF)).await.unwrap();
-    let links = [
-        sidebar_link("/guilds", SERVER, "Servers", true, true),
-        sidebar_link("/admin/servers", SHIELD, "All bot servers", false, false),
-        sidebar_link(
-            "/admin/destiny2/loadouts",
-            GAMEPAD,
-            "Loadout builder",
-            false,
-            false,
-        ),
-        sidebar_link("/upgrade", ZAP, "Upgrade to Pro", false, false),
-    ];
-    assert!(html.contains(&links.concat()), "{html}");
+    for prefix in ["rail", "sheet"] {
+        let admin = format!(
+            r#"<div class="nav-group"><p class="nav-heading" id="{prefix}-admin">Admin</p><ul class="nav-list" aria-labelledby="{prefix}-admin">{}{}</ul></div>"#,
+            nav_link("/admin/servers", Some(SHIELD), "All bot servers", false),
+            nav_link(
+                "/admin/destiny2/loadouts",
+                Some(GAMEPAD),
+                "Loadout builder",
+                false
+            ),
+        );
+        assert!(html.contains(&outer_nav(true, false, &admin)), "{html}");
+    }
     assert!(
         html.contains(
             r#"<p class="empty">You manage no servers with this account.</p>"#
@@ -440,33 +502,47 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
 
     assert!(html.contains("<title>Modules - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(
-        r#"<a href="/guilds" class="brand"><span class="brand-mark">Z</span>Zayden</a>"#
+        r#"<a href="/guilds" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span class="brand-name">Zayden</span></a>"#
     ), "{html}");
     assert!(html.contains(&format!(
-        r#"<div class="app-body"><aside class="app-sidebar"><details class="server-switcher"><summary><span class="server-switcher-avatar placeholder">G</span><span class="server-switcher-name">Guild 7</span>{ICON_OPEN}{CHEVRON_DOWN}</summary><div class="server-switcher-menu"><a href="/guild/7" aria-current="page" class="server-switcher-option current"><span class="server-switcher-avatar placeholder">G</span><span class="server-switcher-name">Guild 7</span>{ICON_OPEN}{CHECK}</a><a href="/guild/9" class="server-switcher-option"><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" class="server-switcher-avatar"><span class="server-switcher-name">Nine</span></a></div></details><div class="app-sidebar-heading">Manage</div><div class="app-sidebar-group"><div class="app-sidebar-group-head"><a href="/guild/7" aria-current="page" class="app-sidebar-link active">"#
+        r#"<button type="button" class="topbar-button plate" popovertarget="server-switcher" aria-controls="server-switcher" aria-expanded="false" aria-label="Switch server, current: Guild 7"><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHEVRON_DOWN}</button>"#
+    )), "{html}");
+    assert!(html.contains(&format!(
+        r#"<div class="menu-list" data-filter-list=""><a href="/guild/7" class="menu-item" aria-current="page" data-filter-item=""><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHECK}</a><a href="/guild/9" class="menu-item" data-filter-item=""><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" width="24" height="24" class="plate-avatar"><span class="plate-name">Nine</span></a></div><a href="/guilds" class="menu-item">{ICON_OPEN}{SERVER}<span class="plate-name">All servers</span></a>"#
     )), "{html}");
     assert!(!html.contains("operator-badge"), "{html}");
     assert!(html.contains(&format!(
-        r#"<span>Modules</span></a><button type="button" class="app-sidebar-caret open" aria-label="Toggle module list" aria-expanded="true">{ICON_OPEN}{CHEVRON_DOWN}</button></div><div class="app-sidebar-sublist open"><a href="/guild/7/settings/general" class="app-sidebar-sublink">General</a><a href="/guild/7/settings/ai" class="app-sidebar-sublink">AI Chat</a>"#
+        r#"<nav class="nav" aria-label="Dashboard"><ul class="nav-list">{}{}</ul><div class="nav-group"><p class="nav-heading" id="rail-community">Community</p><ul class="nav-list" aria-labelledby="rail-community">{}"#,
+        nav_link("/guild/7", Some(GRID), "Overview", true),
+        nav_link("/guild/7/settings/general", Some(SETTINGS), "Server settings", false),
+        nav_link("/guild/7/greetings", None, "Greetings", false),
     )), "{html}");
-    assert!(html.contains(
-        r#"<a href="/guild/7/settings/youtube" class="app-sidebar-sublink">YouTube</a></div></div><div class="app-sidebar-spacer"></div>"#
-    ), "{html}");
-    assert_eq!(count(&html, r#"class="app-sidebar-sublink""#), 13, "{html}");
-    assert!(
-        html.contains(&sidebar_link("/guilds", SERVER, "All servers", false, false)),
+    for heading in ["community", "support---safety", "voice---games", "integrations"]
+    {
+        for prefix in ["rail", "sheet"] {
+            assert!(
+                html.contains(&format!(r#"id="{prefix}-{heading}""#)),
+                "{prefix}-{heading}: {html}"
+            );
+        }
+    }
+    for module in MODULES {
+        let href = module.href(7);
+        let icon = (*module == GENERAL).then_some(SETTINGS);
+        assert_eq!(
+            count(&html, &nav_link(&href, icon, module.label, false)),
+            2,
+            "{href}: {html}"
+        );
+    }
+    assert_eq!(
+        count(&html, &nav_link("/upgrade", Some(ZAP), "Plans", false)),
+        2,
         "{html}"
     );
-    assert!(
-        html.contains(&format!(
-            "{}{LEGAL}</aside>",
-            sidebar_link("/upgrade", ZAP, "Upgrade to Pro", false, false)
-        )),
-        "{html}"
-    );
-    assert!(html.contains(
-        r#"<main class="app-main"><div class="page"><div class="page-header"><div><h1>Modules</h1><p class="page-lead">Turn modules on or off for this server. A module that's off has its commands removed from the server.</p></div><a href="/guild/7/settings/general" class="btn btn-secondary">Server settings</a></div>"#
-    ), "{html}");
+    assert!(html.contains(&format!(
+        r#"{MAIN}<div class="page"><div class="page-header"><div><h1>Modules</h1><p class="page-lead">Turn modules on or off for this server. A module that's off has its commands removed from the server.</p></div><a href="/guild/7/settings/general" class="btn btn-secondary">Server settings</a></div>"#
+    )), "{html}");
     assert_eq!(count(&html, r#"<div class="module-card">"#), 15, "{html}");
     assert_eq!(
         count(&html, r#"<span class="module-status">Unknown</span>"#),
@@ -492,30 +568,63 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
 
     let html = app.page("/guild/7/probe", Some(MEMBER)).await.unwrap();
     assert!(
-        html.contains(
-            r#"<a href="/guild/7" aria-current="page" class="app-sidebar-link">"#
-        ),
+        html.contains(&nav_link("/guild/7", Some(GRID), "Overview", false)),
         "{html}"
     );
     assert!(
-        html.contains(r#"<main class="app-main"><p id="probe">7/probe</p></main>"#),
+        html.contains(&format!(r#"{MAIN}<p id="probe">7/probe</p></main>"#)),
         "{html}"
     );
-    assert_eq!(count(&html, "app-sidebar-sublink active"), 0, "{html}");
+    assert_eq!(count(&html, r#"class="nav-link" aria-current="page""#), 0, "{html}");
 
     let html = app.page("/guild/7/settings", Some(MEMBER)).await.unwrap();
-    assert!(
-        html.contains(
-            r#"<a href="/guild/7/settings/general" class="app-sidebar-sublink active">General</a>"#
-        ),
-        "{html}"
+    let general = nav_link(
+        "/guild/7/settings/general",
+        Some(SETTINGS),
+        "Server settings",
+        true,
     );
-    assert_eq!(count(&html, "app-sidebar-sublink active"), 1, "{html}");
+    assert_eq!(count(&html, &general), 2, "{html}");
+    assert_eq!(count(&html, r#"class="nav-link" aria-current="page""#), 2, "{html}");
 
     let html = app.page("/guild/abc", Some(MEMBER)).await.unwrap();
     assert!(html.contains(r#"<p class="error">Failed to load modules: error running server function: invalid guild id</p>"#), "{html}");
     assert!(!html.contains("server-switcher"), "{html}");
-    assert!(html.contains(r#"<a href="/guild/abc" aria-current="page" class="app-sidebar-link active">"#), "{html}");
+    assert!(
+        html.contains(&nav_link("/guild/abc", Some(GRID), "Overview", true)),
+        "{html}"
+    );
+
+    pool.close().await;
+}
+
+/// A `suspense` child that has taken the only connection is not polled again
+/// until the rest of the page has its first content, so a chrome lookup beside
+/// it would wait out the acquire timeout. One connection must be enough.
+#[sqlx::test(migrations = "../migrations")]
+async fn the_chrome_and_a_streamed_page_body_share_one_connection(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let acquire = Duration::from_secs(5);
+    let pool = options
+        .max_connections(1)
+        .acquire_timeout(acquire)
+        .connect_with(connect)
+        .await
+        .unwrap();
+    grant_role(&pool, 41, "operator").await.unwrap();
+    let app = harness(&pool, Some(UPGRADE_URL)).await.unwrap();
+
+    for path in ["/guild/7", "/upgrade"] {
+        let started = Instant::now();
+        let html = app.page(path, Some(MEMBER)).await.unwrap();
+        assert!(started.elapsed() < acquire, "{path} took {:?}", started.elapsed());
+        assert!(!html.contains("timed out"), "{path}: {html}");
+        assert!(html.contains("All bot servers"), "{path}: {html}");
+    }
+    let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
+    assert_eq!(count(&html, r#"<div class="module-card">"#), 15, "{html}");
 
     pool.close().await;
 }
@@ -564,7 +673,7 @@ async fn module_toggles_save_or_report_why_not(
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
     assert!(html.contains("<title>Modules - Zayden Dashboard</title>"), "{html}");
-    assert!(html.contains(r#"<details class="server-switcher">"#), "{html}");
+    assert!(html.contains(r#"aria-controls="server-switcher""#), "{html}");
     assert!(html.contains(
         r#"<p class="module-error">error running server function: Patreon is switched on from its own settings page, not from this toggle.</p><div class="module-card-foot"><span class="module-status failed">Not saved</span>"#
     ), "{html}");
@@ -626,15 +735,8 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     let html = app.page("/upgrade", None).await.unwrap();
     assert!(html.contains("<title>Upgrade - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-primary">Sign in</a>"#), "{html}");
-    assert!(!html.contains("tier-badge tier-free"), "{html}");
-    assert!(
-        html.contains(&sidebar_link("/upgrade", ZAP, "Upgrade to Pro", true, true)),
-        "{html}"
-    );
-    assert!(
-        html.contains(&sidebar_link("/guilds", SERVER, "Servers", false, false)),
-        "{html}"
-    );
+    assert!(!html.contains("plan-chip"), "{html}");
+    assert_eq!(count(&html, &outer_nav(false, true, "")), 2, "{html}");
     assert!(html.contains(r#"<h1>Upgrade your plan</h1><p class="page-lead">Paid tiers are cost-recovery: they unlock the features that cost real money to run. Everything else stays free.</p>"#), "{html}");
     assert!(html.contains(
         "<strong>Lower greeting cooldowns</strong><span>Drop the per-member and server-wide limits on <code>/good</code> - for servers busy enough to hit them.</span>"
@@ -654,10 +756,10 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     assert_eq!(app.app.entitlements.user_tier(44).await, Tier::Pro);
     let html = app.page("/upgrade", Some(PRO)).await.unwrap();
     assert!(
-        html.contains(r#"<span class="tier-badge tier-pro">Pro</span>"#),
+        html.contains(r#"<a href="/upgrade" class="plan-chip">Your plan: Pro</a>"#),
         "{html}"
     );
-    assert!(!html.contains("btn-upgrade"), "{html}");
+    assert!(!html.contains(FREE_CHIP), "{html}");
     assert!(
         html.contains(r#"</ul><span class="plan-current">Your plan</span></div>"#),
         "{html}"
@@ -702,11 +804,7 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     assert!(html.contains(SUBSCRIBE), "{html}");
     assert!(!html.contains("Get Pro"), "{html}");
     let html = unlinked.page("/guilds", Some(MEMBER)).await.unwrap();
-    assert!(
-        html.contains(r#"<span class="tier-badge tier-free">Free</span>"#),
-        "{html}"
-    );
-    assert!(!html.contains("btn-upgrade"), "{html}");
+    assert!(html.contains(FREE_CHIP), "{html}");
 
     pool.close().await;
 }
@@ -724,14 +822,10 @@ async fn an_unreachable_database_leaves_out_what_it_cannot_load() {
     let html = app.page("/upgrade", cookie).await.unwrap();
     assert!(!html.contains("Log out"), "{html}");
     assert!(!html.contains("Sign in"), "{html}");
-    assert!(!html.contains("tier-badge tier-"), "{html}");
+    assert!(!html.contains("plan-chip"), "{html}");
     assert!(!html.contains("plan-ladder"), "{html}");
     assert!(!html.contains(SUBSCRIBE), "{html}");
-    assert!(html.contains(&format!(
-        r#"<aside class="app-sidebar"><div class="app-sidebar-heading">Dashboard</div>{}{}{LEGAL}</aside>"#,
-        sidebar_link("/guilds", SERVER, "Servers", false, false),
-        sidebar_link("/upgrade", ZAP, "Upgrade to Pro", true, true),
-    )), "{html}");
+    assert_eq!(count(&html, &outer_nav(false, true, "")), 2, "{html}");
     assert!(
         html.contains(r#"<p class="label">Link your Ko-fi email</p>"#),
         "{html}"
@@ -744,4 +838,17 @@ async fn an_unreachable_database_leaves_out_what_it_cannot_load() {
         ),
         "{html}"
     );
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
+    }
 }

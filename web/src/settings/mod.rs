@@ -18,7 +18,7 @@ use topcoat::router::{RouterBuilder, StatusCode, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 use twilight_model::channel::ChannelType;
 
-use crate::components::select::{Channel, Role};
+use crate::components::pickers::{Channel, Role};
 use crate::components::settings::save_feedback;
 use crate::guild::dto::{GuildDirectory, SectionSettings};
 use crate::guild::parse::parse_flag;
@@ -61,7 +61,11 @@ pub fn routes(base: RouterBuilder) -> RouterBuilder {
 
 #[must_use]
 pub fn title(slug: &str) -> String {
-    format!("{} settings - Zayden Dashboard", nav::section(slug).label)
+    let module = nav::section(slug);
+    if *module == nav::GENERAL {
+        return format!("{} - Zayden Dashboard", module.label);
+    }
+    format!("{} settings - Zayden Dashboard", module.label)
 }
 
 #[must_use]

@@ -9,7 +9,7 @@ use topcoat::view::{View, component, view};
 use super::{GreetingAction, PAGE};
 use crate::auth::ChannelInfo;
 use crate::components::icons::{Icon, icon};
-use crate::components::select::{Channel, channel_select};
+use crate::components::pickers::{Channel, channel_select};
 use crate::components::settings::save_feedback;
 use crate::engagement::pages::action::form_action;
 use crate::engagement::{GATE_KINDS, channel_label, unconfigured_channels};

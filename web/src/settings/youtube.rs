@@ -22,7 +22,7 @@ use super::{
     shown,
 };
 use crate::components::confirm::confirm_button;
-use crate::components::select::channel_select;
+use crate::components::pickers::channel_select;
 use crate::components::settings::{save_button, save_feedback};
 use crate::guild::dto::youtube::OUTCOME_PARAM;
 use crate::guild::dto::{YoutubeOutcome, YoutubeStatus};
@@ -174,6 +174,7 @@ async fn panel(
                     <form method="post" action=(action) data-pending="">
                         <input type="hidden" name="guild" value=(guild_id)>
                         confirm_button(
+                            id: "youtube-disconnect",
                             label: "Disconnect",
                             prompt: "Zayden stops announcing this channel's uploads. Reconnecting needs the channel owner to sign in with Google again.",
                             confirm: "Disconnect YouTube"

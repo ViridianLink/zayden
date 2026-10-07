@@ -9,7 +9,7 @@
 }
 
 .pager-page {
-  color: var(--text-secondary);
+  color: var(--text-2);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }

@@ -13,10 +13,11 @@ use twilight_model::user::CurrentUserGuild;
 use twilight_model::util::ImageHash;
 use web::auth::{ChannelInfo, ForumTagInfo, RoleInfo};
 use web::components::confirm::confirm_button;
+use web::components::confirm_dialog::confirm_dialog;
 use web::components::guild_grid::{GuildCard, guild_grid};
 use web::components::icons::{Icon, icon, module_icon, module_tint};
 use web::components::key_list::key_list_field;
-use web::components::select::{
+use web::components::pickers::{
     Channel,
     ForumTag,
     Role,
@@ -38,7 +39,7 @@ use web::components::settings::{
 use web::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 
 /// Every icon's path markup, in `Icon::ALL` order.
-const ICON_PATHS: [(Icon, &str); 25] = [
+const ICON_PATHS: [(Icon, &str); 26] = [
     (
         Icon::Server,
         r#"<rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/>"#,
@@ -121,6 +122,10 @@ const ICON_PATHS: [(Icon, &str); 25] = [
         Icon::Sparkles,
         r#"<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>"#,
     ),
+    (
+        Icon::Menu,
+        r#"<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>"#,
+    ),
 ];
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
@@ -187,6 +192,7 @@ fn options() -> Vec<SelectOption> {
 async fn confirm_default() -> ViewResult<impl View> {
     Ok(view! {
         confirm_button(
+            id: "faq-1-delete",
             label: "Delete",
             prompt: "Delete this article?",
             confirm: "Delete article"
@@ -198,6 +204,7 @@ async fn confirm_default() -> ViewResult<impl View> {
 async fn confirm_ghost() -> ViewResult<impl View> {
     Ok(view! {
         confirm_button(
+            id: "rr-0-remove",
             label: "Remove",
             prompt: "Remove this mapping?",
             confirm: "Remove mapping",
@@ -207,7 +214,7 @@ async fn confirm_ghost() -> ViewResult<impl View> {
 }
 
 #[tokio::test]
-async fn confirm_button_is_a_details_popover_with_a_danger_submit() {
+async fn confirm_button_opens_a_modal_dialog_named_and_described_by_its_text() {
     let html = render(Router::builder().page(confirm_default), "/confirm/default")
         .await
         .unwrap();
@@ -215,25 +222,101 @@ async fn confirm_button_is_a_details_popover_with_a_danger_submit() {
     assert_eq!(
         html,
         concat!(
-            r#"<details class="confirm"><summary class="btn btn-danger">"#,
-            r#"<span class="confirm-label">Delete</span><span class="confirm-cancel">Cancel</span></summary>"#,
-            r#"<div class="confirm-panel"><p class="confirm-prompt">Delete this article?</p>"#,
-            r#"<button type="submit" class="btn btn-danger">Delete article</button></div></details>"#,
+            r#"<div class="confirm" data-confirm="">"#,
+            r#"<button type="submit" class="btn btn-danger" data-confirm-trigger="">Delete</button>"#,
+            r#"<dialog class="dialog" aria-labelledby="faq-1-delete-title" aria-describedby="faq-1-delete-desc" data-confirm-dialog="">"#,
+            r#"<div class="dialog-panel"><h2 class="dialog-title" id="faq-1-delete-title">Delete article?</h2>"#,
+            r#"<p class="dialog-desc" id="faq-1-delete-desc">Delete this article?</p><div class="dialog-actions">"#,
+            r#"<button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button>"#,
+            r#"<button type="submit" class="btn btn-danger">Delete article</button>"#,
+            r#"</div></div></dialog></div>"#,
         )
     );
 }
 
 #[tokio::test]
-async fn confirm_button_class_styles_only_the_summary() {
+async fn confirm_button_class_styles_only_the_trigger() {
     let html = render(Router::builder().page(confirm_ghost), "/confirm/ghost")
         .await
         .unwrap();
 
-    assert!(html.contains(r#"<summary class="btn btn-ghost">"#));
+    assert!(html.contains(
+        r#"<button type="submit" class="btn btn-ghost" data-confirm-trigger="">Remove</button>"#
+    ));
     assert!(html.contains(
         r#"<button type="submit" class="btn btn-danger">Remove mapping</button>"#
     ));
-    assert!(!html.contains(" open"), "the popover renders closed");
+    assert!(!html.contains(" open"), "the dialog renders closed");
+}
+
+#[page("/confirm/named")]
+async fn confirm_named() -> ViewResult<impl View> {
+    Ok(view! {
+        confirm_button(
+            id: "rr-1-remove",
+            label: "Remove",
+            prompt: "Reactions already on the message stay.",
+            confirm: "Remove role",
+            object: Some("@Helpers")
+        )
+    })
+}
+
+#[tokio::test]
+async fn confirm_button_names_the_object_in_the_dialog_title() {
+    let html = render(Router::builder().page(confirm_named), "/confirm/named")
+        .await
+        .unwrap();
+
+    assert!(html.contains(
+        r#"<dialog class="dialog" aria-labelledby="rr-1-remove-title" aria-describedby="rr-1-remove-desc" data-confirm-dialog="">"#
+    ), "{html}");
+    assert!(
+        html.contains(
+            r#"<h2 class="dialog-title" id="rr-1-remove-title">Remove role @Helpers?</h2>"#
+        ),
+        "{html}"
+    );
+    assert!(
+        html.contains(
+            r#"<button type="submit" class="btn btn-danger">Remove role</button>"#
+        ),
+        "{html}"
+    );
+}
+
+#[page("/confirm/dialog/form")]
+async fn confirm_dialog_form() -> ViewResult<impl View> {
+    Ok(view! {
+        confirm_dialog(
+            id: "remove-7-confirm",
+            trigger: "Remove",
+            title: "Remove role @Helpers?",
+            confirm: "Remove role",
+            form: Some("remove-7")
+        )
+    })
+}
+
+#[tokio::test]
+async fn confirm_dialog_names_its_form_on_both_submits_and_omits_an_absent_description()
+ {
+    let html =
+        render(Router::builder().page(confirm_dialog_form), "/confirm/dialog/form")
+            .await
+            .unwrap();
+
+    assert!(html.contains(
+        r#"<button type="submit" class="btn btn-ghost" form="remove-7" data-confirm-trigger="">Remove</button>"#
+    ));
+    assert!(html.contains(
+        r#"<button type="submit" class="btn btn-danger" form="remove-7">Remove role</button>"#
+    ));
+    assert!(html.contains(
+        r#"<dialog class="dialog" aria-labelledby="remove-7-confirm-title" data-confirm-dialog="">"#
+    ), "{html}");
+    assert!(!html.contains("dialog-desc"));
+    assert!(!html.contains("aria-describedby"));
 }
 
 #[page("/skeleton/one")]
@@ -244,7 +327,9 @@ async fn skeleton_one() -> ViewResult<impl View> {
 #[page("/skeleton/grid")]
 async fn skeleton_grid() -> ViewResult<impl View> {
     Ok(view! {
-        <div class="skeleton-grid">shape_skeleton(shape: SkeletonShape::Card, count: 6)</div>
+        <div class="skeleton-grid">
+            shape_skeleton(shape: SkeletonShape::Card, count: 6)
+        </div>
     })
 }
 
@@ -446,8 +531,8 @@ async fn select_field_marks_the_stored_option() {
         html,
         format!(
             concat!(
-                r#"<div class="setting-field"><label>Log channel</label><div class="select">"#,
-                r#"<select class="input" name="log_channel"><option value="">(not set)</option>"#,
+                r#"<div class="setting-field"><label for="field-log_channel">Log channel</label><div class="select">"#,
+                r#"<select class="input" id="field-log_channel" name="log_channel"><option value="">(not set)</option>"#,
                 r##"<option value="10"># general</option><option value="20" selected># rules</option></select>"##,
                 r#"<span class="select-chevron">{}</span></div></div>"#,
             ),
@@ -488,11 +573,11 @@ async fn locked_select_posts_the_stored_value_through_a_hidden_input() {
         html,
         format!(
             concat!(
-                r#"<div class="setting-field"><label>Log channel</label><div class="select">"#,
-                r#"<select class="input" disabled><option selected>Unchanged (99)</option></select>"#,
+                r#"<div class="setting-field"><label for="field-log_channel">Log channel</label><div class="select">"#,
+                r#"<select class="input" id="field-log_channel" aria-describedby="field-log_channel-help" disabled><option selected>Unchanged (99)</option></select>"#,
                 r#"<span class="select-chevron">{}</span></div>"#,
                 r#"<input type="hidden" name="log_channel" value="99">"#,
-                r#"<p class="field-hint field-warning">Discord is down</p></div>"#,
+                r#"<p class="field-hint field-warning" id="field-log_channel-help">Discord is down</p></div>"#,
             ),
             CHEVRON_DOWN
         )
@@ -600,7 +685,7 @@ async fn channel_select_explains_an_unreachable_channel_list() {
     .unwrap();
 
     assert!(html.contains(concat!(
-        r#"<p class="field-hint field-warning">Couldn't reach Discord; the channel list is "#,
+        r#"<p class="field-hint field-warning" id="field-channel-help">Couldn't reach Discord; the channel list is "#,
         "unavailable. Saving keeps the current value. (timeout)</p>",
     )));
     assert!(html.contains("<option selected>Unchanged (5)</option>"));
@@ -697,8 +782,8 @@ async fn toggle_field_is_a_true_false_select() {
         html,
         format!(
             concat!(
-                r#"<div class="setting-field"><label>Enabled</label><div class="select">"#,
-                r#"<select class="input" name="enabled"><option value="true" selected>Enabled</option>"#,
+                r#"<div class="setting-field"><label for="field-enabled">Enabled</label><div class="select">"#,
+                r#"<select class="input" id="field-enabled" name="enabled"><option value="true" selected>Enabled</option>"#,
                 r#"<option value="false">Disabled</option></select>"#,
                 r#"<span class="select-chevron">{}</span></div></div>"#,
             ),
@@ -749,8 +834,8 @@ async fn setting_field_defaults_to_a_numeric_text_input() {
     assert_eq!(
         html,
         concat!(
-            r#"<div class="setting-field"><label>Channel ID</label>"#,
-            r#"<input class="input" type="text" name="channel_id" value="123" placeholder="(not set)" pattern="[0-9]*">"#,
+            r#"<div class="setting-field"><label for="field-channel_id">Channel ID</label>"#,
+            r#"<input class="input" id="field-channel_id" type="text" name="channel_id" value="123" placeholder="(not set)" pattern="[0-9]*">"#,
             r#"</div>"#,
         )
     );
@@ -763,9 +848,9 @@ async fn setting_field_renders_its_hint() {
         .unwrap();
 
     assert!(html.contains(
-        r#"<input class="input" type="url" name="image" value="" placeholder="https://" pattern="https://.*">"#
+        r#"<input class="input" id="field-image" aria-describedby="field-image-help" type="url" name="image" value="" placeholder="https://" pattern="https://.*">"#
     ));
-    assert!(html.contains(r#"<p class="field-hint">Shown in the embed.</p></div>"#));
+    assert!(html.contains(r#"<p class="field-hint" id="field-image-help">Shown in the embed.</p></div>"#));
 }
 
 #[page("/save-button")]

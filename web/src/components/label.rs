@@ -1,7 +1,10 @@
-use topcoat::{
-    Result,
-    view::{Attributes, Child, StaticClass, View, class, component, view},
-};
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::view::{Attributes, Child, StaticClass, View, class, component, view};
 
 /// Classes that align label content and reflect the disabled state of a nearby or
 /// nested control.
@@ -15,9 +18,9 @@ const LABEL: StaticClass = class!(
 
 /// A label for a form control.
 ///
-/// Wrap the control or pass a `for` attribute matching its `id`. Pass the label text as
-/// children. `attrs` are forwarded to the `<label>`, with extra classes added to its
-/// classes.
+/// Wrap the control or pass a `for` attribute matching its `id`. Pass the label text
+/// as children. `attrs` are forwarded to the `<label>`, with extra classes added to
+/// its classes.
 ///
 /// ```ignore
 /// view! {

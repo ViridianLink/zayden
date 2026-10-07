@@ -20,16 +20,16 @@
 }
 
 .lb-head {
-  font-size: 11.5px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-tertiary);
-  background-color: var(--overlay-1);
+  color: var(--text-3);
+  background-color: var(--wash-1);
 }
 
 .lb-rank {
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -46,16 +46,16 @@
   border-radius: var(--radius-full);
   object-fit: cover;
   flex-shrink: 0;
-  background-color: var(--overlay-2);
+  background-color: var(--wash-2);
 }
 
 .lb-avatar.placeholder {
-  background: var(--accent-gradient);
+  background: var(--accent);
 }
 
 .lb-name {
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -63,10 +63,10 @@
 
 .lb-num {
   text-align: right;
-  color: var(--text-secondary);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 
 .lb-head .lb-num {
-  color: var(--text-tertiary);
+  color: var(--text-3);
 }

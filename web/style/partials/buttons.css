@@ -3,79 +3,82 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  min-height: 36px;
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-control);
   border: 1px solid transparent;
+  font-family: inherit;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.2;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
   transition:
-    transform 0.2s var(--ease-spring),
-    background-color 0.2s var(--ease-spring),
-    border-color 0.2s var(--ease-spring),
-    opacity 0.2s var(--ease-spring);
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
 }
 
 .btn:hover {
-  transform: translateY(-1px);
-}
-
-.btn:active {
-  transform: translateY(0);
+  text-decoration: none;
 }
 
 .btn-lg {
+  min-height: 44px;
   padding: var(--space-3) var(--space-5);
   font-size: 15px;
 }
 
 .btn-primary {
-  background: var(--accent-gradient);
-  color: var(--on-accent);
-  box-shadow: 0 4px 16px rgb(62 106 212 / 0.25);
+  background-color: var(--lamp);
+  color: var(--on-lamp);
 }
 
 .btn-primary:hover {
-  color: var(--on-accent);
+  background-color: color-mix(in srgb, var(--lamp), var(--text) 22%);
+  color: var(--on-lamp);
 }
 
 .btn-secondary {
-  background: var(--overlay-2);
-  color: var(--text-primary);
-  border-color: var(--border);
+  background-color: var(--surface-2);
+  color: var(--text);
+  border-color: var(--line);
 }
 
 .btn-secondary:hover {
-  background: var(--overlay-3);
-  color: var(--text-primary);
+  background-color: var(--wash-3);
+  color: var(--text);
 }
 
 .btn-ghost {
-  background: transparent;
-  color: var(--text-secondary);
+  background-color: transparent;
+  color: var(--text-2);
 }
 
 .btn-ghost:hover {
-  background: var(--overlay-1);
-  color: var(--text-primary);
+  background-color: var(--wash-2);
+  color: var(--text);
 }
 
 .btn-danger {
-  background-color: rgb(248 113 113 / 0.12);
-  color: var(--error);
-  border-color: rgb(248 113 113 / 0.28);
+  background-color: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .btn-danger:hover {
-  background-color: rgb(248 113 113 / 0.2);
-  color: var(--error);
+  background-color: var(--danger-wash);
+  color: var(--danger);
 }
 
 .btn:disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+}
+
+@media (max-width: 767px) {
+  .btn {
+    min-height: 44px;
+  }
 }
