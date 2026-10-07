@@ -13,7 +13,7 @@ use web::components::confirm::confirm_button;
 use web::components::guild_grid::{GuildCard, guild_grid};
 use web::components::icons::{Icon, icon};
 use web::components::key_list::key_list_field;
-use web::components::select::{SelectOption, select_field};
+use web::components::pickers::{SelectOption, select_field};
 use web::components::settings::{
     save_button,
     save_feedback,
@@ -90,7 +90,12 @@ async fn everything() -> ViewResult<impl View> {
 
     Ok(view! {
         <form method="post" data-pending="">
-            confirm_button(label: "Delete", prompt: "Sure?", confirm: "Delete it")
+            confirm_button(
+                id: "item-delete",
+                label: "Delete",
+                prompt: "Sure?",
+                confirm: "Delete it"
+            )
             save_button()
         </form>
         guild_grid(guilds: &guilds)
@@ -180,17 +185,20 @@ async fn every_disableable_button_has_a_disabled_rule() {
 }
 
 #[test]
-fn the_confirm_trigger_swaps_to_cancel_when_it_opens() {
-    let css = partial("confirm.css")
-        .unwrap()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .replace(" > ", ">");
+fn the_confirm_dialog_is_a_modal_with_a_scrim_and_its_own_panel() {
+    let css = partial("overlays.css").unwrap();
+    let rules = rules(&css);
+    let declared = |selector: &str, property: &str| {
+        rules.iter().any(|(selectors, declarations)| {
+            selectors.split(',').any(|one| one.trim() == selector)
+                && declarations.contains(property)
+        })
+    };
 
-    assert!(css.contains(".confirm>summary .confirm-cancel"));
-    assert!(css.contains(".confirm[open]>summary .confirm-label"));
-    assert!(css.contains(".confirm[open]>summary .confirm-cancel"));
+    assert!(declared(".dialog::backdrop", "background-color: var(--scrim)"));
+    assert!(declared(".dialog", "max-height"));
+    assert!(declared(".dialog-panel", "padding"));
+    assert!(declared(".dialog-actions", "justify-content: flex-end"));
 }
 
 #[test]
@@ -201,7 +209,9 @@ fn the_danger_style_is_only_reachable_through_the_confirm_component() {
     let mut unguarded = Vec::new();
     for path in &paths {
         let text = fs::read_to_string(path).unwrap();
-        if !path.ends_with("components/confirm.rs") && text.contains("btn-danger") {
+        let confirm = path.ends_with("components/confirm.rs")
+            || path.ends_with("components/confirm_dialog.rs");
+        if !confirm && text.contains("btn-danger") {
             unguarded.push(path.display().to_string());
         }
     }

@@ -6,23 +6,30 @@
 use topcoat::Result;
 use topcoat::view::{View, component, view};
 
+use super::confirm_dialog::confirm_dialog;
+
 #[component]
 pub async fn confirm_button(
+    id: &str,
     label: &str,
     prompt: &str,
     confirm: &str,
     #[default("btn btn-danger")] class: &str,
+    #[default] object: Option<&str>,
 ) -> Result<impl View> {
+    let title = object.map_or_else(
+        || format!("{confirm}?"),
+        |object| format!("{confirm} {object}?"),
+    );
+
     Ok(view! {
-        <details class="confirm">
-            <summary class=(class)>
-                <span class="confirm-label">(label)</span>
-                <span class="confirm-cancel">"Cancel"</span>
-            </summary>
-            <div class="confirm-panel">
-                <p class="confirm-prompt">(prompt)</p>
-                <button type="submit" class="btn btn-danger">(confirm)</button>
-            </div>
-        </details>
+        confirm_dialog(
+            id: id,
+            trigger: label,
+            title: &title,
+            description: Some(prompt),
+            confirm: confirm,
+            trigger_class: class
+        )
     })
 }

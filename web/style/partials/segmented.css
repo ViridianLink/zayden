@@ -4,7 +4,7 @@
   display: inline-flex;
   gap: 2px;
   padding: 3px;
-  background-color: var(--overlay-1);
+  background-color: var(--wash-1);
   border: 1px solid var(--border);
   border-radius: var(--radius-full);
 }
@@ -14,20 +14,20 @@
   border: none;
   border-radius: var(--radius-full);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-2);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition:
-    background-color 0.2s var(--ease-spring),
-    color 0.2s var(--ease-spring);
+    background-color var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out);
 }
 
 .segmented .seg:hover {
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .segmented .seg.active {
-  background: var(--accent-gradient);
-  color: var(--on-accent);
+  background: var(--accent);
+  color: var(--on-lamp);
 }

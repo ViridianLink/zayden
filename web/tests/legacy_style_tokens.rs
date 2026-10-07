@@ -252,7 +252,7 @@ fn every_space_reference_resolves() {
     );
 }
 
-/// `--on-accent` replaced ten hardcoded `#fff`s standing in for the accent
+/// `--on-lamp` replaced ten hardcoded `#fff`s standing in for the accent
 /// contrast colour; a fresh one anywhere else is that duplication coming
 /// back under a new selector.
 #[test]
@@ -266,7 +266,7 @@ fn white_is_only_defined_once() {
     assert!(
         offenders.is_empty(),
         "hardcoded white (#fff/#ffffff) found outside tokens.css, which \
-         alone defines --on-accent: {offenders:?}"
+         alone defines --on-lamp: {offenders:?}"
     );
 }
 
@@ -278,8 +278,8 @@ fn the_panel_shell_is_declared_once() {
     let matches: Vec<String> = rule_blocks()
         .into_iter()
         .filter(|(_, _, declarations)| {
-            declarations.contains("border-radius: var(--radius-2xl)")
-                && declarations.contains("background-color: var(--bg-card)")
+            declarations.contains("border-radius: var(--radius-panel)")
+                && declarations.contains("background-color: var(--surface-1)")
                 && declarations.contains("border: 1px solid var(--border)")
         })
         .map(|(label, selectors, _)| format!("{label}: {selectors}"))
@@ -288,8 +288,8 @@ fn the_panel_shell_is_declared_once() {
     assert!(
         matches.len() <= 1,
         "more than one rule block declares the full panel shell \
-         (border-radius: var(--radius-2xl); background-color: \
-         var(--bg-card); border: 1px solid var(--border)) - it should live \
+         (border-radius: var(--radius-panel); background-color: \
+         var(--surface-1); border: 1px solid var(--border)) - it should live \
          once, in card.css: {matches:?}"
     );
 }
@@ -302,8 +302,8 @@ fn the_form_control_shell_is_declared_once() {
     let matches: Vec<String> = rule_blocks()
         .into_iter()
         .filter(|(_, _, declarations)| {
-            declarations.contains("background-color: var(--bg-base)")
-                && declarations.contains("border-radius: var(--radius-xl)")
+            declarations.contains("background-color: var(--surface-2)")
+                && declarations.contains("border-radius: var(--radius-control)")
         })
         .map(|(label, selectors, _)| format!("{label}: {selectors}"))
         .collect();
@@ -311,8 +311,8 @@ fn the_form_control_shell_is_declared_once() {
     assert_eq!(
         matches.len(),
         1,
-        "form control shell (background-color: var(--bg-base); \
-         border-radius: var(--radius-xl)) should be declared exactly once, \
+        "form control shell (background-color: var(--surface-2); \
+         border-radius: var(--radius-control)) should be declared exactly once, \
          by .input in forms.css: {matches:?}"
     );
 }
@@ -352,5 +352,5 @@ fn the_scan_still_reaches_every_partial() {
         "only {space_refs} var(--space- references seen across the partials"
     );
 
-    assert!(tokens_css().contains("--on-accent"), "tokens.css lost --on-accent");
+    assert!(tokens_css().contains("--on-lamp:"), "tokens.css lost --on-lamp");
 }

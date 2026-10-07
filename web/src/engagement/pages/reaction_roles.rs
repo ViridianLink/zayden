@@ -18,7 +18,7 @@ use super::action::{
 use crate::auth::{ChannelInfo, RoleInfo};
 use crate::components::confirm::confirm_button;
 use crate::components::icons::{Icon, icon};
-use crate::components::select::{Channel, Role, channel_select, role_select};
+use crate::components::pickers::{Channel, Role, channel_select, role_select};
 use crate::components::settings::{save_feedback, setting_field};
 use crate::engagement::reaction_roles::{
     AddReactionRoleForm,
@@ -188,6 +188,7 @@ async fn mapping_table(
                 #[key(index)]
                 for (index, mapping) in mappings.iter().enumerate() {
                     mapping_row(
+                        index: index,
                         guild_id: guild_id,
                         mapping: mapping,
                         channels: channels,
@@ -201,6 +202,7 @@ async fn mapping_table(
 
 #[component]
 async fn mapping_row(
+    index: usize,
     guild_id: &str,
     mapping: &ReactionRoleInfo,
     channels: &[ChannelInfo],
@@ -210,6 +212,8 @@ async fn mapping_row(
     let role = role_label(roles, &mapping.role_id);
     let link = message_link(guild_id, &mapping.channel_id, &mapping.message_id);
     let action = form_action(guild_id, PAGE, RoleAction::Remove);
+    let remove_id = format!("rr-{index}-remove");
+    let remove_object = format!("for {role}");
 
     Ok(view! {
         <div class="rr-row">
@@ -243,10 +247,12 @@ async fn mapping_row(
                 >
                 <input type="hidden" name="emoji" value=(mapping.emoji.as_str())>
                 confirm_button(
+                    id: &remove_id,
                     label: "Remove",
                     prompt: "Reactions already on the message stay, but they stop granting the role.",
                     confirm: "Remove mapping",
-                    class: "btn btn-ghost"
+                    class: "btn btn-ghost",
+                    object: Some(&remove_object)
                 )
             </form>
         </div>

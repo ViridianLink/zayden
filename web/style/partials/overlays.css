@@ -1,0 +1,238 @@
+.popover-panel {
+    margin: 0;
+    padding: var(--space-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    background-color: var(--surface-2);
+    color: var(--text);
+    box-shadow: var(--shadow-pop);
+}
+
+.popover-panel:popover-open {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    animation: rise-in var(--dur) var(--ease-out);
+}
+
+.menu-panel {
+    position: fixed;
+    inset: auto;
+    top: calc(var(--topbar-h) - var(--space-1));
+    width: min(22rem, calc(100vw - var(--space-4)));
+    max-height: calc(100dvh - var(--topbar-h) - var(--space-4));
+    overflow-y: auto;
+}
+
+.menu-panel-end {
+    right: var(--space-2);
+}
+
+.menu-panel-start {
+    left: var(--space-2);
+}
+
+.menu-label {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    font-size: 13px;
+    color: var(--text-2);
+}
+
+.menu-label strong {
+    display: block;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 36px;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-control);
+    color: var(--text-2);
+    text-decoration: none;
+}
+
+.menu-item:hover {
+    background-color: var(--wash-2);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.menu-item[aria-current="page"] {
+    background-color: var(--lamp-wash);
+    color: var(--text);
+}
+
+.menu-item .plate-name {
+    flex: 1;
+}
+
+.menu-item .icon {
+    color: var(--lamp);
+}
+
+.menu-filter {
+    padding: var(--space-1);
+}
+
+.menu-filter .input {
+    width: 100%;
+}
+
+.menu-count {
+    margin: 0;
+    padding: 0 var(--space-3) var(--space-1);
+    font-size: 12px;
+    color: var(--text-3);
+}
+
+.menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    max-height: 20rem;
+    overflow-y: auto;
+}
+
+.menu-empty {
+    margin: 0;
+    padding: var(--space-3);
+    font-size: 13px;
+    color: var(--text-2);
+}
+
+.sheet-panel {
+    margin: 0;
+    padding: 0;
+    inset: 0 auto 0 0;
+    width: min(20rem, 88vw);
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-right: 1px solid var(--line);
+    background-color: var(--surface-1);
+    color: var(--text);
+    overflow-y: auto;
+}
+
+.sheet-panel:popover-open {
+    display: flex;
+    flex-direction: column;
+    animation: sheet-in var(--dur) var(--ease-out);
+}
+
+.sheet-panel::backdrop {
+    background-color: var(--scrim);
+}
+
+.sheet-end {
+    inset: 0 0 0 auto;
+    border-right: 0;
+    border-left: 1px solid var(--line);
+}
+
+.sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    min-height: var(--topbar-h);
+    padding: 0 var(--space-3) 0 var(--space-4);
+    border-bottom: 1px solid var(--rule);
+}
+
+.sheet-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    flex: 1;
+    padding: var(--space-3);
+}
+
+@keyframes sheet-in {
+    from {
+        transform: translateX(-24px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+body:has(.sheet-panel:popover-open) {
+    overflow: hidden;
+}
+
+.dialog {
+    width: min(28rem, calc(100vw - var(--space-5)));
+    max-height: calc(100dvh - var(--space-5));
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    background-color: var(--surface-2);
+    color: var(--text);
+    box-shadow: var(--shadow-pop);
+}
+
+.dialog[open] {
+    animation: rise-in var(--dur) var(--ease-out);
+}
+
+.dialog::backdrop {
+    background-color: var(--scrim);
+}
+
+.dialog-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+    padding: var(--space-5);
+}
+
+.dialog-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.dialog-desc {
+    margin: 0;
+    color: var(--text-2);
+    text-wrap: pretty;
+}
+
+.dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+}
+
+.confirm {
+    display: inline-block;
+}
+
+@media (max-width: 767px) {
+    .menu-panel {
+        left: var(--space-2);
+        right: var(--space-2);
+        width: auto;
+    }
+
+    .menu-item {
+        min-height: 44px;
+    }
+
+    .dialog-actions .btn {
+        flex: 1;
+    }
+}

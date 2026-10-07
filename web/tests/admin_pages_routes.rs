@@ -32,9 +32,9 @@ use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, StatusCode, header};
 use web::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
 use web::admin::{draft, loadout_form, summaries, write_unchecked};
-use web::auth::{WebRole, has_role};
+use web::auth::{SessionUser, WebRole, has_role};
 use web::document::{PENDING_SUBMIT, STYLESHEET};
-use web::state::{SessionIdentity, WebState};
+use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
@@ -155,6 +155,7 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
     for user_id in [41, 50] {
         state.discord.user_guilds.insert(user_id, Arc::from([])).await;
     }
+    seed_users(&state.discord.users, &[41, 50]).await;
 
     let base = Router::builder()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
@@ -295,11 +296,16 @@ async fn save(pool: &PgPool, raw: RawLoadout) -> TestResult<i32> {
     Ok(write_unchecked(pool, None, &draft(&form)?).await?)
 }
 
-const CONFIRM: &str = r#"<details class="confirm"><summary class="btn btn-danger"><span class="confirm-label">Delete</span><span class="confirm-cancel">Cancel</span></summary><div class="confirm-panel"><p class="confirm-prompt">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><button type="submit" class="btn btn-danger">Delete loadout</button></div></details>"#;
+fn confirm(id: i32, name: &str) -> String {
+    format!(
+        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-danger" data-confirm-trigger="">Delete</button><dialog class="dialog" aria-labelledby="loadout-{id}-delete-title" aria-describedby="loadout-{id}-delete-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="loadout-{id}-delete-title">Delete loadout “{name}”?</h2><p class="dialog-desc" id="loadout-{id}-delete-desc">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Delete loadout</button></div></div></dialog></div>"#
+    )
+}
 
 fn row(id: i32, name: &str, meta: &str) -> String {
     format!(
-        r#"<div class="loadout-row"><a href="{LIST}/{id}" class="loadout-name">{name}</a><span class="loadout-meta">{meta}</span><form method="post" action="{LIST}" data-pending=""><input type="hidden" name="id" value="{id}">{CONFIRM}</form></div>"#
+        r#"<div class="loadout-row"><a href="{LIST}/{id}" class="loadout-name">{name}</a><span class="loadout-meta">{meta}</span><form method="post" action="{LIST}" data-pending=""><input type="hidden" name="id" value="{id}">{}</form></div>"#,
+        confirm(id, name)
     )
 }
 
@@ -324,7 +330,10 @@ async fn the_server_list_refuses_in_the_page(
     for cookie in [None, Some("session=unknown"), Some(MEMBER), Some(ADMIN)] {
         let html = app.page("/admin/servers", cookie).await.unwrap();
         assert!(html.contains(denied), "{cookie:?}: {html}");
-        assert!(html.contains(r#"<main class="app-main">"#), "{html}");
+        assert!(
+            html.contains(r#"<main id="main" class="app-main" tabindex="-1">"#),
+            "{html}"
+        );
         assert!(!html.contains("operator-tools"), "{html}");
     }
 
@@ -397,7 +406,7 @@ async fn the_loadout_list_shows_rows_and_refuses_in_the_page(
     assert_eq!(html.matches(r#"class="loadout-row""#).count(), stored.len());
     assert!(
         html.contains(
-            r#"<a href="/admin/destiny2/loadouts" aria-current="page" class="app-sidebar-link active">"#
+            r#"<a href="/admin/destiny2/loadouts" class="nav-link" aria-current="page">"#
         ),
         "{html}"
     );
@@ -545,4 +554,17 @@ async fn a_delete_goes_back_to_the_list_or_says_why_not(
     );
 
     pool.close().await;
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
+    }
 }

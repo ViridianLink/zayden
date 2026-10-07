@@ -13,7 +13,7 @@ use super::{
     settings_page,
     shown,
 };
-use crate::components::select::{channel_select, role_select};
+use crate::components::pickers::{channel_select, role_select};
 use crate::components::settings::{save_button, save_feedback, setting_field};
 use crate::guild::GuildError;
 use crate::guild::dto::LfgSection;

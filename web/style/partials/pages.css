@@ -2,7 +2,6 @@
 
 .page {
     max-width: var(--content-max);
-    animation: fade-up 0.4s var(--ease-spring);
 }
 
 .page-header {
@@ -19,11 +18,11 @@
     font-weight: 700;
     letter-spacing: -0.01em;
     margin: 0;
-    color: var(--text-primary);
+    color: var(--text);
 }
 
 .page-lead {
-    color: var(--text-secondary);
+    color: var(--text-2);
     margin: var(--space-2) 0 0;
 }
 
@@ -47,8 +46,6 @@
     width: 100%;
     max-width: 400px;
     padding: var(--space-7) var(--space-6);
-    box-shadow: var(--shadow-pop);
-    animation: fade-up 0.4s var(--ease-spring);
 }
 
 .login-card .brand {
@@ -64,7 +61,7 @@
 }
 
 .login-card p {
-    color: var(--text-secondary);
+    color: var(--text-2);
     margin: 0 0 var(--space-6);
 }
 
@@ -75,32 +72,32 @@
 /* State messages */
 
 .error {
-    color: var(--error);
+    color: var(--danger);
     padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-xl);
-    background-color: rgb(248 113 113 / 0.1);
+    border-radius: var(--radius-control);
+    background-color: var(--danger-wash);
 }
 
 .warning {
-    color: var(--warning);
+    color: var(--caution);
     padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-xl);
-    background-color: rgb(251 191 36 / 0.1);
+    border-radius: var(--radius-control);
+    background-color: var(--caution-wash);
 }
 
 .success {
-    color: var(--success);
+    color: var(--lamp);
     padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-xl);
-    background-color: rgb(74 222 128 / 0.1);
+    border-radius: var(--radius-control);
+    background-color: var(--lamp-wash);
 }
 
 .empty {
-    color: var(--text-secondary);
+    color: var(--text-2);
     padding: var(--space-8) var(--space-4);
     text-align: center;
     border: 1px dashed var(--border);
-    border-radius: var(--radius-2xl);
+    border-radius: var(--radius-panel);
 }
 
 /* Guild picker (card grid) */
@@ -116,24 +113,23 @@
     align-items: center;
     gap: var(--space-4);
     padding: var(--space-4);
-    color: var(--text-primary);
+    color: var(--text);
     transition:
-        background-color 0.2s var(--ease-spring),
-        border-color 0.2s var(--ease-spring),
-        transform 0.2s var(--ease-spring);
+        background-color var(--dur) var(--ease-out),
+        border-color var(--dur) var(--ease-out),
+        transform var(--dur) var(--ease-out);
 }
 
 .guild-card:hover {
-    background-color: var(--bg-surface);
-    border-color: var(--border-strong);
-    color: var(--text-primary);
-    transform: translateY(-2px);
+    background-color: var(--surface-2);
+    border-color: var(--line);
+    color: var(--text);
 }
 
 .guild-icon {
     width: 48px;
     height: 48px;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-control);
     object-fit: cover;
     flex-shrink: 0;
 }
@@ -141,9 +137,10 @@
 .guild-icon.placeholder {
     display: grid;
     place-items: center;
-    background: var(--accent-gradient);
-    color: var(--on-accent);
-    font-weight: 700;
+    background-color: var(--surface-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-weight: 600;
     font-size: 18px;
 }
 
@@ -160,13 +157,13 @@
 
 .guild-card-hint {
     font-size: 12.5px;
-    color: var(--text-tertiary);
+    color: var(--text-3);
 }
 
 /* Tier badge */
 
 .tier-badge {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-full);
@@ -175,33 +172,18 @@
 }
 
 .tier-free {
-    background-color: var(--overlay-3);
-    color: var(--text-secondary);
+    background-color: var(--wash-3);
+    color: var(--text-2);
 }
 
 .tier-pro {
-    background-color: var(--accent-weak);
+    background-color: var(--lamp-wash);
     color: var(--accent);
 }
 
 .tier-ultra {
-    background-color: rgb(251 191 36 / 0.16);
-    color: var(--warning);
-}
-
-.btn-upgrade {
-    font-size: 12px;
-    font-weight: 600;
-    padding: var(--space-1) var(--space-3);
-    border-radius: var(--radius-full);
-    background: var(--accent-gradient);
-    color: var(--on-accent);
-    transition: transform 0.2s var(--ease-spring);
-}
-
-.btn-upgrade:hover {
-    color: var(--on-accent);
-    transform: translateY(-1px);
+    background-color: var(--caution-wash);
+    color: var(--caution);
 }
 
 /* Pro banner */
@@ -212,10 +194,10 @@
     gap: var(--space-2);
     padding: var(--space-3) var(--space-4);
     margin-bottom: var(--space-6);
-    background-color: var(--accent-weak);
-    border: 1px solid rgb(91 141 239 / 0.24);
-    border-radius: var(--radius-xl);
-    color: var(--text-primary);
+    background-color: var(--lamp-wash);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    color: var(--text);
 }
 
 .banner-pro .icon {
@@ -239,7 +221,7 @@
     color: inherit;
     opacity: 0.6;
     cursor: pointer;
-    transition: opacity 0.18s var(--ease-spring);
+    transition: opacity var(--dur) var(--ease-out);
 }
 
 .alert-dismiss:hover {

@@ -14,7 +14,8 @@ use crate::{
     shell,
 };
 
-const ROUTE_GROUPS: [fn(RouterBuilder) -> RouterBuilder; 8] = [
+const ROUTE_GROUPS: [fn(RouterBuilder) -> RouterBuilder; 9] = [
+    document::routes,
     public::routes,
     auth::routes,
     providers::routes,

@@ -24,6 +24,7 @@ use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use url::form_urlencoded;
+use web::auth::SessionUser;
 use web::engagement::greetings::{
     AddGreetingImageForm,
     GreetingChannelForm,
@@ -56,7 +57,7 @@ use web::engagement::{
     LeaderboardView,
 };
 use web::guild::dto::Tier as Plan;
-use web::state::{DiscordState, UserGuildsCache, WebState};
+use web::state::{DiscordState, SessionUsersCache, UserGuildsCache, WebState};
 use web::util::server_error_text;
 use zayden_app::config::BotConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
@@ -560,8 +561,10 @@ async fn harness(pool: PgPool) -> TestResult<Harness> {
                 .build(),
         ),
         user_guilds: state.discord.user_guilds,
+        users: state.discord.users,
     };
     seed_guilds(&state.discord.user_guilds).await;
+    seed_users(&state.discord.users, &[41, 43, 44]).await;
     insert_session(&pool, "admin-token", 41).await?;
     insert_session(&pool, "member-token", 43).await?;
     insert_session(&pool, "operator-token", 44).await?;
@@ -1849,4 +1852,17 @@ async fn every_engagement_call_refuses_the_signed_out_and_non_admins(pool: PgPoo
         );
     }
     assert_eq!(app.discord.total(), 0);
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
+    }
 }

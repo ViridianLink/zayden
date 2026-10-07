@@ -70,6 +70,8 @@ When validation is requested:
 
 Core (Opus): Architecture, algorithms, lifetimes, borrow-checking, state machines.  
 Perimeter (Sonnet in `.claude/agents/`): High-volume, low-signal I/O (greps, test logs, diffs).
+Code writing (Opus): Any agent that writes code to a file (source, tests, styles, scripts, build config) runs on Opus. Sonnet agents are read-only or run commands; formatter output is exempt.
+Effort: `high` (`writer` agent) for new, inventive or research-dependent code; `medium` (`writer-light` agent) only for trivial sections such as mechanical edits or following an existing pattern. When in doubt, use `high`.
 
 1. **`recon`**: Symbol searches, directory scans, call-graph tracing. Never dump large greps into core context.
 2. **`planner`**: Scoping tasks and acceptance gates from `design-docs/` and manifests.

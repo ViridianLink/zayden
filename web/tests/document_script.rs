@@ -87,3 +87,72 @@ fn pending_submit_listener_defers_disabling_until_after_the_entry_list() {
     assert!(!listener.contains("setBusy("));
     assert!(SCRIPT_SOURCE.contains("disabledByScript.delete(button)"));
 }
+
+fn listener(event: &str) -> Option<&'static str> {
+    SCRIPT_SOURCE
+        .split(&format!("document.addEventListener(\"{event}\""))
+        .nth(1)
+        .and_then(|rest| rest.split("\n});").next())
+}
+
+#[test]
+fn leaving_with_another_dirty_form_asks_before_the_page_goes_busy() {
+    assert_eq!(SCRIPT_SOURCE.matches("addEventListener(\"submit\"").count(), 1);
+    assert_eq!(SCRIPT_SOURCE.matches("addEventListener(\"click\"").count(), 1);
+    assert!(
+        SCRIPT_SOURCE.contains("form !== except && form !== sent && isDirty(form)")
+    );
+    assert!(SCRIPT_SOURCE.contains("window.confirm(LEAVE_PROMPT)"));
+
+    let submit = listener("submit").unwrap();
+    let asked = submit.find("confirmLeave(form)").unwrap();
+    assert!(asked < submit.find("startProgress()").unwrap());
+    assert!(asked < submit.find("setAttribute(\"aria-busy\", \"true\")").unwrap());
+
+    let click = listener("click").unwrap();
+    let asked = click.find("confirmLeave(null)").unwrap();
+    assert!(asked < click.find("startProgress()").unwrap());
+    assert!(asked < click.find("hidePopover()").unwrap());
+}
+
+#[test]
+fn a_cancelled_navigation_releases_its_approval_and_progress() {
+    let release = SCRIPT_SOURCE
+        .split("function release()")
+        .nth(1)
+        .and_then(|rest| rest.split("\n}").next())
+        .unwrap();
+    assert!(release.contains("leaveApproved = false"));
+    assert!(release.contains("stopProgress()"));
+    assert!(listener("submit").unwrap().contains("release();"));
+    assert!(
+        listener("click").unwrap().contains("event.defaultPrevented && release()")
+    );
+    let unload = SCRIPT_SOURCE
+        .split("addEventListener(\"beforeunload\"")
+        .nth(1)
+        .and_then(|rest| rest.split("\n});").next())
+        .unwrap();
+    assert!(unload.contains("leaveApproved = false"));
+    assert!(unload.contains("dirtyBesides(null)"));
+}
+
+#[test]
+fn a_hide_only_popover_button_gets_no_expanded_state() {
+    assert!(
+        SCRIPT_SOURCE
+            .contains("invoker.getAttribute(\"popovertargetaction\") !== \"hide\"")
+    );
+}
+
+#[test]
+fn server_rendered_results_are_announced_after_load() {
+    assert!(SCRIPT_SOURCE.contains(
+        "all(\"[role=status] > [data-flash]\")) note.replaceWith(note.cloneNode(true))"
+    ));
+}
+
+#[test]
+fn the_shared_script_carries_no_banner_comments() {
+    assert!(!SCRIPT_SOURCE.contains("/*"));
+}

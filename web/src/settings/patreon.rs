@@ -23,7 +23,7 @@ use super::{
     shown,
 };
 use crate::components::confirm::confirm_button;
-use crate::components::select::channel_select;
+use crate::components::pickers::channel_select;
 use crate::components::settings::{save_button, save_feedback, toggle_field};
 use crate::guild::dto::patreon::OUTCOME_PARAM;
 use crate::guild::dto::{PatreonOutcome, PatreonStatus};
@@ -187,6 +187,7 @@ async fn panel(
                     <form method="post" action=(action) data-pending="">
                         <input type="hidden" name="guild" value=(guild_id)>
                         confirm_button(
+                            id: "patreon-disconnect",
                             label: "Disconnect",
                             prompt: "Zayden stops announcing this campaign and drops its webhook on the creator's Patreon account. Reconnecting needs the creator to authorise again.",
                             confirm: "Disconnect Patreon"

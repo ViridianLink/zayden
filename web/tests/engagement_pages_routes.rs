@@ -39,11 +39,11 @@ use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use url::form_urlencoded;
-use web::auth::ChannelInfo;
+use web::auth::{ChannelInfo, SessionUser};
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::engagement::pages::greetings::channel_section;
 use web::engagement::pages::{GREETINGS_TITLE, LEVELS_TITLE, REACTION_ROLES_TITLE};
-use web::state::{DiscordState, SessionIdentity, WebState};
+use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::entitlement::{EntitlementScope, Tier};
 use zayden_app::state::AppState as ZaydenAppState;
@@ -373,6 +373,7 @@ fn web_state(pool: PgPool) -> TestResult<(WebState, Discord, Arc<ZaydenAppState>
                 .build(),
         ),
         user_guilds: state.discord.user_guilds,
+        users: state.discord.users,
     };
 
     Ok((state, discord, app))
@@ -422,6 +423,7 @@ async fn harness(
         .insert(43, Arc::from([guild(7, "Guild 7", Permissions::SEND_MESSAGES)]))
         .await;
     state.discord.user_guilds.insert(44, Arc::from([])).await;
+    seed_users(&state.discord.users, &[41, 43, 44]).await;
     sqlx::query!(
         "INSERT INTO web_user_roles (discord_user_id, role) VALUES ($1, $2)",
         44_i64,
@@ -902,6 +904,7 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
 const RR_LEAD: &str = r#"<p class="page-lead">Every message → emoji → role mapping in this server, in one place."#;
 
 fn rr_row(
+    index: usize,
     channel: &str,
     emoji: &str,
     role: &str,
@@ -911,7 +914,7 @@ fn rr_row(
 ) -> String {
     let [channel_id, message_id, emoji_value] = fields;
     format!(
-        r#"<div class="rr-row"><span class="rr-channel">{channel}</span><span class="rr-cell">{emoji}</span><span class="rr-role">{role}</span><a class="rr-link" href="{link}" rel="external noreferrer" target="_blank">Message<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a><form class="rr-remove" method="post" action="{remove}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><details class="confirm"><summary class="btn btn-ghost"><span class="confirm-label">Remove</span><span class="confirm-cancel">Cancel</span></summary><div class="confirm-panel"><p class="confirm-prompt">Reactions already on the message stay, but they stop granting the role.</p><button type="submit" class="btn btn-danger">Remove mapping</button></div></details></form></div>"#
+        r#"<div class="rr-row"><span class="rr-channel">{channel}</span><span class="rr-cell">{emoji}</span><span class="rr-role">{role}</span><a class="rr-link" href="{link}" rel="external noreferrer" target="_blank">Message<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a><form class="rr-remove" method="post" action="{remove}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="rr-{index}-remove-title" aria-describedby="rr-{index}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="rr-{index}-remove-title">Remove mapping for {role}?</h2><p class="dialog-desc" id="rr-{index}-remove-desc">Reactions already on the message stay, but they stop granting the role.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Remove mapping</button></div></div></dialog></div></form></div>"#
     )
 }
 
@@ -948,13 +951,13 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     );
     assert!(
         empty.contains(
-            r#"<select class="input" name="channel_id"><option value="" selected="">(not set)</option><option value="20"># rules</option><option value="21"># chat</option><option value="22"># bots</option></select>"#
+            r#"<select class="input" id="field-channel_id" name="channel_id"><option value="" selected="">(not set)</option><option value="20"># rules</option><option value="21"># chat</option><option value="22"># bots</option></select>"#
         ),
         "{empty}"
     );
     assert!(
         empty.contains(
-            r#"<label>Message ID (blank posts a new panel)</label><input class="input" type="text" name="message_id" value="" placeholder="(not set)" pattern="[0-9]*">"#
+            r#"<label for="field-message_id">Message ID (blank posts a new panel)</label><input class="input" id="field-message_id" type="text" name="message_id" value="" placeholder="(not set)" pattern="[0-9]*">"#
         ),
         "{empty}"
     );
@@ -966,7 +969,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     );
     assert!(
         empty.contains(
-            r#"<select class="input" name="role_id"><option value="" selected="">(not set)</option><option value="31">@Mod</option><option value="30">@Member</option></select>"#
+            r#"<select class="input" id="field-role_id" name="role_id"><option value="" selected="">(not set)</option><option value="31">@Mod</option><option value="30">@Member</option></select>"#
         ),
         "{empty}"
     );
@@ -1047,6 +1050,7 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     assert!(table_at < alert_at && alert_at < form_at, "{}", saved.html);
     assert!(
         saved.html.contains(&rr_row(
+            0,
             "#rules",
             r#"<span class="rr-emoji">✅</span>"#,
             "@Member",
@@ -1294,13 +1298,13 @@ const NO_IMAGES: &str = r#"<div class="empty">No images yet - the command will r
 
 fn message_input(label: &str, name: &str, value: &str) -> String {
     format!(
-        r#"<div class="setting-field"><label>{label}</label><input class="input" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern=".*"></div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern=".*"></div>"#
     )
 }
 
 fn cooldown_input(label: &str, name: &str, value: &str) -> String {
     format!(
-        r#"<div class="setting-field"><label>{label}</label><input class="input" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="[0-9]*"></div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="[0-9]*"></div>"#
     )
 }
 
@@ -1369,7 +1373,7 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     );
     assert!(
         html.contains(&format!(
-            r#"{GOOD_WORKS_LEAD}<div class="chip-list"></div><form class="chip-add" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><div class="setting-field"><label>Allow a channel</label><div class="select"><select class="input" name="channel_id">{CHANNEL_SELECT_OPTIONS}</select>"#,
+            r#"{GOOD_WORKS_LEAD}<div class="chip-list"></div><form class="chip-add" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><div class="setting-field"><label for="field-channel_id">Allow a channel</label><div class="select"><select class="input" id="field-channel_id" name="channel_id">{CHANNEL_SELECT_OPTIONS}</select>"#,
             action("add-channel")
         )),
         "{html}"
@@ -2048,5 +2052,18 @@ async fn an_unreachable_database_leaves_each_page_with_its_load_error() {
             reply.html
         );
         assert!(!reply.html.contains("Add a mapping"), "{path}");
+    }
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
     }
 }

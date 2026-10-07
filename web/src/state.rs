@@ -19,10 +19,13 @@ use youtube::{YoutubeApp, YoutubeRuntime};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
+use crate::auth::SessionUser;
+
 const DISCORD_OAUTH_AUTH_URL: &str = "https://discord.com/oauth2/authorize";
 const DISCORD_OAUTH_TOKEN_URL: &str = "https://discord.com/api/oauth2/token";
 const CACHE_CAPACITY: u64 = 1024;
 const CACHE_TTL: Duration = Duration::from_mins(1);
+const USERS_CACHE_TTL: Duration = Duration::from_mins(10);
 
 pub type DiscordOAuthClient = BasicClient<
     EndpointSet,
@@ -40,6 +43,7 @@ pub struct SessionIdentity {
 
 pub type SessionCache = Cache<String, SessionIdentity>;
 pub type UserGuildsCache = Cache<i64, Arc<[CurrentUserGuild]>>;
+pub type SessionUsersCache = Cache<i64, SessionUser>;
 
 pub struct OAuthState {
     pub client: DiscordOAuthClient,
@@ -49,6 +53,7 @@ pub struct OAuthState {
 pub struct DiscordState {
     pub http: Arc<twilight_http::Client>,
     pub user_guilds: UserGuildsCache,
+    pub users: SessionUsersCache,
 }
 
 pub struct IntegrationsState {
@@ -80,7 +85,7 @@ impl WebState {
     ) -> Result<Self, ParseError> {
         Ok(Self {
             app,
-            sessions: cache(),
+            sessions: cache(CACHE_TTL),
             oauth: OAuthState {
                 client: build_oauth_client(config)?,
                 http: oauth2::reqwest::Client::new(),
@@ -89,7 +94,8 @@ impl WebState {
                 http: Arc::new(twilight_http::Client::new(
                     config.discord_token.clone(),
                 )),
-                user_guilds: cache(),
+                user_guilds: cache(CACHE_TTL),
+                users: cache(USERS_CACHE_TTL),
             },
             integrations: IntegrationsState {
                 patreon: config.patreon.as_ref().map(|p| PatreonApp {
@@ -137,12 +143,12 @@ pub fn patreon_webhook_uri(redirect_uri: &str) -> String {
     redirect_uri.replace("/patreon/callback", "/webhooks/patreon")
 }
 
-fn cache<K, V>() -> Cache<K, V>
+fn cache<K, V>(ttl: Duration) -> Cache<K, V>
 where
     K: Send + Sync + Eq + std::hash::Hash + 'static,
     V: Send + Sync + Clone + 'static,
 {
-    Cache::builder().max_capacity(CACHE_CAPACITY).time_to_live(CACHE_TTL).build()
+    Cache::builder().max_capacity(CACHE_CAPACITY).time_to_live(ttl).build()
 }
 
 fn build_oauth_client(config: &BotConfig) -> Result<DiscordOAuthClient, ParseError> {

@@ -21,8 +21,9 @@ use topcoat::router::{Body, Router, StatusCode, header};
 use web::admin::editor::{EDITOR_TITLE, LOADOUT_EDITOR_JS};
 use web::admin::keys::display_name;
 use web::admin::{LoadoutForm, stored_form};
+use web::auth::SessionUser;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
-use web::state::{SessionIdentity, WebState};
+use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
@@ -141,6 +142,7 @@ async fn harness(
             })
             .await;
         state.discord.user_guilds.insert(user_id, Arc::from([])).await;
+        seed_users(&state.discord.users, &[user_id]).await;
     }
     let base = Router::builder()
         .assets(AssetBundle::load_dir(bundle_dir()?)?)
@@ -603,4 +605,17 @@ async fn endpoints_check_save_and_refuse_bad_emoji_names(
 
     pool.close().await;
     Ok(())
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
+    }
 }

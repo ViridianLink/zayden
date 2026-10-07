@@ -1,51 +1,5 @@
-@media (max-width: 860px) {
-    .app-body {
-        flex-direction: column;
-    }
-
-    .app-sidebar {
-        width: 100%;
-        min-height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .app-sidebar-spacer,
-    .app-sidebar-heading {
-        display: none;
-    }
-
-    .server-switcher {
-        width: 100%;
-        margin-bottom: 0;
-    }
-
-    /* The sidebar turns into a wrapping row here; keep the Modules dropdown on
-     its own line so the module list stays a single column. */
-    .app-sidebar-group {
-        width: 100%;
-    }
-
-    .app-main {
-        padding: var(--space-5);
-    }
-}
-
-@media (max-width: 640px) {
-    .public-nav {
-        padding: 0 var(--space-4);
-    }
-
-    .public-nav-links {
-        gap: var(--space-3);
-    }
-
-    .public-user-name,
-    .public-nav-extra,
-    .public-nav-label {
-        display: none;
+@media (max-width: 767px) {
+    .page-header {
+        align-items: flex-start;
     }
 }

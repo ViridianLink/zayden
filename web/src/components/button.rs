@@ -1,13 +1,24 @@
-use topcoat::{
-    Result,
-    view::{Attributes, Child, Class, StaticClass, View, class, component, view},
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::view::{
+    Attributes,
+    Child,
+    Class,
+    StaticClass,
+    View,
+    class,
+    component,
+    view,
 };
 
 /// The visual style of a [`button`].
 ///
 /// [`Default`] is `ButtonVariant::Primary`, used when no variant is given.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum ButtonVariant {
     /// The primary-filled button for the main action.
     #[default]
@@ -27,7 +38,7 @@ impl ButtonVariant {
     ///
     /// Each variant sets its own border color. Keep border colors out of the shared
     /// base to avoid conflicting classes.
-    fn classes(self) -> StaticClass {
+    const fn classes(self) -> StaticClass {
         match self {
             Self::Primary => class!(
                 "border-transparent bg-primary text-primary-foreground shadow-xs \
@@ -38,7 +49,7 @@ impl ButtonVariant {
                  hover:bg-foreground/10 active:bg-foreground/15",
             ),
             Self::Outline => class!(
-                "border-border text-foreground hover:bg-foreground/5 \
+                "border-input text-foreground hover:bg-foreground/5 \
                  active:bg-foreground/10",
             ),
             Self::Ghost => class!(
@@ -56,7 +67,6 @@ impl ButtonVariant {
 ///
 /// [`Default`] is `ButtonSize::Md`, used when no size is given.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum ButtonSize {
     /// A compact button.
     Sm,
@@ -71,12 +81,12 @@ pub enum ButtonSize {
 
 impl ButtonSize {
     /// Classes for the button dimensions. Text size stays the same across sizes.
-    fn classes(self) -> StaticClass {
+    const fn classes(self) -> StaticClass {
         match self {
-            Self::Sm => class!("h-8 gap-1.5 rounded-md px-3"),
-            Self::Md => class!("h-9 gap-2 rounded-lg px-4"),
-            Self::Lg => class!("h-10 gap-2 rounded-lg px-5"),
-            Self::Icon => class!("size-9 rounded-lg"),
+            Self::Sm => class!("h-8 gap-1.5 rounded-md px-3 max-md:h-11"),
+            Self::Md => class!("h-9 gap-2 rounded-lg px-4 max-md:h-11"),
+            Self::Lg => class!("h-11 gap-2 rounded-lg px-5"),
+            Self::Icon => class!("size-9 rounded-lg max-md:size-11"),
         }
     }
 }
@@ -103,7 +113,7 @@ const BASE: StaticClass = class!(
 /// }
 /// ```
 #[must_use]
-pub fn button_variants(
+pub const fn button_variants(
     variant: ButtonVariant,
     size: ButtonSize,
 ) -> Class<(StaticClass, StaticClass, StaticClass)> {

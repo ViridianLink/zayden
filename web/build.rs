@@ -6,7 +6,7 @@ const TAILWIND_LINUX_X64_SHA256: &str =
     "sha256:5036c4fb4328e0bcdbb6065c70d8ac9452e0d4c947113a788a8f94fd390425c1";
 
 fn main() {
-    let config = BuildConfig::new().input("style/input.css");
+    let config = BuildConfig::new().input("styles.css");
     let config =
         if std::env::var_os(TAILWIND_CLI).is_some_and(|value| !value.is_empty()) {
             config.executable_env(TAILWIND_CLI)
@@ -21,6 +21,7 @@ fn main() {
     }
 
     println!("cargo::rerun-if-env-changed={TAILWIND_CLI}");
+    println!("cargo::rerun-if-changed=styles.css");
     println!("cargo::rerun-if-changed=style");
     println!("cargo::rerun-if-changed=src");
     println!("cargo::rerun-if-changed=assets");

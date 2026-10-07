@@ -73,13 +73,15 @@ async fn every_module_link_resolves_to_a_page() {
 
         assert_ne!(status, StatusCode::NOT_FOUND, "{href}");
         if let Dest::Section { .. } = module.dest {
-            assert!(
-                html.contains(&format!(
+            let title = if *module == nav::GENERAL {
+                format!("<title>{} - Zayden Dashboard</title>", module.label)
+            } else {
+                format!(
                     "<title>{} settings - Zayden Dashboard</title>",
                     module.label
-                )),
-                "{href}"
-            );
+                )
+            };
+            assert!(html.contains(&title), "{href}");
         }
     }
 }
