@@ -15,7 +15,7 @@ use topcoat::view::{View, view};
 use web::auth::SessionUser;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::public::layout::{SessionSlot, public_nav};
-use web::state::{SessionIdentity, WebState};
+use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
@@ -109,6 +109,7 @@ async fn web_state(invite_url: Option<&str>) -> TestResult<WebState> {
             access_token: "access".to_owned(),
         })
         .await;
+    seed_users(&state.discord.users, &[41]).await;
     Ok(state)
 }
 
@@ -152,6 +153,9 @@ async fn page_html(path: &str) -> TestResult<String> {
     }
     body_text(response).await
 }
+
+const LEGAL_MAIN: &str =
+    r#"<main id="main" class="public-main" tabindex="-1"><div class="legal">"#;
 
 fn between<'a>(html: &'a str, start: &str, end: &str) -> TestResult<&'a str> {
     let (_, rest) =
@@ -209,14 +213,6 @@ fn count(html: &str, needle: &str) -> usize {
     html.matches(needle).count()
 }
 
-fn user(avatar: Option<&str>) -> SessionUser {
-    SessionUser {
-        id: "41".to_owned(),
-        name: "Oscar".to_owned(),
-        avatar: avatar.map(str::to_owned),
-    }
-}
-
 #[page("/nav/signed-out")]
 async fn nav_signed_out() -> ViewResult<impl View> {
     Ok(view! { public_nav(session: SessionSlot::SignedOut) })
@@ -227,14 +223,9 @@ async fn nav_unavailable() -> ViewResult<impl View> {
     Ok(view! { public_nav(session: SessionSlot::Unavailable) })
 }
 
-#[page("/nav/avatar")]
-async fn nav_avatar() -> ViewResult<impl View> {
-    Ok(view! { public_nav(session: SessionSlot::SignedIn(user(Some("abc123")))) })
-}
-
-#[page("/nav/placeholder")]
-async fn nav_placeholder() -> ViewResult<impl View> {
-    Ok(view! { public_nav(session: SessionSlot::SignedIn(user(None))) })
+#[page("/nav/signed-in")]
+async fn nav_signed_in() -> ViewResult<impl View> {
+    Ok(view! { public_nav(session: SessionSlot::SignedIn) })
 }
 
 async fn nav_html(builder: RouterBuilder, path: &str) -> TestResult<String> {
@@ -248,12 +239,12 @@ async fn landing_has_the_public_chrome_and_hero() {
     let html = page_html("/").await.unwrap();
     assert!(html.contains("<title>Zayden — the all-in-one Discord bot</title>"));
 
-    assert!(
-        html.starts_with("<!DOCTYPE html><html lang=\"en\" data-bot=\"zayden\">")
-    );
-    assert!(html.contains(r#"<div class="public"><header class="public-nav">"#));
+    assert!(html.starts_with(
+        "<!DOCTYPE html><html lang=\"en\" class=\"dark\" data-bot=\"zayden\">"
+    ));
+    assert!(html.contains(r#"<div class="public"><header class="public-header">"#));
     assert!(html.contains(
-        r#"<a href="/" class="brand"><span class="brand-mark">Z</span>Zayden</a>"#
+        r#"<a href="/" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span class="brand-name">Zayden</span></a>"#
     ));
     assert_eq!(
         vec!["The Discord bot that grows with your server"],
@@ -262,7 +253,13 @@ async fn landing_has_the_public_chrome_and_hero() {
     assert!(html.contains(r#"<h1 class="hero-title">The Discord bot that <span class="accent-text">grows with your server</span></h1>"#));
     assert!(html.contains(r#"<p class="hero-subtitle">Music, economy, moderation tools and more — configured from a clean dashboard, enforced natively by Discord. Free to run, Pro only where it costs us.</p>"#));
     assert!(html.contains("One bot. Every module.</span>"));
-    assert_eq!(1, count(&html, "<main class=\"landing\">"));
+    assert_eq!(
+        1,
+        count(
+            &html,
+            r#"<main id="main" class="public-main" tabindex="-1"><div class="landing">"#
+        )
+    );
     assert_eq!(1, count(&html, "<footer class=\"footer\">"));
 }
 
@@ -272,11 +269,14 @@ async fn landing_links_keep_their_order_and_external_rel() {
 
     assert_eq!(
         [
+            "#main",
             "/",
             "/#features",
             "/upgrade",
             "/auth/discord",
-            "/invite",
+            "/#features",
+            "/upgrade",
+            "/auth/discord",
             "/invite",
             "/auth/discord",
             "/invite",
@@ -289,14 +289,23 @@ async fn landing_links_keep_their_order_and_external_rel() {
         ],
         hrefs(&html).as_slice(),
     );
-    assert!(html.contains(r#"<a href="/#features" rel="external" class="public-nav-extra">Features</a>"#));
-    assert!(
-        html.contains(r#"<a href="/upgrade" class="public-nav-extra">Pricing</a>"#)
+    assert_eq!(
+        2,
+        count(
+            &html,
+            r#"<a href="/#features" rel="external" class="public-nav-link">Features</a>"#
+        )
     );
-    assert!(html.contains(r#"<a href="/auth/discord" rel="external">Login</a>"#));
-    assert!(html.contains(r#"<a href="/invite" rel="external" class="btn btn-primary" aria-label="Add to Discord">"#));
-    assert!(
-        html.contains(r#"<span class="public-nav-label">Add to Discord</span>"#)
+    assert_eq!(
+        2,
+        count(&html, r#"<a href="/upgrade" class="public-nav-link">Pricing</a>"#)
+    );
+    assert_eq!(
+        2,
+        count(
+            &html,
+            r#"<a href="/auth/discord" rel="external" class="btn btn-secondary">Sign in</a>"#
+        )
     );
     assert!(html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-secondary btn-lg">Open Dashboard<svg"#));
     assert!(
@@ -361,13 +370,13 @@ async fn footer_lists_the_five_links() {
     assert_eq!(
         concat!(
             r#"<div class="footer-inner"><span>© 2026 Zayden. Not affiliated with Discord.</span>"#,
-            r#"<div class="footer-links">"#,
+            r#"<nav class="footer-links" aria-label="Footer">"#,
             r#"<a href="/invite" rel="external">Invite</a>"#,
             r#"<a href="/upgrade">Pricing</a>"#,
-            r#"<a href="/auth/discord" rel="external">Dashboard</a>"#,
+            r#"<a href="/auth/discord" rel="external">Sign in</a>"#,
             r#"<a href="/privacy">Privacy Policy</a>"#,
             r#"<a href="/terms">Terms of Service</a>"#,
-            "</div></div>",
+            "</nav></div>",
         ),
         footer,
     );
@@ -380,10 +389,10 @@ async fn header_slot_is_empty_when_the_session_lookup_fails() {
             .await
             .unwrap();
 
-    assert!(!html.contains("Login"));
-    assert!(!html.contains("My Servers"));
+    assert!(!html.contains("Sign in"));
+    assert!(!html.contains("Open dashboard"));
     assert!(
-        html.contains(r#"<a href="/invite" rel="external" class="btn btn-primary""#)
+        html.contains(r#"<a href="/upgrade" class="public-nav-link">Pricing</a>"#)
     );
 }
 
@@ -394,50 +403,29 @@ async fn header_slot_offers_login_when_signed_out() {
         .unwrap();
 
     assert!(html.contains(
-        r#"</a><a href="/auth/discord" rel="external">Login</a><a href="/invite""#
+        r#"<a href="/upgrade" class="public-nav-link">Pricing</a><a href="/auth/discord" rel="external" class="btn btn-secondary">Sign in</a>"#
     ));
-    assert!(!html.contains("My Servers"));
+    assert!(!html.contains("Open dashboard"));
 }
 
 #[tokio::test]
-async fn header_slot_shows_the_avatar_name_and_servers_button() {
-    let html =
-        nav_html(builder().unwrap().page(nav_avatar), "/nav/avatar").await.unwrap();
-
-    assert!(html.contains(concat!(
-        r#"<span class="public-user">"#,
-        r#"<img src="https://cdn.discordapp.com/avatars/41/abc123.png?size=64" alt="" width="24" height="24" class="public-user-avatar">"#,
-        r#"<span class="public-user-name">Oscar</span></span>"#,
-        r#"<a href="/guilds" class="btn btn-secondary" aria-label="My Servers">"#,
-    )));
-    assert!(
-        html.contains(r#"<span class="public-nav-label">My Servers</span></a>"#)
-    );
-    assert!(!html.contains(">Login<"));
-}
-
-#[tokio::test]
-async fn header_slot_falls_back_to_an_initial_without_an_avatar() {
-    let html =
-        nav_html(builder().unwrap().page(nav_placeholder), "/nav/placeholder")
-            .await
-            .unwrap();
+async fn header_slot_offers_the_dashboard_when_signed_in() {
+    let html = nav_html(builder().unwrap().page(nav_signed_in), "/nav/signed-in")
+        .await
+        .unwrap();
 
     assert!(html.contains(
-        r#"<span class="public-user"><span class="public-user-avatar placeholder">O</span><span class="public-user-name">Oscar</span></span>"#
+        r#"<a href="/guilds" class="btn btn-primary">Open dashboard</a>"#
     ));
-    assert!(!html.contains("<img"));
+    assert!(!html.contains(">Sign in<"));
 }
 
 #[test]
 fn session_slot_maps_lookup_outcomes() {
     use web::auth::AuthError;
 
-    assert_eq!(SessionSlot::SignedOut, SessionSlot::from(Ok(None)));
-    assert_eq!(
-        SessionSlot::SignedIn(user(None)),
-        SessionSlot::from(Ok(Some(user(None)))),
-    );
+    assert_eq!(SessionSlot::SignedOut, SessionSlot::from(Ok(false)));
+    assert_eq!(SessionSlot::SignedIn, SessionSlot::from(Ok(true)));
     assert_eq!(
         SessionSlot::Unavailable,
         SessionSlot::from(Err(AuthError::Unauthenticated)),
@@ -450,7 +438,7 @@ async fn login_renders_the_card_without_a_main_landmark() {
     assert!(html.contains("<title>Sign In - Zayden Dashboard</title>"));
 
     assert!(html.contains(concat!(
-        r#"<body><div class="login-page"><div class="hero-glow"></div><div class="login-card">"#,
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="login-page" id="main" tabindex="-1"><div class="hero-glow"></div><div class="login-card">"##,
         r#"<span class="brand"><span class="brand-mark">Z</span>Zayden</span>"#,
         "<h1>Welcome back</h1>",
         "<p>Connect your Discord account to manage your server settings.</p>",
@@ -487,7 +475,9 @@ async fn login_renders_an_empty_body_when_the_session_lookup_fails() {
         get(&router, "/login", Some("session=unknown-token")).await.unwrap();
 
     assert_eq!(StatusCode::OK, response.status());
-    assert!(body_text(response).await.unwrap().contains("<body></body>"));
+    assert!(body_text(response).await.unwrap().contains(
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a></body>"##
+    ));
 }
 
 #[tokio::test]
@@ -499,10 +489,12 @@ async fn pages_keep_rendering_with_an_empty_header_slot_when_the_session_lookup_
 
     assert_eq!(StatusCode::OK, response.status());
     let html = body_text(response).await.unwrap();
-    assert!(!html.contains("Login"));
-    assert!(!html.contains("My Servers"));
-    assert!(html.contains(r#"aria-label="Add to Discord""#));
-    assert!(html.contains("<main class=\"legal\">"));
+    assert!(!html.contains(r#"class="btn btn-secondary">Sign in</a>"#));
+    assert!(!html.contains("Open dashboard"));
+    assert!(
+        html.contains(r#"<a href="/upgrade" class="public-nav-link">Pricing</a>"#)
+    );
+    assert!(html.contains(LEGAL_MAIN));
 }
 
 #[tokio::test]
@@ -528,7 +520,7 @@ async fn invite_is_an_empty_404_without_a_configured_url() {
 async fn privacy_lists_its_sections_in_order() {
     let html = page_html("/privacy").await.unwrap();
     assert!(html.contains("<title>Privacy Policy - Zayden</title>"));
-    let main = between(&html, "<main class=\"legal\">", "</main>").unwrap();
+    let main = between(&html, LEGAL_MAIN, "</main>").unwrap();
 
     assert_eq!(vec!["Privacy Policy"], texts(main, "h1"));
     assert!(main.contains(
@@ -600,7 +592,7 @@ async fn privacy_lists_its_sections_in_order() {
 #[tokio::test]
 async fn privacy_markup_counts() {
     let html = page_html("/privacy").await.unwrap();
-    let main = between(&html, "<main class=\"legal\">", "</main>").unwrap();
+    let main = between(&html, LEGAL_MAIN, "</main>").unwrap();
 
     assert_eq!(40, count(main, "<strong>"));
     assert_eq!(3, count(main, "<strong>kilooscarsix@gmail.com</strong>"));
@@ -615,7 +607,7 @@ async fn privacy_markup_counts() {
 #[tokio::test]
 async fn privacy_links_are_plain_outbound_anchors() {
     let html = page_html("/privacy").await.unwrap();
-    let main = between(&html, "<main class=\"legal\">", "</main>").unwrap();
+    let main = between(&html, LEGAL_MAIN, "</main>").unwrap();
 
     assert_eq!(
         [
@@ -635,8 +627,7 @@ async fn privacy_links_are_plain_outbound_anchors() {
 #[tokio::test]
 async fn privacy_keeps_the_no_tracking_statement_and_retention_window() {
     let html = page_html("/privacy").await.unwrap();
-    let text =
-        strip_tags(between(&html, "<main class=\"legal\">", "</main>").unwrap());
+    let text = strip_tags(between(&html, LEGAL_MAIN, "</main>").unwrap());
 
     assert!(text.contains("We do not sell personal information, and we do not use it for advertising. The dashboard sets no analytics or advertising cookies."));
     assert!(text.contains("kept for 30 days"));
@@ -651,7 +642,7 @@ async fn privacy_keeps_the_no_tracking_statement_and_retention_window() {
 async fn terms_lists_its_sections_in_order() {
     let html = page_html("/terms").await.unwrap();
     assert!(html.contains("<title>Terms of Service - Zayden</title>"));
-    let main = between(&html, "<main class=\"legal\">", "</main>").unwrap();
+    let main = between(&html, LEGAL_MAIN, "</main>").unwrap();
 
     assert!(main.contains(
         r#"<h1>Terms of Service</h1><p class="legal-updated">Last updated: 26 September 2026</p><section id="acceptance"><h2>Acceptance</h2><p class="legal-lead">"#
@@ -695,7 +686,7 @@ async fn terms_lists_its_sections_in_order() {
 #[tokio::test]
 async fn terms_markup_counts_and_links() {
     let html = page_html("/terms").await.unwrap();
-    let main = between(&html, "<main class=\"legal\">", "</main>").unwrap();
+    let main = between(&html, LEGAL_MAIN, "</main>").unwrap();
 
     assert_eq!(2, count(main, "<strong>"));
     assert_eq!(1, count(main, "<strong>kilooscarsix@gmail.com</strong>"));
@@ -722,7 +713,7 @@ async fn legal_pages_share_the_public_chrome() {
     for path in ["/privacy", "/terms"] {
         let html = page_html(path).await.unwrap();
 
-        assert_eq!(1, count(&html, "<header class=\"public-nav\">"), "{path}");
+        assert_eq!(1, count(&html, "<header class=\"public-header\">"), "{path}");
         assert_eq!(1, count(&html, "<footer class=\"footer\">"), "{path}");
         assert_eq!(1, count(&html, "<main"), "{path}");
         assert_eq!(1, texts(&html, "h1").len(), "{path}");
@@ -732,8 +723,7 @@ async fn legal_pages_share_the_public_chrome() {
 #[tokio::test]
 async fn privacy_carries_the_youtube_disclosures() {
     let html = page_html("/privacy").await.unwrap();
-    let text =
-        strip_tags(between(&html, "<main class=\"legal\">", "</main>").unwrap());
+    let text = strip_tags(between(&html, LEGAL_MAIN, "</main>").unwrap());
 
     for required in [
         "Zayden uses YouTube API Services.",
@@ -748,8 +738,7 @@ async fn privacy_carries_the_youtube_disclosures() {
 #[tokio::test]
 async fn terms_bind_youtube_users_to_the_youtube_terms() {
     let html = page_html("/terms").await.unwrap();
-    let text =
-        strip_tags(between(&html, "<main class=\"legal\">", "</main>").unwrap());
+    let text = strip_tags(between(&html, LEGAL_MAIN, "</main>").unwrap());
 
     assert!(text.contains("By using the YouTube features, you agree to be bound by the YouTube Terms of Service"));
 }
@@ -760,4 +749,17 @@ async fn privacy_states_the_guild_retention_window() {
     let window = format!("kept for {} days", zayden_app::guilds::RETENTION_DAYS);
 
     assert!(strip_tags(&html).contains(&window), "missing {window}");
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
+    }
 }

@@ -20,18 +20,18 @@
 }
 
 .rr-head {
-    font-size: 11.5px;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--text-tertiary);
-    background-color: var(--overlay-1);
-    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    color: var(--text-3);
+    background-color: var(--wash-1);
+    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
 }
 
 .rr-channel,
 .rr-role {
     font-weight: 600;
-    color: var(--text-primary);
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -57,12 +57,12 @@
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
-    color: var(--text-secondary);
+    color: var(--text-2);
     font-size: 13px;
 }
 
 .rr-link:hover {
-    color: var(--text-primary);
+    color: var(--text);
 }
 
 .rr-remove {

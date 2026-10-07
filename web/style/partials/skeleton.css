@@ -10,9 +10,9 @@
 .skeleton-row,
 .skeleton-card,
 .skeleton-panel {
-    background-color: var(--overlay-2);
-    border-radius: var(--radius-xl);
-    animation: skeleton-pulse 1.5s var(--ease-spring) infinite;
+    background-color: var(--wash-2);
+    border-radius: var(--radius-control);
+    animation: skeleton-pulse 1.5s var(--ease-out) infinite;
 }
 
 /* Matches .btn: 14px label inside var(--space-2) vertical padding. */
@@ -48,7 +48,7 @@
 /* Matches the panel family - .settings-section, .module-card, .plan-card. */
 .skeleton-panel {
     height: 11rem;
-    border-radius: var(--radius-2xl);
+    border-radius: var(--radius-panel);
 }
 
 .skeleton-list {

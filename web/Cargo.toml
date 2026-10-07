@@ -43,6 +43,8 @@ topcoat = { workspace = true, features = [
   "asset",
   "compression",
   "cookie",
+  "font-fontsource",
+  "icon",
   "router",
   "runtime",
   "serve",

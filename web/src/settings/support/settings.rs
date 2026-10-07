@@ -18,7 +18,7 @@ use super::{
     form_action,
 };
 use crate::components::icons::{Icon, icon};
-use crate::components::select::{
+use crate::components::pickers::{
     Role,
     channel_select,
     forum_tag_select,

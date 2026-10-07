@@ -10,13 +10,13 @@
   display: flex;
   flex-direction: column;
   transition:
-    border-color 0.2s var(--ease-spring),
-    background-color 0.2s var(--ease-spring);
+    border-color var(--dur) var(--ease-out),
+    background-color var(--dur) var(--ease-out);
 }
 
 .module-card:hover {
-  border-color: var(--border-strong);
-  background-color: var(--bg-surface);
+  border-color: var(--line);
+  background-color: var(--surface-2);
 }
 
 .module-card-head {
@@ -32,20 +32,20 @@
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-control);
   font-size: 21px;
-  color: var(--tint, var(--accent));
-  background: color-mix(in srgb, var(--tint, var(--accent)) 14%, transparent);
+  color: var(--lamp);
+  background-color: var(--lamp-wash);
 }
 
 .module-name {
   font-weight: 600;
   font-size: 15.5px;
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .module-desc {
-  color: var(--text-secondary);
+  color: var(--text-2);
   font-size: 13.5px;
   flex: 1;
   margin: 0 0 var(--space-4);
@@ -65,25 +65,25 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-tertiary);
+  color: var(--text-3);
 }
 
 .module-status.on {
-  color: var(--success);
+  color: var(--lamp);
 }
 
 .module-status.saving {
-  color: var(--warning);
+  color: var(--caution);
 }
 
 .module-status.failed {
-  color: var(--error);
+  color: var(--danger);
 }
 
 .module-error {
   margin: 0 0 var(--space-4);
   font-size: 12.5px;
-  color: var(--error);
+  color: var(--danger);
 }
 
 .module-configure {
@@ -91,22 +91,22 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--line);
   border-radius: var(--radius-full);
-  background-color: var(--overlay-1);
+  background-color: var(--wash-1);
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-2);
   white-space: nowrap;
   transition:
-    background-color 0.2s var(--ease-spring),
-    border-color 0.2s var(--ease-spring),
-    color 0.2s var(--ease-spring);
+    background-color var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out),
+    color var(--dur) var(--ease-out);
 }
 
 .module-configure .icon {
   font-size: 15px;
-  transition: transform 0.2s var(--ease-spring);
+  transition: transform var(--dur) var(--ease-out);
 }
 
 /* Hovering anywhere on the card hints that the button is there; hovering the
@@ -117,18 +117,16 @@
 }
 
 .module-configure:hover {
-  background-color: var(--accent-weak);
+  background-color: var(--lamp-wash);
   border-color: var(--accent);
   color: var(--accent);
 }
 
 .module-configure:hover .icon {
-  transform: translateX(2px);
 }
 
 .module-configure:focus-visible {
   outline: none;
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-weak);
 }

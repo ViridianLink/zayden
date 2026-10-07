@@ -5,10 +5,11 @@
   align-items: center;
   gap: var(--space-2);
   font-weight: 600;
-  font-size: 11px;
+  font-family: var(--font-code);
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  color: var(--text-2);
   padding: 0 var(--space-2);
 }
 
@@ -25,27 +26,26 @@
 }
 
 .setting-field label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
 }
 
 /* FAQ article rows collapse to their title until opened. */
 .setting-field>summary {
   cursor: pointer;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text);
 }
 
 .setting-field .field-hint {
   margin: 0;
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-2);
 }
 
 .setting-field .field-warning {
-  color: var(--warning);
+  color: var(--caution);
 }
 
 /* Styled native select (channel/role picker). */
@@ -60,7 +60,7 @@
   right: var(--space-3);
   display: grid;
   place-items: center;
-  color: var(--text-tertiary);
+  color: var(--text-3);
   font-size: 16px;
   pointer-events: none;
 }

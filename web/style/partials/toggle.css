@@ -1,21 +1,19 @@
-/* Toggle switch */
-
 .toggle {
   position: relative;
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   width: 44px;
   height: 24px;
-  border-radius: var(--radius-full);
   border: none;
-  background-color: var(--overlay-3);
+  border-radius: var(--radius-full);
+  background-color: var(--line);
   cursor: pointer;
-  transition: background-color 0.2s var(--ease-spring);
-  flex-shrink: 0;
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 
 .toggle-on {
-  background: var(--accent-gradient);
+  background-color: var(--lamp);
 }
 
 .toggle::after {
@@ -25,11 +23,12 @@
   width: 18px;
   height: 18px;
   border-radius: var(--radius-full);
-  background-color: var(--on-accent);
-  transition: transform 0.2s var(--ease-spring);
+  background-color: var(--bg);
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 
 .toggle-on::after {
+  background-color: var(--on-lamp);
   transform: translateX(20px);
 }
 

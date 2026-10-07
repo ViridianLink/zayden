@@ -94,7 +94,7 @@ async fn unknown_path_is_404_with_not_found_card() {
 
     let html = body_text(response).await.unwrap();
     assert!(html.contains(
-        "<body><div class=\"login-page\"><div class=\"hero-glow\"></div><div class=\"login-card\">"
+        "<body><a class=\"skip-link\" href=\"#main\">Skip to main content</a><div class=\"login-page\" id=\"main\" tabindex=\"-1\"><div class=\"hero-glow\"></div><div class=\"login-card\">"
     ));
     assert!(html.contains(
         "<span class=\"brand\"><span class=\"brand-mark\">Z</span>Zayden</span>"
@@ -131,14 +131,24 @@ async fn document_head_renders_shell_stylesheet_and_runtime() {
         .await
         .unwrap();
     let bits = usize::BITS;
-    assert!(html.starts_with(&format!(
-        "<!DOCTYPE html><html lang=\"en\" data-bot=\"zayden\"><head>\
+    let (head, rest) = html
+        .split_once("<link rel=\"stylesheet\" href=\"/_topcoat/fonts/Geist-")
+        .expect("the document links the Geist stylesheet");
+    assert_eq!(
+        head,
+        "<!DOCTYPE html><html lang=\"en\" class=\"dark\" data-bot=\"zayden\"><head>\
          <meta charset=\"utf-8\">\
          <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
-         <link rel=\"stylesheet\" href=\"/_topcoat/assets/{STYLESHEET_FILE}\">\
+         <meta name=\"color-scheme\" content=\"dark\">"
+    );
+    let (font_hash, rest) = rest.split_once(".css\">").expect("a .css font link");
+    assert!(font_hash.chars().all(|c| c.is_ascii_hexdigit()), "{font_hash}");
+    assert!(rest.starts_with(&format!(
+        "<link rel=\"stylesheet\" href=\"/_topcoat/assets/{STYLESHEET_FILE}\">\
          <script type=\"module\" src=\"/_topcoat/assets/{RUNTIME_FILE}\" data-topcoat-usize-bits=\"{bits}\"></script>\
          <script type=\"module\" src=\"/_topcoat/assets/{PENDING_FILE}\"></script>\
-         <title>{NOT_FOUND_TITLE}</title></head><body>"
+         <title>{NOT_FOUND_TITLE}</title></head><body>\
+         <a class=\"skip-link\" href=\"#main\">Skip to main content</a>"
     )));
 }
 

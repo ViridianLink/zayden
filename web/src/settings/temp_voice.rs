@@ -9,7 +9,7 @@ use twilight_model::channel::ChannelType;
 use url::form_urlencoded;
 
 use super::{Lists, Submission, action, ensure_path_guild, settings_page, shown};
-use crate::components::select::channel_select;
+use crate::components::pickers::channel_select;
 use crate::components::settings::{create_feedback, save_button, save_feedback};
 use crate::guild::GuildError;
 use crate::guild::dto::TempVoiceSection;
@@ -140,7 +140,8 @@ pub(super) async fn tab(
                     name: "temp_voice_category",
                     selected: category.unwrap_or_default(),
                     channels: lists.channels(),
-                    kinds: &[ChannelType::GuildCategory]
+                    kinds: &[ChannelType::GuildCategory],
+                    id: Some("temp-voice-create-category")
                 )
                 <div class="form-actions">
                     <button type="submit" class="btn btn-secondary">

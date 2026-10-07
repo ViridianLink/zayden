@@ -13,7 +13,7 @@ use super::context::{cookie_jar, web_state};
 use super::cookie::{self, OAUTH_STATE_COOKIE, SESSION_COOKIE, SESSION_TTL_HOURS};
 use super::discord::bearer_client;
 use super::error::AuthError;
-use super::session::LOGIN_PATH;
+use super::session::{LOGIN_PATH, remember_session_user};
 use crate::util::hex_encode;
 
 const OAUTH_STATE_TTL: std::time::Duration = std::time::Duration::from_mins(10);
@@ -109,6 +109,8 @@ pub(crate) async fn discord_auth_callback_handler(cx: &Cx) -> Result<SeeOther> {
         tracing::warn!(error = ?e, "failed to insert web_sessions row on login");
         return Ok(see_other(AUTH_FAILED_PATH));
     }
+
+    remember_session_user(cx, discord_user_id, discord_user).await;
 
     Ok(see_other(SIGNED_IN_PATH))
 }

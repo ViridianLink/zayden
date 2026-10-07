@@ -94,6 +94,8 @@ async fn article_row(
         .source_thread_id
         .as_deref()
         .map(|thread| format!(" \u{2022} from thread {thread}"));
+    let delete_id = format!("faq-{}-delete", article.id);
+    let delete_object = format!("\u{201c}{}\u{201d}", article.title);
 
     Ok(view! {
         <details class="setting-field">
@@ -125,9 +127,11 @@ async fn article_row(
                 <input type="hidden" name="id" value=(article.id.as_str())>
                 <div class="form-actions">
                     confirm_button(
+                        id: &delete_id,
                         label: "Delete",
                         prompt: "This removes the article for everyone, including the wiki copy. It cannot be undone.",
-                        confirm: "Delete article"
+                        confirm: "Delete article",
+                        object: Some(&delete_object)
                     )
                 </div>
             </form>
@@ -146,6 +150,12 @@ async fn article_form(
     tags: &str,
     content: &str,
 ) -> Result<impl View> {
+    let prefix =
+        if id.is_empty() { "faq-new".to_owned() } else { format!("faq-{id}") };
+    let field = |name: &str| format!("{prefix}-{name}");
+    let (title_id, summary_id, category_id, tags_id) =
+        (field("title"), field("summary"), field("category"), field("tags"));
+
     Ok(view! {
         <form method="post" action=(action) data-pending="">
             <input type="hidden" name="guild" value=(guild_id)>
@@ -155,6 +165,7 @@ async fn article_form(
                 name: "title",
                 value: title,
                 pattern: ".*",
+                id: Some(title_id.as_str()),
                 placeholder: "Fixing Radarr error 502"
             )
             setting_field(
@@ -162,19 +173,22 @@ async fn article_form(
                 name: "summary",
                 value: summary,
                 pattern: ".*",
+                id: Some(summary_id.as_str()),
                 placeholder: "One sentence, shown in search results"
             )
             setting_field(
                 label: "Category",
                 name: "category",
                 value: category,
-                pattern: ".*"
+                pattern: ".*",
+                id: Some(category_id.as_str())
             )
             setting_field(
                 label: "Tags",
                 name: "tags",
                 value: tags,
                 pattern: ".*",
+                id: Some(tags_id.as_str()),
                 placeholder: "comma, separated",
                 hint: Some("Comma separated.")
             )

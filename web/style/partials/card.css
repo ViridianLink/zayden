@@ -8,10 +8,12 @@
 .rr-table,
 .leaderboard,
 .pro-feature,
+.rack,
+.data-table-wrap,
 .login-card {
     border: 1px solid var(--border);
-    border-radius: var(--radius-2xl);
-    background-color: var(--bg-card);
+    border-radius: var(--radius-panel);
+    background-color: var(--surface-1);
 }
 
 /* The panels that wrap their own content rather than a list of rows; the row

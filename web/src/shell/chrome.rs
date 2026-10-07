@@ -5,104 +5,206 @@
 
 use topcoat::Result;
 use topcoat::context::Cx;
-use topcoat::router::request::uri;
-use topcoat::view::{Child, View, component, suspense, view};
+use topcoat::view::{Child, View, ViewExt, component, view};
 
-use super::link::aria_current;
-use super::sidebar::top_sidebar;
-use crate::auth::check_session;
+use crate::auth::{SessionUser, check_session, current_session_user};
+use crate::components::guild_grid::GuildCard;
 use crate::components::icons::{Icon, icon};
-use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
-use crate::guild::dto::Tier;
+use crate::components::nav_links::NavAccess;
+use crate::components::nav_rail::nav_rail;
+use crate::components::nav_sheet::{SHEET_ID, nav_sheet};
+use crate::components::progress_bar::progress_bar;
+use crate::components::server_plate::server_plate;
+use crate::guild::dto::{GuildInfo, Tier};
+use crate::guild::get_active_guild;
 use crate::guild::tier::get_user_tier;
 
+const ACCOUNT_MENU_ID: &str = "account-menu";
+const ACCOUNT_FALLBACK: &str = "Account";
+
+struct Viewer {
+    session: Option<bool>,
+    tier: Option<Tier>,
+    access: NavAccess,
+    current: Option<GuildCard>,
+    user: Option<SessionUser>,
+}
+
+impl Viewer {
+    async fn load(cx: &Cx, guild_id: Option<&str>, guilds: &[GuildInfo]) -> Self {
+        let session = check_session(cx).await.ok();
+        if session != Some(true) {
+            return Self {
+                session,
+                tier: None,
+                access: NavAccess::default(),
+                current: None,
+                user: None,
+            };
+        }
+        let (tier, access, current, user) = tokio::join!(
+            get_user_tier(cx),
+            NavAccess::load(cx, guild_id),
+            current_guild(cx, guild_id, guilds),
+            current_session_user(cx),
+        );
+
+        Self {
+            session,
+            tier: tier.ok().and_then(|info| info.tier),
+            access,
+            current,
+            user: user.ok().flatten(),
+        }
+    }
+}
+
+/// The viewed guild for the switcher, from the switcher's own list when the
+/// lookup fails, so the way back to other servers stays.
+async fn current_guild(
+    cx: &Cx,
+    guild_id: Option<&str>,
+    guilds: &[GuildInfo],
+) -> Option<GuildCard> {
+    let guild_id = guild_id?;
+    get_active_guild(cx, guild_id).await.map_or_else(
+        |_| guilds.iter().find(|guild| guild.id == guild_id).map(GuildCard::from),
+        |guild| Some(GuildCard::from(&guild)),
+    )
+}
+
+// Topcoat stops polling a `suspense` child once its fallback is out, until
+// every sibling view has its first content. A page child that has taken a
+// pooled connection then holds it while a chrome lookup beside it waits for
+// one, until the acquire timeout. So the viewer loads before the page renders.
 #[component]
 pub(super) async fn frame(
-    sidebar: Child<'_>,
+    cx: &Cx,
+    #[default] guild_id: Option<&str>,
+    #[default] guilds: &[GuildInfo],
     #[default] child: Child<'_>,
 ) -> Result<impl View> {
+    let viewer = Box::pin(Viewer::load(cx, guild_id, guilds)).await;
+
     Ok(view! {
         <div class="app">
-            app_navbar()
-            <div class="app-body">
-                (sidebar)
-                <main class="app-main">(child)</main>
-            </div>
+            <header class="app-header">
+                topbar(viewer: &viewer, show_plate: guild_id.is_some(), guilds: guilds)
+                progress_bar()
+                nav_rail(access: viewer.access, guild_id: guild_id)
+                nav_sheet(access: viewer.access, guild_id: guild_id)
+            </header>
+            <main id="main" class="app-main" tabindex="-1">(child)</main>
         </div>
-    })
+    }
+    .boxed())
 }
 
-/// The frame with the dashboard sidebar, for members pages outside a guild.
 #[component]
 pub async fn app_shell(#[default] child: Child<'_>) -> Result<impl View> {
-    Ok(view! { frame(sidebar: view! { top_sidebar() }.into(), (child)) })
+    Ok(view! { frame((child)) })
 }
 
 #[component]
-async fn app_navbar(cx: &Cx) -> Result<impl View> {
-    let location = uri(cx).path();
-    let session = check_session(cx).await;
+async fn topbar(
+    viewer: &Viewer,
+    show_plate: bool,
+    #[default] guilds: &[GuildInfo],
+) -> Result<impl View> {
+    let home = if viewer.session == Some(true) { "/guilds" } else { "/" };
 
     Ok(view! {
-        <nav class="app-navbar">
-            <a
-                href="/guilds"
-                aria-current=(aria_current("/guilds", location))
-                class="brand"
+        <div class="topbar">
+            <button
+                type="button"
+                class="topbar-button menu-button"
+                popovertarget=(SHEET_ID)
+                aria-controls=(SHEET_ID)
+                aria-expanded="false"
+                aria-label="Menu"
             >
-                <span class="brand-mark">"Z"</span>
-                "Zayden"
+                icon(name: Icon::Menu)
+            </button>
+            <a href=(home) class="brand">
+                <span class="brand-mark" aria-hidden="true">"Z"</span>
+                <span class="brand-name">"Zayden"</span>
             </a>
-            <div class="app-navbar-links">
-                suspense(
-                    fallback: view! { shape_skeleton(shape: SkeletonShape::Badge) },
-                    tier_badge()
-                )
-                match session {
-                    Ok(true) => {
-                        <a href="/logout" rel="external" class="btn btn-ghost">
-                            icon(name: Icon::LogOut)
-                            "Log out"
-                        </a>
-                    }
-                    Ok(false) => {
-                        <a href="/auth/discord" rel="external" class="btn btn-primary">
-                            "Sign in"
-                        </a>
-                    }
-                    Err(_) => {
-
-                    }
+            if show_plate {
+                server_plate(current: viewer.current.as_ref(), guilds: guilds)
+            }
+            <div class="topbar-spacer"></div>
+            match viewer.session {
+                Some(true) => {
+                    plan_chip(tier: viewer.tier)
+                    account_menu(name: account_name(viewer.user.as_ref()))
                 }
-            </div>
-        </nav>
-    })
+                Some(false) => {
+                    <a href="/auth/discord" rel="external" class="btn btn-primary">
+                        "Sign in"
+                    </a>
+                }
+                None => {
+
+                }
+            }
+        </div>
+    }
+    .boxed())
 }
 
-/// The signed-in user's tier, and an upgrade link for free users when one is
-/// configured. Nothing when signed out or when the lookup fails.
 #[component]
-async fn tier_badge(cx: &Cx) -> Result<impl View> {
-    let badge = get_user_tier(cx)
-        .await
-        .ok()
-        .and_then(|info| info.tier.map(|tier| (tier, info.upgrade_url)));
-
+async fn plan_chip(tier: Option<Tier>) -> Result<impl View> {
     Ok(view! {
-        if let Some((tier, upgrade_url)) = badge {
-            <span class=(format!("tier-badge tier-{}", tier.css_suffix()))>
-                (tier.label())
-            </span>
-            if let Some(url) = upgrade_url.filter(|_| tier == Tier::Free) {
+        if let Some(tier) = tier {
+            if tier == Tier::Free {
                 <a
-                    href=(url)
-                    class="btn-upgrade"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="/upgrade"
+                    class="plan-chip"
+                    aria-label="Upgrade, current plan: Free"
                 >
-                    "Upgrade to Pro"
+                    "Upgrade"
+                </a>
+            } else {
+                <a href="/upgrade" class="plan-chip">
+                    "Your plan: "
+                    (tier.label())
                 </a>
             }
         }
+    })
+}
+
+#[must_use]
+pub fn account_name(user: Option<&SessionUser>) -> &str {
+    user.map_or(ACCOUNT_FALLBACK, |user| user.name.as_str())
+}
+
+#[component]
+async fn account_menu(name: &str) -> Result<impl View> {
+    Ok(view! {
+        <button
+            type="button"
+            class="topbar-button"
+            popovertarget=(ACCOUNT_MENU_ID)
+            aria-controls=(ACCOUNT_MENU_ID)
+            aria-expanded="false"
+            aria-label="Account menu"
+        >
+            icon(name: Icon::Users)
+            <span class="account-name">(name)</span>
+            icon(name: Icon::ChevronDown)
+        </button>
+        <div
+            id=(ACCOUNT_MENU_ID)
+            popover=""
+            class="popover-panel menu-panel menu-panel-end"
+        >
+            <p class="menu-label"><strong>"Signed in with Discord"</strong></p>
+            <a href="/upgrade" class="menu-item menu-plan">"Plans"</a>
+            <a href="/logout" rel="external" class="menu-item">
+                icon(name: Icon::LogOut)
+                <span class="plate-name">"Log out"</span>
+            </a>
+        </div>
     })
 }

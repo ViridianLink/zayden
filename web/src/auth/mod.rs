@@ -53,6 +53,7 @@ pub use session::{
     current_session_user,
     current_user_id,
     lookup_session,
+    lookup_session_user,
     require_user,
 };
 use topcoat::router::RouterBuilder;

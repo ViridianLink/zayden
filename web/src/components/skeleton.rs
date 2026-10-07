@@ -1,16 +1,19 @@
-use topcoat::{
-    Result,
-    view::{Attributes, StaticClass, View, class, component, view},
-};
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::view::{Attributes, StaticClass, View, class, component, view};
 
 /// Classes for a pulsing placeholder with a muted background.
 const SKELETON: StaticClass = class!("animate-pulse rounded-md bg-foreground/10");
 
 /// A pulsing placeholder for content that is loading.
 ///
-/// Set its dimensions through classes in `attrs`. Match the expected content's shape to
-/// reduce layout movement when it arrives. Attributes are forwarded to the `<div>`,
-/// with extra classes added to its classes.
+/// Set its dimensions through classes in `attrs`. Match the expected content's shape
+/// to reduce layout movement when it arrives. Attributes are forwarded to the
+/// `<div>`, with extra classes added to its classes.
 ///
 /// ```ignore
 /// view! {

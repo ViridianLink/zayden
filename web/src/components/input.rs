@@ -1,11 +1,14 @@
-use topcoat::{
-    Result,
-    view::{Attributes, StaticClass, View, class, component, view},
-};
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::view::{Attributes, StaticClass, View, class, component, view};
 
 /// Classes for the input's dimensions, border, and interaction states.
 const INPUT: StaticClass = class!(
-    "h-9 w-full min-w-0 rounded-lg border border-border bg-transparent px-3 \
+    "h-9 max-md:h-11 w-full min-w-0 rounded-lg border border-input bg-popover px-3 \
      text-sm transition-colors outline-none \
      placeholder:text-muted-foreground \
      file:mr-3 file:h-full file:border-0 file:bg-transparent file:text-sm file:font-medium \
@@ -16,9 +19,9 @@ const INPUT: StaticClass = class!(
 
 /// A styled input.
 ///
-/// Pass input attributes and event handlers through `attrs`. Extra classes are added to
-/// the input's classes. It fills its container by default. Set `aria-invalid="true"` to
-/// show the error border and focus ring.
+/// Pass input attributes and event handlers through `attrs`. Extra classes are added
+/// to the input's classes. It fills its container by default. Set
+/// `aria-invalid="true"` to show the error border and focus ring.
 ///
 /// ```ignore
 /// view! {

@@ -163,6 +163,8 @@ async fn loadout_row(
         loadout.class, loadout.element, loadout.mode, loadout.author
     );
     let own_class = loadout.class.clone();
+    let delete_id = format!("loadout-{}-delete", loadout.id);
+    let delete_object = format!("\u{201c}{}\u{201d}", loadout.name);
     let hidden =
         expr!(if class.get().is_empty() { false } else { class.get() != own_class });
 
@@ -179,9 +181,11 @@ async fn loadout_row(
             <form method="post" action=(LIST_PATH) data-pending="">
                 <input type="hidden" name="id" value=(loadout.id.to_string())>
                 confirm_button(
+                    id: &delete_id,
                     label: "Delete",
                     prompt: DELETE_PROMPT,
-                    confirm: "Delete loadout"
+                    confirm: "Delete loadout",
+                    object: Some(&delete_object)
                 )
             </form>
         </div>

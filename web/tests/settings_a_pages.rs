@@ -1,5 +1,5 @@
-//! The guild settings page and its General, AI, Family, Honeypot, LFG, Music
-//! and Temp Voice sections through the app router, against Postgres and a
+//! The guild settings page and its Server settings, AI, Family, Honeypot, LFG,
+//! Music and Temp voice sections through the app router, against Postgres and a
 //! stand-in Discord API.
 //!
 //! Sessions and Discord guild lists come from seeded caches. The bot's
@@ -26,8 +26,9 @@ use topcoat::router::{Body, Router, StatusCode, header};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
+use web::auth::SessionUser;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
-use web::state::{DiscordState, SessionIdentity, WebState};
+use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
@@ -347,6 +348,7 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
                 .build(),
         ),
         user_guilds: state.discord.user_guilds,
+        users: state.discord.users,
     };
     state
         .sessions
@@ -355,6 +357,7 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
             access_token: "member-token-access".to_owned(),
         })
         .await;
+    seed_users(&state.discord.users, &[41]).await;
     state
         .discord
         .user_guilds
@@ -465,7 +468,7 @@ fn location(response: &Response) -> Option<&str> {
 
 /// The page's `main`, from the page header to the end of the page div.
 fn main_content(html: &str) -> &str {
-    html.split_once(r#"<main class="app-main">"#)
+    html.split_once(r#"<main id="main" class="app-main" tabindex="-1">"#)
         .and_then(|(_, rest)| rest.split_once("</main>"))
         .map_or("", |(main, _)| main)
 }
@@ -493,7 +496,7 @@ fn select(label: &str, name: &str, selected: &str, options: &str) -> String {
         )
     };
     format!(
-        r#"<div class="setting-field"><label>{label}</label><div class="select"><select class="input" name="{name}"><option value=""{none}>(not set)</option>{options}</select>{CHEVRON}</div></div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value=""{none}>(not set)</option>{options}</select>{CHEVRON}</div></div>"#
     )
 }
 
@@ -501,13 +504,13 @@ fn toggle(label: &str, name: &str, on: bool) -> String {
     let (yes, no) =
         if on { (r#" selected="""#, "") } else { ("", r#" selected="""#) };
     format!(
-        r#"<div class="setting-field"><label>{label}</label><div class="select"><select class="input" name="{name}"><option value="true"{yes}>Enabled</option><option value="false"{no}>Disabled</option></select>{CHEVRON}</div></div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value="true"{yes}>Enabled</option><option value="false"{no}>Disabled</option></select>{CHEVRON}</div></div>"#
     )
 }
 
 fn text(label: &str, name: &str, value: &str) -> String {
     format!(
-        r#"<div class="setting-field"><label>{label}</label><input class="input" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="[0-9]*"></div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="[0-9]*"></div>"#
     )
 }
 
@@ -555,7 +558,7 @@ async fn every_section_renders_its_stored_settings(
     let general = format!(
         r#"{}<fieldset class="settings-section"><legend>{ICON_OPEN}{GRID}Channels</legend>{}{}{}{}{SAVE}</form></fieldset><fieldset class="settings-section"><legend>{ICON_OPEN}{USERS}Roles</legend>{}{}{}{}{SAVE}</form></fieldset></div>"#,
         header(
-            "General",
+            "Server settings",
             "Server-wide channels and roles the rest of Zayden points at."
         ),
         form("general", "7"),
@@ -580,19 +583,24 @@ async fn every_section_renders_its_stored_settings(
     ] {
         let html = app.page(path).await.unwrap();
         assert!(
-            html.contains("<title>General settings - Zayden Dashboard</title>"),
+            html.contains("<title>Server settings - Zayden Dashboard</title>"),
             "{path}: {html}"
         );
         assert_eq!(main_content(&html), general, "{path}");
-        let active = count(&html, "app-sidebar-sublink active");
-        let expected =
-            usize::from(!path.ends_with("bogus") && !path.ends_with("greetings"));
+        let active = count(
+            &html,
+            r#"<a href="/guild/7/settings/general" class="nav-link" aria-current="page">"#,
+        );
+        let expected = 2 * usize::from(
+            !path.ends_with("bogus") && !path.ends_with("greetings"),
+        );
         assert_eq!(active, expected, "{path}: {html}");
+        assert_eq!(
+            count(&html, r#"class="nav-link" aria-current="page""#),
+            expected,
+            "{path}: {html}"
+        );
     }
-    let html = app.page("/guild/7/settings").await.unwrap();
-    assert!(html.contains(
-        r#"<a href="/guild/7/settings/general" class="app-sidebar-sublink active">General</a>"#
-    ), "{html}");
 
     settings
         .ai
@@ -608,11 +616,14 @@ async fn every_section_renders_its_stored_settings(
         html.contains("<title>AI Chat settings - Zayden Dashboard</title>"),
         "{html}"
     );
-    assert!(html.contains(
-        r#"<a href="/guild/7/settings/ai" aria-current="page" class="app-sidebar-sublink active">AI Chat</a>"#
-    ) || html.contains(
-        r#"<a href="/guild/7/settings/ai" class="app-sidebar-sublink active">AI Chat</a>"#
-    ), "{html}");
+    assert_eq!(
+        count(
+            &html,
+            r#"<a href="/guild/7/settings/ai" class="nav-link" aria-current="page"><span>AI Chat</span></a>"#,
+        ),
+        2,
+        "{html}"
+    );
     assert_eq!(
         main_content(&html),
         format!(
@@ -725,7 +736,7 @@ async fn every_section_renders_its_stored_settings(
     );
     let html = app.page("/guild/7/settings/temp-voice").await.unwrap();
     assert!(
-        html.contains("<title>Temp Voice settings - Zayden Dashboard</title>"),
+        html.contains("<title>Temp voice settings - Zayden Dashboard</title>"),
         "{html}"
     );
     assert_eq!(
@@ -733,7 +744,7 @@ async fn every_section_renders_its_stored_settings(
         format!(
             r#"{}<fieldset class="settings-section">{}{}{}{SAVE}</form><p class="page-lead">No creator channel yet? Zayden can make one for you and point the settings above at it.</p>{}{}<div class="form-actions"><button type="submit" class="btn btn-secondary">Create Creator Channel</button></div></form></fieldset></div>"#,
             header(
-                "Temp Voice",
+                "Temp voice",
                 "On-demand voice channels created from a join-to-create channel."
             ),
             form("temp-voice", "7"),
@@ -750,7 +761,8 @@ async fn every_section_renders_its_stored_settings(
                 "temp_voice_category",
                 "102",
                 CATEGORY_OPTIONS
-            ),
+            )
+            .replace("field-temp_voice_category", "temp-voice-create-category"),
         )
     );
 
@@ -780,7 +792,7 @@ async fn saves_re_render_with_inline_feedback(
     assert_eq!(stored.general_channel_id, None);
     assert_eq!(stored.spoiler_channel_id, Some(104));
     assert!(
-        html.contains("<title>General settings - Zayden Dashboard</title>"),
+        html.contains("<title>Server settings - Zayden Dashboard</title>"),
         "{html}"
     );
     assert!(
@@ -1092,7 +1104,7 @@ async fn saves_re_render_with_inline_feedback(
     );
     let html = app.page("/guild/7/settings/temp-voice?created=1").await.unwrap();
     assert!(
-        html.contains("<title>Temp Voice settings - Zayden Dashboard</title>"),
+        html.contains("<title>Temp voice settings - Zayden Dashboard</title>"),
         "{html}"
     );
     assert!(
@@ -1186,7 +1198,7 @@ async fn settings_report_what_they_cannot_load(
         format!(
             r#"{}<p class="error">Failed to load settings: error running server function: forbidden</p></div>"#,
             header(
-                "Temp Voice",
+                "Temp voice",
                 "On-demand voice channels created from a join-to-create channel."
             ),
         )
@@ -1209,13 +1221,13 @@ async fn settings_report_what_they_cannot_load(
         "{html}"
     );
     assert!(html.contains(&format!(
-        r#"<div class="setting-field"><label>Artist Role</label><div class="select"><select class="input" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</div><input type="hidden" name="artist_role_id" value=""><p class="field-hint field-warning">Couldn't reach Discord; the role list is unavailable. Saving keeps the current value. (error running server function: "#
+        r#"<div class="setting-field"><label for="field-artist_role_id">Artist Role</label><div class="select"><select class="input" id="field-artist_role_id" aria-describedby="field-artist_role_id-help" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</div><input type="hidden" name="artist_role_id" value=""><p class="field-hint field-warning" id="field-artist_role_id-help">Couldn't reach Discord; the role list is unavailable. Saving keeps the current value. (error running server function: "#
     )), "{html}");
     assert_eq!(count(&html, "field-warning"), 3, "{html}");
 
     let locked = |label: &str, name: &str| {
         format!(
-            r#"<div class="setting-field"><label>{label}</label><div class="select"><select class="input" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</div><input type="hidden" name="{name}" value=""><p class="field-hint field-warning">Couldn't reach Discord; the channel list is unavailable. Saving keeps the current value. (error running server function: "#
+            r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" aria-describedby="field-{name}-help" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</div><input type="hidden" name="{name}" value=""><p class="field-hint field-warning" id="field-{name}-help">Couldn't reach Discord; the channel list is unavailable. Saving keeps the current value. (error running server function: "#
         )
     };
     let html = app.page("/guild/10/settings").await.unwrap();
@@ -1251,4 +1263,17 @@ async fn settings_report_what_they_cannot_load(
     );
 
     pool.close().await;
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
+    }
 }

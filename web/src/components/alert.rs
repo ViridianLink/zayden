@@ -1,13 +1,15 @@
-use topcoat::{
-    Result,
-    view::{Attributes, Child, StaticClass, View, class, component, view},
-};
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::view::{Attributes, Child, StaticClass, View, class, component, view};
 
 /// The visual style of an [`alert`].
 ///
 /// [`Default`] is `AlertVariant::Neutral`, used when no variant is given.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum AlertVariant {
     /// A plain alert for informational notices.
     #[default]
@@ -18,7 +20,7 @@ pub enum AlertVariant {
 
 impl AlertVariant {
     /// Classes for the variant's border and text colors.
-    fn classes(self) -> StaticClass {
+    const fn classes(self) -> StaticClass {
         match self {
             Self::Neutral => class!("border-border text-foreground"),
             Self::Destructive => class!("border-destructive/50 text-destructive"),
@@ -35,9 +37,9 @@ const BASE: StaticClass = class!(
 
 /// A notice displayed within the page.
 ///
-/// Use `variant` to choose its style. Pass an optional icon, an `alert_title`, and an
-/// `alert_description` as children. `attrs` are forwarded to the `<div>`, with extra
-/// classes added to its classes.
+/// Use `variant` to choose its style. Pass an optional icon, an `alert_title`, and
+/// an `alert_description` as children. `attrs` are forwarded to the `<div>`, with
+/// extra classes added to its classes.
 ///
 /// ```ignore
 /// view! {

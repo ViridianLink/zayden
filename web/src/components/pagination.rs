@@ -1,16 +1,28 @@
-use topcoat::{
-    Result,
-    icon::{icon, iconify::iconify_icon},
-    view::{Attributes, Child, StaticClass, View, attributes, class, component, view},
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::icon::icon;
+use topcoat::view::{
+    Attributes,
+    Child,
+    StaticClass,
+    View,
+    attributes,
+    class,
+    component,
+    view,
 };
 
 use super::button::{ButtonSize, ButtonVariant, button_variants};
 
 /// Navigation links for a list split across pages.
 ///
-/// Place links inside `pagination_content` and `pagination_item` components. Each link
-/// supplies its own destination. `attrs` are forwarded to the `<nav>`, with extra
-/// classes added to its classes.
+/// Place links inside `pagination_content` and `pagination_item` components. Each
+/// link supplies its own destination. `attrs` are forwarded to the `<nav>`, with
+/// extra classes added to its classes.
 ///
 /// ```ignore
 /// view! {
@@ -95,11 +107,7 @@ pub async fn pagination_link(
     #[default]
     child: Child<'_>,
 ) -> Result<impl View> {
-    let variant = if active {
-        ButtonVariant::Outline
-    } else {
-        ButtonVariant::Ghost
-    };
+    let variant = if active { ButtonVariant::Outline } else { ButtonVariant::Ghost };
 
     Ok(view! {
         <a
@@ -138,7 +146,7 @@ pub async fn pagination_previous(
             ))
             (attrs)
         >
-            icon(data: iconify_icon!("lucide:chevron-left"))
+            icon(data: super::ui_icons::CHEVRON_LEFT)
             <span class=(LABEL)>(label)</span>
         </a>
     })
@@ -164,14 +172,16 @@ pub async fn pagination_next(
             (attrs)
         >
             <span class=(LABEL)>(label)</span>
-            icon(data: iconify_icon!("lucide:chevron-right"))
+            icon(data: super::ui_icons::CHEVRON_RIGHT)
         </a>
     })
 }
 
 /// An ellipsis representing omitted page links, with an accessible text label.
 #[component]
-pub async fn pagination_ellipsis(#[default] mut attrs: Attributes) -> Result<impl View> {
+pub async fn pagination_ellipsis(
+    #[default] mut attrs: Attributes,
+) -> Result<impl View> {
     Ok(view! {
         <span
             class=(class!(
@@ -180,10 +190,7 @@ pub async fn pagination_ellipsis(#[default] mut attrs: Attributes) -> Result<imp
             ))
             (attrs)
         >
-            icon(
-                data: iconify_icon!("lucide:ellipsis"),
-                attrs: attributes! { class="size-4" }
-            )
+            icon(data: super::ui_icons::ELLIPSIS, attrs: attributes! { class="size-4" })
             <span class="sr-only">"More pages"</span>
         </span>
     })

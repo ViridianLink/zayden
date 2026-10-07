@@ -1,6 +1,17 @@
-use topcoat::{
-    Result,
-    view::{Attributes, PromotedStr, StaticClass, View, class, component, view},
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::view::{
+    Attributes,
+    PromotedStr,
+    StaticClass,
+    View,
+    class,
+    component,
+    view,
 };
 
 /// The direction a [`separator`] runs in.
@@ -8,7 +19,6 @@ use topcoat::{
 /// [`Default`] is `SeparatorOrientation::Horizontal`, used when no
 /// orientation is given.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum SeparatorOrientation {
     /// A rule across the full width of its container.
     #[default]
@@ -19,7 +29,7 @@ pub enum SeparatorOrientation {
 
 impl SeparatorOrientation {
     /// Classes that set the rule's thickness and stretch it along its orientation.
-    fn classes(self) -> StaticClass {
+    const fn classes(self) -> StaticClass {
         match self {
             Self::Horizontal => class!("h-px w-full"),
             Self::Vertical => class!("h-full w-px"),
@@ -28,7 +38,7 @@ impl SeparatorOrientation {
 
     /// The value of the `aria-orientation` attribute, or `None` for the
     /// horizontal default assistive technology already assumes.
-    fn aria(self) -> Option<PromotedStr> {
+    const fn aria(self) -> Option<PromotedStr> {
         match self {
             Self::Horizontal => None,
             Self::Vertical => Some(PromotedStr(&"vertical")),
@@ -41,9 +51,10 @@ const SEPARATOR: StaticClass = class!("shrink-0 border-0 bg-border");
 
 /// A thin rule between groups of content.
 ///
-/// Uses an `<hr>` element. Its length comes from its container, so a vertical separator
-/// needs a container with a height. Pass `aria-hidden="true"` for a purely decorative
-/// rule. `attrs` are forwarded to the `<hr>`, with extra classes added to its classes.
+/// Uses an `<hr>` element. Its length comes from its container, so a vertical
+/// separator needs a container with a height. Pass `aria-hidden="true"` for a purely
+/// decorative rule. `attrs` are forwarded to the `<hr>`, with extra classes added to
+/// its classes.
 ///
 /// ```ignore
 /// view! {

@@ -14,7 +14,7 @@ use super::{
     shown,
 };
 use crate::components::icons::{Icon, icon};
-use crate::components::select::{channel_select, role_select};
+use crate::components::pickers::{channel_select, role_select};
 use crate::components::settings::{save_button, save_feedback};
 use crate::guild::GuildError;
 use crate::guild::dto::GeneralSection;

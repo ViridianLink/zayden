@@ -4,307 +4,127 @@
 )]
 
 use topcoat::Result;
-use topcoat::view::{View, component, view};
-use twilight_model::channel::ChannelType;
+use topcoat::context::Cx;
+use topcoat::icon::{IconData, icon};
+use topcoat::view::{
+    Attributes,
+    Child,
+    StaticClass,
+    View,
+    attributes,
+    class,
+    component,
+    view,
+};
 
-use super::icons::{Icon, icon};
-use crate::auth::{ChannelInfo, ForumTagInfo, RoleInfo};
+/// Classes for the select control, with space for a custom dropdown arrow.
+const SELECT: StaticClass = class!(
+    "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input \
+     bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none \
+     focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 \
+     aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive \
+     focus-visible:ring-offset-background disabled:pointer-events-none",
+);
 
-const CHANNELS_UNAVAILABLE: &str = "Couldn't reach Discord; the channel list is \
-                                    unavailable. Saving keeps the current value.";
+/// Classes for browsers that support customizable select pickers. Other browsers use
+/// their native picker.
+const PICKER: StaticClass = class!(
+    "[&::picker(select)]:[appearance:base-select] \
+     [&::picker(select)]:mt-1 [&::picker(select)]:rounded-lg \
+     [&::picker(select)]:border [&::picker(select)]:border-border \
+     [&::picker(select)]:bg-popover [&::picker(select)]:p-1 \
+     [&::picker(select)]:text-popover-foreground [&::picker(select)]:shadow-sm \
+     [&::picker-icon]:hidden \
+     [&_optgroup>legend]:px-2 [&_optgroup>legend]:py-1.5 \
+     [&_optgroup>legend]:text-xs [&_optgroup>legend]:font-medium \
+     [&_optgroup>legend]:text-muted-foreground [&_optgroup>legend]:cursor-default \
+     [&_optgroup>legend]:select-none \
+     [&_option]:flex [&_option]:items-center [&_option]:gap-2 [&_option]:rounded-md \
+     [&_option]:px-2 [&_option]:py-1.5 [&_option]:text-sm [&_option]:outline-none \
+     [&_option:hover]:bg-foreground/5 [&_option:focus]:bg-foreground/5 \
+     [&_option:checked]:font-medium \
+     [&_option::checkmark]:order-1 [&_option::checkmark]:ml-auto \
+     [&_option::checkmark]:size-4 [&_option::checkmark]:shrink-0 \
+     [&_option::checkmark]:content-[''] [&_option::checkmark]:bg-muted-foreground \
+     [&_option::checkmark]:[mask-size:100%_100%] \
+     [&_option::checkmark]:[mask-image:var(--select-checkmark)]",
+);
 
-const ROLES_UNAVAILABLE: &str = "Couldn't reach Discord; the role list is \
-                                 unavailable. Saving keeps the current value.";
+/// The icon marking the picker's checked option.
+const CHECKMARK: IconData = super::ui_icons::CHECK;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct SelectOption {
-    pub value: String,
-    pub label: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Channel {
-    pub id: String,
-    pub name: String,
-    pub kind: ChannelType,
-    pub tags: Vec<ForumTag>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ForumTag {
-    pub id: String,
-    pub name: String,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Role {
-    pub id: String,
-    pub name: String,
-}
-
-impl From<ChannelInfo> for Channel {
-    fn from(channel: ChannelInfo) -> Self {
-        Self {
-            id: channel.id,
-            name: channel.name,
-            kind: channel.kind,
-            tags: channel.tags.into_iter().map(ForumTag::from).collect(),
+/// Supplies the checkmark icon as a data URI in `--select-checkmark` so CSS can use
+/// it as a mask.
+fn checkmark_style(cx: &Cx) -> String {
+    let svg = format!(
+        r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{}">{}</svg>"#,
+        CHECKMARK.view_box(),
+        CHECKMARK.into_body().render(cx),
+    );
+    let mut style = String::from(r#"--select-checkmark: url("data:image/svg+xml,"#);
+    // Percent-encode the characters that cannot appear in a double-quoted
+    // CSS url().
+    for char in svg.chars() {
+        match char {
+            '%' => style.push_str("%25"),
+            '"' => style.push_str("%22"),
+            '#' => style.push_str("%23"),
+            _ => style.push(char),
         }
     }
+    style.push_str(r#"")"#);
+    style
 }
 
-impl From<&ChannelInfo> for Channel {
-    fn from(channel: &ChannelInfo) -> Self {
-        Self {
-            id: channel.id.clone(),
-            name: channel.name.clone(),
-            kind: channel.kind,
-            tags: channel.tags.iter().map(ForumTag::from).collect(),
-        }
-    }
-}
-
-impl From<ForumTagInfo> for ForumTag {
-    fn from(tag: ForumTagInfo) -> Self {
-        Self { id: tag.id, name: tag.name }
-    }
-}
-
-impl From<&ForumTagInfo> for ForumTag {
-    fn from(tag: &ForumTagInfo) -> Self {
-        Self { id: tag.id.clone(), name: tag.name.clone() }
-    }
-}
-
-impl From<RoleInfo> for Role {
-    fn from(role: RoleInfo) -> Self {
-        Self { id: role.id, name: role.name }
-    }
-}
-
-impl From<&RoleInfo> for Role {
-    fn from(role: &RoleInfo) -> Self {
-        Self { id: role.id.clone(), name: role.name.clone() }
-    }
-}
-
+/// A styled native select control.
+///
+/// Pass `<option>` or `<optgroup>` elements as children. Classes in `attrs` apply to
+/// the wrapper, while other attributes and event handlers go on the `<select>`. The
+/// control fills its container by default. Set `aria-invalid="true"` to show the
+/// error border and focus ring.
+///
+/// Browsers with customizable select support also style the picker. For a styled
+/// group heading, place a `<legend>` first inside an `<optgroup>` and keep its
+/// `label` attribute for browsers that use the native picker.
+///
+/// ```ignore
+/// view! {
+///     select(
+///         attrs: attributes! { name="region" },
+///         <option>"eu-central-1"</option>
+///         <option>"us-east-1"</option>
+///     )
+/// }
+/// ```
 #[component]
-pub async fn select_field(
-    label: &str,
-    name: &str,
-    selected: &str,
-    options: Result<Vec<SelectOption>, String>,
+pub async fn select(
+    cx: &Cx,
+    #[default] mut attrs: Attributes,
+    #[default] child: Child<'_>,
 ) -> Result<impl View> {
+    // `appearance: base-select` opts into the customizable picker. It is set
+    // from the wrapper because the descendant selector outranks the
+    // `appearance-none` fallback in specificity, making the outcome
+    // independent of stylesheet order; browsers without support drop the
+    // invalid declaration and keep the fallback.
     Ok(view! {
-        match options {
-            Ok(options) => picker(
-                label: label,
-                name: name,
-                selected: selected,
-                options: &options
-            ),
-            Err(reason) => locked_picker(
-                label: label,
-                name: name,
-                selected: selected,
-                reason: &reason
-            ),
-        }
-    })
-}
-
-#[component]
-async fn picker(
-    label: &str,
-    name: &str,
-    selected: &str,
-    options: &[SelectOption],
-) -> Result<impl View> {
-    let has_selected = !selected.is_empty();
-    let known = options.iter().any(|option| option.value == selected);
-    let fallback = (has_selected && !known).then(|| format!("Unknown ({selected})"));
-
-    Ok(view! {
-        <div class="setting-field">
-            <label>(label)</label>
-            <div class="select">
-                <select class="input" name=(name)>
-                    <option value="" selected=(!has_selected)>"(not set)"</option>
-                    if let Some(text) = fallback {
-                        <option value=(selected) selected="">(text)</option>
-                    }
-                    #[key(index)]
-                    for (index, option) in options.iter().enumerate() {
-                        <option
-                            value=(option.value.as_str())
-                            selected=(option.value == selected)
-                        >
-                            (option.label.as_str())
-                        </option>
-                    }
-                </select>
-                <span class="select-chevron">icon(name: Icon::ChevronDown)</span>
-            </div>
-        </div>
-    })
-}
-
-#[component]
-async fn locked_picker(
-    label: &str,
-    name: &str,
-    selected: &str,
-    reason: &str,
-) -> Result<impl View> {
-    let current = if selected.is_empty() {
-        "(not set)".to_owned()
-    } else {
-        format!("Unchanged ({selected})")
-    };
-
-    Ok(view! {
-        <div class="setting-field">
-            <label>(label)</label>
-            <div class="select">
-                <select class="input" disabled="">
-                    <option selected="">(current)</option>
-                </select>
-                <span class="select-chevron">icon(name: Icon::ChevronDown)</span>
-            </div>
-            <input type="hidden" name=(name) value=(selected)>
-            <p class="field-hint field-warning">(reason)</p>
-        </div>
-    })
-}
-
-fn unavailable(reason: &str, detail: &str) -> String {
-    format!("{reason} ({detail})")
-}
-
-const fn channel_prefix(kind: ChannelType) -> &'static str {
-    match kind {
-        ChannelType::GuildVoice => "\u{1F50A} ",
-        ChannelType::GuildCategory => "\u{25B8} ",
-        ChannelType::GuildAnnouncement => "\u{1F4E2} ",
-        ChannelType::GuildStageVoice => "\u{1F3A4} ",
-        ChannelType::GuildForum => "\u{1F4AC} ",
-        ChannelType::GuildText
-        | ChannelType::Private
-        | ChannelType::Group
-        | ChannelType::AnnouncementThread
-        | ChannelType::PublicThread
-        | ChannelType::PrivateThread
-        | ChannelType::GuildDirectory
-        | ChannelType::GuildMedia
-        | ChannelType::Unknown(_)
-        | _ => "# ",
-    }
-}
-
-pub fn channel_options(
-    channels: Result<&[Channel], &str>,
-    kinds: &[ChannelType],
-) -> Result<Vec<SelectOption>, String> {
-    channels
-        .map(|channels| {
-            channels
-                .iter()
-                .filter(|channel| kinds.is_empty() || kinds.contains(&channel.kind))
-                .map(|channel| SelectOption {
-                    value: channel.id.clone(),
-                    label: format!(
-                        "{}{}",
-                        channel_prefix(channel.kind),
-                        channel.name
-                    ),
-                })
-                .collect()
-        })
-        .map_err(|detail| unavailable(CHANNELS_UNAVAILABLE, detail))
-}
-
-pub fn role_options(
-    roles: Result<&[Role], &str>,
-) -> Result<Vec<SelectOption>, String> {
-    roles
-        .map(|roles| {
-            roles
-                .iter()
-                .map(|role| SelectOption {
-                    value: role.id.clone(),
-                    label: format!("@{}", role.name),
-                })
-                .collect()
-        })
-        .map_err(|detail| unavailable(ROLES_UNAVAILABLE, detail))
-}
-
-pub fn forum_tag_options(
-    channels: Result<&[Channel], &str>,
-) -> Result<Vec<SelectOption>, String> {
-    channels
-        .map(|channels| {
-            channels
-                .iter()
-                .flat_map(|channel| {
-                    channel.tags.iter().map(move |tag| SelectOption {
-                        value: tag.id.clone(),
-                        label: format!("#{} / {}", channel.name, tag.name),
-                    })
-                })
-                .collect()
-        })
-        .map_err(|detail| unavailable(CHANNELS_UNAVAILABLE, detail))
-}
-
-#[component]
-pub async fn channel_select(
-    label: &str,
-    name: &str,
-    selected: &str,
-    channels: Result<&[Channel], &str>,
-    #[default] kinds: &[ChannelType],
-) -> Result<impl View> {
-    Ok(view! {
-        select_field(
-            label: label,
-            name: name,
-            selected: selected,
-            options: channel_options(channels, kinds)
-        )
-    })
-}
-
-#[component]
-pub async fn role_select(
-    label: &str,
-    name: &str,
-    selected: &str,
-    roles: Result<&[Role], &str>,
-) -> Result<impl View> {
-    Ok(view! {
-        select_field(
-            label: label,
-            name: name,
-            selected: selected,
-            options: role_options(roles)
-        )
-    })
-}
-
-#[component]
-pub async fn forum_tag_select(
-    label: &str,
-    name: &str,
-    selected: &str,
-    channels: Result<&[Channel], &str>,
-) -> Result<impl View> {
-    Ok(view! {
-        select_field(
-            label: label,
-            name: name,
-            selected: selected,
-            options: forum_tag_options(channels)
-        )
+        <span
+            class=(class!(
+                "relative block has-[:disabled]:opacity-50 \
+                 [&>select]:[appearance:base-select] \
+                 [&:has(select:open)>svg]:rotate-180",
+                attrs.remove("class"),
+            ))
+            style=(checkmark_style(cx))
+        >
+            <select class=(class!(SELECT, PICKER)) (attrs)>(child)</select>
+            icon(
+                data: super::ui_icons::CHEVRON_DOWN,
+                attrs: attributes! {
+                    class="pointer-events-none absolute top-1/2 right-3 size-4 \
+                        -translate-y-1/2 text-muted-foreground transition-transform"
+                }
+            )
+        </span>
     })
 }

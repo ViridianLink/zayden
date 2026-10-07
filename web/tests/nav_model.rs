@@ -1,4 +1,4 @@
-use web::nav::{Dest, GENERAL, MODULES, for_module, section, settings_href};
+use web::nav::{Dest, GENERAL, GROUPS, MODULES, for_module, section, settings_href};
 
 #[test]
 fn patreon_redirects_at_the_settings_section_route() {
@@ -46,18 +46,18 @@ fn an_unknown_slug_does_not_invent_a_route() {
 #[test]
 fn the_module_list_keeps_its_labels_links_and_order() {
     let expected = [
-        ("General", "/guild/7/settings/general", None),
-        ("AI Chat", "/guild/7/settings/ai", Some("ai")),
-        ("Family", "/guild/7/settings/family", Some("family")),
+        ("Server settings", "/guild/7/settings/general", None),
         ("Greetings", "/guild/7/greetings", Some("greetings")),
-        ("Honeypot", "/guild/7/settings/honeypot", Some("honeypot")),
         ("Levels", "/guild/7/levels", None),
-        ("LFG", "/guild/7/settings/lfg", None),
-        ("Music", "/guild/7/settings/music", Some("music")),
-        ("Patreon", "/guild/7/settings/patreon", Some("patreon")),
-        ("Reaction Roles", "/guild/7/reaction-roles", None),
+        ("Reaction roles", "/guild/7/reaction-roles", None),
+        ("Family", "/guild/7/settings/family", Some("family")),
         ("Support", "/guild/7/settings/support", Some("ticket")),
-        ("Temp Voice", "/guild/7/settings/temp-voice", None),
+        ("Honeypot", "/guild/7/settings/honeypot", Some("honeypot")),
+        ("Music", "/guild/7/settings/music", Some("music")),
+        ("Temp voice", "/guild/7/settings/temp-voice", None),
+        ("LFG", "/guild/7/settings/lfg", None),
+        ("AI Chat", "/guild/7/settings/ai", Some("ai")),
+        ("Patreon", "/guild/7/settings/patreon", Some("patreon")),
         ("YouTube", "/guild/7/settings/youtube", Some("youtube")),
     ];
 
@@ -73,28 +73,55 @@ fn the_module_list_keeps_its_labels_links_and_order() {
 }
 
 #[test]
+fn the_groups_hold_every_entry_after_server_settings_in_order() {
+    let groups: Vec<_> = GROUPS
+        .iter()
+        .map(|group| {
+            let labels: Vec<_> =
+                group.entries.iter().map(|entry| entry.label).collect();
+            (group.label, labels)
+        })
+        .collect();
+
+    assert_eq!(groups, [
+        ("Community", vec!["Greetings", "Levels", "Reaction roles", "Family"]),
+        ("Support & safety", vec!["Support", "Honeypot"]),
+        ("Voice & games", vec!["Music", "Temp voice", "LFG"]),
+        ("Integrations", vec!["AI Chat", "Patreon", "YouTube"]),
+    ]);
+
+    let (first, rest) = MODULES.split_first().unwrap();
+    assert_eq!(first, &GENERAL);
+    let grouped: Vec<_> = GROUPS.iter().flat_map(|group| group.entries).collect();
+    assert_eq!(grouped, rest.iter().collect::<Vec<_>>());
+}
+
+#[test]
 fn every_entry_keeps_its_lead() {
     let expected = [
-        ("General", "Server-wide channels and roles the rest of Zayden points at."),
-        ("AI Chat", "Whether Zayden answers when mentioned, and where."),
-        ("Family", "Limits for the family and relationship commands."),
-        ("Greetings", ""),
-        ("Honeypot", "The spam trap: a bait channel that bans whoever posts in it."),
-        ("Levels", ""),
-        ("LFG", "Where looking-for-group posts go and who they ping."),
-        ("Music", "Playback permissions and now-playing announcements."),
         (
-            "Patreon",
-            "Connect a Patreon campaign and choose where its posts are announced.",
+            "Server settings",
+            "Server-wide channels and roles the rest of Zayden points at.",
         ),
-        ("Reaction Roles", ""),
+        ("Greetings", ""),
+        ("Levels", ""),
+        ("Reaction roles", ""),
+        ("Family", "Limits for the family and relationship commands."),
         (
             "Support",
             "Tickets, FAQ and suggestions - where they live and who gets pinged.",
         ),
+        ("Honeypot", "The spam trap: a bait channel that bans whoever posts in it."),
+        ("Music", "Playback permissions and now-playing announcements."),
         (
-            "Temp Voice",
+            "Temp voice",
             "On-demand voice channels created from a join-to-create channel.",
+        ),
+        ("LFG", "Where looking-for-group posts go and who they ping."),
+        ("AI Chat", "Whether Zayden answers when mentioned, and where."),
+        (
+            "Patreon",
+            "Connect a Patreon campaign and choose where its posts are announced.",
         ),
         (
             "YouTube",

@@ -13,11 +13,14 @@ pub(crate) async fn legal_document(
 ) -> Result<impl View> {
     Ok(view! {
         public_layout(
-            <main class="legal">
+            <div class="legal">
                 <h1>(title)</h1>
-                <p class="legal-updated">"Last updated: " (updated)</p>
+                <p class="legal-updated">
+                    "Last updated: "
+                    (updated)
+                </p>
                 (child)
-            </main>
+            </div>
         )
     })
 }

@@ -25,8 +25,9 @@ use topcoat::router::{Body, Router, StatusCode, header};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
+use web::auth::SessionUser;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
-use web::state::{DiscordState, SessionIdentity, WebState};
+use web::state::{DiscordState, SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
 
@@ -359,6 +360,7 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
                 .build(),
         ),
         user_guilds: state.discord.user_guilds,
+        users: state.discord.users,
     };
     state
         .sessions
@@ -367,6 +369,7 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
             access_token: "member-token-access".to_owned(),
         })
         .await;
+    seed_users(&state.discord.users, &[41]).await;
     state
         .discord
         .user_guilds
@@ -496,7 +499,7 @@ fn location(response: &Response) -> Option<&str> {
 
 /// The page's `main`, from the page header to the end of the page div.
 fn main_content(html: &str) -> &str {
-    html.split_once(r#"<main class="app-main">"#)
+    html.split_once(r#"<main id="main" class="app-main" tabindex="-1">"#)
         .and_then(|(_, rest)| rest.split_once("</main>"))
         .map_or("", |(main, _)| main)
 }
@@ -524,7 +527,7 @@ fn select(label: &str, name: &str, selected: &str, options: &str) -> String {
         )
     };
     format!(
-        r#"<div class="setting-field"><label>{label}</label><div class="select"><select class="input" name="{name}"><option value=""{none}>(not set)</option>{options}</select>{CHEVRON}</div></div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value=""{none}>(not set)</option>{options}</select>{CHEVRON}</div></div>"#
     )
 }
 
@@ -532,7 +535,7 @@ fn toggle(label: &str, name: &str, on: bool) -> String {
     let (yes, no) =
         if on { (r#" selected="""#, "") } else { ("", r#" selected="""#) };
     format!(
-        r#"<div class="setting-field"><label>{label}</label><div class="select"><select class="input" name="{name}"><option value="true"{yes}>Enabled</option><option value="false"{no}>Disabled</option></select>{CHEVRON}</div></div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value="true"{yes}>Enabled</option><option value="false"{no}>Disabled</option></select>{CHEVRON}</div></div>"#
     )
 }
 
@@ -623,9 +626,11 @@ async fn provider_sections_follow_the_connection(
                 "YouTube connected. Choose where its uploads should be announced."
             ),
             confirm(
+                "youtube-disconnect",
                 "Disconnect",
                 "Zayden stops announcing this channel's uploads. Reconnecting needs the channel owner to sign in with Google again.",
-                "Disconnect YouTube"
+                "Disconnect YouTube",
+                "Disconnect YouTube?"
             ),
             select("Announcement Channel", "channel_id", "", TEXT_OPTIONS),
         )
@@ -763,9 +768,11 @@ async fn provider_sections_follow_the_connection(
                 "Connect a Patreon campaign and choose where its posts are announced."
             ),
             confirm(
+                "patreon-disconnect",
                 "Disconnect",
                 "Zayden stops announcing this campaign and drops its webhook on the creator's Patreon account. Reconnecting needs the creator to authorise again.",
-                "Disconnect Patreon"
+                "Disconnect Patreon",
+                "Disconnect Patreon?"
             ),
             select("Announcement Channel", "channel_id", "", TEXT_OPTIONS),
             toggle("Public Posts Only", "public_only", false),
@@ -905,9 +912,15 @@ async fn provider_sections_follow_the_connection(
     pool.close().await;
 }
 
-fn confirm(label: &str, prompt: &str, confirm: &str) -> String {
+fn confirm(
+    id: &str,
+    label: &str,
+    prompt: &str,
+    confirm: &str,
+    title: &str,
+) -> String {
     format!(
-        r#"<details class="confirm"><summary class="btn btn-danger"><span class="confirm-label">{label}</span><span class="confirm-cancel">Cancel</span></summary><div class="confirm-panel"><p class="confirm-prompt">{prompt}</p><button type="submit" class="btn btn-danger">{confirm}</button></div></details>"#
+        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-danger" data-confirm-trigger="">{label}</button><dialog class="dialog" aria-labelledby="{id}-title" aria-describedby="{id}-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="{id}-title">{title}</h2><p class="dialog-desc" id="{id}-desc">{prompt}</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">{confirm}</button></div></div></dialog></div>"#
     )
 }
 
@@ -918,11 +931,14 @@ fn field(
     pattern: &str,
     hint: Option<&str>,
 ) -> String {
+    let describedby = hint.map_or_else(String::new, |_| {
+        format!(r#" aria-describedby="field-{name}-help""#)
+    });
     let hint = hint.map_or_else(String::new, |hint| {
-        format!(r#"<p class="field-hint">{hint}</p>"#)
+        format!(r#"<p class="field-hint" id="field-{name}-help">{hint}</p>"#)
     });
     format!(
-        r#"<div class="setting-field"><label>{label}</label><input class="input" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="{pattern}">{hint}</div>"#
+        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}"{describedby} type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="{pattern}">{hint}</div>"#
     )
 }
 
@@ -1018,7 +1034,7 @@ async fn support_settings_save_and_keep_what_was_sent(
     assert!(main.contains(&idle_form("172800")), "{html}");
     assert!(main.contains(&format!(
         r#"{}<input type="hidden" name="keep_wiki_api_key" value="true">{SAVE}"#,
-        r#"<div class="setting-field"><label>Wiki API Key</label><input class="input" type="password" name="wiki_api_key" value="" placeholder="eyJhbGciOiJSUzI1NiIs..." pattern=".*"><p class="field-hint">A Wiki.js API key. Its group needs read:pages, plus manage:pages or read:source to read page content. A saved key is never sent back to the browser, so leaving this blank keeps it.</p></div>"#
+        r#"<div class="setting-field"><label for="field-wiki_api_key">Wiki API Key</label><input class="input" id="field-wiki_api_key" aria-describedby="field-wiki_api_key-help" type="password" name="wiki_api_key" value="" placeholder="eyJhbGciOiJSUzI1NiIs..." pattern=".*"><p class="field-hint" id="field-wiki_api_key-help">A Wiki.js API key. Its group needs read:pages, plus manage:pages or read:source to read page content. A saved key is never sent back to the browser, so leaving this blank keeps it.</p></div>"#
     )), "{html}");
     assert!(main.contains("<label>Support Roles</label>"), "{html}");
     assert_eq!(count(main, r#"<div class="chip-list"></div>"#), 2, "{html}");
@@ -1161,7 +1177,7 @@ async fn support_settings_save_and_keep_what_was_sent(
     assert!(settings.faq.get(7).await.unwrap().wiki_api_key.is_none());
     assert!(
         main_content(&html).contains(&format!(
-            r#"{}{}<div class="setting-field"><label>Wiki API Key</label><input class="input" type="password" name="wiki_api_key" value="" placeholder="eyJhbGciOiJSUzI1NiIs...""#,
+            r#"{}{}<div class="setting-field"><label for="field-wiki_api_key">Wiki API Key</label><input class="input" id="field-wiki_api_key" aria-describedby="field-wiki_api_key-help" type="password" name="wiki_api_key" value="" placeholder="eyJhbGciOiJSUzI1NiIs...""#,
             saved(),
             form("support", "7"),
         )),
@@ -1267,10 +1283,10 @@ async fn support_settings_save_and_keep_what_was_sent(
 
     let html = app.page("/guild/9/settings/support").await.unwrap();
     assert!(main_content(&html).contains(
-        r#"<label>Add a support role</label><div class="select"><select class="input" disabled=""><option selected="">(not set)</option></select>"#
+        r#"<label for="field-role_id">Add a support role</label><div class="select"><select class="input" id="field-role_id" aria-describedby="field-role_id-help" disabled=""><option selected="">(not set)</option></select>"#
     ), "{html}");
     assert!(main_content(&html).contains(
-        r#"<input type="hidden" name="role_id" value=""><p class="field-hint field-warning">Couldn't reach Discord; the role list is unavailable. Saving keeps the current value. (error running server function: "#
+        r#"<input type="hidden" name="role_id" value=""><p class="field-hint field-warning" id="field-role_id-help">Couldn't reach Discord; the role list is unavailable. Saving keeps the current value. (error running server function: "#
     ), "{html}");
 
     let response = app.post(SUPPORT, "guild=7&role_id=200", None).await.unwrap();
@@ -1294,7 +1310,7 @@ async fn faq_articles_are_listed_saved_and_deleted(
     let main = main_content(&html);
     let new_form = |open: &str, title: &str, content: &str| {
         format!(
-            r#"<details class="setting-field"{open}><summary>New article</summary><form method="post" action="/guild/7/settings/support" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value=""><div class="setting-field"><label>Title</label><input class="input" type="text" name="title" value="{title}" placeholder="Fixing Radarr error 502" pattern=".*"></div><div class="setting-field"><label>Summary</label><input class="input" type="text" name="summary" value="" placeholder="One sentence, shown in search results" pattern=".*"></div><div class="setting-field"><label>Category</label><input class="input" type="text" name="category" value="" placeholder="(not set)" pattern=".*"></div><div class="setting-field"><label>Tags</label><input class="input" type="text" name="tags" value="" placeholder="comma, separated" pattern=".*"><p class="field-hint">Comma separated.</p></div><div class="setting-field"><label>Body (Markdown)</label><textarea class="input" name="content" rows="14">{content}</textarea></div>{SAVE}</form></details>"#
+            r#"<details class="setting-field"{open}><summary>New article</summary><form method="post" action="/guild/7/settings/support" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value=""><div class="setting-field"><label for="faq-new-title">Title</label><input class="input" id="faq-new-title" type="text" name="title" value="{title}" placeholder="Fixing Radarr error 502" pattern=".*"></div><div class="setting-field"><label for="faq-new-summary">Summary</label><input class="input" id="faq-new-summary" type="text" name="summary" value="" placeholder="One sentence, shown in search results" pattern=".*"></div><div class="setting-field"><label for="faq-new-category">Category</label><input class="input" id="faq-new-category" type="text" name="category" value="" placeholder="(not set)" pattern=".*"></div><div class="setting-field"><label for="faq-new-tags">Tags</label><input class="input" id="faq-new-tags" aria-describedby="faq-new-tags-help" type="text" name="tags" value="" placeholder="comma, separated" pattern=".*"><p class="field-hint" id="faq-new-tags-help">Comma separated.</p></div><div class="setting-field"><label>Body (Markdown)</label><textarea class="input" name="content" rows="14">{content}</textarea></div>{SAVE}</form></details>"#
         )
     };
     assert!(main.contains(SEGMENTED_SETTINGS), "{html}");
@@ -1350,11 +1366,16 @@ async fn faq_articles_are_listed_saved_and_deleted(
     );
     assert!(html.contains(&row), "{html}");
     assert!(html.contains(&format!(
+        r#"<label for="faq-{id}-title">Title</label><input class="input" id="faq-{id}-title" type="text" name="title""#
+    )), "{html}");
+    assert!(html.contains(&format!(
         r#"<textarea class="input" name="content" rows="14">Restart Radarr.</textarea></div>{SAVE}</form><form method="post" action="/guild/7/settings/support" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><div class="form-actions">{}</div></form></details>"#,
         confirm(
+            &format!("faq-{id}-delete"),
             "Delete",
             "This removes the article for everyone, including the wiki copy. It cannot be undone.",
-            "Delete article"
+            "Delete article",
+            "Delete article “Fixing 502”?"
         )
     )), "{html}");
     assert!(!html.contains("No FAQ articles yet."), "{html}");
@@ -1468,5 +1489,18 @@ async fn provider_sections_report_a_status_they_cannot_load() {
             "{html}"
         );
         assert!(!main.contains("connect?guild="), "{html}");
+    }
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
     }
 }

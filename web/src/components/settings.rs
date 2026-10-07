@@ -94,6 +94,11 @@ pub async fn save_button() -> Result<impl View> {
     })
 }
 
+#[must_use]
+pub fn field_id(id: Option<&str>, name: &str) -> String {
+    id.map_or_else(|| format!("field-{name}"), str::to_owned)
+}
+
 #[component]
 pub async fn toggle_field(
     label: &str,
@@ -101,12 +106,15 @@ pub async fn toggle_field(
     value: bool,
     #[default("Enabled")] on_label: &str,
     #[default("Disabled")] off_label: &str,
+    #[default] id: Option<&str>,
 ) -> Result<impl View> {
+    let id = field_id(id, name);
+
     Ok(view! {
         <div class="setting-field">
-            <label>(label)</label>
+            <label for=(id.as_str())>(label)</label>
             <div class="select">
-                <select class="input" name=(name)>
+                <select class="input" id=(id.as_str()) name=(name)>
                     <option value="true" selected=(value)>(on_label)</option>
                     <option value="false" selected=(!value)>(off_label)</option>
                 </select>
@@ -125,12 +133,18 @@ pub async fn setting_field(
     #[default("(not set)")] placeholder: &str,
     #[default] hint: Option<&str>,
     #[default("text")] input_type: &str,
+    #[default] id: Option<&str>,
 ) -> Result<impl View> {
+    let id = field_id(id, name);
+    let hint_id = format!("{id}-help");
+
     Ok(view! {
         <div class="setting-field">
-            <label>(label)</label>
+            <label for=(id.as_str())>(label)</label>
             <input
                 class="input"
+                id=(id.as_str())
+                aria-describedby=(hint.map(|_| hint_id.as_str()))
                 type=(input_type)
                 name=(name)
                 value=(value)
@@ -138,7 +152,7 @@ pub async fn setting_field(
                 pattern=(pattern)
             >
             if let Some(hint) = hint {
-                <p class="field-hint">(hint)</p>
+                <p class="field-hint" id=(hint_id.as_str())>(hint)</p>
             }
         </div>
     })

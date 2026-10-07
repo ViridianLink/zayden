@@ -1,13 +1,24 @@
-use topcoat::{
-    Result,
-    view::{Attributes, Child, StaticClass, View, attributes, class, component, view},
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
+
+use topcoat::Result;
+use topcoat::view::{
+    Attributes,
+    Child,
+    StaticClass,
+    View,
+    attributes,
+    class,
+    component,
+    view,
 };
 
 use super::label::label;
 
 /// The layout of a [`field`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum FieldOrientation {
     /// Stack the label, control, and supporting text.
     #[default]
@@ -19,12 +30,14 @@ pub enum FieldOrientation {
 }
 
 impl FieldOrientation {
-    fn classes(self) -> StaticClass {
+    const fn classes(self) -> StaticClass {
         match self {
             Self::Vertical => class!("flex-col gap-2"),
             Self::Horizontal => {
-                class!("flex-row items-center gap-3 [&>[data-slot=field-label]]:flex-1")
-            }
+                class!(
+                    "flex-row items-center gap-3 [&>[data-slot=field-label]]:flex-1"
+                )
+            },
             Self::Responsive => class!(
                 "flex-col gap-2 @md/field-group:flex-row @md/field-group:items-start \
                  @md/field-group:gap-4 @md/field-group:[&>[data-slot=field-label]]:w-1/3 \
@@ -36,7 +49,6 @@ impl FieldOrientation {
 
 /// The text size of a [`field_legend`].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum FieldLegendVariant {
     /// A heading for a section of the form.
     #[default]
@@ -46,7 +58,7 @@ pub enum FieldLegendVariant {
 }
 
 impl FieldLegendVariant {
-    fn classes(self) -> StaticClass {
+    const fn classes(self) -> StaticClass {
         match self {
             Self::Legend => class!("text-base font-semibold"),
             Self::Label => class!("text-sm font-medium"),

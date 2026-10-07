@@ -35,3 +35,21 @@ An API that is not in (1) and has not compiled in (2) is treated as nonexistent.
 2. Add `changes-<old>-to-<new>.md` in the format of the existing one, with the impact on this repository.
 3. Re-check every entry in `core.md`, `ui.md` and `tooling.md` that the diff touches, recompile its example, and update its source citation.
 4. Update the `Verified against` line in every file, then run `cargo test -p web --test topcoat_reference`.
+
+## Updating vendored UI components
+
+The files in `web/src/components/` that `web/components.toml` lists come from `topcoat-ui-registry`. The wired ones carry local edits (lint header, local icons, app tokens), so `topcoat ui add <name> --overwrite` would discard them.
+
+1. Diff each wired file against the registry source of the new version, `~/.cargo/registry/src/*/topcoat-ui-registry-<version>/src/components/<name>.rs`, and note the local edits.
+2. Run `topcoat ui add <name> --overwrite`, then re-apply the local edits.
+3. Never run `topcoat ui remove select` or `topcoat ui add select --overwrite`: the CLI would replace the app's own `select.rs`. Rename the app module first, as was done for `shape_skeleton`.
+
+Parked components (listed in the `@source not` line of `web/styles.css`) stay byte-identical to upstream and can be overwritten freely.
+
+## Wiring a parked component
+
+1. Add `pub mod <name>;` to `web/src/components/mod.rs`.
+2. Add the `#![expect(unreachable_pub, reason = "...")]` header used by the other wired components.
+3. Replace each `iconify_icon!(...)` with a constant from `web/src/components/ui_icons.rs`, adding the constant there if it is missing. The `icon-iconify` feature stays off.
+4. Remove the component from the `@source not` line in `web/styles.css`.
+5. Map any registry token it uses to the `web/style` tokens.

@@ -7,6 +7,8 @@ pub mod config;
 pub mod document;
 pub mod engagement;
 pub mod error;
+pub mod flash;
+pub mod font;
 pub mod form;
 pub mod guild;
 pub mod nav;

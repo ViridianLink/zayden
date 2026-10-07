@@ -23,12 +23,12 @@
 }
 
 .pro-feature strong {
-    color: var(--text-primary);
+    color: var(--text);
     font-weight: 600;
 }
 
 .pro-feature span {
-    color: var(--text-secondary);
+    color: var(--text-2);
     font-size: 13.5px;
 }
 
@@ -57,7 +57,7 @@
 }
 
 .plan-card.plan-ultra {
-    border-color: rgb(251 191 36 / 0.35);
+    border-color: var(--caution);
 }
 
 .plan-head {
@@ -70,13 +70,13 @@
 .plan-price {
     font-size: 22px;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--text);
 }
 
 .plan-price small {
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: var(--text-2);
 }
 
 .plan-specs {
@@ -91,11 +91,11 @@
 
 .plan-specs li {
     font-size: 13.5px;
-    color: var(--text-secondary);
+    color: var(--text-2);
 }
 
 .plan-specs strong {
-    color: var(--text-primary);
+    color: var(--text);
     font-weight: 600;
 }
 
@@ -105,17 +105,17 @@
     font-weight: 600;
     text-align: center;
     padding: var(--space-2) 0;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-control);
 }
 
 .plan-current {
-    background-color: var(--accent-weak);
+    background-color: var(--lamp-wash);
     color: var(--accent);
 }
 
 .plan-included {
-    background-color: var(--overlay-3);
-    color: var(--text-secondary);
+    background-color: var(--wash-3);
+    color: var(--text-2);
 }
 
 .kofi-link-form {

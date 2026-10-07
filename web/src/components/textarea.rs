@@ -1,13 +1,16 @@
-use topcoat::{
-    Result,
-    view::{Attributes, Child, StaticClass, View, class, component, view},
-};
+#![expect(
+    unreachable_pub,
+    reason = "#[component] re-emits each fn inside its `Component::render` impl, where `pub` cannot be reached; the marker struct the macro emits carries the real, public visibility"
+)]
 
-/// Classes for a textarea that grows with its content. Browsers without content sizing
-/// support keep the minimum height and scroll.
+use topcoat::Result;
+use topcoat::view::{Attributes, Child, StaticClass, View, class, component, view};
+
+/// Classes for a textarea that grows with its content. Browsers without content
+/// sizing support keep the minimum height and scroll.
 const TEXTAREA: StaticClass = class!(
-    "field-sizing-content min-h-16 w-full rounded-lg border border-border \
-     bg-transparent px-3 py-2 text-sm transition-colors outline-none \
+    "field-sizing-content min-h-16 max-md:min-h-20 w-full rounded-lg border border-input \
+     bg-popover px-3 py-2 text-sm transition-colors outline-none \
      placeholder:text-muted-foreground \
      focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 \
      aria-invalid:border-destructive aria-invalid:focus-visible:ring-destructive \
@@ -16,10 +19,10 @@ const TEXTAREA: StaticClass = class!(
 
 /// A text input for multiple lines.
 ///
-/// Pass the initial value as children. `attrs` are forwarded to the `<textarea>`, with
-/// extra classes added to its classes. It fills its container and grows with its
-/// content where the browser supports this. Set `aria-invalid="true"` to show the error
-/// border and focus ring.
+/// Pass the initial value as children. `attrs` are forwarded to the `<textarea>`,
+/// with extra classes added to its classes. It fills its container and grows with
+/// its content where the browser supports this. Set `aria-invalid="true"` to show
+/// the error border and focus ring.
 ///
 /// ```ignore
 /// view! {

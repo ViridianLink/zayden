@@ -1,12 +1,13 @@
 use sqlx::PgPool;
 use topcoat::context::Cx;
 use topcoat::cookie::Cookies;
+use twilight_model::user::CurrentUser;
 
 use super::context::{cookie_jar, db_pool, try_web_state};
 use super::cookie::SESSION_COOKIE;
 use super::dto::SessionUser;
 use super::error::AuthError;
-use crate::state::{SessionCache, SessionIdentity};
+use crate::state::{SessionCache, SessionIdentity, SessionUsersCache};
 
 pub const LOGIN_PATH: &str = "/login";
 
@@ -87,6 +88,20 @@ pub async fn current_session_user(
         return Ok(None);
     };
 
+    let cache = try_web_state(cx).map(|state| &state.discord.users);
+    Ok(lookup_session_user(cache, &identity).await)
+}
+
+pub async fn lookup_session_user(
+    cache: Option<&SessionUsersCache>,
+    identity: &SessionIdentity,
+) -> Option<SessionUser> {
+    if let Some(cache) = cache
+        && let Some(user) = cache.get(&identity.user_id).await
+    {
+        return Some(user);
+    }
+
     let user = match super::discord::bearer_client(&identity.access_token)
         .current_user()
         .await
@@ -94,21 +109,35 @@ pub async fn current_session_user(
         Ok(response) => response.model().await,
         Err(e) => {
             tracing::warn!(error = ?e, "request to Discord /users/@me failed");
-            return Ok(None);
+            return None;
         },
     };
 
     let user = match user {
-        Ok(u) => u,
+        Ok(u) => session_user(u),
         Err(e) => {
             tracing::warn!(error = ?e, "failed to parse Discord /users/@me response");
-            return Ok(None);
+            return None;
         },
     };
 
-    Ok(Some(SessionUser {
+    if let Some(cache) = cache {
+        cache.insert(identity.user_id, user.clone()).await;
+    }
+
+    Some(user)
+}
+
+pub(super) async fn remember_session_user(cx: &Cx, user_id: i64, user: CurrentUser) {
+    if let Some(state) = try_web_state(cx) {
+        state.discord.users.insert(user_id, session_user(user)).await;
+    }
+}
+
+fn session_user(user: CurrentUser) -> SessionUser {
+    SessionUser {
         id: user.id.to_string(),
         name: user.global_name.unwrap_or(user.name),
         avatar: user.avatar.map(|hash| hash.to_string()),
-    }))
+    }
 }

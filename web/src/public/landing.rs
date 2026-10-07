@@ -48,7 +48,7 @@ const FEATURES: &[Feature] = &[
 pub(crate) async fn landing() -> Result<impl View> {
     Ok(view! {
         public_layout(
-            <main class="landing">
+            <div class="landing">
                 <section class="hero">
                     <div class="hero-glow"></div>
                     <div class="hero-inner">
@@ -66,11 +66,19 @@ pub(crate) async fn landing() -> Result<impl View> {
                             "Pro only where it costs us."
                         </p>
                         <div class="hero-actions">
-                            <a href="/invite" rel="external" class="btn btn-primary btn-lg">
+                            <a
+                                href="/invite"
+                                rel="external"
+                                class="btn btn-primary btn-lg"
+                            >
                                 icon(name: Icon::Plus)
                                 "Add to Discord"
                             </a>
-                            <a href="/auth/discord" rel="external" class="btn btn-secondary btn-lg">
+                            <a
+                                href="/auth/discord"
+                                rel="external"
+                                class="btn btn-secondary btn-lg"
+                            >
                                 "Open Dashboard"
                                 icon(name: Icon::ArrowRight)
                             </a>
@@ -89,7 +97,10 @@ pub(crate) async fn landing() -> Result<impl View> {
                     <div class="feature-grid">
                         #[key(feature.id)]
                         for feature in FEATURES {
-                            let tint_style = format!("--tint: {}", module_tint(feature.id));
+                            let tint_style = format!(
+                                "--tint: {}",
+                                module_tint(feature.id),
+                            );
                             <div class="feature-card">
                                 <div class="feature-icon" style=(tint_style)>
                                     icon(name: module_icon(feature.id))
@@ -115,7 +126,7 @@ pub(crate) async fn landing() -> Result<impl View> {
                         <a href="/upgrade" class="btn btn-ghost btn-lg">"See Pro"</a>
                     </div>
                 </section>
-            </main>
+            </div>
         )
     })
 }

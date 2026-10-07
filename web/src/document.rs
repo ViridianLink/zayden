@@ -3,8 +3,9 @@ use std::borrow::Cow;
 use topcoat::Result;
 use topcoat::asset::{Asset, asset};
 use topcoat::context::Cx;
+use topcoat::font::RouterBuilderFontExt;
 use topcoat::router::error::NotFoundError;
-use topcoat::router::{Slot, StatusCode, layout, try_endpoint};
+use topcoat::router::{RouterBuilder, Slot, StatusCode, layout, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
 use crate::admin::editor::EDITOR_TITLE;
@@ -14,6 +15,7 @@ use crate::engagement::pages::{
     LEVELS_TITLE,
     REACTION_ROLES_TITLE,
 };
+use crate::font::{GEIST, font_head};
 use crate::pages::not_found::not_found_page;
 use crate::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
 use crate::settings::route_title;
@@ -42,6 +44,11 @@ pub const PAGE_TITLES: &[(&str, &str)] = &[
     ("/admin/destiny2/loadouts/new", EDITOR_TITLE),
     ("/admin/destiny2/loadouts/{loadout_id}", EDITOR_TITLE),
 ];
+
+#[must_use]
+pub fn routes(base: RouterBuilder) -> RouterBuilder {
+    base.font(GEIST)
+}
 
 #[must_use]
 pub fn page_title(cx: &Cx) -> Cow<'static, str> {
@@ -87,16 +94,21 @@ pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
 async fn document(title: &str, #[default] child: Child<'_>) -> Result<impl View> {
     Ok(view! {
         <!DOCTYPE html>
-        <html lang="en" data-bot="zayden">
+        <html lang="en" class="dark" data-bot="zayden">
             <head>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
+                <meta name="color-scheme" content="dark">
+                font_head()
                 <link rel="stylesheet" href=(STYLESHEET)>
                 topcoat::runtime::script()
                 <script type="module" src=(PENDING_SUBMIT)></script>
                 <title>(title)</title>
             </head>
-            <body>(child)</body>
+            <body>
+                <a class="skip-link" href="#main">"Skip to main content"</a>
+                (child)
+            </body>
         </html>
     })
 }

@@ -1,15 +1,12 @@
 //! Source scans over the markup in `src` and the stylesheet partials: every
 //! class has a rule, links to server routes opt out of client routing, every
 //! POST form opts into the pending state, every submit button has a disabled
-//! rule, every streamed boundary reserves space and the sidebar module list
-//! folds by class.
+//! rule, every streamed boundary reserves space and the rail gives way to the
+//! menu sheet below 1024 px.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-use sha2::{Digest, Sha256};
 
 const CRATE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
@@ -51,42 +48,21 @@ fn files(dir: &str, ext: &str) -> Vec<PathBuf> {
     out
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().fold(String::new(), |mut out, byte| {
-        let _ = write!(out, "{byte:02x}");
-        out
-    })
-}
-
-/// Component files installed from the Topcoat registry and still identical to
-/// the installed copy. They style themselves with utility classes, not the
-/// stylesheet partials. A hand-written file that shares a registry name keeps
-/// a different hash and stays scanned.
+/// Component files installed from the Topcoat registry, as listed in
+/// `components.toml`. They style themselves with the utility classes that
+/// `styles.css` compiles, not the stylesheet partials, including after local
+/// edits to the installed copy.
 fn installed_components() -> BTreeSet<PathBuf> {
     let manifest = fs::read_to_string(Path::new(CRATE_ROOT).join("components.toml"))
         .unwrap_or_default();
 
-    let mut hash = None;
-    let mut out = BTreeSet::new();
-    for line in manifest.lines().map(str::trim) {
-        if let Some(rest) = line.strip_prefix("hash = \"sha256:") {
-            hash = rest.strip_suffix('"');
-        } else if let Some(rest) = line.strip_prefix("file = \"") {
-            let Some(file) =
-                rest.strip_suffix('"').filter(|file| file.starts_with("src/"))
-            else {
-                continue;
-            };
-            let path = Path::new(CRATE_ROOT).join(file);
-            let pristine = fs::read(&path).is_ok_and(|bytes| {
-                hash.is_some_and(|expected| sha256_hex(&bytes) == expected)
-            });
-            if pristine {
-                out.insert(path);
-            }
-        }
-    }
-    out
+    manifest
+        .lines()
+        .map(str::trim)
+        .filter_map(|line| line.strip_prefix("file = \"")?.strip_suffix('"'))
+        .filter(|file| file.starts_with("src/"))
+        .map(|file| Path::new(CRATE_ROOT).join(file))
+        .collect()
 }
 
 /// Every hand-written `.rs` file under `src`, as (path relative to the crate
@@ -298,6 +274,30 @@ fn every_post_form_opts_into_the_pending_state() {
     );
 }
 
+/// The classes a component writes through `class=(name)` when the caller
+/// passes nothing: the `#[default("…")] name` of the same source.
+fn default_classes(source: &str, tag: &str) -> Vec<String> {
+    let Some(name) = tag
+        .split("class=(")
+        .nth(1)
+        .and_then(|rest| rest.split_once(')'))
+        .map(|(name, _)| name)
+    else {
+        return Vec::new();
+    };
+    let source = squeezed(source);
+    let parameter = format!(")] {name}:");
+
+    source
+        .split("#[default(\"")
+        .skip(1)
+        .filter_map(|rest| rest.split_once('"'))
+        .find(|(_, after)| after.starts_with(&parameter))
+        .map_or_else(Vec::new, |(classes, _)| {
+            classes.split_whitespace().map(str::to_owned).collect()
+        })
+}
+
 #[test]
 fn every_submit_button_has_a_disabled_rule() {
     let css = stylesheet_sources().join("\n");
@@ -312,7 +312,8 @@ fn every_submit_button_has_a_disabled_rule() {
 
             checked += 1;
             let styled = literal_classes(&tag)
-                .iter()
+                .into_iter()
+                .chain(default_classes(&source, &tag))
                 .any(|class| css.contains(&format!(".{class}:disabled")));
             if !styled {
                 offenders.push(format!("{file}: {tag}"));
@@ -358,7 +359,7 @@ fn every_suspense_fallback_reserves_space() {
     }
 
     assert!(
-        checked >= 6,
+        checked >= 5,
         "only {checked} suspense calls found; the scan has stopped matching"
     );
     assert!(
@@ -391,36 +392,38 @@ fn every_skeleton_container_class_in_the_markup_is_styled() {
     }
     assert!(css.contains("@keyframes skeleton-pulse"));
     assert!(
-        suspense_files().len() >= 6,
+        suspense_files().len() >= 5,
         "the scan stopped reaching the boundary files"
     );
 }
 
 #[test]
-fn the_caret_toggle_keeps_the_links_mounted() {
-    let source = squeezed(&read("src/shell/sidebar.rs"));
+fn the_rail_gives_way_to_the_menu_button_below_1024() {
+    let css = squeezed(&read("style/partials/chrome.css"));
+    let (wide, narrow) = css
+        .split_once("@media (max-width: 1023px) {")
+        .expect("chrome.css has no tablet breakpoint");
 
-    let open = source.find("\"app-sidebar-sublist open\"");
-    let list = source.find("for module in MODULES");
-    let (Some(open), Some(list)) = (open, list) else {
-        panic!(
-            "the module list or its open class is missing from src/shell/sidebar.rs"
-        );
-    };
-
-    assert!(open < list, "the list must follow its class binding");
-    let between = source.get(open..list).unwrap_or_default();
-    assert!(
-        !between.contains(" if ") && !between.contains(".then("),
-        "toggling the caret must change a class, not rebuild the links: {between}"
-    );
-    assert!(source.contains("\"app-sidebar-sublist\""));
+    assert!(wide.contains(".menu-button { display: none; }"));
+    assert!(wide.contains(".rail { position: fixed;"));
+    assert!(narrow.contains(".rail { display: none; }"));
+    assert!(narrow.contains(".menu-button { display: inline-flex; }"));
 }
 
 #[test]
-fn the_collapsed_sublist_is_hidden_by_css() {
-    let css = squeezed(&read("style/partials/layout.css"));
+fn the_rail_and_the_sheet_render_the_same_links_under_distinct_prefixes() {
+    let rail = squeezed(&read("src/components/nav_rail.rs"));
+    let sheet = squeezed(&read("src/components/nav_sheet.rs"));
+    let links = squeezed(&read("src/components/nav_links.rs"));
 
-    assert!(css.contains(".app-sidebar-sublist { display: none;"));
-    assert!(css.contains(".app-sidebar-sublist.open { display: flex;"));
+    assert!(rail.contains(
+        "nav_links(prefix: \"rail\", access: access, guild_id: guild_id)"
+    ));
+    assert!(sheet.contains(
+        "nav_links(prefix: \"sheet\", access: access, guild_id: guild_id)"
+    ));
+    assert!(
+        links.contains("for group in GROUPS"),
+        "every group renders, none folds away"
+    );
 }

@@ -28,9 +28,10 @@ use topcoat::router::{Body, Method, OriginPolicy, Router, StatusCode, header};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
+use web::auth::SessionUser;
 use web::document::STYLESHEET;
 use web::providers;
-use web::state::WebState;
+use web::state::{SessionUsersCache, WebState};
 use web::util::{email_hash, hex_encode};
 use zayden_app::config::{BotConfig, PatreonConfig, YoutubeConfig};
 use zayden_app::state::AppState as ZaydenAppState;
@@ -121,6 +122,7 @@ async fn state(pool: PgPool, connectable: bool) -> TestResult<WebState> {
     let guilds = &state.discord.user_guilds;
     guilds.insert(ADMIN, guild(Permissions::MANAGE_GUILD)).await;
     guilds.insert(MEMBER, guild(Permissions::SEND_MESSAGES)).await;
+    seed_users(&state.discord.users, &[ADMIN, MEMBER]).await;
     Ok(state)
 }
 
@@ -1114,5 +1116,18 @@ async fn the_callback_routes_check_the_nonce_then_the_caller(pool: PgPool) {
             Some(outcome_location(flow, "7.extra", "forbidden").as_str()),
             "the state splits at its first dot"
         );
+    }
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
     }
 }

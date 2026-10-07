@@ -1,23 +1,51 @@
 :root {
-    --bg-base: #0a0908;
-    --bg-card: #141110;
-    --bg-surface: #1a1614;
-    --bg-elevated: #221d19;
-    --bg-modal: #1c1c1e;
+    /* Primitives: raw values, named by what they are. */
+    --ink-950: #0f0e0c;
+    --ink-900: #171512;
+    --ink-850: #1f1c18;
+    --ink-800: #2c2823;
+    --ink-500: #7a7268;
+    --paper-50: #f3efe6;
+    --paper-300: #b9b2a6;
+    --paper-500: #958d81;
+    --chartreuse-400: #c6f24e;
+    --chartreuse-950: #141708;
+    --coral-400: #ff7a66;
+    --coral-950: #1c0a06;
+    --amber-400: #f2b84b;
 
-    --overlay-1: rgb(255 255 255 / 0.03);
-    --overlay-2: rgb(255 255 255 / 0.06);
-    --overlay-3: rgb(255 255 255 / 0.1);
-    --border: rgb(255 255 255 / 0.08);
-    --border-strong: rgb(255 255 255 / 0.14);
+    /* Semantic: what components read. Contrast ratios are in
+       docs/migration/design/tokens.md. */
+    --bg: var(--ink-950);
+    --surface-1: var(--ink-900);
+    --surface-2: var(--ink-850);
+    --text: var(--paper-50);
+    --text-2: var(--paper-300);
+    --text-3: var(--paper-500);
+    --line: var(--ink-500);
+    --rule: var(--ink-800);
+    --lamp: var(--chartreuse-400);
+    --on-lamp: var(--chartreuse-950);
+    --danger: var(--coral-400);
+    --on-danger: var(--coral-950);
+    --caution: var(--amber-400);
+    --accent: var(--lamp);
 
-    --text-primary: #f2f1ef;
-    --text-secondary: #a5a19c;
-    --text-tertiary: #6f6a65;
+    --lamp-glow: rgb(198 242 78 / 0.35);
+    --lamp-wash: rgb(198 242 78 / 0.12);
+    --danger-wash: rgb(255 122 102 / 0.14);
+    --caution-wash: rgb(242 184 75 / 0.14);
+    --wash-1: rgb(243 239 230 / 0.03);
+    --wash-2: rgb(243 239 230 / 0.05);
+    --wash-3: rgb(243 239 230 / 0.1);
+    --scrim: rgb(0 0 0 / 0.6);
 
-    --success: #4ade80;
-    --error: #f87171;
-    --warning: #fbbf24;
+    --border: var(--rule);
+
+    --font-ui: "Geist", "Geist Fallback", system-ui, -apple-system, "Segoe UI",
+        Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-code: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo,
+        Consolas, monospace;
 
     /* Spacing ramp. Linear on a 4px grid through 2rem, then geometric; every
      padding, margin and gap in the partials snaps to a step. */
@@ -32,57 +60,56 @@
     --space-9: 4rem;
     --space-10: 6rem;
 
-    --radius-lg: 10px;
-    --radius-xl: 12px;
-    --radius-2xl: 16px;
+    --radius-control: 4px;
+    --radius-panel: 6px;
     --radius-full: 999px;
 
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
-    --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.45);
+    --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.5);
 
-    --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --dur-fast: 120ms;
+    --dur: 180ms;
 
-    --sidebar-width: 248px;
-    --navbar-height: 62px;
-    --content-max: 1080px;
+    --topbar-h: 56px;
+    --rail-w: 264px;
+    --content-max: 1120px;
+    --form-max: 640px;
+    --row-h: 44px;
+    --target-min: 24px;
 
-    --on-accent: #fff;
-
-    --accent: #5b8def;
-    --accent-strong: #3e6ad4;
-    --accent-weak: rgb(91 141 239 / 0.12);
-    --accent-gradient: linear-gradient(135deg, #5b8def, #3e6ad4);
     --watermark-letter: "Z";
 }
 
 :root[data-bot="zayden"] {
-    --accent: #5b8def;
-    --accent-strong: #3e6ad4;
-    --accent-weak: rgb(91 141 239 / 0.12);
-    --accent-gradient: linear-gradient(135deg, #5b8def, #3e6ad4);
-    --watermark-letter: "Z";
+    --accent: var(--lamp);
 }
 
-:root[data-bot="viktor"] {
-    --accent: #e0384a;
-    --accent-strong: #b71f30;
-    --accent-weak: rgb(224 56 74 / 0.12);
-    --accent-gradient: linear-gradient(135deg, #e0384a, #b71f30);
-    --watermark-letter: "V";
-}
+/* Registry component tokens, mapped onto the semantic layer in one place. */
+:root,
+.dark {
+    color-scheme: dark;
 
-:root[data-bot="enzo"] {
-    --accent: #f5a623;
-    --accent-strong: #d4820e;
-    --accent-weak: rgb(245 166 35 / 0.12);
-    --accent-gradient: linear-gradient(135deg, #f5a623, #d4820e);
-    --watermark-letter: "E";
-}
-
-:root[data-bot="maria"] {
-    --accent: #ec4899;
-    --accent-strong: #c81e78;
-    --accent-weak: rgb(236 72 153 / 0.12);
-    --accent-gradient: linear-gradient(135deg, #ec4899, #c81e78);
-    --watermark-letter: "M";
+    --background: var(--bg);
+    --foreground: var(--text);
+    --card: var(--surface-1);
+    --card-foreground: var(--text);
+    --popover: var(--surface-2);
+    --popover-foreground: var(--text);
+    --muted-foreground: var(--text-2);
+    --primary: var(--lamp);
+    --primary-foreground: var(--on-lamp);
+    --destructive: var(--danger);
+    --destructive-foreground: var(--on-danger);
+    --input: var(--line);
+    --ring: var(--lamp);
+    --sidebar: var(--surface-1);
+    --sidebar-foreground: var(--text);
+    --sidebar-primary: var(--lamp);
+    --sidebar-primary-foreground: var(--on-lamp);
+    --sidebar-accent: var(--wash-3);
+    --sidebar-accent-foreground: var(--text);
+    --sidebar-border: var(--rule);
+    --sidebar-ring: var(--lamp);
+    --shadow-xs: none;
+    --shadow-sm: none;
 }

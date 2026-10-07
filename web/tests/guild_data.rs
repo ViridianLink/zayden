@@ -21,6 +21,7 @@ use topcoat::router::{Body, Router, StatusCode, header, path_param, route};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
+use web::auth::SessionUser;
 use web::guild::dto::{
     AiSection,
     FamilySection,
@@ -52,7 +53,7 @@ use web::guild::{
     tier,
     youtube,
 };
-use web::state::{UserGuildsCache, WebState};
+use web::state::{SessionUsersCache, UserGuildsCache, WebState};
 use web::util::server_error_text;
 use zayden_app::config::BotConfig;
 use zayden_app::state::AppState as ZaydenAppState;
@@ -427,6 +428,7 @@ async fn harness_for(pool: PgPool, zayden_id: u64) -> TestResult<Harness> {
     let app = Arc::new(ZaydenAppState::new(pool.clone(), &config));
     let state = WebState::new(app, &config)?;
     seed_guilds(&state.discord.user_guilds).await;
+    seed_users(&state.discord.users, &[41, 43]).await;
     insert_session(&pool, "admin-token", 41).await?;
     insert_session(&pool, "member-token", 43).await?;
 
@@ -1087,4 +1089,17 @@ async fn a_zero_application_id_is_refused(pool: PgPool) {
         app.text("/test/guild-context", Some(ADMIN)).await.unwrap(),
         shown("invalid application id")
     );
+}
+
+/// Seeded so the account menu never asks Discord for the signed-in user.
+async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
+    for &id in ids {
+        users
+            .insert(id, SessionUser {
+                id: id.to_string(),
+                name: format!("User {id}"),
+                avatar: None,
+            })
+            .await;
+    }
 }

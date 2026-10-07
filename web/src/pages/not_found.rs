@@ -9,7 +9,7 @@ not_found!("/");
 #[component]
 pub(crate) async fn not_found_page() -> Result<impl View> {
     Ok(view! {
-        <div class="login-page">
+        <div class="login-page" id="main" tabindex="-1">
             <div class="hero-glow"></div>
             <div class="login-card">
                 <span class="brand">
