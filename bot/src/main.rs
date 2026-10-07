@@ -33,6 +33,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{Layer, Registry, filter, fmt};
 use zayden_app::config::BotConfig;
 use zayden_app::events::listener::EventListener;
+use zayden_app::state::AppState;
 use zayden_app::{migrations, modules};
 
 use crate::sqlx_lib::new_pool_with_retry;
@@ -66,8 +67,7 @@ async fn main() -> Result<()> {
     let bot_config = BotConfig::load(&pool).await?;
     info!("BotConfig loaded successfully");
 
-    let app_state =
-        Arc::new(zayden_app::state::AppState::new(pool.clone(), &bot_config));
+    let app_state = Arc::new(AppState::new(pool.clone(), &bot_config));
     info!("AppState constructed successfully");
 
     EventListener::spawn(pool.clone(), app_state.events.clone());
