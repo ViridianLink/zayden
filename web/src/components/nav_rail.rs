@@ -9,7 +9,6 @@ use topcoat::view::{View, ViewExt, component, view};
 use super::legal::legal_links;
 use super::nav_links::{NavAccess, nav_links};
 
-/// The sticky left rail, shown at 1024 and up.
 #[component]
 pub async fn nav_rail(
     access: NavAccess,

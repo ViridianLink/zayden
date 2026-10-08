@@ -17,6 +17,7 @@ use topcoat::view::{
 };
 
 use super::button::{ButtonSize, ButtonVariant, button_variants};
+use super::ui_icons;
 
 /// Navigation links for a list split across pages.
 ///
@@ -146,7 +147,7 @@ pub async fn pagination_previous(
             ))
             (attrs)
         >
-            icon(data: super::ui_icons::CHEVRON_LEFT)
+            icon(data: ui_icons::CHEVRON_LEFT)
             <span class=(LABEL)>(label)</span>
         </a>
     })
@@ -172,7 +173,7 @@ pub async fn pagination_next(
             (attrs)
         >
             <span class=(LABEL)>(label)</span>
-            icon(data: super::ui_icons::CHEVRON_RIGHT)
+            icon(data: ui_icons::CHEVRON_RIGHT)
         </a>
     })
 }
@@ -190,7 +191,7 @@ pub async fn pagination_ellipsis(
             ))
             (attrs)
         >
-            icon(data: super::ui_icons::ELLIPSIS, attrs: attributes! { class="size-4" })
+            icon(data: ui_icons::ELLIPSIS, attrs: attributes! { class="size-4" })
             <span class="sr-only">"More pages"</span>
         </span>
     })

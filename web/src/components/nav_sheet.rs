@@ -12,9 +12,6 @@ use super::nav_links::{NavAccess, nav_links};
 
 pub const SHEET_ID: &str = "nav-sheet";
 
-/// The same navigation as the rail, in a full-height popover sheet opened by
-/// the top bar's menu button. Esc, an outside click and the close button
-/// dismiss it.
 #[component]
 pub async fn nav_sheet(
     access: NavAccess,

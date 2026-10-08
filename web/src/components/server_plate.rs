@@ -16,9 +16,6 @@ use crate::shell::link::switch_href;
 pub const FILTER_THRESHOLD: usize = 8;
 pub const PANEL_ID: &str = "server-switcher";
 
-/// The server switcher: a plate in the top bar that opens a popover list of
-/// the servers the user manages, with a filter above eight. `current` is the
-/// viewed guild, resolved by the caller; nothing renders without it.
 #[component]
 pub async fn server_plate(
     cx: &Cx,

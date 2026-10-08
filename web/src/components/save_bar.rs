@@ -9,8 +9,6 @@ use topcoat::view::{View, component, view};
 use super::flash::flash_message;
 use crate::flash::Flash;
 
-/// The sticky save bar of a settings form. Place it last inside
-/// `<form method="post" data-pending data-dirty-guard>`.
 #[component]
 pub async fn save_bar(
     #[default("Save changes")] label: &str,
