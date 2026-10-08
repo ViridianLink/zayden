@@ -53,8 +53,6 @@ pub(super) async fn new_loadout(cx: &Cx) -> Result<impl View> {
     Ok(view! { editor_page(id: None) }.boxed())
 }
 
-/// The editor for one loadout. An id that is not a whole number, or names no
-/// loadout, is a 404 with a way back to the list.
 #[page("/admin/destiny2/loadouts/{loadout_id}")]
 pub(super) async fn edit_loadout(cx: &Cx) -> Result<impl View> {
     let access = gate(cx, WebRole::Admin).await?;
