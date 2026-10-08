@@ -42,8 +42,8 @@
   margin-bottom: var(--space-5);
   border-radius: var(--radius-full);
   background: var(--lamp-wash);
-  border: 1px solid var(--lamp);
-  color: var(--lamp);
+  border: 1px solid var(--lamp-edge);
+  color: var(--accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -58,16 +58,7 @@
 }
 
 .hero-title .accent-text {
-  color: var(--lamp);
-}
-
-@supports (background-clip: text) {
-  .hero-title .accent-text {
-    background-color: var(--lamp);
-    background-image: var(--lamp-sheen);
-    background-clip: text;
-    color: transparent;
-  }
+  color: var(--accent);
 }
 
 .hero-subtitle {
@@ -120,7 +111,7 @@
   border-radius: var(--radius-control);
   font-size: 22px;
   margin-bottom: var(--space-4);
-  color: var(--lamp);
+  color: var(--accent);
   background-color: var(--lamp-wash);
 }
 

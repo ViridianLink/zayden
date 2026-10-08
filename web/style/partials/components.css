@@ -15,10 +15,7 @@
 }
 
 .lamp-on {
-    background-color: var(--lamp);
-    background-image: var(--lamp-ball);
-    box-shadow: 0 0 8px 2px var(--lamp-glow);
-    animation: lamp-in var(--dur) var(--ease-out) 1;
+    background-color: var(--accent);
 }
 
 .lamp-off {
@@ -40,7 +37,7 @@
 }
 
 .lamp-on+.lamp-text {
-    color: var(--lamp);
+    color: var(--accent);
 }
 
 .lamp-sync+.lamp-text {
@@ -69,7 +66,7 @@
 }
 
 .switch[aria-checked="true"]::before {
-    background-color: var(--lamp);
+    background-color: var(--lamp-track);
 }
 
 .switch-thumb {
@@ -209,7 +206,7 @@
 }
 
 .save-bar[data-dirty] {
-    border-color: var(--lamp);
+    border-color: var(--indicator);
 }
 
 .save-bar-status {
@@ -243,9 +240,9 @@
 }
 
 .flash-success {
-    color: var(--lamp);
+    color: var(--accent);
     background-color: var(--lamp-wash);
-    border-color: var(--lamp);
+    border-color: var(--accent);
 }
 
 .flash-error {
