@@ -252,8 +252,8 @@ fn every_space_reference_resolves() {
     );
 }
 
-/// Ten hardcoded `#fff`s once stood in for the accent contrast colour; white
-/// now lives only in the `--chrome-50` primitive, so a fresh one anywhere
+/// Ten hardcoded `#fff`s once stood in for the accent contrast colour; every
+/// colour now comes from a `tokens.css` primitive, so a fresh one anywhere
 /// else is that duplication coming back under a new selector.
 #[test]
 fn white_is_only_defined_once() {
@@ -266,7 +266,7 @@ fn white_is_only_defined_once() {
     assert!(
         offenders.is_empty(),
         "hardcoded white (#fff/#ffffff) found outside tokens.css, which \
-         alone defines it as --chrome-50: {offenders:?}"
+         alone defines colour primitives: {offenders:?}"
     );
 }
 

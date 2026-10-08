@@ -13,7 +13,7 @@
 }
 
 .toggle-on {
-  background-color: var(--lamp);
+  background-color: var(--lamp-track);
 }
 
 .toggle::after {

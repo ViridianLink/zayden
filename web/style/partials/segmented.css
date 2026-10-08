@@ -28,6 +28,7 @@
 }
 
 .segmented .seg.active {
-  background: var(--accent);
+  background: var(--lamp);
+  box-shadow: inset 0 0 0 1px var(--indicator);
   color: var(--on-lamp);
 }

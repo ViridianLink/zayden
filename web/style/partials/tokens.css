@@ -8,10 +8,12 @@
     --paper-50: #eef2f7;
     --paper-300: #aab4c3;
     --paper-500: #8792a3;
-    --chrome-50: #ffffff;
-    --chrome-100: #e3e8ee;
-    --chrome-300: #b9c1cc;
-    --chrome-500: #8c95a3;
+    --steel-200: #9fb1cf;
+    --steel-300: #7d93b8;
+    --steel-400: #546a92;
+    --steel-500: #4a5f86;
+    --steel-600: #3d5279;
+    --steel-700: #34476b;
     --coral-400: #ff7a66;
     --coral-950: #1c0a06;
     --amber-400: #f2b84b;
@@ -26,20 +28,19 @@
     --text-3: var(--paper-500);
     --line: var(--ink-500);
     --rule: var(--ink-800);
-    --lamp: var(--chrome-50);
-    --on-lamp: var(--ink-950);
+    --lamp: var(--steel-700);
+    --lamp-hover: var(--steel-600);
+    --lamp-edge: var(--steel-500);
+    --lamp-track: var(--steel-400);
+    --on-lamp: var(--paper-50);
+    --accent: var(--steel-200);
+    --indicator: var(--steel-300);
+    --focus: var(--steel-200);
     --danger: var(--coral-400);
     --on-danger: var(--coral-950);
     --caution: var(--amber-400);
-    --accent: var(--lamp);
 
-    /* Metallic finishes from the logo's ring and ball; every consumer sets
-       --lamp as the solid background-color underneath. */
-    --lamp-sheen: linear-gradient(180deg, var(--chrome-50) 0%, var(--chrome-100) 55%, var(--chrome-300) 100%);
-    --lamp-ball: radial-gradient(circle at 35% 30%, var(--chrome-50) 0%, var(--chrome-100) 45%, var(--chrome-500) 100%);
-
-    --lamp-glow: rgb(255 255 255 / 0.4);
-    --lamp-wash: rgb(255 255 255 / 0.12);
+    --lamp-wash: rgb(74 95 134 / 0.2);
     --danger-wash: rgb(255 122 102 / 0.14);
     --caution-wash: rgb(242 184 75 / 0.14);
     --wash-1: rgb(238 242 247 / 0.03);
@@ -87,7 +88,7 @@
 }
 
 :root[data-bot="zayden"] {
-    --accent: var(--lamp);
+    --accent: var(--steel-200);
 }
 
 /* Registry component tokens, mapped onto the semantic layer in one place. */
@@ -107,7 +108,7 @@
     --destructive: var(--danger);
     --destructive-foreground: var(--on-danger);
     --input: var(--line);
-    --ring: var(--lamp);
+    --ring: var(--focus);
     --sidebar: var(--surface-1);
     --sidebar-foreground: var(--text);
     --sidebar-primary: var(--lamp);
@@ -115,7 +116,7 @@
     --sidebar-accent: var(--wash-3);
     --sidebar-accent-foreground: var(--text);
     --sidebar-border: var(--rule);
-    --sidebar-ring: var(--lamp);
+    --sidebar-ring: var(--focus);
     --shadow-xs: none;
     --shadow-sm: none;
 }

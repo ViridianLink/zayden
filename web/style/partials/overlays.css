@@ -65,7 +65,7 @@
 .menu-item[aria-current="page"] {
     background-color: var(--lamp-wash);
     color: var(--text);
-    box-shadow: inset 2px 0 0 var(--lamp);
+    box-shadow: inset 2px 0 0 var(--indicator);
 }
 
 .menu-item .plate-name {
@@ -73,7 +73,7 @@
 }
 
 .menu-item .icon {
-    color: var(--lamp);
+    color: var(--accent);
 }
 
 .menu-filter {
