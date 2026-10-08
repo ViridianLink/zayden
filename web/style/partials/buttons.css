@@ -32,13 +32,12 @@
 
 .btn-primary {
   background-color: var(--lamp);
-  background-image: var(--lamp-sheen);
+  border-color: var(--lamp-edge);
   color: var(--on-lamp);
 }
 
 .btn-primary:hover {
-  background-color: var(--lamp);
-  background-image: none;
+  background-color: var(--lamp-hover);
   color: var(--on-lamp);
 }
 

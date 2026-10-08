@@ -23,7 +23,7 @@
   }
 
   a {
-    color: var(--text);
+    color: var(--accent);
     text-decoration: underline;
     text-decoration-color: var(--line);
     text-underline-offset: 0.2em;
@@ -34,7 +34,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--lamp);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
 
@@ -100,16 +100,6 @@
 .mono {
   font-family: var(--font-code);
   letter-spacing: 0.02em;
-}
-
-@keyframes lamp-in {
-  from {
-    box-shadow: 0 0 0 0 transparent;
-  }
-
-  to {
-    box-shadow: 0 0 8px 2px var(--lamp-glow);
-  }
 }
 
 @keyframes rise-in {
