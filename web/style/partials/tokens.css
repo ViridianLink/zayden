@@ -1,13 +1,13 @@
 :root {
     /* Primitives: raw values, named by what they are. */
-    --ink-950: #0f0e0c;
-    --ink-900: #171512;
-    --ink-850: #1f1c18;
-    --ink-800: #2c2823;
-    --ink-500: #7a7268;
-    --paper-50: #f3efe6;
-    --paper-300: #b9b2a6;
-    --paper-500: #958d81;
+    --ink-950: #080c14;
+    --ink-900: #0e1420;
+    --ink-850: #151d2b;
+    --ink-800: #1c2636;
+    --ink-500: #66738a;
+    --paper-50: #eef2f7;
+    --paper-300: #aab4c3;
+    --paper-500: #8792a3;
     --chartreuse-400: #c6f24e;
     --chartreuse-950: #141708;
     --coral-400: #ff7a66;
@@ -35,9 +35,9 @@
     --lamp-wash: rgb(198 242 78 / 0.12);
     --danger-wash: rgb(255 122 102 / 0.14);
     --caution-wash: rgb(242 184 75 / 0.14);
-    --wash-1: rgb(243 239 230 / 0.03);
-    --wash-2: rgb(243 239 230 / 0.05);
-    --wash-3: rgb(243 239 230 / 0.1);
+    --wash-1: rgb(238 242 247 / 0.03);
+    --wash-2: rgb(238 242 247 / 0.05);
+    --wash-3: rgb(238 242 247 / 0.1);
     --scrim: rgb(0 0 0 / 0.6);
 
     --border: var(--rule);
