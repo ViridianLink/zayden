@@ -65,6 +65,7 @@
 .menu-item[aria-current="page"] {
     background-color: var(--lamp-wash);
     color: var(--text);
+    box-shadow: inset 2px 0 0 var(--lamp);
 }
 
 .menu-item .plate-name {

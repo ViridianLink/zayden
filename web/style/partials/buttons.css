@@ -32,11 +32,13 @@
 
 .btn-primary {
   background-color: var(--lamp);
+  background-image: var(--lamp-sheen);
   color: var(--on-lamp);
 }
 
 .btn-primary:hover {
-  background-color: color-mix(in srgb, var(--lamp), var(--text) 22%);
+  background-color: var(--lamp);
+  background-image: none;
   color: var(--on-lamp);
 }
 
