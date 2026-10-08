@@ -10,7 +10,7 @@ not_found!("/");
 #[component]
 pub(crate) async fn not_found_page() -> Result<impl View> {
     Ok(view! {
-        <div class="login-page" id="main" tabindex="-1">
+        <main class="login-page" id="main" tabindex="-1">
             <div class="hero-glow"></div>
             <div class="login-card">
                 <span class="brand">
@@ -22,6 +22,6 @@ pub(crate) async fn not_found_page() -> Result<impl View> {
                 <a href="/" class="btn btn-primary btn-lg">"Back home"</a>
             </div>
             legal_links()
-        </div>
+        </main>
     })
 }

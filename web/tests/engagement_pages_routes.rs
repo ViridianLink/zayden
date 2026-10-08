@@ -57,10 +57,6 @@ const OPERATOR: &str = "session=operator-token";
 const APP_ID: u64 = 123_456_789;
 const AVATAR: &str = "abcdef0123456789abcdef0123456789";
 const TEST_POOL_CONNECTIONS: u32 = 3;
-const FAILED_SAVE: &str = r#"<div class="alert error" role="alert"><span>Failed to save: error running server function: "#;
-const SAVED: &str =
-    r#"<div class="alert success" role="status"><span>Saved.</span>"#;
-const SAVED_ALERT: &str = r#"<div class="alert success" role="status"><span>Saved.</span><button type="button" class="alert-dismiss" aria-label="Dismiss"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>"#;
 
 #[derive(Clone, Debug)]
 struct Hit {
@@ -357,6 +353,7 @@ struct Answer {
     status: StatusCode,
     html: String,
     location: Option<String>,
+    flash: Option<String>,
 }
 
 fn web_state(pool: PgPool) -> TestResult<(WebState, Discord, Arc<ZaydenAppState>)> {
@@ -450,7 +447,25 @@ impl Harness {
             .get(header::LOCATION)
             .and_then(|v| v.to_str().ok())
             .map(str::to_owned);
-        Ok(Answer { status, html: body_text(response).await?, location })
+        let flash = response
+            .headers()
+            .get_all(header::SET_COOKIE)
+            .iter()
+            .filter_map(|value| value.to_str().ok())
+            .find(|value| {
+                value.starts_with("flash=") && !value.starts_with("flash=;")
+            })
+            .and_then(|value| value.split(';').next())
+            .map(str::to_owned);
+        Ok(Answer { status, html: body_text(response).await?, location, flash })
+    }
+
+    /// Opens the page a 303 leads to, carrying the flash it set.
+    async fn follow(&self, reply: &Answer) -> TestResult<Answer> {
+        let location = reply.location.as_deref().ok_or("no Location")?;
+        let page = location.split('#').next().unwrap_or(location);
+        let flash = reply.flash.as_deref().ok_or("the redirect set no flash")?;
+        self.get(page, Some(&format!("{ADMIN}; {flash}"))).await
     }
 
     async fn get(&self, path: &str, cookie: Option<&str>) -> TestResult<Answer> {
@@ -644,12 +659,18 @@ fn row(
     messages: i64,
 ) -> String {
     format!(
-        r#"<div class="lb-row"><span class="lb-rank">{rank}</span><span class="lb-user">{avatar}<span class="lb-name">{name}</span></span><span class="lb-num">{level}</span><span class="lb-num">{xp}</span><span class="lb-num">{messages}</span></div>"#
+        r#"<tr role="row"><td role="cell" data-label="Rank" class="num">{rank}</td><th scope="row" role="rowheader" data-label="Member">{avatar}<span class="lb-name">{name}</span></th><td role="cell" data-label="Level" class="num">{level}</td><td role="cell" data-label="XP" class="num">{xp}</td><td role="cell" data-label="Messages" class="num">{messages}</td></tr>"#
     )
 }
 
 const PLACEHOLDER: &str = r#"<span class="lb-avatar placeholder"></span>"#;
-const HEAD_ROW: &str = r#"<div class="lb-row lb-head"><span class="lb-rank">#</span><span class="lb-user">Member</span><span class="lb-num">Level</span><span class="lb-num">XP</span><span class="lb-num">Messages</span></div>"#;
+const ENTRY: &str = r#"role="rowheader" data-label="Member""#;
+
+fn board_head(caption: &str) -> String {
+    format!(
+        r#"<div class="data-table-wrap"><table class="data-table" role="table"><caption class="visually-hidden">{caption}</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Rank</th><th scope="col" role="columnheader">Member</th><th scope="col" role="columnheader">Level</th><th scope="col" role="columnheader">XP</th><th scope="col" role="columnheader">Messages</th></tr></thead><tbody role="rowgroup">"#
+    )
+}
 
 fn avatar(id: u64, hash: &str) -> String {
     format!(
@@ -658,11 +679,18 @@ fn avatar(id: u64, hash: &str) -> String {
 }
 
 fn scope(guild: u64, global: bool) -> String {
-    let (server, world) =
-        if global { ("seg", "seg active") } else { ("seg active", "seg") };
-    let global_href = format!("/guild/{guild}/levels?scope=global");
+    let (server, world) = if global {
+        (r#"class="seg""#, r#"class="seg active""#)
+    } else {
+        (r#"class="seg active""#, r#"class="seg""#)
+    };
+    let (server_current, world_current) = if global {
+        ("", r#" aria-current="page""#)
+    } else {
+        (r#" aria-current="page""#, "")
+    };
     format!(
-        r#"<div class="segmented" role="tablist"><a class="{server}" href="/guild/{guild}/levels">This server</a><a class="{world}" href="{global_href}">Global</a></div>"#
+        r#"<nav class="segmented" aria-label="Leaderboard"><a {server} href="/guild/{guild}/levels"{server_current}>This server</a><a {world} href="/guild/{guild}/levels?scope=global"{world_current}>Global</a></nav>"#
     )
 }
 
@@ -680,9 +708,31 @@ const NEXT_OFF: &str =
 
 fn pager(previous: &str, page: u32, next: &str) -> String {
     format!(
-        r#"<div class="pager">{previous}<span class="pager-page">Page {page}</span>{next}</div>"#
+        r#"<nav class="pager" aria-label="Leaderboard pages">{previous}<span class="pager-page">Page {page}</span>{next}</nav>"#
     )
 }
+
+fn empty_board(title: &str, text: &str) -> String {
+    format!(
+        r#"<div class="empty-state"><h2 class="empty-title">{title}</h2><p class="empty-text">{text}</p></div>"#
+    )
+}
+
+fn past_the_end(first: &str) -> String {
+    format!(
+        r#"<div class="empty-state"><h2 class="empty-title">No one on this page</h2><p class="empty-text">No more entries on this page.</p><a href="{first}" class="btn btn-primary">Back to page 1</a></div>"#
+    )
+}
+
+/// The in-page error panel of a page that could not load its data.
+fn load_error(title: &str, message: &str) -> String {
+    format!(
+        r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">{title}</h2><p class="error-text">{message}</p><div class="error-actions">"#
+    )
+}
+
+const FORBIDDEN: &str = "You need Manage Server in this server to open this page.";
+const NOT_A_SERVER: &str = "That address doesn't name a Discord server.";
 
 #[sqlx::test(migrations = "../migrations")]
 async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord(
@@ -694,28 +744,29 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
 
     let empty = app.page("/guild/11/levels").await.unwrap();
     assert!(empty.contains(&title(LEVELS_TITLE)), "{empty}");
-    assert!(empty.contains(r"<h1>Levels</h1>"), "{empty}");
     assert!(
         empty.contains(
-            r#"<p class="page-lead">Message-XP rankings. Switch between this server and the global board.</p>"#
+            r#"<div class="page-header"><div><h1>Levels</h1><p class="page-lead">Message-XP rankings. Switch between this server and the global board.</p></div></div><div class="flash-region" role="status"></div>"#
         ),
         "{empty}"
     );
     assert!(empty.contains(&scope(11, false)), "{empty}");
     assert!(
-        empty.contains(
-            r#"<div class="empty">No one has chatted here yet - the board fills as members talk.</div>"#
-        ),
+        empty.contains(&empty_board(
+            "No one on the board yet",
+            "No one has chatted here yet - the board fills as members talk."
+        )),
         "{empty}"
     );
-    assert!(!empty.contains("leaderboard"), "{empty}");
+    assert!(!empty.contains("data-table"), "{empty}");
     assert!(!empty.contains(r#"class="pager""#), "{empty}");
     let empty = app.page("/guild/11/levels?scope=global").await.unwrap();
     assert!(empty.contains(&scope(11, true)), "{empty}");
     assert!(
-        empty.contains(
-            r#"<div class="empty">No one has earned global XP yet.</div>"#
-        ),
+        empty.contains(&empty_board(
+            "No one on the board yet",
+            "No one has earned global XP yet."
+        )),
         "{empty}"
     );
 
@@ -767,10 +818,10 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
     assert!(first.contains(&title(LEVELS_TITLE)), "{first}");
     assert!(first.contains(&scope(7, false)), "{first}");
     assert!(
-        first.contains(&format!(r#"<div class="leaderboard">{HEAD_ROW}"#)),
+        first.contains(&board_head("This server leaderboard, page 1")),
         "{first}"
     );
-    assert_eq!(count(&first, r#"<div class="lb-row">"#), 10, "{first}");
+    assert_eq!(count(&first, ENTRY), 10, "{first}");
     assert!(
         first.contains(&row(1, &avatar(1000, AVATAR), "Alice A", 20, 100, 50)),
         "{first}"
@@ -804,7 +855,7 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
         app.get("/guild/7%3Fscope=global/levels", Some(ADMIN)).await.unwrap();
     assert!(
         escaped.html.contains(
-            r#"<a class="seg active" href="/guild/7%3Fscope%3Dglobal/levels">"#
+            r#"<a class="seg active" href="/guild/7%3Fscope%3Dglobal/levels" aria-current="page">"#
         ),
         "{}",
         escaped.html
@@ -818,7 +869,11 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
     );
 
     let second = app.page("/guild/7/levels?page=2").await.unwrap();
-    assert_eq!(count(&second, r#"<div class="lb-row">"#), 2, "{second}");
+    assert_eq!(count(&second, ENTRY), 2, "{second}");
+    assert!(
+        second.contains(&board_head("This server leaderboard, page 2")),
+        "{second}"
+    );
     assert!(
         second.contains(&row(11, PLACEHOLDER, "User 1010", 10, 90, 60)),
         "{second}"
@@ -833,11 +888,8 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
     );
 
     let past = app.page("/guild/7/levels?page=3").await.unwrap();
-    assert!(
-        past.contains(r#"<div class="empty">No more entries on this page.</div>"#),
-        "{past}"
-    );
-    assert!(!past.contains("leaderboard"), "{past}");
+    assert!(past.contains(&past_the_end("/guild/7/levels")), "{past}");
+    assert!(!past.contains("data-table"), "{past}");
     assert!(
         past.contains(&pager(&previous_link("/guild/7/levels?page=2"), 3, NEXT_OFF)),
         "{past}"
@@ -850,7 +902,8 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
         "{world}"
     );
     assert!(world.contains(&row(2, PLACEHOLDER, "bob", 40, 10, 7)), "{world}");
-    assert_eq!(count(&world, r#"<div class="lb-row">"#), 2, "{world}");
+    assert_eq!(count(&world, ENTRY), 2, "{world}");
+    assert!(world.contains(&board_head("Global leaderboard, page 1")), "{world}");
     assert!(!world.contains(r#"class="pager""#), "{world}");
 
     let lenient = app.page("/guild/7/levels?scope=weird&page=-4").await.unwrap();
@@ -865,7 +918,7 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
     )));
     let paged = app.page("/guild/7/levels?scope=global&page=2").await.unwrap();
     assert!(
-        paged.contains(r#"<div class="empty">No more entries on this page.</div>"#),
+        paged.contains(&past_the_end("/guild/7/levels?scope=global")),
         "{paged}"
     );
     assert!(
@@ -883,27 +936,41 @@ async fn the_levels_page_pages_the_board_by_links_and_names_members_from_discord
     let member = app.get("/guild/7/levels", Some(MEMBER)).await.unwrap();
     assert_eq!(member.status, StatusCode::OK);
     assert!(
-        member.html.contains(
-            r#"<p class="error">Failed to load leaderboard: error running server function: forbidden</p>"#
-        ),
+        member
+            .html
+            .contains(&load_error("Couldn't load the leaderboard", FORBIDDEN)),
         "{}",
         member.html
     );
-    assert!(!member.html.contains("leaderboard\""), "{}", member.html);
+    assert!(!member.html.contains("data-table"), "{}", member.html);
+    assert!(
+        !member.html.contains("error running server function"),
+        "{}",
+        member.html
+    );
 
     let outsider = app.get("/guild/9/levels", Some(ADMIN)).await.unwrap();
-    assert!(outsider.html.contains(
-        "Failed to load leaderboard: error running server function: forbidden"
-    ));
+    assert!(
+        outsider
+            .html
+            .contains(&load_error("Couldn't load the leaderboard", FORBIDDEN))
+    );
     let malformed = app.get("/guild/abc/levels", Some(ADMIN)).await.unwrap();
-    assert!(malformed.html.contains(
-        "Failed to load leaderboard: error running server function: invalid guild id"
-    ));
+    assert!(
+        malformed
+            .html
+            .contains(&load_error("Couldn't load the leaderboard", NOT_A_SERVER)),
+        "{}",
+        malformed.html
+    );
 
     app.pool.close().await;
 }
 
 const RR_LEAD: &str = r#"<p class="page-lead">Every message → emoji → role mapping in this server, in one place."#;
+const EXTERNAL: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>"#;
+const CHECK: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>"#;
+const EMPTY_FLASH: &str = r#"<div class="flash-region" role="status"></div>"#;
 
 fn rr_row(
     index: usize,
@@ -911,17 +978,33 @@ fn rr_row(
     emoji: &str,
     role: &str,
     link: &str,
-    remove: &str,
+    shown_emoji: &str,
     fields: [&str; 3],
 ) -> String {
     let [channel_id, message_id, emoji_value] = fields;
     format!(
-        r#"<div class="rr-row"><span class="rr-channel">{channel}</span><span class="rr-cell">{emoji}</span><span class="rr-role">{role}</span><a class="rr-link" href="{link}" rel="external noreferrer" target="_blank">Message<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></a><form class="rr-remove" method="post" action="{remove}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="rr-{index}-remove-title" aria-describedby="rr-{index}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="rr-{index}-remove-title">Remove mapping for {role}?</h2><p class="dialog-desc" id="rr-{index}-remove-desc">Reactions already on the message stay, but they stop granting the role.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Remove mapping</button></div></div></dialog></div></form></div>"#
+        r#"<tr role="row"><th scope="row" role="rowheader" data-label="Channel">{channel}</th><td role="cell" data-label="Emoji">{emoji}</td><td role="cell" data-label="Role">{role}</td><td role="cell" data-label="Message"><a class="rr-link" href="{link}" rel="external noreferrer" target="_blank">Open in Discord{EXTERNAL}</a></td><td role="cell" data-label="Action"><form method="post" action="{RR_REMOVE}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{channel_id}"><input type="hidden" name="message_id" value="{message_id}"><input type="hidden" name="emoji" value="{emoji_value}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="rr-{index}-remove-title" aria-describedby="rr-{index}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="rr-{index}-remove-title">Remove the {shown_emoji} reaction role for {role}?</h2><p class="dialog-desc" id="rr-{index}-remove-desc">Reactions already on the message stay, but they stop granting the role.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Remove reaction role</button></div></div></dialog></div></form></td></tr>"#
     )
 }
 
-const RR_ADD: &str = "/guild/7/reaction-roles?action=add";
-const RR_REMOVE: &str = "/guild/7/reaction-roles?action=remove";
+/// The result line a section shows after a successful post.
+fn flashed(message: &str) -> String {
+    format!(
+        r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{CHECK}<span class="flash-text">{message}</span></p></div>"#
+    )
+}
+
+/// The reason at the top of form `form`.
+fn summary(form: &str, outcome: &str, message: &str) -> String {
+    format!(
+        r#"<div class="error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">{outcome}: {message}</div>"#
+    )
+}
+
+const RR_ADD: &str = "/guild/7/reaction-roles/add";
+const RR_REMOVE: &str = "/guild/7/reaction-roles/remove";
+const RR_TABLE: &str = r#"<div class="data-table-wrap"><table class="data-table" role="table"><caption class="visually-hidden">Reaction roles</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th><th scope="col" role="columnheader">Emoji</th><th scope="col" role="columnheader">Role</th><th scope="col" role="columnheader">Message</th><th scope="col" role="columnheader">Action</th></tr></thead><tbody role="rowgroup">"#;
+const RR_ENTRY: &str = r#"role="rowheader" data-label="Channel""#;
 
 #[sqlx::test(migrations = "../migrations")]
 async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
@@ -934,54 +1017,56 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
 
     let empty = app.page("/guild/7/reaction-roles").await.unwrap();
     assert!(empty.contains(&title(REACTION_ROLES_TITLE)), "{empty}");
-    assert!(empty.contains("<h1>Reaction Roles</h1>"), "{empty}");
+    assert!(empty.contains("<h1>Reaction roles</h1>"), "{empty}");
     assert!(empty.contains(RR_LEAD), "{empty}");
     assert!(
-        empty.contains(
-            r#"<div class="empty">No reaction roles yet - add one below and Zayden will seed the reaction for members to click.</div>"#
-        ),
-        "{empty}"
-    );
-    assert!(!empty.contains("rr-table"), "{empty}");
-    assert!(empty.contains(r#"<legend><svg class="icon""#), "{empty}");
-    assert!(empty.contains("Add a mapping</legend>"), "{empty}");
-    assert!(
         empty.contains(&format!(
-            r#"<form method="post" action="{RR_ADD}" data-pending=""><input type="hidden" name="guild" value="7">"#
+            r#"<section class="settings-section" id="add-reaction-role" aria-labelledby="add-reaction-role-title"><h2 class="label" id="add-reaction-role-title">Add a reaction role</h2><p class="page-lead">Leave the message ID blank and Zayden posts a new panel message in the chosen channel. Give an ID to attach the mapping to a message that already exists - several emoji can share one message.</p>{EMPTY_FLASH}<form method="post" action="{RR_ADD}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7">"#
         )),
         "{empty}"
     );
     assert!(
         empty.contains(
-            r#"<select class="input" id="field-channel_id" name="channel_id"><option value="" selected="">(not set)</option><option value="20"># rules</option><option value="21"># chat</option><option value="22"># bots</option></select>"#
+            r#"<label class="field-label" for="add-reaction-role-channel-id">Channel</label><div class="select"><select class="input" id="add-reaction-role-channel-id" name="channel_id" required="" aria-describedby="add-reaction-role-channel-id-help"><option value="" selected="">(not set)</option><option value="20"># rules</option><option value="21"># chat</option><option value="22"># bots</option></select>"#
         ),
         "{empty}"
     );
     assert!(
         empty.contains(
-            r#"<label for="field-message_id">Message ID (blank posts a new panel)</label><input class="input" id="field-message_id" type="text" name="message_id" value="" placeholder="(not set)" pattern="[0-9]*">"#
+            r#"<label class="field-label" for="add-reaction-role-message-id">Message ID</label><input class="input" id="add-reaction-role-message-id" type="text" name="message_id" value="" inputmode="numeric" pattern="[0-9]*" autocomplete="off" aria-describedby="add-reaction-role-message-id-help"><p class="field-help" id="add-reaction-role-message-id-help">Optional. Leave blank to post a new panel message.</p>"#
         ),
         "{empty}"
     );
     assert!(
         empty.contains(
-            r#"<label>Emoji</label><input class="input" type="text" name="emoji" placeholder="✅ or <:name:id>">"#
+            r#"<label class="field-label" for="add-reaction-role-emoji">Emoji</label><input class="input" id="add-reaction-role-emoji" type="text" name="emoji" value="" placeholder="✅ or <:name:id>" required="" autocomplete="off" aria-describedby="add-reaction-role-emoji-help">"#
         ),
         "{empty}"
     );
     assert!(
         empty.contains(
-            r#"<select class="input" id="field-role_id" name="role_id"><option value="" selected="">(not set)</option><option value="31">@Mod</option><option value="30">@Member</option></select>"#
+            r#"<select class="input" id="add-reaction-role-role-id" name="role_id" required="" aria-describedby="add-reaction-role-role-id-help"><option value="" selected="">(not set)</option><option value="31">@Mod</option><option value="30">@Member</option></select>"#
         ),
         "{empty}"
     );
     assert!(
         empty.contains(
-            r#"<div class="form-actions"><button type="submit" class="btn btn-primary">Add mapping</button></div></form><p class="page-lead">Leave the message ID blank and Zayden posts a new panel message in the chosen channel."#
+            r#"<p class="field-help" id="add-reaction-role-role-id-help">Zayden's role must be above the roles it assigns. In Discord, drag it above them under Server Settings &gt; Roles.</p>"#
         ),
         "{empty}"
     );
-    assert!(!empty.contains(r#"class="alert"#), "{empty}");
+    assert!(
+        empty.contains(&format!(
+            r#"<section class="settings-section" id="reaction-roles" aria-labelledby="reaction-roles-title"><h2 class="label" id="reaction-roles-title">Mappings</h2>{EMPTY_FLASH}<p class="page-lead">No reaction roles yet - add one above and Zayden will seed the reaction for members to click.</p></section>"#
+        )),
+        "{empty}"
+    );
+    assert!(
+        empty.find("Add a reaction role").unwrap() < empty.find("Mappings").unwrap(),
+        "{empty}"
+    );
+    assert!(!empty.contains("data-table"), "{empty}");
+    assert!(!empty.contains(r#"role="alert""#), "{empty}");
 
     app.discord.reply("POST", "/channels/20/messages", 200, &message_json(555, 20));
     app.discord.get("/channels/20/messages/555", &message_json(555, 20));
@@ -1020,36 +1105,57 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
 
     let unseeded = add("", "30", "\u{2705}").await;
     assert_eq!(unseeded.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(unseeded.html.contains(FAILED_SAVE), "{}", unseeded.html);
+    assert!(
+        unseeded.html.contains(r#"<div class="error" id="add-reaction-role-summary" role="alert" tabindex="-1" autofocus="">Not added: "#),
+        "{}",
+        unseeded.html
+    );
     assert!(
         unseeded.html.contains("reaction_roles_guild_id_fkey"),
         "{}",
         unseeded.html
     );
     assert!(unseeded.html.contains(&title(REACTION_ROLES_TITLE)));
-    assert!(unseeded.html.contains(r#"<div class="empty">No reaction roles yet"#));
+    assert!(
+        unseeded.html.contains(r#"<option value="20" selected="">"#),
+        "{}",
+        unseeded.html
+    );
+    assert!(
+        unseeded.html.contains(r#"name="emoji" value="✅""#),
+        "{}",
+        unseeded.html
+    );
+    assert!(unseeded.html.contains("No reaction roles yet"));
+    assert!(
+        !unseeded.html.contains("error running server function"),
+        "{}",
+        unseeded.html
+    );
     assert_eq!(app.mappings(7).await.unwrap().len(), 0);
 
     app.seed_guild(7).await.unwrap();
     let created = add("", "30", "\u{2705}").await;
     assert_eq!(created.status, StatusCode::SEE_OTHER);
-    assert_eq!(created.location.as_deref(), Some("/guild/7/reaction-roles?added=1"));
+    assert_eq!(
+        created.location.as_deref(),
+        Some("/guild/7/reaction-roles#add-reaction-role")
+    );
     assert_eq!(app.mappings(7).await.unwrap(), ["20/555/30/\u{2705}"]);
     assert_eq!(app.discord.count("POST", "/channels/20/messages"), 2);
-    let saved =
-        app.get("/guild/7/reaction-roles?added=1", Some(ADMIN)).await.unwrap();
+    let saved = app.follow(&created).await.unwrap();
     assert_eq!(saved.status, StatusCode::OK);
     assert_eq!(app.discord.count("POST", "/channels/20/messages"), 2);
-    assert_eq!(count(&saved.html, SAVED), 1, "{}", saved.html);
     assert!(
-        saved.html.contains(r#"<fieldset class="settings-section"><legend>"#),
+        saved.html.contains(&format!(
+            r#"several emoji can share one message.</p>{}<form method="post" action="{RR_ADD}""#,
+            flashed("Reaction role added.")
+        )),
         "{}",
         saved.html
     );
-    let alert_at = saved.html.find(SAVED).expect("saved alert");
-    let form_at = saved.html.find(&format!(r#"action="{RR_ADD}""#)).unwrap();
-    let table_at = saved.html.find("rr-table").unwrap();
-    assert!(table_at < alert_at && alert_at < form_at, "{}", saved.html);
+    assert_eq!(count(&saved.html, "flash-text"), 1, "{}", saved.html);
+    assert!(saved.html.contains(RR_TABLE), "{}", saved.html);
     assert!(
         saved.html.contains(&rr_row(
             0,
@@ -1057,55 +1163,68 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
             r#"<span class="rr-emoji">✅</span>"#,
             "@Member",
             "https://discord.com/channels/7/20/555",
-            RR_REMOVE,
+            "\u{2705}",
             ["20", "555", "\u{2705}"],
         )),
         "{}",
         saved.html
     );
+    let again = app.page("/guild/7/reaction-roles").await.unwrap();
+    assert!(!again.contains("flash-text"), "{again}");
 
     let duplicate = add("555", "31", "\u{2705}").await;
     assert_eq!(duplicate.status, StatusCode::UNPROCESSABLE_ENTITY);
+    let message = "that emoji is already mapped on that message";
+    assert!(
+        duplicate.html.contains(&summary("add-reaction-role", "Not added", message)),
+        "{}",
+        duplicate.html
+    );
+    assert!(
+        duplicate.html.contains(
+            r#"aria-describedby="add-reaction-role-emoji-help add-reaction-role-emoji-error" aria-invalid="true"><p class="field-help" id="add-reaction-role-emoji-help">"#
+        ),
+        "{}",
+        duplicate.html
+    );
     assert!(
         duplicate.html.contains(&format!(
-            "{FAILED_SAVE}that emoji is already mapped on that message</span>"
+            r#"<p class="field-error" id="add-reaction-role-emoji-error">{message}</p>"#
         )),
         "{}",
         duplicate.html
     );
-    assert_eq!(count(&duplicate.html, r#"class="rr-row""#), 1, "{}", duplicate.html);
+    assert_eq!(count(&duplicate.html, RR_ENTRY), 1, "{}", duplicate.html);
 
     let created = add("555", "31", "<:a:5>").await;
     assert_eq!(created.status, StatusCode::SEE_OTHER);
-    let custom =
-        app.get("/guild/7/reaction-roles?added=1", Some(ADMIN)).await.unwrap();
+    let custom = app.follow(&created).await.unwrap();
     assert!(
         custom.html.contains(
-            r#"<span class="rr-cell"><img class="rr-emoji-img" src="https://cdn.discordapp.com/emojis/5.png?size=32" alt=""></span><span class="rr-role">@Mod</span>"#
+            r#"<td role="cell" data-label="Emoji"><img class="rr-emoji-img" src="https://cdn.discordapp.com/emojis/5.png?size=32" alt=":a:" title=":a:"></td><td role="cell" data-label="Role">@Mod</td>"#
         ),
         "{}",
         custom.html
     );
-    assert_eq!(count(&custom.html, r#"class="rr-row""#), 2, "{}", custom.html);
+    assert!(
+        custom.html.contains("Remove the :a: reaction role for @Mod?"),
+        "{}",
+        custom.html
+    );
+    assert_eq!(count(&custom.html, RR_ENTRY), 2, "{}", custom.html);
 
     app.seed_mapping(7, 99, 1, 98, "\u{1f3ae}").await.unwrap();
     let listed = app.page("/guild/7/reaction-roles").await.unwrap();
-    assert_eq!(count(&listed, r#"class="rr-row""#), 3, "{listed}");
+    assert_eq!(count(&listed, RR_ENTRY), 3, "{listed}");
     assert!(
-        listed.contains(r#"<span class="rr-channel">#unknown (99)</span>"#),
+        listed.contains(r#"data-label="Channel">#unknown (99)</th>"#),
         "{listed}"
     );
     assert!(
-        listed.contains(r#"<span class="rr-role">@unknown (98)</span>"#),
+        listed.contains(r#"<td role="cell" data-label="Role">@unknown (98)</td>"#),
         "{listed}"
     );
-    assert!(
-        listed.contains(
-            r#"<div class="rr-row rr-head"><span>Channel</span><span>Emoji</span><span>Role</span><span></span><span></span></div>"#
-        ),
-        "{listed}"
-    );
-    assert!(!listed.contains(r#"class="alert"#), "{listed}");
+    assert!(!listed.contains(r#"role="alert""#), "{listed}");
 
     let remove =
         |channel: &'static str, message: &'static str, emoji: &'static str| {
@@ -1127,49 +1246,53 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         };
     let done = remove("20", "555", "\u{2705}").await;
     assert_eq!(done.status, StatusCode::SEE_OTHER);
-    assert_eq!(done.location.as_deref(), Some("/guild/7/reaction-roles?removed=1"));
+    assert_eq!(
+        done.location.as_deref(),
+        Some("/guild/7/reaction-roles#reaction-roles")
+    );
     assert_eq!(app.mappings(7).await.unwrap().len(), 2);
-    let removed =
-        app.get("/guild/7/reaction-roles?removed=1", Some(ADMIN)).await.unwrap();
+    let removed = app.follow(&done).await.unwrap();
     assert_eq!(removed.status, StatusCode::OK);
-    let alert_at = removed.html.find(SAVED).expect("saved alert");
-    assert!(alert_at < removed.html.find("rr-table").unwrap(), "{}", removed.html);
-    assert_eq!(count(&removed.html, SAVED), 1, "{}", removed.html);
+    assert!(
+        removed.html.contains(&format!(
+            r#"<h2 class="label" id="reaction-roles-title">Mappings</h2>{}{RR_TABLE}"#,
+            flashed("Reaction role removed.")
+        )),
+        "{}",
+        removed.html
+    );
     assert_eq!(app.discord.count("DELETE", "/channels/20/messages/555/"), 1);
 
-    for query in ["added=2", "added=", "removed=yes", "other=1", "added=1&removed=1"]
-    {
+    for query in ["added=1", "removed=1", "added=1&removed=1", "other=1"] {
         let reply = app
             .get(&format!("/guild/7/reaction-roles?{query}"), Some(ADMIN))
             .await
             .unwrap();
         assert_eq!(reply.status, StatusCode::OK, "{query}");
-        let expected = usize::from(query == "added=1&removed=1");
-        assert_eq!(count(&reply.html, SAVED), expected, "{query}");
+        assert!(!reply.html.contains("flash-text"), "{query}");
     }
-    let flagged = app
-        .get("/guild/7/reaction-roles?added=1&removed=1", Some(ADMIN))
-        .await
-        .unwrap();
-    assert!(
-        flagged.html.find(SAVED).unwrap()
-            > flagged.html.find("Add a mapping").unwrap(),
-        "{}",
-        flagged.html
-    );
 
     let invalid = remove("x", "555", "\u{2705}").await;
     assert_eq!(invalid.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        invalid.html.contains(&format!("{FAILED_SAVE}invalid channel</span>")),
+        invalid.html.contains(&summary(
+            "remove-reaction-role",
+            "Not removed",
+            "invalid channel"
+        )),
         "{}",
         invalid.html
     );
-    assert_eq!(count(&invalid.html, "alert error"), 1, "{}", invalid.html);
+    assert_eq!(count(&invalid.html, r#"role="alert""#), 1, "{}", invalid.html);
+    assert!(invalid.html.contains(&title(REACTION_ROLES_TITLE)));
 
     let invalid = add("", "", "\u{2705}").await;
     assert!(
-        invalid.html.contains(&format!("{FAILED_SAVE}invalid role</span>")),
+        invalid.html.contains(&summary(
+            "add-reaction-role",
+            "Not added",
+            "invalid role"
+        )),
         "{}",
         invalid.html
     );
@@ -1193,9 +1316,16 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         .unwrap();
     assert_eq!(missing.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        missing
-            .html
-            .contains(&format!("{FAILED_SAVE}missing field `role_id`</span>")),
+        missing.html.contains(&summary(
+            "add-reaction-role",
+            "Not added",
+            "missing field `role_id`"
+        )),
+        "{}",
+        missing.html
+    );
+    assert!(
+        missing.html.contains(r#"<p class="field-error" id="add-reaction-role-role-id-error">missing field `role_id`</p>"#),
         "{}",
         missing.html
     );
@@ -1214,7 +1344,11 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         .await
         .unwrap();
     assert_eq!(unknown.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(unknown.html.contains("unknown field `extra`"), "{}", unknown.html);
+    assert!(
+        unknown.html.contains("Not removed: unknown field `extra`"),
+        "{}",
+        unknown.html
+    );
     let aimed = app
         .post(
             RR_REMOVE,
@@ -1230,21 +1364,18 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         .unwrap();
     assert_eq!(aimed.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        aimed.html.contains("the form's guild is not the page's guild"),
+        aimed.html.contains("Not removed: the form's guild is not the page's guild"),
         "{}",
         aimed.html
     );
     assert_eq!(app.mappings(7).await.unwrap().len(), 2);
     assert_eq!(writes(&app), sent);
 
-    for path in [
-        "/guild/7/reaction-roles",
-        "/guild/7/reaction-roles?action=",
-        "/guild/7/reaction-roles?action=purge",
-    ] {
-        let reply = app.post(path, &[("guild", "7")], Some(ADMIN)).await.unwrap();
-        assert_eq!(reply.status, StatusCode::NOT_FOUND, "{path}");
-    }
+    let unknown_action = app
+        .post("/guild/7/reaction-roles/purge", &[("guild", "7")], Some(ADMIN))
+        .await
+        .unwrap();
+    assert_eq!(unknown_action.status, StatusCode::NOT_FOUND);
 
     let signed_out = app.post(RR_ADD, &[("guild", "7")], None).await.unwrap();
     assert!(login_redirect(&signed_out));
@@ -1255,13 +1386,13 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
     let member = app.get("/guild/7/reaction-roles", Some(MEMBER)).await.unwrap();
     assert_eq!(member.status, StatusCode::OK);
     assert!(
-        member.html.contains(
-            r#"<p class="error">Failed to load reaction roles: error running server function: forbidden</p>"#
-        ),
+        member
+            .html
+            .contains(&load_error("Couldn't load the reaction roles", FORBIDDEN)),
         "{}",
         member.html
     );
-    assert!(!member.html.contains("Add a mapping"), "{}", member.html);
+    assert!(!member.html.contains("Add a reaction role"), "{}", member.html);
     let refused = app
         .post(
             RR_REMOVE,
@@ -1277,11 +1408,21 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
         .unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        refused.html.contains("Failed to load reaction roles"),
+        refused.html.contains(&summary(
+            "page",
+            "Not saved",
+            "you need Manage Server in this server to change this"
+        )),
         "{}",
         refused.html
     );
-    assert!(!refused.html.contains("alert error"), "{}", refused.html);
+    assert!(
+        refused
+            .html
+            .contains(&load_error("Couldn't load the reaction roles", FORBIDDEN)),
+        "{}",
+        refused.html
+    );
     assert_eq!(app.mappings(7).await.unwrap().len(), 2);
 
     app.pool.close().await;
@@ -1290,62 +1431,59 @@ async fn the_reaction_role_page_lists_mappings_and_adds_and_removes_them(
 const GR: &str = "/guild/7/greetings";
 
 fn action(name: &str) -> String {
-    format!("{GR}?action={name}")
-}
-
-const MESSAGES_FORM_HEAD: &str = "Messages</legend>";
-const LEGEND_LIST: &str = r#"<ul class="greet-legend"><li><code>{user}</code> - mentions the person being greeted, or the sender when the command is run without a user.</li><li><code>{author}</code> - mentions whoever ran the command.</li><li>Leave a message blank to post just the image.</li></ul>"#;
-const SAVE_BUTTON: &str = "<div class=\"form-actions\"><button type=\"submit\" class=\"btn btn-primary\" data-pending-label=\"Saving\u{2026}\">Save</button></div></form>";
-const NO_IMAGES: &str = r#"<div class="empty">No images yet - the command will reply with just the message until you add one.</div>"#;
-
-fn message_input(label: &str, name: &str, value: &str) -> String {
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern=".*"></div>"#
-    )
-}
-
-fn cooldown_input(label: &str, name: &str, value: &str) -> String {
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="[0-9]*"></div>"#
-    )
-}
-
-fn messages_form(morning: &str, night: &str) -> String {
-    format!(
-        r#"<form method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7">{}{}{LEGEND_LIST}{SAVE_BUTTON}"#,
-        action("save-messages"),
-        message_input("Good morning message", "morning_message", morning),
-        message_input("Good night message", "night_message", night),
-    )
-}
-
-fn cooldowns_form(user: &str, guild: &str, floors: (u32, u32)) -> String {
-    format!(
-        r#"<form method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7">{}{}{SAVE_BUTTON}"#,
-        action("save-cooldowns"),
-        cooldown_input(
-            &format!("Per-member cooldown (seconds, min {})", floors.0),
-            "user_cooldown",
-            user
-        ),
-        cooldown_input(
-            &format!("Server-wide cooldown (seconds, min {})", floors.1),
-            "guild_cooldown",
-            guild
-        ),
-    )
-}
-
-fn image_form(kind: &str) -> String {
-    format!(
-        r#"<form method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="kind" value="{kind}"><div class="setting-field"><label>Image link</label><input class="input" type="url" name="url" placeholder="https://example.com/sunrise.gif" pattern="https://.*" required=""></div><div class="form-actions"><button type="submit" class="btn btn-primary">"#,
-        action("add-image")
-    )
+    format!("{GR}/{name}")
 }
 
 const CHANNEL_SELECT_OPTIONS: &str = "<option value=\"\" selected=\"\">(not set)</option><option value=\"23\">\u{25b8} Lounge</option><option value=\"20\"># rules</option><option value=\"21\"># chat</option><option value=\"22\"># bots</option>";
-const SEE_PLANS: &str = r#"<p class="page-lead">On Pro these floors drop to 3s and 1s. <a href="/upgrade">See plans</a>.</p>"#;
-const GOOD_WORKS_LEAD: &str = "Where /good works</legend><p class=\"page-lead\">With nothing listed, <code>/good</code> works in every channel. Add one or more and Discord hides the command everywhere else - it never even shows up in the picker. Adding a category covers every channel inside it.</p><p class=\"page-lead\">This writes the same command permissions as Discord's own Server Settings \u{2192} Integrations panel, so changes made either way show up in both.</p>";
+const LEGEND_LIST: &str = r#"<ul class="greet-legend"><li><code>{user}</code> - mentions the person being greeted, or the sender when the command is run without a user.</li><li><code>{author}</code> - mentions whoever ran the command.</li></ul>"#;
+const SEE_PLANS: &str = r#"<p class="plan-note"><span class="plan-tag">Pro</span><span>On Pro these floors drop to 3s and 1s.</span><a href="/upgrade">See plans</a></p>"#;
+const GOOD_WORKS_LEAD: &str = "<h2 class=\"label\" id=\"good-channels-title\">Where /good works</h2><p class=\"page-lead\">With nothing listed, <code>/good</code> works in every channel. Add one or more and Discord hides the command everywhere else - it never even shows up in the picker. Adding a category covers every channel inside it.</p><p class=\"page-lead\">This writes the same command permissions as Discord's own Server Settings \u{2192} Integrations panel, so changes made either way show up in both.</p>";
+const NO_IMAGES: &str = r#"<p class="page-lead">No images yet - the command replies with just the message until you add one.</p>"#;
+const NOT_SYNCED_HEADER: &str = r#"<p class="field-hint">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></div><div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div></div>"#;
+
+/// The markup of the `tag` element whose `id` is `id`, through its end tag.
+fn element<'a>(html: &'a str, tag: &str, id: &str) -> Option<&'a str> {
+    let at = html.find(&format!(r#"id="{id}""#))?;
+    let start = html.get(..at)?.rfind(&format!("<{tag}"))?;
+    let rest = html.get(start..)?;
+    let end = rest.find(&format!("</{tag}>")).map_or_else(
+        || rest.find('>').map(|end| end + 1),
+        |end| Some(end + tag.len() + 3),
+    )?;
+    rest.get(..end)
+}
+
+/// The `value` attribute of the input with id `id`.
+fn value<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    element(html, "input", id)?
+        .split_once(r#" value=""#)
+        .and_then(|(_, rest)| rest.split_once('"'))
+        .map(|(value, _)| value)
+}
+
+/// The inline error of field `id`.
+fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    let (_, rest) =
+        html.split_once(&format!(r#"<p class="field-error" id="{id}-error">"#))?;
+    rest.split_once("</p>").map(|(text, _)| text)
+}
+
+/// The result line in the save bar of the form in section `section`.
+fn bar_flash<'a>(html: &'a str, section: &str) -> Option<&'a str> {
+    let section = element(html, "section", section)?;
+    let (_, bar) = section.split_once(r#"<div class="save-bar""#)?;
+    let (_, rest) = bar.split_once(r#"<span class="flash-text">"#)?;
+    rest.split_once("</span>").map(|(text, _)| text)
+}
+
+/// The result line of section `section` outside a save bar.
+fn section_flash<'a>(html: &'a str, section: &str) -> Option<&'a str> {
+    let section = element(html, "section", section)?;
+    let (_, region) =
+        section.split_once(r#"<div class="flash-region" role="status">"#)?;
+    let (_, rest) = region.split_once(r#"<span class="flash-text">"#)?;
+    rest.split_once("</span>").map(|(text, _)| text)
+}
 
 #[sqlx::test(migrations = "../migrations")]
 async fn the_greetings_page_renders_every_section_for_a_member_admin(
@@ -1359,67 +1497,75 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
 
     let html = app.page(GR).await.unwrap();
     assert!(html.contains(&title(GREETINGS_TITLE)), "{html}");
-    assert!(html.contains("<h1>Greetings</h1>"), "{html}");
     assert!(
-        html.contains(
-            r#"<p class="page-lead">What Zayden posts for <code>/good morning</code> and <code>/good night</code>. Each subcommand replies with one image picked at random from its list, plus the message below if you set one.</p>"#
-        ),
+        html.contains(&format!(
+            r#"<div class="page-header"><div><h1>Greetings</h1><p class="page-lead">What Zayden posts for <code>/good morning</code> and <code>/good night</code>. Each subcommand replies with one image picked at random from its list, plus the message below if you set one.</p>{NOT_SYNCED_HEADER}"#
+        )),
+        "{html}"
+    );
+    assert!(!html.contains(r#"role="switch""#), "{html}");
+    assert!(
+        html.contains(&format!(
+            r#"<section class="settings-section" id="greeting-messages" aria-labelledby="greeting-messages-title"><h2 class="label" id="greeting-messages-title">Messages</h2><form method="post" action="{}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7">"#,
+            action("save-messages")
+        )),
         "{html}"
     );
     assert!(
+        html.contains(
+            r#"<label class="field-label" for="greeting-messages-morning-message">Good morning message</label><input class="input" id="greeting-messages-morning-message" type="text" name="morning_message" value="" autocomplete="off" aria-describedby="greeting-messages-morning-message-help"><p class="field-help" id="greeting-messages-morning-message-help">Up to 1500 characters. Leave blank to post just the image.</p>"#
+        ),
+        "{html}"
+    );
+    assert_eq!(value(&html, "greeting-messages-night-message"), Some(""));
+    assert!(
         html.contains(&format!(
-            "{MESSAGES_FORM_HEAD}{}</fieldset>",
-            messages_form("", "")
+            r#"{LEGEND_LIST}<div class="save-bar" data-save-bar="">"#
         )),
         "{html}"
     );
     assert!(
         html.contains(&format!(
-            r#"{GOOD_WORKS_LEAD}<div class="chip-list"></div><form class="chip-add" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><div class="setting-field"><label for="field-channel_id">Allow a channel</label><div class="select"><select class="input" id="field-channel_id" name="channel_id">{CHANNEL_SELECT_OPTIONS}</select>"#,
+            r#"{GOOD_WORKS_LEAD}<div class="flash-region" role="status"></div><p class="page-lead">No channels listed: <code>/good</code> works everywhere.</p><form method="post" action="{}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7"><div class="field-row"><label class="field-label" for="add-good-channel-channel-id">Allow a channel</label><div class="select"><select class="input" id="add-good-channel-channel-id" name="channel_id" required="" aria-describedby="add-good-channel-channel-id-help">{CHANNEL_SELECT_OPTIONS}</select>"#,
             action("add-channel")
         )),
         "{html}"
     );
     assert!(
         html.contains(
-            r#"<button type="submit" class="btn btn-ghost">Add channel</button></form></fieldset>"#
+            r#"<input class="input" id="greeting-cooldowns-user-cooldown" type="number" name="user_cooldown" value="15" min="15" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-user-cooldown-help"><p class="field-help" id="greeting-cooldowns-user-cooldown-help">In seconds: at least 15 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
         ),
         "{html}"
     );
     assert!(
-        html.contains(&format!(
-            r#"Cooldowns</legend><p class="page-lead">The per-member cooldown stops one person spamming <code>/good</code>; the server-wide one stops a crowd doing it between them. Both are in seconds, and both must stay at or above the minimum for this server's plan.</p>{}{SEE_PLANS}</fieldset>"#,
-            cooldowns_form("15", "3", (15, 3))
-        )),
+        html.contains(
+            r#"<input class="input" id="greeting-cooldowns-guild-cooldown" type="number" name="guild_cooldown" value="3" min="3" max="86400" step="1" autocomplete="off" aria-describedby="greeting-cooldowns-guild-cooldown-help"><p class="field-help" id="greeting-cooldowns-guild-cooldown-help">In seconds: at least 3 on the Free plan, at most 86400. Leave blank for the minimum.</p>"#
+        ),
         "{html}"
     );
-    for (heading, kind) in
-        [("Good morning images", "morning"), ("Good night images", "night")]
-    {
+    assert!(
+        html.contains(&format!(r#"{SEE_PLANS}<div class="save-bar""#)),
+        "{html}"
+    );
+    for kind in ["morning", "night"] {
         assert!(
             html.contains(&format!(
-                "{heading}</legend>{NO_IMAGES}{}",
-                image_form(kind)
+                r#"<span class="mono">0 of 50</span></h3><form method="post" action="{}" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7"><input type="hidden" name="kind" value="{kind}"><div class="field-row"><label class="field-label" for="add-{kind}-image-url">Image link</label><input class="input" id="add-{kind}-image-url" type="url" name="url" value="" pattern="https://.*" placeholder="https://example.com/sunrise.gif" required="" maxlength="2048""#,
+                action("add-image")
             )),
-            "{html}"
+            "{kind}: {html}"
         );
     }
-    assert_eq!(count(&html, "Up to 50 per greeting.</p></fieldset>"), 2, "{html}");
-    assert_eq!(count(&html, "alert"), 0, "{html}");
-    assert!(!html.contains("module-locked"), "{html}");
+    assert_eq!(count(&html, NO_IMAGES), 2, "{html}");
+    assert_eq!(count(&html, r#"role="alert""#), 0, "{html}");
+    assert_eq!(count(&html, "flash-text"), 0, "{html}");
 
     assert_eq!(app.app.entitlements.guild_tier(7).await, Tier::Free);
 
-    let added = app.page("/guild/7/greetings?channel_added=1").await.unwrap();
-    let alert_at = added.find(SAVED).expect("saved alert");
-    assert_eq!(count(&added, SAVED), 1, "{added}");
-    assert!(added.find(r#"<div class="chip-list">"#).unwrap() < alert_at, "{added}");
-    assert!(alert_at < added.find(r#"<form class="chip-add""#).unwrap(), "{added}");
-    let removed = app.page("/guild/7/greetings?channel_removed=1").await.unwrap();
-    assert_eq!(count(&removed, SAVED), 1, "{removed}");
-    for query in ["channel_added=0", "image_added=", "saved=1"] {
+    for query in ["channel_added=1", "channel_removed=1", "image_added=1", "saved=1"]
+    {
         let page = app.page(&format!("/guild/7/greetings?{query}")).await.unwrap();
-        assert_eq!(count(&page, SAVED), 0, "{query}");
+        assert_eq!(count(&page, "flash-text"), 0, "{query}");
     }
 
     app.mock_free_guild(12);
@@ -1431,25 +1577,30 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
         .unwrap();
     assert_eq!(app.app.entitlements.guild_tier(12).await, Tier::Pro);
     let pro = app.page("/guild/12/greetings").await.unwrap();
-    assert!(pro.contains("Per-member cooldown (seconds, min 3)"), "{pro}");
-    assert!(pro.contains("Server-wide cooldown (seconds, min 1)"), "{pro}");
+    assert!(pro.contains("In seconds: at least 3 on the Pro plan"), "{pro}");
+    assert!(pro.contains("In seconds: at least 1 on the Pro plan"), "{pro}");
+    assert!(pro.contains(r#"name="user_cooldown" value="15" min="3""#), "{pro}");
+    assert!(pro.contains(r#"name="guild_cooldown" value="3" min="1""#), "{pro}");
     assert!(!pro.contains("See plans"), "{pro}");
     assert!(!pro.contains("these floors drop"), "{pro}");
     let below = app
         .post(
-            "/guild/12/greetings?action=save-cooldowns",
+            "/guild/12/greetings/save-cooldowns",
             &[("guild", "12"), ("user_cooldown", "2"), ("guild_cooldown", "1")],
             Some(ADMIN),
         )
         .await
         .unwrap();
     assert_eq!(below.status, StatusCode::UNPROCESSABLE_ENTITY);
+    let floor = "On the Pro plan the per-member cooldown can't go below 3s. That is as low as this command goes.";
     assert!(
-        below.html.contains(&format!(
-            "{FAILED_SAVE}On the Pro plan the per-member cooldown can't go below 3s. That is as low as this command goes.</span>"
-        )),
+        below.html.contains(&summary("greeting-cooldowns", "Not saved", floor)),
         "{}",
         below.html
+    );
+    assert_eq!(
+        field_error(&below.html, "greeting-cooldowns-user-cooldown"),
+        Some(floor)
     );
 
     app.discord.reply(
@@ -1461,12 +1612,12 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     let unknown = app.page(GR).await.unwrap();
     assert!(
         unknown.contains(
-            r#"<div class="chip-list"></div><p class="module-locked">Discord didn't report which channels <code>/good</code> is allowed in, so its restrictions can't be shown or changed right now.</p></fieldset>"#
+            r#"<p class="warning">Discord didn't report which channels <code>/good</code> is allowed in, so its restrictions can't be shown or changed right now.</p></section>"#
         ),
         "{unknown}"
     );
     assert!(!unknown.contains("With nothing listed"), "{unknown}");
-    assert!(!unknown.contains("chip-add"), "{unknown}");
+    assert!(!unknown.contains(&action("add-channel")), "{unknown}");
     assert!(
         unknown.contains("This writes the same command permissions"),
         "{unknown}"
@@ -1475,19 +1626,17 @@ async fn the_greetings_page_renders_every_section_for_a_member_admin(
     let member = app.get(GR, Some(MEMBER)).await.unwrap();
     assert_eq!(member.status, StatusCode::OK);
     assert!(
-        member.html.contains(
-            r#"<p class="error">Failed to load greetings: error running server function: forbidden</p>"#
-        ),
+        member.html.contains(&load_error("Couldn't load the greetings", FORBIDDEN)),
         "{}",
         member.html
     );
-    assert!(!member.html.contains("Messages</legend>"), "{}", member.html);
+    assert!(!member.html.contains("greeting-messages"), "{}", member.html);
     assert!(login_redirect(&app.get(GR, None).await.unwrap()));
     let malformed = app.get("/guild/abc/greetings", Some(ADMIN)).await.unwrap();
     assert!(
-        malformed.html.contains(
-            "Failed to load greetings: error running server function: invalid guild id"
-        ),
+        malformed
+            .html
+            .contains(&load_error("Couldn't load the greetings", NOT_A_SERVER)),
         "{}",
         malformed.html
     );
@@ -1505,22 +1654,15 @@ async fn submit(
     app.post(&action(name), &all, Some(ADMIN)).await
 }
 
-fn image_card(url: &str, id: &str) -> String {
+fn image_card(url: &str, id: &str, host: &str, noun: &str) -> String {
     format!(
-        r#"<div class="greet-card"><img class="greet-thumb" src="{url}" alt="" loading="lazy"><a class="greet-url" href="{url}" rel="external noreferrer" target="_blank" title="{url}">{url}</a><form class="greet-remove" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><button type="submit" class="btn btn-ghost">"#,
+        r#"<li class="greet-card"><img class="greet-thumb" src="{url}" alt="Image from {host}" loading="lazy"><a class="greet-url" href="{url}" rel="external noreferrer" target="_blank" title="{url}">{url}</a><form class="greet-remove" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="image-{id}-remove-title" aria-describedby="image-{id}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="image-{id}-remove-title">Remove this {noun} image from {host}?</h2><p class="dialog-desc" id="image-{id}-remove-desc">{url}</p>"#,
         action("remove-image")
     )
 }
 
-fn saved_before(html: &str, later: &str) -> bool {
-    match (html.find(SAVED), html.find(later)) {
-        (Some(alert), Some(at)) => alert < at,
-        _ => false,
-    }
-}
-
 #[sqlx::test(migrations = "../migrations")]
-async fn the_greetings_saves_rerender_the_page_with_their_result(
+async fn the_greetings_saves_redirect_with_their_result_or_rerender_with_the_reason(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
@@ -1529,28 +1671,33 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     app.mock_free_guild(7);
     app.guild_directory(7);
 
-    let failure = |html: &str, message: &str| {
-        html.contains(&format!("{FAILED_SAVE}{message}</span>"))
-    };
-
     let saved = submit(&app, "save-messages", vec![
         ("morning_message", "  Good morning {user}!  "),
         ("night_message", "Night, {author}"),
     ])
     .await
     .unwrap();
-    assert_eq!(saved.status, StatusCode::OK);
-    assert!(saved.html.contains(&title(GREETINGS_TITLE)), "{}", saved.html);
-    assert!(
-        saved.html.contains(&format!(
-            "{MESSAGES_FORM_HEAD}{SAVED_ALERT}{}",
-            messages_form("  Good morning {user}!  ", "Night, {author}")
-        )),
-        "{}",
-        saved.html
+    assert_eq!(saved.status, StatusCode::SEE_OTHER);
+    assert_eq!(
+        saved.location.as_deref(),
+        Some("/guild/7/greetings#greeting-messages")
     );
-    assert_eq!(count(&saved.html, SAVED), 1, "{}", saved.html);
-    assert_eq!(count(&saved.html, "alert error"), 0, "{}", saved.html);
+    let page = app.follow(&saved).await.unwrap();
+    assert!(page.html.contains(&title(GREETINGS_TITLE)), "{}", page.html);
+    assert_eq!(
+        bar_flash(&page.html, "greeting-messages"),
+        Some("Greeting messages saved.")
+    );
+    assert_eq!(count(&page.html, "flash-text"), 1, "{}", page.html);
+    assert_eq!(
+        value(&page.html, "greeting-messages-morning-message"),
+        Some("Good morning {user}!")
+    );
+    assert_eq!(
+        value(&page.html, "greeting-messages-night-message"),
+        Some("Night, {author}")
+    );
+    assert_eq!(count(&page.html, r#"role="alert""#), 0, "{}", page.html);
 
     let too_long = "x".repeat(1501);
     let refused = submit(&app, "save-messages", vec![
@@ -1560,18 +1707,23 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     .await
     .unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(refused.html.contains(&title(GREETINGS_TITLE)), "{}", refused.html);
     assert!(
-        failure(
-            &refused.html,
+        refused.html.contains(&summary(
+            "greeting-messages",
+            "Not saved",
             "Greeting messages are limited to 1500 characters so the reply still fits once mentions are filled in."
-        ),
+        )),
         "{}",
         refused.html
     );
-    assert!(
-        refused.html.contains(&messages_form(&too_long, "kept?")),
-        "{}",
-        refused.html
+    assert_eq!(
+        value(&refused.html, "greeting-messages-morning-message"),
+        Some(too_long.as_str())
+    );
+    assert_eq!(
+        value(&refused.html, "greeting-messages-night-message"),
+        Some("kept?")
     );
 
     let cooldowns = submit(&app, "save-cooldowns", vec![
@@ -1580,9 +1732,19 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     ])
     .await
     .unwrap();
-    assert_eq!(cooldowns.status, StatusCode::OK);
-    assert!(saved_before(&cooldowns.html, &cooldowns_form("30", " 10 ", (15, 3))));
-    assert!(cooldowns.html.contains(SEE_PLANS), "{}", cooldowns.html);
+    assert_eq!(cooldowns.status, StatusCode::SEE_OTHER);
+    assert_eq!(
+        cooldowns.location.as_deref(),
+        Some("/guild/7/greetings#greeting-cooldowns")
+    );
+    let page = app.follow(&cooldowns).await.unwrap();
+    assert_eq!(
+        bar_flash(&page.html, "greeting-cooldowns"),
+        Some("Cooldowns saved.")
+    );
+    assert_eq!(value(&page.html, "greeting-cooldowns-user-cooldown"), Some("30"));
+    assert_eq!(value(&page.html, "greeting-cooldowns-guild-cooldown"), Some("10"));
+    assert!(page.html.contains(SEE_PLANS), "{}", page.html);
 
     let below = submit(&app, "save-cooldowns", vec![
         ("user_cooldown", "5"),
@@ -1591,19 +1753,18 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     .await
     .unwrap();
     assert_eq!(below.status, StatusCode::UNPROCESSABLE_ENTITY);
+    let floor = "On the Free plan the per-member cooldown can't go below 15s. Pro servers can go as low as 3s.";
     assert!(
-        failure(
-            &below.html,
-            "On the Free plan the per-member cooldown can't go below 15s. Pro servers can go as low as 3s."
-        ),
+        below.html.contains(&summary("greeting-cooldowns", "Not saved", floor)),
         "{}",
         below.html
     );
-    assert!(
-        below.html.contains(&cooldowns_form("5", "", (15, 3))),
-        "{}",
-        below.html
+    assert_eq!(
+        field_error(&below.html, "greeting-cooldowns-user-cooldown"),
+        Some(floor)
     );
+    assert_eq!(value(&below.html, "greeting-cooldowns-user-cooldown"), Some("5"));
+    assert_eq!(value(&below.html, "greeting-cooldowns-guild-cooldown"), Some(""));
     let junk = submit(&app, "save-cooldowns", vec![
         ("user_cooldown", "abc"),
         ("guild_cooldown", "3"),
@@ -1611,10 +1772,11 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     .await
     .unwrap();
     assert!(
-        failure(
-            &junk.html,
+        junk.html.contains(&summary(
+            "greeting-cooldowns",
+            "Not saved",
             "`abc` isn't a usable cooldown. Enter a whole number of seconds between 0 and 86400."
-        ),
+        )),
         "{}",
         junk.html
     );
@@ -1627,32 +1789,30 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     assert_eq!(created.status, StatusCode::SEE_OTHER);
     assert_eq!(
         created.location.as_deref(),
-        Some("/guild/7/greetings?image_added=1")
+        Some("/guild/7/greetings#greeting-images")
     );
-    let added =
-        app.get("/guild/7/greetings?image_added=1", Some(ADMIN)).await.unwrap();
+    let added = app.follow(&created).await.unwrap();
     assert_eq!(added.status, StatusCode::OK);
     assert_eq!(app.images(7, "morning").await.unwrap(), [first]);
-    assert!(
-        saved_before(&added.html, "Good morning images</legend>"),
-        "{}",
-        added.html
-    );
-    assert_eq!(count(&added.html, SAVED), 1, "{}", added.html);
+    assert_eq!(section_flash(&added.html, "greeting-images"), Some("Image added."));
     let id =
         attribute_after(&added.html, r#"<input type="hidden" name="id" value=""#)
             .expect("image id")
             .to_owned();
     assert!(
-        added
-            .html
-            .contains(&format!("{}<svg class=\"icon\"", image_card(first, &id))),
+        added.html.contains(&format!(
+            r#"<ul class="greet-grid" aria-labelledby="morning-images-title">{}"#,
+            image_card(first, &id, "example.com", "good morning")
+        )),
         "{}",
         added.html
     );
     assert!(
-        added.html.contains(&format!("{}{NO_IMAGES}", "Good night images</legend>"))
+        added
+            .html
+            .contains(r#"Good morning images <span class="mono">1 of 50</span>"#)
     );
+    assert_eq!(count(&added.html, NO_IMAGES), 1, "{}", added.html);
     assert_eq!(count(&added.html, r#"class="greet-grid""#), 1, "{}", added.html);
 
     let duplicate =
@@ -1660,7 +1820,15 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
             .await
             .unwrap();
     assert_eq!(duplicate.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(failure(&duplicate.html, "That image link is already in the list."));
+    assert!(
+        duplicate.html.contains(&summary(
+            "add-morning-image",
+            "Not added",
+            "That image link is already in the list."
+        )),
+        "{}",
+        duplicate.html
+    );
     let insecure = submit(&app, "add-image", vec![
         ("kind", "night"),
         ("url", "http://example.com/a.gif"),
@@ -1668,10 +1836,11 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     .await
     .unwrap();
     assert!(
-        failure(
-            &insecure.html,
+        insecure.html.contains(&summary(
+            "add-night-image",
+            "Not added",
             "`http://example.com/a.gif` isn't a usable image link. Links must start with `https://`."
-        ),
+        )),
         "{}",
         insecure.html
     );
@@ -1679,41 +1848,71 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
         submit(&app, "add-image", vec![("kind", "noon"), ("url", first)])
             .await
             .unwrap();
-    assert!(failure(&unknown_kind.html, "Unknown greeting type `noon`."));
+    assert!(
+        unknown_kind.html.contains(&summary(
+            "add-morning-image",
+            "Not added",
+            "Unknown greeting type `noon`."
+        )),
+        "{}",
+        unknown_kind.html
+    );
     assert_eq!(app.images(7, "night").await.unwrap().len(), 0);
 
     let missing =
         submit(&app, "remove-image", vec![("id", "999999")]).await.unwrap();
     assert_eq!(missing.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(failure(&missing.html, "that image is not in this server's list"));
+    assert!(
+        missing.html.contains(&summary(
+            "remove-greeting-image",
+            "Not removed",
+            "that image is not in this server's list"
+        )),
+        "{}",
+        missing.html
+    );
     let done = submit(&app, "remove-image", vec![("id", &id)]).await.unwrap();
     assert_eq!(done.status, StatusCode::SEE_OTHER);
-    assert_eq!(done.location.as_deref(), Some("/guild/7/greetings?image_removed=1"));
-    let removed =
-        app.get("/guild/7/greetings?image_removed=1", Some(ADMIN)).await.unwrap();
+    assert_eq!(done.location.as_deref(), Some("/guild/7/greetings#greeting-images"));
+    let removed = app.follow(&done).await.unwrap();
     assert_eq!(removed.status, StatusCode::OK);
     assert_eq!(app.images(7, "morning").await.unwrap().len(), 0);
-    assert!(saved_before(&removed.html, "Good morning images</legend>"));
-    assert!(
-        removed.html.contains(&format!("Good morning images</legend>{NO_IMAGES}"))
+    assert_eq!(
+        section_flash(&removed.html, "greeting-images"),
+        Some("Image removed.")
     );
+    assert_eq!(count(&removed.html, NO_IMAGES), 2, "{}", removed.html);
 
     let unregistered =
         submit(&app, "add-channel", vec![("channel_id", "20")]).await.unwrap();
     assert_eq!(unregistered.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        unregistered.html.contains(&format!(
-            "<div class=\"chip-list\"></div>{FAILED_SAVE}/good isn't registered for this server yet</span>"
+        unregistered.html.contains(&summary(
+            "add-good-channel",
+            "Not added",
+            "/good isn't registered for this server yet"
         )),
         "{}",
         unregistered.html
     );
     let foreign =
         submit(&app, "add-channel", vec![("channel_id", "99")]).await.unwrap();
-    assert!(failure(&foreign.html, "that channel is not in this server"));
+    assert!(
+        foreign.html.contains("Not added: that channel is not in this server"),
+        "{}",
+        foreign.html
+    );
     let removed =
         submit(&app, "remove-channel", vec![("channel_id", "20")]).await.unwrap();
-    assert!(failure(&removed.html, "/good isn't registered for this server yet"));
+    assert!(
+        removed.html.contains(&summary(
+            "remove-good-channel",
+            "Not removed",
+            "/good isn't registered for this server yet"
+        )),
+        "{}",
+        removed.html
+    );
 
     let writes = |app: &Harness| {
         ["POST", "PUT", "DELETE"].map(|method| app.discord.count(method, "/"))
@@ -1729,9 +1928,17 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
         .unwrap();
     assert_eq!(missing.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        failure(&missing.html, "missing field `night_message`"),
+        missing.html.contains(&summary(
+            "greeting-messages",
+            "Not saved",
+            "missing field `night_message`"
+        )),
         "{}",
         missing.html
+    );
+    assert_eq!(
+        field_error(&missing.html, "greeting-messages-night-message"),
+        Some("missing field `night_message`")
     );
     let aimed = app
         .post(&action("remove-image"), &[("guild", "11"), ("id", &id)], Some(ADMIN))
@@ -1740,11 +1947,9 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
     assert_eq!(aimed.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(writes(&app), sent);
 
-    for path in [GR, "/guild/7/greetings?action=", "/guild/7/greetings?action=reset"]
-    {
-        let reply = app.post(path, &[("guild", "7")], Some(ADMIN)).await.unwrap();
-        assert_eq!(reply.status, StatusCode::NOT_FOUND, "{path}");
-    }
+    let unknown_action =
+        app.post(&action("reset"), &[("guild", "7")], Some(ADMIN)).await.unwrap();
+    assert_eq!(unknown_action.status, StatusCode::NOT_FOUND);
     let signed_out =
         app.post(&action("save-messages"), &[("guild", "7")], None).await.unwrap();
     assert!(login_redirect(&signed_out));
@@ -1757,10 +1962,70 @@ async fn the_greetings_saves_rerender_the_page_with_their_result(
         .await
         .unwrap();
     assert_eq!(member.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(member.html.contains(
-        "Failed to load greetings: error running server function: forbidden"
-    ));
+    assert!(
+        member.html.contains(&load_error("Couldn't load the greetings", FORBIDDEN)),
+        "{}",
+        member.html
+    );
     assert_eq!(app.images(7, "morning").await.unwrap().len(), 0);
+
+    app.pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn the_greetings_header_switch_turns_the_module_on_and_off(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(pool.clone(), |base| base).await.unwrap();
+    app.mock_free_guild(7);
+    app.guild_directory(7);
+    app.app.modules.set(7, "greetings", true).await.unwrap();
+    assert_eq!(
+        app.app.modules.states(7).await.unwrap().get("greetings").copied(),
+        Some(true)
+    );
+
+    let html = app.page(GR).await.unwrap();
+    assert!(
+        html.contains(&format!(
+            r#"<form class="settings-actions" method="post" action="{}" data-pending=""><input type="hidden" name="guild" value="7"><span class="lamp-status"><span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">On</span></span><button type="submit" class="switch" role="switch" aria-checked="true" aria-label="Greetings module" name="enabled" value="false">"#,
+            action("module")
+        )),
+        "{html}"
+    );
+    assert!(!html.contains("Not synced"), "{html}");
+
+    let off = submit(&app, "module", vec![("enabled", "false")]).await.unwrap();
+    assert_eq!(off.status, StatusCode::SEE_OTHER);
+    assert_eq!(off.location.as_deref(), Some(GR));
+    assert_eq!(
+        app.app.modules.states(7).await.unwrap().get("greetings").copied(),
+        Some(false)
+    );
+    let page = app.follow(&off).await.unwrap();
+    assert!(
+        page.html.contains(&format!(
+            r#"</div><div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{CHECK}<span class="flash-text">Greetings turned off.</span></p></div><section class="settings-section" id="greeting-messages""#
+        )),
+        "{}",
+        page.html
+    );
+    assert!(page.html.contains(r#"aria-checked="false" aria-label="Greetings module" name="enabled" value="true""#), "{}", page.html);
+
+    let refused = submit(&app, "module", vec![("enabled", "maybe")]).await.unwrap();
+    assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(
+        refused.html.contains(r#"<p class="error" role="alert">Not changed: invalid value for `enabled`</p>"#),
+        "{}",
+        refused.html
+    );
+    assert!(refused.html.contains(&title(GREETINGS_TITLE)), "{}", refused.html);
+    assert_eq!(
+        app.app.modules.states(7).await.unwrap().get("greetings").copied(),
+        Some(false)
+    );
 
     app.pool.close().await;
 }
@@ -1783,14 +2048,18 @@ async fn a_refused_greetings_save_keeps_what_was_typed_in_its_own_form_only(
     .unwrap();
     assert_eq!(low.status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(
-        low.html.contains(&format!(
-            "{FAILED_SAVE}On the Free plan the per-member cooldown can't go below 15s. Pro servers can go as low as 3s.</span>"
+        low.html.contains(&summary(
+            "greeting-cooldowns",
+            "Not saved",
+            "On the Free plan the per-member cooldown can't go below 15s. Pro servers can go as low as 3s."
         )),
         "{}",
         low.html
     );
-    assert!(low.html.contains(&cooldowns_form("1", "1", (15, 3))), "{}", low.html);
-    assert!(low.html.contains(&messages_form("", "")), "{}", low.html);
+    assert_eq!(value(&low.html, "greeting-cooldowns-user-cooldown"), Some("1"));
+    assert_eq!(value(&low.html, "greeting-cooldowns-guild-cooldown"), Some("1"));
+    assert_eq!(value(&low.html, "greeting-messages-morning-message"), Some(""));
+    assert_eq!(value(&low.html, "greeting-messages-night-message"), Some(""));
 
     let sibling = submit(&app, "save-messages", vec![
         ("morning_message", &"x".repeat(1501)),
@@ -1799,16 +2068,13 @@ async fn a_refused_greetings_save_keeps_what_was_typed_in_its_own_form_only(
     .await
     .unwrap();
     assert_eq!(sibling.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(
-        sibling.html.contains(&messages_form(&"x".repeat(1501), "typed night")),
-        "{}",
-        sibling.html
+    assert_eq!(
+        value(&sibling.html, "greeting-messages-night-message"),
+        Some("typed night")
     );
-    assert!(
-        sibling.html.contains(&cooldowns_form("15", "3", (15, 3))),
-        "{}",
-        sibling.html
-    );
+    assert_eq!(value(&sibling.html, "greeting-cooldowns-user-cooldown"), Some("15"));
+    assert_eq!(value(&sibling.html, "greeting-cooldowns-guild-cooldown"), Some("3"));
+    assert_eq!(count(&sibling.html, r#"role="alert""#), 1, "{}", sibling.html);
 
     let insecure = submit(&app, "add-image", vec![
         ("kind", "night"),
@@ -1817,10 +2083,11 @@ async fn a_refused_greetings_save_keeps_what_was_typed_in_its_own_form_only(
     .await
     .unwrap();
     assert_eq!(insecure.status, StatusCode::UNPROCESSABLE_ENTITY);
-    let typed = r#"name="url" value="http://example.com/a.gif""#;
-    assert_eq!(count(&insecure.html, typed), 1, "{}", insecure.html);
-    let night_at = insecure.html.find("Good night images</legend>").unwrap();
-    assert!(night_at < insecure.html.find(typed).unwrap(), "{}", insecure.html);
+    assert_eq!(
+        value(&insecure.html, "add-night-image-url"),
+        Some("http://example.com/a.gif")
+    );
+    assert_eq!(value(&insecure.html, "add-morning-image-url"), Some(""));
 
     let unregistered =
         submit(&app, "add-channel", vec![("channel_id", "21")]).await.unwrap();
@@ -1860,7 +2127,11 @@ async fn a_refused_reaction_role_add_keeps_what_was_typed(
         .await
         .unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(refused.html.contains(FAILED_SAVE), "{}", refused.html);
+    assert!(
+        refused.html.contains(r#"<div class="error" id="add-reaction-role-summary" role="alert" tabindex="-1" autofocus="">Not added: "#),
+        "{}",
+        refused.html
+    );
     for typed in [
         r#"<option value="21" selected=""># chat</option>"#,
         r#"<option value="31" selected="">@Mod</option>"#,
@@ -1900,38 +2171,48 @@ async fn operators_see_the_channel_list_read_only(
     let html = app.get("/guild/8/greetings", Some(OPERATOR)).await.unwrap().html;
     assert!(
         html.contains(
-            r#"<div class="chip-list"><span class="chip"><span class="chip-label">#chat</span></span><span class="chip"><span class="chip-label">#bots</span></span></div><p class="module-locked">Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in.</p></fieldset>"#
+            r#"<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th></tr></thead><tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#chat</th></tr><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#bots</th></tr></tbody></table></div><p class="warning">Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in.</p></section>"#
         ),
         "{html}"
     );
     assert!(html.contains("With nothing listed"), "{html}");
-    assert!(!html.contains("chip-add"), "{html}");
-    assert!(!html.contains("chip-remove"), "{html}");
+    assert!(!html.contains("/guild/8/greetings/add-channel"), "{html}");
+    assert!(!html.contains("/guild/8/greetings/remove-channel"), "{html}");
     assert!(
         html.contains(
-            r#"<form method="post" action="/guild/8/greetings?action=save-messages""#
+            r#"<form method="post" action="/guild/8/greetings/save-messages""#
         ),
         "{html}"
     );
 
     let refused = app
         .post(
-            "/guild/8/greetings?action=add-channel",
+            "/guild/8/greetings/add-channel",
             &[("guild", "8"), ("channel_id", "20")],
             Some(OPERATOR),
         )
         .await
         .unwrap();
     assert_eq!(refused.status, StatusCode::UNPROCESSABLE_ENTITY);
-    assert!(!refused.html.contains("alert error"), "{}", refused.html);
-    assert!(refused.html.contains("module-locked"), "{}", refused.html);
+    let (_, reason) = refused
+        .html
+        .split_once(r#"<div class="error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not added: "#)
+        .unwrap_or_else(|| panic!("{}", refused.html));
+    assert!(
+        reason.contains(r#"</div><p class="warning">Read-only: "#),
+        "{}",
+        refused.html
+    );
+    assert!(
+        !refused.html.contains("error running server function"),
+        "{}",
+        refused.html
+    );
     assert_eq!(app.discord.count("PUT", "/"), 0);
 
     let admin = app.get("/guild/8/greetings", Some(ADMIN)).await.unwrap();
     assert!(
-        admin.html.contains(
-            "Failed to load greetings: error running server function: forbidden"
-        ),
+        admin.html.contains(&load_error("Couldn't load the greetings", FORBIDDEN)),
         "{}",
         admin.html
     );
@@ -1959,7 +2240,7 @@ async fn channel_variants(cx: &Cx) -> ViewResult<impl View> {
         },
     ];
     let allowed = ["21".to_owned(), "99".to_owned()];
-    let feedback = (variant == "editable").then_some(Err("boom"));
+    let failed = (variant != "editable").then_some("boom");
 
     Ok(view! {
         channel_section(
@@ -1967,8 +2248,9 @@ async fn channel_variants(cx: &Cx) -> ViewResult<impl View> {
             allowed: (variant != "unknown").then_some(allowed.as_slice()),
             channels: &channels,
             locked: variant == "locked",
-            added: feedback,
-            removed: (variant == "editable").then_some(Ok(()))
+            add_error: failed,
+            add_field_error: failed,
+            remove_error: (variant == "editable").then_some("gone")
         )
     })
 }
@@ -1983,52 +2265,49 @@ async fn standalone(path: &str) -> TestResult<String> {
 }
 
 #[tokio::test]
-async fn the_channel_section_lists_removable_chips_for_a_member() {
+async fn the_channel_section_lists_removable_channels_for_a_member() {
     let html = standalone("/test/channels/editable").await.unwrap();
-    let remove = r#"<form class="chip" method="post" action="/guild/7/greetings?action=remove-channel" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="21"><span class="chip-label">#chat</span><button type="submit" class="chip-remove" title="Remove"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></form>"#;
+    let head = r#"<caption class="visually-hidden">Channels where /good works</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th><th scope="col" role="columnheader">Action</th></tr></thead>"#;
+    assert!(html.contains(head), "{html}");
+    for (index, id, label) in [(0, "21", "#chat"), (1, "99", "#unknown (99)")] {
+        assert!(
+            html.contains(&format!(
+                r#"<tr role="row"><th scope="row" role="rowheader" data-label="Channel">{label}</th><td role="cell" data-label="Action"><form method="post" action="/guild/7/greetings/remove-channel" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="channel_id" value="{id}"><div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" data-confirm-trigger="">Remove</button><dialog class="dialog" aria-labelledby="good-channel-{index}-remove-title" aria-describedby="good-channel-{index}-remove-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="good-channel-{index}-remove-title">Remove {label} from the /good list?</h2><p class="dialog-desc" id="good-channel-{index}-remove-desc">Removing the last channel lets /good work everywhere again.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Remove channel</button></div>"#
+            )),
+            "{label}: {html}"
+        );
+    }
+    let removed_at = html
+        .find(r#"<div class="error" id="remove-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not removed: gone</div>"#)
+        .unwrap();
+    assert!(removed_at < html.find("data-table-wrap").unwrap(), "{html}");
+    assert!(!html.contains("Not added"), "{html}");
     assert!(
-        html.contains(&format!(
-            r#"<div class="chip-list">{remove}{}"#,
-            remove
-                .replace("channel_id\" value=\"21", "channel_id\" value=\"99")
-                .replace("#chat", "#unknown (99)")
-        )),
-        "{html}"
-    );
-    assert!(
-        html.contains(
-            "</div><div class=\"alert success\" role=\"status\"><span>Saved.</span>"
-        ),
-        "{html}"
-    );
-    let removed_at = html.find(SAVED).unwrap();
-    let added_at = html.find(&format!("{FAILED_SAVE}boom</span>")).unwrap();
-    assert!(removed_at < added_at, "{html}");
-    assert!(added_at < html.find("chip-add").unwrap(), "{html}");
-    assert!(
-        html.contains(r#"<option value="22"># bots</option></select>"#)
+        html.contains(r#"<option value="" selected="">(not set)</option><option value="22"># bots</option></select>"#)
             && !html.contains(r#"<option value="21">"#),
         "{html}"
     );
+    assert!(html.contains(r#"<form method="post" action="/guild/7/greetings/add-channel" data-pending="" data-dirty-guard="">"#), "{html}");
 
     let locked = standalone("/test/channels/locked").await.unwrap();
     assert!(
         locked.contains(
-            r#"<span class="chip"><span class="chip-label">#chat</span></span><span class="chip"><span class="chip-label">#unknown (99)</span></span></div><p class="module-locked">Read-only"#
+            r#"<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Channel</th></tr></thead><tbody role="rowgroup"><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#chat</th></tr><tr role="row"><th scope="row" role="rowheader" data-label="Channel">#unknown (99)</th></tr></tbody></table></div><div class="error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not added: boom</div><p class="warning">Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in.</p></section>"#
         ),
         "{locked}"
     );
-    assert!(!locked.contains("chip-remove"), "{locked}");
-    assert!(!locked.contains("alert"), "{locked}");
+    assert!(!locked.contains("remove-channel"), "{locked}");
+    assert!(!locked.contains("add-channel"), "{locked}");
 
     let unknown = standalone("/test/channels/unknown").await.unwrap();
     assert!(
         unknown.contains(
-            r#"<div class="chip-list"></div><p class="module-locked">Discord didn't report which channels"#
+            r#"<div class="flash-region" role="status"></div><div class="error" id="add-good-channel-summary" role="alert" tabindex="-1" autofocus="">Not added: boom</div><p class="warning">Discord didn't report which channels <code>/good</code> is allowed in, so its restrictions can't be shown or changed right now.</p></section>"#
         ),
         "{unknown}"
     );
     assert!(!unknown.contains("With nothing listed"), "{unknown}");
+    assert!(!unknown.contains("data-table"), "{unknown}");
 }
 
 #[tokio::test]
@@ -2039,20 +2318,25 @@ async fn an_unreachable_database_leaves_each_page_with_its_load_error() {
         .unwrap();
     let app = harness_without_database(pool).unwrap();
 
-    for (path, heading) in [
-        ("/guild/7/levels", "Failed to load leaderboard: "),
-        ("/guild/7/reaction-roles", "Failed to load reaction roles: "),
-        ("/guild/7/greetings", "Failed to load greetings: "),
+    for (path, title) in [
+        ("/guild/7/levels", "Couldn't load the leaderboard"),
+        ("/guild/7/reaction-roles", "Couldn't load the reaction roles"),
+        ("/guild/7/greetings", "Couldn't load the greetings"),
     ] {
         let reply = app.get(path, Some("session=uncached-token")).await.unwrap();
         assert_eq!(reply.status, StatusCode::OK, "{path}");
+        let panel = format!(
+            r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">{title}</h2><p class="error-text">Something went wrong: "#
+        );
+        assert!(reply.html.contains(&panel), "{path}: {}", reply.html);
         assert!(
             reply.html.contains(&format!(
-                r#"<p class="error">{heading}error running server function: "#
+                r#"<div class="error-actions"><a href="{path}" class="btn btn-primary">Try again</a><a href="/guilds" class="btn btn-secondary">Back to servers</a></div></section>"#
             )),
             "{path}: {}",
             reply.html
         );
+        assert!(!reply.html.contains("error running server function"), "{path}");
         assert!(!reply.html.contains("Add a mapping"), "{path}");
     }
 }

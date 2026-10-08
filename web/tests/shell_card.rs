@@ -11,8 +11,6 @@ use web::shell::module_card;
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
 
-const LOCK: &str = "This module is switched on from its own settings page \u{2014} use Configure below.";
-const ICON_OPEN: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">"#;
 const CHEVRON_RIGHT: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>"#;
 
 fn module(
@@ -38,31 +36,33 @@ async fn card_unknown() -> ViewResult<impl View> {
 
 #[page("/card/off")]
 async fn card_off() -> ViewResult<impl View> {
-    let ai = module("ai", "AI Chat", Some(false), None);
-    Ok(view! { module_card(module: &ai, guild_id: "7") })
+    let gambling = module("gambling", "Gambling & Economy", Some(false), None);
+    Ok(view! { module_card(module: &gambling, guild_id: "7") })
 }
 
 #[page("/card/on")]
 async fn card_on() -> ViewResult<impl View> {
-    let gambling = module("gambling", "Gambling & Economy", Some(true), None);
-    Ok(view! { module_card(module: &gambling, guild_id: "7") })
+    let music = module("music", "Music", Some(true), None);
+    Ok(view! { module_card(module: &music, guild_id: "7") })
 }
 
-#[page("/card/locked")]
-async fn card_locked() -> ViewResult<impl View> {
-    let patreon = module("patreon", "Patreon", Some(true), Some(LOCK));
+#[page("/card/settings")]
+async fn card_settings() -> ViewResult<impl View> {
+    let ai = module("ai", "AI Chat", Some(false), None);
+    Ok(view! { module_card(module: &ai, guild_id: "7") })
+}
+
+#[page("/card/derived")]
+async fn card_derived() -> ViewResult<impl View> {
+    let patreon = module("patreon", "Patreon", Some(true), Some("derived"));
     Ok(view! { module_card(module: &patreon, guild_id: "7") })
 }
 
 #[page("/card/failed")]
 async fn card_failed() -> ViewResult<impl View> {
-    let ai = module("ai", "AI Chat", Some(false), None);
+    let music = module("music", "Music", Some(false), None);
     Ok(view! {
-        module_card(
-            module: &ai,
-            guild_id: "7",
-            error: Some("error running server function: nope")
-        )
+        module_card(module: &music, guild_id: "7", error: Some("Not changed: nope"))
     })
 }
 
@@ -71,7 +71,8 @@ async fn render(path: &str) -> TestResult<String> {
         .page(card_unknown)
         .page(card_off)
         .page(card_on)
-        .page(card_locked)
+        .page(card_settings)
+        .page(card_derived)
         .page(card_failed)
         .runtime()
         .build();
@@ -80,84 +81,86 @@ async fn render(path: &str) -> TestResult<String> {
     Ok(String::from_utf8(bytes.to_vec())?)
 }
 
-fn head(id_tint: &str) -> String {
+fn switch_form(module_id: &str, label: &str, on: bool) -> String {
+    let (lamp, text, checked, wanted) = if on {
+        ("on", "On", "true", "false")
+    } else {
+        ("off", "Off", "false", "true")
+    };
     format!(
-        r#"<div class="module-card"><div class="module-card-head"><div class="module-icon" style="--tint: {id_tint}">{ICON_OPEN}"#
+        r#"<form class="rack-form" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="{module_id}"><div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">{text}</span></span></div><div class="rack-control"><button type="submit" class="switch" role="switch" aria-checked="{checked}" aria-label="{label} module" name="enabled" value="{wanted}"><span class="switch-thumb" aria-hidden="true"></span></button></div></form>"#
+    )
+}
+
+fn status(lamp: &str, text: &str, href: &str) -> String {
+    format!(
+        r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="rack-control"><a href="{href}" class="rack-link">Manage{CHEVRON_RIGHT}</a></div>"#
     )
 }
 
 #[tokio::test]
-async fn an_unknown_module_cannot_be_switched() {
+async fn a_module_without_state_shows_the_not_synced_note_and_no_switch() {
     let html = render("/card/unknown").await.unwrap();
 
-    assert!(html.starts_with(&head("#a78bfa")), "{html}");
-    assert!(html.contains(
-        r#"<button class="toggle" aria-label="Toggle module" aria-pressed="mixed" disabled=""></button></div><div class="module-name">Music</div><p class="module-desc">Music description</p><p class="module-locked">Zayden hasn't set this module up for this server yet, so it can't be changed right now.</p><div class="module-card-foot"><span class="module-status">Unknown</span><a href="/guild/7/music" class="module-configure">Configure"#
-    ), "{html}");
-    assert!(
-        html.ends_with(&format!("Configure{CHEVRON_RIGHT}</a></div></div>")),
-        "{html}"
+    assert_eq!(
+        html,
+        concat!(
+            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music">Music</a></h3><p class="rack-desc">Music description</p></div>"#,
+            r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span></span></div><div class="rack-control"></div>"#,
+            r#"<p class="rack-note">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p></li>"#,
+        )
     );
-    assert!(!html.contains("<form"));
 }
 
 #[tokio::test]
-async fn a_switched_off_module_posts_a_switch_on() {
+async fn a_command_module_that_is_off_offers_a_switch_that_turns_it_on() {
     let html = render("/card/off").await.unwrap();
 
-    assert!(html.starts_with(&head("#22d3ee")), "{html}");
-    assert!(html.contains(
-        r#"<button class="toggle" aria-label="Toggle module" aria-pressed="false" form="module-toggle-ai" name="enabled" value="true"></button>"#
-    ), "{html}");
-    assert!(html.contains(
-        r#"<div class="module-card-foot"><span class="module-status">Disabled</span><a href="/guild/7/ai" class="module-configure">"#
-    ), "{html}");
-    assert!(html.ends_with(
-        r#"</div><form id="module-toggle-ai" method="post" action="/guild/7"><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="ai"></form></div>"#
-    ), "{html}");
-    assert!(!html.contains("module-locked"));
-    assert!(!html.contains("module-error"));
+    assert_eq!(
+        html,
+        format!(
+            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name">Gambling &amp; Economy</h3><p class="rack-desc">Gambling &amp; Economy description</p></div>{}</li>"#,
+            switch_form("gambling", "Gambling &amp; Economy", false)
+        )
+    );
 }
 
 #[tokio::test]
-async fn a_switched_on_module_posts_a_switch_off() {
+async fn a_command_module_that_is_on_offers_a_switch_that_turns_it_off() {
     let html = render("/card/on").await.unwrap();
 
-    assert!(html.starts_with(&head("#f472b6")), "{html}");
-    assert!(html.contains(
-        r#"<button class="toggle toggle-on" aria-label="Toggle module" aria-pressed="true" form="module-toggle-gambling" name="enabled" value="false"></button>"#
-    ), "{html}");
-    assert!(html.contains(
-        r#"<div class="module-card-foot"><span class="module-status on">Enabled</span></div><form id="module-toggle-gambling""#
-    ), "{html}");
-}
-
-#[tokio::test]
-async fn a_module_switched_on_elsewhere_is_locked() {
-    let html = render("/card/locked").await.unwrap();
-
-    assert!(html.contains(
-        r#"<button class="toggle toggle-on" aria-label="Toggle module" aria-pressed="true" disabled=""></button>"#
-    ), "{html}");
-    assert!(
-        html.contains(&format!(r#"<p class="module-locked">{LOCK}</p>"#)),
-        "{html}"
+    assert_eq!(
+        html,
+        format!(
+            r#"<li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/music">Music</a></h3><p class="rack-desc">Music description</p></div>{}</li>"#,
+            switch_form("music", "Music", true)
+        )
     );
-    assert!(html.contains(
-        r#"<span class="module-status on">Enabled</span><a href="/guild/7/patreon" class="module-configure">"#
-    ), "{html}");
-    assert!(!html.contains("<form"));
 }
 
 #[tokio::test]
-async fn a_failed_toggle_shows_its_error_on_the_card() {
+async fn modules_switched_elsewhere_show_their_state_and_a_link_instead_of_a_switch()
+{
+    let ai = render("/card/settings").await.unwrap();
+    assert!(ai.contains(&status("off", "Off", "/guild/7/ai")), "{ai}");
+    assert!(!ai.contains("<form"), "{ai}");
+    assert!(!ai.contains(r#"role="switch""#), "{ai}");
+
+    let patreon = render("/card/derived").await.unwrap();
+    assert!(patreon.contains(&status("on", "On", "/guild/7/patreon")), "{patreon}");
+    assert!(!patreon.contains("<form"), "{patreon}");
+    assert!(!patreon.contains("derived"), "{patreon}");
+}
+
+#[tokio::test]
+async fn a_failed_switch_shows_its_reason_on_the_row_and_keeps_the_stored_state() {
     let html = render("/card/failed").await.unwrap();
 
-    assert!(html.contains(
-        r#"<p class="module-desc">AI Chat description</p><p class="module-error">error running server function: nope</p><div class="module-card-foot"><span class="module-status failed">Not saved</span>"#
-    ), "{html}");
     assert!(
-        html.contains(r#"aria-pressed="false" form="module-toggle-ai""#),
+        html.ends_with(&format!(
+            r#"{}<p class="rack-error" role="alert">Not changed: nope</p></li>"#,
+            switch_form("music", "Music", false)
+        )),
         "{html}"
     );
 }

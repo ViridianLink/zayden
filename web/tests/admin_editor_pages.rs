@@ -18,7 +18,7 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, StatusCode, header};
-use web::admin::editor::{EDITOR_TITLE, LOADOUT_EDITOR_JS};
+use web::admin::editor::{EDITOR_TITLE, LOADOUT_EDITOR_JS, NEW_LOADOUT_TITLE};
 use web::admin::keys::display_name;
 use web::admin::{LoadoutForm, stored_form};
 use web::auth::SessionUser;
@@ -35,8 +35,8 @@ const ADMIN: i64 = 211_486_447_369_322_506;
 const ADMIN_COOKIE: &str = "session=admin-token";
 const PLAIN_COOKIE: &str = "session=plain-token";
 const TEST_POOL_CONNECTIONS: u32 = 2;
-const DENIED: &str =
-    r#"<p class="error">Admin access is required to edit loadouts.</p>"#;
+const FORBIDDEN: &str = r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's loadout admins.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section></div></main>"#;
+const NOT_FOUND: &str = r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">Loadout not found</h1><p class="error-text">There is no loadout at this address. It may have been deleted, or the link has a typo.</p><div class="error-actions"><a href="/admin/destiny2/loadouts" class="btn btn-primary">Back to loadouts</a></div></section></div></main>"#;
 const SCRIPT_SRC: &str = "/_topcoat/assets/loadout-editor-0123456789abcdef.js";
 
 fn bundle_dir() -> TestResult<PathBuf> {
@@ -331,11 +331,14 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
         has(
             html,
             &format!(
-                r#"<span class="chip"><span class="chip-label">{}</span>"#,
-                text(tag)
+                r#"<span class="chip"><span class="chip-label">{}</span><button type="button" class="chip-remove" aria-label="Remove tag {}">"#,
+                text(tag),
+                attr(tag)
             ),
         )?;
     }
+    has(html, r#"<label for="loadout-tag">Tags (up to 3)</label>"#)?;
+    has(html, r#"<div class="chip-add"><input class="input" id="loadout-tag">"#)?;
     has(
         html,
         &format!(
@@ -354,30 +357,27 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
 }
 
 #[sqlx::test(migrations = "../migrations")]
-async fn visitors_and_non_admins_see_the_inline_refusal(
+async fn visitors_sign_in_and_non_admins_get_a_403(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) -> TestResult {
     let (h, pool) = harness(options, connect).await?;
 
-    for path in [
-        "/admin/destiny2/loadouts/new",
-        "/admin/destiny2/loadouts/1",
-        "/admin/destiny2/loadouts/abc",
+    for (path, title) in [
+        ("/admin/destiny2/loadouts/new", NEW_LOADOUT_TITLE),
+        ("/admin/destiny2/loadouts/1", EDITOR_TITLE),
+        ("/admin/destiny2/loadouts/abc", EDITOR_TITLE),
     ] {
-        for cookie in [None, Some(PLAIN_COOKIE)] {
-            let (status, html) = h.get(path, cookie).await?;
-            assert_eq!(status, StatusCode::OK, "{path} {cookie:?}");
-            assert!(
-                html.contains(&format!("<title>{EDITOR_TITLE}</title>")),
-                "{path}"
-            );
-            assert!(
-                html.contains(&format!(r#"<div class="page">{DENIED}</div>"#)),
-                "{path} {cookie:?}"
-            );
-            assert!(!html.contains("loadout-editor"), "{path} {cookie:?}");
-        }
+        let response =
+            h.router.handle(Request::get(path).body(Body::empty())?).await;
+        assert_eq!(response.status(), StatusCode::SEE_OTHER, "{path}");
+        assert_eq!(response.headers()[header::LOCATION], "/login", "{path}");
+
+        let (status, html) = h.get(path, Some(PLAIN_COOKIE)).await?;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path}");
+        assert!(html.contains(&format!("<title>{title}</title>")), "{path}");
+        assert!(html.contains(FORBIDDEN), "{path}: {html}");
+        assert!(!html.contains("loadout-editor"), "{path}");
     }
 
     let blank = form_value(&web::admin::blank())?;
@@ -422,12 +422,20 @@ async fn admins_get_the_server_rendered_editor(
 ) -> TestResult {
     let (h, pool) = harness(options, connect).await?;
 
-    for path in ["/admin/destiny2/loadouts/new", "/admin/destiny2/loadouts/abc"] {
+    for path in ["/admin/destiny2/loadouts/new"] {
         let (status, html) = h.get(path, Some(ADMIN_COOKIE)).await?;
         assert_eq!(status, StatusCode::OK, "{path}");
+        assert!(
+            html.contains(&format!("<title>{NEW_LOADOUT_TITLE}</title>")),
+            "{path}"
+        );
         assert!(html.contains(r#"<form class="loadout-editor"><header class="loadout-header"><h1>New loadout</h1>"#), "{path}");
         assert!(html.contains(r#"<input id="loadout-name" class="input" type="text" placeholder="" value="">"#), "{path}");
-        assert!(html.contains(r#"<button type="button" role="radio" class="icon-choice-option active" aria-checked="true"><span>Hunter</span></button>"#));
+        assert!(html.contains(r#"<fieldset class="icon-choice-field"><legend class="label">Class</legend><div class="icon-choice"><label class="icon-choice-option active" for="loadout-class-0"><input type="radio" id="loadout-class-0" name="loadout-class" value="Hunter" checked=""><span>Hunter</span></label><label class="icon-choice-option" for="loadout-class-1"><input type="radio" id="loadout-class-1" name="loadout-class" value="Titan"><span>Titan</span></label>"#), "{html}");
+        for group in ["Subclass", "Mode"] {
+            assert!(html.contains(&format!(r#"<fieldset class="icon-choice-field"><legend class="label">{group}</legend>"#)), "{group}");
+        }
+        assert!(!html.contains(r#"role="radio""#), "{path}");
         assert!(html.contains(
             r#"<div class="budget" role="status" aria-live="polite"></div></header>"#
         ));
@@ -454,7 +462,7 @@ async fn admins_get_the_server_rendered_editor(
         );
         assert!(html.contains(r#"<span class="gear-name gear-empty">Add a weapon</span><span class="gear-meta">0 of 3</span>"#));
         assert!(html.contains(r#"aria-label="Move health, priority 1""#));
-        assert!(html.contains(r#"<div class="form-actions"><button type="submit" class="btn btn-primary">Save</button></div></form><dialog class="picker" aria-labelledby="picker-title"></dialog>"#));
+        assert!(html.contains(r#"<p class="visually-hidden" role="status"></p><div class="form-actions"><button type="submit" class="btn btn-primary">Save</button></div></form><dialog class="picker" aria-labelledby="picker-title"></dialog>"#));
         assert!(html.contains(&format!(
             r#"<script type="module" src="{SCRIPT_SRC}"></script>"#
         )));
@@ -478,12 +486,14 @@ async fn admins_get_the_server_rendered_editor(
     assert_eq!(data["form"], form_value(&stored)?);
     assert_filled_markup(&html, &stored)?;
 
-    let (status, html) =
-        h.get("/admin/destiny2/loadouts/987654", Some(ADMIN_COOKIE)).await?;
-    assert_eq!(status, StatusCode::OK);
-    assert!(html.contains(
-        r#"<div class="page"><p class="error">Couldn't load the loadout: error running server function: loadout 987654 does not exist</p></div>"#
-    ));
+    for missing in ["987654", "abc", "-1"] {
+        let path = format!("/admin/destiny2/loadouts/{missing}");
+        let (status, html) = h.get(&path, Some(ADMIN_COOKIE)).await?;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+        assert!(html.contains(NOT_FOUND), "{path}: {html}");
+        assert!(html.contains(&format!("<title>{EDITOR_TITLE}</title>")), "{path}");
+        assert!(!html.contains("loadout-editor"), "{path}");
+    }
 
     pool.close().await;
     Ok(())

@@ -9,7 +9,8 @@ pub use page::editor_data;
 use topcoat::asset::{Asset, asset};
 use topcoat::router::{RouterBuilder, path_param};
 
-pub const EDITOR_TITLE: &str = "Edit Loadout - Zayden Dashboard";
+pub const EDITOR_TITLE: &str = "Edit loadout - Zayden Dashboard";
+pub const NEW_LOADOUT_TITLE: &str = "New loadout - Zayden Dashboard";
 pub const LOADOUT_EDITOR_JS: Asset = asset!("../../../assets/loadout-editor.js");
 
 path_param!(pub loadout_id);

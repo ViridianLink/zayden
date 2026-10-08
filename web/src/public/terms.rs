@@ -3,8 +3,21 @@ use topcoat::router::page;
 use topcoat::view::{View, component, view};
 
 use super::legal::{contact_email, legal_document};
+use super::privacy::legal_contents;
 
 const UPDATED: &str = "26 September 2026";
+
+const CONTENTS: &[(&str, &str)] = &[
+    ("acceptance", "Acceptance"),
+    ("discord", "Discord's rules"),
+    ("acceptable-use", "Acceptable use"),
+    ("server-admins", "Server admins"),
+    ("paid-features", "Paid features"),
+    ("warranty", "No warranty and limited liability"),
+    ("termination", "Termination"),
+    ("changes", "Changes and contact"),
+    ("governing-law", "Governing law"),
+];
 
 #[page("/terms")]
 pub(crate) async fn terms() -> Result<impl View> {
@@ -12,6 +25,7 @@ pub(crate) async fn terms() -> Result<impl View> {
         legal_document(
             title: "Terms of Service",
             updated: UPDATED,
+            legal_contents(entries: CONTENTS)
             acceptance()
             compliance()
             acceptable_use()

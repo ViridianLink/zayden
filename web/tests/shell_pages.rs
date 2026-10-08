@@ -394,7 +394,50 @@ const LEGAL: &str = r#"<nav class="legal-links" aria-label="Legal"><a href="/pri
 
 const SHIELD: &str = r#"<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>"#;
 const GAMEPAD: &str = r#"<line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>"#;
-const SUBSCRIBE: &str = r#"<div class="upgrade-actions"><a href="/invite" rel="external" class="btn btn-secondary">Subscribe via Discord</a></div>"#;
+const SUBSCRIBE: &str = r#"<div class="upgrade-actions"><p class="page-lead">Prefer to pay through Discord? Add Zayden to a server first, then subscribe from Zayden's profile in Discord.</p><a href="/invite" rel="external" class="btn btn-secondary">Add Zayden to Discord</a></div>"#;
+const OVERVIEW_HEADER: &str = r#"<div class="page"><div class="page-header"><div><h1>Overview</h1><p class="page-lead">Turn modules on or off for this server. A module that's off has its commands removed from the server.</p></div><a href="/guild/7/settings" class="btn btn-secondary">Server settings</a></div>"#;
+const ROW: &str = r#"<li class="rack-row">"#;
+const NOT_SYNCED: &str =
+    r#"<span class="lamp lamp-sync" aria-hidden="true"></span>"#;
+
+/// The `name=value` pair of the flash cookie a response sets.
+fn flash_cookie(response: &Response) -> Option<String> {
+    response
+        .headers()
+        .get_all(header::SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .find(|value| value.starts_with("flash=") && !value.starts_with("flash=;"))
+        .and_then(|value| value.split(';').next())
+        .map(str::to_owned)
+}
+
+/// The rack switch of a command module, in its posting form.
+fn rack_switch(module_id: &str, label: &str, on: bool) -> String {
+    let (lamp, text, checked, wanted) = if on {
+        ("on", "On", "true", "false")
+    } else {
+        ("off", "Off", "false", "true")
+    };
+    format!(
+        r#"<form class="rack-form" method="post" action="/guild/7" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="{module_id}"><div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">{text}</span></span></div><div class="rack-control"><button type="submit" class="switch" role="switch" aria-checked="{checked}" aria-label="{label} module" name="enabled" value="{wanted}"><span class="switch-thumb" aria-hidden="true"></span></button></div></form>"#
+    )
+}
+
+/// The status and link a module switched on its own page shows in the rack.
+fn rack_status(module_path: &str, on: bool) -> String {
+    let (lamp, text) = if on { ("on", "On") } else { ("off", "Off") };
+    format!(
+        r#"<div class="rack-state"><span class="lamp-status"><span class="lamp lamp-{lamp}" aria-hidden="true"></span><span class="lamp-text">{text}</span></span></div><div class="rack-control"><a href="/guild/7/{module_path}" class="rack-link">Manage{ICON_OPEN}<path d="m9 18 6-6-6-6"/></svg></a></div>"#
+    )
+}
+
+/// The result line a rack group shows after a switch.
+fn group_flash(group: &str, message: &str) -> String {
+    format!(
+        r#"<div id="modules-{group}"><div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{ICON_OPEN}{CHECK}<span class="flash-text">{message}</span></p></div><section class="rack-group""#
+    )
+}
 
 #[sqlx::test(migrations = "../migrations")]
 async fn the_guild_list_frames_the_managed_guilds(
@@ -433,7 +476,7 @@ async fn the_guild_list_frames_the_managed_guilds(
         "{html}"
     );
     assert!(html.contains(&format!(
-        r#"</header>{MAIN}<div class="page"><div class="page-header"><div><h1>Your Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="btn btn-secondary">Add to a server</a></div><div class="guild-grid">"#
+        r#"</header>{MAIN}<div class="page"><div class="page-header"><div><h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div><a href="/invite" rel="external" class="btn btn-secondary">Add Zayden to a server</a></div><div class="guild-grid">"#
     )), "{html}");
     assert!(html.contains(
         r#"<a href="/guild/7" class="guild-card"><span class="guild-icon placeholder">G</span><div class="guild-card-body"><div class="guild-name">Guild 7</div>"#
@@ -463,7 +506,7 @@ async fn the_guild_list_frames_the_managed_guilds(
     }
     assert!(
         html.contains(
-            r#"<p class="empty">You manage no servers with this account.</p>"#
+            r#"<h1>Servers</h1><p class="page-lead">Pick a server to configure Zayden.</p></div></div><div class="empty-state"><h2 class="empty-title">Add Zayden to a server you manage</h2><p class="empty-text">Servers appear here when you have Manage Server in them.</p><a href="/invite" rel="external" class="btn btn-primary">Add Zayden to a server</a></div>"#
         ),
         "{html}"
     );
@@ -502,7 +545,7 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     assert!(!has_role(&pool, 41, WebRole::Operator).await.unwrap());
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
 
-    assert!(html.contains("<title>Modules - Zayden Dashboard</title>"), "{html}");
+    assert!(html.contains("<title>Overview - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(
         r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
     ), "{html}");
@@ -542,31 +585,36 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
         2,
         "{html}"
     );
-    assert!(html.contains(&format!(
-        r#"{MAIN}<div class="page"><div class="page-header"><div><h1>Modules</h1><p class="page-lead">Turn modules on or off for this server. A module that's off has its commands removed from the server.</p></div><a href="/guild/7/settings/general" class="btn btn-secondary">Server settings</a></div>"#
-    )), "{html}");
-    assert_eq!(count(&html, r#"<div class="module-card">"#), 15, "{html}");
-    assert_eq!(
-        count(&html, r#"<span class="module-status">Unknown</span>"#),
-        11,
+    assert!(
+        html.contains(&format!(
+            r#"{MAIN}{OVERVIEW_HEADER}<div class="flash-region" role="status"></div><div id="modules-community"><section class="rack-group" aria-labelledby="rack-community"><h2 class="rack-heading label" id="rack-community">Community</h2><ul class="rack"><li class="rack-row"><div class="rack-main"><h3 class="rack-name"><a href="/guild/7/greetings">Greetings</a></h3>"#
+        )),
         "{html}"
     );
-    assert!(html.contains(
-        r#"<button class="toggle toggle-on" aria-label="Toggle module" aria-pressed="true" form="module-toggle-gambling" name="enabled" value="false"></button>"#
-    ), "{html}");
-    assert!(html.contains(
-        r#"<button class="toggle" aria-label="Toggle module" aria-pressed="false" form="module-toggle-ai" name="enabled" value="true"></button>"#
-    ), "{html}");
-    assert_eq!(
-        count(
-            &html,
-            "This module is switched on from its own settings page \u{2014} use Configure below."
-        ),
-        2,
+    for (group, heading, title) in [
+        ("support", "support---safety", "Support &amp; safety"),
+        ("voice", "voice---games", "Voice &amp; games"),
+        ("integrations", "integrations", "Integrations"),
+    ] {
+        assert!(
+            html.contains(&format!(
+                r#"<div id="modules-{group}"><section class="rack-group" aria-labelledby="rack-{heading}"><h2 class="rack-heading label" id="rack-{heading}">{title}</h2><ul class="rack">"#
+            )),
+            "{group}: {html}"
+        );
+    }
+    assert_eq!(count(&html, ROW), 15, "{html}");
+    assert_eq!(count(&html, NOT_SYNCED), 11, "{html}");
+    assert_eq!(count(&html, r#"role="switch""#), 1, "{html}");
+    assert!(
+        html.contains(&rack_switch("gambling", "Gambling &amp; Economy", true)),
         "{html}"
     );
-    assert_eq!(count(&html, r#"class="module-configure""#), 8, "{html}");
-    assert!(html.contains(r#"<form id="module-toggle-ai" method="post" action="/guild/7"><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="ai"></form>"#), "{html}");
+    for path in ["ai", "patreon", "youtube"] {
+        assert!(html.contains(&rack_status(path, false)), "{path}: {html}");
+    }
+    assert!(!html.contains("Toggle module"), "{html}");
+    assert!(!html.contains("module-card"), "{html}");
 
     let html = app.page("/guild/7/probe", Some(MEMBER)).await.unwrap();
     assert!(
@@ -586,7 +634,9 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     assert_eq!(count(&html, r#"class="nav-link" aria-current="page""#), 2, "{html}");
 
     let html = app.page("/guild/abc", Some(MEMBER)).await.unwrap();
-    assert!(html.contains(r#"<p class="error">Failed to load modules: error running server function: invalid guild id</p>"#), "{html}");
+    assert!(html.contains(&format!(
+        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Server not found</h1><p class="error-text">That address doesn't name a Discord server.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section></div></main>"#
+    )), "{html}");
     assert!(!html.contains("server-switcher"), "{html}");
     assert!(
         html.contains(&nav_link("/guild/abc", Some(GRID), "Overview", true)),
@@ -614,15 +664,17 @@ async fn the_chrome_and_a_streamed_page_body_share_one_connection(
     grant_role(&pool, 41, "operator").await.unwrap();
     let app = harness(&pool, Some(UPGRADE_URL)).await.unwrap();
 
-    for path in ["/guild/7", "/upgrade"] {
+    for (path, loaded) in
+        [("/guild/7", "All bot servers"), ("/upgrade", "plan-ladder")]
+    {
         let started = Instant::now();
         let html = app.page(path, Some(MEMBER)).await.unwrap();
         assert!(started.elapsed() < acquire, "{path} took {:?}", started.elapsed());
         assert!(!html.contains("timed out"), "{path}: {html}");
-        assert!(html.contains("All bot servers"), "{path}: {html}");
+        assert!(html.contains(loaded), "{path}: {html}");
     }
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
-    assert_eq!(count(&html, r#"<div class="module-card">"#), 15, "{html}");
+    assert_eq!(count(&html, ROW), 15, "{html}");
 
     pool.close().await;
 }
@@ -640,27 +692,42 @@ async fn module_toggles_save_or_report_why_not(
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
-    assert_eq!(location(&response), Some("/guild/7"));
+    assert_eq!(location(&response), Some("/guild/7#modules-integrations"));
+    let flash = flash_cookie(&response).unwrap();
     assert!(app.app.settings.ai.get(7).await.unwrap().enabled);
+    let html =
+        app.page("/guild/7", Some(&format!("{MEMBER}; {flash}"))).await.unwrap();
+    assert!(
+        html.contains(&group_flash("integrations", "AI Chat turned on.")),
+        "{html}"
+    );
+    assert!(html.contains(&rack_status("ai", true)), "{html}");
+    assert_eq!(count(&html, "flash-text"), 1, "{html}");
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
-    assert!(html.contains(
-        r#"<button class="toggle toggle-on" aria-label="Toggle module" aria-pressed="true" form="module-toggle-ai" name="enabled" value="false"></button>"#
-    ), "{html}");
+    assert!(!html.contains("flash-text"), "{html}");
 
     let response = app
         .post("/guild/7", "guild=7&module_id=gambling&enabled=true", Some(MEMBER))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/guild/7#modules-community"));
+    let flash = flash_cookie(&response).unwrap();
     assert_eq!(
         app.app.modules.states(7).await.unwrap().get("gambling").copied(),
         Some(true)
     );
-    let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
+    let html =
+        app.page("/guild/7", Some(&format!("{MEMBER}; {flash}"))).await.unwrap();
     assert!(
-        html.contains(
-            r#"form="module-toggle-gambling" name="enabled" value="false""#
-        ),
+        html.contains(&group_flash(
+            "community",
+            "Gambling &amp; Economy turned on."
+        )),
+        "{html}"
+    );
+    assert!(
+        html.contains(&rack_switch("gambling", "Gambling &amp; Economy", true)),
         "{html}"
     );
 
@@ -670,12 +737,13 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains("<title>Modules - Zayden Dashboard</title>"), "{html}");
+    assert!(html.contains("<title>Overview - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(r#"aria-controls="server-switcher""#), "{html}");
-    assert!(html.contains(
-        r#"<p class="module-error">error running server function: Patreon is switched on from its own settings page, not from this toggle.</p><div class="module-card-foot"><span class="module-status failed">Not saved</span>"#
-    ), "{html}");
-    assert_eq!(count(&html, "module-error"), 1, "{html}");
+    assert!(html.contains(&format!(
+        r#"{}<p class="rack-error" role="alert">Not changed: Patreon is switched on from its own settings page, not from this toggle.</p></li>"#,
+        rack_status("patreon", false)
+    )), "{html}");
+    assert_eq!(count(&html, "rack-error"), 1, "{html}");
 
     let response = app
         .post("/guild/7", "guild=8&module_id=ai&enabled=false", Some(MEMBER))
@@ -683,7 +751,7 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"<p class="module-error">error running server function: invalid value for `guild`</p>"#), "{html}");
+    assert!(html.contains(r#"<p class="rack-error" role="alert">Not changed: invalid value for `guild`</p>"#), "{html}");
     assert!(app.app.settings.ai.get(7).await.unwrap().enabled);
 
     let response = app
@@ -692,7 +760,7 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"<p class="module-error">error running server function: unknown field `extra`</p>"#), "{html}");
+    assert!(html.contains(r#"<p class="rack-error" role="alert">Not changed: unknown field `extra`</p>"#), "{html}");
 
     for (body, message) in [
         ("guild=7&enabled=true", "missing field `module_id`"),
@@ -703,11 +771,11 @@ async fn module_toggles_save_or_report_why_not(
         let html = body_text(response).await.unwrap();
         assert!(
             html.contains(&format!(
-                r#"<p class="error">error running server function: {message}</p><div class="module-grid">"#
+                r#"<div class="flash-region" role="status"></div><p class="error" role="alert">Not changed: {message}</p><div id="modules-community">"#
             )),
             "{html}"
         );
-        assert_eq!(count(&html, "module-error"), 0, "{html}");
+        assert_eq!(count(&html, "rack-error"), 0, "{html}");
     }
 
     let response = app
@@ -716,10 +784,35 @@ async fn module_toggles_save_or_report_why_not(
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"<p class="error">Failed to load modules: error running server function: forbidden</p>"#), "{html}");
+    assert!(html.contains(r#"<section class="error-panel"><h1 class="error-title">You can't manage this server</h1><p class="error-text">You need Manage Server in this server to change its modules.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section>"#), "{html}");
     assert!(!html.contains("server-switcher"), "{html}");
 
     pool.close().await;
+}
+
+const KOFI_HELP: &str = "The email you pay with on Ko-fi. It is linked to the Discord account you are signed in with.";
+
+/// The Ko-fi form; `email` is the typed value kept after a refusal and
+/// `error` the reason shown at the field.
+fn kofi_form(email: Option<&str>, error: Option<&str>) -> String {
+    let value =
+        email.map_or_else(String::new, |email| format!(r#" value="{email}""#));
+    let (described, invalid, line) = error.map_or_else(
+        || ("kofi-email-help".to_owned(), String::new(), String::new()),
+        |error| {
+            (
+                "kofi-email-help kofi-email-error".to_owned(),
+                r#" aria-invalid="true""#.to_owned(),
+                format!(
+                    r#"<p class="field-error" id="kofi-email-error">{error}</p>"#
+                ),
+            )
+        },
+    );
+    let invalid_row = if error.is_some() { r#" data-invalid="""# } else { "" };
+    format!(
+        r#"<div class="field-row"{invalid_row}><label class="field-label" for="kofi-email">Ko-fi email</label><div class="kofi-link-form"><input class="input" id="kofi-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required=""{value} aria-describedby="{described}"{invalid}><button type="submit" class="btn btn-primary" data-pending-label="Linking…">Link email</button></div><p class="field-help" id="kofi-email-help">{KOFI_HELP}</p>{line}</div></form></section>"#
+    )
 }
 
 #[sqlx::test(migrations = "../migrations")]
@@ -731,20 +824,33 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     let app = harness(&pool, Some(UPGRADE_URL)).await.unwrap();
 
     let html = app.page("/upgrade", None).await.unwrap();
-    assert!(html.contains("<title>Upgrade - Zayden Dashboard</title>"), "{html}");
-    assert!(html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-primary">Sign in</a>"#), "{html}");
+    assert!(html.contains("<title>Plans - Zayden</title>"), "{html}");
+    assert!(html.contains(r#"<header class="public-header">"#), "{html}");
+    assert!(
+        html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-secondary">Sign in</a>"#),
+        "{html}"
+    );
+    assert_eq!(
+        count(
+            &html,
+            r#"<a href="/upgrade" class="public-nav-link" aria-current="page">Pricing</a>"#
+        ),
+        2,
+        "{html}"
+    );
     assert!(!html.contains("plan-chip"), "{html}");
-    assert_eq!(count(&html, &outer_nav(false, true, "")), 2, "{html}");
-    assert!(html.contains(r#"<h1>Upgrade your plan</h1><p class="page-lead">Paid tiers are cost-recovery: they unlock the features that cost real money to run. Everything else stays free.</p>"#), "{html}");
+    assert!(!html.contains(r#"aria-label="Dashboard""#), "{html}");
+    assert!(html.contains(r#"<main id="main" class="public-main" tabindex="-1"><div class="page"><div class="page-header"><div><h1>Plans</h1><p class="page-lead">Paid tiers are cost-recovery: they unlock the features that cost real money to run. Everything else stays free.</p></div></div><div class="flash-region" role="status"></div><ul class="pro-features">"#), "{html}");
     assert!(html.contains(
         "<strong>Lower greeting cooldowns</strong><span>Drop the per-member and server-wide limits on <code>/good</code> - for servers busy enough to hit them.</span>"
     ), "{html}");
     assert!(html.contains(&format!(
-        r#"<div class="plan-ladder"><div class="plan-card plan-pro"><div class="plan-head"><span class="tier-badge tier-pro">Pro</span><span class="plan-price">$2.99<small>/mo</small></span></div><ul class="plan-specs"><li><strong>50 MB</strong> Palworld save uploads</li><li><strong>30 min</strong> upload cooldown</li></ul><a href="{UPGRADE_URL}" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Get Pro</a></div></div>{SUBSCRIBE}"#
+        r#"<div class="plan-ladder"><div class="plan-card plan-pro"><div class="plan-head"><span class="tier-badge tier-pro">Pro</span><span class="plan-price">$2.99<small>/mo</small></span></div><ul class="plan-specs"><li><strong>50 MB</strong> Palworld save uploads</li><li><strong>30 min</strong> upload cooldown</li></ul><a href="{UPGRADE_URL}" class="btn btn-primary" rel="external noopener noreferrer" target="_blank">Get Pro on upgrade.example</a></div></div>{SUBSCRIBE}"#
     )), "{html}");
-    assert!(html.contains(
-        r#"<div class="card"><p class="label">Link your Ko-fi email</p><p class="page-lead">Connect the email you subscribe with on Ko-fi so your paid membership follows your Discord account.</p><form method="post" action="/upgrade" data-pending=""><div class="kofi-link-form"><input class="input" type="email" name="email" placeholder="you@example.com" required=""><button type="submit" class="btn btn-primary">Link email</button></div></form></div>"#
-    ), "{html}");
+    assert!(html.contains(&format!(
+        r#"<section class="card" id="kofi" aria-labelledby="kofi-title"><h2 class="label" id="kofi-title">Link your Ko-fi email</h2><p class="page-lead">Connect the email you subscribe with on Ko-fi so your paid membership follows your Discord account.</p><div class="flash-region" role="status"></div><form method="post" action="/upgrade" data-pending="">{}"#,
+        kofi_form(None, None)
+    )), "{html}");
 
     app.app
         .entitlements
@@ -754,10 +860,12 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     assert_eq!(app.app.entitlements.user_tier(44).await, Tier::Pro);
     let html = app.page("/upgrade", Some(PRO)).await.unwrap();
     assert!(
-        html.contains(r#"<a href="/upgrade" class="plan-chip">Your plan: Pro</a>"#),
+        html.contains(
+            r#"<a href="/guilds" class="btn btn-primary">Open dashboard</a>"#
+        ),
         "{html}"
     );
-    assert!(!html.contains(FREE_CHIP), "{html}");
+    assert!(!html.contains("plan-chip"), "{html}");
     assert!(
         html.contains(r#"</ul><span class="plan-current">Your plan</span></div>"#),
         "{html}"
@@ -766,32 +874,40 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
 
     let response =
         app.post("/upgrade", "email=fan%40example.com", None).await.unwrap();
-    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
-    let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"value="fan@example.com"><button type="submit" class="btn btn-primary">Link email</button></div></form><p class="error">error running server function: unauthenticated</p></div>"#), "{html}");
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/login"));
 
     let response =
         app.post("/upgrade", "email=Fan%40Example.com", Some(MEMBER)).await.unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"value="Fan@Example.com"><button type="submit" class="btn btn-primary">Link email</button></div></form><p class="success">Ko-fi email linked.</p></div>"#), "{html}");
-    assert!(html.contains("<title>Upgrade - Zayden Dashboard</title>"), "{html}");
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/upgrade#kofi"));
+    let flash = flash_cookie(&response).unwrap();
+    let html =
+        app.page("/upgrade", Some(&format!("{MEMBER}; {flash}"))).await.unwrap();
+    assert!(html.contains(&format!(
+        r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">{ICON_OPEN}{CHECK}<span class="flash-text">Ko-fi email linked. Your paid membership now follows your Discord account.</span></p></div><form method="post" action="/upgrade" data-pending="">{}"#,
+        kofi_form(None, None)
+    )), "{html}");
+    assert!(html.contains("<title>Plans - Zayden</title>"), "{html}");
 
     let response =
         app.post("/upgrade", "email=fan%40example.com", Some(MEMBER)).await.unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(html.contains(r#"<p class="error">error running server function: This Ko-fi email is already linked to an account.</p>"#), "{html}");
+    let taken = "This Ko-fi email is already linked to an account.";
+    assert!(html.contains(&format!(
+        r#"<form method="post" action="/upgrade" data-pending=""><div class="error" id="kofi-summary" role="alert" tabindex="-1" autofocus="">Not linked: {taken}</div>{}"#,
+        kofi_form(Some("fan@example.com"), Some(taken))
+    )), "{html}");
 
     let response = app.post("/upgrade", "email=nope", Some(MEMBER)).await.unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     let html = body_text(response).await.unwrap();
-    assert!(
-        html.contains(
-            r#"<p class="error">error running server function: invalid email</p>"#
-        ),
-        "{html}"
-    );
+    let invalid = "Enter the email address you use on Ko-fi.";
+    assert!(html.contains(&format!(
+        r#"<div class="error" id="kofi-summary" role="alert" tabindex="-1" autofocus="">Not linked: {invalid}</div>{}"#,
+        kofi_form(Some("nope"), Some(invalid))
+    )), "{html}");
 
     let unlinked = harness(&pool, None).await.unwrap();
     let html = unlinked.page("/upgrade", None).await.unwrap();
@@ -819,23 +935,30 @@ async fn an_unreachable_database_leaves_out_what_it_cannot_load() {
 
     let html = app.page("/upgrade", cookie).await.unwrap();
     assert!(!html.contains("Log out"), "{html}");
-    assert!(!html.contains("Sign in"), "{html}");
+    assert!(!html.contains(r#"class="btn btn-secondary">Sign in</a>"#), "{html}");
+    assert!(!html.contains("Open dashboard"), "{html}");
     assert!(!html.contains("plan-chip"), "{html}");
     assert!(!html.contains("plan-ladder"), "{html}");
     assert!(!html.contains(SUBSCRIBE), "{html}");
-    assert_eq!(count(&html, &outer_nav(false, true, "")), 2, "{html}");
     assert!(
-        html.contains(r#"<p class="label">Link your Ko-fi email</p>"#),
+        html.contains(
+            r#"<h2 class="label" id="kofi-title">Link your Ko-fi email</h2>"#
+        ),
         "{html}"
     );
 
     let html = app.page("/guilds", cookie).await.unwrap();
     assert!(
         html.contains(
-            r#"<p class="error">Failed to load servers: error running server function: "#
+            r#"<section class="error-panel"><h1 class="error-title">Couldn't load your servers</h1><p class="error-text">Your server list couldn't be loaded: "#
         ),
         "{html}"
     );
+    assert!(
+        html.contains(r#"<div class="error-actions"><a href="/guilds" class="btn btn-primary">Try again</a><a href="/invite" rel="external" class="btn btn-secondary">Add Zayden to a server</a></div>"#),
+        "{html}"
+    );
+    assert!(!html.contains("error running server function"), "{html}");
 }
 
 /// Seeded so the account menu never asks Discord for the signed-in user.
