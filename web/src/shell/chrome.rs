@@ -59,8 +59,6 @@ impl Viewer {
     }
 }
 
-/// The viewed guild for the switcher, from the switcher's own list when the
-/// lookup fails, so the way back to other servers stays.
 async fn current_guild(
     cx: &Cx,
     guild_id: Option<&str>,
@@ -73,10 +71,6 @@ async fn current_guild(
     )
 }
 
-// Topcoat stops polling a `suspense` child once its fallback is out, until
-// every sibling view has its first content. A page child that has taken a
-// pooled connection then holds it while a chrome lookup beside it waits for
-// one, until the acquire timeout. So the viewer loads before the page renders.
 #[component]
 pub(super) async fn frame(
     cx: &Cx,

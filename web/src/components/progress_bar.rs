@@ -6,8 +6,6 @@
 use topcoat::Result;
 use topcoat::view::{View, component, view};
 
-/// The navigation progress line under the top bar. The shared script starts it
-/// after 150 ms on link clicks and form submits.
 #[component]
 pub async fn progress_bar() -> Result<impl View> {
     Ok(
