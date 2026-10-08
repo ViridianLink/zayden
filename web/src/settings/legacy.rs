@@ -34,8 +34,6 @@ async fn moved(cx: &Cx) -> Result<impl View> {
     Ok(view! { "" })
 }
 
-/// A form posted to an old address is not applied: its fields no longer match
-/// the page's forms. The browser is sent to the page with a note to retry.
 #[page(POST "/guild/{guild_id}/settings/{section}")]
 async fn moved_post(cx: &Cx) -> Result<impl View> {
     flash::set(cx, FlashKind::Error, NOT_SAVED)?;

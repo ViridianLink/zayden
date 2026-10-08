@@ -162,9 +162,6 @@ pub async fn save_stale_settings(
         .map_err(server_err)
 }
 
-/// Saves the ticket channel, tags, idle reminders and stale marking together:
-/// the channel is checked against the server, then one row write applies
-/// every field.
 pub async fn save_ticket_settings(
     cx: &Cx,
     form: &TicketSettingsForm,
