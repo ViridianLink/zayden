@@ -49,8 +49,6 @@ pub(crate) async fn privacy() -> Result<impl View> {
     })
 }
 
-/// The in-page contents list of a legal page: one link per section, in
-/// order.
 #[component]
 pub(super) async fn legal_contents(entries: &[(&str, &str)]) -> Result<impl View> {
     Ok(view! {

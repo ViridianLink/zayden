@@ -336,7 +336,6 @@ async fn list_section(
     .boxed())
 }
 
-/// A custom emoji's name from `<:name:id>` or `<a:name:id>`.
 fn custom_emoji_name(emoji: &str) -> Option<&str> {
     let inner = emoji.strip_prefix('<')?.strip_suffix('>')?;
     let mut parts = inner.split(':');

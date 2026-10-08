@@ -12,7 +12,6 @@ use crate::auth::{AuthError, WebRole, require_role};
 use crate::components::error_panel::{ErrorAction, error_panel};
 use crate::shell::app_shell;
 
-/// Whether the signed-in viewer may open a staff page.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Gate {
     Open,
@@ -20,8 +19,6 @@ pub enum Gate {
     Unavailable(String),
 }
 
-/// The role check every staff page runs first: a signed-out visitor is sent
-/// to the login page (303); a viewer without the role gets the 403 page.
 pub async fn gate(cx: &Cx, role: WebRole) -> Result<Gate> {
     Ok(match require_role(cx, role).await {
         Ok(_) => Gate::Open,
@@ -43,8 +40,6 @@ const fn role_text(role: WebRole) -> &'static str {
     }
 }
 
-/// The page a closed gate shows, in the app shell: 403 for a missing role,
-/// 503 when the role could not be checked.
 #[component]
 pub async fn closed(role: WebRole, gate: Gate) -> Result<impl View> {
     let back = [ErrorAction::new("Back to servers", "/guilds")];

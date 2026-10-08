@@ -128,8 +128,6 @@ pub(crate) async fn landing(cx: &Cx) -> Result<impl View> {
     })
 }
 
-/// The hero's second action: a signed-in visitor goes straight to their
-/// servers; anyone else signs in with Discord first.
 #[component]
 async fn dashboard_link(signed_in: bool) -> Result<impl View> {
     Ok(view! {

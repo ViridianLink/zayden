@@ -87,7 +87,6 @@ impl FormAction for GreetingAction {
     }
 }
 
-/// The form an image is added with: one per greeting.
 fn add_image_form(kind: &str) -> &'static str {
     if kind == "night" { "add-night-image" } else { "add-morning-image" }
 }
@@ -148,7 +147,6 @@ pub(super) async fn show(cx: &Cx) -> Result<impl View> {
     })
 }
 
-/// A post from before the action paths: nothing is applied.
 #[page(POST "/guild/{guild_id}/greetings")]
 pub(super) async fn legacy_submit(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);

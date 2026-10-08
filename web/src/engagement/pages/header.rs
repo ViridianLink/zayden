@@ -40,9 +40,6 @@ async fn module_state(
     })
 }
 
-/// A page's title, one-line purpose and, for a page that belongs to a
-/// module, its lamp and (command modules only) its switch, which posts
-/// to `switch`. `failure` is a refused switch's reason.
 #[component]
 pub(super) async fn page_header(
     cx: &Cx,
@@ -123,8 +120,6 @@ fn requested(
     }
 }
 
-/// Turns the page's module on or off from its header switch, then
-/// answers 303 to the page with "<Module> turned on." as its result line.
 pub(super) async fn switch_module(
     cx: &Cx,
     guild_id: &str,

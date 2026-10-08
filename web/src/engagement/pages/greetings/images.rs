@@ -20,7 +20,6 @@ const LINK_HELP: &str = "Links must start with https:// and point straight at an
                          copy, so an image that later disappears from its host \
                          shows up blank here and in Discord.";
 
-/// Both greetings' image lists, each with its add form above its images.
 #[component]
 pub(super) async fn image_section(
     guild_id: &str,

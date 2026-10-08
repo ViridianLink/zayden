@@ -58,8 +58,6 @@ const RACK: &[RackGroup] = &[
 const OTHER: RackGroup =
     RackGroup { slug: "other", title: "Other modules", modules: &[] };
 
-/// An error message without the "error running server function: " prefix
-/// the data layer may carry.
 pub(super) fn plain(message: &str) -> &str {
     let prefix = server_error_text("");
     message.strip_prefix(prefix.as_str()).unwrap_or(message)
@@ -94,9 +92,6 @@ pub(super) async fn guild_overview(cx: &Cx) -> Result<impl View> {
     })
 }
 
-/// Turns a module on or off, then answers 303 to the module's group on the
-/// overview with the result line there. A refused switch re-renders the
-/// overview (422) with the reason on the module's row.
 #[page(POST "/guild/{guild_id}")]
 pub(super) async fn toggle_module(
     cx: &Cx,
