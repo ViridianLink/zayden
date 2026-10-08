@@ -15,8 +15,6 @@ pub(super) struct PageState {
 }
 
 impl PageState {
-    /// The state of a plain page load. Reads (and clears) the flash cookie, so
-    /// call it in the page handler before the body renders.
     pub(super) fn load(cx: &Cx) -> Self {
         Self { notice: flash::take(cx), failure: None }
     }

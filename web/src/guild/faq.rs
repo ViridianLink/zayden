@@ -42,8 +42,6 @@ form_args! {
     }
 }
 
-/// Saves the wiki connection and answer tuning together: the URL is checked
-/// first, then one row write applies every field.
 pub async fn save_wiki_settings(
     cx: &Cx,
     form: &WikiSettingsForm,
