@@ -30,6 +30,7 @@ use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use web::auth::{SessionUser, WebRole, has_role};
+use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::nav::{GENERAL, MODULES};
 use web::shell::GuildId;
@@ -96,6 +97,7 @@ fn write_bundle() -> TestResult<PathBuf> {
             "text/javascript",
             PENDING_SUBMIT.id().as_u64(),
         ),
+        ("logo-0123456789abcdef.png", "image/png", LOGO.id().as_u64()),
     ];
     let mut manifest = String::from("version = 1\n");
     for (file, content_type, id) in assets {
@@ -413,7 +415,7 @@ async fn the_guild_list_frames_the_managed_guilds(
         r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="app"><header class="app-header"><div class="topbar"><button type="button" class="topbar-button menu-button" popovertarget="nav-sheet" aria-controls="nav-sheet" aria-expanded="false" aria-label="Menu">"##
     ), "{html}");
     assert!(html.contains(
-        r#"<a href="/guilds" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span class="brand-name">Zayden</span></a>"#
+        r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
     ), "{html}");
     assert!(
         html.contains(&format!(
@@ -502,7 +504,7 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
 
     assert!(html.contains("<title>Modules - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(
-        r#"<a href="/guilds" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span class="brand-name">Zayden</span></a>"#
+        r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
     ), "{html}");
     assert!(html.contains(&format!(
         r#"<button type="button" class="topbar-button plate" popovertarget="server-switcher" aria-controls="server-switcher" aria-expanded="false" aria-label="Switch server, current: Guild 7"><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHEVRON_DOWN}</button>"#

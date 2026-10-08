@@ -29,6 +29,7 @@ use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use web::auth::SessionUser;
+use web::components::brand::LOGO;
 use web::document::STYLESHEET;
 use web::providers;
 use web::state::{SessionUsersCache, WebState};
@@ -180,14 +181,17 @@ fn write_bundle() -> TestResult<PathBuf> {
     std::fs::create_dir_all(&dir)?;
     std::fs::write(dir.join("tailwind-0123456789abcdef.css"), "")?;
     std::fs::write(dir.join("topcoat-0123456789abcdef.js"), "")?;
+    std::fs::write(dir.join("logo-0123456789abcdef.png"), "")?;
     std::fs::write(
         dir.join("manifest.toml"),
         format!(
             "version = 1\n\n\
              [[assets]]\nid = {}\nfile = \"tailwind-0123456789abcdef.css\"\nhash = \"0\"\ncontent_type = \"text/css\"\n\n\
-             [[assets]]\nid = {}\nfile = \"topcoat-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
+             [[assets]]\nid = {}\nfile = \"topcoat-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
+             [[assets]]\nid = {}\nfile = \"logo-0123456789abcdef.png\"\nhash = \"0\"\ncontent_type = \"image/png\"\n",
             STYLESHEET.id().as_u64(),
             topcoat::runtime::SCRIPT.id().as_u64(),
+            LOGO.id().as_u64(),
         ),
     )?;
     Ok(dir)

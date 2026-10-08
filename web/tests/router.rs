@@ -10,6 +10,7 @@ use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Method, Router, StatusCode, header, page};
 use topcoat::view::{View, view};
+use web::components::brand::LOGO;
 use web::document::{NOT_FOUND_TITLE, PAGE_TITLES, PENDING_SUBMIT, STYLESHEET};
 use web::router;
 
@@ -18,6 +19,7 @@ const STYLESHEET_BODY: &str = ".login-page{display:grid}";
 const RUNTIME_FILE: &str = "topcoat-0123456789abcdef.js";
 const RUNTIME_BODY: &str = "export {};";
 const PENDING_FILE: &str = "pending-submit-0123456789abcdef.js";
+const LOGO_FILE: &str = "logo-0123456789abcdef.png";
 const PENDING_BODY: &str = "export {};";
 
 type TestResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
@@ -45,16 +47,19 @@ fn write_bundle() -> TestResult<PathBuf> {
     std::fs::write(dir.join(STYLESHEET_FILE), STYLESHEET_BODY)?;
     std::fs::write(dir.join(RUNTIME_FILE), RUNTIME_BODY)?;
     std::fs::write(dir.join(PENDING_FILE), PENDING_BODY)?;
+    std::fs::write(dir.join(LOGO_FILE), "")?;
     std::fs::write(
         dir.join("manifest.toml"),
         format!(
             "version = 1\n\n\
              [[assets]]\nid = {}\nfile = \"{STYLESHEET_FILE}\"\nhash = \"0\"\ncontent_type = \"text/css\"\n\n\
              [[assets]]\nid = {}\nfile = \"{RUNTIME_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
-             [[assets]]\nid = {}\nfile = \"{PENDING_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
+             [[assets]]\nid = {}\nfile = \"{PENDING_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
+             [[assets]]\nid = {}\nfile = \"{LOGO_FILE}\"\nhash = \"0\"\ncontent_type = \"image/png\"\n",
             STYLESHEET.id().as_u64(),
             topcoat::runtime::SCRIPT.id().as_u64(),
             PENDING_SUBMIT.id().as_u64(),
+            LOGO.id().as_u64(),
         ),
     )?;
     Ok(dir)
@@ -97,7 +102,7 @@ async fn unknown_path_is_404_with_not_found_card() {
         "<body><a class=\"skip-link\" href=\"#main\">Skip to main content</a><div class=\"login-page\" id=\"main\" tabindex=\"-1\"><div class=\"hero-glow\"></div><div class=\"login-card\">"
     ));
     assert!(html.contains(
-        "<span class=\"brand\"><span class=\"brand-mark\">Z</span>Zayden</span>"
+        &format!("<span class=\"brand\"><img class=\"brand-mark\" src=\"/_topcoat/assets/{LOGO_FILE}\" alt=\"\" width=\"28\" height=\"28\">Zayden</span>")
     ));
     assert!(html.contains("<h1>404</h1>"));
     assert!(html.contains("<p>We couldn't find that page.</p>"));
@@ -144,7 +149,8 @@ async fn document_head_renders_shell_stylesheet_and_runtime() {
     let (font_hash, rest) = rest.split_once(".css\">").expect("a .css font link");
     assert!(font_hash.chars().all(|c| c.is_ascii_hexdigit()), "{font_hash}");
     assert!(rest.starts_with(&format!(
-        "<link rel=\"stylesheet\" href=\"/_topcoat/assets/{STYLESHEET_FILE}\">\
+        "<link rel=\"icon\" type=\"image/png\" href=\"/_topcoat/assets/{LOGO_FILE}\">\
+         <link rel=\"stylesheet\" href=\"/_topcoat/assets/{STYLESHEET_FILE}\">\
          <script type=\"module\" src=\"/_topcoat/assets/{RUNTIME_FILE}\" data-topcoat-usize-bits=\"{bits}\"></script>\
          <script type=\"module\" src=\"/_topcoat/assets/{PENDING_FILE}\"></script>\
          <title>{NOT_FOUND_TITLE}</title></head><body>\

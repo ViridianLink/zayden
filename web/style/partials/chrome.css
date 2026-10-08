@@ -38,15 +38,10 @@
 }
 
 .brand-mark {
-    display: inline-grid;
-    place-items: center;
+    flex: none;
     width: 28px;
     height: 28px;
-    border-radius: var(--radius-control);
-    background-color: var(--lamp);
-    color: var(--on-lamp);
-    font-size: 15px;
-    font-weight: 600;
+    border-radius: var(--radius-full);
 }
 
 .topbar-button {

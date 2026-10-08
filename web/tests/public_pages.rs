@@ -13,6 +13,7 @@ use topcoat::router::{Body, Router, RouterBuilder, StatusCode, header, page};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 use topcoat::view::{View, view};
 use web::auth::SessionUser;
+use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::public::layout::{SessionSlot, public_nav};
 use web::state::{SessionIdentity, SessionUsersCache, WebState};
@@ -35,16 +36,19 @@ fn write_bundle() -> TestResult<PathBuf> {
     std::fs::write(dir.join("tailwind-0123456789abcdef.css"), "")?;
     std::fs::write(dir.join("topcoat-0123456789abcdef.js"), "")?;
     std::fs::write(dir.join("pending-submit-0123456789abcdef.js"), "")?;
+    std::fs::write(dir.join("logo-0123456789abcdef.png"), "")?;
     std::fs::write(
         dir.join("manifest.toml"),
         format!(
             "version = 1\n\n\
              [[assets]]\nid = {}\nfile = \"tailwind-0123456789abcdef.css\"\nhash = \"0\"\ncontent_type = \"text/css\"\n\n\
              [[assets]]\nid = {}\nfile = \"topcoat-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
-             [[assets]]\nid = {}\nfile = \"pending-submit-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
+             [[assets]]\nid = {}\nfile = \"pending-submit-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
+             [[assets]]\nid = {}\nfile = \"logo-0123456789abcdef.png\"\nhash = \"0\"\ncontent_type = \"image/png\"\n",
             STYLESHEET.id().as_u64(),
             topcoat::runtime::SCRIPT.id().as_u64(),
             PENDING_SUBMIT.id().as_u64(),
+            LOGO.id().as_u64(),
         ),
     )?;
     Ok(dir)
@@ -244,7 +248,7 @@ async fn landing_has_the_public_chrome_and_hero() {
     ));
     assert!(html.contains(r#"<div class="public"><header class="public-header">"#));
     assert!(html.contains(
-        r#"<a href="/" class="brand"><span class="brand-mark" aria-hidden="true">Z</span><span class="brand-name">Zayden</span></a>"#
+        r#"<a href="/" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
     ));
     assert_eq!(
         vec!["The Discord bot that grows with your server"],
@@ -439,7 +443,7 @@ async fn login_renders_the_card_without_a_main_landmark() {
 
     assert!(html.contains(concat!(
         r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="login-page" id="main" tabindex="-1"><div class="hero-glow"></div><div class="login-card">"##,
-        r#"<span class="brand"><span class="brand-mark">Z</span>Zayden</span>"#,
+        r#"<span class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28">Zayden</span>"#,
         "<h1>Welcome back</h1>",
         "<p>Connect your Discord account to manage your server settings.</p>",
         r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a></div>"#,
