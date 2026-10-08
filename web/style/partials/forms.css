@@ -11,7 +11,7 @@
 }
 
 .input:focus-visible {
-    outline: 2px solid var(--lamp);
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 

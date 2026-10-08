@@ -34,7 +34,7 @@
   height: 44px;
   border-radius: var(--radius-control);
   font-size: 21px;
-  color: var(--lamp);
+  color: var(--accent);
   background-color: var(--lamp-wash);
 }
 
@@ -69,7 +69,7 @@
 }
 
 .module-status.on {
-  color: var(--lamp);
+  color: var(--accent);
 }
 
 .module-status.saving {
