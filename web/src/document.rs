@@ -8,7 +8,7 @@ use topcoat::router::error::NotFoundError;
 use topcoat::router::{RouterBuilder, Slot, StatusCode, layout, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
-use crate::admin::editor::EDITOR_TITLE;
+use crate::admin::editor::{EDITOR_TITLE, NEW_LOADOUT_TITLE};
 use crate::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
 use crate::components::brand::LOGO;
 use crate::engagement::pages::{
@@ -70,8 +70,28 @@ pub const PAGE_TITLES: &[(&str, &str)] = &[
     ),
     ("/admin/servers", SERVERS_TITLE),
     ("/admin/destiny2/loadouts", LOADOUTS_TITLE),
-    ("/admin/destiny2/loadouts/new", EDITOR_TITLE),
+    ("/admin/destiny2/loadouts/new", NEW_LOADOUT_TITLE),
     ("/admin/destiny2/loadouts/{loadout_id}", EDITOR_TITLE),
+];
+
+pub const PAGE_DESCRIPTIONS: &[(&str, &str)] = &[
+    (
+        "/",
+        "Zayden is a Discord bot for music, economy, family trees, Palworld, support tickets and more, configured per server from a web dashboard.",
+    ),
+    ("/login", "Sign in with Discord to manage Zayden in the servers you run."),
+    (
+        "/upgrade",
+        "Zayden's paid plans, what each one adds, and how to subscribe through Ko-fi or Discord.",
+    ),
+    (
+        "/privacy",
+        "What data Zayden and its dashboard collect, why, how long it is kept, and how to have it removed.",
+    ),
+    (
+        "/terms",
+        "The terms for using the Zayden Discord bot, its dashboard and its paid plans.",
+    ),
 ];
 
 #[must_use]
@@ -93,13 +113,24 @@ pub fn page_title(cx: &Cx) -> Cow<'static, str> {
 }
 
 fn title_for(pattern: &str) -> Option<&'static str> {
+    lookup(PAGE_TITLES, pattern)
+}
+
+/// The search and link-preview summary of a public page.
+#[must_use]
+pub fn page_description(cx: &Cx) -> Option<&'static str> {
+    lookup(PAGE_DESCRIPTIONS, try_endpoint(cx)?.path().as_str())
+}
+
+fn lookup(table: &[(&str, &'static str)], pattern: &str) -> Option<&'static str> {
     let pattern = if pattern.is_empty() { "/" } else { pattern };
-    PAGE_TITLES.iter().find(|(route, _)| *route == pattern).map(|(_, title)| *title)
+    table.iter().find(|(route, _)| *route == pattern).map(|(_, text)| *text)
 }
 
 #[layout("/")]
 pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
     let title = page_title(cx);
+    let description = page_description(cx);
 
     Ok(view! {
         error_boundary(
@@ -114,13 +145,17 @@ pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
                     },
                 )
             },
-            document(title: &title, (slot))
+            document(title: &title, description: description, (slot))
         )
     })
 }
 
 #[component]
-async fn document(title: &str, #[default] child: Child<'_>) -> Result<impl View> {
+async fn document(
+    title: &str,
+    #[default] description: Option<&str>,
+    #[default] child: Child<'_>,
+) -> Result<impl View> {
     Ok(view! {
         <!DOCTYPE html>
         <html lang="en" class="dark" data-bot="zayden">
@@ -128,6 +163,9 @@ async fn document(title: &str, #[default] child: Child<'_>) -> Result<impl View>
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <meta name="color-scheme" content="dark">
+                if let Some(description) = description {
+                    <meta name="description" content=(description)>
+                }
                 font_head()
                 <link rel="icon" type="image/png" href=(LOGO)>
                 <link rel="stylesheet" href=(STYLESHEET)>

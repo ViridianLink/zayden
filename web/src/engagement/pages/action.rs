@@ -2,28 +2,22 @@ use std::fmt::Write as _;
 
 use topcoat::Result;
 use topcoat::context::Cx;
-use topcoat::router::StatusCode;
-use topcoat::router::request::uri;
-use url::form_urlencoded;
+use topcoat::router::error::see_other;
 
-use crate::engagement::EngagementError;
-use crate::util::server_error_text;
+use crate::flash::{FlashKind, set as set_flash};
+use crate::settings::NOT_SAVED;
 
-const SELECTOR: &str = "action";
-
+/// A form an engagement page posts. Its `name` is the last segment of the
+/// form's address, `/guild/{id}/<page>/<name>`; for the forms that existed
+/// before, it is the legacy `?action=` value verbatim.
 pub(super) trait FormAction: Copy + PartialEq + 'static {
     const ALL: &'static [Self];
 
     fn name(self) -> &'static str;
 
-    fn flag(self) -> Option<&'static str>;
-}
-
-pub(super) fn requested<A: FormAction>(cx: &Cx) -> Option<A> {
-    let (_, name) = form_urlencoded::parse(uri(cx).query()?.as_bytes())
-        .find(|(key, _)| key == SELECTOR)?;
-
-    A::ALL.iter().copied().find(|action| action.name() == name)
+    fn find(name: &str) -> Option<Self> {
+        Self::ALL.iter().copied().find(|action| action.name() == name)
+    }
 }
 
 pub(super) fn path_segment(raw: &str) -> String {
@@ -38,92 +32,21 @@ pub(super) fn path_segment(raw: &str) -> String {
     })
 }
 
+pub(super) fn page_href(guild_id: &str, page: &str) -> String {
+    format!("/guild/{}/{page}", path_segment(guild_id))
+}
+
 pub(super) fn form_action(
     guild_id: &str,
     page: &str,
     action: impl FormAction,
 ) -> String {
-    format!("/guild/{}/{page}?{SELECTOR}={}", path_segment(guild_id), action.name())
+    format!("{}/{}", page_href(guild_id, page), action.name())
 }
 
-pub(super) fn flagged<A: FormAction>(cx: &Cx) -> Option<Submitted<A>> {
-    let query = uri(cx).query()?;
-
-    form_urlencoded::parse(query.as_bytes())
-        .filter(|(_, value)| value == "1")
-        .find_map(|(key, _)| {
-            A::ALL.iter().copied().find(|action| action.flag() == Some(&*key))
-        })
-        .map(|action| Submitted { action, values: Vec::new(), outcome: Ok(()) })
-}
-
-pub(super) fn loaded<T>(
-    result: std::result::Result<T, EngagementError>,
-) -> Result<std::result::Result<T, String>> {
-    match result {
-        Ok(value) => Ok(Ok(value)),
-        Err(error) => Ok(Err(server_error_text(error.redirect_unauthenticated()?))),
-    }
-}
-
-pub(super) struct Submitted<A> {
-    action: A,
-    values: Vec<(String, String)>,
-    outcome: std::result::Result<(), String>,
-}
-
-impl<A: FormAction> Submitted<A> {
-    pub(super) fn new(
-        action: A,
-        values: Vec<(String, String)>,
-        result: std::result::Result<(), EngagementError>,
-    ) -> Result<Self> {
-        let outcome = match result {
-            Ok(()) => Ok(()),
-            Err(error) => Err(error.redirect_unauthenticated()?.to_string()),
-        };
-
-        Ok(Self { action, values, outcome })
-    }
-
-    pub(super) fn success_location(
-        &self,
-        guild_id: &str,
-        page: &str,
-    ) -> Option<String> {
-        let flag = self.action.flag()?;
-
-        self.outcome
-            .is_ok()
-            .then(|| format!("/guild/{}/{page}?{flag}=1", path_segment(guild_id)))
-    }
-
-    pub(super) const fn status(&self) -> StatusCode {
-        match self.outcome {
-            Ok(()) => StatusCode::OK,
-            Err(_) => StatusCode::UNPROCESSABLE_ENTITY,
-        }
-    }
-}
-
-pub(super) fn feedback<A: FormAction>(
-    submitted: Option<&Submitted<A>>,
-    action: A,
-) -> Option<std::result::Result<(), &str>> {
-    submitted
-        .filter(|submitted| submitted.action == action)
-        .map(|submitted| submitted.outcome.as_ref().copied().map_err(String::as_str))
-}
-
-pub(super) fn typed<'a, A: FormAction>(
-    submitted: Option<&'a Submitted<A>>,
-    action: A,
-    name: &str,
-) -> Option<&'a str> {
-    submitted
-        .filter(|submitted| submitted.action == action)?
-        .values
-        .iter()
-        .find(|(key, _)| key == name)
-        .map(|(_, value)| value.as_str())
+/// A post to a page's own address is a form from before the action paths:
+/// nothing is applied and the page says so.
+pub(super) fn not_saved(cx: &Cx, guild_id: &str, page: &str) -> Result<()> {
+    set_flash(cx, FlashKind::Error, NOT_SAVED)?;
+    Err(see_other(page_href(guild_id, page)).into())
 }

@@ -6,7 +6,7 @@ mod messages;
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
-use topcoat::router::error::{not_found, see_other};
+use topcoat::router::error::not_found;
 use topcoat::router::{page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
@@ -14,16 +14,11 @@ pub use self::channels::channel_section;
 use self::cooldowns::cooldown_section;
 use self::images::image_section;
 use self::messages::messages_section;
-use super::action::{
-    FormAction,
-    Submitted,
-    feedback,
-    flagged,
-    loaded,
-    requested,
-    typed,
-};
-use crate::components::settings::save_feedback;
+use super::action::{FormAction, form_action, not_saved, page_href};
+use super::fields::{form_summary, load_error, load_problem};
+use super::header::{MODULE_FORM, page_header, switch_module};
+use super::state::{Done, PageState, rerender, settle};
+use crate::components::flash::flash;
 use crate::engagement::EngagementError;
 use crate::engagement::greetings::{
     AddGreetingImageForm,
@@ -42,7 +37,20 @@ use crate::engagement::greetings::{
 };
 use crate::shell::GuildId;
 
+path_param!(action);
+
 const PAGE: &str = "greetings";
+const TITLE: &str = "Greetings";
+const MODULE_ID: &str = "greetings";
+
+const MESSAGES: &str = "greeting-messages";
+const COOLDOWNS: &str = "greeting-cooldowns";
+const CHANNELS: &str = "good-channels";
+const IMAGES: &str = "greeting-images";
+
+const ADD_CHANNEL: &str = "add-good-channel";
+const REMOVE_CHANNEL: &str = "remove-good-channel";
+const REMOVE_IMAGE: &str = "remove-greeting-image";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum GreetingAction {
@@ -52,6 +60,7 @@ enum GreetingAction {
     RemoveChannel,
     AddImage,
     RemoveImage,
+    Module,
 }
 
 impl FormAction for GreetingAction {
@@ -62,6 +71,7 @@ impl FormAction for GreetingAction {
         Self::RemoveChannel,
         Self::AddImage,
         Self::RemoveImage,
+        Self::Module,
     ];
 
     fn name(self) -> &'static str {
@@ -72,50 +82,105 @@ impl FormAction for GreetingAction {
             Self::RemoveChannel => "remove-channel",
             Self::AddImage => "add-image",
             Self::RemoveImage => "remove-image",
+            Self::Module => "module",
+        }
+    }
+}
+
+/// The form an image is added with: one per greeting.
+fn add_image_form(kind: &str) -> &'static str {
+    if kind == "night" { "add-night-image" } else { "add-morning-image" }
+}
+
+impl GreetingAction {
+    fn form(self, values: &[(String, String)]) -> &'static str {
+        match self {
+            Self::SaveMessages => MESSAGES,
+            Self::SaveCooldowns => COOLDOWNS,
+            Self::AddChannel => ADD_CHANNEL,
+            Self::RemoveChannel => REMOVE_CHANNEL,
+            Self::AddImage => add_image_form(
+                values
+                    .iter()
+                    .find(|(name, _)| name == "kind")
+                    .map_or("", |(_, kind)| kind.as_str()),
+            ),
+            Self::RemoveImage => REMOVE_IMAGE,
+            Self::Module => MODULE_FORM,
         }
     }
 
-    fn flag(self) -> Option<&'static str> {
+    const fn section(self) -> Option<&'static str> {
         match self {
-            Self::SaveMessages | Self::SaveCooldowns => None,
-            Self::AddChannel => Some("channel_added"),
-            Self::RemoveChannel => Some("channel_removed"),
-            Self::AddImage => Some("image_added"),
-            Self::RemoveImage => Some("image_removed"),
+            Self::SaveMessages => Some(MESSAGES),
+            Self::SaveCooldowns => Some(COOLDOWNS),
+            Self::AddChannel | Self::RemoveChannel => Some(CHANNELS),
+            Self::AddImage | Self::RemoveImage => Some(IMAGES),
+            Self::Module => None,
         }
     }
+
+    const fn done(self) -> &'static str {
+        match self {
+            Self::SaveMessages => "Greeting messages saved.",
+            Self::SaveCooldowns => "Cooldowns saved.",
+            Self::AddChannel => "Channel added to the /good list.",
+            Self::RemoveChannel => "Channel removed from the /good list.",
+            Self::AddImage => "Image added.",
+            Self::RemoveImage => "Image removed.",
+            Self::Module => "",
+        }
+    }
+}
+
+pub(in crate::engagement::pages) fn action_names() -> Vec<&'static str> {
+    GreetingAction::ALL.iter().map(|action| action.name()).collect()
 }
 
 #[page("/guild/{guild_id}/greetings")]
 pub(super) async fn show(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! { greetings_page(guild_id: guild_id, submitted: flagged(cx)) })
+    Ok(view! {
+        (state.status())
+        greetings_page(guild_id: guild_id, state: &state)
+    })
 }
 
+/// A post from before the action paths: nothing is applied.
 #[page(POST "/guild/{guild_id}/greetings")]
+pub(super) async fn legacy_submit(cx: &Cx) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    not_saved(cx, guild_id, PAGE)?;
+    Ok(view! { "" })
+}
+
+#[page(POST "/guild/{guild_id}/greetings/{action}")]
 pub(super) async fn submit(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
-    let Some(action) = requested::<GreetingAction>(cx) else {
+    let Some(action) = GreetingAction::find(path_param::<Action>(cx)) else {
         return Err(not_found().into());
     };
+    let page = page_href(guild_id, PAGE);
 
-    let values = pairs.clone();
-    let submitted =
-        Submitted::new(action, values, save(cx, action, guild_id, pairs).await)?;
-    if let Some(location) = submitted.success_location(guild_id, PAGE) {
-        return Err(see_other(location).into());
-    }
-
-    let status = submitted.status();
-
-    Ok(view! {
-        (status)
-        greetings_page(guild_id: guild_id, submitted: Some(submitted))
-    })
+    let failure = if action == GreetingAction::Module {
+        switch_module(cx, guild_id, MODULE_ID, TITLE, page.clone(), pairs).await?
+    } else {
+        let form = action.form(&pairs);
+        let values = pairs.clone();
+        let result = save(cx, action, guild_id, pairs).await;
+        settle(cx, form, values, result, &Done {
+            page: page.clone(),
+            section: action.section(),
+            message: action.done(),
+        })?
+    };
+    Err::<(), _>(rerender(cx, &page, failure))?;
+    Ok(view! { "" })
 }
 
 async fn save(
@@ -155,6 +220,7 @@ async fn save(
             form.ensure_path_guild(guild_id)?;
             remove_greeting_image(cx, &form).await
         },
+        GreetingAction::Module => Err(EngagementError::Invalid("form")),
     }
 }
 
@@ -162,86 +228,82 @@ async fn save(
 async fn greetings_page(
     cx: &Cx,
     guild_id: &str,
-    #[default] submitted: Option<Submitted<GreetingAction>>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let data = loaded(load_greetings_page(cx, guild_id).await)?;
+    let data = match load_greetings_page(cx, guild_id).await {
+        Ok(page) => Ok(page),
+        Err(error) => Err(error.redirect_unauthenticated()?),
+    };
+    let switch = form_action(guild_id, PAGE, GreetingAction::Module);
 
     Ok(view! {
         <div class="page">
-            <div class="page-header">
-                <div>
-                    <h1>"Greetings"</h1>
-                    <p class="page-lead">
-                        "What Zayden posts for "
-                        <code>"/good morning"</code>
-                        " and "
-                        <code>"/good night"</code>
-                        ". Each subcommand replies with one image picked at random from its list, plus the message below if you set one."
-                    </p>
-                </div>
-            </div>
+            page_header(
+                guild_id: guild_id,
+                title: TITLE,
+                module_id: Some(MODULE_ID),
+                switch: Some(&switch),
+                failure: state.sent(MODULE_FORM).summary(),
+                "What Zayden posts for "
+                <code>"/good morning"</code>
+                " and "
+                <code>"/good night"</code>
+                ". Each subcommand replies with one image picked at random from its list, plus the message below if you set one."
+            )
+            flash(notice: state.top_notice())
             match data {
-                Err(error) => <p class="error">
-                    "Failed to load greetings: "
-                    (error)
-                </p>,
-                Ok(page) => greeting_sections(
-                    guild_id: guild_id,
-                    page: &page,
-                    submitted: submitted.as_ref()
-                ),
+                Err(error) => {
+                    let (message, actions) =
+                        load_problem(guild_id, &page_href(guild_id, PAGE), &error);
+                    if let Some(failure) = state.any_failure() {
+                        form_summary(form: "page", message: failure)
+                    }
+                    load_error(
+                        title: "Couldn't load the greetings",
+                        message: &message,
+                        actions: &actions
+                    )
+                }
+                Ok(page) => greeting_sections(guild_id: guild_id, page: &page, state: state),
             }
         </div>
-    })
+    }
+    .boxed())
 }
 
 #[component]
 async fn greeting_sections(
     guild_id: &str,
     page: &GreetingsPage,
-    submitted: Option<&Submitted<GreetingAction>>,
+    state: &PageState,
 ) -> Result<impl View> {
+    let added = state.sent(ADD_CHANNEL);
+    let removed = state.sent(REMOVE_CHANNEL);
+
     Ok(view! {
         messages_section(
             guild_id: guild_id,
             morning: page.view.morning_message.as_str(),
             night: page.view.night_message.as_str(),
-            submitted: submitted
+            state: state
         )
         channel_section(
             guild_id: guild_id,
             allowed: page.view.allowed_channels.as_deref(),
             channels: &page.channels,
             locked: page.view.channels_locked,
-            added: feedback(submitted, GreetingAction::AddChannel),
-            removed: feedback(submitted, GreetingAction::RemoveChannel),
-            chosen: typed(submitted, GreetingAction::AddChannel, "channel_id")
-                .unwrap_or_default()
+            notice: state.notice_for(CHANNELS),
+            add_error: added.summary(),
+            add_field_error: added.error("channel_id"),
+            remove_error: removed.summary(),
+            chosen: added.value("channel_id", "")
         )
-        cooldown_section(
-            guild_id: guild_id,
-            cooldowns: page.view.cooldowns,
-            submitted: submitted
-        )
-        if let Some(outcome) = feedback(submitted, GreetingAction::AddImage) {
-            save_feedback(outcome: outcome)
-        }
-        if let Some(outcome) = feedback(submitted, GreetingAction::RemoveImage) {
-            save_feedback(outcome: outcome)
-        }
+        cooldown_section(guild_id: guild_id, cooldowns: page.view.cooldowns, state: state)
         image_section(
             guild_id: guild_id,
-            kind: "morning",
-            title: "Good morning images",
-            images: &page.view.morning,
-            submitted: submitted
-        )
-        image_section(
-            guild_id: guild_id,
-            kind: "night",
-            title: "Good night images",
-            images: &page.view.night,
-            submitted: submitted
+            morning: &page.view.morning,
+            night: &page.view.night,
+            state: state
         )
     }
     .boxed())

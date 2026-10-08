@@ -6,6 +6,23 @@ use super::legal::{contact_email, legal_document};
 
 const UPDATED: &str = "26 September 2026";
 
+const CONTENTS: &[(&str, &str)] = &[
+    ("discord", "Information from Discord"),
+    ("features", "Data stored by each feature"),
+    ("ai", "AI features"),
+    ("payments", "Payments and entitlements"),
+    ("patreon", "Patreon connection"),
+    ("youtube", "YouTube connection"),
+    ("watch", "Jellyfin and Watch"),
+    ("palworld", "Palworld"),
+    ("third-parties", "Third parties"),
+    ("security", "Storage and security"),
+    ("retention", "How long data is kept"),
+    ("rights", "Your choices and rights"),
+    ("children", "Children"),
+    ("changes", "Changes to this policy"),
+];
+
 #[page("/privacy")]
 pub(crate) async fn privacy() -> Result<impl View> {
     Ok(view! {
@@ -13,6 +30,7 @@ pub(crate) async fn privacy() -> Result<impl View> {
             title: "Privacy Policy",
             updated: UPDATED,
             intro()
+            legal_contents(entries: CONTENTS)
             discord_data()
             feature_data()
             ai_features()
@@ -28,6 +46,23 @@ pub(crate) async fn privacy() -> Result<impl View> {
             minors()
             changes()
         )
+    })
+}
+
+/// The in-page contents list of a legal page: one link per section, in
+/// order.
+#[component]
+pub(super) async fn legal_contents(entries: &[(&str, &str)]) -> Result<impl View> {
+    Ok(view! {
+        <nav class="legal-callout" aria-labelledby="legal-contents">
+            <p class="label" id="legal-contents">"On this page"</p>
+            <ul>
+                #[key(*id)]
+                for (id, title) in entries {
+                    <li><a href=(format!("#{id}"))>(*title)</a></li>
+                }
+            </ul>
+        </nav>
     })
 }
 

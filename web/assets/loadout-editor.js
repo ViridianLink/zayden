@@ -478,6 +478,13 @@ function morph(o, n) {
         return;
     }
     morphChildren(o, n);
+    if (o.nodeName === "INPUT" && (o.type === "radio" || o.type === "checkbox")) {
+        const checked = n.hasAttribute("checked");
+        if (o.checked !== checked) {
+            o.checked = checked;
+            note("checked", o);
+        }
+    }
     if (o.nodeName === "INPUT" && o.type !== "file") {
         const value = n.getAttribute("value") ?? "";
         if (o.value !== value) {
@@ -571,6 +578,7 @@ function start(data) {
         drag: null,
         over: null,
         tagDraft: "",
+        announce: "",
     };
     let picker = null;
     let checkTimer = null;
@@ -599,33 +607,39 @@ function start(data) {
         esc(value) +
         '"></div>';
 
-    const iconChoice = (label, value, options, choose) =>
-        '<div class="icon-choice-field" role="radiogroup" aria-label="' +
+    const iconChoice = (label, name, value, options, choose) =>
+        '<fieldset class="icon-choice-field"><legend class="label">' +
         esc(label) +
-        '"><span class="label">' +
-        esc(label) +
-        '</span><div class="icon-choice">' +
+        '</legend><div class="icon-choice">' +
         options
-            .map((option) => {
+            .map((option, position) => {
                 const checked = option === value;
+                const id = name + "-" + position;
                 return (
-                    '<button type="button" role="radio" class="' +
+                    '<label class="' +
                     (checked
                         ? "icon-choice-option active"
                         : "icon-choice-option") +
-                    '" aria-checked="' +
-                    checked +
+                    '" for="' +
+                    esc(id) +
+                    '"><input type="radio" id="' +
+                    esc(id) +
+                    '" name="' +
+                    esc(name) +
+                    '" value="' +
+                    esc(option) +
                     '"' +
-                    on({ click: () => choose(option) }) +
+                    (checked ? ' checked=""' : "") +
+                    on({ change: () => choose(option) }) +
                     ">" +
                     enumIcon(option) +
                     "<span>" +
                     esc(option) +
-                    "</span></button>"
+                    "</span></label>"
                 );
             })
             .join("") +
-        "</div></div>";
+        "</div></fieldset>";
 
     const slotFace = (key, label, diamond, id, open, clear) => {
         const filled = key !== "";
@@ -758,6 +772,7 @@ function start(data) {
                     len,
                     axis: "row",
                     alt: true,
+                    name: displayName(key),
                     move: (from, to) => moveItem(values, from, to),
                 };
                 html +=
@@ -1209,6 +1224,7 @@ function start(data) {
                 len: s.stats.length,
                 axis: "column",
                 alt: false,
+                name: row.stat,
                 move: (from, to) => moveItem(s.stats, from, to),
             };
             html +=
@@ -1260,7 +1276,9 @@ function start(data) {
             chips +=
                 '<span class="chip"><span class="chip-label">' +
                 esc(tag) +
-                '</span><button type="button" class="chip-remove" title="Remove"' +
+                '</span><button type="button" class="chip-remove" aria-label="' +
+                esc("Remove tag " + tag) +
+                '"' +
                 on({
                     click: () => {
                         if (i < s.tags.length) s.tags.splice(i, 1);
@@ -1289,9 +1307,9 @@ function start(data) {
                 "https://youtu.be/…",
                 "url",
             ) +
-            '</div><div class="setting-field"><label>Tags (up to 3)</label><div class="chip-list">' +
+            '</div><div class="setting-field"><label for="loadout-tag">Tags (up to 3)</label><div class="chip-list">' +
             chips +
-            '</div><div class="chip-add"><input class="input" list=""' +
+            '</div><div class="chip-add"><input class="input" id="loadout-tag"' +
             (ui.tagDraft === "" ? "" : ' value="' + esc(ui.tagDraft) + '"') +
             ">" +
             '<button type="button" class="btn btn-secondary"' +
@@ -1322,16 +1340,26 @@ function start(data) {
             "</h1>" +
             textInput("loadout-name", "Build name", s.name, "", "text") +
             '<div class="loadout-choices">' +
-            iconChoice("Class", s.class, o.classes, set("class")) +
-            iconChoice("Subclass", s.element, o.elements, set("element")) +
-            iconChoice("Mode", s.mode, o.modes, set("mode")) +
+            iconChoice("Class", "loadout-class", s.class, o.classes, set("class")) +
+            iconChoice(
+                "Subclass",
+                "loadout-element",
+                s.element,
+                o.elements,
+                set("element"),
+            ) +
+            iconChoice("Mode", "loadout-mode", s.mode, o.modes, set("mode")) +
             '</div><div class="budget" role="status" aria-live="polite">' +
             budgetHtml() +
             "</div></header>";
         if (ui.feedback !== null) html += alert(ui.feedback);
-        if (ui.restored) {
+        if (ui.restored || !same(s, saved)) {
             html +=
-                '<div class="draft-banner" role="status"><span>Restored your unsaved changes from this tab.</span>' +
+                '<div class="draft-banner" role="status"><span>' +
+                (ui.restored
+                    ? "Restored your unsaved changes from this tab."
+                    : "Unsaved changes") +
+                "</span>" +
                 '<button type="button" class="btn btn-ghost"' +
                 on({ click: discard }) +
                 ">Discard changes</button></div>";
@@ -1358,6 +1386,10 @@ function start(data) {
             statsCard() +
             detailsCard() +
             "</div>";
+        html +=
+            '<p class="visually-hidden" role="status">' +
+            esc(ui.announce) +
+            "</p>";
         html +=
             '<div class="form-actions"><button type="submit" class="btn btn-primary"' +
             (ui.pending ? ' disabled=""' : "") +
@@ -1980,6 +2012,11 @@ function start(data) {
         if (h) h.click();
     });
 
+    form.addEventListener("change", (e) => {
+        const h = handlerOf(e.target, form, "change");
+        if (h) h.change();
+    });
+
     form.addEventListener("input", (e) => {
         const el = e.target;
         if (el.id in FORM_FIELDS) s[FORM_FIELDS[el.id]] = el.value;
@@ -2015,6 +2052,7 @@ function start(data) {
         e.preventDefault();
         if (to === null) return;
         r.move(r.index, to);
+        ui.announce = r.name + " moved to position " + (to + 1) + " of " + r.len + ".";
         changed();
         requestAnimationFrame(() =>
             document.getElementById("reorder-" + r.list + "-" + to)?.focus(),
@@ -2024,7 +2062,13 @@ function start(data) {
     form.addEventListener("dragstart", (e) => {
         const h = handlerOf(e.target, form, "drag");
         if (!h) return;
-        ui.drag = { list: h.drag.list, from: h.drag.index, move: h.drag.move };
+        ui.drag = {
+            list: h.drag.list,
+            from: h.drag.index,
+            len: h.drag.len,
+            name: h.drag.name,
+            move: h.drag.move,
+        };
         if (e.dataTransfer) {
             e.dataTransfer.effectAllowed = "move";
             e.dataTransfer.setData("text/plain", "");
@@ -2054,6 +2098,13 @@ function start(data) {
         ui.over = null;
         if (drag !== null && drag.list === h.drop.list) {
             drag.move(drag.from, h.drop.index);
+            ui.announce =
+                drag.name +
+                " moved to position " +
+                (h.drop.index + 1) +
+                " of " +
+                drag.len +
+                ".";
             changed();
         } else {
             renderForm();
@@ -2065,6 +2116,12 @@ function start(data) {
         ui.drag = null;
         ui.over = null;
         renderForm();
+    });
+
+    window.addEventListener("beforeunload", (e) => {
+        if (leaving || same(s, saved)) return;
+        e.preventDefault();
+        e.returnValue = "";
     });
 
     // A page restored from the back/forward cache after a create would still

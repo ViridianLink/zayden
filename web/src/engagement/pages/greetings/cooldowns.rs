@@ -1,64 +1,86 @@
 use topcoat::Result;
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
+use zayden_app::config::GreetingsSettingsRow;
 
-use super::{GreetingAction, PAGE};
-use crate::components::icons::{Icon, icon};
-use crate::components::settings::{save_button, save_feedback, setting_field};
+use super::{COOLDOWNS, GreetingAction, PAGE};
+use crate::components::plan_note::plan_note;
+use crate::components::save_bar::save_bar;
 use crate::engagement::CooldownView;
-use crate::engagement::pages::action::{Submitted, feedback, form_action, typed};
+use crate::engagement::pages::action::form_action;
+use crate::engagement::pages::fields::{Constraints, form_summary, text_row};
+use crate::engagement::pages::state::PageState;
+
+const MAX_SECS: i32 = GreetingsSettingsRow::MAX_COOLDOWN_SECS;
+
+fn limits(floor: i32, plan: &str) -> String {
+    format!(
+        "In seconds: at least {floor} on the {plan} plan, at most {MAX_SECS}. Leave blank for the minimum."
+    )
+}
+
+fn bounds(floor: i32) -> Constraints {
+    Constraints { min: Some(floor), max: Some(MAX_SECS), ..Constraints::default() }
+}
 
 #[component]
 pub(super) async fn cooldown_section(
     guild_id: &str,
     cooldowns: CooldownView,
-    submitted: Option<&Submitted<GreetingAction>>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let action = form_action(guild_id, PAGE, GreetingAction::SaveCooldowns);
-    let user_label = cooldowns.user_label();
-    let guild_label = cooldowns.guild_label();
-    let user_secs = typed(submitted, GreetingAction::SaveCooldowns, "user_cooldown")
-        .map_or_else(|| cooldowns.user_secs.to_string(), str::to_owned);
-    let guild_secs =
-        typed(submitted, GreetingAction::SaveCooldowns, "guild_cooldown")
-            .map_or_else(|| cooldowns.guild_secs.to_string(), str::to_owned);
-    let outcome = feedback(submitted, GreetingAction::SaveCooldowns);
+    let sent = state.sent(COOLDOWNS);
+    let plan = cooldowns.tier.label();
+    let user_help = limits(cooldowns.floor_user_secs, plan);
+    let guild_help = limits(cooldowns.floor_guild_secs, plan);
+    let user_secs = cooldowns.user_secs.to_string();
+    let guild_secs = cooldowns.guild_secs.to_string();
 
     Ok(view! {
-        <fieldset class="settings-section">
-            <legend>
-                icon(name: Icon::Gauge)
-                "Cooldowns"
-            </legend>
+        <section
+            class="settings-section"
+            id=(COOLDOWNS)
+            aria-labelledby="greeting-cooldowns-title"
+        >
+            <h2 class="label" id="greeting-cooldowns-title">"Cooldowns"</h2>
             <p class="page-lead">
                 "The per-member cooldown stops one person spamming "
                 <code>"/good"</code>
-                "; the server-wide one stops a crowd doing it between them. Both are in seconds, and both must stay at or above the minimum for this server's plan."
+                "; the server-wide one stops a crowd doing it between them. Both must stay at or above the minimum for this server's plan."
             </p>
-            if let Some(result) = outcome {
-                save_feedback(outcome: result)
-            }
-            <form method="post" action=(action) data-pending="">
+            <form
+                method="post"
+                action=(form_action(guild_id, PAGE, GreetingAction::SaveCooldowns))
+                data-pending=""
+                data-dirty-guard=""
+            >
+                if let Some(message) = sent.summary() {
+                    form_summary(form: COOLDOWNS, message: message)
+                }
                 <input type="hidden" name="guild" value=(guild_id)>
-                setting_field(
-                    label: user_label.as_str(),
+                text_row(
+                    form: COOLDOWNS,
                     name: "user_cooldown",
-                    value: user_secs.as_str()
+                    label: "Per-member cooldown",
+                    value: sent.value("user_cooldown", &user_secs),
+                    help: Some(&user_help),
+                    error: sent.error("user_cooldown"),
+                    constraints: bounds(cooldowns.floor_user_secs)
                 )
-                setting_field(
-                    label: guild_label.as_str(),
+                text_row(
+                    form: COOLDOWNS,
                     name: "guild_cooldown",
-                    value: guild_secs.as_str()
+                    label: "Server-wide cooldown",
+                    value: sent.value("guild_cooldown", &guild_secs),
+                    help: Some(&guild_help),
+                    error: sent.error("guild_cooldown"),
+                    constraints: bounds(cooldowns.floor_guild_secs)
                 )
-                save_button()
+                if let (Some(next), Some(pitch)) = (cooldowns.next_tier, cooldowns.upgrade_pitch()) {
+                    plan_note(tier: next.label(), text: &pitch)
+                }
+                save_bar(notice: state.notice_for(COOLDOWNS))
             </form>
-            if let Some(pitch) = cooldowns.upgrade_pitch() {
-                <p class="page-lead">
-                    (pitch)
-                    " "
-                    <a href="/upgrade">"See plans"</a>
-                    "."
-                </p>
-            }
-        </fieldset>
-    })
+        </section>
+    }
+    .boxed())
 }
