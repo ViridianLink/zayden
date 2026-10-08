@@ -2,82 +2,68 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
 
+use super::fields::{channels, form_summary, roles, select_row};
+use super::state::{Done, PageState, settle};
 use super::{
     Lists,
-    Submission,
+    Page,
+    ROLE_ORDER_NOTE,
     TEXT_KINDS,
-    action,
     ensure_path_guild,
     settings_page,
-    shown,
 };
-use crate::components::icons::{Icon, icon};
-use crate::components::pickers::{channel_select, role_select};
-use crate::components::settings::{save_button, save_feedback};
+use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::GeneralSection;
-use crate::guild::settings::{
-    ChannelSettingsForm,
-    RoleSettingsForm,
-    save_channel_settings,
-    save_role_settings,
-};
+use crate::guild::settings::{ServerSettingsForm, save_server_settings};
 use crate::shell::GuildId;
 
-const SLUG: &str = "general";
-const CHANNELS: &str = "channels";
-const ROLES: &str = "roles";
+const PAGE: Page = Page::Server;
+const FORM: &str = "server-settings";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.page(general).page(save)
+    base.page(server_settings).page(save)
 }
 
-#[page("/guild/{guild_id}/settings/general")]
-async fn general(cx: &Cx) -> Result<impl View> {
+#[page("/guild/{guild_id}/settings")]
+async fn server_settings(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! { settings_page(guild_id: guild_id, slug: SLUG) })
+    Ok(view! { settings_page(guild_id: guild_id, page: PAGE, state: &state) })
 }
 
-#[page(POST "/guild/{guild_id}/settings/general")]
+#[page(POST "/guild/{guild_id}/settings")]
 async fn save(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
     let values = pairs.clone();
-    let submission = if pairs.iter().any(|(name, _)| name == "rules_channel_id") {
-        Submission::new(CHANNELS, values, save_channels(cx, guild_id, pairs).await)?
-    } else {
-        Submission::new(ROLES, values, save_roles(cx, guild_id, pairs).await)?
-    };
+    let result = save_server(cx, guild_id, pairs).await;
+    let failure = settle(cx, FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "Server settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        (submission.status())
-        settings_page(guild_id: guild_id, slug: SLUG, submission: Some(&submission))
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
     })
 }
 
-async fn save_channels(
+async fn save_server(
     cx: &Cx,
     guild_id: &str,
     pairs: Vec<(String, String)>,
 ) -> std::result::Result<(), GuildError> {
-    let form = ChannelSettingsForm::from_pairs(pairs)?;
+    let form = ServerSettingsForm::from_pairs(pairs)?;
     ensure_path_guild(&form.guild, guild_id)?;
-    save_channel_settings(cx, &form).await
-}
-
-async fn save_roles(
-    cx: &Cx,
-    guild_id: &str,
-    pairs: Vec<(String, String)>,
-) -> std::result::Result<(), GuildError> {
-    let form = RoleSettingsForm::from_pairs(pairs)?;
-    ensure_path_guild(&form.guild, guild_id)?;
-    save_role_settings(cx, &form).await
+    save_server_settings(cx, &form).await
 }
 
 #[component]
@@ -85,101 +71,89 @@ pub(super) async fn tab(
     guild_id: &str,
     settings: &GeneralSection,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let action = action(guild_id, SLUG);
-    let channels = Submission::of(submission, CHANNELS);
-    let roles = Submission::of(submission, ROLES);
+    let sent = state.sent(FORM);
+    let action = PAGE.href(guild_id);
+    let row = |name: &str, label: &str, stored: Option<&str>| {
+        (name.to_owned(), label.to_owned(), sent.value(name, stored).to_owned())
+    };
+    let channel_rows = [
+        row(
+            "rules_channel_id",
+            "Rules channel",
+            settings.rules_channel_id.as_deref(),
+        ),
+        row(
+            "general_channel_id",
+            "General channel",
+            settings.general_channel_id.as_deref(),
+        ),
+        row(
+            "spoiler_channel_id",
+            "Spoiler channel",
+            settings.spoiler_channel_id.as_deref(),
+        ),
+    ];
+    let role_rows = [
+        row("artist_role_id", "Artist role", settings.artist_role_id.as_deref()),
+        row("sleep_role_id", "Sleep role", settings.sleep_role_id.as_deref()),
+        row(
+            "verified_role_id",
+            "Verified role",
+            settings.verified_role_id.as_deref(),
+        ),
+    ];
 
     Ok(view! {
-        <fieldset class="settings-section">
-            <legend>
-                icon(name: Icon::Grid)
-                "Channels"
-            </legend>
-            if let Some(submitted) = channels {
-                save_feedback(outcome: submitted.outcome())
+        <form
+            id=(FORM)
+            method="post"
+            action=(action.as_str())
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: FORM, message: message)
             }
-            <form method="post" action=(action.as_str()) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                channel_select(
-                    label: "Rules Channel",
-                    name: "rules_channel_id",
-                    selected: shown(
-                        channels,
-                        "rules_channel_id",
-                        settings.rules_channel_id.as_deref(),
-                    ),
-                    channels: lists.channels(),
-                    kinds: TEXT_KINDS
-                )
-                channel_select(
-                    label: "General Channel",
-                    name: "general_channel_id",
-                    selected: shown(
-                        channels,
-                        "general_channel_id",
-                        settings.general_channel_id.as_deref(),
-                    ),
-                    channels: lists.channels(),
-                    kinds: TEXT_KINDS
-                )
-                channel_select(
-                    label: "Spoiler Channel",
-                    name: "spoiler_channel_id",
-                    selected: shown(
-                        channels,
-                        "spoiler_channel_id",
-                        settings.spoiler_channel_id.as_deref(),
-                    ),
-                    channels: lists.channels(),
-                    kinds: TEXT_KINDS
-                )
-                save_button()
-            </form>
-        </fieldset>
-        <fieldset class="settings-section">
-            <legend>
-                icon(name: Icon::Users)
-                "Roles"
-            </legend>
-            if let Some(submitted) = roles {
-                save_feedback(outcome: submitted.outcome())
-            }
-            <form method="post" action=(action.as_str()) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                role_select(
-                    label: "Artist Role",
-                    name: "artist_role_id",
-                    selected: shown(
-                        roles,
-                        "artist_role_id",
-                        settings.artist_role_id.as_deref(),
-                    ),
-                    roles: lists.roles()
-                )
-                role_select(
-                    label: "Sleep Role",
-                    name: "sleep_role_id",
-                    selected: shown(
-                        roles,
-                        "sleep_role_id",
-                        settings.sleep_role_id.as_deref(),
-                    ),
-                    roles: lists.roles()
-                )
-                role_select(
-                    label: "Verified Role",
-                    name: "verified_role_id",
-                    selected: shown(
-                        roles,
-                        "verified_role_id",
-                        settings.verified_role_id.as_deref(),
-                    ),
-                    roles: lists.roles()
-                )
-                save_button()
-            </form>
-        </fieldset>
-    })
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Channels"</legend>
+                <p class="page-lead">
+                    "Where Zayden points members for rules, chat and spoilers."
+                </p>
+                #[key(name.as_str())]
+                for (name, label, selected) in &channel_rows {
+                    select_row(
+                        form: FORM,
+                        name: name,
+                        label: label,
+                        selected: selected,
+                        options: channels(lists, TEXT_KINDS),
+                        error: sent.error(name)
+                    )
+                }
+            </fieldset>
+            <fieldset class="settings-section">
+                <legend>"Roles"</legend>
+                <p class="page-lead">
+                    "Roles Zayden gives out for art, sleep and verification."
+                </p>
+                <p class="field-hint">(ROLE_ORDER_NOTE)</p>
+                #[key(name.as_str())]
+                for (name, label, selected) in &role_rows {
+                    select_row(
+                        form: FORM,
+                        name: name,
+                        label: label,
+                        selected: selected,
+                        options: roles(lists),
+                        error: sent.error(name)
+                    )
+                }
+            </fieldset>
+            save_bar(notice: state.notice_for(FORM))
+        </form>
+    }
+    .boxed())
 }

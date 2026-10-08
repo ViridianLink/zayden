@@ -2,57 +2,74 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
+use zayden_app::config::HoneypotSettingsRow;
 
-use super::{
-    Lists,
-    Submission,
-    TEXT_KINDS,
-    action,
-    ensure_path_guild,
-    flag,
-    settings_page,
-    shown,
+use super::fields::{
+    Range,
+    channels,
+    form_summary,
+    roles,
+    select_row,
+    text_row,
+    toggle_row,
 };
-use crate::components::pickers::{channel_select, role_select};
-use crate::components::settings::{
-    save_button,
-    save_feedback,
-    setting_field,
-    toggle_field,
-};
+use super::header::switch_module;
+use super::state::{Done, PageState, settle};
+use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::HoneypotSection;
 use crate::guild::settings::{HoneypotSettingsForm, save_honeypot_settings};
 use crate::shell::GuildId;
 
-const SLUG: &str = "honeypot";
-const FORM: &str = "honeypot";
+const PAGE: Page = Page::Honeypot;
+const FORM: &str = "honeypot-settings";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.page(honeypot).page(save)
+    base.page(honeypot).page(save).page(switch)
 }
 
-#[page("/guild/{guild_id}/settings/honeypot")]
+#[page("/guild/{guild_id}/honeypot")]
 async fn honeypot(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! { settings_page(guild_id: guild_id, slug: SLUG) })
+    Ok(view! { settings_page(guild_id: guild_id, page: PAGE, state: &state) })
 }
 
-#[page(POST "/guild/{guild_id}/settings/honeypot")]
+#[page(POST "/guild/{guild_id}/honeypot")]
 async fn save(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
     let values = pairs.clone();
-    let submission =
-        Submission::new(FORM, values, save_honeypot(cx, guild_id, pairs).await)?;
+    let result = save_honeypot(cx, guild_id, pairs).await;
+    let failure = settle(cx, FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "Honeypot settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        (submission.status())
-        settings_page(guild_id: guild_id, slug: SLUG, submission: Some(&submission))
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
+#[page(POST "/guild/{guild_id}/honeypot/module")]
+async fn switch(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::failed(switch_module(cx, guild_id, PAGE, pairs).await?);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
     })
 }
 
@@ -71,63 +88,77 @@ pub(super) async fn tab(
     guild_id: &str,
     settings: &HoneypotSection,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let submitted = Submission::of(submission, FORM);
+    let sent = state.sent(FORM);
+    let purge = Range { min: 0, max: Some(HoneypotSettingsRow::MAX_PURGE_SECONDS) };
 
     Ok(view! {
-        <fieldset class="settings-section">
-            if let Some(submitted) = submitted {
-                save_feedback(outcome: submitted.outcome())
+        <form
+            id=(FORM)
+            method="post"
+            action=(PAGE.href(guild_id))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: FORM, message: message)
             }
-            <form method="post" action=(action(guild_id, SLUG)) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                channel_select(
-                    label: "Honeypot Channel",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Trap"</legend>
+                <p class="page-lead">
+                    "Anyone who posts in the honeypot channel is banned - which purges their recent messages server-wide - and then immediately unbanned, so a recovered account can rejoin."
+                </p>
+                select_row(
+                    form: FORM,
                     name: "channel_id",
-                    selected: shown(
-                        submitted,
-                        "channel_id",
-                        settings.channel_id.as_deref(),
+                    label: "Honeypot channel",
+                    selected: sent.value("channel_id", settings.channel_id.as_deref()),
+                    options: channels(lists, TEXT_KINDS),
+                    help: Some(
+                        "Leave unset to turn the trap off. Keep the channel postable by @everyone - the trap only catches spam bots that can actually reach it.",
                     ),
-                    channels: lists.channels(),
-                    kinds: TEXT_KINDS
+                    error: sent.error("channel_id")
                 )
-                toggle_field(
-                    label: "Exempt Admins",
+                text_row(
+                    form: FORM,
+                    name: "purge_seconds",
+                    label: "Purge window (seconds)",
+                    value: sent.value("purge_seconds", Some(&settings.purge_seconds)),
+                    help: Some(
+                        "How far back the ban deletes the offender's messages, across every channel. Default 86400 (24 hours); 0 keeps their history and Discord caps it at 604800 (7 days).",
+                    ),
+                    error: sent.error("purge_seconds"),
+                    range: Some(purge)
+                )
+            </fieldset>
+            <fieldset class="settings-section">
+                <legend>"Exemptions"</legend>
+                <p class="page-lead">"The server owner is always exempt."</p>
+                toggle_row(
+                    form: FORM,
                     name: "exempt_admins",
-                    value: flag(submitted, "exempt_admins", settings.exempt_admins)
+                    label: "Exempt admins",
+                    value: sent.flag("exempt_admins", settings.exempt_admins),
+                    on_label: "Exempt",
+                    off_label: "Not exempt",
+                    error: sent.error("exempt_admins")
                 )
-                role_select(
-                    label: "Exempt Role",
+                select_row(
+                    form: FORM,
                     name: "exempt_role_id",
-                    selected: shown(
-                        submitted,
+                    label: "Exempt role",
+                    selected: sent.value(
                         "exempt_role_id",
                         settings.exempt_role_id.as_deref(),
                     ),
-                    roles: lists.roles()
+                    options: roles(lists),
+                    error: sent.error("exempt_role_id")
                 )
-                setting_field(
-                    label: "Purge Window (seconds)",
-                    name: "purge_seconds",
-                    value: shown(
-                        submitted,
-                        "purge_seconds",
-                        Some(settings.purge_seconds.as_str()),
-                    )
-                )
-                save_button()
-            </form>
-            <p class="page-lead">
-                "Anyone who posts in the honeypot channel is banned - which purges their recent messages server-wide - and then immediately unbanned, so a recovered account can rejoin. Leave the channel unset to turn the trap off."
-            </p>
-            <p class="page-lead">
-                "The purge window is how far back the ban deletes the offender's messages, across every channel. Defaults to 86400 (24 hours); 0 keeps their history and Discord caps it at 604800 (7 days)."
-            </p>
-            <p class="page-lead">
-                "The server owner is always exempt. Keep the channel postable by @everyone - the trap only catches spam bots that can actually reach it."
-            </p>
-        </fieldset>
-    })
+            </fieldset>
+            save_bar(notice: state.notice_for(FORM))
+        </form>
+    }
+    .boxed())
 }

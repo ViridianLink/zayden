@@ -1,40 +1,80 @@
-use web::nav::{Dest, GENERAL, GROUPS, MODULES, for_module, section, settings_href};
+use web::nav::{
+    Dest,
+    GENERAL,
+    GROUPS,
+    MODULES,
+    ModuleNav,
+    for_module,
+    legacy_href,
+    path_segment,
+    section,
+    settings_entry,
+    settings_href,
+};
 
 #[test]
-fn patreon_redirects_at_the_settings_section_route() {
+fn patreon_redirects_at_its_feature_page() {
     assert_eq!(
         settings_href("428610928000876544", "patreon").as_deref(),
-        Some("/guild/428610928000876544/settings/patreon")
+        Some("/guild/428610928000876544/patreon")
     );
 }
 
 #[test]
-fn youtube_redirects_at_the_settings_section_route() {
+fn youtube_redirects_at_its_feature_page() {
     assert_eq!(
         settings_href(428_610_928_000_876_544_i64, "youtube").as_deref(),
-        Some("/guild/428610928000876544/settings/youtube")
+        Some("/guild/428610928000876544/youtube")
     );
 }
 
 #[test]
-fn every_section_resolves_under_the_same_prefix() {
-    for slug in [
-        "general",
-        "ai",
-        "family",
-        "honeypot",
-        "lfg",
-        "music",
-        "patreon",
-        "support",
-        "temp-voice",
-        "youtube",
+fn every_section_resolves_to_its_feature_page() {
+    for (slug, path) in [
+        ("general", "settings"),
+        ("ai", "ai"),
+        ("family", "family"),
+        ("honeypot", "honeypot"),
+        ("lfg", "lfg"),
+        ("music", "music"),
+        ("patreon", "patreon"),
+        ("support", "support"),
+        ("temp-voice", "temp-voice"),
+        ("youtube", "youtube"),
     ] {
         assert_eq!(
             settings_href("1", slug).as_deref(),
-            Some(format!("/guild/1/settings/{slug}").as_str())
+            Some(format!("/guild/1/{path}").as_str())
         );
+        assert_eq!(settings_entry(path).and_then(ModuleNav::slug), Some(slug));
     }
+    assert_eq!(settings_entry("greetings"), None);
+    assert_eq!(settings_entry("general"), None);
+}
+
+#[test]
+fn a_legacy_slug_leads_to_the_page_that_now_holds_it() {
+    for (slug, href) in [
+        ("general", "/guild/7/settings"),
+        ("ai", "/guild/7/ai"),
+        ("support", "/guild/7/support"),
+        ("temp-voice", "/guild/7/temp-voice"),
+        ("greetings", "/guild/7/greetings"),
+        ("levels", "/guild/7/levels"),
+        ("reaction-roles", "/guild/7/reaction-roles"),
+        ("bogus", "/guild/7/settings"),
+        ("", "/guild/7/settings"),
+    ] {
+        assert_eq!(legacy_href(7, slug), href, "{slug}");
+    }
+}
+
+#[test]
+fn hrefs_encode_the_guild_segment() {
+    assert_eq!(path_segment("7"), "7");
+    assert_eq!(path_segment("a b/c?d"), "a%20b%2Fc%3Fd");
+    assert_eq!(GENERAL.href("a/b"), "/guild/a%2Fb/settings");
+    assert_eq!(legacy_href("x?y", "ai"), "/guild/x%3Fy/ai");
 }
 
 #[test]
@@ -46,19 +86,19 @@ fn an_unknown_slug_does_not_invent_a_route() {
 #[test]
 fn the_module_list_keeps_its_labels_links_and_order() {
     let expected = [
-        ("Server settings", "/guild/7/settings/general", None),
+        ("Server settings", "/guild/7/settings", None),
         ("Greetings", "/guild/7/greetings", Some("greetings")),
         ("Levels", "/guild/7/levels", None),
         ("Reaction roles", "/guild/7/reaction-roles", None),
-        ("Family", "/guild/7/settings/family", Some("family")),
-        ("Support", "/guild/7/settings/support", Some("ticket")),
-        ("Honeypot", "/guild/7/settings/honeypot", Some("honeypot")),
-        ("Music", "/guild/7/settings/music", Some("music")),
-        ("Temp voice", "/guild/7/settings/temp-voice", None),
-        ("LFG", "/guild/7/settings/lfg", None),
-        ("AI Chat", "/guild/7/settings/ai", Some("ai")),
-        ("Patreon", "/guild/7/settings/patreon", Some("patreon")),
-        ("YouTube", "/guild/7/settings/youtube", Some("youtube")),
+        ("Family", "/guild/7/family", Some("family")),
+        ("Support", "/guild/7/support", Some("ticket")),
+        ("Honeypot", "/guild/7/honeypot", Some("honeypot")),
+        ("Music", "/guild/7/music", Some("music")),
+        ("Temp voice", "/guild/7/temp-voice", None),
+        ("LFG", "/guild/7/lfg", None),
+        ("AI Chat", "/guild/7/ai", Some("ai")),
+        ("Patreon", "/guild/7/patreon", Some("patreon")),
+        ("YouTube", "/guild/7/youtube", Some("youtube")),
     ];
 
     let actual: Vec<_> = MODULES

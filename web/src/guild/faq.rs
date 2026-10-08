@@ -29,6 +29,54 @@ form_args! {
 }
 
 form_args! {
+    WikiSettingsForm {
+        guild,
+        enabled,
+        auto_triage,
+        auto_generate,
+        wiki_url,
+        wiki_locale,
+        max_results,
+        answer_max_tokens,
+        answer_temperature,
+    }
+}
+
+/// Saves the wiki connection and answer tuning together: the URL is checked
+/// first, then one row write applies every field.
+pub async fn save_wiki_settings(
+    cx: &Cx,
+    form: &WikiSettingsForm,
+) -> Result<(), GuildError> {
+    let (guild_id, app) = admin_app(cx, &form.guild).await?;
+
+    let enabled = parse_flag(&form.enabled);
+    let auto_triage = parse_flag(&form.auto_triage);
+    let auto_generate = parse_flag(&form.auto_generate);
+    let url = parse_wiki_url(&form.wiki_url)?;
+    let locale = parse_wiki_locale(&form.wiki_locale);
+    let max_results = parse_max_results(&form.max_results);
+    let max_tokens = parse_answer_max_tokens(&form.answer_max_tokens);
+    let temperature = parse_answer_temperature(&form.answer_temperature);
+
+    app.settings
+        .faq
+        .update(guild_id, |p| {
+            p.enabled = enabled;
+            p.auto_triage = auto_triage;
+            p.auto_generate = auto_generate;
+            p.wiki_url = url;
+            p.wiki_locale = locale;
+            p.max_results = max_results;
+            p.answer_max_tokens = max_tokens;
+            p.answer_temperature = temperature;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+form_args! {
     FaqTuningForm { guild, max_results, answer_max_tokens, answer_temperature }
 }
 

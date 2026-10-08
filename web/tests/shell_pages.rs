@@ -514,7 +514,7 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     assert!(html.contains(&format!(
         r#"<nav class="nav" aria-label="Dashboard"><ul class="nav-list">{}{}</ul><div class="nav-group"><p class="nav-heading" id="rail-community">Community</p><ul class="nav-list" aria-labelledby="rail-community">{}"#,
         nav_link("/guild/7", Some(GRID), "Overview", true),
-        nav_link("/guild/7/settings/general", Some(SETTINGS), "Server settings", false),
+        nav_link("/guild/7/settings", Some(SETTINGS), "Server settings", false),
         nav_link("/guild/7/greetings", None, "Greetings", false),
     )), "{html}");
     for heading in ["community", "support---safety", "voice---games", "integrations"]
@@ -578,12 +578,8 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
     assert_eq!(count(&html, r#"class="nav-link" aria-current="page""#), 0, "{html}");
 
     let html = app.page("/guild/7/settings", Some(MEMBER)).await.unwrap();
-    let general = nav_link(
-        "/guild/7/settings/general",
-        Some(SETTINGS),
-        "Server settings",
-        true,
-    );
+    let general =
+        nav_link("/guild/7/settings", Some(SETTINGS), "Server settings", true);
     assert_eq!(count(&html, &general), 2, "{html}");
     assert_eq!(count(&html, r#"class="nav-link" aria-current="page""#), 2, "{html}");
 
