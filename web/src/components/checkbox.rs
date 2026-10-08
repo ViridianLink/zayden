@@ -15,6 +15,8 @@ use topcoat::view::{
     view,
 };
 
+use super::ui_icons;
+
 /// Classes for the native checkbox input and its checked state.
 const CHECKBOX: StaticClass = class!(
     "peer size-6 shrink-0 appearance-none rounded-[4px] border border-input \
@@ -53,7 +55,7 @@ pub async fn checkbox(#[default] mut attrs: Attributes) -> Result<impl View> {
         >
             <input type="checkbox" class=(CHECKBOX) (attrs)>
             icon(
-                data: super::ui_icons::CHECK,
+                data: ui_icons::CHECK,
                 attrs: attributes! {
                     class="pointer-events-none absolute inset-0 m-auto size-3.5 \
                         text-primary-foreground opacity-0 peer-checked:opacity-100"

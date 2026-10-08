@@ -17,7 +17,8 @@ use topcoat::view::{
     view,
 };
 
-/// Classes for the select control, with space for a custom dropdown arrow.
+use super::ui_icons;
+
 const SELECT: StaticClass = class!(
     "h-9 max-md:h-11 w-full appearance-none items-center rounded-lg border border-input \
      bg-popover pr-8 pl-3 text-left text-sm transition-colors outline-none \
@@ -26,8 +27,6 @@ const SELECT: StaticClass = class!(
      focus-visible:ring-offset-background disabled:pointer-events-none",
 );
 
-/// Classes for browsers that support customizable select pickers. Other browsers use
-/// their native picker.
 const PICKER: StaticClass = class!(
     "[&::picker(select)]:[appearance:base-select] \
      [&::picker(select)]:mt-1 [&::picker(select)]:rounded-lg \
@@ -50,11 +49,8 @@ const PICKER: StaticClass = class!(
      [&_option::checkmark]:[mask-image:var(--select-checkmark)]",
 );
 
-/// The icon marking the picker's checked option.
-const CHECKMARK: IconData = super::ui_icons::CHECK;
+const CHECKMARK: IconData = ui_icons::CHECK;
 
-/// Supplies the checkmark icon as a data URI in `--select-checkmark` so CSS can use
-/// it as a mask.
 fn checkmark_style(cx: &Cx) -> String {
     let svg = format!(
         r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="{}">{}</svg>"#,
@@ -62,8 +58,7 @@ fn checkmark_style(cx: &Cx) -> String {
         CHECKMARK.into_body().render(cx),
     );
     let mut style = String::from(r#"--select-checkmark: url("data:image/svg+xml,"#);
-    // Percent-encode the characters that cannot appear in a double-quoted
-    // CSS url().
+
     for char in svg.chars() {
         match char {
             '%' => style.push_str("%25"),
