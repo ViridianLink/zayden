@@ -22,6 +22,7 @@ use web::admin::editor::{EDITOR_TITLE, LOADOUT_EDITOR_JS};
 use web::admin::keys::display_name;
 use web::admin::{LoadoutForm, stored_form};
 use web::auth::SessionUser;
+use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
@@ -61,6 +62,7 @@ fn write_bundle() -> TestResult<PathBuf> {
             "text/javascript",
             PENDING_SUBMIT.id().as_u64(),
         ),
+        ("logo-0123456789abcdef.png", "image/png", LOGO.id().as_u64()),
         (
             "loadout-editor-0123456789abcdef.js",
             "text/javascript",

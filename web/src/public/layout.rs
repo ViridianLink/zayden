@@ -9,6 +9,7 @@ use topcoat::router::request::uri;
 use topcoat::view::{Child, View, component, view};
 
 use crate::auth::{self, AuthError};
+use crate::components::brand::brand_mark;
 use crate::components::icons::{Icon, icon};
 use crate::components::progress_bar::progress_bar;
 
@@ -57,7 +58,7 @@ pub async fn public_nav(
         <header class="public-header">
             <div class="public-header-inner">
                 <a href="/" class="brand">
-                    <span class="brand-mark" aria-hidden="true">"Z"</span>
+                    brand_mark()
                     <span class="brand-name">"Zayden"</span>
                 </a>
                 <nav class="public-nav-links" aria-label="Main">

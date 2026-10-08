@@ -33,6 +33,7 @@ use topcoat::router::{Body, Router, StatusCode, header};
 use web::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
 use web::admin::{draft, loadout_form, summaries, write_unchecked};
 use web::auth::{SessionUser, WebRole, has_role};
+use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::state::{SessionIdentity, SessionUsersCache, WebState};
 use zayden_app::config::BotConfig;
@@ -73,6 +74,7 @@ fn write_bundle() -> TestResult<PathBuf> {
             "text/javascript",
             PENDING_SUBMIT.id().as_u64(),
         ),
+        ("logo-0123456789abcdef.png", "image/png", LOGO.id().as_u64()),
     ];
     let mut manifest = String::from("version = 1\n");
     for (file, content_type, id) in assets {

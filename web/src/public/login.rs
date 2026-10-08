@@ -5,6 +5,7 @@ use topcoat::router::page;
 use topcoat::view::{View, ViewExt, component, view};
 
 use crate::auth;
+use crate::components::brand::brand_mark;
 use crate::components::legal::legal_links;
 
 const SIGNED_IN_PATH: &str = "/guilds";
@@ -25,7 +26,7 @@ async fn login_card() -> Result<impl View> {
             <div class="hero-glow"></div>
             <div class="login-card">
                 <span class="brand">
-                    <span class="brand-mark">"Z"</span>
+                    brand_mark()
                     "Zayden"
                 </span>
                 <h1>"Welcome back"</h1>

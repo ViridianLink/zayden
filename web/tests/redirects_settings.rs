@@ -12,6 +12,7 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Method, Router, StatusCode, header};
+use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::flash::{FLASH_COOKIE, Flash, FlashKind};
 use web::router;
@@ -20,6 +21,7 @@ use web::settings::NOT_SAVED;
 const STYLESHEET_FILE: &str = "tailwind-0123456789abcdef.css";
 const RUNTIME_FILE: &str = "topcoat-0123456789abcdef.js";
 const PENDING_FILE: &str = "pending-submit-0123456789abcdef.js";
+const LOGO_FILE: &str = "logo-0123456789abcdef.png";
 const FORM: &str = "application/x-www-form-urlencoded";
 
 type TestResult<T> = Result<T, Box<dyn Error + Send + Sync>>;
@@ -53,7 +55,7 @@ fn write_bundle() -> TestResult<PathBuf> {
     let dir = std::env::temp_dir()
         .join(format!("web-redirects-settings-assets-{}", std::process::id()));
     std::fs::create_dir_all(&dir)?;
-    for file in [STYLESHEET_FILE, RUNTIME_FILE, PENDING_FILE] {
+    for file in [STYLESHEET_FILE, RUNTIME_FILE, PENDING_FILE, LOGO_FILE] {
         std::fs::write(dir.join(file), "")?;
     }
     std::fs::write(
@@ -62,10 +64,12 @@ fn write_bundle() -> TestResult<PathBuf> {
             "version = 1\n\n\
              [[assets]]\nid = {}\nfile = \"{STYLESHEET_FILE}\"\nhash = \"0\"\ncontent_type = \"text/css\"\n\n\
              [[assets]]\nid = {}\nfile = \"{RUNTIME_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
-             [[assets]]\nid = {}\nfile = \"{PENDING_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
+             [[assets]]\nid = {}\nfile = \"{PENDING_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
+             [[assets]]\nid = {}\nfile = \"{LOGO_FILE}\"\nhash = \"0\"\ncontent_type = \"image/png\"\n",
             STYLESHEET.id().as_u64(),
             topcoat::runtime::SCRIPT.id().as_u64(),
             PENDING_SUBMIT.id().as_u64(),
+            LOGO.id().as_u64(),
         ),
     )?;
     Ok(dir)

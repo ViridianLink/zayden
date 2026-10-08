@@ -8,6 +8,7 @@ use topcoat::context::Cx;
 use topcoat::view::{Child, View, ViewExt, component, view};
 
 use crate::auth::{SessionUser, check_session, current_session_user};
+use crate::components::brand::brand_mark;
 use crate::components::guild_grid::GuildCard;
 use crate::components::icons::{Icon, icon};
 use crate::components::nav_links::NavAccess;
@@ -120,7 +121,7 @@ async fn topbar(
                 icon(name: Icon::Menu)
             </button>
             <a href=(home) class="brand">
-                <span class="brand-mark" aria-hidden="true">"Z"</span>
+                brand_mark()
                 <span class="brand-name">"Zayden"</span>
             </a>
             if show_plate {
