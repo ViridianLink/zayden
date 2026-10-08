@@ -1,5 +1,6 @@
 pub mod alert;
 pub mod badge;
+pub mod brand;
 pub mod button;
 pub mod checkbox;
 pub mod confirm;

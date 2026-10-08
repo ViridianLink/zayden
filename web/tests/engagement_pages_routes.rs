@@ -40,6 +40,7 @@ use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use url::form_urlencoded;
 use web::auth::{ChannelInfo, SessionUser};
+use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::engagement::pages::greetings::channel_section;
 use web::engagement::pages::{GREETINGS_TITLE, LEVELS_TITLE, REACTION_ROLES_TITLE};
@@ -273,6 +274,7 @@ fn write_bundle() -> TestResult<PathBuf> {
             "text/javascript",
             PENDING_SUBMIT.id().as_u64(),
         ),
+        ("logo-0123456789abcdef.png", "image/png", LOGO.id().as_u64()),
     ];
     let mut manifest = String::from("version = 1\n");
     for (file, content_type, id) in assets {

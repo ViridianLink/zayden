@@ -2,6 +2,7 @@ use topcoat::Result;
 use topcoat::router::not_found;
 use topcoat::view::{View, component, view};
 
+use crate::components::brand::brand_mark;
 use crate::components::legal::legal_links;
 
 not_found!("/");
@@ -13,7 +14,7 @@ pub(crate) async fn not_found_page() -> Result<impl View> {
             <div class="hero-glow"></div>
             <div class="login-card">
                 <span class="brand">
-                    <span class="brand-mark">"Z"</span>
+                    brand_mark()
                     "Zayden"
                 </span>
                 <h1>"404"</h1>

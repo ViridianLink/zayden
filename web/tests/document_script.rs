@@ -6,6 +6,7 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Method, Router, StatusCode};
+use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
 use web::router;
 
@@ -21,16 +22,19 @@ fn bundle_dir() -> TestResult<PathBuf> {
     std::fs::write(dir.join("tailwind-0123456789abcdef.css"), "")?;
     std::fs::write(dir.join("topcoat-0123456789abcdef.js"), "")?;
     std::fs::write(dir.join(SCRIPT_FILE), SCRIPT_SOURCE)?;
+    std::fs::write(dir.join("logo-0123456789abcdef.png"), "")?;
     std::fs::write(
         dir.join("manifest.toml"),
         format!(
             "version = 1\n\n\
              [[assets]]\nid = {}\nfile = \"tailwind-0123456789abcdef.css\"\nhash = \"0\"\ncontent_type = \"text/css\"\n\n\
              [[assets]]\nid = {}\nfile = \"topcoat-0123456789abcdef.js\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
-             [[assets]]\nid = {}\nfile = \"{SCRIPT_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n",
+             [[assets]]\nid = {}\nfile = \"{SCRIPT_FILE}\"\nhash = \"0\"\ncontent_type = \"text/javascript\"\n\n\
+             [[assets]]\nid = {}\nfile = \"logo-0123456789abcdef.png\"\nhash = \"0\"\ncontent_type = \"image/png\"\n",
             STYLESHEET.id().as_u64(),
             topcoat::runtime::SCRIPT.id().as_u64(),
             PENDING_SUBMIT.id().as_u64(),
+            LOGO.id().as_u64(),
         ),
     )?;
     Ok(dir)

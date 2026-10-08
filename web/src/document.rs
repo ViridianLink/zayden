@@ -10,6 +10,7 @@ use topcoat::view::{Child, View, component, error_boundary, view};
 
 use crate::admin::editor::EDITOR_TITLE;
 use crate::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
+use crate::components::brand::LOGO;
 use crate::engagement::pages::{
     GREETINGS_TITLE,
     LEVELS_TITLE,
@@ -128,6 +129,7 @@ async fn document(title: &str, #[default] child: Child<'_>) -> Result<impl View>
                 <meta name="viewport" content="width=device-width, initial-scale=1">
                 <meta name="color-scheme" content="dark">
                 font_head()
+                <link rel="icon" type="image/png" href=(LOGO)>
                 <link rel="stylesheet" href=(STYLESHEET)>
                 topcoat::runtime::script()
                 <script type="module" src=(PENDING_SUBMIT)></script>

@@ -77,7 +77,6 @@
     --row-h: 44px;
     --target-min: 24px;
 
-    --watermark-letter: "Z";
 }
 
 :root[data-bot="zayden"] {
