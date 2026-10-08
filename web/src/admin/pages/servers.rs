@@ -7,9 +7,12 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::page;
 use topcoat::runtime::{Event, expr, signal};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
 
+use super::gate::{Gate, closed, gate};
 use crate::admin::{AdminError, list_bot_guilds, parse_guild_id};
+use crate::auth::WebRole;
+use crate::components::data_table::{data_cell, data_table};
 use crate::components::guild_grid::GuildCard;
 use crate::shell::app_shell;
 use crate::util::server_error_text;
@@ -26,9 +29,13 @@ fn matching(names: &str, needle: &str) -> f64 {
 
 #[page("/admin/servers")]
 pub(super) async fn servers(cx: &Cx) -> Result<impl View> {
+    let access = gate(cx, WebRole::Operator).await?;
+    if access != Gate::Open {
+        return Ok(view! { closed(role: WebRole::Operator, gate: access) }.boxed());
+    }
     let guilds = list_bot_guilds(cx).await;
 
-    Ok(view! { app_shell(servers_page(guilds: guilds)) })
+    Ok(view! { app_shell(servers_page(guilds: guilds)) }.boxed())
 }
 
 #[component]
@@ -42,7 +49,7 @@ pub async fn servers_page(
         <div class="page">
             <div class="page-header">
                 <div>
-                    <h1>"All Servers"</h1>
+                    <h1>"All bot servers"</h1>
                     <p class="page-lead">
                         "Every server Zayden is in. Operator access ignores your own permissions in them."
                     </p>
@@ -100,21 +107,25 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
 
     Ok(view! {
         <div class="operator-tools">
-            <input
-                class="input"
-                type="search"
-                placeholder="Filter by name"
-                aria-label="Filter servers by name"
-                :value=$(filter.get())
-                @input=$(|e: Event| filter.set(e.target.value))
-            >
-            <div class="operator-jump">
+            <div class="field-row">
+                <label class="field-label" for="server-filter">"Filter by name"</label>
                 <input
                     class="input"
+                    id="server-filter"
+                    type="search"
+                    autocomplete="off"
+                    :value=$(filter.get())
+                    @input=$(|e: Event| filter.set(e.target.value))
+                >
+            </div>
+            <div class="field-row operator-jump">
+                <label class="field-label" for="server-jump">"Go to server ID"</label>
+                <input
+                    class="input"
+                    id="server-jump"
                     type="text"
                     inputmode="numeric"
-                    placeholder="Go to server ID"
-                    aria-label="Go to server ID"
+                    autocomplete="off"
                     :value=$(jump.get())
                     @input=$(|e: Event| jump.set(e.target.value))
                 >
@@ -135,41 +146,54 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
                 </a>
             </div>
         </div>
-        <p class="empty" :hidden=$(shown != 0.0)>"No server matches that name."</p>
-        <p class="operator-count" :hidden=$(shown == 0.0)>
-            $(shown)
-            " of "
-            (total)
-            " servers"
-        </p>
-        <div class="guild-grid" :hidden=$(shown == 0.0)>
-            #[key(guild.id.as_str())]
-            for guild in guilds {
-                let name = guild.name.to_lowercase();
-                <a
-                    href=(guild.href())
-                    class="guild-card"
-                    :hidden=$({
-                        let name = name;
-                        let needle = needle;
-                        raw!(
-                            "cx.hydrate(!${name}.toString().includes(${needle}.toString()))",
-                            !name.contains(needle.as_str()),
-                        )
-                    })
-                >
-                    match guild.icon_url() {
-                        Some(url) => <img src=(url) alt="" class="guild-icon">,
-                        None => <span class="guild-icon placeholder">
-                            (guild.initial())
-                        </span>,
-                    }
-                    <div class="guild-card-body">
-                        <div class="guild-name">(guild.name.as_str())</div>
-                        <div class="guild-card-hint">"Manage \u{2192}"</div>
-                    </div>
-                </a>
-            }
+        <div role="status">
+            <p class="empty" :hidden=$(shown != 0.0)>"No server matches that name."</p>
+            <p class="operator-count" :hidden=$(shown == 0.0)>
+                $(shown)
+                " of "
+                (total)
+                " servers"
+            </p>
         </div>
-    })
+        <div :hidden=$(shown == 0.0)>
+            data_table(
+                caption: "Servers Zayden is in",
+                columns: &["Server", "Server ID"],
+                #[key(guild.id.as_str())]
+                for guild in guilds {
+                    let name = guild.name.to_lowercase();
+                    <tr
+                        role="row"
+                        :hidden=$({
+                            let name = name;
+                            let needle = needle;
+                            raw!(
+                                "cx.hydrate(!${name}.toString().includes(${needle}.toString()))",
+                                !name.contains(needle.as_str()),
+                            )
+                        })
+                    >
+                        data_cell(
+                            label: "Server",
+                            header: true,
+                            <a href=(guild.href())>
+                                match guild.icon_url() {
+                                    Some(url) => <img src=(url) alt="" class="guild-icon">,
+                                    None => <span class="guild-icon placeholder" aria-hidden="true">
+                                        (guild.initial())
+                                    </span>,
+                                }
+                                <span class="guild-name">(guild.name.as_str())</span>
+                            </a>
+                        )
+                        data_cell(
+                            label: "Server ID",
+                            <span class="mono">(guild.id.as_str())</span>
+                        )
+                    </tr>
+                }
+            )
+        </div>
+    }
+    .boxed())
 }

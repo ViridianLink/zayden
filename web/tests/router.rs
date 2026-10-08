@@ -99,7 +99,7 @@ async fn unknown_path_is_404_with_not_found_card() {
 
     let html = body_text(response).await.unwrap();
     assert!(html.contains(
-        "<body><a class=\"skip-link\" href=\"#main\">Skip to main content</a><div class=\"login-page\" id=\"main\" tabindex=\"-1\"><div class=\"hero-glow\"></div><div class=\"login-card\">"
+        "<body><a class=\"skip-link\" href=\"#main\">Skip to main content</a><main class=\"login-page\" id=\"main\" tabindex=\"-1\"><div class=\"hero-glow\"></div><div class=\"login-card\">"
     ));
     assert!(html.contains(
         &format!("<span class=\"brand\"><img class=\"brand-mark\" src=\"/_topcoat/assets/{LOGO_FILE}\" alt=\"\" width=\"28\" height=\"28\">Zayden</span>")
@@ -112,7 +112,7 @@ async fn unknown_path_is_404_with_not_found_card() {
         )
     );
     assert!(html.contains(
-        "<nav class=\"legal-links\" aria-label=\"Legal\"><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></nav></div></body></html>"
+        "<nav class=\"legal-links\" aria-label=\"Legal\"><a href=\"/privacy\">Privacy Policy</a><a href=\"/terms\">Terms of Service</a></nav></main></body></html>"
     ));
 }
 

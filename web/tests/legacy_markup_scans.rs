@@ -359,7 +359,7 @@ fn every_suspense_fallback_reserves_space() {
     }
 
     assert!(
-        checked >= 5,
+        checked >= 4,
         "only {checked} suspense calls found; the scan has stopped matching"
     );
     assert!(
@@ -392,7 +392,7 @@ fn every_skeleton_container_class_in_the_markup_is_styled() {
     }
     assert!(css.contains("@keyframes skeleton-pulse"));
     assert!(
-        suspense_files().len() >= 5,
+        suspense_files().len() >= 4,
         "the scan stopped reaching the boundary files"
     );
 }

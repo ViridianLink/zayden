@@ -1,8 +1,10 @@
 use topcoat::Result;
+use topcoat::context::Cx;
 use topcoat::router::page;
-use topcoat::view::{View, view};
+use topcoat::view::{View, component, view};
 
 use super::layout::public_layout;
+use crate::auth;
 use crate::components::icons::{Icon, icon, module_icon, module_tint};
 
 struct Feature {
@@ -45,7 +47,9 @@ const FEATURES: &[Feature] = &[
 ];
 
 #[page("/")]
-pub(crate) async fn landing() -> Result<impl View> {
+pub(crate) async fn landing(cx: &Cx) -> Result<impl View> {
+    let signed_in = matches!(auth::check_session(cx).await, Ok(true));
+
     Ok(view! {
         public_layout(
             <div class="landing">
@@ -74,14 +78,7 @@ pub(crate) async fn landing() -> Result<impl View> {
                                 icon(name: Icon::Plus)
                                 "Add to Discord"
                             </a>
-                            <a
-                                href="/auth/discord"
-                                rel="external"
-                                class="btn btn-secondary btn-lg"
-                            >
-                                "Open Dashboard"
-                                icon(name: Icon::ArrowRight)
-                            </a>
+                            dashboard_link(signed_in: signed_in)
                         </div>
                     </div>
                 </section>
@@ -123,10 +120,29 @@ pub(crate) async fn landing() -> Result<impl View> {
                             icon(name: Icon::Plus)
                             "Add to Discord"
                         </a>
-                        <a href="/upgrade" class="btn btn-ghost btn-lg">"See Pro"</a>
+                        <a href="/upgrade" class="btn btn-ghost btn-lg">"See plans"</a>
                     </div>
                 </section>
             </div>
         )
+    })
+}
+
+/// The hero's second action: a signed-in visitor goes straight to their
+/// servers; anyone else signs in with Discord first.
+#[component]
+async fn dashboard_link(signed_in: bool) -> Result<impl View> {
+    Ok(view! {
+        if signed_in {
+            <a href="/guilds" class="btn btn-secondary btn-lg">
+                "Open dashboard"
+                icon(name: Icon::ArrowRight)
+            </a>
+        } else {
+            <a href="/auth/discord" rel="external" class="btn btn-secondary btn-lg">
+                "Sign in with Discord"
+                icon(name: Icon::ArrowRight)
+            </a>
+        }
     })
 }
