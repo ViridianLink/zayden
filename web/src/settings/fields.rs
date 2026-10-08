@@ -55,8 +55,6 @@ pub(super) fn forum_tags(
         .ok_or(CHANNELS_UNAVAILABLE)
 }
 
-/// A labelled picker. Without options the picker is locked: it shows the
-/// current value, explains why, and posts the current value unchanged.
 #[component]
 pub(super) async fn select_row(
     form: &str,
@@ -272,8 +270,6 @@ pub(super) async fn textarea_row(
     })
 }
 
-/// The reason a form was not saved, at the top of the form. It takes focus
-/// on load so keyboard and screen reader users start from the problem.
 #[component]
 pub(super) async fn form_summary(
     form: &str,

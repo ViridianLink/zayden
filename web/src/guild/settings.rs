@@ -81,13 +81,9 @@ form_args! {
     }
 }
 
-/// The voice channel name Zayden creates for temp voice.
 pub const CREATOR_CHANNEL_NAME: &str = "\u{2795} Creator Channel";
 
-/// Rules, general and spoiler channel ids, in that order.
 type ChannelIds = [Option<i64>; 3];
-
-/// Artist, sleep and verified role ids, in that order.
 type RoleIds = [Option<i64>; 3];
 
 fn channel_ids(rules: &str, general: &str, spoiler: &str) -> ChannelIds {
@@ -169,8 +165,6 @@ pub async fn save_role_settings(
     write_roles(app, guild_id, roles).await.map_err(server_err)
 }
 
-/// Saves the channels and roles of Server settings together: every id is
-/// checked against the server before either table is written.
 pub async fn save_server_settings(
     cx: &Cx,
     form: &ServerSettingsForm,
