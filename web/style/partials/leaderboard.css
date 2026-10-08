@@ -50,7 +50,7 @@
 }
 
 .lb-avatar.placeholder {
-  background: var(--accent);
+  background: var(--line);
 }
 
 .lb-name {

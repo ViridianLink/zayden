@@ -16,6 +16,7 @@
 
 .lamp-on {
     background-color: var(--lamp);
+    background-image: var(--lamp-ball);
     box-shadow: 0 0 8px 2px var(--lamp-glow);
     animation: lamp-in var(--dur) var(--ease-out) 1;
 }

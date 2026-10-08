@@ -8,8 +8,10 @@
     --paper-50: #eef2f7;
     --paper-300: #aab4c3;
     --paper-500: #8792a3;
-    --chartreuse-400: #c6f24e;
-    --chartreuse-950: #141708;
+    --chrome-50: #ffffff;
+    --chrome-100: #e3e8ee;
+    --chrome-300: #b9c1cc;
+    --chrome-500: #8c95a3;
     --coral-400: #ff7a66;
     --coral-950: #1c0a06;
     --amber-400: #f2b84b;
@@ -24,15 +26,20 @@
     --text-3: var(--paper-500);
     --line: var(--ink-500);
     --rule: var(--ink-800);
-    --lamp: var(--chartreuse-400);
-    --on-lamp: var(--chartreuse-950);
+    --lamp: var(--chrome-50);
+    --on-lamp: var(--ink-950);
     --danger: var(--coral-400);
     --on-danger: var(--coral-950);
     --caution: var(--amber-400);
     --accent: var(--lamp);
 
-    --lamp-glow: rgb(198 242 78 / 0.35);
-    --lamp-wash: rgb(198 242 78 / 0.12);
+    /* Metallic finishes from the logo's ring and ball; every consumer sets
+       --lamp as the solid background-color underneath. */
+    --lamp-sheen: linear-gradient(180deg, var(--chrome-50) 0%, var(--chrome-100) 55%, var(--chrome-300) 100%);
+    --lamp-ball: radial-gradient(circle at 35% 30%, var(--chrome-50) 0%, var(--chrome-100) 45%, var(--chrome-500) 100%);
+
+    --lamp-glow: rgb(255 255 255 / 0.4);
+    --lamp-wash: rgb(255 255 255 / 0.12);
     --danger-wash: rgb(255 122 102 / 0.14);
     --caution-wash: rgb(242 184 75 / 0.14);
     --wash-1: rgb(238 242 247 / 0.03);

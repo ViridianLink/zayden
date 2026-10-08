@@ -61,6 +61,15 @@
   color: var(--lamp);
 }
 
+@supports (background-clip: text) {
+  .hero-title .accent-text {
+    background-color: var(--lamp);
+    background-image: var(--lamp-sheen);
+    background-clip: text;
+    color: transparent;
+  }
+}
+
 .hero-subtitle {
   font-size: clamp(1rem, 2vw, 1.2rem);
   color: var(--text-2);
