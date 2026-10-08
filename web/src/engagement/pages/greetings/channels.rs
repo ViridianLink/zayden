@@ -17,10 +17,6 @@ use crate::engagement::pages::fields::{form_summary, select_row};
 use crate::engagement::{GATE_KINDS, channel_label, unconfigured_channels};
 use crate::flash::Flash;
 
-/// "Where /good works": the channels `/good` is allowed in, as a table with
-/// a confirmed Remove per row, and a form to allow one more. `allowed` is
-/// `None` when Discord did not report the list; `locked` when the viewer may
-/// not change it. Failures show in every state.
 #[component]
 pub async fn channel_section(
     guild_id: &str,

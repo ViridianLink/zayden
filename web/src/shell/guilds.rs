@@ -10,9 +10,6 @@ use crate::components::error_panel::{ErrorAction, error_panel};
 use crate::components::guild_grid::{GuildCard, guild_grid};
 use crate::guild::list_manageable_guilds;
 
-/// The guilds the signed-in user manages. `list_manageable_guilds` keeps
-/// only guilds where the user holds Administrator or Manage Server, before
-/// they become cards.
 #[page("/guilds")]
 pub(super) async fn guilds(cx: &Cx) -> Result<impl View> {
     let guilds = match list_manageable_guilds(cx).await {

@@ -11,10 +11,6 @@ use crate::components::module_row::{ModuleControl, module_row};
 use crate::guild::dto::ModuleView;
 use crate::nav;
 
-/// What a module's rack row offers: a switch only for command-backed modules
-/// whose state has synced; status and a link for modules switched elsewhere
-/// (AI Chat from its form, Patreon and YouTube from their connection); the
-/// not-synced note when no state exists yet.
 fn module_control(module: &ModuleView) -> ModuleControl {
     let backing = modules::find(&module.id).map(|def| def.backing);
 
@@ -25,8 +21,6 @@ fn module_control(module: &ModuleView) -> ModuleControl {
     }
 }
 
-/// One module in the overview rack. `error` is a failed switch's message;
-/// the switch then still shows the stored state.
 #[component]
 pub async fn module_card(
     module: &ModuleView,

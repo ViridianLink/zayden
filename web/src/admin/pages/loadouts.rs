@@ -48,8 +48,6 @@ pub(super) async fn loadouts_page(cx: &Cx) -> Result<impl View> {
     Ok(view! { app_shell(loadout_list_page(notice: notice.as_ref())) }.boxed())
 }
 
-/// Deletes a loadout, then answers 303 to the list with "Loadout deleted.";
-/// a refused delete re-renders the list (422) with the reason.
 #[page(POST "/admin/destiny2/loadouts")]
 pub(super) async fn delete(
     cx: &Cx,
