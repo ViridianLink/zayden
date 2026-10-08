@@ -416,7 +416,7 @@ async fn the_progress_bar_is_hidden_from_assistive_tech() {
     );
 }
 
-#[page("/guild/{guild_id}/settings/music")]
+#[page("/guild/{guild_id}/music")]
 async fn nav_on_music() -> ViewResult<impl View> {
     let staff = NavAccess { operator: true, admin: true, on_operator_page: true };
     Ok(view! {
@@ -427,10 +427,9 @@ async fn nav_on_music() -> ViewResult<impl View> {
 
 #[tokio::test]
 async fn the_rail_and_sheet_mark_the_current_page_and_label_their_groups() {
-    let html =
-        render(Router::builder().page(nav_on_music), "/guild/7/settings/music")
-            .await
-            .unwrap();
+    let html = render(Router::builder().page(nav_on_music), "/guild/7/music")
+        .await
+        .unwrap();
 
     assert_eq!(
         count(&html, r#"<nav class="nav" aria-label="Dashboard">"#),
@@ -440,7 +439,7 @@ async fn the_rail_and_sheet_mark_the_current_page_and_label_their_groups() {
     assert_eq!(
         count(
             &html,
-            r#"<a href="/guild/7/settings/music" class="nav-link" aria-current="page"><span>Music</span></a>"#
+            r#"<a href="/guild/7/music" class="nav-link" aria-current="page"><span>Music</span></a>"#
         ),
         2,
         "{html}"
@@ -472,7 +471,7 @@ fn guilds(n: usize) -> Vec<GuildInfo> {
         .collect()
 }
 
-#[page("/guild/{guild_id}/settings/support")]
+#[page("/guild/{guild_id}/support")]
 async fn plate_page() -> ViewResult<impl View> {
     let list = guilds(FILTER_THRESHOLD + 1);
     let current =
@@ -488,10 +487,9 @@ async fn plate_small() -> ViewResult<impl View> {
 
 #[tokio::test]
 async fn the_server_plate_opens_a_filterable_menu_keeping_the_page() {
-    let html =
-        render(Router::builder().page(plate_page), "/guild/2/settings/support")
-            .await
-            .unwrap();
+    let html = render(Router::builder().page(plate_page), "/guild/2/support")
+        .await
+        .unwrap();
 
     assert!(html.starts_with(&format!(
         r#"<button type="button" class="topbar-button plate" popovertarget="{PANEL_ID}" aria-controls="{PANEL_ID}" aria-expanded="false" aria-label="Switch server, current: Guild 2">"#
@@ -507,11 +505,14 @@ async fn the_server_plate_opens_a_filterable_menu_keeping_the_page() {
         "{html}"
     );
     assert!(html.contains(
-        r#"<a href="/guild/2/settings/support" class="menu-item" aria-current="page" data-filter-item="">"#
+        r#"<a href="/guild/2/support" class="menu-item" aria-current="page" data-filter-item="">"#
     ), "{html}");
-    assert!(html.contains(
-        r#"<a href="/guild/9/settings/support" class="menu-item" data-filter-item="">"#
-    ), "{html}");
+    assert!(
+        html.contains(
+            r#"<a href="/guild/9/support" class="menu-item" data-filter-item="">"#
+        ),
+        "{html}"
+    );
     assert_eq!(count(&html, "data-filter-item"), FILTER_THRESHOLD + 1, "{html}");
 
     let html = render(Router::builder().page(plate_small), "/guild/1/levels")

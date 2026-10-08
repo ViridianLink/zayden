@@ -2,42 +2,65 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
 
-use super::{Submission, action, ensure_path_guild, settings_page, shown};
-use crate::components::settings::{save_button, save_feedback, setting_field};
+use super::fields::{Range, form_summary, text_row};
+use super::header::switch_module;
+use super::state::{Done, PageState, settle};
+use super::{Page, ensure_path_guild, settings_page};
+use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::FamilySection;
 use crate::guild::settings::{FamilySettingsForm, save_family_settings};
 use crate::shell::GuildId;
 
-const SLUG: &str = "family";
-const FORM: &str = "family";
+const PAGE: Page = Page::Family;
+const FORM: &str = "family-settings";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.page(family).page(save)
+    base.page(family).page(save).page(switch)
 }
 
-#[page("/guild/{guild_id}/settings/family")]
+#[page("/guild/{guild_id}/family")]
 async fn family(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! { settings_page(guild_id: guild_id, slug: SLUG) })
+    Ok(view! { settings_page(guild_id: guild_id, page: PAGE, state: &state) })
 }
 
-#[page(POST "/guild/{guild_id}/settings/family")]
+#[page(POST "/guild/{guild_id}/family")]
 async fn save(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
     let values = pairs.clone();
-    let submission =
-        Submission::new(FORM, values, save_family(cx, guild_id, pairs).await)?;
+    let result = save_family(cx, guild_id, pairs).await;
+    let failure = settle(cx, FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "Family settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        (submission.status())
-        settings_page(guild_id: guild_id, slug: SLUG, submission: Some(&submission))
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
+#[page(POST "/guild/{guild_id}/family/module")]
+async fn switch(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::failed(switch_module(cx, guild_id, PAGE, pairs).await?);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
     })
 }
 
@@ -55,28 +78,39 @@ async fn save_family(
 pub(super) async fn tab(
     guild_id: &str,
     settings: &FamilySection,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let submitted = Submission::of(submission, FORM);
+    let sent = state.sent(FORM);
 
     Ok(view! {
-        <fieldset class="settings-section">
-            if let Some(submitted) = submitted {
-                save_feedback(outcome: submitted.outcome())
+        <form
+            id=(FORM)
+            method="post"
+            action=(PAGE.href(guild_id))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: FORM, message: message)
             }
-            <form method="post" action=(action(guild_id, SLUG)) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                setting_field(
-                    label: "Max Partners",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Relationships"</legend>
+                <p class="page-lead">
+                    "How many partners one member can have at once."
+                </p>
+                text_row(
+                    form: FORM,
                     name: "max_partners",
-                    value: shown(
-                        submitted,
-                        "max_partners",
-                        Some(settings.max_partners.as_str()),
-                    )
+                    label: "Max partners",
+                    value: sent.value("max_partners", Some(&settings.max_partners)),
+                    help: Some("At least 1."),
+                    error: sent.error("max_partners"),
+                    range: Some(Range { min: 1, max: None })
                 )
-                save_button()
-            </form>
-        </fieldset>
-    })
+            </fieldset>
+            save_bar(notice: state.notice_for(FORM))
+        </form>
+    }
+    .boxed())
 }

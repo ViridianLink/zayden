@@ -92,7 +92,7 @@ async fn an_unknown_module_cannot_be_switched() {
 
     assert!(html.starts_with(&head("#a78bfa")), "{html}");
     assert!(html.contains(
-        r#"<button class="toggle" aria-label="Toggle module" aria-pressed="mixed" disabled=""></button></div><div class="module-name">Music</div><p class="module-desc">Music description</p><p class="module-locked">Zayden hasn't set this module up for this server yet, so it can't be changed right now.</p><div class="module-card-foot"><span class="module-status">Unknown</span><a href="/guild/7/settings/music" class="module-configure">Configure"#
+        r#"<button class="toggle" aria-label="Toggle module" aria-pressed="mixed" disabled=""></button></div><div class="module-name">Music</div><p class="module-desc">Music description</p><p class="module-locked">Zayden hasn't set this module up for this server yet, so it can't be changed right now.</p><div class="module-card-foot"><span class="module-status">Unknown</span><a href="/guild/7/music" class="module-configure">Configure"#
     ), "{html}");
     assert!(
         html.ends_with(&format!("Configure{CHEVRON_RIGHT}</a></div></div>")),
@@ -110,7 +110,7 @@ async fn a_switched_off_module_posts_a_switch_on() {
         r#"<button class="toggle" aria-label="Toggle module" aria-pressed="false" form="module-toggle-ai" name="enabled" value="true"></button>"#
     ), "{html}");
     assert!(html.contains(
-        r#"<div class="module-card-foot"><span class="module-status">Disabled</span><a href="/guild/7/settings/ai" class="module-configure">"#
+        r#"<div class="module-card-foot"><span class="module-status">Disabled</span><a href="/guild/7/ai" class="module-configure">"#
     ), "{html}");
     assert!(html.ends_with(
         r#"</div><form id="module-toggle-ai" method="post" action="/guild/7"><input type="hidden" name="guild" value="7"><input type="hidden" name="module_id" value="ai"></form></div>"#
@@ -144,7 +144,7 @@ async fn a_module_switched_on_elsewhere_is_locked() {
         "{html}"
     );
     assert!(html.contains(
-        r#"<span class="module-status on">Enabled</span><a href="/guild/7/settings/patreon" class="module-configure">"#
+        r#"<span class="module-status on">Enabled</span><a href="/guild/7/patreon" class="module-configure">"#
     ), "{html}");
     assert!(!html.contains("<form"));
 }

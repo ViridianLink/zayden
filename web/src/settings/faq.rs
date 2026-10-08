@@ -1,6 +1,6 @@
 mod error;
 
-use error::ArticleError;
+pub(super) use error::ArticleError;
 use ticket::{FaqArticle, NewArticle};
 use topcoat::context::Cx;
 
@@ -8,6 +8,7 @@ use crate::form::fold;
 use crate::guild::{GuildError, admin_app};
 
 const LIST_LIMIT: i64 = 200;
+const TIME_FORMAT: &str = "%-d %b %Y, %H:%M UTC";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct FaqArticleInfo {
@@ -25,7 +26,6 @@ pub(super) struct FaqArticleInfo {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct ArticleForm {
     pub(super) guild: String,
-    id: String,
     title: String,
     summary: String,
     content: String,
@@ -37,25 +37,20 @@ impl ArticleForm {
     pub(super) fn from_pairs(
         pairs: Vec<(String, String)>,
     ) -> Result<Self, GuildError> {
-        let [guild, id, title, summary, content, category, tags] = fold(pairs, [
-            "guild", "id", "title", "summary", "content", "category", "tags",
+        let [guild, title, summary, content, category, tags] = fold(pairs, [
+            "guild", "title", "summary", "content", "category", "tags",
         ])?;
-        Ok(Self { guild, id, title, summary, content, category, tags })
+        Ok(Self { guild, title, summary, content, category, tags })
     }
-}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct DeleteArticleForm {
-    pub(super) guild: String,
-    id: String,
-}
-
-impl DeleteArticleForm {
-    pub(super) fn from_pairs(
-        pairs: Vec<(String, String)>,
-    ) -> Result<Self, GuildError> {
-        let [guild, id] = fold(pairs, ["guild", "id"])?;
-        Ok(Self { guild, id })
+    pub(super) fn missing(&self) -> Option<&'static str> {
+        if self.title.trim().is_empty() {
+            Some("title")
+        } else if self.content.trim().is_empty() {
+            Some("content")
+        } else {
+            None
+        }
     }
 }
 
@@ -70,47 +65,53 @@ pub(super) async fn list_faq_articles(
     Ok(articles.iter().map(info).collect())
 }
 
+pub(super) async fn get_faq_article(
+    cx: &Cx,
+    guild: &str,
+    id: i32,
+) -> Result<Option<FaqArticleInfo>, ArticleError> {
+    let (guild_id, app) = admin_app(cx, guild).await?;
+
+    Ok(FaqArticle::get(&app.db, guild_id, id).await?.as_ref().map(info))
+}
+
 pub(super) async fn save_faq_article(
     cx: &Cx,
     form: &ArticleForm,
-) -> Result<(), ArticleError> {
+    id: Option<i32>,
+) -> Result<i32, ArticleError> {
     let (guild_id, app) = admin_app(cx, &form.guild).await?;
 
-    let title = form.title.trim();
-    let content = form.content.trim();
-
-    if title.is_empty() || content.is_empty() {
+    if form.missing().is_some() {
         return Err(ArticleError::TitleAndBodyRequired);
     }
 
     let category = form.category.trim();
     let tags = parse_tags(&form.tags);
     let article = NewArticle {
-        title,
+        title: form.title.trim(),
         summary: form.summary.trim(),
-        content,
+        content: form.content.trim(),
         category: (!category.is_empty()).then_some(category),
         tags: &tags,
     };
 
-    match parse_article_id(&form.id) {
-        None => FaqArticle::create(&app.db, guild_id, article).await.map(|_| ())?,
+    let saved = match id {
+        None => FaqArticle::create(&app.db, guild_id, article).await?,
         Some(id) => FaqArticle::update(&app.db, guild_id, id, article)
             .await?
-            .map(|_| ())
             .ok_or(ArticleError::NoSuchArticle)?,
-    }
+    };
 
-    Ok(())
+    Ok(saved.id)
 }
 
 pub(super) async fn delete_faq_article(
     cx: &Cx,
-    form: &DeleteArticleForm,
+    guild: &str,
+    id: i32,
 ) -> Result<(), ArticleError> {
-    let (guild_id, app) = admin_app(cx, &form.guild).await?;
-
-    let id = parse_article_id(&form.id).ok_or(ArticleError::NoSuchArticle)?;
+    let (guild_id, app) = admin_app(cx, guild).await?;
 
     FaqArticle::delete(&app.db, guild_id, id).await?;
 
@@ -145,6 +146,6 @@ fn info(article: &FaqArticle) -> FaqArticleInfo {
         tags: article.tags.join(", "),
         generated: article.generated,
         source_thread_id: article.source_thread_id.map(|id| id.to_string()),
-        updated_at: article.updated_at.to_jiff().to_string(),
+        updated_at: article.updated_at.to_jiff().strftime(TIME_FORMAT).to_string(),
     }
 }

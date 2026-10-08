@@ -1,6 +1,6 @@
-//! The guild settings page and its Server settings, AI, Family, Honeypot, LFG,
-//! Music and Temp voice sections through the app router, against Postgres and a
-//! stand-in Discord API.
+//! Server settings and the AI Chat, Family, Honeypot, LFG, Music and Temp
+//! voice pages through the app router, against Postgres and a stand-in
+//! Discord API.
 //!
 //! Sessions and Discord guild lists come from seeded caches. The bot's
 //! Discord client talks to a local server that answers the channel, role,
@@ -40,18 +40,6 @@ const FORM: &str = "application/x-www-form-urlencoded";
 /// Two connections per test pool keep the binary inside `sqlx::test`'s
 /// 20-permit master pool (see `tests/shell_pages.rs`).
 const TEST_POOL_CONNECTIONS: u32 = 2;
-
-const ICON_OPEN: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">"#;
-const CHEVRON: &str = r#"<span class="select-chevron"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>"#;
-const GRID: &str = r#"<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>"#;
-const USERS: &str = r#"<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>"#;
-const SAVE: &str = r#"<div class="form-actions"><button type="submit" class="btn btn-primary" data-pending-label="Saving…">Save</button></div>"#;
-
-const TEXT_OPTIONS: &str = r#"<option value="100"># rules</option><option value="101">📢 news</option><option value="104">💬 help</option>"#;
-const ROLE_OPTIONS: &str =
-    r#"<option value="200">@Mods</option><option value="201">@Members</option>"#;
-const CATEGORY_OPTIONS: &str = r#"<option value="102">▸ Voice</option>"#;
-const VOICE_OPTIONS: &str = r#"<option value="103">🔊 lobby</option>"#;
 
 #[derive(Clone, Debug)]
 struct Hit {
@@ -473,67 +461,151 @@ fn main_content(html: &str) -> &str {
         .map_or("", |(main, _)| main)
 }
 
-fn header(label: &str, lead: &str) -> String {
-    format!(
-        r#"<div class="page"><div class="page-header"><div><h1>{label}</h1><p class="page-lead">{lead}</p></div></div>"#
+/// The `name=value` pair of the flash cookie a response sets.
+fn flash_cookie(response: &Response) -> Option<String> {
+    response
+        .headers()
+        .get_all(header::SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .find(|value| value.starts_with("flash=") && !value.starts_with("flash=;"))
+        .and_then(|value| value.split(';').next())
+        .map(str::to_owned)
+}
+
+impl Harness {
+    /// Posts `body`, checks the 303 to `target` (fragment included), and opens
+    /// the page there carrying the flash the redirect set.
+    async fn redirected(
+        &self,
+        path: &str,
+        body: &str,
+        target: &str,
+    ) -> TestResult<String> {
+        let response = self.post(path, body, Some(MEMBER)).await?;
+        if response.status() != StatusCode::SEE_OTHER
+            || location(&response) != Some(target)
+        {
+            let got = (response.status(), location(&response).map(str::to_owned));
+            let html = body_text(response).await?;
+            return Err(format!("{path} {body} answered {got:?}: {html}").into());
+        }
+        let flash = flash_cookie(&response).ok_or("the redirect set no flash")?;
+        let page = target.split('#').next().unwrap_or(target);
+        let response = self.get(page, Some(&format!("{MEMBER}; {flash}"))).await?;
+        if response.status() != StatusCode::OK {
+            return Err(format!("{page} answered {}", response.status()).into());
+        }
+        body_text(response).await
+    }
+}
+
+/// The markup of the `tag` element whose `id` is `id`, through its end tag.
+fn element<'a>(html: &'a str, tag: &str, id: &str) -> Option<&'a str> {
+    let at = html.find(&format!(r#"id="{id}""#))?;
+    let start = html.get(..at)?.rfind(&format!("<{tag}"))?;
+    let rest = html.get(start..)?;
+    let end = rest.find(&format!("</{tag}>")).map_or_else(
+        || rest.find('>').map(|end| end + 1),
+        |end| Some(end + tag.len() + 3),
+    )?;
+    rest.get(..end)
+}
+
+/// The value of the selected option of the select with id `id`.
+fn selected<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    let select = element(html, "select", id)?;
+    let option = select.get(..select.find(r#" selected="">"#)?)?;
+    let option = option.get(option.rfind("<option")?..)?;
+    option
+        .split_once(r#"value=""#)
+        .and_then(|(_, rest)| rest.split_once('"'))
+        .map(|(value, _)| value)
+}
+
+/// The `value` attribute of the input with id `id`.
+fn value<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    let input = element(html, "input", id)?;
+    input
+        .split_once(r#" value=""#)
+        .and_then(|(_, rest)| rest.split_once('"'))
+        .map(|(value, _)| value)
+}
+
+/// The text between `open` and the next `close`.
+fn between<'a>(html: &'a str, open: &str, close: &str) -> Option<&'a str> {
+    html.split_once(open)?.1.split_once(close).map(|(text, _)| text)
+}
+
+/// The inline error of field `id`.
+fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    between(html, &format!(r#"<p class="field-error" id="{id}-error">"#), "</p>")
+}
+
+/// The reason at the top of form `form`.
+fn summary<'a>(html: &'a str, form: &str) -> Option<&'a str> {
+    between(
+        html,
+        &format!(
+            r#"<div class="error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">"#
+        ),
+        "</div>",
     )
 }
 
-fn form(slug: &str, guild: &str) -> String {
-    format!(
-        r#"<form method="post" action="/guild/{guild}/settings/{slug}" data-pending=""><input type="hidden" name="guild" value="{guild}">"#
+/// The result line in the save bar of form `form`.
+fn bar_flash<'a>(html: &'a str, form: &str) -> Option<&'a str> {
+    let form = element(html, "form", form)?;
+    between(
+        form.split_once(r#"<div class="save-bar""#)?.1,
+        r#"<span class="flash-text">"#,
+        "</span>",
     )
 }
 
-fn select(label: &str, name: &str, selected: &str, options: &str) -> String {
-    let none = if selected.is_empty() { r#" selected="""# } else { "" };
-    let options = if selected.is_empty() {
-        options.to_owned()
-    } else {
-        options.replace(
-            &format!(r#"<option value="{selected}">"#),
-            &format!(r#"<option value="{selected}" selected="">"#),
-        )
-    };
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value=""{none}>(not set)</option>{options}</select>{CHEVRON}</div></div>"#
-    )
+/// The result line at the top of the page.
+fn top_flash(html: &str) -> Option<&str> {
+    let region =
+        between(html, r#"<div class="flash-region" role="status">"#, "</div>")?;
+    between(region, r#"<span class="flash-text">"#, "</span>")
 }
 
-fn toggle(label: &str, name: &str, on: bool) -> String {
-    let (yes, no) =
-        if on { (r#" selected="""#, "") } else { ("", r#" selected="""#) };
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value="true"{yes}>Enabled</option><option value="false"{no}>Disabled</option></select>{CHEVRON}</div></div>"#
-    )
+/// Element ids that appear more than once.
+fn duplicate_ids(html: &str) -> Vec<String> {
+    let mut ids: Vec<&str> = html
+        .split(r#" id=""#)
+        .skip(1)
+        .filter_map(|rest| rest.split_once('"').map(|(id, _)| id))
+        .collect();
+    ids.sort_unstable();
+    let mut duplicates: Vec<String> = ids
+        .windows(2)
+        .filter_map(|pair| match pair {
+            [first, second] if first == second => Some((*first).to_owned()),
+            _ => None,
+        })
+        .collect();
+    duplicates.dedup();
+    duplicates
 }
 
-fn text(label: &str, name: &str, value: &str) -> String {
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}" type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="[0-9]*"></div>"#
-    )
+/// Every control in `main` has a label bound to it.
+fn assert_labelled(html: &str, ids: &[&str]) {
+    for id in ids {
+        assert!(
+            html.contains(&format!(r#"for="{id}""#)),
+            "no label for {id}: {html}"
+        );
+        assert!(html.contains(&format!(r#"id="{id}""#)), "no control {id}: {html}");
+    }
 }
 
-fn alert(class: &str, role: &str, message: &str) -> String {
-    format!(
-        r#"<div class="alert {class}" role="{role}"><span>{message}</span><button type="button" class="alert-dismiss" aria-label="Dismiss">{ICON_OPEN}"#
-    )
-}
-
-fn saved() -> String {
-    alert("success", "status", "Saved.")
-}
-
-fn not_saved(message: &str) -> String {
-    alert(
-        "error",
-        "alert",
-        &format!("Failed to save: error running server function: {message}"),
-    )
+fn title(label: &str) -> String {
+    format!("<title>{label} - Zayden Dashboard</title>")
 }
 
 #[sqlx::test(migrations = "../migrations")]
-async fn every_section_renders_its_stored_settings(
+async fn every_page_renders_its_stored_settings(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
@@ -550,57 +622,41 @@ async fn every_section_renders_its_stored_settings(
         .await
         .unwrap();
     settings.roles.update(7, |p| p.sleep_role_id = Some(201)).await.unwrap();
-    let stored = settings.channels.get(7).await.unwrap();
-    assert_eq!(stored.rules_channel_id, Some(100));
-    assert_eq!(stored.spoiler_channel_id, Some(999));
-    assert_eq!(settings.roles.get(7).await.unwrap().sleep_role_id, Some(201));
+    assert_eq!(settings.channels.get(7).await.unwrap().rules_channel_id, Some(100));
 
-    let general = format!(
-        r#"{}<fieldset class="settings-section"><legend>{ICON_OPEN}{GRID}Channels</legend>{}{}{}{}{SAVE}</form></fieldset><fieldset class="settings-section"><legend>{ICON_OPEN}{USERS}Roles</legend>{}{}{}{}{SAVE}</form></fieldset></div>"#,
-        header(
-            "Server settings",
-            "Server-wide channels and roles the rest of Zayden points at."
-        ),
-        form("general", "7"),
-        select("Rules Channel", "rules_channel_id", "100", TEXT_OPTIONS),
-        select("General Channel", "general_channel_id", "", TEXT_OPTIONS),
-        select(
-            "Spoiler Channel",
-            "spoiler_channel_id",
-            "999",
-            &format!(r#"<option value="999">Unknown (999)</option>{TEXT_OPTIONS}"#)
-        ),
-        form("general", "7"),
-        select("Artist Role", "artist_role_id", "", ROLE_OPTIONS),
-        select("Sleep Role", "sleep_role_id", "201", ROLE_OPTIONS),
-        select("Verified Role", "verified_role_id", "", ROLE_OPTIONS),
-    );
-    for path in [
-        "/guild/7/settings",
-        "/guild/7/settings/general",
-        "/guild/7/settings/bogus",
-        "/guild/7/settings/greetings",
-    ] {
-        let html = app.page(path).await.unwrap();
-        assert!(
-            html.contains("<title>Server settings - Zayden Dashboard</title>"),
-            "{path}: {html}"
-        );
-        assert_eq!(main_content(&html), general, "{path}");
-        let active = count(
+    let html = app.page("/guild/7/settings").await.unwrap();
+    assert!(html.contains(&title("Server settings")), "{html}");
+    assert_eq!(
+        count(
             &html,
-            r#"<a href="/guild/7/settings/general" class="nav-link" aria-current="page">"#,
-        );
-        let expected = 2 * usize::from(
-            !path.ends_with("bogus") && !path.ends_with("greetings"),
-        );
-        assert_eq!(active, expected, "{path}: {html}");
-        assert_eq!(
-            count(&html, r#"class="nav-link" aria-current="page""#),
-            expected,
-            "{path}: {html}"
-        );
-    }
+            r#"<a href="/guild/7/settings" class="nav-link" aria-current="page">"#
+        ),
+        2,
+        "{html}"
+    );
+    let main = main_content(&html);
+    assert!(main.starts_with(r#"<div class="page"><div class="page-header"><div><h1>Server settings</h1><p class="page-lead">Server-wide channels and roles the rest of Zayden points at.</p></div></div><div class="flash-region" role="status"></div><form id="server-settings" method="post" action="/guild/7/settings" data-pending="" data-dirty-guard=""><input type="hidden" name="guild" value="7"><fieldset class="settings-section"><legend>Channels</legend>"#), "{main}");
+    assert_eq!(count(main, "<form"), 1, "one form, one save: {main}");
+    assert_eq!(count(main, r#"class="save-bar""#), 1, "{main}");
+    assert!(!main.contains("lamp"), "server settings has no module lamp: {main}");
+    assert!(main.contains(r#"<p class="field-hint">Zayden's role must be above the roles it assigns. In Discord, drag it above them under Server Settings &gt; Roles.</p>"#) || main.contains("Zayden's role must be above the roles it assigns."), "{main}");
+    assert_eq!(selected(main, "server-settings-rules-channel-id"), Some("100"));
+    assert_eq!(selected(main, "server-settings-general-channel-id"), Some(""));
+    assert_eq!(selected(main, "server-settings-spoiler-channel-id"), Some("999"));
+    assert!(
+        main.contains(r#"<option value="999" selected="">Unknown (999)</option>"#),
+        "{main}"
+    );
+    assert_eq!(selected(main, "server-settings-sleep-role-id"), Some("201"));
+    assert_labelled(main, &[
+        "server-settings-rules-channel-id",
+        "server-settings-general-channel-id",
+        "server-settings-spoiler-channel-id",
+        "server-settings-artist-role-id",
+        "server-settings-sleep-role-id",
+        "server-settings-verified-role-id",
+    ]);
+    assert_eq!(duplicate_ids(&html), Vec::<String>::new());
 
     settings
         .ai
@@ -610,70 +666,53 @@ async fn every_section_renders_its_stored_settings(
         })
         .await
         .unwrap();
-    assert!(settings.ai.get(7).await.unwrap().enabled);
-    let html = app.page("/guild/7/settings/ai").await.unwrap();
-    assert!(
-        html.contains("<title>AI Chat settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
+    let html = app.page("/guild/7/ai").await.unwrap();
+    assert!(html.contains(&title("AI Chat")), "{html}");
     assert_eq!(
         count(
             &html,
-            r#"<a href="/guild/7/settings/ai" class="nav-link" aria-current="page"><span>AI Chat</span></a>"#,
+            r#"<a href="/guild/7/ai" class="nav-link" aria-current="page"><span>AI Chat</span></a>"#
         ),
         2,
         "{html}"
     );
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section">{}{}{}{SAVE}</form><p class="page-lead">With AI responses on, Zayden replies in character whenever someone mentions him. Leave the channel unset to let him answer anywhere he can see, or pick one to keep him to a single room.</p><p class="page-lead">Every reply costs a model call, so scope this to a channel you actually want him talking in. The toggle here is the same switch as the AI Chat card on the Modules page.</p></fieldset></div>"#,
-            header("AI Chat", "Whether Zayden answers when mentioned, and where."),
-            form("ai", "7"),
-            toggle("AI Responses", "enabled", true),
-            select("Restrict to Channel", "channel_id", "101", TEXT_OPTIONS),
-        )
-    );
+    let main = main_content(&html);
+    assert!(main.contains(r#"<div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text">On</span></span></div>"#), "the lamp shows the setting, with no second control: {main}");
+    assert!(!main.contains(r#"role="switch""#), "{main}");
+    assert_eq!(selected(main, "ai-settings-enabled"), Some("true"));
+    assert_eq!(selected(main, "ai-settings-channel-id"), Some("101"));
+    assert_labelled(main, &["ai-settings-enabled", "ai-settings-channel-id"]);
+    assert_eq!(duplicate_ids(&html), Vec::<String>::new());
 
-    assert_eq!(settings.family.get(7).await.unwrap().max_partners, 1);
-    let html = app.page("/guild/7/settings/family").await.unwrap();
+    let html = app.page("/guild/7/family").await.unwrap();
+    assert!(html.contains(&title("Family")), "{html}");
+    let main = main_content(&html);
+    assert!(main.contains(r#"<p class="field-hint">Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.</p>"#), "{main}");
+    assert!(main.contains(r#"<span class="lamp lamp-sync" aria-hidden="true"></span><span class="lamp-text">Not synced</span>"#), "{main}");
+    assert!(!main.contains(r#"role="switch""#), "no switch before a sync: {main}");
+    assert_eq!(value(main, "family-settings-max-partners"), Some("1"));
     assert!(
-        html.contains("<title>Family settings - Zayden Dashboard</title>"),
-        "{html}"
+        main.contains(
+            r#"type="number" name="max_partners" value="1" min="1" step="1""#
+        ),
+        "{main}"
     );
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section">{}{}{SAVE}</form></fieldset></div>"#,
-            header("Family", "Limits for the family and relationship commands."),
-            form("family", "7"),
-            text("Max Partners", "max_partners", "1"),
-        )
-    );
+    assert!(main.contains(r#"<p class="field-help" id="family-settings-max-partners-help">At least 1.</p>"#), "{main}");
 
     let honeypot = settings.honeypot.get(7).await.unwrap();
     assert_eq!(honeypot.purge_seconds, 86_400);
-    assert!(!honeypot.exempt_admins);
-    let html = app.page("/guild/7/settings/honeypot").await.unwrap();
-    assert!(
-        html.contains("<title>Honeypot settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section">{}{}{}{}{}{SAVE}</form><p class="page-lead">Anyone who posts in the honeypot channel is banned - which purges their recent messages server-wide - and then immediately unbanned, so a recovered account can rejoin. Leave the channel unset to turn the trap off.</p><p class="page-lead">The purge window is how far back the ban deletes the offender's messages, across every channel. Defaults to 86400 (24 hours); 0 keeps their history and Discord caps it at 604800 (7 days).</p><p class="page-lead">The server owner is always exempt. Keep the channel postable by @everyone - the trap only catches spam bots that can actually reach it.</p></fieldset></div>"#,
-            header(
-                "Honeypot",
-                "The spam trap: a bait channel that bans whoever posts in it."
-            ),
-            form("honeypot", "7"),
-            select("Honeypot Channel", "channel_id", "", TEXT_OPTIONS),
-            toggle("Exempt Admins", "exempt_admins", false),
-            select("Exempt Role", "exempt_role_id", "", ROLE_OPTIONS),
-            text("Purge Window (seconds)", "purge_seconds", "86400"),
-        )
-    );
+    let html = app.page("/guild/7/honeypot").await.unwrap();
+    assert!(html.contains(&title("Honeypot")), "{html}");
+    let main = main_content(&html);
+    assert_eq!(value(main, "honeypot-settings-purge-seconds"), Some("86400"));
+    assert!(main.contains(r#"min="0" max="604800""#), "{main}");
+    assert_eq!(selected(main, "honeypot-settings-exempt-admins"), Some("false"));
+    assert_labelled(main, &[
+        "honeypot-settings-channel-id",
+        "honeypot-settings-purge-seconds",
+        "honeypot-settings-exempt-admins",
+        "honeypot-settings-exempt-role-id",
+    ]);
 
     settings
         .lfg
@@ -683,87 +722,45 @@ async fn every_section_renders_its_stored_settings(
         })
         .await
         .unwrap();
-    assert_eq!(
-        settings.lfg.get(7).await.unwrap().lfg_scheduled_thread_id,
-        Some(300)
-    );
-    let html = app.page("/guild/7/settings/lfg").await.unwrap();
-    assert!(
-        html.contains("<title>LFG settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section">{}{}{}{}{SAVE}</form></fieldset></div>"#,
-            header("LFG", "Where looking-for-group posts go and who they ping."),
-            form("lfg", "7"),
-            select("LFG Channel", "lfg_channel_id", "", TEXT_OPTIONS),
-            select("LFG Role", "lfg_role_id", "200", ROLE_OPTIONS),
-            text("LFG Scheduled Thread ID", "lfg_scheduled_thread_id", "300"),
-        )
-    );
+    let html = app.page("/guild/7/lfg").await.unwrap();
+    assert!(html.contains(&title("LFG")), "{html}");
+    let main = main_content(&html);
+    assert!(!main.contains("lamp"), "LFG has no module: {main}");
+    assert_eq!(selected(main, "lfg-settings-lfg-role-id"), Some("200"));
+    assert_eq!(value(main, "lfg-settings-lfg-scheduled-thread-id"), Some("300"));
+    assert!(main.contains(r#"inputmode="numeric" pattern="[0-9]*""#), "{main}");
 
-    let music = settings.music.get(7).await.unwrap();
-    assert_eq!(music.auto_disconnect_secs, 120);
-    assert!(music.announce_now_playing);
-    let html = app.page("/guild/7/settings/music").await.unwrap();
-    assert!(
-        html.contains("<title>Music settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section">{}{}{}{}{}{SAVE}</form><p class="page-lead">Announcements post when a track ends and the next one starts. Leave the announce channel unset to use the channel /play was run in.</p><p class="page-lead">Default volume, 24/7 mode and autoplay change while music is playing - set those in Discord with /music settings.</p></fieldset></div>"#,
-            header("Music", "Playback permissions and now-playing announcements."),
-            form("music", "7"),
-            select("DJ Role", "dj_role_id", "", ROLE_OPTIONS),
-            text("Auto-disconnect (seconds)", "auto_disconnect_secs", "120"),
-            toggle("Announce Now Playing", "announce_now_playing", true),
-            select("Announce Channel", "announce_channel_id", "", TEXT_OPTIONS),
-        )
-    );
+    app.app.modules.set(7, "music", true).await.unwrap();
+    let html = app.page("/guild/7/music").await.unwrap();
+    assert!(html.contains(&title("Music")), "{html}");
+    let main = main_content(&html);
+    assert!(main.contains(r#"<form class="settings-actions" method="post" action="/guild/7/music/module" data-pending=""><input type="hidden" name="guild" value="7"><span class="lamp-status"><span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text" data-pending-text="Saving…">On</span></span><button type="submit" class="switch" role="switch" aria-checked="true" aria-label="Music module" name="enabled" value="false"><span class="switch-thumb" aria-hidden="true"></span></button></form>"#), "{main}");
+    assert_eq!(value(main, "music-settings-auto-disconnect-secs"), Some("120"));
+    assert_eq!(selected(main, "music-settings-announce-now-playing"), Some("true"));
 
     settings
         .temp_voice
         .update(7, |p| p.temp_voice_category = Some(102))
         .await
         .unwrap();
+    let html = app.page("/guild/7/temp-voice").await.unwrap();
+    assert!(html.contains(&title("Temp voice")), "{html}");
+    let main = main_content(&html);
     assert_eq!(
-        settings.temp_voice.get(7).await.unwrap().temp_voice_category,
-        Some(102)
+        selected(main, "temp-voice-settings-temp-voice-category"),
+        Some("102")
     );
-    let html = app.page("/guild/7/settings/temp-voice").await.unwrap();
-    assert!(
-        html.contains("<title>Temp voice settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
+    assert_eq!(selected(main, "temp-voice-create-temp-voice-category"), Some("102"));
     assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section">{}{}{}{SAVE}</form><p class="page-lead">No creator channel yet? Zayden can make one for you and point the settings above at it.</p>{}{}<div class="form-actions"><button type="submit" class="btn btn-secondary">Create Creator Channel</button></div></form></fieldset></div>"#,
-            header(
-                "Temp voice",
-                "On-demand voice channels created from a join-to-create channel."
-            ),
-            form("temp-voice", "7"),
-            select("Category", "temp_voice_category", "102", CATEGORY_OPTIONS),
-            select(
-                "Creator Channel",
-                "temp_voice_creator_channel",
-                "",
-                VOICE_OPTIONS
-            ),
-            form("temp-voice", "7"),
-            select(
-                "Create Creator Channel In",
-                "temp_voice_category",
-                "102",
-                CATEGORY_OPTIONS
-            )
-            .replace("field-temp_voice_category", "temp-voice-create-category"),
-        )
+        selected(main, "temp-voice-settings-temp-voice-creator-channel"),
+        Some("")
+    );
+    assert!(main.contains(r#"<form id="temp-voice-create" method="post" action="/guild/7/temp-voice/create" data-pending="">"#), "{main}");
+    assert!(main.contains(r#"<button type="submit" class="btn btn-secondary" data-pending-label="Creating…">Create creator channel</button>"#), "{main}");
+    assert_eq!(
+        duplicate_ids(&html),
+        Vec::<String>::new(),
+        "two forms post the same field name"
     );
 
     assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 0);
@@ -771,7 +768,7 @@ async fn every_section_renders_its_stored_settings(
 }
 
 #[sqlx::test(migrations = "../migrations")]
-async fn saves_re_render_with_inline_feedback(
+async fn saves_redirect_with_the_result_in_the_save_bar(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
@@ -780,316 +777,126 @@ async fn saves_re_render_with_inline_feedback(
     let settings = &app.app.settings;
 
     let html = app
-        .submit(
-            "/guild/7/settings/general",
-            "guild=7&rules_channel_id=101&general_channel_id=&spoiler_channel_id=104",
-            StatusCode::OK,
+        .redirected(
+            "/guild/7/settings",
+            "guild=7&rules_channel_id=101&general_channel_id=&spoiler_channel_id=104&artist_role_id=&sleep_role_id=200&verified_role_id=",
+            "/guild/7/settings#server-settings",
         )
         .await
         .unwrap();
-    let stored = settings.channels.get(7).await.unwrap();
-    assert_eq!(stored.rules_channel_id, Some(101));
-    assert_eq!(stored.general_channel_id, None);
-    assert_eq!(stored.spoiler_channel_id, Some(104));
+    let channels = settings.channels.get(7).await.unwrap();
+    assert_eq!(
+        (
+            channels.rules_channel_id,
+            channels.general_channel_id,
+            channels.spoiler_channel_id
+        ),
+        (Some(101), None, Some(104))
+    );
+    assert_eq!(settings.roles.get(7).await.unwrap().sleep_role_id, Some(200));
+    assert_eq!(bar_flash(&html, "server-settings"), Some("Server settings saved."));
+    assert_eq!(top_flash(&html), None);
+    assert_eq!(selected(&html, "server-settings-rules-channel-id"), Some("101"));
     assert!(
-        html.contains("<title>Server settings - Zayden Dashboard</title>"),
+        html.contains(r#"<p class="flash flash-success" data-flash="">"#),
         "{html}"
     );
-    assert!(
-        html.contains(&format!(
-            "Channels</legend>{}{}{}",
-            saved(),
-            r#"<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>"#,
-            form("general", "7"),
-        )),
-        "{html}"
-    );
-    assert!(
-        html.contains(&select(
-            "Rules Channel",
-            "rules_channel_id",
-            "101",
-            TEXT_OPTIONS
-        )),
-        "{html}"
-    );
-    assert!(
-        html.contains(&format!("Roles</legend>{}", form("general", "7"))),
-        "{html}"
-    );
-    assert_eq!(count(&html, "alert success"), 1, "{html}");
+    let html = app.page("/guild/7/settings").await.unwrap();
+    assert_eq!(bar_flash(&html, "server-settings"), None, "the flash shows once");
 
     let html = app
-        .submit(
-            "/guild/7/settings/general",
-            "guild=7&artist_role_id=999&sleep_role_id=200&verified_role_id=",
-            StatusCode::UNPROCESSABLE_ENTITY,
-        )
-        .await
-        .unwrap();
-    assert_eq!(settings.roles.get(7).await.unwrap().sleep_role_id, None);
-    assert!(
-        html.contains(&format!(
-            "Roles</legend>{}",
-            not_saved("that role is not in this server")
-        )),
-        "{html}"
-    );
-    assert!(
-        html.contains(&select(
-            "Artist Role",
-            "artist_role_id",
-            "999",
-            &format!(r#"<option value="999">Unknown (999)</option>{ROLE_OPTIONS}"#)
-        )),
-        "{html}"
-    );
-    assert!(
-        html.contains(&select("Sleep Role", "sleep_role_id", "200", ROLE_OPTIONS)),
-        "{html}"
-    );
-    assert!(
-        html.contains(&select(
-            "Rules Channel",
-            "rules_channel_id",
-            "101",
-            TEXT_OPTIONS
-        )),
-        "{html}"
-    );
-    assert_eq!(count(&html, "alert "), 1, "{html}");
-
-    for (body, message) in [
-        (
-            "guild=8&rules_channel_id=&general_channel_id=&spoiler_channel_id=",
-            "invalid value for `guild`",
-        ),
-        (
-            "guild=7&rules_channel_id=&general_channel_id=&spoiler_channel_id=&x=1",
-            "unknown field `x`",
-        ),
-        ("guild=7&rules_channel_id=", "missing field `general_channel_id`"),
-        ("guild=7", "missing field `artist_role_id`"),
-        (
-            "guild=7&rules_channel_id=&general_channel_id=&spoiler_channel_id=&artist_role_id=",
-            "unknown field `artist_role_id`",
-        ),
-    ] {
-        let html = app
-            .submit(
-                "/guild/7/settings/general",
-                body,
-                StatusCode::UNPROCESSABLE_ENTITY,
-            )
-            .await
-            .unwrap();
-        assert!(html.contains(&not_saved(message)), "{body}: {html}");
-    }
-    assert_eq!(settings.channels.get(7).await.unwrap().rules_channel_id, Some(101));
-
-    let html = app
-        .submit(
-            "/guild/7/settings/ai",
+        .redirected(
+            "/guild/7/ai",
             "guild=7&enabled=true&channel_id=100",
-            StatusCode::OK,
+            "/guild/7/ai#ai-settings",
         )
         .await
         .unwrap();
+    assert_eq!(bar_flash(&html, "ai-settings"), Some("AI Chat settings saved."));
     let ai = settings.ai.get(7).await.unwrap();
     assert!(ai.enabled);
     assert_eq!(ai.channel_id, Some(100));
-    assert!(
-        html.contains(&format!(r#"<fieldset class="settings-section">{}"#, saved())),
-        "{html}"
-    );
-    assert!(html.contains(&toggle("AI Responses", "enabled", true)), "{html}");
 
     let html = app
-        .submit("/guild/7/settings/family", "guild=7&max_partners=0", StatusCode::OK)
+        .redirected(
+            "/guild/7/family",
+            "guild=7&max_partners=0",
+            "/guild/7/family#family-settings",
+        )
         .await
         .unwrap();
     assert_eq!(settings.family.get(7).await.unwrap().max_partners, 1);
-    assert!(html.contains(&saved()), "{html}");
-    assert!(html.contains(&text("Max Partners", "max_partners", "0")), "{html}");
+    assert_eq!(bar_flash(&html, "family-settings"), Some("Family settings saved."));
+    assert_eq!(
+        value(&html, "family-settings-max-partners"),
+        Some("1"),
+        "the page shows what was stored"
+    );
 
     let html = app
-        .submit(
-            "/guild/7/settings/honeypot",
+        .redirected(
+            "/guild/7/honeypot",
             "guild=7&channel_id=100&exempt_admins=true&exempt_role_id=&purge_seconds=999999",
-            StatusCode::OK,
+            "/guild/7/honeypot#honeypot-settings",
         )
         .await
         .unwrap();
     let honeypot = settings.honeypot.get(7).await.unwrap();
-    assert_eq!(honeypot.channel_id, Some(100));
-    assert!(honeypot.exempt_admins);
-    assert_eq!(honeypot.purge_seconds, 604_800);
-    assert!(html.contains(&saved()), "{html}");
-    assert!(
-        html.contains(&text("Purge Window (seconds)", "purge_seconds", "999999")),
-        "{html}"
-    );
-    let html = app
-        .submit(
-            "/guild/7/settings/honeypot",
-            "guild=7&channel_id=abc&exempt_admins=false&exempt_role_id=&purge_seconds=",
-            StatusCode::UNPROCESSABLE_ENTITY,
-        )
-        .await
-        .unwrap();
-    assert!(
-        html.contains(&not_saved(
-            "`abc` is not a valid channel id. Leave the field blank to clear it."
-        )),
-        "{html}"
-    );
-    assert!(settings.honeypot.get(7).await.unwrap().exempt_admins);
-
-    let html = app
-        .submit(
-            "/guild/7/settings/lfg",
-            "guild=7&lfg_channel_id=104&lfg_role_id=201&lfg_scheduled_thread_id=300",
-            StatusCode::OK,
-        )
-        .await
-        .unwrap();
     assert_eq!(
-        settings.lfg.get(7).await.unwrap().lfg_scheduled_thread_id,
-        Some(300)
+        (honeypot.channel_id, honeypot.exempt_admins, honeypot.purge_seconds),
+        (Some(100), true, 604_800)
     );
-    assert!(html.contains(&saved()), "{html}");
-    let html = app
-        .submit(
-            "/guild/7/settings/lfg",
-            "guild=7&lfg_channel_id=&lfg_role_id=&lfg_scheduled_thread_id=301",
-            StatusCode::UNPROCESSABLE_ENTITY,
-        )
-        .await
-        .unwrap();
-    assert!(
-        html.contains(&not_saved("that channel is not in this server")),
-        "{html}"
+    assert_eq!(value(&html, "honeypot-settings-purge-seconds"), Some("604800"));
+
+    app.redirected(
+        "/guild/7/lfg",
+        "guild=7&lfg_channel_id=104&lfg_role_id=201&lfg_scheduled_thread_id=300",
+        "/guild/7/lfg#lfg-settings",
+    )
+    .await
+    .unwrap();
+    let lfg = settings.lfg.get(7).await.unwrap();
+    assert_eq!(
+        (lfg.lfg_channel_id, lfg.lfg_role_id, lfg.lfg_scheduled_thread_id),
+        (Some(104), Some(201), Some(300))
     );
-    assert!(
-        html.contains(&text(
-            "LFG Scheduled Thread ID",
-            "lfg_scheduled_thread_id",
-            "301"
-        )),
-        "{html}"
-    );
-    assert_eq!(settings.lfg.get(7).await.unwrap().lfg_role_id, Some(201));
 
     let html = app
-        .submit(
-            "/guild/7/settings/music",
+        .redirected(
+            "/guild/7/music",
             "guild=7&dj_role_id=200&auto_disconnect_secs=60&announce_now_playing=false&announce_channel_id=101",
-            StatusCode::OK,
+            "/guild/7/music#music-settings",
         )
         .await
         .unwrap();
     let music = settings.music.get(7).await.unwrap();
-    assert_eq!((music.dj_role_id, music.auto_disconnect_secs), (Some(200), 60));
-    assert!(!music.announce_now_playing);
-    assert!(html.contains(&saved()), "{html}");
-    assert!(
-        html.contains(&toggle(
-            "Announce Now Playing",
-            "announce_now_playing",
-            false
-        )),
-        "{html}"
+    assert_eq!(
+        (music.dj_role_id, music.auto_disconnect_secs, music.announce_now_playing),
+        (Some(200), 60, false)
+    );
+    assert_eq!(
+        selected(&html, "music-settings-announce-now-playing"),
+        Some("false")
     );
 
     let html = app
-        .submit(
-            "/guild/7/settings/temp-voice",
+        .redirected(
+            "/guild/7/temp-voice",
             "guild=7&temp_voice_category=102&temp_voice_creator_channel=103",
-            StatusCode::OK,
+            "/guild/7/temp-voice#temp-voice-settings",
         )
         .await
         .unwrap();
-    let temp_voice = settings.temp_voice.get(7).await.unwrap();
-    assert_eq!(temp_voice.temp_voice_creator_channel, Some(103));
-    assert!(
-        html.contains(&format!(r#"<fieldset class="settings-section">{}"#, saved())),
-        "{html}"
+    assert_eq!(
+        settings.temp_voice.get(7).await.unwrap().temp_voice_creator_channel,
+        Some(103)
     );
-    assert_eq!(count(&html, "alert "), 1, "{html}");
-
-    let html = app
-        .submit(
-            "/guild/7/settings/temp-voice",
-            "guild=7&temp_voice_category=",
-            StatusCode::UNPROCESSABLE_ENTITY,
-        )
-        .await
-        .unwrap();
-    assert!(html.contains(&format!(
-        "it.</p>{}",
-        alert(
-            "error",
-            "alert",
-            "Failed to create channel: error running server function: select a category first"
-        )
-    )), "{html}");
-    assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 0);
-
-    for (body, message) in [
-        ("guild=8&temp_voice_category=102", "invalid value for `guild`"),
-        (
-            "guild=7&temp_voice_category=102&artist_role_id=",
-            "unknown field `artist_role_id`",
-        ),
-    ] {
-        let html = app
-            .submit(
-                "/guild/7/settings/temp-voice",
-                body,
-                StatusCode::UNPROCESSABLE_ENTITY,
-            )
-            .await
-            .unwrap();
-        assert!(
-            html.contains(&alert(
-                "error",
-                "alert",
-                &format!("Failed to create channel: error running server function: {message}")
-            )),
-            "{body}: {html}"
-        );
-    }
-    let html = app
-        .submit(
-            "/guild/7/settings/temp-voice",
-            "guild=7&temp_voice_category=102&temp_voice_creator_channel=103&x=1",
-            StatusCode::UNPROCESSABLE_ENTITY,
-        )
-        .await
-        .unwrap();
-    assert!(
-        html.contains(&format!(
-            r#"<fieldset class="settings-section">{}"#,
-            not_saved("unknown field `x`")
-        )),
-        "{html}"
+    assert_eq!(
+        bar_flash(&html, "temp-voice-settings"),
+        Some("Temp voice settings saved.")
     );
+    assert_eq!(count(&html, "flash-text"), 1, "{html}");
     assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 0);
-
-    let response = app
-        .post(
-            "/guild/7/settings/temp-voice",
-            "guild=7&temp_voice_category=102",
-            Some(MEMBER),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::SEE_OTHER);
-    assert_eq!(location(&response), Some("/guild/7/settings/temp-voice?created=1"));
-    assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 1);
-    let temp_voice = settings.temp_voice.get(7).await.unwrap();
-    assert_eq!(temp_voice.temp_voice_category, Some(102));
-    assert_eq!(temp_voice.temp_voice_creator_channel, Some(400));
 
     app.discord.reply(
         "GET",
@@ -1102,165 +909,383 @@ async fn saves_re_render_with_inline_feedback(
             channel_json(400, "\u{2795} Creator Channel", 2, 5),
         ]),
     );
-    let html = app.page("/guild/7/settings/temp-voice?created=1").await.unwrap();
-    assert!(
-        html.contains("<title>Temp voice settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
-    assert!(
-        html.contains(&format!(
-            "it.</p>{}",
-            alert("success", "status", "Creator channel created.")
-        )),
-        "{html}"
-    );
-    assert!(
-        html.contains(&select(
-            "Creator Channel",
-            "temp_voice_creator_channel",
-            "400",
-            &format!(r#"{VOICE_OPTIONS}<option value="400">🔊 ➕ Creator Channel</option>"#)
-        )),
-        "{html}"
-    );
-    assert_eq!(count(&html, "alert "), 1, "{html}");
+    let html = app
+        .redirected(
+            "/guild/7/temp-voice/create",
+            "guild=7&temp_voice_category=102",
+            "/guild/7/temp-voice#temp-voice-settings",
+        )
+        .await
+        .unwrap();
     assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 1);
+    let temp_voice = settings.temp_voice.get(7).await.unwrap();
+    assert_eq!(
+        (temp_voice.temp_voice_category, temp_voice.temp_voice_creator_channel),
+        (Some(102), Some(400))
+    );
+    assert_eq!(
+        bar_flash(&html, "temp-voice-settings"),
+        Some("Creator channel created.")
+    );
+    assert_eq!(
+        selected(&html, "temp-voice-settings-temp-voice-creator-channel"),
+        Some("400")
+    );
 
     for path in [
-        "/guild/7/settings/temp-voice?created=0",
-        "/guild/7/settings/temp-voice?created=yes",
-        "/guild/7/settings/temp-voice?created",
+        "/guild/7/temp-voice?created=1",
+        "/guild/7/family?saved=1",
+        "/guild/7/settings?added=1",
     ] {
         let html = app.page(path).await.unwrap();
-        assert_eq!(count(&html, "alert "), 0, "{path}: {html}");
+        assert_eq!(
+            count(&html, "flash-text"),
+            0,
+            "legacy flags are ignored: {path}"
+        );
     }
+    assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 1);
 
     pool.close().await;
 }
 
 #[sqlx::test(migrations = "../migrations")]
-async fn settings_report_what_they_cannot_load(
+async fn failures_re_render_with_the_reason_at_the_form_and_the_field(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(&pool).await.unwrap();
+    let settings = &app.app.settings;
+    settings.channels.update(7, |p| p.rules_channel_id = Some(101)).await.unwrap();
+
+    let html = app
+        .submit(
+            "/guild/7/settings",
+            "guild=7&rules_channel_id=100&general_channel_id=&spoiler_channel_id=&artist_role_id=999&sleep_role_id=200&verified_role_id=",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert!(html.contains(&title("Server settings")), "{html}");
+    assert_eq!(
+        summary(&html, "server-settings"),
+        Some("Not saved: that role is not in this server")
+    );
+    assert_eq!(
+        settings.channels.get(7).await.unwrap().rules_channel_id,
+        Some(101),
+        "nothing is written when any id is foreign"
+    );
+    assert_eq!(settings.roles.get(7).await.unwrap().sleep_role_id, None);
+    assert_eq!(
+        selected(&html, "server-settings-rules-channel-id"),
+        Some("100"),
+        "the typed values stay"
+    );
+    assert_eq!(selected(&html, "server-settings-artist-role-id"), Some("999"));
+    assert_eq!(selected(&html, "server-settings-sleep-role-id"), Some("200"));
+    assert!(!html.contains("error running server function"), "{html}");
+
+    for (body, message, field) in [
+        (
+            "guild=8&rules_channel_id=&general_channel_id=&spoiler_channel_id=&artist_role_id=&sleep_role_id=&verified_role_id=",
+            "invalid value for `guild`",
+            None,
+        ),
+        (
+            "guild=7&rules_channel_id=&general_channel_id=&spoiler_channel_id=&artist_role_id=&sleep_role_id=&verified_role_id=&x=1",
+            "unknown field `x`",
+            None,
+        ),
+        (
+            "guild=7&rules_channel_id=&general_channel_id=&spoiler_channel_id=&artist_role_id=&sleep_role_id=",
+            "missing field `verified_role_id`",
+            Some("server-settings-verified-role-id"),
+        ),
+        (
+            "guild=7&rules_channel_id=&rules_channel_id=&general_channel_id=&spoiler_channel_id=&artist_role_id=&sleep_role_id=&verified_role_id=",
+            "duplicate field `rules_channel_id`",
+            Some("server-settings-rules-channel-id"),
+        ),
+    ] {
+        let html = app
+            .submit("/guild/7/settings", body, StatusCode::UNPROCESSABLE_ENTITY)
+            .await
+            .unwrap();
+        assert_eq!(
+            summary(&html, "server-settings"),
+            Some(format!("Not saved: {message}").as_str()),
+            "{body}"
+        );
+        if let Some(id) = field {
+            assert_eq!(field_error(&html, id), Some(message), "{body}: {html}");
+            assert!(
+                html.contains(&format!(
+                    r#"aria-describedby="{id}-error" aria-invalid="true""#
+                )),
+                "{body}: {html}"
+            );
+        } else {
+            assert!(!html.contains("field-error"), "{body}: {html}");
+        }
+    }
+    assert_eq!(settings.channels.get(7).await.unwrap().rules_channel_id, Some(101));
+
+    let html = app
+        .submit(
+            "/guild/7/honeypot",
+            "guild=7&channel_id=abc&exempt_admins=true&exempt_role_id=&purge_seconds=",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "honeypot-settings"),
+        Some(
+            "Not saved: `abc` is not a valid channel id. Leave the field blank to clear it."
+        )
+    );
+    assert_eq!(selected(&html, "honeypot-settings-exempt-admins"), Some("true"));
+    assert!(!settings.honeypot.get(7).await.unwrap().exempt_admins);
+
+    let html = app
+        .submit(
+            "/guild/7/lfg",
+            "guild=7&lfg_channel_id=&lfg_role_id=&lfg_scheduled_thread_id=301",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "lfg-settings"),
+        Some("Not saved: that channel is not in this server")
+    );
+    assert_eq!(value(&html, "lfg-settings-lfg-scheduled-thread-id"), Some("301"));
+
+    let html = app
+        .submit(
+            "/guild/7/temp-voice/create",
+            "guild=7&temp_voice_category=",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "temp-voice-create"),
+        Some("Not created: select a category first")
+    );
+    assert_eq!(
+        field_error(&html, "temp-voice-create-temp-voice-category"),
+        Some("select a category first")
+    );
+    assert_eq!(
+        summary(&html, "temp-voice-settings"),
+        None,
+        "the other form is untouched"
+    );
+    for (body, message) in [
+        ("guild=8&temp_voice_category=102", "invalid value for `guild`"),
+        (
+            "guild=7&temp_voice_category=102&artist_role_id=",
+            "unknown field `artist_role_id`",
+        ),
+    ] {
+        let html = app
+            .submit(
+                "/guild/7/temp-voice/create",
+                body,
+                StatusCode::UNPROCESSABLE_ENTITY,
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            summary(&html, "temp-voice-create"),
+            Some(format!("Not created: {message}").as_str()),
+            "{body}"
+        );
+    }
+    let html = app
+        .submit(
+            "/guild/7/temp-voice",
+            "guild=7&temp_voice_category=102&temp_voice_creator_channel=103&x=1",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "temp-voice-settings"),
+        Some("Not saved: unknown field `x`")
+    );
+    assert_eq!(app.discord.count("POST", "/guilds/7/channels"), 0);
+
+    pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn the_header_switch_turns_a_command_module_on_and_off(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(&pool).await.unwrap();
+    let modules = &app.app.modules;
+    modules.set(7, "music", true).await.unwrap();
+
+    let html = app
+        .redirected(
+            "/guild/7/music/module",
+            "guild=7&enabled=false",
+            "/guild/7/music",
+        )
+        .await
+        .unwrap();
+    modules.refresh(7).await.unwrap();
+    assert_eq!(modules.states(7).await.unwrap().get("music").copied(), Some(false));
+    assert_eq!(top_flash(&html), Some("Music turned off."));
+    assert!(html.contains(r#"aria-checked="false" aria-label="Music module" name="enabled" value="true""#), "{html}");
+    assert!(
+        html.contains(r#"<span class="lamp lamp-off" aria-hidden="true"></span>"#),
+        "{html}"
+    );
+
+    for (path, page, label) in [
+        ("/guild/7/family/module", "/guild/7/family", "Family"),
+        ("/guild/7/honeypot/module", "/guild/7/honeypot", "Honeypot"),
+    ] {
+        let html = app.redirected(path, "guild=7&enabled=true", page).await.unwrap();
+        assert_eq!(
+            top_flash(&html),
+            Some(format!("{label} turned on.").as_str()),
+            "{path}"
+        );
+        assert!(
+            html.contains(&format!(
+                r#"aria-checked="true" aria-label="{label} module""#
+            )),
+            "{html}"
+        );
+    }
+
+    let html = app
+        .submit(
+            "/guild/7/music/module",
+            "guild=7&enabled=on",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert!(html.contains(&title("Music")), "{html}");
+    assert!(html.contains(r#"<p class="error" role="alert">Not changed: invalid value for `enabled`</p>"#), "{html}");
+    let html = app
+        .submit(
+            "/guild/7/music/module",
+            "guild=8&enabled=true",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert!(html.contains("Not changed: invalid value for `guild`"), "{html}");
+    modules.refresh(7).await.unwrap();
+    assert_eq!(modules.states(7).await.unwrap().get("music").copied(), Some(false));
+
+    let response = app
+        .post("/guild/7/music/module", "guild=7&enabled=true", None)
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/login"));
+
+    pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn pages_report_what_they_cannot_load(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
     let pool = test_pool(options, connect).await.unwrap();
     let app = harness(&pool).await.unwrap();
 
-    for path in
-        ["/guild/7/settings", "/guild/7/settings/ai", "/guild/7/settings/bogus"]
-    {
+    for path in ["/guild/7/settings", "/guild/7/ai", "/guild/7/temp-voice"] {
         let response = app.get(path, None).await.unwrap();
         assert_eq!(response.status(), StatusCode::SEE_OTHER, "{path}");
         assert_eq!(location(&response), Some("/login"), "{path}");
     }
-    let response = app
-        .post("/guild/7/settings/family", "guild=7&max_partners=3", None)
-        .await
-        .unwrap();
+    let response =
+        app.post("/guild/7/family", "guild=7&max_partners=3", None).await.unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(location(&response), Some("/login"));
     assert_eq!(app.app.settings.family.get(7).await.unwrap().max_partners, 1);
 
-    let html = app.page("/guild/8/settings/music").await.unwrap();
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<p class="error">Failed to load settings: error running server function: forbidden</p></div>"#,
-            header("Music", "Playback permissions and now-playing announcements."),
-        )
-    );
+    let html = app.page("/guild/8/music").await.unwrap();
+    let main = main_content(&html);
+    assert!(main.contains(r#"<section class="error-panel" role="alert" aria-labelledby="load-error-title"><h2 class="error-title" id="load-error-title">Couldn't load these settings</h2><p class="error-text">You need Manage Server in this server to change its settings.</p><div class="error-actions"><a href="/guild/8/music" class="btn btn-primary">Try again</a><a href="/guilds" class="btn btn-secondary">Back to servers</a></div></section>"#), "{main}");
+    assert!(!main.contains("<form"), "{main}");
+
     let html = app
         .submit(
-            "/guild/8/settings/family",
+            "/guild/8/family",
             "guild=8&max_partners=3",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
         .unwrap();
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}{}<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div><p class="error">Failed to load settings: error running server function: forbidden</p></div>"#,
-            header("Family", "Limits for the family and relationship commands."),
-            not_saved("forbidden"),
-        )
-    );
+    assert_eq!(summary(&html, "page"), Some("Not saved: forbidden"));
+    assert!(html.contains("Couldn't load these settings"), "{html}");
     let html = app
         .submit(
-            "/guild/8/settings/temp-voice",
+            "/guild/8/temp-voice/create",
             "guild=8&temp_voice_category=102",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
         .unwrap();
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<p class="error">Failed to load settings: error running server function: forbidden</p></div>"#,
-            header(
-                "Temp voice",
-                "On-demand voice channels created from a join-to-create channel."
-            ),
-        )
-    );
+    assert!(html.contains("Couldn't load these settings"), "{html}");
     assert_eq!(app.discord.count("POST", "/guilds/8/channels"), 0);
 
     let html = app.page("/guild/abc/settings").await.unwrap();
-    assert!(html.contains(
-        r#"<p class="error">Failed to load settings: error running server function: invalid guild id</p>"#
-    ), "{html}");
+    assert!(html.contains(r#"<p class="error-text">That address doesn't name a Discord server.</p>"#), "{html}");
 
-    let html = app.page("/guild/9/settings").await.unwrap();
-    assert!(
-        html.contains(&select(
-            "Rules Channel",
-            "rules_channel_id",
-            "",
-            TEXT_OPTIONS
-        )),
-        "{html}"
-    );
-    assert!(html.contains(&format!(
-        r#"<div class="setting-field"><label for="field-artist_role_id">Artist Role</label><div class="select"><select class="input" id="field-artist_role_id" aria-describedby="field-artist_role_id-help" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</div><input type="hidden" name="artist_role_id" value=""><p class="field-hint field-warning" id="field-artist_role_id-help">Couldn't reach Discord; the role list is unavailable. Saving keeps the current value. (error running server function: "#
-    )), "{html}");
-    assert_eq!(count(&html, "field-warning"), 3, "{html}");
-
-    let locked = |label: &str, name: &str| {
+    let locked = |id: &str, name: &str, list: &str| {
         format!(
-            r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" aria-describedby="field-{name}-help" disabled=""><option selected="">(not set)</option></select>{CHEVRON}</div><input type="hidden" name="{name}" value=""><p class="field-hint field-warning" id="field-{name}-help">Couldn't reach Discord; the channel list is unavailable. Saving keeps the current value. (error running server function: "#
+            r#"<select class="input" id="{id}" aria-describedby="{id}-help" disabled=""><option selected="">(not set)</option></select><span class="select-chevron">"#
+        ) + &format!(
+            r#"<input type="hidden" name="{name}" value=""><p class="field-help" id="{id}-help">Couldn't reach Discord, so the {list} list is unavailable. Saving keeps the current value.</p>"#
         )
     };
+    let html = app.page("/guild/9/settings").await.unwrap();
+    assert_eq!(selected(&html, "server-settings-rules-channel-id"), Some(""));
+    let artist = locked("server-settings-artist-role-id", "artist_role_id", "role");
+    let (select, rest) =
+        artist.split_once(r#"<span class="select-chevron">"#).unwrap();
+    assert!(html.contains(select), "{html}");
+    assert!(html.contains(rest), "{html}");
+    assert_eq!(count(&html, "Saving keeps the current value."), 3, "{html}");
+
     let html = app.page("/guild/10/settings").await.unwrap();
-    assert!(html.contains(&locked("Rules Channel", "rules_channel_id")), "{html}");
-    assert!(html.contains(ROLE_OPTIONS), "{html}");
-    assert_eq!(count(&html, "field-warning"), 3, "{html}");
-    let html = app
-        .submit(
-            "/guild/10/settings/general",
-            "guild=10&rules_channel_id=&general_channel_id=&spoiler_channel_id=",
-            StatusCode::OK,
-        )
-        .await
-        .unwrap();
-    assert!(html.contains(&format!("Channels</legend>{}", saved())), "{html}");
-    let html = app.page("/guild/10/settings/temp-voice").await.unwrap();
-    assert!(html.contains(&locked("Category", "temp_voice_category")), "{html}");
-    assert!(
-        html.contains(&locked("Creator Channel", "temp_voice_creator_channel")),
-        "{html}"
-    );
-    let html = app
-        .submit(
-            "/guild/10/settings/temp-voice",
-            "guild=10&temp_voice_category=&temp_voice_creator_channel=",
-            StatusCode::OK,
-        )
-        .await
-        .unwrap();
-    assert!(
-        html.contains(&format!(r#"<fieldset class="settings-section">{}"#, saved())),
-        "{html}"
-    );
+    let rules =
+        locked("server-settings-rules-channel-id", "rules_channel_id", "channel");
+    let (select, rest) =
+        rules.split_once(r#"<span class="select-chevron">"#).unwrap();
+    assert!(html.contains(select), "{html}");
+    assert!(html.contains(rest), "{html}");
+    assert_eq!(selected(&html, "server-settings-artist-role-id"), Some(""));
+    assert!(!html.contains("error running server function"), "{html}");
+    app.redirected(
+        "/guild/10/settings",
+        "guild=10&rules_channel_id=&general_channel_id=&spoiler_channel_id=&artist_role_id=&sleep_role_id=&verified_role_id=",
+        "/guild/10/settings#server-settings",
+    )
+    .await
+    .unwrap();
+    app.redirected(
+        "/guild/10/temp-voice",
+        "guild=10&temp_voice_category=&temp_voice_creator_channel=",
+        "/guild/10/temp-voice#temp-voice-settings",
+    )
+    .await
+    .unwrap();
 
     pool.close().await;
 }

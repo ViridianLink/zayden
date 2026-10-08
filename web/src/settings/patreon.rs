@@ -1,30 +1,15 @@
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
-use topcoat::router::error::see_other;
 use topcoat::router::{RouterBuilder, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
-use super::provider::{
-    Notice,
-    disconnected,
-    disconnected_location,
-    notices,
-    provider_action,
-    query_value,
-};
-use super::{
-    Lists,
-    Submission,
-    TEXT_KINDS,
-    ensure_path_guild,
-    flag,
-    settings_page,
-    shown,
-};
+use super::fields::{channels, form_summary, select_row, toggle_row};
+use super::provider::{Banner, banner, query_value, status_unknown};
+use super::state::{Done, PageState, settle};
+use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
 use crate::components::confirm::confirm_button;
-use crate::components::pickers::channel_select;
-use crate::components::settings::{save_button, save_feedback, toggle_field};
+use crate::components::save_bar::save_bar;
 use crate::guild::dto::patreon::OUTCOME_PARAM;
 use crate::guild::dto::{PatreonOutcome, PatreonStatus};
 use crate::guild::patreon::{
@@ -33,49 +18,68 @@ use crate::guild::patreon::{
     save_patreon_settings,
 };
 use crate::guild::{GuildError, GuildForm};
+use crate::nav::path_segment;
 use crate::shell::GuildId;
 
-const SLUG: &str = "patreon";
-const SAVE: &str = "save";
-const DISCONNECT: &str = "disconnect";
+const PAGE: Page = Page::Patreon;
+const FORM: &str = "patreon-settings";
+const DISCONNECT: &str = "patreon-disconnect";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.page(patreon).page(submit)
+    base.page(patreon).page(save).page(disconnect)
 }
 
-#[page("/guild/{guild_id}/settings/patreon")]
+#[page("/guild/{guild_id}/patreon")]
 async fn patreon(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
-    let submission = disconnected(cx).then(|| Submission::succeeded(DISCONNECT));
+    let state = PageState::load(cx);
 
-    Ok(view! {
-        settings_page(guild_id: guild_id, slug: SLUG, submission: submission.as_ref())
-    })
+    Ok(view! { settings_page(guild_id: guild_id, page: PAGE, state: &state) })
 }
 
-#[page(POST "/guild/{guild_id}/settings/patreon")]
-async fn submit(
+#[page(POST "/guild/{guild_id}/patreon")]
+async fn save(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
-    let submission = if pairs.iter().any(|(name, _)| name == "channel_id") {
-        Submission::new(SAVE, pairs.clone(), save(cx, guild_id, pairs).await)?
-    } else {
-        let result = disconnect(cx, guild_id, pairs).await;
-        if result.is_ok() {
-            return Err(see_other(disconnected_location(cx, guild_id, SLUG)).into());
-        }
-        Submission::reloading(DISCONNECT, result)?
-    };
+    let values = pairs.clone();
+    let result = save_settings(cx, guild_id, pairs).await;
+    let failure = settle(cx, FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "Patreon settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        (submission.status())
-        settings_page(guild_id: guild_id, slug: SLUG, submission: Some(&submission))
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
     })
 }
 
-async fn save(
+#[page(POST "/guild/{guild_id}/patreon/disconnect")]
+async fn disconnect(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = drop_connection(cx, guild_id, pairs).await;
+    let failure = settle(cx, DISCONNECT, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: None,
+        message: PatreonOutcome::Disconnected.message(),
+    })?;
+    let state = PageState::failed(failure);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
+async fn save_settings(
     cx: &Cx,
     guild_id: &str,
     pairs: Vec<(String, String)>,
@@ -85,7 +89,7 @@ async fn save(
     save_patreon_settings(cx, &form).await
 }
 
-async fn disconnect(
+async fn drop_connection(
     cx: &Cx,
     guild_id: &str,
     pairs: Vec<(String, String)>,
@@ -101,42 +105,31 @@ pub(super) async fn tab(
     guild_id: &str,
     status: &std::result::Result<PatreonStatus, String>,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let banner = query_value(cx, OUTCOME_PARAM)
+    let line = query_value(cx, OUTCOME_PARAM)
         .as_deref()
         .and_then(PatreonOutcome::from_key)
-        .map(|outcome| {
-            Notice::outcome(outcome.class(), outcome.role(), outcome.message())
+        .map(|outcome| Banner {
+            class: outcome.class(),
+            role: outcome.role(),
+            message: outcome.message(),
         });
-    let disconnected = Submission::of(submission, DISCONNECT).map(|submitted| {
-        Notice::disconnect(
-            submitted.outcome(),
-            PatreonOutcome::Disconnected.message(),
-        )
-    });
-    let lines: Vec<Notice> = banner.into_iter().chain(disconnected).collect();
-    let action = provider_action(cx, guild_id, SLUG);
 
     Ok(view! {
-        notices(lines: &lines)
+        banner(line: line.as_ref())
         match status {
             Ok(status) => panel(
                 guild_id: guild_id,
-                action: &action,
                 status: status,
                 lists: lists,
-                submission: Submission::of(submission, SAVE)
+                state: state
             ),
-            Err(reason) => <fieldset class="settings-section">
-                <p class="warning">
-                    "Couldn't load the Patreon connection: "
-                    (reason)
-                </p>
-                <p class="page-lead">
-                    "Reload once Patreon is reachable. Connecting from here while the status is unknown would overwrite whatever campaign is already linked."
-                </p>
-            </fieldset>,
+            Err(reason) => status_unknown(
+                provider: "Patreon",
+                reason: reason,
+                advice: "Reload once Patreon is reachable. Connecting from here while the status is unknown would overwrite whatever campaign is already linked."
+            ),
         }
     }
     .boxed())
@@ -145,12 +138,13 @@ pub(super) async fn tab(
 #[component]
 async fn panel(
     guild_id: &str,
-    action: &str,
     status: &PatreonStatus,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let connect_href = format!("/patreon/connect?guild={guild_id}");
+    let connect_href = format!("/patreon/connect?guild={}", path_segment(guild_id));
+    let page = PAGE.href(guild_id);
+    let disconnect_action = format!("{page}/disconnect");
     let creator = status
         .creator_name
         .as_deref()
@@ -164,10 +158,17 @@ async fn panel(
     } else {
         format!("Connected to {creator}.")
     };
+    let confirm_object = format!("from {creator}");
+    let sent = state.sent(FORM);
+    let dropped = state.sent(DISCONNECT);
 
     Ok(view! {
-        <fieldset class="settings-section">
-            if status.connected {
+        if status.connected {
+            <section
+                class="settings-section"
+                aria-labelledby="patreon-connection-title"
+            >
+                <h2 class="label" id="patreon-connection-title">"Connection"</h2>
                 <p class="page-lead">(connected_line)</p>
                 <p class="page-lead">
                     if status.webhook_registered {
@@ -176,6 +177,13 @@ async fn panel(
                         "No webhook is registered, so posts arrive on the 15-minute poll. Reconnecting will try again."
                     }
                 </p>
+                if let Some(message) = dropped.summary() {
+                    form_summary(
+                        form: DISCONNECT,
+                        message: message,
+                        outcome: "Not disconnected"
+                    )
+                }
                 <div class="settings-actions">
                     <a
                         class="btn btn-secondary"
@@ -184,43 +192,68 @@ async fn panel(
                     >
                         "Reconnect Patreon"
                     </a>
-                    <form method="post" action=(action) data-pending="">
+                    <form
+                        id=(DISCONNECT)
+                        method="post"
+                        action=(disconnect_action.as_str())
+                        data-pending=""
+                    >
                         <input type="hidden" name="guild" value=(guild_id)>
                         confirm_button(
-                            id: "patreon-disconnect",
+                            id: "patreon-disconnect-confirm",
                             label: "Disconnect",
                             prompt: "Zayden stops announcing this campaign and drops its webhook on the creator's Patreon account. Reconnecting needs the creator to authorise again.",
-                            confirm: "Disconnect Patreon"
+                            confirm: "Disconnect Patreon",
+                            object: Some(&confirm_object)
                         )
                     </form>
                 </div>
-                if let Some(submitted) = submission {
-                    save_feedback(outcome: submitted.outcome())
+            </section>
+            <form
+                id=(FORM)
+                method="post"
+                action=(page.as_str())
+                data-pending=""
+                data-dirty-guard=""
+            >
+                if let Some(message) = sent.summary() {
+                    form_summary(form: FORM, message: message)
                 }
-                <form method="post" action=(action) data-pending="">
-                    <input type="hidden" name="guild" value=(guild_id)>
-                    channel_select(
-                        label: "Announcement Channel",
+                <input type="hidden" name="guild" value=(guild_id)>
+                <fieldset class="settings-section">
+                    <legend>"Announcements"</legend>
+                    <p class="page-lead">
+                        "Posts published before the first poll are absorbed rather than announced, so connecting never floods a channel with back catalogue."
+                    </p>
+                    select_row(
+                        form: FORM,
                         name: "channel_id",
-                        selected: shown(
-                            submission,
-                            "channel_id",
-                            status.channel_id.as_deref(),
+                        label: "Announcement channel",
+                        selected: sent.value("channel_id", status.channel_id.as_deref()),
+                        options: channels(lists, TEXT_KINDS),
+                        help: Some(
+                            "Leave unset to stop announcing without disconnecting the account.",
                         ),
-                        channels: lists.channels(),
-                        kinds: TEXT_KINDS
+                        error: sent.error("channel_id")
                     )
-                    toggle_field(
-                        label: "Public Posts Only",
+                    toggle_row(
+                        form: FORM,
                         name: "public_only",
-                        value: flag(submission, "public_only", status.public_only)
+                        label: "Posts to announce",
+                        value: sent.flag("public_only", status.public_only),
+                        on_label: "Public posts only",
+                        off_label: "Public and patron-only posts",
+                        error: sent.error("public_only")
                     )
-                    save_button()
-                </form>
-                <p class="page-lead">
-                    "Leave the channel unset to stop announcing without disconnecting the account. Posts published before the first poll are absorbed rather than announced, so connecting never floods a channel with back catalogue."
-                </p>
-            } else {
+                </fieldset>
+                save_bar(notice: state.notice_for(FORM))
+            </form>
+        } else {
+            <section
+                class="settings-section"
+                aria-labelledby="patreon-connection-title"
+            >
+                <h2 class="label" id="patreon-connection-title">"Connection"</h2>
                 <p class="page-lead">
                     "No Patreon account is connected. The campaign's own creator has to authorise Zayden - the connection reads their posts, so nobody else can grant it."
                 </p>
@@ -233,7 +266,8 @@ async fn panel(
                         "Connect Patreon"
                     </a>
                 </div>
-            }
-        </fieldset>
-    })
+            </section>
+        }
+    }
+    .boxed())
 }

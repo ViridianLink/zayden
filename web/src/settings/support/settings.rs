@@ -1,350 +1,451 @@
 use topcoat::Result;
-use topcoat::runtime::Signal;
+use topcoat::context::Cx;
+use topcoat::router::content::Form;
+use topcoat::router::{RouterBuilder, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
-use super::{
-    ADD_LINK,
-    ADD_ROLE,
-    IDLE,
-    REMOVE_LINK,
-    REMOVE_ROLE,
-    REMOVE_ROLE_QUERY,
-    STALE,
-    SUGGESTIONS,
-    TICKETS,
-    WIKI,
-    WIKI_KEY,
-    WIKI_TUNING,
-    form_action,
+use super::Pane;
+use crate::components::save_bar::save_bar;
+use crate::guild::dto::{FaqSection, SupportSection};
+use crate::guild::faq::{
+    FaqWikiKeyForm,
+    WikiSettingsForm,
+    save_faq_wiki_key,
+    save_wiki_settings,
 };
-use crate::components::icons::{Icon, icon};
-use crate::components::pickers::{
-    Role,
-    channel_select,
-    forum_tag_select,
-    role_select,
+use crate::guild::parse::{parse_flag, parse_optional};
+use crate::guild::support::{
+    SuggestionsSettingsForm,
+    TicketSettingsForm,
+    save_suggestions_settings,
+    save_ticket_settings,
 };
-use crate::components::settings::{
-    save_button,
-    save_feedback,
-    setting_field,
-    toggle_field,
+use crate::settings::fields::{
+    Range,
+    channels,
+    form_summary,
+    forum_tags,
+    select_row,
+    text_row,
+    toggle_row,
 };
-use crate::guild::dto::{FaqSection, HelperLinkInfo, SupportSection};
-use crate::settings::{Lists, Submission, TEXT_KINDS, flag, shown};
+use crate::settings::state::{Done, PageState, settle};
+use crate::settings::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::shell::GuildId;
 
-#[component]
-pub(super) async fn pane(
-    guild_id: &str,
-    settings: &SupportSection,
-    lists: &Lists,
-    submission: Option<&Submission>,
-    faq_open: &Signal<bool>,
-) -> Result<impl View> {
-    let action = form_action(guild_id);
-    let s = settings;
+const TICKETS: Page = Page::Support(Pane::Tickets);
+const SUGGESTIONS: Page = Page::Support(Pane::Suggestions);
+const WIKI: Page = Page::Support(Pane::Wiki);
 
-    Ok(view! {
-        <fieldset class="settings-section" :hidden=$(faq_open.get())>
-            tickets_form(
-                guild_id: guild_id,
-                action: &action,
-                settings: s,
-                lists: lists,
-                submission: submission
-            )
-            idle_form(
-                guild_id: guild_id,
-                action: &action,
-                settings: s,
-                submission: submission
-            )
-            stale_form(
-                guild_id: guild_id,
-                action: &action,
-                settings: s,
-                lists: lists,
-                submission: submission
-            )
-            turn_notes()
-            suggestions_form(
-                guild_id: guild_id,
-                action: &action,
-                settings: s,
-                lists: lists,
-                submission: submission
-            )
-            wiki_field(
-                guild_id: guild_id,
-                action: &action,
-                settings: &s.faq,
-                submission: submission
-            )
-            support_role_field(
-                guild_id: guild_id,
-                action: &action,
-                support_roles: &s.support_roles,
-                lists: lists,
-                submission: submission
-            )
-            helper_link_field(
-                guild_id: guild_id,
-                action: &action,
-                helper_links: &s.helper_links,
-                submission: submission
-            )
-        </fieldset>
-    }
-    .boxed())
+const TICKET_FORM: &str = "ticket-settings";
+const SUGGESTION_FORM: &str = "suggestion-settings";
+const WIKI_FORM: &str = "wiki-settings";
+const KEY_FORM: &str = "wiki-key";
+
+const IDLE_RANGE: Range = Range { min: 3_600, max: Some(2_592_000) };
+
+pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
+    base.page(tickets_page)
+        .page(save_tickets)
+        .page(suggestions_page)
+        .page(save_suggestions)
+        .page(wiki_page)
+        .page(save_wiki)
+        .page(save_key)
 }
 
-#[component]
-async fn tickets_form(
-    guild_id: &str,
-    action: &str,
-    settings: &SupportSection,
-    lists: &Lists,
-    submission: Option<&Submission>,
-) -> Result<impl View> {
-    let s = settings;
-    let tickets = Submission::of(submission, TICKETS);
+#[page("/guild/{guild_id}/support")]
+async fn tickets_page(cx: &Cx) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! {
-        if let Some(submitted) = tickets {
-            save_feedback(outcome: submitted.outcome())
-        }
-        <form method="post" action=(action) data-pending="">
-            <input type="hidden" name="guild" value=(guild_id)>
-            channel_select(
-                label: "Support Channel",
-                name: "support_channel_id",
-                selected: shown(
-                    tickets,
-                    "support_channel_id",
-                    s.support_channel_id.as_deref(),
-                ),
-                channels: lists.channels(),
-                kinds: TEXT_KINDS
-            )
-            forum_tag_select(
-                label: "Solved Tag",
-                name: "solved_tag_id",
-                selected: shown(tickets, "solved_tag_id", s.solved_tag_id.as_deref()),
-                channels: lists.channels()
-            )
-            forum_tag_select(
-                label: "Closed Tag",
-                name: "closed_tag_id",
-                selected: shown(tickets, "closed_tag_id", s.closed_tag_id.as_deref()),
-                channels: lists.channels()
-            )
-            setting_field(
-                label: "Archive solved posts after (seconds)",
-                name: "solved_archive_secs",
-                value: shown(
-                    tickets,
-                    "solved_archive_secs",
-                    Some(s.solved_archive_secs.as_str()),
-                ),
-                pattern: "-?[0-9]*"
-            )
-            save_button()
-        </form>
-        <p class="page-lead">
-            "\"/ticket solved\" applies the solved tag when the support channel is a forum, and otherwise renames the thread. Archive after 0 seconds to close immediately, or -1 to leave the post open."
-        </p>
-    }
-    .boxed())
+    Ok(view! { settings_page(guild_id: guild_id, page: TICKETS, state: &state) })
 }
 
-#[component]
-async fn idle_form(
-    guild_id: &str,
-    action: &str,
-    settings: &SupportSection,
-    submission: Option<&Submission>,
+#[page(POST "/guild/{guild_id}/support")]
+async fn save_tickets(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
-    let s = settings;
-    let idle = Submission::of(submission, IDLE);
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = async {
+        let form = TicketSettingsForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        save_ticket_settings(cx, &form).await
+    }
+    .await;
+    let failure = settle(cx, TICKET_FORM, values, result, &Done {
+        page: TICKETS.href(guild_id),
+        section: Some(TICKET_FORM),
+        message: "Ticket settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        if let Some(submitted) = idle {
-            save_feedback(outcome: submitted.outcome())
-        }
-        <form method="post" action=(action) data-pending="">
-            <input type="hidden" name="guild" value=(guild_id)>
-            toggle_field(
-                label: "Idle Reminders",
-                name: "idle_enabled",
-                value: flag(idle, "idle_enabled", s.idle_enabled)
-            )
-            setting_field(
-                label: "Remind after (seconds of silence)",
-                name: "idle_after_secs",
-                value: shown(idle, "idle_after_secs", Some(s.idle_after_secs.as_str())),
-                hint: Some("Minimum one hour. Default 172800 (48 hours).")
-            )
-            toggle_field(
-                label: "Auto-close Abandoned Posts",
-                name: "idle_close_enabled",
-                value: flag(idle, "idle_close_enabled", s.idle_close_enabled)
-            )
-            setting_field(
-                label: "Close after (seconds without a reply to the reminder)",
-                name: "idle_close_after_secs",
-                value: shown(
-                    idle,
-                    "idle_close_after_secs",
-                    Some(s.idle_close_after_secs.as_str()),
-                ),
-                hint: Some("Minimum one hour. Default 86400 (24 hours).")
-            )
-            save_button()
-        </form>
-    }
-    .boxed())
+        (state.status())
+        settings_page(guild_id: guild_id, page: TICKETS, state: &state)
+    })
 }
 
-#[component]
-async fn stale_form(
-    guild_id: &str,
-    action: &str,
-    settings: &SupportSection,
-    lists: &Lists,
-    submission: Option<&Submission>,
-) -> Result<impl View> {
-    let s = settings;
-    let stale = Submission::of(submission, STALE);
+#[page("/guild/{guild_id}/support/suggestions")]
+async fn suggestions_page(cx: &Cx) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! {
-        if let Some(submitted) = stale {
-            save_feedback(outcome: submitted.outcome())
-        }
-        <form method="post" action=(action) data-pending="">
-            <input type="hidden" name="guild" value=(guild_id)>
-            toggle_field(
-                label: "Mark Quiet Posts Stale",
-                name: "stale_enabled",
-                value: flag(stale, "stale_enabled", s.stale_enabled)
-            )
-            forum_tag_select(
-                label: "Stale Tag",
-                name: "stale_tag_id",
-                selected: shown(stale, "stale_tag_id", s.stale_tag_id.as_deref()),
-                channels: lists.channels()
-            )
-            setting_field(
-                label: "Mark stale after (seconds of poster silence)",
-                name: "stale_after_secs",
-                value: shown(
-                    stale,
-                    "stale_after_secs",
-                    Some(s.stale_after_secs.as_str()),
-                ),
-                hint: Some("Minimum one hour. Default 604800 (7 days).")
-            )
-            save_button()
-        </form>
-    }
-    .boxed())
+    Ok(view! { settings_page(guild_id: guild_id, page: SUGGESTIONS, state: &state) })
 }
 
-#[component]
-async fn turn_notes() -> Result<impl View> {
+#[page(POST "/guild/{guild_id}/support/suggestions")]
+async fn save_suggestions(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = async {
+        let form = SuggestionsSettingsForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        save_suggestions_settings(cx, &form).await
+    }
+    .await;
+    let failure = settle(cx, SUGGESTION_FORM, values, result, &Done {
+        page: SUGGESTIONS.href(guild_id),
+        section: Some(SUGGESTION_FORM),
+        message: "Suggestion settings saved.",
+    })?;
+    let state = PageState::failed(failure);
+
     Ok(view! {
-        <p class="page-lead">
-            "Idle reminders watch whose turn it is. If a helper spoke last and the poster has gone quiet for the interval above, the poster is nudged with \"Solved\" and \"Still need help\" buttons. If the poster spoke last, the helper who replied is nudged - or the support roles, if nobody has answered yet. Each side is reminded once per turn, and never again until somebody posts."
-        </p>
-        <p class="page-lead">
-            "Auto-close needs idle reminders switched on, because it acts on a reminder nobody answered. Only posts waiting on the person who opened them are closed - a post waiting on the support team is left alone however long it sits, since that is the team's backlog and not an abandoned ticket. Closing applies the closed tag, posts a note to the poster and archives the post. Any reply at all cancels it."
-        </p>
-        <p class="page-lead">
-            "The stale tag is a quieter signal than closing: a post the poster has left unanswered for the interval above is tagged so the team can see at a glance what has gone cold. It needs a forum tag to apply, follows the same staff-side exemption as auto-close, and comes off again by itself as soon as anybody posts."
-        </p>
-        <p class="page-lead">
-            "A support role only gets notified if it is mentionable. Role mentions in private ticket threads mostly do not notify at all, since Discord does not pull role members into a private thread. A reminder also un-archives a post Discord had already archived, which is usually the point."
-        </p>
+        (state.status())
+        settings_page(guild_id: guild_id, page: SUGGESTIONS, state: &state)
+    })
+}
+
+#[page("/guild/{guild_id}/support/wiki")]
+async fn wiki_page(cx: &Cx) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
+
+    Ok(view! { settings_page(guild_id: guild_id, page: WIKI, state: &state) })
+}
+
+#[page(POST "/guild/{guild_id}/support/wiki")]
+async fn save_wiki(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = async {
+        let form = WikiSettingsForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        save_wiki_settings(cx, &form).await
+    }
+    .await;
+    let failure = settle(cx, WIKI_FORM, values, result, &Done {
+        page: WIKI.href(guild_id),
+        section: Some(WIKI_FORM),
+        message: "Wiki settings saved.",
+    })?;
+    let state = PageState::failed(failure);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: WIKI, state: &state)
+    })
+}
+
+fn key_change(pairs: &[(String, String)]) -> &'static str {
+    let sent = |name: &str| {
+        pairs.iter().find(|(key, _)| key == name).map(|(_, value)| value.as_str())
+    };
+    let typed = sent("wiki_api_key").and_then(parse_optional).is_some();
+    let keep = sent("keep_wiki_api_key").is_none_or(parse_flag);
+
+    match (typed, keep) {
+        (true, _) => "Wiki API key saved.",
+        (false, true) => "Wiki API key kept.",
+        (false, false) => "Wiki API key removed.",
+    }
+}
+
+#[page(POST "/guild/{guild_id}/support/wiki/wiki-key")]
+async fn save_key(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let message = key_change(&pairs);
+    let values: Vec<(String, String)> =
+        pairs.iter().filter(|(name, _)| name != "wiki_api_key").cloned().collect();
+    let result = async {
+        let form = FaqWikiKeyForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        save_faq_wiki_key(cx, &form).await
+    }
+    .await;
+    let failure = settle(cx, KEY_FORM, values, result, &Done {
+        page: WIKI.href(guild_id),
+        section: Some(KEY_FORM),
+        message,
+    })?;
+    let state = PageState::failed(failure);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: WIKI, state: &state)
     })
 }
 
 #[component]
-async fn suggestions_form(
+pub(super) async fn tickets(
     guild_id: &str,
-    action: &str,
     settings: &SupportSection,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
     let s = settings;
-    let suggestions = Submission::of(submission, SUGGESTIONS);
+    let sent = state.sent(TICKET_FORM);
+    let tags = || forum_tags(lists);
 
     Ok(view! {
-        if let Some(submitted) = suggestions {
-            save_feedback(outcome: submitted.outcome())
-        }
-        <form method="post" action=(action) data-pending="">
+        <form
+            id=(TICKET_FORM)
+            method="post"
+            action=(TICKETS.href(guild_id))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: TICKET_FORM, message: message)
+            }
             <input type="hidden" name="guild" value=(guild_id)>
-            channel_select(
-                label: "Suggestions Channel",
-                name: "suggestions_channel_id",
-                selected: shown(
-                    suggestions,
-                    "suggestions_channel_id",
-                    s.suggestions_channel_id.as_deref(),
-                ),
-                channels: lists.channels(),
-                kinds: TEXT_KINDS
-            )
-            channel_select(
-                label: "Review Channel",
-                name: "review_channel_id",
-                selected: shown(
-                    suggestions,
-                    "review_channel_id",
-                    s.review_channel_id.as_deref(),
-                ),
-                channels: lists.channels(),
-                kinds: TEXT_KINDS
-            )
-            setting_field(
-                label: "Promote at net upvotes",
-                name: "promote_threshold",
-                value: shown(
-                    suggestions,
-                    "promote_threshold",
-                    Some(s.promote_threshold.as_str()),
+            <fieldset class="settings-section">
+                <legend>"Tickets"</legend>
+                <p class="page-lead">
+                    "Where tickets open and how a solved ticket is marked."
+                </p>
+                select_row(
+                    form: TICKET_FORM,
+                    name: "support_channel_id",
+                    label: "Support channel",
+                    selected: sent.value(
+                        "support_channel_id",
+                        s.support_channel_id.as_deref(),
+                    ),
+                    options: channels(lists, TEXT_KINDS),
+                    error: sent.error("support_channel_id")
                 )
-            )
-            setting_field(
-                label: "Demote at or below",
-                name: "demote_threshold",
-                value: shown(
-                    suggestions,
-                    "demote_threshold",
-                    Some(s.demote_threshold.as_str()),
-                ),
-                pattern: "-?[0-9]*"
-            )
-            save_button()
+                select_row(
+                    form: TICKET_FORM,
+                    name: "solved_tag_id",
+                    label: "Solved tag",
+                    selected: sent.value("solved_tag_id", s.solved_tag_id.as_deref()),
+                    options: tags(),
+                    help: Some(
+                        "\"/ticket solved\" applies this tag when the support channel is a forum, and otherwise renames the thread.",
+                    ),
+                    error: sent.error("solved_tag_id")
+                )
+                select_row(
+                    form: TICKET_FORM,
+                    name: "closed_tag_id",
+                    label: "Closed tag",
+                    selected: sent.value("closed_tag_id", s.closed_tag_id.as_deref()),
+                    options: tags(),
+                    error: sent.error("closed_tag_id")
+                )
+                text_row(
+                    form: TICKET_FORM,
+                    name: "solved_archive_secs",
+                    label: "Archive solved posts after (seconds)",
+                    value: sent.value(
+                        "solved_archive_secs",
+                        Some(&s.solved_archive_secs),
+                    ),
+                    help: Some("0 closes the post immediately; -1 leaves it open."),
+                    error: sent.error("solved_archive_secs"),
+                    range: Some(Range { min: -1, max: None })
+                )
+            </fieldset>
+            <fieldset class="settings-section">
+                <legend>"Idle reminders"</legend>
+                <p class="page-lead">
+                    "Idle reminders watch whose turn it is. If a helper spoke last and the poster has gone quiet for the interval below, the poster is nudged with \"Solved\" and \"Still need help\" buttons. If the poster spoke last, the helper who replied is nudged - or the support roles, if nobody has answered yet. Each side is reminded once per turn, and never again until somebody posts."
+                </p>
+                toggle_row(
+                    form: TICKET_FORM,
+                    name: "idle_enabled",
+                    label: "Idle reminders",
+                    value: sent.flag("idle_enabled", s.idle_enabled),
+                    error: sent.error("idle_enabled")
+                )
+                text_row(
+                    form: TICKET_FORM,
+                    name: "idle_after_secs",
+                    label: "Remind after (seconds of silence)",
+                    value: sent.value("idle_after_secs", Some(&s.idle_after_secs)),
+                    help: Some(
+                        "At least 3600 (one hour), at most 2592000 (30 days). Default 172800 (48 hours).",
+                    ),
+                    error: sent.error("idle_after_secs"),
+                    range: Some(IDLE_RANGE)
+                )
+                toggle_row(
+                    form: TICKET_FORM,
+                    name: "idle_close_enabled",
+                    label: "Auto-close abandoned posts",
+                    value: sent.flag("idle_close_enabled", s.idle_close_enabled),
+                    help: Some(
+                        "Needs idle reminders on: it acts on a reminder nobody answered. Only posts waiting on the person who opened them are closed - a post waiting on the support team is the team's backlog, not an abandoned ticket. Closing applies the closed tag, posts a note to the poster and archives the post. Any reply at all cancels it.",
+                    ),
+                    error: sent.error("idle_close_enabled")
+                )
+                text_row(
+                    form: TICKET_FORM,
+                    name: "idle_close_after_secs",
+                    label: "Close after (seconds without a reply to the reminder)",
+                    value: sent.value(
+                        "idle_close_after_secs",
+                        Some(&s.idle_close_after_secs),
+                    ),
+                    help: Some(
+                        "At least 3600 (one hour), at most 2592000 (30 days). Default 86400 (24 hours).",
+                    ),
+                    error: sent.error("idle_close_after_secs"),
+                    range: Some(IDLE_RANGE)
+                )
+                <p class="field-hint">
+                    "A support role only gets notified if it is mentionable. Role mentions in private ticket threads mostly do not notify at all, since Discord does not pull role members into a private thread. A reminder also un-archives a post Discord had already archived, which is usually the point."
+                </p>
+            </fieldset>
+            <fieldset class="settings-section">
+                <legend>"Stale marking"</legend>
+                <p class="page-lead">
+                    "A quieter signal than closing: a post the poster has left unanswered for the interval below is tagged so the team can see at a glance what has gone cold. It follows the same staff-side exemption as auto-close, and the tag comes off again by itself as soon as anybody posts."
+                </p>
+                toggle_row(
+                    form: TICKET_FORM,
+                    name: "stale_enabled",
+                    label: "Mark quiet posts stale",
+                    value: sent.flag("stale_enabled", s.stale_enabled),
+                    error: sent.error("stale_enabled")
+                )
+                select_row(
+                    form: TICKET_FORM,
+                    name: "stale_tag_id",
+                    label: "Stale tag",
+                    selected: sent.value("stale_tag_id", s.stale_tag_id.as_deref()),
+                    options: tags(),
+                    help: Some("A forum tag is needed to mark a post stale."),
+                    error: sent.error("stale_tag_id")
+                )
+                text_row(
+                    form: TICKET_FORM,
+                    name: "stale_after_secs",
+                    label: "Mark stale after (seconds of poster silence)",
+                    value: sent.value("stale_after_secs", Some(&s.stale_after_secs)),
+                    help: Some(
+                        "At least 3600 (one hour), at most 2592000 (30 days). Default 604800 (7 days).",
+                    ),
+                    error: sent.error("stale_after_secs"),
+                    range: Some(IDLE_RANGE)
+                )
+            </fieldset>
+            save_bar(notice: state.notice_for(TICKET_FORM))
         </form>
-        <p class="page-lead">
-            "A suggestion is posted to the review channel once its \u{1F44D} minus \u{1F44E} count reaches the promote threshold, and removed again if it falls to or below the demote threshold. Tune both to your server size - demote must stay below promote."
-        </p>
     }
     .boxed())
 }
 
 #[component]
-async fn wiki_field(
+pub(super) async fn suggestions(
     guild_id: &str,
-    action: &str,
-    settings: &FaqSection,
-    submission: Option<&Submission>,
+    settings: &SupportSection,
+    lists: &Lists,
+    state: &PageState,
 ) -> Result<impl View> {
     let s = settings;
-    let wiki = Submission::of(submission, WIKI);
-    let key = Submission::of(submission, WIKI_KEY);
-    let tuning = Submission::of(submission, WIKI_TUNING);
+    let sent = state.sent(SUGGESTION_FORM);
+
+    Ok(view! {
+        <form
+            id=(SUGGESTION_FORM)
+            method="post"
+            action=(SUGGESTIONS.href(guild_id))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: SUGGESTION_FORM, message: message)
+            }
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Suggestions"</legend>
+                <p class="page-lead">
+                    "A suggestion is posted to the review channel once its \u{1F44D} minus \u{1F44E} count reaches the promote threshold, and removed again if it falls to or below the demote threshold. Tune both to your server size."
+                </p>
+                select_row(
+                    form: SUGGESTION_FORM,
+                    name: "suggestions_channel_id",
+                    label: "Suggestions channel",
+                    selected: sent.value(
+                        "suggestions_channel_id",
+                        s.suggestions_channel_id.as_deref(),
+                    ),
+                    options: channels(lists, TEXT_KINDS),
+                    error: sent.error("suggestions_channel_id")
+                )
+                select_row(
+                    form: SUGGESTION_FORM,
+                    name: "review_channel_id",
+                    label: "Review channel",
+                    selected: sent.value(
+                        "review_channel_id",
+                        s.review_channel_id.as_deref(),
+                    ),
+                    options: channels(lists, TEXT_KINDS),
+                    error: sent.error("review_channel_id")
+                )
+                text_row(
+                    form: SUGGESTION_FORM,
+                    name: "promote_threshold",
+                    label: "Promote at net upvotes",
+                    value: sent.value("promote_threshold", Some(&s.promote_threshold)),
+                    error: sent.error("promote_threshold"),
+                    range: Some(Range { min: 0, max: None })
+                )
+                text_row(
+                    form: SUGGESTION_FORM,
+                    name: "demote_threshold",
+                    label: "Demote at or below",
+                    value: sent.value("demote_threshold", Some(&s.demote_threshold)),
+                    help: Some(
+                        "Must stay below the promote threshold; a higher value is saved as one below it.",
+                    ),
+                    error: sent.error("demote_threshold"),
+                    input_type: "number",
+                    step: Some("1")
+                )
+            </fieldset>
+            save_bar(notice: state.notice_for(SUGGESTION_FORM))
+        </form>
+    }
+    .boxed())
+}
+
+#[component]
+pub(super) async fn wiki(
+    guild_id: &str,
+    settings: &FaqSection,
+    state: &PageState,
+) -> Result<impl View> {
+    let s = settings;
+    let sent = state.sent(WIKI_FORM);
+    let key = state.sent(KEY_FORM);
+    let page = WIKI.href(guild_id);
+    let key_action = format!("{page}/wiki-key");
     let key_placeholder = if s.wiki_api_key_set {
         "A key is saved - leave blank to keep it"
     } else {
@@ -352,264 +453,152 @@ async fn wiki_field(
     };
 
     Ok(view! {
-        <div class="setting-field">
-            <label>"Wiki FAQ"</label>
-            <p class="page-lead">
-                "Backs \"/ticket faq ask\" with a Wiki.js instance. Wiki.js is the only supported wiki - Zayden talks to its GraphQL API and falls back to its source view."
-            </p>
-            if let Some(submitted) = wiki {
-                save_feedback(outcome: submitted.outcome())
+        <form
+            id=(WIKI_FORM)
+            method="post"
+            action=(page.as_str())
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: WIKI_FORM, message: message)
             }
-            <form method="post" action=(action) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                toggle_field(
-                    label: "Wiki FAQ",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Wiki FAQ"</legend>
+                <p class="page-lead">
+                    "Backs \"/ticket faq ask\" with a Wiki.js instance. Wiki.js is the only supported wiki - Zayden talks to its GraphQL API and falls back to its source view."
+                </p>
+                toggle_row(
+                    form: WIKI_FORM,
                     name: "enabled",
-                    value: flag(wiki, "enabled", s.enabled)
+                    label: "Wiki FAQ",
+                    value: sent.flag("enabled", s.enabled),
+                    error: sent.error("enabled")
                 )
-                toggle_field(
-                    label: "Triage New Tickets",
+                toggle_row(
+                    form: WIKI_FORM,
                     name: "auto_triage",
-                    value: flag(wiki, "auto_triage", s.auto_triage)
+                    label: "Triage new tickets",
+                    value: sent.flag("auto_triage", s.auto_triage),
+                    help: Some(
+                        "Every new support thread gets an opening embed of suggested articles and follow-up questions. That is two model calls per ticket.",
+                    ),
+                    error: sent.error("auto_triage")
                 )
-                toggle_field(
-                    label: "Write FAQ Articles From Solved Tickets",
+                toggle_row(
+                    form: WIKI_FORM,
                     name: "auto_generate",
-                    value: flag(wiki, "auto_generate", s.auto_generate)
+                    label: "Write FAQ articles from solved tickets",
+                    value: sent.flag("auto_generate", s.auto_generate),
+                    help: Some(
+                        "\"/ticket solved\" turns the thread into an FAQ article, which goes live immediately and is searchable by \"/ticket faq ask\". Review them under FAQ articles. A ticket that ends without a usable solution produces nothing.",
+                    ),
+                    error: sent.error("auto_generate")
                 )
-                setting_field(
-                    label: "Wiki URL",
+                text_row(
+                    form: WIKI_FORM,
                     name: "wiki_url",
-                    value: shown(wiki, "wiki_url", Some(s.wiki_url.as_str())),
-                    pattern: ".*",
-                    placeholder: "https://wiki.example.com",
-                    hint: Some(
-                        "Site origin only, no trailing path. Zayden appends /graphql, /<locale>/ and /s/<locale>/ itself - pointing this at the GraphQL endpoint breaks page reads and article links.",
-                    )
+                    label: "Wiki URL",
+                    value: sent.value("wiki_url", Some(&s.wiki_url)),
+                    help: Some(
+                        "Site origin only, starting with http:// or https://, no trailing path. Zayden appends /graphql, /<locale>/ and /s/<locale>/ itself - pointing this at the GraphQL endpoint breaks page reads and article links.",
+                    ),
+                    error: sent.error("wiki_url"),
+                    input_type: "url",
+                    placeholder: Some("https://wiki.example.com")
                 )
-                setting_field(
-                    label: "Locale",
+                text_row(
+                    form: WIKI_FORM,
                     name: "wiki_locale",
-                    value: shown(wiki, "wiki_locale", Some(s.wiki_locale.as_str())),
-                    pattern: "[a-zA-Z-]*"
+                    label: "Locale",
+                    value: sent.value("wiki_locale", Some(&s.wiki_locale)),
+                    help: Some(
+                        "Letters and hyphens, such as en or pt-br. Blank means en.",
+                    ),
+                    error: sent.error("wiki_locale")
                 )
-                save_button()
-            </form>
-            if let Some(submitted) = key {
-                save_feedback(outcome: submitted.outcome())
+            </fieldset>
+            <fieldset class="settings-section">
+                <legend>"Answers"</legend>
+                <p class="page-lead">
+                    "How \"/ticket faq ask\" searches the wiki and writes its answer."
+                </p>
+                text_row(
+                    form: WIKI_FORM,
+                    name: "max_results",
+                    label: "Search results to consider",
+                    value: sent.value("max_results", Some(&s.max_results)),
+                    help: Some("From 1 to 25. Default 5."),
+                    error: sent.error("max_results"),
+                    range: Some(Range { min: 1, max: Some(25) })
+                )
+                text_row(
+                    form: WIKI_FORM,
+                    name: "answer_max_tokens",
+                    label: "Answer length (max tokens)",
+                    value: sent.value("answer_max_tokens", Some(&s.answer_max_tokens)),
+                    help: Some("From 64 to 4096. Default 500."),
+                    error: sent.error("answer_max_tokens"),
+                    range: Some(Range { min: 64, max: Some(4096) })
+                )
+                text_row(
+                    form: WIKI_FORM,
+                    name: "answer_temperature",
+                    label: "Answer temperature",
+                    value: sent.value("answer_temperature", Some(&s.answer_temperature)),
+                    help: Some("From 0 to 2. Lower is more literal. Default 0.2."),
+                    error: sent.error("answer_temperature"),
+                    range: Some(Range { min: 0, max: Some(2) }),
+                    step: Some("0.1")
+                )
+            </fieldset>
+            save_bar(notice: state.notice_for(WIKI_FORM))
+        </form>
+        <form
+            id=(KEY_FORM)
+            method="post"
+            action=(key_action.as_str())
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = key.summary() {
+                form_summary(form: KEY_FORM, message: message)
             }
-            <form method="post" action=(action) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                setting_field(
-                    label: "Wiki API Key",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"API key"</legend>
+                <p class="page-lead">
+                    "The key needs a group with \"read:source\" so Zayden can read page Markdown. Wiki.js also gates its GraphQL page-source queries behind \"manage:pages\"; without either grant the command still answers with matching article links, but cannot summarise them."
+                </p>
+                text_row(
+                    form: KEY_FORM,
                     name: "wiki_api_key",
+                    label: "Wiki API key",
                     value: "",
-                    pattern: ".*",
-                    placeholder: key_placeholder,
-                    hint: Some(
+                    help: Some(
                         "A Wiki.js API key. Its group needs read:pages, plus manage:pages or read:source to read page content. A saved key is never sent back to the browser, so leaving this blank keeps it.",
                     ),
-                    input_type: "password"
+                    error: key.error("wiki_api_key"),
+                    input_type: "password",
+                    placeholder: Some(key_placeholder)
                 )
                 if s.wiki_api_key_set {
-                    toggle_field(
-                        label: "Saved API Key",
+                    toggle_row(
+                        form: KEY_FORM,
                         name: "keep_wiki_api_key",
-                        value: flag(key, "keep_wiki_api_key", true),
+                        label: "Saved API key",
+                        value: key.flag("keep_wiki_api_key", true),
                         on_label: "Keep",
-                        off_label: "Remove"
+                        off_label: "Remove",
+                        error: key.error("keep_wiki_api_key")
                     )
                 } else {
                     <input type="hidden" name="keep_wiki_api_key" value="true">
                 }
-                save_button()
-            </form>
-            if let Some(submitted) = tuning {
-                save_feedback(outcome: submitted.outcome())
-            }
-            <form method="post" action=(action) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                setting_field(
-                    label: "Search results to consider",
-                    name: "max_results",
-                    value: shown(tuning, "max_results", Some(s.max_results.as_str()))
-                )
-                setting_field(
-                    label: "Answer length (max tokens)",
-                    name: "answer_max_tokens",
-                    value: shown(
-                        tuning,
-                        "answer_max_tokens",
-                        Some(s.answer_max_tokens.as_str()),
-                    )
-                )
-                setting_field(
-                    label: "Answer temperature",
-                    name: "answer_temperature",
-                    value: shown(
-                        tuning,
-                        "answer_temperature",
-                        Some(s.answer_temperature.as_str()),
-                    ),
-                    pattern: "[0-9.]*"
-                )
-                save_button()
-            </form>
-            <p class="page-lead">
-                "The API key needs a group with \"read:source\" so Zayden can read page Markdown. Wiki.js also gates its GraphQL page-source queries behind \"manage:pages\"; without either grant the command still answers with matching article links, but cannot summarise them."
-            </p>
-            <p class="page-lead">
-                "With triage on, every new support thread gets an opening embed of suggested articles and follow-up questions. That is two model calls per ticket."
-            </p>
-            <p class="page-lead">
-                "With article writing on, \"/ticket solved\" turns the thread into an FAQ article, which goes live immediately and is searchable by \"/ticket faq ask\". Review them under the FAQ tab. A ticket that ends without a usable solution produces nothing."
-            </p>
-        </div>
+            </fieldset>
+            save_bar(label: "Save key", notice: state.notice_for(KEY_FORM))
+        </form>
     }
     .boxed())
-}
-
-#[component]
-async fn chip_feedback(
-    submission: Option<&Submission>,
-    remove: &str,
-    add: &str,
-) -> Result<impl View> {
-    Ok(view! {
-        if let Some(submitted) = Submission::of(submission, remove) {
-            save_feedback(outcome: submitted.outcome())
-        }
-        if let Some(submitted) = Submission::of(submission, add) {
-            save_feedback(outcome: submitted.outcome())
-        }
-    })
-}
-
-#[component]
-async fn support_role_field(
-    guild_id: &str,
-    action: &str,
-    support_roles: &std::result::Result<Vec<String>, String>,
-    lists: &Lists,
-    submission: Option<&Submission>,
-) -> Result<impl View> {
-    let known = lists.roles().unwrap_or_default();
-    let configured = support_roles.as_deref().unwrap_or_default();
-    let unconfigured = lists.roles().map(|roles| {
-        roles
-            .iter()
-            .filter(|role| !configured.contains(&role.id))
-            .cloned()
-            .collect::<Vec<Role>>()
-    });
-    let remove_action = format!("{action}?{REMOVE_ROLE_QUERY}");
-
-    Ok(view! {
-        <div class="setting-field">
-            <label>"Support Roles"</label>
-            <p class="page-lead">
-                "One list, two jobs: these roles are pinged in every new ticket thread, and holding one is what makes somebody a helper - for idle reminders, for donation credit, and for the reminder buttons. With none set, Zayden falls back to pinging the server owner when a ticket opens."
-            </p>
-            match support_roles {
-                Ok(ids) => <div class="chip-list">
-                    #[key(id.as_str())]
-                    for id in ids {
-                        let name = known
-                            .iter()
-                            .find(|role| role.id == *id)
-                            .map_or_else(
-                                || format!("@unknown ({id})"),
-                                |role| format!("@{}", role.name),
-                            );
-                        <form
-                            class="chip"
-                            method="post"
-                            action=(remove_action.as_str())
-                            data-pending=""
-                        >
-                            <input type="hidden" name="guild" value=(guild_id)>
-                            <input type="hidden" name="role_id" value=(id.as_str())>
-                            <span class="chip-label">(name)</span>
-                            <button type="submit" class="chip-remove" title="Remove">
-                                icon(name: Icon::X)
-                            </button>
-                        </form>
-                    }
-                </div>,
-                Err(reason) => <p class="warning">
-                    "Couldn't load the support roles: "
-                    (reason)
-                </p>,
-            }
-            chip_feedback(submission: submission, remove: REMOVE_ROLE, add: ADD_ROLE)
-            <form class="chip-add" method="post" action=(action) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                role_select(
-                    label: "Add a support role",
-                    name: "role_id",
-                    selected: "",
-                    roles: unconfigured.as_ref().map(Vec::as_slice).map_err(|e| *e)
-                )
-                <button type="submit" class="btn btn-ghost">"Add role"</button>
-            </form>
-        </div>
-    })
-}
-
-#[component]
-async fn helper_link_field(
-    guild_id: &str,
-    action: &str,
-    helper_links: &std::result::Result<Vec<HelperLinkInfo>, String>,
-    submission: Option<&Submission>,
-) -> Result<impl View> {
-    Ok(view! {
-        <div class="setting-field">
-            <label>"Helper Donation Links"</label>
-            <p class="page-lead">
-                "When a post is solved, anyone with a support role who posted in it and has a link here gets credited in a follow-up message."
-            </p>
-            match helper_links {
-                Ok(links) => <div class="chip-list">
-                    #[key(link.user_id.as_str())]
-                    for link in links {
-                        let label = format!("{} \u{2192} {}", link.name, link.link);
-                        <form
-                            class="chip"
-                            method="post"
-                            action=(action)
-                            data-pending=""
-                        >
-                            <input type="hidden" name="guild" value=(guild_id)>
-                            <input
-                                type="hidden"
-                                name="user_id"
-                                value=(link.user_id.as_str())
-                            >
-                            <span class="chip-label">(label)</span>
-                            <button type="submit" class="chip-remove" title="Remove">
-                                icon(name: Icon::X)
-                            </button>
-                        </form>
-                    }
-                </div>,
-                Err(reason) => <p class="warning">
-                    "Couldn't load the helper links: "
-                    (reason)
-                </p>,
-            }
-            chip_feedback(submission: submission, remove: REMOVE_LINK, add: ADD_LINK)
-            <form class="chip-add" method="post" action=(action) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                setting_field(label: "Helper user ID", name: "user_id", value: "")
-                setting_field(
-                    label: "Donation link",
-                    name: "link",
-                    value: "",
-                    pattern: ".*"
-                )
-                <button type="submit" class="btn btn-ghost">"Add link"</button>
-            </form>
-        </div>
-    })
 }
