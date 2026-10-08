@@ -55,9 +55,6 @@ pub(super) async fn upgrade(cx: &Cx) -> Result<impl View> {
     Ok(view! { public_layout(upgrade_page(notice: notice.as_ref())) })
 }
 
-/// Links a Ko-fi email. Success answers 303 back to the form with the result
-/// line; a refused email re-renders the page (422) with the reason at the
-/// field.
 #[page(POST "/upgrade")]
 pub(super) async fn link_kofi(
     cx: &Cx,
@@ -225,8 +222,6 @@ fn host_of(url: &str) -> Option<String> {
     Url::parse(url).ok()?.host_str().map(str::to_owned)
 }
 
-/// The paid plans against the viewer's tier (free when signed out). Nothing
-/// renders when the tier lookup fails.
 #[component]
 async fn plan_ladder(cx: &Cx) -> Result<impl View> {
     let info = get_user_tier(cx).await.ok();

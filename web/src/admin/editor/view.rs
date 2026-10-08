@@ -153,8 +153,6 @@ async fn enum_icon(index: &CatalogIndex, label: &str) -> Result<impl View> {
     })
 }
 
-/// A choice group as native radios: one tab stop, arrow keys move the
-/// choice.
 #[component]
 async fn icon_choice(
     label: &str,

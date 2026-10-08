@@ -54,8 +54,6 @@ async fn levels_page(
     .boxed())
 }
 
-/// The two boards as links, the current one marked for assistive
-/// technology.
 #[component]
 async fn scope_switch(guild_id: &str, board: LeaderboardView) -> Result<impl View> {
     let segment = path_segment(guild_id);

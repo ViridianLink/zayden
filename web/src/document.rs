@@ -116,7 +116,6 @@ fn title_for(pattern: &str) -> Option<&'static str> {
     lookup(PAGE_TITLES, pattern)
 }
 
-/// The search and link-preview summary of a public page.
 #[must_use]
 pub fn page_description(cx: &Cx) -> Option<&'static str> {
     lookup(PAGE_DESCRIPTIONS, try_endpoint(cx)?.path().as_str())

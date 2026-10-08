@@ -7,9 +7,6 @@ use topcoat::router::error::see_other;
 use crate::flash::{FlashKind, set as set_flash};
 use crate::settings::NOT_SAVED;
 
-/// A form an engagement page posts. Its `name` is the last segment of the
-/// form's address, `/guild/{id}/<page>/<name>`; for the forms that existed
-/// before, it is the legacy `?action=` value verbatim.
 pub(super) trait FormAction: Copy + PartialEq + 'static {
     const ALL: &'static [Self];
 

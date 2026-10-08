@@ -16,8 +16,6 @@ pub(super) fn field_id(form: &str, name: &str) -> String {
     format!("{form}-{}", name.replace('_', "-"))
 }
 
-/// The bounds and kind of a text input, mirrored from what the save
-/// accepts.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct Constraints {
     pub(super) min: Option<i32>,
@@ -73,8 +71,6 @@ pub(super) async fn text_row(
     })
 }
 
-/// A select over `options`, keeping a stored value the list no longer holds
-/// as an "Unknown (id)" option.
 #[component]
 pub(super) async fn select_row(
     form: &str,
@@ -127,7 +123,6 @@ pub(super) async fn select_row(
     })
 }
 
-/// The failure line at the top of a form; focus moves to it on load.
 #[component]
 pub(super) async fn form_summary(
     form: &str,
@@ -147,8 +142,6 @@ pub(super) async fn form_summary(
     })
 }
 
-/// The plain-language reason a page could not load its data, and the ways
-/// on from there.
 pub(super) fn load_problem(
     guild_id: &str,
     retry: &str,
@@ -184,8 +177,6 @@ pub(super) fn load_problem(
     }
 }
 
-/// An error panel inside a page that already has its title: the panel's
-/// heading is a section heading.
 #[component]
 pub(super) async fn load_error(
     title: &str,

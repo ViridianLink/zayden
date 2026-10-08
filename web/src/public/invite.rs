@@ -46,8 +46,6 @@ fn is_authorize_path(path: &str) -> bool {
     )
 }
 
-/// The invite address with the server preselected, when the invite is a
-/// Discord `OAuth2` authorize address; `None` leaves the invite unchanged.
 fn preselect(address: &str, guild: u64) -> Option<String> {
     let mut url = Url::parse(address).ok()?;
     let discord = url.scheme() == "https"

@@ -8,8 +8,6 @@ use crate::engagement::EngagementError;
 use crate::flash::{Flash, FlashKind, set_in, take};
 use crate::util::server_error_text;
 
-/// What a page render carries besides its data: the one-time result line of
-/// the last successful post, or the form that just failed.
 #[derive(Debug, Default)]
 pub(super) struct PageState {
     notice: Option<Flash>,
@@ -17,8 +15,6 @@ pub(super) struct PageState {
 }
 
 impl PageState {
-    /// The state of a page render: the failure a form post carried here
-    /// (see [`rerender`]), otherwise the one-time result line.
     pub(super) fn load(cx: &Cx) -> Self {
         try_request_context::<Failure>(cx).map_or_else(
             || Self { notice: take(cx), failure: None },
@@ -80,7 +76,6 @@ impl Failure {
 
 const DENIED: &str = "you need Manage Server in this server to change this";
 
-/// The form field an error is about, when it names one.
 fn field_of(error: &EngagementError) -> Option<&str> {
     match error {
         EngagementError::UnknownField(name)
@@ -107,7 +102,6 @@ fn field_of(error: &EngagementError) -> Option<&str> {
     }
 }
 
-/// An error message without the "error running server function: " prefix.
 pub(super) fn plain(message: &str) -> &str {
     let prefix = server_error_text("");
     message.strip_prefix(prefix.as_str()).unwrap_or(message)
@@ -125,8 +119,6 @@ impl<'a> Sent<'a> {
             .map(|(_, value)| value.as_str())
     }
 
-    /// What the field shows: the value just sent with a failed form,
-    /// otherwise the stored one.
     pub(super) fn value<'b>(self, name: &str, stored: &'b str) -> &'b str
     where
         'a: 'b,
@@ -144,9 +136,6 @@ impl<'a> Sent<'a> {
     }
 }
 
-/// Handles a failed post again as a GET of its page, without a round trip:
-/// the page renders with the failure (422) under its own title and layout,
-/// while the address bar keeps the form's address.
 pub(super) fn rerender(cx: &Cx, page: &str, failure: Failure) -> topcoat::Error {
     let mut sent = headers(cx).clone();
     sent.remove(header::CONTENT_TYPE);
@@ -159,17 +148,12 @@ pub(super) fn rerender(cx: &Cx, page: &str, failure: Failure) -> topcoat::Error 
         .into()
 }
 
-/// Where a successful post leads: the page, scrolled to the section whose
-/// result line it shows.
 pub(super) struct Done<'a> {
     pub(super) page: String,
     pub(super) section: Option<&'a str>,
     pub(super) message: &'a str,
 }
 
-/// A success answers 303 to the page with the result as a one-time flash;
-/// a failure comes back for the page to re-render with 422. A signed-out visitor is
-/// sent to the login page.
 pub(super) fn settle(
     cx: &Cx,
     form: &'static str,
