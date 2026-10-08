@@ -20,6 +20,8 @@ pub enum GuildError {
     MissingField(&'static str),
     #[error("invalid value for `{0}`")]
     InvalidField(&'static str),
+    #[error("{saved} were saved, but {unsaved} were not: {reason}")]
+    PartlySaved { saved: &'static str, unsaved: &'static str, reason: String },
     #[error("invalid wiki URL")]
     InvalidWikiUrl,
     #[error("the wiki URL must start with http:// or https://")]

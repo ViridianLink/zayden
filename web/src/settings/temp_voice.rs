@@ -1,16 +1,14 @@
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
-use topcoat::router::error::see_other;
-use topcoat::router::request::uri;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
 use twilight_model::channel::ChannelType;
-use url::form_urlencoded;
 
-use super::{Lists, Submission, action, ensure_path_guild, settings_page, shown};
-use crate::components::pickers::channel_select;
-use crate::components::settings::{create_feedback, save_button, save_feedback};
+use super::fields::{channels, form_summary, select_row};
+use super::state::{Done, PageState, settle};
+use super::{Lists, Page, ensure_path_guild, settings_page};
+use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::TempVoiceSection;
 use crate::guild::settings::{
@@ -21,50 +19,63 @@ use crate::guild::settings::{
 };
 use crate::shell::GuildId;
 
-const SLUG: &str = "temp-voice";
-const SAVE: &str = "save";
-const CREATE: &str = "create";
-const CREATED_QUERY: &str = "created=1";
+const PAGE: Page = Page::TempVoice;
+const FORM: &str = "temp-voice-settings";
+const CREATE: &str = "temp-voice-create";
+const CATEGORIES: &[ChannelType] = &[ChannelType::GuildCategory];
+const VOICE: &[ChannelType] = &[ChannelType::GuildVoice];
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.page(temp_voice).page(save)
+    base.page(temp_voice).page(save).page(create)
 }
 
-#[page("/guild/{guild_id}/settings/temp-voice")]
+#[page("/guild/{guild_id}/temp-voice")]
 async fn temp_voice(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
-    let created =
-        form_urlencoded::parse(uri(cx).query().unwrap_or_default().as_bytes())
-            .any(|(key, value)| key == "created" && value == "1");
-    let submission = created.then(|| Submission::succeeded(CREATE));
+    let state = PageState::load(cx);
 
-    Ok(view! {
-        settings_page(guild_id: guild_id, slug: SLUG, submission: submission.as_ref())
-    })
+    Ok(view! { settings_page(guild_id: guild_id, page: PAGE, state: &state) })
 }
 
-#[page(POST "/guild/{guild_id}/settings/temp-voice")]
+#[page(POST "/guild/{guild_id}/temp-voice")]
 async fn save(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
-    let submission =
-        if pairs.iter().any(|(name, _)| name == "temp_voice_creator_channel") {
-            let values = pairs.clone();
-            Submission::new(SAVE, values, save_settings(cx, guild_id, pairs).await)?
-        } else {
-            let created = create(cx, guild_id, pairs).await;
-            if created.is_ok() {
-                let location = format!("{}?{CREATED_QUERY}", action(guild_id, SLUG));
-                return Err(see_other(location).into());
-            }
-            Submission::reloading(CREATE, created)?
-        };
+    let values = pairs.clone();
+    let result = save_settings(cx, guild_id, pairs).await;
+    let failure = settle(cx, FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "Temp voice settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        (submission.status())
-        settings_page(guild_id: guild_id, slug: SLUG, submission: Some(&submission))
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
+#[page(POST "/guild/{guild_id}/temp-voice/create")]
+async fn create(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = create_channel(cx, guild_id, pairs).await;
+    let failure = settle(cx, CREATE, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "Creator channel created.",
+    })?;
+    let state = PageState::failed(failure);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
     })
 }
 
@@ -78,7 +89,7 @@ async fn save_settings(
     save_temp_voice_settings(cx, &form).await
 }
 
-async fn create(
+async fn create_channel(
     cx: &Cx,
     guild_id: &str,
     pairs: Vec<(String, String)>,
@@ -93,62 +104,81 @@ pub(super) async fn tab(
     guild_id: &str,
     settings: &TempVoiceSection,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let action = action(guild_id, SLUG);
-    let saved = Submission::of(submission, SAVE);
-    let created = Submission::of(submission, CREATE);
+    let saved = state.sent(FORM);
+    let created = state.sent(CREATE);
     let category = settings.category.as_deref();
+    let create_action = format!("{}/create", PAGE.href(guild_id));
 
     Ok(view! {
-        <fieldset class="settings-section">
-            if let Some(submitted) = saved {
-                save_feedback(outcome: submitted.outcome())
+        <form
+            id=(FORM)
+            method="post"
+            action=(PAGE.href(guild_id))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = saved.summary() {
+                form_summary(form: FORM, message: message)
             }
-            <form method="post" action=(action.as_str()) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                channel_select(
-                    label: "Category",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Channels"</legend>
+                <p class="page-lead">
+                    "Members join the creator channel to get a voice channel of their own in the category."
+                </p>
+                select_row(
+                    form: FORM,
                     name: "temp_voice_category",
-                    selected: shown(saved, "temp_voice_category", category),
-                    channels: lists.channels(),
-                    kinds: &[ChannelType::GuildCategory]
+                    label: "Category",
+                    selected: saved.value("temp_voice_category", category),
+                    options: channels(lists, CATEGORIES),
+                    error: saved.error("temp_voice_category")
                 )
-                channel_select(
-                    label: "Creator Channel",
+                select_row(
+                    form: FORM,
                     name: "temp_voice_creator_channel",
-                    selected: shown(
-                        saved,
+                    label: "Creator channel",
+                    selected: saved.value(
                         "temp_voice_creator_channel",
                         settings.creator_channel.as_deref(),
                     ),
-                    channels: lists.channels(),
-                    kinds: &[ChannelType::GuildVoice]
+                    options: channels(lists, VOICE),
+                    error: saved.error("temp_voice_creator_channel")
                 )
-                save_button()
-            </form>
-            <p class="page-lead">
-                "No creator channel yet? Zayden can make one for you and point the settings above at it."
-            </p>
-            if let Some(submitted) = created {
-                create_feedback(outcome: submitted.outcome())
+            </fieldset>
+            save_bar(notice: state.notice_for(FORM))
+        </form>
+        <form id=(CREATE) method="post" action=(create_action.as_str()) data-pending="">
+            if let Some(message) = created.summary() {
+                form_summary(form: CREATE, message: message, outcome: "Not created")
             }
-            <form method="post" action=(action.as_str()) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                channel_select(
-                    label: "Create Creator Channel In",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Create a creator channel"</legend>
+                <p class="page-lead">
+                    "No creator channel yet? Zayden can make one in a category and point the settings above at it."
+                </p>
+                select_row(
+                    form: CREATE,
                     name: "temp_voice_category",
-                    selected: category.unwrap_or_default(),
-                    channels: lists.channels(),
-                    kinds: &[ChannelType::GuildCategory],
-                    id: Some("temp-voice-create-category")
+                    label: "Create it in",
+                    selected: created.value("temp_voice_category", category),
+                    options: channels(lists, CATEGORIES),
+                    error: created.error("temp_voice_category")
                 )
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-secondary">
-                        "Create Creator Channel"
+                    <button
+                        type="submit"
+                        class="btn btn-secondary"
+                        data-pending-label="Creating\u{2026}"
+                    >
+                        "Create creator channel"
                     </button>
                 </div>
-            </form>
-        </fieldset>
-    })
+            </fieldset>
+        </form>
+    }
+    .boxed())
 }

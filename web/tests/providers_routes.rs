@@ -906,8 +906,10 @@ const FLOWS: [(&str, &str); 2] = [("patreon", "patreon"), ("youtube", "youtube")
 const PATREON_AUTHORIZE: &str = "https://www.patreon.com/oauth2/authorize?response_type=code&client_id=patreon-client&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fpatreon%2Fcallback&scope=identity+campaigns+campaigns.posts+w%3Acampaigns.webhook&state=";
 const GOOGLE_AUTHORIZE: &str = "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&client_id=google-client&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fyoutube%2Fcallback&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.readonly&access_type=online&prompt=select_account&state=";
 
+/// Provider flows land on the feature page (`/guild/{id}/patreon`), carrying
+/// the outcome for its banner.
 fn outcome_location(flow: &str, guild: &str, outcome: &str) -> String {
-    format!("/guild/{guild}/settings/{flow}?{flow}={outcome}")
+    format!("/guild/{guild}/{flow}?{flow}={outcome}")
 }
 
 #[sqlx::test(migrations = "../migrations")]
@@ -1115,6 +1117,16 @@ async fn the_callback_routes_check_the_nonce_then_the_caller(pool: PgPool) {
             location(&response),
             Some(outcome_location(flow, "7.extra", "forbidden").as_str()),
             "the state splits at its first dot"
+        );
+
+        let response = app
+            .get(&callback("?code=c&state=nonce.x%2Fy%3Fz"), Some(&remembered))
+            .await
+            .unwrap();
+        assert_eq!(
+            location(&response),
+            Some(outcome_location(flow, "x%2Fy%3Fz", "forbidden").as_str()),
+            "the guild is a single encoded path segment"
         );
     }
 }

@@ -3,6 +3,7 @@ use topcoat::context::Cx;
 use twilight_model::channel::ChannelType;
 use twilight_model::id::Id;
 use zayden_app::config::MusicSettingsRow;
+use zayden_app::state::AppState as ZaydenAppState;
 
 use super::access::admin_app;
 use super::error::{GuildError, server_err};
@@ -21,6 +22,18 @@ form_args! {
 
 form_args! {
     RoleSettingsForm { guild, artist_role_id, sleep_role_id, verified_role_id }
+}
+
+form_args! {
+    ServerSettingsForm {
+        guild,
+        rules_channel_id,
+        general_channel_id,
+        spoiler_channel_id,
+        artist_role_id,
+        sleep_role_id,
+        verified_role_id,
+    }
 }
 
 form_args! {
@@ -71,33 +84,71 @@ form_args! {
 /// The voice channel name Zayden creates for temp voice.
 pub const CREATOR_CHANNEL_NAME: &str = "\u{2795} Creator Channel";
 
+/// Rules, general and spoiler channel ids, in that order.
+type ChannelIds = [Option<i64>; 3];
+
+/// Artist, sleep and verified role ids, in that order.
+type RoleIds = [Option<i64>; 3];
+
+fn channel_ids(rules: &str, general: &str, spoiler: &str) -> ChannelIds {
+    [parse_id(rules), parse_id(general), parse_id(spoiler)]
+}
+
+fn role_ids(artist: &str, sleep: &str, verified: &str) -> RoleIds {
+    [parse_id(artist), parse_id(sleep), parse_id(verified)]
+}
+
+async fn write_channels(
+    app: &ZaydenAppState,
+    guild_id: i64,
+    [rules, general, spoiler]: ChannelIds,
+) -> Result<(), sqlx::Error> {
+    app.settings
+        .channels
+        .update(guild_id, |p| {
+            p.rules_channel_id = rules;
+            p.general_channel_id = general;
+            p.spoiler_channel_id = spoiler;
+        })
+        .await
+        .map(|_| ())
+}
+
+async fn write_roles(
+    app: &ZaydenAppState,
+    guild_id: i64,
+    [artist, sleep, verified]: RoleIds,
+) -> Result<(), sqlx::Error> {
+    app.settings
+        .roles
+        .update(guild_id, |p| {
+            p.artist_role_id = artist;
+            p.sleep_role_id = sleep;
+            p.verified_role_id = verified;
+        })
+        .await
+        .map(|_| ())
+}
+
 pub async fn save_channel_settings(
     cx: &Cx,
     form: &ChannelSettingsForm,
 ) -> Result<(), GuildError> {
     let (guild_id, app) = admin_app(cx, &form.guild).await?;
 
-    let rules_channel_id = parse_id(&form.rules_channel_id);
-    let general_channel_id = parse_id(&form.general_channel_id);
-    let spoiler_channel_id = parse_id(&form.spoiler_channel_id);
+    let channels = channel_ids(
+        &form.rules_channel_id,
+        &form.general_channel_id,
+        &form.spoiler_channel_id,
+    );
 
-    GuildIds::default()
-        .channel(rules_channel_id)
-        .channel(general_channel_id)
-        .channel(spoiler_channel_id)
+    channels
+        .iter()
+        .fold(GuildIds::default(), |ids, id| ids.channel(*id))
         .ensure_in(cx, guild_id)
         .await?;
 
-    app.settings
-        .channels
-        .update(guild_id, |p| {
-            p.rules_channel_id = rules_channel_id;
-            p.general_channel_id = general_channel_id;
-            p.spoiler_channel_id = spoiler_channel_id;
-        })
-        .await
-        .map(|_| ())
-        .map_err(server_err)
+    write_channels(app, guild_id, channels).await.map_err(server_err)
 }
 
 pub async fn save_role_settings(
@@ -106,27 +157,43 @@ pub async fn save_role_settings(
 ) -> Result<(), GuildError> {
     let (guild_id, app) = admin_app(cx, &form.guild).await?;
 
-    let artist_role_id = parse_id(&form.artist_role_id);
-    let sleep_role_id = parse_id(&form.sleep_role_id);
-    let verified_role_id = parse_id(&form.verified_role_id);
+    let roles =
+        role_ids(&form.artist_role_id, &form.sleep_role_id, &form.verified_role_id);
 
-    GuildIds::default()
-        .role(artist_role_id)
-        .role(sleep_role_id)
-        .role(verified_role_id)
+    roles
+        .iter()
+        .fold(GuildIds::default(), |ids, id| ids.role(*id))
         .ensure_in(cx, guild_id)
         .await?;
 
-    app.settings
-        .roles
-        .update(guild_id, |p| {
-            p.artist_role_id = artist_role_id;
-            p.sleep_role_id = sleep_role_id;
-            p.verified_role_id = verified_role_id;
-        })
-        .await
-        .map(|_| ())
-        .map_err(server_err)
+    write_roles(app, guild_id, roles).await.map_err(server_err)
+}
+
+/// Saves the channels and roles of Server settings together: every id is
+/// checked against the server before either table is written.
+pub async fn save_server_settings(
+    cx: &Cx,
+    form: &ServerSettingsForm,
+) -> Result<(), GuildError> {
+    let (guild_id, app) = admin_app(cx, &form.guild).await?;
+
+    let channels = channel_ids(
+        &form.rules_channel_id,
+        &form.general_channel_id,
+        &form.spoiler_channel_id,
+    );
+    let roles =
+        role_ids(&form.artist_role_id, &form.sleep_role_id, &form.verified_role_id);
+
+    let ids = channels.iter().fold(GuildIds::default(), |ids, id| ids.channel(*id));
+    roles.iter().fold(ids, |ids, id| ids.role(*id)).ensure_in(cx, guild_id).await?;
+
+    write_channels(app, guild_id, channels).await.map_err(server_err)?;
+    write_roles(app, guild_id, roles).await.map_err(|e| GuildError::PartlySaved {
+        saved: "The channels",
+        unsaved: "the roles",
+        reason: e.to_string(),
+    })
 }
 
 pub async fn save_temp_voice_settings(

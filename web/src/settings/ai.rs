@@ -2,52 +2,50 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
 
-use super::{
-    Lists,
-    Submission,
-    TEXT_KINDS,
-    action,
-    ensure_path_guild,
-    flag,
-    settings_page,
-    shown,
-};
-use crate::components::pickers::channel_select;
-use crate::components::settings::{save_button, save_feedback, toggle_field};
+use super::fields::{channels, form_summary, select_row, toggle_row};
+use super::state::{Done, PageState, settle};
+use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::AiSection;
 use crate::guild::settings::{AiSettingsForm, save_ai_settings};
 use crate::shell::GuildId;
 
-const SLUG: &str = "ai";
-const FORM: &str = "ai";
+const PAGE: Page = Page::Ai;
+const FORM: &str = "ai-settings";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
     base.page(ai).page(save)
 }
 
-#[page("/guild/{guild_id}/settings/ai")]
+#[page("/guild/{guild_id}/ai")]
 async fn ai(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! { settings_page(guild_id: guild_id, slug: SLUG) })
+    Ok(view! { settings_page(guild_id: guild_id, page: PAGE, state: &state) })
 }
 
-#[page(POST "/guild/{guild_id}/settings/ai")]
+#[page(POST "/guild/{guild_id}/ai")]
 async fn save(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
     let values = pairs.clone();
-    let submission =
-        Submission::new(FORM, values, save_ai(cx, guild_id, pairs).await)?;
+    let result = save_ai(cx, guild_id, pairs).await;
+    let failure = settle(cx, FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "AI Chat settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        (submission.status())
-        settings_page(guild_id: guild_id, slug: SLUG, submission: Some(&submission))
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
     })
 }
 
@@ -66,41 +64,54 @@ pub(super) async fn tab(
     guild_id: &str,
     settings: &AiSection,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let submitted = Submission::of(submission, FORM);
+    let sent = state.sent(FORM);
 
     Ok(view! {
-        <fieldset class="settings-section">
-            if let Some(submitted) = submitted {
-                save_feedback(outcome: submitted.outcome())
+        <form
+            id=(FORM)
+            method="post"
+            action=(PAGE.href(guild_id))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: FORM, message: message)
             }
-            <form method="post" action=(action(guild_id, SLUG)) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                toggle_field(
-                    label: "AI Responses",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Replies"</legend>
+                <p class="page-lead">
+                    "With AI responses on, Zayden replies in character whenever someone mentions him."
+                </p>
+                toggle_row(
+                    form: FORM,
                     name: "enabled",
-                    value: flag(submitted, "enabled", settings.enabled)
-                )
-                channel_select(
-                    label: "Restrict to Channel",
-                    name: "channel_id",
-                    selected: shown(
-                        submitted,
-                        "channel_id",
-                        settings.channel_id.as_deref(),
+                    label: "AI responses",
+                    value: sent.flag("enabled", settings.enabled),
+                    help: Some(
+                        "This is the AI Chat module: the lamp above and the Overview follow it.",
                     ),
-                    channels: lists.channels(),
-                    kinds: TEXT_KINDS
+                    error: sent.error("enabled")
                 )
-                save_button()
-            </form>
-            <p class="page-lead">
-                "With AI responses on, Zayden replies in character whenever someone mentions him. Leave the channel unset to let him answer anywhere he can see, or pick one to keep him to a single room."
-            </p>
-            <p class="page-lead">
-                "Every reply costs a model call, so scope this to a channel you actually want him talking in. The toggle here is the same switch as the AI Chat card on the Modules page."
-            </p>
-        </fieldset>
-    })
+                select_row(
+                    form: FORM,
+                    name: "channel_id",
+                    label: "Reply only in",
+                    selected: sent.value("channel_id", settings.channel_id.as_deref()),
+                    options: channels(lists, TEXT_KINDS),
+                    help: Some(
+                        "Leave unset to let him answer anywhere he can see, or pick one channel to keep him to a single room.",
+                    ),
+                    error: sent.error("channel_id")
+                )
+                <p class="field-hint">
+                    "Every reply costs a model call, so scope this to a channel you actually want him talking in."
+                </p>
+            </fieldset>
+            save_bar(notice: state.notice_for(FORM))
+        </form>
+    }
+    .boxed())
 }

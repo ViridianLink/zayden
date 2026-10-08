@@ -1,5 +1,6 @@
-//! The guild settings page's YouTube, Patreon and Support sections through
-//! the app router, against Postgres and a stand-in Discord API.
+//! The YouTube and Patreon pages and the Support pages (tickets,
+//! suggestions, wiki, roles and links, FAQ articles) through the app router,
+//! against Postgres and a stand-in Discord API.
 //!
 //! Sessions and Discord guild lists come from seeded caches. The bot's
 //! Discord client talks to a local server that answers the channel, role,
@@ -39,12 +40,6 @@ const FORM: &str = "application/x-www-form-urlencoded";
 /// Two connections per test pool keep the binary inside `sqlx::test`'s
 /// 20-permit master pool (see `tests/shell_pages.rs`).
 const TEST_POOL_CONNECTIONS: u32 = 2;
-
-const ICON_OPEN: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">"#;
-const CHEVRON: &str = r#"<span class="select-chevron"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span>"#;
-const SAVE: &str = r#"<div class="form-actions"><button type="submit" class="btn btn-primary" data-pending-label="Saving…">Save</button></div>"#;
-
-const TEXT_OPTIONS: &str = r#"<option value="100"># rules</option><option value="101">📢 news</option><option value="104">💬 help</option>"#;
 
 #[derive(Clone, Debug)]
 struct Hit {
@@ -436,26 +431,6 @@ impl Harness {
     }
 }
 
-impl Harness {
-    /// Posts `body`, checks the 303 to `target`, and returns the page there.
-    async fn redirected(
-        &self,
-        path: &str,
-        body: &str,
-        target: &str,
-    ) -> TestResult<String> {
-        let response = self.post(path, body, Some(MEMBER)).await?;
-        if response.status() != StatusCode::SEE_OTHER
-            || location(&response) != Some(target)
-        {
-            let got = (response.status(), location(&response).map(str::to_owned));
-            let html = body_text(response).await?;
-            return Err(format!("{path} {body} answered {got:?}: {html}").into());
-        }
-        self.page(target).await
-    }
-}
-
 async fn body_text(response: Response) -> TestResult<String> {
     let bytes = response.into_body().collect().await?.to_bytes();
     Ok(normalize(&String::from_utf8(bytes.to_vec())?))
@@ -504,60 +479,155 @@ fn main_content(html: &str) -> &str {
         .map_or("", |(main, _)| main)
 }
 
-fn header(label: &str, lead: &str) -> String {
+/// The `name=value` pair of the flash cookie a response sets.
+fn flash_cookie(response: &Response) -> Option<String> {
+    response
+        .headers()
+        .get_all(header::SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .find(|value| value.starts_with("flash=") && !value.starts_with("flash=;"))
+        .and_then(|value| value.split(';').next())
+        .map(str::to_owned)
+}
+
+impl Harness {
+    /// Posts `body`, checks the 303 to `target` (fragment included), and opens
+    /// the page there carrying the flash the redirect set.
+    async fn redirected(
+        &self,
+        path: &str,
+        body: &str,
+        target: &str,
+    ) -> TestResult<String> {
+        let response = self.post(path, body, Some(MEMBER)).await?;
+        if response.status() != StatusCode::SEE_OTHER
+            || location(&response) != Some(target)
+        {
+            let got = (response.status(), location(&response).map(str::to_owned));
+            let html = body_text(response).await?;
+            return Err(format!("{path} {body} answered {got:?}: {html}").into());
+        }
+        let flash = flash_cookie(&response).ok_or("the redirect set no flash")?;
+        let page = target.split('#').next().unwrap_or(target);
+        let response = self.get(page, Some(&format!("{MEMBER}; {flash}"))).await?;
+        if response.status() != StatusCode::OK {
+            return Err(format!("{page} answered {}", response.status()).into());
+        }
+        body_text(response).await
+    }
+}
+
+/// The markup of the `tag` element whose `id` is `id`, through its end tag.
+fn element<'a>(html: &'a str, tag: &str, id: &str) -> Option<&'a str> {
+    let at = html.find(&format!(r#"id="{id}""#))?;
+    let start = html.get(..at)?.rfind(&format!("<{tag}"))?;
+    let rest = html.get(start..)?;
+    let end = rest.find(&format!("</{tag}>")).map_or_else(
+        || rest.find('>').map(|end| end + 1),
+        |end| Some(end + tag.len() + 3),
+    )?;
+    rest.get(..end)
+}
+
+/// The value of the selected option of the select with id `id`.
+fn selected<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    let select = element(html, "select", id)?;
+    let option = select.get(..select.find(r#" selected="">"#)?)?;
+    let option = option.get(option.rfind("<option")?..)?;
+    option
+        .split_once(r#"value=""#)
+        .and_then(|(_, rest)| rest.split_once('"'))
+        .map(|(value, _)| value)
+}
+
+/// The `value` attribute of the input with id `id`.
+fn value<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    let input = element(html, "input", id)?;
+    input
+        .split_once(r#" value=""#)
+        .and_then(|(_, rest)| rest.split_once('"'))
+        .map(|(value, _)| value)
+}
+
+/// The text between `open` and the next `close`.
+fn between<'a>(html: &'a str, open: &str, close: &str) -> Option<&'a str> {
+    html.split_once(open)?.1.split_once(close).map(|(text, _)| text)
+}
+
+/// The inline error of field `id`.
+fn field_error<'a>(html: &'a str, id: &str) -> Option<&'a str> {
+    between(html, &format!(r#"<p class="field-error" id="{id}-error">"#), "</p>")
+}
+
+/// The reason at the top of form `form`.
+fn summary<'a>(html: &'a str, form: &str) -> Option<&'a str> {
+    between(
+        html,
+        &format!(
+            r#"<div class="error" id="{form}-summary" role="alert" tabindex="-1" autofocus="">"#
+        ),
+        "</div>",
+    )
+}
+
+/// The result line in the save bar of form `form`.
+fn bar_flash<'a>(html: &'a str, form: &str) -> Option<&'a str> {
+    let form = element(html, "form", form)?;
+    between(
+        form.split_once(r#"<div class="save-bar""#)?.1,
+        r#"<span class="flash-text">"#,
+        "</span>",
+    )
+}
+
+/// The result line in the first status region after `marker`.
+fn flash_after<'a>(html: &'a str, marker: &str) -> Option<&'a str> {
+    let rest = html.split_once(marker)?.1;
+    let region =
+        between(rest, r#"<div class="flash-region" role="status">"#, "</div>")?;
+    between(region, r#"<span class="flash-text">"#, "</span>")
+}
+
+/// The result line at the top of the page.
+fn top_flash(html: &str) -> Option<&str> {
+    flash_after(html, r#"<div class="page-header">"#)
+}
+
+/// Element ids that appear more than once.
+fn duplicate_ids(html: &str) -> Vec<String> {
+    let mut ids: Vec<&str> = html
+        .split(r#" id=""#)
+        .skip(1)
+        .filter_map(|rest| rest.split_once('"').map(|(id, _)| id))
+        .collect();
+    ids.sort_unstable();
+    let mut duplicates: Vec<String> = ids
+        .windows(2)
+        .filter_map(|pair| match pair {
+            [first, second] if first == second => Some((*first).to_owned()),
+            _ => None,
+        })
+        .collect();
+    duplicates.dedup();
+    duplicates
+}
+
+fn title(label: &str) -> String {
+    format!("<title>{label} - Zayden Dashboard</title>")
+}
+
+fn confirm(
+    id: &str,
+    trigger: &str,
+    title: &str,
+    prompt: &str,
+    confirm: &str,
+) -> String {
     format!(
-        r#"<div class="page"><div class="page-header"><div><h1>{label}</h1><p class="page-lead">{lead}</p></div></div>"#
+        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-danger" data-confirm-trigger="">{trigger}</button><dialog class="dialog" aria-labelledby="{id}-title" aria-describedby="{id}-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="{id}-title">{title}</h2><p class="dialog-desc" id="{id}-desc">{prompt}</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">{confirm}</button></div></div></dialog></div>"#
     )
 }
-
-fn form(slug: &str, guild: &str) -> String {
-    format!(
-        r#"<form method="post" action="/guild/{guild}/settings/{slug}" data-pending=""><input type="hidden" name="guild" value="{guild}">"#
-    )
-}
-
-fn select(label: &str, name: &str, selected: &str, options: &str) -> String {
-    let none = if selected.is_empty() { r#" selected="""# } else { "" };
-    let options = if selected.is_empty() {
-        options.to_owned()
-    } else {
-        options.replace(
-            &format!(r#"<option value="{selected}">"#),
-            &format!(r#"<option value="{selected}" selected="">"#),
-        )
-    };
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value=""{none}>(not set)</option>{options}</select>{CHEVRON}</div></div>"#
-    )
-}
-
-fn toggle(label: &str, name: &str, on: bool) -> String {
-    let (yes, no) =
-        if on { (r#" selected="""#, "") } else { ("", r#" selected="""#) };
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><div class="select"><select class="input" id="field-{name}" name="{name}"><option value="true"{yes}>Enabled</option><option value="false"{no}>Disabled</option></select>{CHEVRON}</div></div>"#
-    )
-}
-
-fn alert(class: &str, role: &str, message: &str) -> String {
-    format!(
-        r#"<div class="alert {class}" role="{role}"><span>{message}</span><button type="button" class="alert-dismiss" aria-label="Dismiss">{ICON_OPEN}<path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>"#
-    )
-}
-
-fn saved() -> String {
-    alert("success", "status", "Saved.")
-}
-
-fn not_saved(message: &str) -> String {
-    alert(
-        "error",
-        "alert",
-        &format!("Failed to save: error running server function: {message}"),
-    )
-}
-
-const TAG_OPTIONS: &str = r#"<option value="600">#help / Solved</option>"#;
 
 fn connect_youtube_json() -> youtube::model::OwnChannel {
     youtube::model::OwnChannel {
@@ -567,8 +637,10 @@ fn connect_youtube_json() -> youtube::model::OwnChannel {
     }
 }
 
+const BOT_CANNOT_POST: &str = "Zayden can't post in #rules: it needs View Channel and Send Messages there. Allow them for the bot's role in the channel's permissions, then save again.";
+
 #[sqlx::test(migrations = "../migrations")]
-async fn provider_sections_follow_the_connection(
+async fn provider_pages_follow_the_connection(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
@@ -576,89 +648,72 @@ async fn provider_sections_follow_the_connection(
     let app = harness(&pool).await.unwrap();
     let db = &app.app.db;
 
-    assert!(youtube::YoutubeConnection::select(db, 7).await.unwrap().is_none());
-    let html = app.page("/guild/7/settings/youtube").await.unwrap();
-    assert!(
-        html.contains("<title>YouTube settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section"><p class="page-lead">No YouTube channel is connected. The channel's owner signs in with Google once to prove it is theirs; Zayden keeps no access to the account afterwards.</p><div class="settings-actions"><a class="btn btn-primary" href="/youtube/connect?guild=7" rel="external">Connect YouTube</a></div></fieldset></div>"#,
-            header(
-                "YouTube",
-                "Connect a YouTube channel and choose where its uploads are announced."
-            ),
-        )
-    );
+    let html = app.page("/guild/7/youtube").await.unwrap();
+    assert!(html.contains(&title("YouTube")), "{html}");
+    let main = main_content(&html);
+    assert!(main.contains(r#"<div class="settings-actions"><span class="lamp-status"><span class="lamp lamp-off" aria-hidden="true"></span><span class="lamp-text">Off</span></span></div>"#), "status text, no switch: {main}");
+    assert!(!main.contains(r#"role="switch""#), "{main}");
+    assert!(main.contains(r#"<p class="page-lead">No YouTube channel is connected. The channel's owner signs in with Google once to prove it is theirs; Zayden keeps no access to the account afterwards.</p><div class="settings-actions"><a class="btn btn-primary" href="/youtube/connect?guild=7" rel="external">Connect YouTube</a></div>"#), "{main}");
+    assert!(!main.contains("<form"), "{main}");
 
-    let html = app.page("/guild/7/settings/youtube?youtube=declined").await.unwrap();
+    let html = app.page("/guild/7/youtube?youtube=declined").await.unwrap();
     assert!(
-        main_content(&html).contains(&alert(
-            "warning",
-            "status",
-            "Authorisation was cancelled, so nothing changed."
-        )),
+        main_content(&html).contains(r#"<p class="warning" role="status">Authorisation was cancelled, so nothing changed.</p>"#),
+        "the callback outcome lands on the feature page: {html}"
+    );
+    let html = app.page("/guild/7/youtube?youtube=bogus").await.unwrap();
+    assert!(
+        !main_content(&html).contains(r#"role="status">Authorisation"#),
         "{html}"
     );
-    let html = app.page("/guild/7/settings/youtube?youtube=bogus").await.unwrap();
-    assert!(!main_content(&html).contains("class=\"alert"), "{html}");
 
     youtube::YoutubeConnection::connect(db, 7, &connect_youtube_json(), 41, "s")
         .await
         .unwrap();
-    assert!(youtube::YoutubeConnection::select(db, 7).await.unwrap().is_some());
-    let html =
-        app.page("/guild/7/settings/youtube?youtube=connected").await.unwrap();
-    let action = "/guild/7/settings/youtube?youtube=connected";
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}{}<fieldset class="settings-section"><p class="page-lead">Connected to Seed Channel.</p><p class="page-lead">Push notifications are not confirmed yet, so uploads arrive on the 15-minute poll. They are renewed automatically.</p><div class="settings-actions"><a class="btn btn-secondary" href="/youtube/connect?guild=7" rel="external">Reconnect YouTube</a><form method="post" action="{action}" data-pending=""><input type="hidden" name="guild" value="7">{}</form></div><form method="post" action="{action}" data-pending=""><input type="hidden" name="guild" value="7">{}{SAVE}</form><p class="page-lead">Leave the channel unset to stop announcing without disconnecting. Only public uploads are announced; videos older than two days when Zayden first sees them are skipped, so connecting never floods a channel with the back catalogue.</p></fieldset></div>"#,
-            header(
-                "YouTube",
-                "Connect a YouTube channel and choose where its uploads are announced."
-            ),
-            alert(
-                "success",
-                "status",
-                "YouTube connected. Choose where its uploads should be announced."
-            ),
-            confirm(
-                "youtube-disconnect",
-                "Disconnect",
-                "Zayden stops announcing this channel's uploads. Reconnecting needs the channel owner to sign in with Google again.",
-                "Disconnect YouTube",
-                "Disconnect YouTube?"
-            ),
-            select("Announcement Channel", "channel_id", "", TEXT_OPTIONS),
-        )
+    let html = app.page("/guild/7/youtube?youtube=connected").await.unwrap();
+    let main = main_content(&html);
+    assert!(main.contains(r#"<p class="success" role="status">YouTube connected. Choose where its uploads should be announced.</p>"#), "{main}");
+    assert!(
+        main.contains(r#"<p class="page-lead">Connected to Seed Channel.</p>"#),
+        "{main}"
     );
+    assert!(main.contains(&format!(
+        r#"<form id="youtube-disconnect" method="post" action="/guild/7/youtube/disconnect" data-pending=""><input type="hidden" name="guild" value="7">{}</form>"#,
+        confirm(
+            "youtube-disconnect-confirm",
+            "Disconnect",
+            "Disconnect YouTube channel Seed Channel?",
+            "Zayden stops announcing this channel's uploads. Reconnecting needs the channel owner to sign in with Google again.",
+            "Disconnect YouTube"
+        )
+    )), "{main}");
+    assert!(main.contains(r#"<form id="youtube-settings" method="post" action="/guild/7/youtube" data-pending="" data-dirty-guard="">"#), "{main}");
+    assert_eq!(selected(main, "youtube-settings-channel-id"), Some(""));
+    assert_eq!(duplicate_ids(&html), Vec::<String>::new());
 
     let html = app
-        .submit(action, "guild=7&channel_id=100", StatusCode::UNPROCESSABLE_ENTITY)
+        .submit(
+            "/guild/7/youtube",
+            "guild=7&channel_id=100",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
         .await
         .unwrap();
-    assert!(main_content(&html).contains(&format!(
-        "{}<form",
-        not_saved(
-            "Zayden can't post in #rules: it needs View Channel and Send Messages there. Allow them for the bot's role in the channel's permissions, then save again."
-        )
-    )), "{html}");
-    assert!(
-        main_content(&html).contains(&select(
-            "Announcement Channel",
-            "channel_id",
-            "100",
-            TEXT_OPTIONS
-        )),
-        "{html}"
+    assert_eq!(
+        summary(&html, "youtube-settings"),
+        Some(format!("Not saved: {BOT_CANNOT_POST}").as_str())
     );
+    assert_eq!(selected(&html, "youtube-settings-channel-id"), Some("100"));
     assert!(youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().is_none());
 
-    let html =
-        app.submit(action, "guild=7&channel_id=101", StatusCode::OK).await.unwrap();
+    let html = app
+        .redirected(
+            "/guild/7/youtube",
+            "guild=7&channel_id=101",
+            "/guild/7/youtube#youtube-settings",
+        )
+        .await
+        .unwrap();
     assert_eq!(
         youtube::YoutubeAnnounceRow::select(db, 7)
             .await
@@ -666,78 +721,41 @@ async fn provider_sections_follow_the_connection(
             .map(|r| r.channel_id),
         Some(101)
     );
-    assert!(main_content(&html).contains(&format!("{}<form", saved())), "{html}");
-    assert!(
-        main_content(&html).contains(&select(
-            "Announcement Channel",
-            "channel_id",
-            "101",
-            TEXT_OPTIONS
-        )),
-        "{html}"
+    assert_eq!(
+        bar_flash(&html, "youtube-settings"),
+        Some("YouTube settings saved.")
     );
+    assert_eq!(selected(&html, "youtube-settings-channel-id"), Some("101"));
+    assert!(html.contains(r#"<span class="lamp lamp-on" aria-hidden="true"></span><span class="lamp-text">On</span>"#), "{html}");
 
     let html = app
         .submit(
-            "/guild/7/settings/youtube",
+            "/guild/7/youtube/disconnect",
             "guild=8",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
         .unwrap();
-    assert!(
-        main_content(&html).contains(&alert(
-            "error",
-            "alert",
-            "Failed to disconnect: error running server function: invalid value for `guild`"
-        )),
-        "{html}"
+    assert_eq!(
+        summary(&html, "youtube-disconnect"),
+        Some("Not disconnected: invalid value for `guild`")
     );
+    assert!(youtube::YoutubeConnection::select(db, 7).await.unwrap().is_some());
 
     let html = app
-        .redirected(
-            action,
-            "guild=7",
-            "/guild/7/settings/youtube?youtube=connected&disconnected=1",
-        )
+        .redirected("/guild/7/youtube/disconnect", "guild=7", "/guild/7/youtube")
         .await
         .unwrap();
     assert!(youtube::YoutubeConnection::select(db, 7).await.unwrap().is_none());
-    let main = main_content(&html);
-    assert!(
-        main.contains(&format!(
-            "{}{}<fieldset",
-            alert(
-                "success",
-                "status",
-                "YouTube connected. Choose where its uploads should be announced."
-            ),
-            alert(
-                "success",
-                "status",
-                "YouTube disconnected. Zayden will stop announcing this channel."
-            )
-        )),
-        "{html}"
-    );
-    assert!(main.contains("Connect YouTube</a>"), "{html}");
-
-    assert!(patreon::PatreonConnection::select(db, 7).await.unwrap().is_none());
-    let html = app.page("/guild/7/settings/patreon").await.unwrap();
-    assert!(
-        html.contains("<title>Patreon settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
     assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section"><p class="page-lead">No Patreon account is connected. The campaign's own creator has to authorise Zayden - the connection reads their posts, so nobody else can grant it.</p><div class="settings-actions"><a class="btn btn-primary" href="/patreon/connect?guild=7" rel="external">Connect Patreon</a></div></fieldset></div>"#,
-            header(
-                "Patreon",
-                "Connect a Patreon campaign and choose where its posts are announced."
-            ),
-        )
+        top_flash(&html),
+        Some("YouTube disconnected. Zayden will stop announcing this channel.")
     );
+    assert!(main_content(&html).contains("Connect YouTube</a>"), "{html}");
+
+    let html = app.page("/guild/7/patreon").await.unwrap();
+    assert!(html.contains(&title("Patreon")), "{html}");
+    assert!(main_content(&html).contains(r#"<a class="btn btn-primary" href="/patreon/connect?guild=7" rel="external">Connect Patreon</a>"#), "{html}");
 
     let tokens = patreon::TokenPair {
         access_token: "a".to_owned(),
@@ -756,195 +774,90 @@ async fn provider_sections_follow_the_connection(
     .await
     .unwrap();
     patreon::PatreonConnection::disable(db, 7).await.unwrap();
-    assert!(patreon::PatreonConnection::select(db, 7).await.unwrap().is_some());
-    let html = app.page("/guild/7/settings/patreon").await.unwrap();
-    let action = "/guild/7/settings/patreon";
-    assert_eq!(
-        main_content(&html),
-        format!(
-            r#"{}<fieldset class="settings-section"><p class="page-lead">Connected to camp-1, but Patreon has rejected the stored authorisation. Reconnect to resume announcements.</p><p class="page-lead">New posts arrive within seconds via a webhook on the creator's account, with a poll every 15 minutes as a safety net.</p><div class="settings-actions"><a class="btn btn-secondary" href="/patreon/connect?guild=7" rel="external">Reconnect Patreon</a><form method="post" action="{action}" data-pending=""><input type="hidden" name="guild" value="7">{}</form></div><form method="post" action="{action}" data-pending=""><input type="hidden" name="guild" value="7">{}{}{SAVE}</form><p class="page-lead">Leave the channel unset to stop announcing without disconnecting the account. Posts published before the first poll are absorbed rather than announced, so connecting never floods a channel with back catalogue.</p></fieldset></div>"#,
-            header(
-                "Patreon",
-                "Connect a Patreon campaign and choose where its posts are announced."
-            ),
-            confirm(
-                "patreon-disconnect",
-                "Disconnect",
-                "Zayden stops announcing this campaign and drops its webhook on the creator's Patreon account. Reconnecting needs the creator to authorise again.",
-                "Disconnect Patreon",
-                "Disconnect Patreon?"
-            ),
-            select("Announcement Channel", "channel_id", "", TEXT_OPTIONS),
-            toggle("Public Posts Only", "public_only", false),
-        )
-    );
-
-    let html =
-        app.page("/guild/7/settings/patreon?patreon=connected").await.unwrap();
-    assert!(
-        main_content(&html).contains(&format!(
-            "{}<fieldset",
-            alert(
-                "success",
-                "status",
-                "Patreon connected. Choose where its posts should be announced."
-            )
-        )),
-        "{html}"
-    );
+    let html = app.page("/guild/7/patreon?patreon=connected").await.unwrap();
+    let main = main_content(&html);
+    assert!(main.contains(r#"<p class="success" role="status">Patreon connected. Choose where its posts should be announced.</p>"#), "{main}");
+    assert!(main.contains(r#"<p class="page-lead">Connected to camp-1, but Patreon has rejected the stored authorisation. Reconnect to resume announcements.</p>"#), "{main}");
+    assert!(main.contains(r#"<a class="btn btn-secondary" href="/patreon/connect?guild=7" rel="external">Reconnect Patreon</a>"#), "{main}");
+    assert!(main.contains(&confirm(
+        "patreon-disconnect-confirm",
+        "Disconnect",
+        "Disconnect Patreon from camp-1?",
+        "Zayden stops announcing this campaign and drops its webhook on the creator's Patreon account. Reconnecting needs the creator to authorise again.",
+        "Disconnect Patreon"
+    )), "{main}");
+    assert_eq!(selected(main, "patreon-settings-public-only"), Some("false"));
 
     let html = app
         .submit(
-            action,
+            "/guild/7/patreon",
             "guild=7&channel_id=100&public_only=true",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
         .unwrap();
     assert!(patreon::PatreonAnnounceRow::select(db, 7).await.unwrap().is_none());
-    let main = main_content(&html);
-    assert!(
-        main.contains(&format!(
-            "{}<form",
-            not_saved(
-                "Zayden can't post in #rules: it needs View Channel and Send Messages there. Allow them for the bot's role in the channel's permissions, then save again."
-            )
-        )),
-        "{html}"
+    assert_eq!(
+        summary(&html, "patreon-settings"),
+        Some(format!("Not saved: {BOT_CANNOT_POST}").as_str())
     );
+    assert_eq!(selected(&html, "patreon-settings-public-only"), Some("true"));
     assert!(
-        main.contains(&select(
-            "Announcement Channel",
-            "channel_id",
-            "100",
-            TEXT_OPTIONS
-        )),
-        "{html}"
-    );
-    assert!(
-        main.contains(&toggle("Public Posts Only", "public_only", true)),
-        "{html}"
+        !html.contains("patreon=connected"),
+        "forms post to the clean page address: {html}"
     );
 
     let html = app
-        .submit(action, "guild=7&channel_id=101&public_only=true", StatusCode::OK)
+        .redirected(
+            "/guild/7/patreon",
+            "guild=7&channel_id=101&public_only=true",
+            "/guild/7/patreon#patreon-settings",
+        )
         .await
         .unwrap();
     let announce =
         patreon::PatreonAnnounceRow::select(db, 7).await.unwrap().unwrap();
     assert_eq!((announce.channel_id, announce.public_only), (101, true));
-    let main = main_content(&html);
-    assert!(main.contains(&format!("{}<form", saved())), "{html}");
-    assert!(
-        main.contains(&toggle("Public Posts Only", "public_only", true)),
-        "{html}"
+    assert_eq!(
+        bar_flash(&html, "patreon-settings"),
+        Some("Patreon settings saved.")
     );
+    assert_eq!(selected(&html, "patreon-settings-public-only"), Some("true"));
 
     let html = app
-        .submit(action, "guild=8", StatusCode::UNPROCESSABLE_ENTITY)
-        .await
-        .unwrap();
-    assert!(patreon::PatreonConnection::select(db, 7).await.unwrap().is_some());
-    assert!(
-        main_content(&html).contains(&format!(
-            "{}<fieldset",
-            alert(
-                "error",
-                "alert",
-                "Failed to disconnect: error running server function: invalid value for `guild`"
-            )
-        )),
-        "{html}"
-    );
-
-    let html = app
-        .redirected(action, "guild=7", "/guild/7/settings/patreon?disconnected=1")
+        .redirected("/guild/7/patreon/disconnect", "guild=7", "/guild/7/patreon")
         .await
         .unwrap();
     assert!(patreon::PatreonConnection::select(db, 7).await.unwrap().is_none());
-    assert!(
-        main_content(&html).contains(&format!(
-            "{}<fieldset",
-            alert(
-                "success",
-                "status",
-                "Patreon disconnected. Zayden will stop announcing this campaign."
-            )
-        )),
-        "{html}"
+    assert_eq!(
+        top_flash(&html),
+        Some("Patreon disconnected. Zayden will stop announcing this campaign.")
     );
 
-    let response = app.post(action, "guild=7", None).await.unwrap();
+    let response =
+        app.post("/guild/7/patreon/disconnect", "guild=7", None).await.unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(location(&response), Some("/login"));
 
-    let load_error = r#"<p class="error">Failed to load settings: error running server function: forbidden</p>"#;
-    let html = app.page("/guild/8/settings/youtube").await.unwrap();
-    assert!(main_content(&html).contains(load_error), "{html}");
-
+    let html = app.page("/guild/8/youtube").await.unwrap();
+    assert!(
+        main_content(&html).contains(
+            "You need Manage Server in this server to change its settings."
+        ),
+        "{html}"
+    );
     let html = app
         .submit(
-            "/guild/8/settings/youtube",
-            "guild=8",
-            StatusCode::UNPROCESSABLE_ENTITY,
-        )
-        .await
-        .unwrap();
-    let main = main_content(&html);
-    assert!(main.contains(load_error), "{html}");
-    assert!(!main.contains("Failed to disconnect"), "{html}");
-    assert!(!main.contains("Failed to save"), "{html}");
-
-    let html = app
-        .submit(
-            "/guild/8/settings/youtube",
+            "/guild/8/youtube",
             "guild=8&channel_id=101",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
         .unwrap();
-    assert!(
-        main_content(&html)
-            .contains(&format!("{}{load_error}", not_saved("forbidden"))),
-        "{html}"
-    );
+    assert_eq!(summary(&html, "page"), Some("Not saved: forbidden"));
 
     pool.close().await;
 }
-
-fn confirm(
-    id: &str,
-    label: &str,
-    prompt: &str,
-    confirm: &str,
-    title: &str,
-) -> String {
-    format!(
-        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-danger" data-confirm-trigger="">{label}</button><dialog class="dialog" aria-labelledby="{id}-title" aria-describedby="{id}-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="{id}-title">{title}</h2><p class="dialog-desc" id="{id}-desc">{prompt}</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">{confirm}</button></div></div></dialog></div>"#
-    )
-}
-
-fn field(
-    label: &str,
-    name: &str,
-    value: &str,
-    pattern: &str,
-    hint: Option<&str>,
-) -> String {
-    let describedby = hint.map_or_else(String::new, |_| {
-        format!(r#" aria-describedby="field-{name}-help""#)
-    });
-    let hint = hint.map_or_else(String::new, |hint| {
-        format!(r#"<p class="field-hint" id="field-{name}-help">{hint}</p>"#)
-    });
-    format!(
-        r#"<div class="setting-field"><label for="field-{name}">{label}</label><input class="input" id="field-{name}"{describedby} type="text" name="{name}" value="{value}" placeholder="(not set)" pattern="{pattern}">{hint}</div>"#
-    )
-}
-
-const SEGMENTED_SETTINGS: &str = r#"<div class="segmented" role="tablist"><button type="button" class="seg active">Settings</button><button type="button" class="seg">FAQ</button></div><fieldset class="settings-section">"#;
-const SEGMENTED_FAQ: &str = r#"<div class="segmented" role="tablist"><button type="button" class="seg">Settings</button><button type="button" class="seg active">FAQ</button></div><fieldset class="settings-section" hidden="">"#;
-const SUPPORT: &str = "/guild/7/settings/support";
 
 async fn support_roles(app: &Harness) -> TestResult<Vec<u64>> {
     Ok(ticket::SupportRoles::ids(&app.app.db, ticket::GuildId::new(7))
@@ -965,8 +878,12 @@ async fn helper_users(app: &Harness) -> TestResult<Vec<u64>> {
     Ok(users)
 }
 
+const TICKETS: &str = "/guild/7/support";
+
+const TICKET_BODY: &str = "guild=7&support_channel_id=104&solved_tag_id=600&closed_tag_id=&solved_archive_secs=-5&idle_enabled=true&idle_after_secs=10&idle_close_enabled=false&idle_close_after_secs=86400&stale_enabled=true&stale_tag_id=600&stale_after_secs=604800";
+
 #[sqlx::test(migrations = "../migrations")]
-async fn support_settings_save_and_keep_what_was_sent(
+async fn support_pages_have_their_own_addresses_and_one_form_each(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
@@ -974,82 +891,75 @@ async fn support_settings_save_and_keep_what_was_sent(
     let app = harness(&pool).await.unwrap();
     let settings = &app.app.settings;
 
-    let support = settings.support.get(7).await.unwrap();
-    assert_eq!(
-        (support.solved_archive_secs, support.idle_after_secs),
-        (60, 172_800)
-    );
-    let html = app.page(SUPPORT).await.unwrap();
-    assert!(
-        html.contains("<title>Support settings - Zayden Dashboard</title>"),
-        "{html}"
-    );
-    let main = main_content(&html);
-    assert!(
-        main.starts_with(&header(
-            "Support",
-            "Tickets, FAQ and suggestions - where they live and who gets pinged."
-        )),
-        "{html}"
-    );
-    assert!(
-        main.contains(&format!(
-            "{SEGMENTED_SETTINGS}{}{}{}{}{}{SAVE}</form>",
-            form("support", "7"),
-            select("Support Channel", "support_channel_id", "", TEXT_OPTIONS),
-            select("Solved Tag", "solved_tag_id", "", TAG_OPTIONS),
-            select("Closed Tag", "closed_tag_id", "", TAG_OPTIONS),
-            field(
-                "Archive solved posts after (seconds)",
-                "solved_archive_secs",
-                "60",
-                "-?[0-9]*",
-                None
-            ),
-        )),
-        "{html}"
-    );
-    let idle_form = |after: &str| {
+    let subnav = |current: &str| {
+        let links: String = [
+            ("/guild/7/support", "Tickets"),
+            ("/guild/7/support/suggestions", "Suggestions"),
+            ("/guild/7/support/faq", "FAQ articles"),
+            ("/guild/7/support/wiki", "Wiki"),
+            ("/guild/7/support/roles", "Roles and links"),
+        ]
+        .iter()
+        .map(|(href, label)| {
+            if *label == current {
+                format!(r#"<li><a href="{href}" class="btn btn-secondary" aria-current="page">{label}</a></li>"#)
+            } else {
+                format!(r#"<li><a href="{href}" class="btn btn-ghost">{label}</a></li>"#)
+            }
+        })
+        .collect();
         format!(
-            "{}{}{}{}{}{SAVE}</form>",
-            form("support", "7"),
-            toggle("Idle Reminders", "idle_enabled", false),
-            field(
-                "Remind after (seconds of silence)",
-                "idle_after_secs",
-                after,
-                "[0-9]*",
-                Some("Minimum one hour. Default 172800 (48 hours).")
-            ),
-            toggle("Auto-close Abandoned Posts", "idle_close_enabled", false),
-            field(
-                "Close after (seconds without a reply to the reminder)",
-                "idle_close_after_secs",
-                "86400",
-                "[0-9]*",
-                Some("Minimum one hour. Default 86400 (24 hours).")
-            ),
+            r#"<nav aria-label="Support pages"><ul class="page-subnav">{links}</ul></nav>"#
         )
     };
-    assert!(main.contains(&idle_form("172800")), "{html}");
-    assert!(main.contains(&format!(
-        r#"{}<input type="hidden" name="keep_wiki_api_key" value="true">{SAVE}"#,
-        r#"<div class="setting-field"><label for="field-wiki_api_key">Wiki API Key</label><input class="input" id="field-wiki_api_key" aria-describedby="field-wiki_api_key-help" type="password" name="wiki_api_key" value="" placeholder="eyJhbGciOiJSUzI1NiIs..." pattern=".*"><p class="field-hint" id="field-wiki_api_key-help">A Wiki.js API key. Its group needs read:pages, plus manage:pages or read:source to read page content. A saved key is never sent back to the browser, so leaving this blank keeps it.</p></div>"#
-    )), "{html}");
-    assert!(main.contains("<label>Support Roles</label>"), "{html}");
-    assert_eq!(count(main, r#"<div class="chip-list"></div>"#), 2, "{html}");
+    for (path, page_title, current) in [
+        (TICKETS, "Support", "Tickets"),
+        ("/guild/7/support/suggestions", "Suggestions - Support", "Suggestions"),
+        ("/guild/7/support/wiki", "Wiki - Support", "Wiki"),
+        ("/guild/7/support/roles", "Roles and links - Support", "Roles and links"),
+        ("/guild/7/support/faq", "FAQ articles - Support", "FAQ articles"),
+    ] {
+        let html = app.page(path).await.unwrap();
+        assert!(html.contains(&title(page_title)), "{path}: {html}");
+        let main = main_content(&html);
+        assert!(main.contains(&subnav(current)), "{path}: {main}");
+        assert!(main.contains("<h1>Support</h1>"), "{path}");
+        assert!(!main.contains(r#"role="tablist""#), "{path}");
+        assert_eq!(
+            count(
+                &html,
+                r#"<a href="/guild/7/support" class="nav-link" aria-current="page">"#
+            ),
+            2,
+            "{path}"
+        );
+        assert_eq!(duplicate_ids(&html), Vec::<String>::new(), "{path}");
+    }
 
-    let body = "guild=7&idle_enabled=false&idle_after_secs=10&idle_close_enabled=false&idle_close_after_secs=86400";
-    let html = app.submit(SUPPORT, body, StatusCode::OK).await.unwrap();
-    assert_eq!(settings.support.get(7).await.unwrap().idle_after_secs, 3600);
-    assert!(
-        main_content(&html).contains(&format!("{}{}", saved(), idle_form("10"))),
-        "{html}"
+    let html = app.page(TICKETS).await.unwrap();
+    let main = main_content(&html);
+    assert_eq!(
+        count(main, "<form"),
+        1,
+        "tickets, idle and stale share one form: {main}"
     );
-    assert_eq!(count(main_content(&html), "Saved."), 1, "{html}");
+    assert_eq!(selected(main, "ticket-settings-solved-tag-id"), Some(""));
+    assert!(
+        main.contains(r#"<option value="600">#help / Solved</option>"#),
+        "{main}"
+    );
+    assert_eq!(value(main, "ticket-settings-idle-after-secs"), Some("172800"));
+    assert!(
+        main.contains(
+            r#"name="idle_after_secs" value="172800" min="3600" max="2592000""#
+        ),
+        "{main}"
+    );
 
-    let body = "guild=7&support_channel_id=104&solved_tag_id=600&closed_tag_id=&solved_archive_secs=-5";
-    let html = app.submit(SUPPORT, body, StatusCode::OK).await.unwrap();
+    let html = app
+        .redirected(TICKETS, TICKET_BODY, "/guild/7/support#ticket-settings")
+        .await
+        .unwrap();
     let support = settings.support.get(7).await.unwrap();
     assert_eq!(
         (
@@ -1059,36 +969,58 @@ async fn support_settings_save_and_keep_what_was_sent(
         ),
         (Some(104), Some(600), -1)
     );
-    assert!(
-        main_content(&html).contains(&format!(
-            "{SEGMENTED_SETTINGS}{}{}{}",
-            saved(),
-            form("support", "7"),
-            select("Support Channel", "support_channel_id", "104", TEXT_OPTIONS),
-        )),
-        "{html}"
-    );
-    assert!(
-        main_content(&html).contains(r#"name="solved_archive_secs" value="-5""#),
-        "{html}"
-    );
-
-    let body = "guild=7&stale_enabled=true&stale_tag_id=600&stale_after_secs=604800";
-    let html = app.submit(SUPPORT, body, StatusCode::OK).await.unwrap();
-    let support = settings.support.get(7).await.unwrap();
+    assert_eq!((support.idle_enabled, support.idle_after_secs), (true, 3600));
     assert_eq!((support.stale_enabled, support.stale_tag_id), (true, Some(600)));
+    assert_eq!(bar_flash(&html, "ticket-settings"), Some("Ticket settings saved."));
+    assert_eq!(value(&html, "ticket-settings-idle-after-secs"), Some("3600"));
+
+    let foreign = TICKET_BODY
+        .replace("support_channel_id=104", "support_channel_id=999")
+        .replace("idle_enabled=true", "idle_enabled=false");
+    let html = app
+        .submit(TICKETS, &foreign, StatusCode::UNPROCESSABLE_ENTITY)
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "ticket-settings"),
+        Some("Not saved: that channel is not in this server")
+    );
     assert!(
-        main_content(&html).contains(&format!(
-            "{}{}{}",
-            saved(),
-            form("support", "7"),
-            toggle("Mark Quiet Posts Stale", "stale_enabled", true),
-        )),
-        "{html}"
+        settings.support.get(7).await.unwrap().idle_enabled,
+        "a rejected channel writes nothing"
+    );
+    assert_eq!(selected(&html, "ticket-settings-idle-enabled"), Some("false"));
+
+    let html = app
+        .submit(
+            TICKETS,
+            "guild=7&idle_enabled=true&bogus=1",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "ticket-settings"),
+        Some("Not saved: unknown field `bogus`")
+    );
+    let missing = TICKET_BODY.replace("&stale_after_secs=604800", "");
+    let html = app
+        .submit(TICKETS, &missing, StatusCode::UNPROCESSABLE_ENTITY)
+        .await
+        .unwrap();
+    assert_eq!(
+        field_error(&html, "ticket-settings-stale-after-secs"),
+        Some("missing field `stale_after_secs`")
     );
 
-    let body = "guild=7&suggestions_channel_id=101&review_channel_id=&promote_threshold=10&demote_threshold=12";
-    let html = app.submit(SUPPORT, body, StatusCode::OK).await.unwrap();
+    let html = app
+        .redirected(
+            "/guild/7/support/suggestions",
+            "guild=7&suggestions_channel_id=101&review_channel_id=&promote_threshold=10&demote_threshold=12",
+            "/guild/7/support/suggestions#suggestion-settings",
+        )
+        .await
+        .unwrap();
     let suggestions = settings.suggestions.get(7).await.unwrap();
     assert_eq!(
         (
@@ -1098,198 +1030,72 @@ async fn support_settings_save_and_keep_what_was_sent(
         ),
         (Some(101), 10, 9)
     );
-    assert!(
-        main_content(&html).contains(&format!(
-            "{}{}{}",
-            saved(),
-            form("support", "7"),
-            select(
-                "Suggestions Channel",
-                "suggestions_channel_id",
-                "101",
-                TEXT_OPTIONS
-            ),
-        )),
-        "{html}"
+    assert_eq!(
+        bar_flash(&html, "suggestion-settings"),
+        Some("Suggestion settings saved.")
     );
-    assert!(
-        main_content(&html).contains(r#"name="demote_threshold" value="12""#),
-        "{html}"
-    );
+    assert_eq!(value(&html, "suggestion-settings-demote-threshold"), Some("9"));
 
-    let body = "guild=7&max_results=99&answer_max_tokens=500&answer_temperature=0.5";
-    let html = app.submit(SUPPORT, body, StatusCode::OK).await.unwrap();
+    let wiki = "/guild/7/support/wiki";
+    let body = "guild=7&enabled=true&auto_triage=false&auto_generate=true&wiki_url=https%3A%2F%2Fwiki.example.com%2F&wiki_locale=&max_results=99&answer_max_tokens=500&answer_temperature=0.5";
+    let html = app
+        .redirected(wiki, body, "/guild/7/support/wiki#wiki-settings")
+        .await
+        .unwrap();
     let faq = settings.faq.get(7).await.unwrap();
-    assert_eq!(faq.max_results, 25);
-    assert!(
-        main_content(&html).contains(&format!(
-            "{}{}{}",
-            saved(),
-            form("support", "7"),
-            field("Search results to consider", "max_results", "99", "[0-9]*", None),
-        )),
-        "{html}"
-    );
+    assert!(faq.enabled && faq.auto_generate);
+    assert_eq!(faq.wiki_url.as_deref(), Some("https://wiki.example.com"));
+    assert_eq!((faq.wiki_locale.as_str(), faq.max_results), ("en", 25));
+    assert_eq!(bar_flash(&html, "wiki-settings"), Some("Wiki settings saved."));
+    assert_eq!(bar_flash(&html, "wiki-key"), None);
 
-    let body = "guild=7&enabled=true&auto_triage=false&auto_generate=false&wiki_url=ftp%3A%2F%2Fwiki&wiki_locale=en";
+    let body = "guild=7&enabled=false&auto_triage=false&auto_generate=false&wiki_url=ftp%3A%2F%2Fwiki&wiki_locale=en&max_results=3&answer_max_tokens=500&answer_temperature=0.5";
     let html =
-        app.submit(SUPPORT, body, StatusCode::UNPROCESSABLE_ENTITY).await.unwrap();
-    let main = main_content(&html);
-    assert!(
-        main.contains(&format!(
-            "{}{}{}",
-            not_saved("the wiki URL must start with http:// or https://"),
-            form("support", "7"),
-            toggle("Wiki FAQ", "enabled", true),
-        )),
-        "{html}"
+        app.submit(wiki, body, StatusCode::UNPROCESSABLE_ENTITY).await.unwrap();
+    assert_eq!(
+        field_error(&html, "wiki-settings-wiki-url"),
+        Some("the wiki URL must start with http:// or https://")
     );
-    assert!(main.contains(r#"name="wiki_url" value="ftp://wiki""#), "{html}");
-    assert!(!settings.faq.get(7).await.unwrap().enabled);
+    assert_eq!(value(&html, "wiki-settings-wiki-url"), Some("ftp://wiki"));
+    let faq = settings.faq.get(7).await.unwrap();
+    assert!(faq.enabled, "the merged form writes nothing when the URL is refused");
+    assert_eq!(faq.max_results, 25);
 
     let html = app
-        .submit(
-            SUPPORT,
+        .redirected(
+            "/guild/7/support/wiki/wiki-key",
             "guild=7&wiki_api_key=secret&keep_wiki_api_key=true",
-            StatusCode::OK,
+            "/guild/7/support/wiki#wiki-key",
         )
         .await
         .unwrap();
     assert!(settings.faq.get(7).await.unwrap().wiki_api_key.is_some());
-    let main = main_content(&html);
+    assert_eq!(bar_flash(&html, "wiki-key"), Some("Wiki API key saved."));
     assert!(
-        main.contains(
-            r#"value="" placeholder="A key is saved - leave blank to keep it""#
-        ),
+        html.contains(r#"placeholder="A key is saved - leave blank to keep it""#),
         "{html}"
     );
-    assert!(main.contains(r#"<option value="true" selected="">Keep</option><option value="false">Remove</option>"#), "{html}");
-    assert!(!main.contains("secret"), "{html}");
+    assert_eq!(selected(&html, "wiki-key-keep-wiki-api-key"), Some("true"));
+    assert!(!html.contains("secret"), "{html}");
 
     let html = app
-        .submit(
-            SUPPORT,
+        .redirected(
+            "/guild/7/support/wiki/wiki-key",
             "guild=7&wiki_api_key=&keep_wiki_api_key=false",
-            StatusCode::OK,
+            "/guild/7/support/wiki#wiki-key",
         )
         .await
         .unwrap();
     assert!(settings.faq.get(7).await.unwrap().wiki_api_key.is_none());
+    assert_eq!(bar_flash(&html, "wiki-key"), Some("Wiki API key removed."));
     assert!(
-        main_content(&html).contains(&format!(
-            r#"{}{}<div class="setting-field"><label for="field-wiki_api_key">Wiki API Key</label><input class="input" id="field-wiki_api_key" aria-describedby="field-wiki_api_key-help" type="password" name="wiki_api_key" value="" placeholder="eyJhbGciOiJSUzI1NiIs...""#,
-            saved(),
-            form("support", "7"),
-        )),
-        "{html}"
-    );
-    assert!(
-        main_content(&html).contains(
+        html.contains(
             r#"<input type="hidden" name="keep_wiki_api_key" value="true">"#
         ),
         "{html}"
     );
 
-    let html = app
-        .redirected(
-            SUPPORT,
-            "guild=7&role_id=200",
-            "/guild/7/settings/support?role-added=1",
-        )
-        .await
-        .unwrap();
-    assert_eq!(support_roles(&app).await.unwrap(), [200]);
-    let main = main_content(&html);
-    let chip = r#"<div class="chip-list"><form class="chip" method="post" action="/guild/7/settings/support?remove-role" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="role_id" value="200"><span class="chip-label">@Mods</span><button type="submit" class="chip-remove" title="Remove">"#;
-    assert!(main.contains(chip), "{html}");
-    assert!(main.contains(&format!(
-        r#"</div>{}<form class="chip-add" method="post" action="/guild/7/settings/support" data-pending=""><input type="hidden" name="guild" value="7">{}<button type="submit" class="btn btn-ghost">Add role</button></form>"#,
-        saved(),
-        select("Add a support role", "role_id", "", r#"<option value="201">@Members</option>"#),
-    )), "{html}");
-
-    let html = app
-        .submit(SUPPORT, "guild=7&role_id=200", StatusCode::UNPROCESSABLE_ENTITY)
-        .await
-        .unwrap();
-    assert!(
-        main_content(&html)
-            .contains(&not_saved("that role is already a support role")),
-        "{html}"
-    );
-
-    let html = app
-        .redirected(
-            &format!("{SUPPORT}?remove-role"),
-            "guild=7&role_id=200",
-            "/guild/7/settings/support?role-removed=1",
-        )
-        .await
-        .unwrap();
-    assert_eq!(support_roles(&app).await.unwrap(), Vec::<u64>::new());
-    let main = main_content(&html);
-    assert!(!main.contains("@Mods</span>"), "{html}");
-    assert!(
-        main.contains(&format!(
-            r#"<div class="chip-list"></div>{}<form class="chip-add""#,
-            saved()
-        )),
-        "{html}"
-    );
-
-    for user in ["501", "502"] {
-        let body = format!(
-            "guild=7&user_id={user}&link=https%3A%2F%2Fexample.com%2Fd{user}"
-        );
-        app.redirected(SUPPORT, &body, "/guild/7/settings/support?link-added=1")
-            .await
-            .unwrap();
-    }
-    assert_eq!(helper_users(&app).await.unwrap(), [501, 502]);
-    let html = app.page(SUPPORT).await.unwrap();
-    let main = main_content(&html);
-    assert!(main.contains(r#"<span class="chip-label">Helper One → https://example.com/d501</span>"#), "{html}");
-    assert!(app.discord.count("GET", "/guilds/7/members/501") > 0);
-    assert!(main.contains(r#"<span class="chip-label">unknown (502) → https://example.com/d502</span>"#), "{html}");
-    let html = app
-        .redirected(
-            SUPPORT,
-            "guild=7&user_id=502",
-            "/guild/7/settings/support?link-removed=1",
-        )
-        .await
-        .unwrap();
-    assert_eq!(helper_users(&app).await.unwrap(), [501]);
-    let main = main_content(&html);
-    assert!(!main.contains("d502"), "{html}");
-    assert!(main.contains("https://example.com/d501</span>"), "{html}");
-    assert!(
-        main.contains(&format!(r#"</div>{}<form class="chip-add""#, saved())),
-        "{html}"
-    );
-
-    let html = app
-        .submit(
-            SUPPORT,
-            "guild=7&idle_enabled=true&bogus=1",
-            StatusCode::UNPROCESSABLE_ENTITY,
-        )
-        .await
-        .unwrap();
-    assert!(
-        main_content(&html).contains(&not_saved("unknown field `bogus`")),
-        "{html}"
-    );
-
-    let html = app.page("/guild/9/settings/support").await.unwrap();
-    assert!(main_content(&html).contains(
-        r#"<label for="field-role_id">Add a support role</label><div class="select"><select class="input" id="field-role_id" aria-describedby="field-role_id-help" disabled=""><option selected="">(not set)</option></select>"#
-    ), "{html}");
-    assert!(main_content(&html).contains(
-        r#"<input type="hidden" name="role_id" value=""><p class="field-hint field-warning" id="field-role_id-help">Couldn't reach Discord; the role list is unavailable. Saving keeps the current value. (error running server function: "#
-    ), "{html}");
-
-    let response = app.post(SUPPORT, "guild=7&role_id=200", None).await.unwrap();
+    let response = app.post(TICKETS, TICKET_BODY, None).await.unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(location(&response), Some("/login"));
 
@@ -1297,138 +1103,302 @@ async fn support_settings_save_and_keep_what_was_sent(
 }
 
 #[sqlx::test(migrations = "../migrations")]
-async fn faq_articles_are_listed_saved_and_deleted(
+async fn support_roles_and_links_are_list_actions_behind_confirms(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(&pool).await.unwrap();
+    let roles = "/guild/7/support/roles";
+
+    let html = app.page(roles).await.unwrap();
+    let main = main_content(&html);
+    assert!(
+        main.contains("Zayden's role must be above the roles it assigns."),
+        "{main}"
+    );
+    assert!(
+        main.contains(r#"<p class="page-lead">No support roles yet.</p>"#),
+        "{main}"
+    );
+    assert!(
+        main.contains(r#"<p class="page-lead">No helper links yet.</p>"#),
+        "{main}"
+    );
+    assert!(main.contains(r#"<form id="add-role" method="post" action="/guild/7/support/roles/add-role" data-pending="">"#), "{main}");
+
+    let html = app
+        .redirected(
+            &format!("{roles}/add-role"),
+            "guild=7&role_id=200",
+            "/guild/7/support/roles#support-roles",
+        )
+        .await
+        .unwrap();
+    assert_eq!(support_roles(&app).await.unwrap(), [200]);
+    assert_eq!(
+        flash_after(&html, r#"id="support-roles""#),
+        Some("Support role added.")
+    );
+    assert_eq!(top_flash(&html), None);
+    let main = main_content(&html);
+    assert!(
+        main.contains(
+            r#"<th scope="row" role="rowheader" data-label="Role">@Mods</th>"#
+        ),
+        "{main}"
+    );
+    assert!(main.contains(&format!(
+        r#"<form method="post" action="/guild/7/support/roles/remove-role" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="role_id" value="200">{}</form>"#,
+        confirm(
+            "role-200-remove",
+            "Remove",
+            "Remove support role @Mods?",
+            "Its members stop being pinged for new tickets and stop counting as helpers.",
+            "Remove role"
+        ).replace(r#"class="btn btn-danger" data-confirm-trigger"#, r#"class="btn btn-ghost" data-confirm-trigger"#)
+    )), "{main}");
+    assert!(
+        !element(main, "select", "add-role-role-id")
+            .unwrap()
+            .contains(r#"value="200""#),
+        "a configured role is not offered again"
+    );
+
+    let html = app
+        .submit(
+            &format!("{roles}/add-role"),
+            "guild=7&role_id=200",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "add-role"),
+        Some("Not added: that role is already a support role")
+    );
+    assert_eq!(
+        field_error(&html, "add-role-role-id"),
+        Some("that role is already a support role")
+    );
+
+    let html = app
+        .redirected(
+            &format!("{roles}/remove-role"),
+            "guild=7&role_id=200",
+            "/guild/7/support/roles#support-roles",
+        )
+        .await
+        .unwrap();
+    assert_eq!(support_roles(&app).await.unwrap(), Vec::<u64>::new());
+    assert_eq!(
+        flash_after(&html, r#"id="support-roles""#),
+        Some("Support role removed.")
+    );
+    assert!(!main_content(&html).contains("@Mods</th>"), "{html}");
+
+    for user in ["501", "502"] {
+        let body = format!(
+            "guild=7&user_id={user}&link=https%3A%2F%2Fexample.com%2Fd{user}"
+        );
+        app.redirected(
+            &format!("{roles}/add-link"),
+            &body,
+            "/guild/7/support/roles#helper-links",
+        )
+        .await
+        .unwrap();
+    }
+    assert_eq!(helper_users(&app).await.unwrap(), [501, 502]);
+    let html = app.page(roles).await.unwrap();
+    let main = main_content(&html);
+    assert!(main.contains(r#"<th scope="row" role="rowheader" data-label="Helper">Helper One</th><td role="cell" data-label="Link"><a href="https://example.com/d501" rel="external">https://example.com/d501</a></td>"#), "{main}");
+    assert!(main.contains(r#"data-label="Helper">unknown (502)</th>"#), "{main}");
+    assert!(app.discord.count("GET", "/guilds/7/members/501") > 0);
+    assert!(main.contains(r#"<h2 class="dialog-title" id="link-501-remove-title">Remove the donation link of Helper One?</h2>"#), "{main}");
+
+    let html = app
+        .submit(
+            &format!("{roles}/add-link"),
+            "guild=7&user_id=503&link=ftp%3A%2F%2Fx",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        field_error(&html, "add-link-link"),
+        Some("link must be an http:// or https:// address")
+    );
+    assert_eq!(value(&html, "add-link-user-id"), Some("503"));
+
+    let html = app
+        .redirected(
+            &format!("{roles}/remove-link"),
+            "guild=7&user_id=502",
+            "/guild/7/support/roles#helper-links",
+        )
+        .await
+        .unwrap();
+    assert_eq!(helper_users(&app).await.unwrap(), [501]);
+    assert_eq!(
+        flash_after(&html, r#"id="helper-links""#),
+        Some("Helper link removed.")
+    );
+    assert!(!main_content(&html).contains("d502"), "{html}");
+
+    let html = app.page("/guild/9/support/roles").await.unwrap();
+    let main = main_content(&html);
+    assert!(main.contains(r#"<select class="input" id="add-role-role-id" aria-describedby="add-role-role-id-help" disabled="">"#), "{main}");
+    assert!(
+        main.contains("Couldn't reach Discord, so the role list is unavailable."),
+        "{main}"
+    );
+
+    let response = app
+        .post(&format!("{roles}/add-role"), "guild=7&role_id=200", None)
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/login"));
+    assert_eq!(support_roles(&app).await.unwrap(), Vec::<u64>::new());
+
+    pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn faq_articles_have_list_new_and_edit_pages(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
     let pool = test_pool(options, connect).await.unwrap();
     let app = harness(&pool).await.unwrap();
     let db = &app.app.db;
+    let faq = "/guild/7/support/faq";
 
-    assert!(ticket::FaqArticle::list(db, 7, 10).await.unwrap().is_empty());
-    let html = app.page(SUPPORT).await.unwrap();
+    let html = app.page(faq).await.unwrap();
+    assert!(
+        main_content(&html).contains(r#"<div class="skeleton-list">"#),
+        "the list streams in: {html}"
+    );
+    assert!(html.contains(r#"<div class="empty-state"><h2 class="empty-title">No FAQ articles yet</h2>"#), "{html}");
+    assert!(html.contains(r#"<a href="/guild/7/support/faq/new" class="btn btn-primary">New article</a>"#), "{html}");
+
+    let html = app.page(&format!("{faq}/new")).await.unwrap();
+    assert!(html.contains(&title("New FAQ article - Support")), "{html}");
     let main = main_content(&html);
-    let new_form = |open: &str, title: &str, content: &str| {
-        format!(
-            r#"<details class="setting-field"{open}><summary>New article</summary><form method="post" action="/guild/7/settings/support" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value=""><div class="setting-field"><label for="faq-new-title">Title</label><input class="input" id="faq-new-title" type="text" name="title" value="{title}" placeholder="Fixing Radarr error 502" pattern=".*"></div><div class="setting-field"><label for="faq-new-summary">Summary</label><input class="input" id="faq-new-summary" type="text" name="summary" value="" placeholder="One sentence, shown in search results" pattern=".*"></div><div class="setting-field"><label for="faq-new-category">Category</label><input class="input" id="faq-new-category" type="text" name="category" value="" placeholder="(not set)" pattern=".*"></div><div class="setting-field"><label for="faq-new-tags">Tags</label><input class="input" id="faq-new-tags" aria-describedby="faq-new-tags-help" type="text" name="tags" value="" placeholder="comma, separated" pattern=".*"><p class="field-hint" id="faq-new-tags-help">Comma separated.</p></div><div class="setting-field"><label>Body (Markdown)</label><textarea class="input" name="content" rows="14">{content}</textarea></div>{SAVE}</form></details>"#
-        )
-    };
-    assert!(main.contains(SEGMENTED_SETTINGS), "{html}");
-    assert!(main.contains(&format!(
-        r#"<fieldset class="settings-section" hidden=""><p class="page-lead">Articles "/ticket faq ask" and the automated triage search, alongside the wiki. Articles written from solved tickets go live as soon as they are generated, so review them here.</p>{}"#,
-        new_form("", "", "")
-    )), "{html}");
+    assert!(main.contains(r#"<label class="field-label" for="faq-article-content">Body (Markdown)</label><textarea class="input" id="faq-article-content" name="content" rows="14" required=""#), "the body has a bound label: {main}");
+    assert!(main.contains(r#"<form id="faq-article" method="post" action="/guild/7/support/faq/new" data-pending="" data-dirty-guard="">"#), "{main}");
     assert!(
-        html.contains(r#"<p class="page-lead">No FAQ articles yet.</p>"#),
-        "{html}"
+        main.contains(r#"data-pending-label="Saving…">Create article</button>"#),
+        "{main}"
     );
+    assert_eq!(duplicate_ids(&html), Vec::<String>::new());
 
-    let body = "guild=7&id=&title=Fixing+502&summary=&category=&tags=&content=";
-    let html =
-        app.submit(SUPPORT, body, StatusCode::UNPROCESSABLE_ENTITY).await.unwrap();
-    let main = main_content(&html);
-    assert!(main.contains(SEGMENTED_FAQ), "{html}");
-    assert!(
-        main.contains(
-            r#"<fieldset class="settings-section"><p class="page-lead">Articles"#
-        ),
-        "{html}"
-    );
-    assert!(
-        main.contains(&format!(
-            "{}{}",
-            not_saved("A title and a body are both required."),
-            new_form(r#" open="""#, "Fixing 502", "")
-        )),
-        "{html}"
-    );
-
-    // Articles reference `guilds`; any settings save creates the guild's row.
-    app.app.settings.support.update(7, |_| {}).await.unwrap();
-    let body = "guild=7&id=&title=Fixing+502&summary=Restart+it&category=&tags=Radarr%2C+radarr%2C+HTTP&content=Restart+Radarr.";
+    let body = "guild=7&title=Fixing+502&summary=&category=&tags=&content=";
     let html = app
-        .redirected(SUPPORT, body, "/guild/7/settings/support?article-created=1")
+        .submit(&format!("{faq}/new"), body, StatusCode::UNPROCESSABLE_ENTITY)
         .await
         .unwrap();
+    assert_eq!(
+        summary(&html, "faq-article"),
+        Some("Not saved: A title and a body are both required.")
+    );
+    assert_eq!(
+        field_error(&html, "faq-article-content"),
+        Some("A title and a body are both required.")
+    );
+    assert_eq!(value(&html, "faq-article-title"), Some("Fixing 502"));
+
+    app.app.settings.support.update(7, |_| {}).await.unwrap();
+    let body = "guild=7&title=Fixing+502&summary=Restart+it&category=&tags=Radarr%2C+radarr%2C+HTTP&content=Restart+Radarr.";
+    let response =
+        app.post(&format!("{faq}/new"), body, Some(MEMBER)).await.unwrap();
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
     let articles = ticket::FaqArticle::list(db, 7, 10).await.unwrap();
     let [article] = articles.as_slice() else { panic!("{articles:?}") };
     assert_eq!(article.tags, ["radarr", "http"]);
-    let main = main_content(&html);
-    assert!(main.contains(SEGMENTED_FAQ), "{html}");
+    let id = article.id;
+    let edit = format!("{faq}/{id}");
+    assert_eq!(location(&response), Some(format!("{edit}#faq-article").as_str()));
+    let flash = flash_cookie(&response).unwrap();
+    let html = body_text(
+        app.get(&edit, Some(&format!("{MEMBER}; {flash}"))).await.unwrap(),
+    )
+    .await
+    .unwrap();
+    assert!(html.contains(&title("Edit FAQ article - Support")), "{html}");
+    assert_eq!(bar_flash(&html, "faq-article"), Some("Article created."));
+    assert_eq!(value(&html, "faq-article-tags"), Some("radarr, http"));
+    let updated =
+        article.updated_at.to_jiff().strftime("%-d %b %Y, %H:%M UTC").to_string();
     assert!(
-        main.contains(&format!("{}{}", saved(), new_form(r#" open="""#, "", ""))),
+        html.contains(&format!(r#"<p class="field-hint">Updated {updated}</p>"#)),
         "{html}"
     );
-    let id = article.id;
-    let row = format!(
-        r#"<details class="setting-field"><summary>Fixing 502</summary><p class="field-hint">Updated {}</p><form method="post" action="/guild/7/settings/support" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}">"#,
-        article.updated_at.to_jiff()
-    );
-    assert!(html.contains(&row), "{html}");
-    assert!(html.contains(&format!(
-        r#"<label for="faq-{id}-title">Title</label><input class="input" id="faq-{id}-title" type="text" name="title""#
+    assert!(html.contains(&confirm(
+        &format!("faq-{id}-delete"),
+        "Delete article",
+        "Delete article “Fixing 502”?",
+        "This removes the article for everyone, including the wiki copy. It cannot be undone.",
+        "Delete article"
     )), "{html}");
-    assert!(html.contains(&format!(
-        r#"<textarea class="input" name="content" rows="14">Restart Radarr.</textarea></div>{SAVE}</form><form method="post" action="/guild/7/settings/support" data-pending=""><input type="hidden" name="guild" value="7"><input type="hidden" name="id" value="{id}"><div class="form-actions">{}</div></form></details>"#,
-        confirm(
-            &format!("faq-{id}-delete"),
-            "Delete",
-            "This removes the article for everyone, including the wiki copy. It cannot be undone.",
-            "Delete article",
-            "Delete article “Fixing 502”?"
-        )
-    )), "{html}");
-    assert!(!html.contains("No FAQ articles yet."), "{html}");
 
-    let body = format!(
-        "guild=7&id={id}&title=Fixing+502+again&summary=&category=Media&tags=&content=Restart."
-    );
-    let html = app.submit(SUPPORT, &body, StatusCode::OK).await.unwrap();
-    let updated = ticket::FaqArticle::get(db, 7, id).await.unwrap().unwrap();
+    let html = app.page(faq).await.unwrap();
+    assert!(html.contains(&format!(r#"<th scope="row" role="rowheader" data-label="Title"><a href="{edit}">Fixing 502</a></th>"#)), "{html}");
+    assert!(html.contains(&format!(r#"<td role="cell" data-label="Updated">{updated}</td><td role="cell" data-label="Source">Written here</td>"#)), "{html}");
+
+    let body = "guild=7&title=Fixing+502+again&summary=&category=Media&tags=&content=Restart.";
+    let html =
+        app.redirected(&edit, body, &format!("{edit}#faq-article")).await.unwrap();
+    let stored = ticket::FaqArticle::get(db, 7, id).await.unwrap().unwrap();
     assert_eq!(
-        (updated.title.as_str(), updated.category.as_deref()),
+        (stored.title.as_str(), stored.category.as_deref()),
         ("Fixing 502 again", Some("Media"))
     );
-    assert!(
-        main_content(&html).contains(&format!(
-            "{}{}",
-            saved(),
-            new_form("", "", "")
-        )),
-        "{html}"
-    );
+    assert_eq!(bar_flash(&html, "faq-article"), Some("Article saved."));
 
-    let body = format!(
-        "guild=7&id={}&title=Gone&summary=&category=&tags=&content=x",
-        id + 1
-    );
-    let html =
-        app.submit(SUPPORT, &body, StatusCode::UNPROCESSABLE_ENTITY).await.unwrap();
-    assert!(
-        main_content(&html).contains(&not_saved("That article no longer exists.")),
-        "{html}"
-    );
-
+    let missing = format!("{faq}/{}", id + 1);
     let html = app
-        .submit(SUPPORT, "guild=7&id=abc", StatusCode::UNPROCESSABLE_ENTITY)
-        .await
-        .unwrap();
-    assert!(
-        main_content(&html).contains(&not_saved("That article no longer exists.")),
-        "{html}"
-    );
-
-    let html = app
-        .redirected(
-            SUPPORT,
-            &format!("guild=7&id={id}"),
-            "/guild/7/settings/support?article-deleted=1",
+        .submit(
+            &missing,
+            "guild=7&title=Gone&summary=&category=&tags=&content=x",
+            StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
         .unwrap();
+    assert_eq!(
+        summary(&html, "page"),
+        Some("Not saved: That article no longer exists.")
+    );
+    for path in [missing.as_str(), "/guild/7/support/faq/abc"] {
+        let response = app.get(path, Some(MEMBER)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{path}");
+        let html = body_text(response).await.unwrap();
+        assert!(html.contains(r#"<h2 class="error-title" id="faq-missing-title">Article not found</h2>"#), "{html}");
+        assert!(html.contains(r#"<a href="/guild/7/support/faq" class="btn btn-primary">Back to FAQ articles</a>"#), "{html}");
+        assert!(
+            html.contains(r#"class="nav-link""#),
+            "the guild shell stays: {html}"
+        );
+    }
+
+    let html = app
+        .submit(
+            &format!("{edit}/delete"),
+            "guild=8",
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "faq-delete"),
+        Some("Not deleted: invalid value for `guild`")
+    );
+    let html =
+        app.redirected(&format!("{edit}/delete"), "guild=7", faq).await.unwrap();
     assert!(ticket::FaqArticle::list(db, 7, 10).await.unwrap().is_empty());
-    assert!(main_content(&html).contains(&format!("{}<details", saved())), "{html}");
-    assert!(html.contains("No FAQ articles yet."), "{html}");
+    assert_eq!(top_flash(&html), Some("Article deleted."));
+    assert!(html.contains("No FAQ articles yet"), "{html}");
 
     let draft = ticket::NewArticle {
         title: "Stuck at 99%",
@@ -1442,20 +1412,21 @@ async fn faq_articles_are_listed_saved_and_deleted(
         .unwrap()
         .unwrap();
     assert!(generated.generated);
-    let html = app.page(SUPPORT).await.unwrap();
+    let html = app.page(faq).await.unwrap();
     assert!(
-        html.contains(&format!(
-            r#"<summary>Stuck at 99%<span class="chip-label"> generated</span></summary><p class="field-hint">Updated {} • from thread 900</p>"#,
-            generated.updated_at.to_jiff()
-        )),
+        html.contains(
+            r#"<td role="cell" data-label="Source">Solved ticket, thread 900</td>"#
+        ),
         "{html}"
     );
+    let html = app.page(&format!("{faq}/{}", generated.id)).await.unwrap();
+    assert!(html.contains(" • written from thread 900</p>"), "{html}");
 
     pool.close().await;
 }
 
 #[tokio::test]
-async fn provider_sections_report_a_status_they_cannot_load() {
+async fn provider_pages_report_a_status_they_cannot_load() {
     let pool = PgPoolOptions::new()
         .acquire_timeout(std::time::Duration::from_secs(1))
         .connect_lazy("postgres://postgres@127.0.0.1:1/unreachable")
@@ -1465,29 +1436,28 @@ async fn provider_sections_report_a_status_they_cannot_load() {
     for (slug, warning, lead) in [
         (
             "youtube",
-            "Couldn't load the YouTube connection: error running server function: ",
+            "Couldn't load the YouTube connection: ",
             "Reload before connecting - connecting while the status is unknown would replace whatever channel is already linked.",
         ),
         (
             "patreon",
-            "Couldn't load the Patreon connection: error running server function: ",
+            "Couldn't load the Patreon connection: ",
             "Reload once Patreon is reachable. Connecting from here while the status is unknown would overwrite whatever campaign is already linked.",
         ),
     ] {
-        let html = app.page(&format!("/guild/7/settings/{slug}")).await.unwrap();
+        let html = app.page(&format!("/guild/7/{slug}")).await.unwrap();
         let main = main_content(&html);
         assert!(
-            main.contains(&format!(
-                r#"<fieldset class="settings-section"><p class="warning">{warning}"#
-            )),
+            main.contains(&format!(r#"<p class="warning" role="alert">{warning}"#)),
             "{html}"
         );
         assert!(
             main.contains(&format!(
-                r#"</p><p class="page-lead">{lead}</p></fieldset></div>"#
+                r#"</p><p class="page-lead">{lead}</p></section>"#
             )),
             "{html}"
         );
+        assert!(!main.contains("error running server function"), "{html}");
         assert!(!main.contains("connect?guild="), "{html}");
     }
 }

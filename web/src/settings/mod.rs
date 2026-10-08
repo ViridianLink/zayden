@@ -1,37 +1,38 @@
 mod ai;
 mod family;
 mod faq;
+mod fields;
 mod general;
+mod header;
 mod honeypot;
+mod legacy;
 mod lfg;
 mod music;
 mod patreon;
 mod provider;
+mod state;
 mod support;
 mod temp_voice;
 mod youtube;
 
 use topcoat::Result;
 use topcoat::context::Cx;
-use topcoat::router::error::SeeOther;
-use topcoat::router::{RouterBuilder, StatusCode, page, path_param};
-use topcoat::view::{View, ViewExt, component, view};
+use topcoat::router::RouterBuilder;
+use topcoat::view::{Child, View, ViewExt, component, view};
 use twilight_model::channel::ChannelType;
 
+use self::header::feature_header;
+pub use self::legacy::NOT_SAVED;
+use self::state::{PageState, plain};
+pub use self::support::Pane;
+use crate::auth::AuthError;
+use crate::components::error_panel::ErrorAction;
+use crate::components::flash::flash;
 use crate::components::pickers::{Channel, Role};
-use crate::components::settings::save_feedback;
+use crate::document::PAGE_TITLES;
 use crate::guild::dto::{GuildDirectory, SectionSettings};
-use crate::guild::parse::parse_flag;
 use crate::guild::{GuildError, get_guild_directory, get_section_settings};
 use crate::nav::{self, ModuleNav};
-use crate::shell::GuildId;
-use crate::util::server_error_text;
-
-path_param!(section);
-
-const SETTINGS_PATH: &str = "/guild/{guild_id}/settings";
-
-const GENERAL: &str = "general";
 
 const TEXT_KINDS: &[ChannelType] = &[
     ChannelType::GuildText,
@@ -39,11 +40,18 @@ const TEXT_KINDS: &[ChannelType] = &[
     ChannelType::GuildForum,
 ];
 
+const GUILD_PREFIX: &str = "/guild/{guild_id}/";
+
+const TITLE_SUFFIX: &str = " - Zayden Dashboard";
+
+const ROLE_ORDER_NOTE: &str = "Zayden's role must be above the roles it \
+                               assigns. In Discord, drag it above them under \
+                               Server Settings > Roles.";
+
 #[must_use]
 pub fn routes(base: RouterBuilder) -> RouterBuilder {
-    let base = base.page(settings_index).page(settings_section);
-
     [
+        legacy::routes,
         general::routes,
         ai::routes,
         family::routes,
@@ -60,135 +68,78 @@ pub fn routes(base: RouterBuilder) -> RouterBuilder {
 }
 
 #[must_use]
-pub fn title(slug: &str) -> String {
-    let module = nav::section(slug);
-    if *module == nav::GENERAL {
-        return format!("{} - Zayden Dashboard", module.label);
-    }
-    format!("{} settings - Zayden Dashboard", module.label)
+pub fn title(entry: &ModuleNav) -> String {
+    format!("{}{TITLE_SUFFIX}", entry.label)
 }
 
 #[must_use]
-pub fn route_title(cx: &Cx, pattern: &str) -> Option<String> {
-    let rest = pattern.strip_prefix(SETTINGS_PATH)?;
-    let slug = match rest {
-        "" => "",
-        "/{section}" => path_param::<Section>(cx),
-        _ => rest.strip_prefix('/')?.split('/').next().unwrap_or_default(),
-    };
-    Some(title(slug))
-}
+pub fn route_title(_cx: &Cx, pattern: &str) -> Option<String> {
+    let feature = pattern.strip_prefix(GUILD_PREFIX)?.split('/').next()?;
+    nav::settings_entry(feature)?;
 
-#[page("/guild/{guild_id}/settings")]
-async fn settings_index(cx: &Cx) -> Result<impl View> {
-    let guild_id: &str = path_param::<GuildId>(cx);
-
-    Ok(view! { settings_page(guild_id: guild_id, slug: GENERAL) })
-}
-
-#[page("/guild/{guild_id}/settings/{section}")]
-async fn settings_section(cx: &Cx) -> Result<impl View> {
-    let guild_id: &str = path_param::<GuildId>(cx);
-    let slug: &str = path_param::<Section>(cx);
-
-    Ok(view! { settings_page(guild_id: guild_id, slug: slug) })
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct Submission {
-    form: &'static str,
-    values: Vec<(String, String)>,
-    result: std::result::Result<(), String>,
-    reloads: bool,
-}
-
-impl Submission {
-    pub(super) fn new(
-        form: &'static str,
-        values: Vec<(String, String)>,
-        result: std::result::Result<(), GuildError>,
-    ) -> std::result::Result<Self, SeeOther> {
-        Ok(Self { form, values, result: message(result)?, reloads: false })
+    let mut candidate = pattern;
+    loop {
+        if let Some((_, title)) =
+            PAGE_TITLES.iter().find(|(route, _)| *route == candidate)
+        {
+            return Some((*title).to_owned());
+        }
+        candidate = candidate.rsplit_once('/')?.0;
     }
+}
 
-    pub(super) fn reloading(
-        form: &'static str,
-        result: std::result::Result<(), GuildError>,
-    ) -> std::result::Result<Self, SeeOther> {
-        Ok(Self {
-            form,
-            values: Vec::new(),
-            result: message(result)?,
-            reloads: true,
-        })
-    }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Page {
+    Server,
+    Ai,
+    Family,
+    Honeypot,
+    Lfg,
+    Music,
+    TempVoice,
+    Patreon,
+    Youtube,
+    Support(Pane),
+}
 
-    pub(super) const fn succeeded(form: &'static str) -> Self {
-        Self { form, values: Vec::new(), result: Ok(()), reloads: true }
-    }
-
-    pub(super) const fn status(&self) -> StatusCode {
-        if self.result.is_ok() {
-            StatusCode::OK
-        } else {
-            StatusCode::UNPROCESSABLE_ENTITY
+impl Page {
+    #[must_use]
+    pub const fn slug(self) -> &'static str {
+        match self {
+            Self::Server => "general",
+            Self::Ai => "ai",
+            Self::Family => "family",
+            Self::Honeypot => "honeypot",
+            Self::Lfg => "lfg",
+            Self::Music => "music",
+            Self::TempVoice => "temp-voice",
+            Self::Patreon => "patreon",
+            Self::Youtube => "youtube",
+            Self::Support(_) => "support",
         }
     }
 
-    pub(super) fn of<'a>(this: Option<&'a Self>, form: &str) -> Option<&'a Self> {
-        this.filter(|submission| submission.form == form)
+    #[must_use]
+    pub fn entry(self) -> &'static ModuleNav {
+        nav::section(self.slug())
     }
 
-    pub(super) fn outcome(&self) -> std::result::Result<(), &str> {
-        match &self.result {
-            Ok(()) => Ok(()),
-            Err(message) => Err(message),
+    #[must_use]
+    pub fn href(self, guild_id: &str) -> String {
+        let base = self.entry().href(guild_id);
+        match self.pane() {
+            Some(pane) => format!("{base}{}", pane.suffix()),
+            None => base,
         }
     }
 
-    fn failed_save(&self) -> Option<&str> {
-        if self.reloads { None } else { self.outcome().err() }
-    }
-
-    fn value(&self, name: &str) -> Option<&str> {
-        self.values
-            .iter()
-            .find(|(key, _)| key == name)
-            .map(|(_, value)| value.as_str())
+    #[must_use]
+    pub const fn pane(self) -> Option<Pane> {
+        if let Self::Support(pane) = self { Some(pane) } else { None }
     }
 }
 
-fn message(
-    result: std::result::Result<(), GuildError>,
-) -> std::result::Result<std::result::Result<(), String>, SeeOther> {
-    match result {
-        Ok(()) => Ok(Ok(())),
-        Err(error) => Ok(Err(error.redirect_unauthenticated()?.to_string())),
-    }
-}
-
-pub(super) fn shown<'a>(
-    submission: Option<&'a Submission>,
-    name: &str,
-    stored: Option<&'a str>,
-) -> &'a str {
-    submission
-        .and_then(|submission| submission.value(name))
-        .or(stored)
-        .unwrap_or_default()
-}
-
-pub(super) fn flag(
-    submission: Option<&Submission>,
-    name: &str,
-    stored: bool,
-) -> bool {
-    submission
-        .and_then(|submission| submission.value(name))
-        .map_or(stored, parse_flag)
-}
-
-pub(super) fn ensure_path_guild(
+fn ensure_path_guild(
     form_guild: &str,
     path_guild: &str,
 ) -> std::result::Result<(), GuildError> {
@@ -199,21 +150,17 @@ pub(super) fn ensure_path_guild(
     }
 }
 
-pub(super) fn action(guild_id: &str, slug: &str) -> String {
-    format!("/guild/{guild_id}/settings/{slug}")
-}
-
-pub(super) struct Lists {
+struct Lists {
     channels: std::result::Result<Vec<Channel>, String>,
     roles: std::result::Result<Vec<Role>, String>,
 }
 
 impl Lists {
-    pub(super) fn channels(&self) -> std::result::Result<&[Channel], &str> {
+    fn channels(&self) -> std::result::Result<&[Channel], &str> {
         self.channels.as_deref().map_err(String::as_str)
     }
 
-    pub(super) fn roles(&self) -> std::result::Result<&[Role], &str> {
+    fn roles(&self) -> std::result::Result<&[Role], &str> {
         self.roles.as_deref().map_err(String::as_str)
     }
 }
@@ -232,34 +179,97 @@ impl From<GuildDirectory> for Lists {
 }
 
 #[component]
-pub(super) async fn settings_page(
+async fn frame(
     guild_id: &str,
-    slug: &str,
-    #[default] submission: Option<&Submission>,
+    page: Page,
+    state: &PageState,
+    #[default] child: Child<'_>,
 ) -> Result<impl View> {
-    let module = nav::section(slug);
-
     Ok(view! {
         <div class="page">
-            page_header(module: module)
-            section_panel(
-                guild_id: guild_id,
-                slug: module.slug().unwrap_or(GENERAL),
-                submission: submission
-            )
+            feature_header(guild_id: guild_id, page: page, state: state)
+            if let Page::Support(pane) = page {
+                support::subnav(guild_id: guild_id, current: pane)
+            }
+            flash(notice: state.top_notice())
+            (child)
         </div>
-    })
+    }
+    .boxed())
 }
 
 #[component]
-async fn page_header(module: &ModuleNav) -> Result<impl View> {
+async fn settings_page(
+    guild_id: &str,
+    page: Page,
+    state: &PageState,
+) -> Result<impl View> {
     Ok(view! {
-        <div class="page-header">
-            <div>
-                <h1>(module.label)</h1>
-                <p class="page-lead">(module.lead())</p>
+        frame(
+            guild_id: guild_id,
+            page: page,
+            state: state,
+            section_panel(guild_id: guild_id, page: page, state: state)
+        )
+    }
+    .boxed())
+}
+
+fn load_problem(
+    guild_id: &str,
+    retry: &str,
+    error: &GuildError,
+) -> (String, Vec<ErrorAction>) {
+    let back = ErrorAction::new("Back to servers", "/guilds");
+    if matches!(error, GuildError::Auth(AuthError::BotNotInGuild)) {
+        let invite = format!("/invite?guild={}", nav::path_segment(guild_id));
+        return ("Zayden isn't in this server yet.".to_owned(), vec![
+            ErrorAction::new("Add Zayden to this server", &invite),
+            back,
+        ]);
+    }
+    let message = if error.is_denied() {
+        "You need Manage Server in this server to change its settings.".to_owned()
+    } else if matches!(error, GuildError::Auth(AuthError::InvalidGuildId)) {
+        "That address doesn't name a Discord server.".to_owned()
+    } else {
+        format!("Something went wrong: {}", plain(&error.to_string()))
+    };
+    (message, vec![ErrorAction::new("Try again", retry), back])
+}
+
+#[component]
+async fn load_error(
+    guild_id: &str,
+    page: Page,
+    error: &GuildError,
+    #[default] failure: Option<&str>,
+) -> Result<impl View> {
+    let (message, actions) = load_problem(guild_id, &page.href(guild_id), error);
+
+    Ok(view! {
+        if let Some(failure) = failure {
+            fields::form_summary(form: "page", message: failure)
+        }
+        <section class="error-panel" role="alert" aria-labelledby="load-error-title">
+            <h2 class="error-title" id="load-error-title">
+                "Couldn't load these settings"
+            </h2>
+            <p class="error-text">(message)</p>
+            <div class="error-actions">
+                #[key(index)]
+                for (index, action) in actions.iter().enumerate() {
+                    let class = if index == 0 {
+                        "btn btn-primary"
+                    } else {
+                        "btn btn-secondary"
+                    };
+                    <a href=(action.href.as_str()) class=(class)>
+                        (action.label.as_str())
+                    </a>
+                }
             </div>
-        </div>
+        </section>
     })
 }
 
@@ -267,47 +277,49 @@ async fn page_header(module: &ModuleNav) -> Result<impl View> {
 async fn section_panel(
     cx: &Cx,
     guild_id: &str,
-    slug: &str,
-    submission: Option<&Submission>,
+    page: Page,
+    state: &PageState,
 ) -> Result<impl View> {
+    let slug = page.slug();
     let (directory, settings) = tokio::join!(
         get_guild_directory(cx, guild_id),
         get_section_settings(cx, guild_id, slug),
     );
-    let failed_save = submission.and_then(Submission::failed_save);
     let loaded = match (directory, settings) {
-        (Err(error), _) | (_, Err(error)) => Err(server_error_text(error)),
+        (Err(error), _) | (_, Err(error)) => Err(error),
         (Ok(directory), Ok(settings)) => Ok((Lists::from(directory), settings)),
     };
 
     Ok(view! {
         match loaded {
-            Err(error) => {
-                if let Some(detail) = failed_save {
-                    save_feedback(outcome: Err(detail))
-                }
-                <p class="error">
-                    "Failed to load settings: "
-                    (error)
-                </p>
-            }
+            Err(error) => load_error(
+                guild_id: guild_id,
+                page: page,
+                error: &error,
+                failure: state.any_failure()
+            ),
             Ok((lists, settings)) => section_tab(
                 guild_id: guild_id,
+                page: page,
                 lists: &lists,
                 settings: settings,
-                submission: submission
+                state: state
             ),
         }
-    })
+    }
+    .boxed())
 }
 
 #[component]
 async fn section_tab(
     guild_id: &str,
+    page: Page,
     lists: &Lists,
     settings: SectionSettings,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
+    let pane = page.pane().unwrap_or(Pane::Tickets);
+
     Ok(view! {
         match settings {
             SectionSettings::General(settings) => (view! {
@@ -315,7 +327,7 @@ async fn section_tab(
                     guild_id: guild_id,
                     settings: &settings,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
@@ -325,17 +337,13 @@ async fn section_tab(
                     guild_id: guild_id,
                     settings: &settings,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
             )),
             SectionSettings::Family(settings) => (view! {
-                family::tab(
-                    guild_id: guild_id,
-                    settings: &settings,
-                    submission: submission
-                )
+                family::tab(guild_id: guild_id, settings: &settings, state: state)
             }.boxed(
 
             )),
@@ -344,7 +352,7 @@ async fn section_tab(
                     guild_id: guild_id,
                     settings: &settings,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
@@ -354,7 +362,7 @@ async fn section_tab(
                     guild_id: guild_id,
                     settings: &settings,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
@@ -364,7 +372,7 @@ async fn section_tab(
                     guild_id: guild_id,
                     settings: &settings,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
@@ -374,7 +382,7 @@ async fn section_tab(
                     guild_id: guild_id,
                     settings: &settings,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
@@ -384,7 +392,7 @@ async fn section_tab(
                     guild_id: guild_id,
                     status: &status,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
@@ -394,7 +402,7 @@ async fn section_tab(
                     guild_id: guild_id,
                     status: &status,
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
@@ -402,13 +410,15 @@ async fn section_tab(
             SectionSettings::Support(settings) => (view! {
                 support::tab(
                     guild_id: guild_id,
+                    pane: pane,
                     settings: settings.as_ref(),
                     lists: lists,
-                    submission: submission
+                    state: state
                 )
             }.boxed(
 
             )),
         }
-    })
+    }
+    .boxed())
 }

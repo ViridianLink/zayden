@@ -16,7 +16,7 @@ pub(super) fn settings_url(
     outcome_key: &str,
 ) -> String {
     let base = nav::settings_href(guild_id, slug)
-        .unwrap_or_else(|| format!("/guild/{guild_id}/settings"));
+        .unwrap_or_else(|| nav::GENERAL.href(guild_id));
 
     format!("{base}?{param}={outcome_key}")
 }

@@ -2,51 +2,50 @@ use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
 
-use super::{
-    Lists,
-    Submission,
-    TEXT_KINDS,
-    action,
-    ensure_path_guild,
-    settings_page,
-    shown,
-};
-use crate::components::pickers::{channel_select, role_select};
-use crate::components::settings::{save_button, save_feedback, setting_field};
+use super::fields::{channels, form_summary, roles, select_row, text_row};
+use super::state::{Done, PageState, settle};
+use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::LfgSection;
 use crate::guild::settings::{LfgSettingsForm, save_lfg_settings};
 use crate::shell::GuildId;
 
-const SLUG: &str = "lfg";
-const FORM: &str = "lfg";
+const PAGE: Page = Page::Lfg;
+const FORM: &str = "lfg-settings";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
     base.page(lfg).page(save)
 }
 
-#[page("/guild/{guild_id}/settings/lfg")]
+#[page("/guild/{guild_id}/lfg")]
 async fn lfg(cx: &Cx) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
+    let state = PageState::load(cx);
 
-    Ok(view! { settings_page(guild_id: guild_id, slug: SLUG) })
+    Ok(view! { settings_page(guild_id: guild_id, page: PAGE, state: &state) })
 }
 
-#[page(POST "/guild/{guild_id}/settings/lfg")]
+#[page(POST "/guild/{guild_id}/lfg")]
 async fn save(
     cx: &Cx,
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
     let values = pairs.clone();
-    let submission =
-        Submission::new(FORM, values, save_lfg(cx, guild_id, pairs).await)?;
+    let result = save_lfg(cx, guild_id, pairs).await;
+    let failure = settle(cx, FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(FORM),
+        message: "LFG settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
-        (submission.status())
-        settings_page(guild_id: guild_id, slug: SLUG, submission: Some(&submission))
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
     })
 }
 
@@ -65,49 +64,64 @@ pub(super) async fn tab(
     guild_id: &str,
     settings: &LfgSection,
     lists: &Lists,
-    submission: Option<&Submission>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let submitted = Submission::of(submission, FORM);
+    let sent = state.sent(FORM);
 
     Ok(view! {
-        <fieldset class="settings-section">
-            if let Some(submitted) = submitted {
-                save_feedback(outcome: submitted.outcome())
+        <form
+            id=(FORM)
+            method="post"
+            action=(PAGE.href(guild_id))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = sent.summary() {
+                form_summary(form: FORM, message: message)
             }
-            <form method="post" action=(action(guild_id, SLUG)) data-pending="">
-                <input type="hidden" name="guild" value=(guild_id)>
-                channel_select(
-                    label: "LFG Channel",
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Group finder"</legend>
+                <p class="page-lead">
+                    "Where looking-for-group posts go and who they ping."
+                </p>
+                select_row(
+                    form: FORM,
                     name: "lfg_channel_id",
-                    selected: shown(
-                        submitted,
+                    label: "LFG channel",
+                    selected: sent.value(
                         "lfg_channel_id",
                         settings.channel_id.as_deref(),
                     ),
-                    channels: lists.channels(),
-                    kinds: TEXT_KINDS
+                    options: channels(lists, TEXT_KINDS),
+                    error: sent.error("lfg_channel_id")
                 )
-                role_select(
-                    label: "LFG Role",
+                select_row(
+                    form: FORM,
                     name: "lfg_role_id",
-                    selected: shown(
-                        submitted,
-                        "lfg_role_id",
-                        settings.role_id.as_deref(),
-                    ),
-                    roles: lists.roles()
+                    label: "LFG role",
+                    selected: sent.value("lfg_role_id", settings.role_id.as_deref()),
+                    options: roles(lists),
+                    help: Some("Pinged when a group is posted."),
+                    error: sent.error("lfg_role_id")
                 )
-                setting_field(
-                    label: "LFG Scheduled Thread ID",
+                text_row(
+                    form: FORM,
                     name: "lfg_scheduled_thread_id",
-                    value: shown(
-                        submitted,
+                    label: "Scheduled thread ID",
+                    value: sent.value(
                         "lfg_scheduled_thread_id",
                         settings.scheduled_thread_id.as_deref(),
-                    )
+                    ),
+                    help: Some(
+                        "The ID of a thread in this server. Leave blank for none.",
+                    ),
+                    error: sent.error("lfg_scheduled_thread_id"),
+                    numeric: true
                 )
-                save_button()
-            </form>
-        </fieldset>
-    })
+            </fieldset>
+            save_bar(notice: state.notice_for(FORM))
+        </form>
+    }
+    .boxed())
 }

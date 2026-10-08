@@ -1,4 +1,4 @@
-//! Every link the sidebar builds from the module list resolves to a
+//! Every link the navigation builds from the module list resolves to a
 //! registered page.
 
 use std::error::Error;
@@ -73,14 +73,9 @@ async fn every_module_link_resolves_to_a_page() {
 
         assert_ne!(status, StatusCode::NOT_FOUND, "{href}");
         if let Dest::Section { .. } = module.dest {
-            let title = if *module == nav::GENERAL {
-                format!("<title>{} - Zayden Dashboard</title>", module.label)
-            } else {
-                format!(
-                    "<title>{} settings - Zayden Dashboard</title>",
-                    module.label
-                )
-            };
+            assert_eq!(status, StatusCode::OK, "{href}");
+            let title =
+                format!("<title>{} - Zayden Dashboard</title>", module.label);
             assert!(html.contains(&title), "{href}");
         }
     }
@@ -92,8 +87,8 @@ async fn the_settings_href_builds_the_route_each_section_is_served_on() {
         let Some(slug) = module.slug() else { continue };
         let href = nav::settings_href(7, slug).unwrap();
 
-        assert_eq!(href, format!("/guild/7/settings/{slug}"));
-        assert_ne!(get(&href).await.unwrap().0, StatusCode::NOT_FOUND, "{href}");
+        assert_eq!(href, format!("/guild/7/{}", module.path()));
+        assert_eq!(get(&href).await.unwrap().0, StatusCode::OK, "{href}");
     }
 }
 

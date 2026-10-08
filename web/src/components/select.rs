@@ -114,7 +114,7 @@ pub async fn select(
         >
             <select class=(class!(SELECT, PICKER)) (attrs)>(child)</select>
             icon(
-                data: super::ui_icons::CHEVRON_DOWN,
+                data: ui_icons::CHEVRON_DOWN,
                 attrs: attributes! {
                     class="pointer-events-none absolute top-1/2 right-3 size-4 \
                         -translate-y-1/2 text-muted-foreground transition-transform"

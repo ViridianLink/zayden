@@ -45,6 +45,23 @@ form_args! {
 }
 
 form_args! {
+    TicketSettingsForm {
+        guild,
+        support_channel_id,
+        solved_tag_id,
+        closed_tag_id,
+        solved_archive_secs,
+        idle_enabled,
+        idle_after_secs,
+        idle_close_enabled,
+        idle_close_after_secs,
+        stale_enabled,
+        stale_tag_id,
+        stale_after_secs,
+    }
+}
+
+form_args! {
     SuggestionsSettingsForm {
         guild,
         suggestions_channel_id,
@@ -139,6 +156,50 @@ pub async fn save_stale_settings(
             p.stale_enabled = enabled;
             p.stale_tag_id = tag;
             p.stale_after_secs = secs;
+        })
+        .await
+        .map(|_| ())
+        .map_err(server_err)
+}
+
+/// Saves the ticket channel, tags, idle reminders and stale marking together:
+/// the channel is checked against the server, then one row write applies
+/// every field.
+pub async fn save_ticket_settings(
+    cx: &Cx,
+    form: &TicketSettingsForm,
+) -> Result<(), GuildError> {
+    let (guild_id, app) = admin_app(cx, &form.guild).await?;
+
+    let support_channel_id = parse_id(&form.support_channel_id);
+    let solved_tag_id = parse_id(&form.solved_tag_id);
+    let closed_tag_id = parse_id(&form.closed_tag_id);
+    let archive_secs = parse_archive_secs(&form.solved_archive_secs);
+    let idle_enabled = parse_flag(&form.idle_enabled);
+    let idle_secs = parse_idle_secs(&form.idle_after_secs, DEFAULT_IDLE_SECS);
+    let close_enabled = parse_flag(&form.idle_close_enabled);
+    let close_secs =
+        parse_idle_secs(&form.idle_close_after_secs, DEFAULT_IDLE_CLOSE_SECS);
+    let stale_enabled = parse_flag(&form.stale_enabled);
+    let stale_tag_id = parse_id(&form.stale_tag_id);
+    let stale_secs = parse_idle_secs(&form.stale_after_secs, DEFAULT_STALE_SECS);
+
+    GuildIds::default().channel(support_channel_id).ensure_in(cx, guild_id).await?;
+
+    app.settings
+        .support
+        .update(guild_id, |p| {
+            p.support_channel_id = support_channel_id;
+            p.solved_tag_id = solved_tag_id;
+            p.closed_tag_id = closed_tag_id;
+            p.solved_archive_secs = archive_secs;
+            p.idle_enabled = idle_enabled;
+            p.idle_after_secs = idle_secs;
+            p.idle_close_enabled = close_enabled;
+            p.idle_close_after_secs = close_secs;
+            p.stale_enabled = stale_enabled;
+            p.stale_tag_id = stale_tag_id;
+            p.stale_after_secs = stale_secs;
         })
         .await
         .map(|_| ())
