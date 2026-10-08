@@ -311,10 +311,30 @@ async fn landing_links_keep_their_order_and_external_rel() {
             r#"<a href="/auth/discord" rel="external" class="btn btn-secondary">Sign in</a>"#
         )
     );
-    assert!(html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-secondary btn-lg">Open Dashboard<svg"#));
-    assert!(
-        html.contains(
-            r#"<a href="/upgrade" class="btn btn-ghost btn-lg">See Pro</a>"#
+    assert!(html.contains(r#"<a href="/auth/discord" rel="external" class="btn btn-secondary btn-lg">Sign in with Discord<svg"#));
+    assert!(!html.contains("Open dashboard"));
+    assert!(html.contains(
+        r#"<a href="/upgrade" class="btn btn-ghost btn-lg">See plans</a>"#
+    ));
+}
+
+#[tokio::test]
+async fn landing_sends_a_signed_in_visitor_to_their_servers() {
+    let router = app(Some(web_state(Some(INVITE)).await.unwrap())).unwrap();
+    let response = get(&router, "/", Some("session=live-token")).await.unwrap();
+    assert_eq!(StatusCode::OK, response.status());
+    let html = body_text(response).await.unwrap();
+
+    assert!(html.contains(r#"<div class="hero-actions"><a href="/invite" rel="external" class="btn btn-primary btn-lg">"#));
+    assert!(html.contains(
+        r#"<a href="/guilds" class="btn btn-secondary btn-lg">Open dashboard<svg"#
+    ));
+    assert!(!html.contains("Sign in with Discord"));
+    assert_eq!(
+        2,
+        count(
+            &html,
+            r#"<a href="/guilds" class="btn btn-primary">Open dashboard</a>"#
         )
     );
 }
@@ -437,28 +457,35 @@ fn session_slot_maps_lookup_outcomes() {
 }
 
 #[tokio::test]
-async fn login_renders_the_card_without_a_main_landmark() {
+async fn login_renders_the_card_in_a_main_landmark() {
     let html = page_html("/login").await.unwrap();
     assert!(html.contains("<title>Sign In - Zayden Dashboard</title>"));
 
     assert!(html.contains(concat!(
-        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="login-page" id="main" tabindex="-1"><div class="hero-glow"></div><div class="login-card">"##,
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><main class="login-page" id="main" tabindex="-1"><div class="hero-glow"></div><div class="login-card">"##,
         r#"<span class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28">Zayden</span>"#,
         "<h1>Welcome back</h1>",
         "<p>Connect your Discord account to manage your server settings.</p>",
         r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a></div>"#,
-        r#"<nav class="legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></nav></div></body>"#,
+        r#"<nav class="legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></nav></main></body>"#,
     )));
-    assert!(!html.contains("<main"));
+    assert_eq!(1, count(&html, "<main"));
     assert!(!html.contains("<header"));
+    assert!(!html.contains(r#"role="alert""#));
 }
 
 #[tokio::test]
-async fn login_ignores_the_error_query() {
+async fn login_explains_a_failed_sign_in_and_offers_a_retry() {
     let plain = page_html("/login").await.unwrap();
     let failed = page_html("/login?error=auth_failed").await.unwrap();
 
-    assert_eq!(plain, failed);
+    assert!(failed.contains(concat!(
+        "<p>Connect your Discord account to manage your server settings.</p>",
+        r#"<p class="error" role="alert">Signing in with Discord didn't finish, so you aren't signed in. Please try again.</p>"#,
+        r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Try again with Discord</a></div>"#,
+    )));
+    assert_eq!(plain, page_html("/login?error=other").await.unwrap());
+    assert_eq!(plain, page_html("/login?unrelated=auth_failed").await.unwrap());
 }
 
 #[tokio::test]
@@ -473,14 +500,19 @@ async fn login_sends_a_signed_in_visitor_to_their_servers() {
 }
 
 #[tokio::test]
-async fn login_renders_an_empty_body_when_the_session_lookup_fails() {
+async fn login_still_offers_sign_in_in_a_main_landmark_when_the_session_lookup_fails()
+ {
     let router = app(Some(web_state(None).await.unwrap())).unwrap();
     let response =
         get(&router, "/login", Some("session=unknown-token")).await.unwrap();
 
     assert_eq!(StatusCode::OK, response.status());
-    assert!(body_text(response).await.unwrap().contains(
-        r##"<body><a class="skip-link" href="#main">Skip to main content</a></body>"##
+    let html = body_text(response).await.unwrap();
+    assert!(html.contains(
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><main class="login-page" id="main" tabindex="-1">"##
+    ));
+    assert!(html.contains(
+        r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a>"#
     ));
 }
 
@@ -508,6 +540,54 @@ async fn invite_redirects_to_the_configured_url() {
 
     assert_eq!(StatusCode::SEE_OTHER, response.status());
     assert_eq!(INVITE, response.headers()[header::LOCATION]);
+}
+
+#[tokio::test]
+async fn invite_preselects_the_server_on_a_discord_authorize_address() {
+    let router = app(Some(web_state(Some(INVITE)).await.unwrap())).unwrap();
+
+    let response =
+        get(&router, "/invite?guild=1222360995700150443", None).await.unwrap();
+    assert_eq!(StatusCode::SEE_OTHER, response.status());
+    assert_eq!(
+        format!("{INVITE}&guild_id=1222360995700150443&disable_guild_select=true"),
+        response.headers()[header::LOCATION]
+    );
+
+    for ignored in [
+        "/invite?guild=abc",
+        "/invite?guild=0",
+        "/invite?guild=",
+        "/invite?guild=-7",
+        "/invite?other=7",
+    ] {
+        let response = get(&router, ignored, None).await.unwrap();
+        assert_eq!(StatusCode::SEE_OTHER, response.status(), "{ignored}");
+        assert_eq!(INVITE, response.headers()[header::LOCATION], "{ignored}");
+    }
+}
+
+#[tokio::test]
+async fn invite_replaces_a_preselected_server_and_leaves_other_addresses_alone() {
+    let preselected =
+        "https://discord.com/api/oauth2/authorize?client_id=1&guild_id=9&scope=bot";
+    let router = app(Some(web_state(Some(preselected)).await.unwrap())).unwrap();
+    let response = get(&router, "/invite?guild=7", None).await.unwrap();
+    assert_eq!(
+        "https://discord.com/api/oauth2/authorize?client_id=1&scope=bot&guild_id=7&disable_guild_select=true",
+        response.headers()[header::LOCATION]
+    );
+
+    for other in [
+        "https://example.com/oauth2/authorize?client_id=1",
+        "http://discord.com/oauth2/authorize?client_id=1",
+        "https://discord.com/invite/zayden",
+    ] {
+        let router = app(Some(web_state(Some(other)).await.unwrap())).unwrap();
+        let response = get(&router, "/invite?guild=7", None).await.unwrap();
+        assert_eq!(StatusCode::SEE_OTHER, response.status(), "{other}");
+        assert_eq!(other, response.headers()[header::LOCATION], "{other}");
+    }
 }
 
 #[tokio::test]
@@ -601,9 +681,9 @@ async fn privacy_markup_counts() {
     assert_eq!(40, count(main, "<strong>"));
     assert_eq!(3, count(main, "<strong>kilooscarsix@gmail.com</strong>"));
     assert_eq!(1, count(main, "<code>"));
-    assert_eq!(11, count(main, "<ul>"));
-    assert_eq!(60, count(main, "<li>"));
-    assert_eq!(1, count(main, "class=\"legal-callout\""));
+    assert_eq!(12, count(main, "<ul>"));
+    assert_eq!(74, count(main, "<li>"));
+    assert_eq!(2, count(main, "class=\"legal-callout\""));
     assert_eq!(1, count(main, "class=\"legal-lead\""));
     assert!(!main.contains("mailto:"));
 }
@@ -615,6 +695,20 @@ async fn privacy_links_are_plain_outbound_anchors() {
 
     assert_eq!(
         [
+            "#discord",
+            "#features",
+            "#ai",
+            "#payments",
+            "#patreon",
+            "#youtube",
+            "#watch",
+            "#palworld",
+            "#third-parties",
+            "#security",
+            "#retention",
+            "#rights",
+            "#children",
+            "#changes",
             "https://security.google.com/settings/security/permissions",
             "https://policies.google.com/privacy",
             "https://developers.google.com/terms/api-services-user-data-policy",
@@ -649,7 +743,10 @@ async fn terms_lists_its_sections_in_order() {
     let main = between(&html, LEGAL_MAIN, "</main>").unwrap();
 
     assert!(main.contains(
-        r#"<h1>Terms of Service</h1><p class="legal-updated">Last updated: 26 September 2026</p><section id="acceptance"><h2>Acceptance</h2><p class="legal-lead">"#
+        r##"<h1>Terms of Service</h1><p class="legal-updated">Last updated: 26 September 2026</p><nav class="legal-callout" aria-labelledby="legal-contents"><p class="label" id="legal-contents">On this page</p><ul><li><a href="#acceptance">Acceptance</a></li><li><a href="#discord">Discord's rules</a></li>"##
+    ));
+    assert!(main.contains(
+        r##"<li><a href="#governing-law">Governing law</a></li></ul></nav><section id="acceptance"><h2>Acceptance</h2><p class="legal-lead">"##
     ));
     assert_eq!(
         vec![
@@ -694,10 +791,19 @@ async fn terms_markup_counts_and_links() {
 
     assert_eq!(2, count(main, "<strong>"));
     assert_eq!(1, count(main, "<strong>kilooscarsix@gmail.com</strong>"));
-    assert_eq!(2, count(main, "<ul>"));
-    assert_eq!(10, count(main, "<li>"));
+    assert_eq!(3, count(main, "<ul>"));
+    assert_eq!(19, count(main, "<li>"));
     assert_eq!(
         [
+            "#acceptance",
+            "#discord",
+            "#acceptable-use",
+            "#server-admins",
+            "#paid-features",
+            "#warranty",
+            "#termination",
+            "#changes",
+            "#governing-law",
             "/privacy",
             "https://www.youtube.com/t/terms",
             "https://policies.google.com/privacy",
@@ -766,4 +872,28 @@ async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
             })
             .await;
     }
+}
+
+#[tokio::test]
+async fn every_public_page_has_its_own_meta_description() {
+    let mut seen = Vec::new();
+    for path in ["/", "/login", "/upgrade", "/privacy", "/terms"] {
+        let html = page_html(path).await.unwrap();
+        let head = between(&html, "<head>", "</head>").unwrap();
+        let metas = head.matches(r#"<meta name="description" content=""#).count();
+        assert_eq!(metas, 1, "{path}: {head}");
+        let description =
+            between(head, r#"<meta name="description" content=""#, "\"")
+                .unwrap()
+                .to_owned();
+        assert!(description.len() > 40, "{path}: {description}");
+        assert!(!seen.contains(&description), "{path} repeats {description}");
+        seen.push(description);
+    }
+
+    let router = app(Some(web_state(Some(INVITE)).await.unwrap())).unwrap();
+    let missing = body_text(get(&router, "/does-not-exist", None).await.unwrap())
+        .await
+        .unwrap();
+    assert!(!missing.contains(r#"<meta name="description""#), "{missing}");
 }

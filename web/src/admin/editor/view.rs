@@ -13,7 +13,6 @@ use crate::admin::dto::{
 };
 use crate::admin::keys::display_name;
 use crate::components::icons::{Icon, icon};
-use crate::components::key_list::key_list_field;
 
 const MAX_ASPECTS: usize = 2;
 const MAX_WEAPONS: usize = 3;
@@ -70,18 +69,21 @@ pub(super) async fn editor(
                 <div class="loadout-choices">
                     icon_choice(
                         label: "Class",
+                        name: "loadout-class",
                         value: &form.class,
                         options: &o.classes,
                         index: &index
                     )
                     icon_choice(
                         label: "Subclass",
+                        name: "loadout-element",
                         value: &form.element,
                         options: &o.elements,
                         index: &index
                     )
                     icon_choice(
                         label: "Mode",
+                        name: "loadout-mode",
                         value: &form.mode,
                         options: &o.modes,
                         index: &index
@@ -107,6 +109,7 @@ pub(super) async fn editor(
                 stats_card(form: form, index: &index)
                 details_card(form: form)
             </div>
+            <p class="visually-hidden" role="status"></p>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">"Save"</button>
             </div>
@@ -150,36 +153,45 @@ async fn enum_icon(index: &CatalogIndex, label: &str) -> Result<impl View> {
     })
 }
 
+/// A choice group as native radios: one tab stop, arrow keys move the
+/// choice.
 #[component]
 async fn icon_choice(
     label: &str,
+    name: &str,
     value: &str,
     options: &[String],
     index: &CatalogIndex,
 ) -> Result<impl View> {
     Ok(view! {
-        <div class="icon-choice-field" role="radiogroup" aria-label=(label)>
-            <span class="label">(label)</span>
+        <fieldset class="icon-choice-field">
+            <legend class="label">(label)</legend>
             <div class="icon-choice">
                 #[key(position)]
                 for (position, option) in options.iter().enumerate() {
                     let checked = option == value;
-                    <button
-                        type="button"
-                        role="radio"
+                    let id = format!("{name}-{position}");
+                    <label
                         class=(if checked {
                             "icon-choice-option active"
                         } else {
                             "icon-choice-option"
                         })
-                        aria-checked=(if checked { "true" } else { "false" })
+                        for=(id.as_str())
                     >
+                        <input
+                            type="radio"
+                            id=(id.as_str())
+                            name=(name)
+                            value=(option.as_str())
+                            checked=(checked)
+                        >
                         enum_icon(index: index, label: option)
                         <span>(option.as_str())</span>
-                    </button>
+                    </label>
                 }
             </div>
-        </div>
+        </fieldset>
     })
 }
 
@@ -722,12 +734,7 @@ async fn details_card(form: &LoadoutForm) -> Result<impl View> {
                     kind: "url"
                 )
             </div>
-            key_list_field(
-                label: "Tags (up to 3)",
-                keys: &form.tags,
-                list: "",
-                max: MAX_TAGS
-            )
+            tag_field(tags: &form.tags)
             <div class="setting-field">
                 <label for="loadout-how">"How it works"</label>
                 <textarea id="loadout-how" class="input" rows="8">
@@ -736,5 +743,37 @@ async fn details_card(form: &LoadoutForm) -> Result<impl View> {
                 </textarea>
             </div>
         </section>
+    })
+}
+
+#[component]
+async fn tag_field(tags: &[String]) -> Result<impl View> {
+    let full = tags.len() >= MAX_TAGS;
+
+    Ok(view! {
+        <div class="setting-field">
+            <label for="loadout-tag">"Tags (up to 3)"</label>
+            <div class="chip-list">
+                #[key(index)]
+                for (index, tag) in tags.iter().enumerate() {
+                    <span class="chip">
+                        <span class="chip-label">(tag.as_str())</span>
+                        <button
+                            type="button"
+                            class="chip-remove"
+                            aria-label=(format!("Remove tag {tag}"))
+                        >
+                            icon(name: Icon::X)
+                        </button>
+                    </span>
+                }
+            </div>
+            <div class="chip-add">
+                <input class="input" id="loadout-tag">
+                <button type="button" class="btn btn-secondary" disabled=(full)>
+                    "Add"
+                </button>
+            </div>
+        </div>
     })
 }

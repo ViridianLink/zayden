@@ -1,55 +1,64 @@
+use greetings::MAX_MESSAGE_LEN;
 use topcoat::Result;
-use topcoat::view::{View, component, view};
+use topcoat::view::{View, ViewExt, component, view};
 
-use super::{GreetingAction, PAGE};
-use crate::components::icons::{Icon, icon};
-use crate::components::settings::{save_button, save_feedback, setting_field};
-use crate::engagement::pages::action::{Submitted, feedback, form_action, typed};
-
-const ANY_TEXT: &str = ".*";
+use super::{GreetingAction, MESSAGES, PAGE};
+use crate::components::save_bar::save_bar;
+use crate::engagement::pages::action::form_action;
+use crate::engagement::pages::fields::{form_summary, text_row};
+use crate::engagement::pages::state::PageState;
 
 #[component]
 pub(super) async fn messages_section(
     guild_id: &str,
     morning: &str,
     night: &str,
-    submitted: Option<&Submitted<GreetingAction>>,
+    state: &PageState,
 ) -> Result<impl View> {
-    let action = form_action(guild_id, PAGE, GreetingAction::SaveMessages);
-    let outcome = feedback(submitted, GreetingAction::SaveMessages);
-    let morning = typed(submitted, GreetingAction::SaveMessages, "morning_message")
-        .unwrap_or(morning);
-    let night = typed(submitted, GreetingAction::SaveMessages, "night_message")
-        .unwrap_or(night);
+    let sent = state.sent(MESSAGES);
+    let help = format!(
+        "Up to {MAX_MESSAGE_LEN} characters. Leave blank to post just the image."
+    );
 
     Ok(view! {
-        <fieldset class="settings-section">
-            <legend>
-                icon(name: Icon::Message)
-                "Messages"
-            </legend>
-            if let Some(result) = outcome {
-                save_feedback(outcome: result)
-            }
-            <form method="post" action=(action) data-pending="">
+        <section
+            class="settings-section"
+            id=(MESSAGES)
+            aria-labelledby="greeting-messages-title"
+        >
+            <h2 class="label" id="greeting-messages-title">"Messages"</h2>
+            <form
+                method="post"
+                action=(form_action(guild_id, PAGE, GreetingAction::SaveMessages))
+                data-pending=""
+                data-dirty-guard=""
+            >
+                if let Some(message) = sent.summary() {
+                    form_summary(form: MESSAGES, message: message)
+                }
                 <input type="hidden" name="guild" value=(guild_id)>
-                setting_field(
-                    label: "Good morning message",
+                text_row(
+                    form: MESSAGES,
                     name: "morning_message",
-                    value: morning,
-                    pattern: ANY_TEXT
+                    label: "Good morning message",
+                    value: sent.value("morning_message", morning),
+                    help: Some(&help),
+                    error: sent.error("morning_message")
                 )
-                setting_field(
-                    label: "Good night message",
+                text_row(
+                    form: MESSAGES,
                     name: "night_message",
-                    value: night,
-                    pattern: ANY_TEXT
+                    label: "Good night message",
+                    value: sent.value("night_message", night),
+                    help: Some(&help),
+                    error: sent.error("night_message")
                 )
                 placeholder_legend()
-                save_button()
+                save_bar(notice: state.notice_for(MESSAGES))
             </form>
-        </fieldset>
-    })
+        </section>
+    }
+    .boxed())
 }
 
 #[component]
@@ -64,7 +73,6 @@ async fn placeholder_legend() -> Result<impl View> {
                 <code>"{author}"</code>
                 " - mentions whoever ran the command."
             </li>
-            <li>"Leave a message blank to post just the image."</li>
         </ul>
     })
 }

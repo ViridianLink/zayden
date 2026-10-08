@@ -300,23 +300,45 @@ async fn save(pool: &PgPool, raw: RawLoadout) -> TestResult<i32> {
 
 fn confirm(id: i32, name: &str) -> String {
     format!(
-        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-danger" data-confirm-trigger="">Delete</button><dialog class="dialog" aria-labelledby="loadout-{id}-delete-title" aria-describedby="loadout-{id}-delete-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="loadout-{id}-delete-title">Delete loadout “{name}”?</h2><p class="dialog-desc" id="loadout-{id}-delete-desc">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Delete loadout</button></div></div></dialog></div>"#
+        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" data-confirm-trigger="">Delete</button><dialog class="dialog" aria-labelledby="loadout-{id}-delete-title" aria-describedby="loadout-{id}-delete-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="loadout-{id}-delete-title">Delete loadout “{name}”?</h2><p class="dialog-desc" id="loadout-{id}-delete-desc">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Delete loadout</button></div></div></dialog></div>"#
     )
 }
 
-fn row(id: i32, name: &str, meta: &str) -> String {
+fn row(id: i32, name: &str, cells: [&str; 4]) -> String {
+    let [class, element, mode, author] = cells;
     format!(
-        r#"<div class="loadout-row"><a href="{LIST}/{id}" class="loadout-name">{name}</a><span class="loadout-meta">{meta}</span><form method="post" action="{LIST}" data-pending=""><input type="hidden" name="id" value="{id}">{}</form></div>"#,
+        r#"<tr role="row"><th scope="row" role="rowheader" data-label="Loadout"><a href="{LIST}/{id}" class="loadout-name">{name}</a></th><td role="cell" data-label="Class">{class}</td><td role="cell" data-label="Subclass">{element}</td><td role="cell" data-label="Mode">{mode}</td><td role="cell" data-label="Author">{author}</td><td role="cell" data-label="Action"><form method="post" action="{LIST}" data-pending=""><input type="hidden" name="id" value="{id}">{}</form></td></tr>"#,
         confirm(id, name)
     )
 }
 
-const HEADER: &str = r#"<div class="page"><div class="page-header"><div><h1>Destiny 2 Loadouts</h1><p class="page-lead">Builds shown by /destiny2 builds. Saves apply to the bot immediately.</p></div><a href="/admin/destiny2/loadouts/new" class="btn btn-primary">New loadout</a></div>"#;
+const HEADER: &str = r#"<div class="page"><div class="page-header"><div><h1>Loadout builder</h1><p class="page-lead">Builds shown by /destiny2 builds. Saves apply to the bot immediately.</p></div><a href="/admin/destiny2/loadouts/new" class="btn btn-primary">New loadout</a></div>"#;
+const NO_FLASH: &str = r#"<div class="flash-region" role="status"></div>"#;
 const SKELETONS: &str = r#"<div class="skeleton-list"><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div><div class="skeleton-row" aria-hidden="true"></div></div>"#;
-const FILTER: &str = r#"<select class="input loadout-filter" aria-label="Filter by class"><option value="">All classes</option><option value="Hunter">Hunter</option><option value="Titan">Titan</option><option value="Warlock">Warlock</option></select>"#;
+const FILTER: &str = r#"<div class="field-row"><label class="field-label" for="loadout-class-filter">Class</label><div class="select"><select class="input loadout-filter" id="loadout-class-filter"><option value="">All classes</option><option value="Hunter">Hunter</option><option value="Titan">Titan</option><option value="Warlock">Warlock</option></select><span class="select-chevron"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></div></div>"#;
+const TABLE_HEAD: &str = r#"<div class="data-table-wrap"><table class="data-table" role="table"><caption class="visually-hidden">Loadouts</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Loadout</th><th scope="col" role="columnheader">Class</th><th scope="col" role="columnheader">Subclass</th><th scope="col" role="columnheader">Mode</th><th scope="col" role="columnheader">Author</th><th scope="col" role="columnheader">Action</th></tr></thead><tbody role="rowgroup">"#;
+
+/// The 403 page a signed-in viewer without the role gets.
+fn forbidden(who: &str) -> String {
+    format!(
+        r#"<main id="main" class="app-main" tabindex="-1"><div class="page"><section class="error-panel"><h1 class="error-title">You don't have access to this page</h1><p class="error-text">This page is for Zayden's {who}.</p><div class="error-actions"><a href="/guilds" class="btn btn-primary">Back to servers</a></div></section></div></main>"#
+    )
+}
+
+/// The `name=value` pair of the flash cookie a response sets.
+fn flash_cookie(response: &Response) -> Option<String> {
+    response
+        .headers()
+        .get_all(header::SET_COOKIE)
+        .iter()
+        .filter_map(|value| value.to_str().ok())
+        .find(|value| value.starts_with("flash=") && !value.starts_with("flash=;"))
+        .and_then(|value| value.split(';').next())
+        .map(str::to_owned)
+}
 
 #[sqlx::test(migrations = "../migrations")]
-async fn the_server_list_refuses_in_the_page(
+async fn the_server_list_sends_visitors_to_sign_in_and_refuses_users_without_the_role(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
@@ -328,30 +350,30 @@ async fn the_server_list_refuses_in_the_page(
     assert!(has_role(&pool, 50, WebRole::Admin).await.unwrap());
     assert!(!has_role(&pool, 50, WebRole::Operator).await.unwrap());
 
-    let denied = r#"<div class="page"><div class="page-header"><div><h1>All Servers</h1><p class="page-lead">Every server Zayden is in. Operator access ignores your own permissions in them.</p></div></div><p class="error">Operator access is required to list every server.</p></div>"#;
-    for cookie in [None, Some("session=unknown"), Some(MEMBER), Some(ADMIN)] {
-        let html = app.page("/admin/servers", cookie).await.unwrap();
-        assert!(html.contains(denied), "{cookie:?}: {html}");
+    for cookie in [None, Some("session=unknown")] {
+        let response = app.get("/admin/servers", cookie).await.unwrap();
+        assert_eq!(response.status(), StatusCode::SEE_OTHER, "{cookie:?}");
+        assert_eq!(location(&response), Some("/login"), "{cookie:?}");
+    }
+    for cookie in [MEMBER, ADMIN] {
+        let response = app.get("/admin/servers", Some(cookie)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN, "{cookie}");
+        let html = body_text(response).await.unwrap();
+        assert!(html.contains(&forbidden("operators")), "{cookie}: {html}");
+        assert!(!html.contains("operator-tools"), "{html}");
         assert!(
-            html.contains(r#"<main id="main" class="app-main" tabindex="-1">"#),
+            html.contains("<title>All bot servers - Zayden Dashboard</title>"),
             "{html}"
         );
-        assert!(!html.contains("operator-tools"), "{html}");
+        assert!(!html.contains(r#"href="/admin/servers""#), "{html}");
     }
-
-    let html = app.page("/admin/servers", Some(ADMIN)).await.unwrap();
-    assert!(
-        html.contains("<title>All Servers - Zayden Dashboard</title>"),
-        "{html}"
-    );
-    assert!(!html.contains(r#"href="/admin/servers""#), "{html}");
-    assert_eq!(SERVERS_TITLE, "All Servers - Zayden Dashboard");
+    assert_eq!(SERVERS_TITLE, "All bot servers - Zayden Dashboard");
 
     pool.close().await;
 }
 
 #[sqlx::test(migrations = "../migrations")]
-async fn the_loadout_list_shows_rows_and_refuses_in_the_page(
+async fn the_loadout_list_shows_a_filterable_table_and_refuses_without_the_role(
     options: PgPoolOptions,
     connect: PgConnectOptions,
 ) {
@@ -383,29 +405,26 @@ async fn the_loadout_list_shows_rows_and_refuses_in_the_page(
     let html = app.page(LIST, Some(ADMIN)).await.unwrap();
     let rows: String = stored
         .iter()
-        .map(|l| {
-            row(
-                l.id,
-                &l.name,
-                &format!(
-                    "{} \u{2022} {} \u{2022} {} \u{2022} by {}",
-                    l.class, l.element, l.mode, l.author
-                ),
-            )
-        })
+        .map(|l| row(l.id, &l.name, [&l.class, &l.element, &l.mode, &l.author]))
         .collect();
+    let total = stored.len();
     assert!(
-        html.contains(&format!(r#"<div class="loadout-table">{rows}</div>"#)),
+        html.contains(&format!(
+            r#"<p class="operator-count" role="status">{total} of {total} loadouts</p>{TABLE_HEAD}{rows}</tbody></table></div>"#
+        )),
         "{html}"
     );
-    assert!(html.contains(&format!("{HEADER}{FILTER}{SKELETONS}</div>")), "{html}");
-    assert!(html.contains(&row(
-        hunter,
-        "Pages Shatter",
-        "Hunter \u{2022} Arc \u{2022} PvE \u{2022} by Oscar"
-    )));
-    assert!(!html.contains("alert"), "{html}");
-    assert_eq!(html.matches(r#"class="loadout-row""#).count(), stored.len());
+    assert!(
+        html.contains(&format!("{HEADER}{NO_FLASH}{FILTER}{SKELETONS}</div>")),
+        "{html}"
+    );
+    assert!(
+        html.contains(&row(hunter, "Pages Shatter", [
+            "Hunter", "Arc", "PvE", "Oscar"
+        ]))
+    );
+    assert!(!html.contains("flash-text"), "{html}");
+    assert_eq!(html.matches(r#"class="loadout-name""#).count(), stored.len());
     assert!(
         html.contains(
             r#"<a href="/admin/destiny2/loadouts" class="nav-link" aria-current="page">"#
@@ -413,58 +432,38 @@ async fn the_loadout_list_shows_rows_and_refuses_in_the_page(
         "{html}"
     );
     assert!(
-        html.contains("<title>Loadout Builder - Zayden Dashboard</title>"),
+        html.contains("<title>Loadout builder - Zayden Dashboard</title>"),
         "{html}"
     );
-    assert_eq!(LOADOUTS_TITLE, "Loadout Builder - Zayden Dashboard");
+    assert_eq!(LOADOUTS_TITLE, "Loadout builder - Zayden Dashboard");
 
     let raw = app.raw_page(LIST, Some(ADMIN)).await.unwrap();
     assert_eq!(raw.matches(" data-topcoat-on:change=").count(), 1, "{raw}");
     assert_eq!(
-        raw.matches(r#"class="loadout-row" data-topcoat-bind:hidden="#).count(),
+        raw.matches(r#"<tr role="row" data-topcoat-bind:hidden="#).count(),
         stored.len(),
         "{raw}"
     );
+    assert!(raw.contains("String.fromCharCode(10)"), "{raw}");
     assert_eq!(raw.matches(r#"data-pending="""#).count(), stored.len());
 
-    let denied =
-        r#"<p class="error">Admin access is required to edit loadouts.</p>"#;
-    for cookie in [None, Some("session=unknown"), Some(MEMBER)] {
-        let html = app.page(LIST, cookie).await.unwrap();
-        assert!(html.contains(denied), "{cookie:?}: {html}");
-        assert!(html.contains(&format!("{HEADER}{FILTER}")), "{html}");
-        assert!(!html.contains("loadout-row"), "{html}");
+    for cookie in [None, Some("session=unknown")] {
+        let response = app.get(LIST, cookie).await.unwrap();
+        assert_eq!(response.status(), StatusCode::SEE_OTHER, "{cookie:?}");
+        assert_eq!(location(&response), Some("/login"), "{cookie:?}");
     }
+    let response = app.get(LIST, Some(MEMBER)).await.unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let html = body_text(response).await.unwrap();
+    assert!(html.contains(&forbidden("loadout admins")), "{html}");
+    assert!(!html.contains("loadout-name"), "{html}");
 
-    let html = app.page(&format!("{LIST}?deleted=1"), Some(ADMIN)).await.unwrap();
-    assert!(
-        html.contains(
-            r#"</div><div class="alert success" role="status"><span>Loadout deleted.</span>"#
-        ),
-        "{html}"
-    );
-    assert!(html.contains(FILTER), "{html}");
-    assert_eq!(html.matches(r#"class="loadout-row""#).count(), stored.len());
-
-    for query in [
-        "deleted=0",
-        "deleted=yes",
-        "deleted=",
-        "other=1",
-        "deleted=%FF",
-        "deleted=0&deleted=0",
-        "%FF=1",
-    ] {
-        let html = app.page(&format!("{LIST}?{query}"), Some(ADMIN)).await.unwrap();
-        assert!(!html.contains("alert"), "{query}: {html}");
-        assert_eq!(html.matches(r#"class="loadout-row""#).count(), stored.len());
-    }
     for query in
-        ["deleted=1&deleted=1", "deleted=0&deleted=1", "deleted=1&deleted=%FF"]
+        ["deleted=1", "deleted=1&deleted=1", "deleted=0", "other=1", "%FF=1"]
     {
         let html = app.page(&format!("{LIST}?{query}"), Some(ADMIN)).await.unwrap();
-        assert!(html.contains("Loadout deleted."), "{query}: {html}");
-        assert_eq!(html.matches(r#"class="loadout-row""#).count(), stored.len());
+        assert!(!html.contains("Loadout deleted."), "{query}: {html}");
+        assert_eq!(html.matches(r#"class="loadout-name""#).count(), stored.len());
     }
 
     pool.close().await;
@@ -486,66 +485,67 @@ async fn a_delete_goes_back_to_the_list_or_says_why_not(
     assert!(has_role(&pool, 50, WebRole::Admin).await.unwrap());
     let before = summaries(&pool).await.unwrap().len();
 
+    let response = app.post(LIST, &format!("id={gone}"), None).await.unwrap();
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/login"));
+    let response =
+        app.post(LIST, &format!("id={gone}"), Some(MEMBER)).await.unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    assert!(
+        body_text(response).await.unwrap().contains(&forbidden("loadout admins"))
+    );
+    assert_eq!(summaries(&pool).await.unwrap().len(), before);
+
     let refused = |message: &str| {
         format!(
-            r#"<div class="alert error" role="alert"><span>Failed to delete: error running server function: {message}</span>"#
+            r#"{NO_FLASH}<div class="error" id="delete-summary" role="alert" tabindex="-1" autofocus="">Not deleted: {message}</div>"#
         )
     };
     let attempts = [
-        (None, format!("id={gone}"), "unauthenticated".to_owned()),
-        (Some(MEMBER), format!("id={gone}"), "forbidden".to_owned()),
-        (
-            Some(ADMIN),
-            "id=abc".to_owned(),
-            "loadout id `abc` is not a whole number".to_owned(),
-        ),
-        (Some(ADMIN), String::new(), "missing field `id`".to_owned()),
-        (
-            Some(ADMIN),
-            format!("id={gone}&id={keep}"),
-            "duplicate field `id`".to_owned(),
-        ),
-        (
-            Some(ADMIN),
-            format!("id={gone}&extra=1"),
-            "unknown field `extra`".to_owned(),
-        ),
-        (
-            Some(ADMIN),
-            "id=987654".to_owned(),
-            "loadout 987654 does not exist".to_owned(),
-        ),
+        ("id=abc".to_owned(), "loadout id `abc` is not a whole number".to_owned()),
+        (String::new(), "missing field `id`".to_owned()),
+        (format!("id={gone}&id={keep}"), "duplicate field `id`".to_owned()),
+        (format!("id={gone}&extra=1"), "unknown field `extra`".to_owned()),
+        ("id=987654".to_owned(), "loadout 987654 does not exist".to_owned()),
     ];
-    for (cookie, body, message) in attempts {
-        let response = app.post(LIST, &body, cookie).await.unwrap();
+    for (body, message) in attempts {
+        let response = app.post(LIST, &body, Some(ADMIN)).await.unwrap();
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY, "{body}");
         let html = body_text(response).await.unwrap();
         assert!(html.contains(&refused(&message)), "{body}: {html}");
         assert!(
-            html.contains("<title>Loadout Builder - Zayden Dashboard</title>"),
+            html.contains("<title>Loadout builder - Zayden Dashboard</title>"),
             "{html}"
         );
-        assert!(html.contains("<h1>Destiny 2 Loadouts</h1>"), "{html}");
+        assert!(html.contains("<h1>Loadout builder</h1>"), "{html}");
+        assert!(!html.contains("error running server function"), "{html}");
         assert_eq!(summaries(&pool).await.unwrap().len(), before, "{body}");
     }
 
     let response = app.post(LIST, &format!("id={gone}"), Some(ADMIN)).await.unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
-    assert_eq!(location(&response), Some("/admin/destiny2/loadouts?deleted=1"));
+    assert_eq!(location(&response), Some(LIST));
+    let flash = flash_cookie(&response).unwrap();
     let left = summaries(&pool).await.unwrap();
     assert_eq!(left.len(), before - 1);
     assert!(left.iter().any(|l| l.id == keep) && left.iter().all(|l| l.id != gone));
 
-    let html = app.page(&format!("{LIST}?deleted=1"), Some(ADMIN)).await.unwrap();
+    let html = app.page(LIST, Some(&format!("{ADMIN}; {flash}"))).await.unwrap();
     assert!(
-        html.contains(r#"<div class="alert success" role="status"><span>Loadout deleted.</span>"#),
+        html.contains(r#"<div class="flash-region" role="status"><p class="flash flash-success" data-flash="">"#),
         "{html}"
     );
-    assert_eq!(html.matches(r#"class="loadout-row""#).count(), before - 1);
+    assert!(
+        html.contains(r#"<span class="flash-text">Loadout deleted.</span>"#),
+        "{html}"
+    );
+    assert_eq!(html.matches(r#"class="loadout-name""#).count(), before - 1);
     assert!(
         html.contains("Pages Keeper") && !html.contains("Pages Goner"),
         "{html}"
     );
+    let html = app.page(LIST, Some(ADMIN)).await.unwrap();
+    assert!(!html.contains("Loadout deleted."), "{html}");
 
     let response = app.post(LIST, &format!("id={gone}"), Some(ADMIN)).await.unwrap();
     assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);

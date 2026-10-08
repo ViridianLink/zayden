@@ -12,8 +12,8 @@ pub use guild_layout::GuildId;
 use topcoat::router::RouterBuilder;
 
 pub const GUILDS_TITLE: &str = "Servers - Zayden Dashboard";
-pub const OVERVIEW_TITLE: &str = "Modules - Zayden Dashboard";
-pub const UPGRADE_TITLE: &str = "Upgrade - Zayden Dashboard";
+pub const OVERVIEW_TITLE: &str = "Overview - Zayden Dashboard";
+pub const UPGRADE_TITLE: &str = "Plans - Zayden";
 
 #[must_use]
 pub fn routes(base: RouterBuilder) -> RouterBuilder {
