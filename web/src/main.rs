@@ -48,13 +48,26 @@ async fn run() -> Result<(), StartupError> {
     let assets = AssetBundle::load().map_err(StartupError::AssetBundle)?;
 
     let addr = config::bind_addr(&config)?;
+    let cookie_key = config::cookie_key()?;
     let listener = TcpListener::bind(addr).await.map_err(StartupError::Listen)?;
 
     EventListener::spawn(app.db.clone(), app.events.clone());
     session_pruning::spawn(app.db.clone());
 
-    info!("Dashboard listening on {addr}");
     let base = Router::builder().app_context(state).assets(assets);
+    let base = match cookie_key {
+        Some(key) => base.app_context(key),
+        None => {
+            warn!(
+                "{} is not set; flash cookies are signed with a per-process key \
+                 and do not survive a restart",
+                config::COOKIE_KEY_ENV
+            );
+            base
+        },
+    };
+
+    info!("Dashboard listening on {addr}");
     topcoat::serve(listener, router(base)).await.map_err(StartupError::Serve)
 }
 

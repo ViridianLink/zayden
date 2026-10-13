@@ -1,5 +1,4 @@
 :root {
-    /* Primitives: raw values, named by what they are. */
     --ink-950: #080c14;
     --ink-900: #0e1420;
     --ink-850: #151d2b;
@@ -18,8 +17,6 @@
     --coral-950: #1c0a06;
     --amber-400: #f2b84b;
 
-    /* Semantic: what components read. Contrast ratios are in
-       docs/migration/design/tokens.md. */
     --bg: var(--ink-950);
     --surface-1: var(--ink-900);
     --surface-2: var(--ink-850);
@@ -55,8 +52,6 @@
     --font-code: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo,
         Consolas, monospace;
 
-    /* Spacing ramp. Linear on a 4px grid through 2rem, then geometric; every
-     padding, margin and gap in the partials snaps to a step. */
     --space-1: 0.25rem;
     --space-2: 0.5rem;
     --space-3: 0.75rem;
@@ -91,7 +86,6 @@
     --accent: var(--steel-200);
 }
 
-/* Registry component tokens, mapped onto the semantic layer in one place. */
 :root,
 .dark {
     color-scheme: dark;

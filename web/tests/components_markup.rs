@@ -14,27 +14,17 @@ use twilight_model::util::ImageHash;
 use web::auth::{ChannelInfo, ForumTagInfo, RoleInfo};
 use web::components::confirm::confirm_button;
 use web::components::confirm_dialog::confirm_dialog;
+use web::components::field_row::{Range, select_row, text_row, toggle_row};
 use web::components::guild_grid::{GuildCard, guild_grid};
 use web::components::icons::{Icon, icon, module_icon, module_tint};
-use web::components::key_list::key_list_field;
 use web::components::pickers::{
     Channel,
     ForumTag,
     Role,
     SelectOption,
-    channel_select,
-    forum_tag_select,
-    role_select,
-    select_field,
-};
-use web::components::settings::{
-    alert,
-    create_feedback,
-    delete_feedback,
-    save_button,
-    save_feedback,
-    setting_field,
-    toggle_field,
+    channel_options,
+    forum_tag_options,
+    role_options,
 };
 use web::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 
@@ -465,9 +455,10 @@ async fn guild_grid_links_every_guild_to_its_overview() {
 #[page("/select/known")]
 async fn select_known() -> ViewResult<impl View> {
     Ok(view! {
-        select_field(
-            label: "Log channel",
+        select_row(
+            form: "logs",
             name: "log_channel",
+            label: "Log channel",
             selected: "20",
             options: Ok(options())
         )
@@ -477,9 +468,10 @@ async fn select_known() -> ViewResult<impl View> {
 #[page("/select/unset")]
 async fn select_unset() -> ViewResult<impl View> {
     Ok(view! {
-        select_field(
-            label: "Log channel",
+        select_row(
+            form: "logs",
             name: "log_channel",
+            label: "Log channel",
             selected: "",
             options: Ok(options())
         )
@@ -489,11 +481,14 @@ async fn select_unset() -> ViewResult<impl View> {
 #[page("/select/unknown")]
 async fn select_unknown() -> ViewResult<impl View> {
     Ok(view! {
-        select_field(
-            label: "Log channel",
+        select_row(
+            form: "logs",
             name: "log_channel",
+            label: "Log channel",
             selected: "99",
-            options: Ok(options())
+            options: Ok(options()),
+            help: Some("Where reports go."),
+            error: Some("Pick a text channel.")
         )
     })
 }
@@ -501,11 +496,12 @@ async fn select_unknown() -> ViewResult<impl View> {
 #[page("/select/locked")]
 async fn select_locked() -> ViewResult<impl View> {
     Ok(view! {
-        select_field(
-            label: "Log channel",
+        select_row(
+            form: "logs",
             name: "log_channel",
+            label: "Log channel",
             selected: "99",
-            options: Err("Discord is down".to_owned())
+            options: Err("Discord is down")
         )
     })
 }
@@ -513,17 +509,18 @@ async fn select_locked() -> ViewResult<impl View> {
 #[page("/select/locked-unset")]
 async fn select_locked_unset() -> ViewResult<impl View> {
     Ok(view! {
-        select_field(
-            label: "Log channel",
+        select_row(
+            form: "logs",
             name: "log_channel",
+            label: "Log channel",
             selected: "",
-            options: Err("Discord is down".to_owned())
+            options: Err("Discord is down")
         )
     })
 }
 
 #[tokio::test]
-async fn select_field_marks_the_stored_option() {
+async fn select_row_marks_the_stored_option() {
     let html =
         render(Router::builder().page(select_known), "/select/known").await.unwrap();
 
@@ -531,8 +528,8 @@ async fn select_field_marks_the_stored_option() {
         html,
         format!(
             concat!(
-                r#"<div class="setting-field"><label for="field-log_channel">Log channel</label><div class="select">"#,
-                r#"<select class="input" id="field-log_channel" name="log_channel"><option value="">(not set)</option>"#,
+                r#"<div class="field-row"><label class="field-label" for="logs-log-channel">Log channel</label><div class="select">"#,
+                r#"<select class="input" id="logs-log-channel" name="log_channel"><option value="">(not set)</option>"#,
                 r##"<option value="10"># general</option><option value="20" selected># rules</option></select>"##,
                 r#"<span class="select-chevron">{}</span></div></div>"#,
             ),
@@ -542,7 +539,7 @@ async fn select_field_marks_the_stored_option() {
 }
 
 #[tokio::test]
-async fn select_field_selects_not_set_when_nothing_is_stored() {
+async fn select_row_selects_not_set_when_nothing_is_stored() {
     let html =
         render(Router::builder().page(select_unset), "/select/unset").await.unwrap();
 
@@ -551,7 +548,7 @@ async fn select_field_selects_not_set_when_nothing_is_stored() {
 }
 
 #[tokio::test]
-async fn select_field_keeps_an_unknown_stored_id() {
+async fn select_row_keeps_an_unknown_stored_id_and_carries_help_and_error() {
     let html = render(Router::builder().page(select_unknown), "/select/unknown")
         .await
         .unwrap();
@@ -561,6 +558,14 @@ async fn select_field_keeps_an_unknown_stored_id() {
         r#"<option value="10">"#,
     )));
     assert_eq!(html.matches(" selected").count(), 1);
+    assert!(html.starts_with(r#"<div class="field-row" data-invalid="">"#));
+    assert!(html.contains(
+        r#"aria-describedby="logs-log-channel-help logs-log-channel-error" aria-invalid="true""#
+    ));
+    assert!(html.ends_with(concat!(
+        r#"<p class="field-help" id="logs-log-channel-help">Where reports go.</p>"#,
+        r#"<p class="field-error" id="logs-log-channel-error">Pick a text channel.</p></div>"#,
+    )));
 }
 
 #[tokio::test]
@@ -573,11 +578,11 @@ async fn locked_select_posts_the_stored_value_through_a_hidden_input() {
         html,
         format!(
             concat!(
-                r#"<div class="setting-field"><label for="field-log_channel">Log channel</label><div class="select">"#,
-                r#"<select class="input" id="field-log_channel" aria-describedby="field-log_channel-help" disabled><option selected>Unchanged (99)</option></select>"#,
+                r#"<div class="field-row"><label class="field-label" for="logs-log-channel">Log channel</label><div class="select">"#,
+                r#"<select class="input" id="logs-log-channel" aria-describedby="logs-log-channel-help" disabled><option selected>Unchanged (99)</option></select>"#,
                 r#"<span class="select-chevron">{}</span></div>"#,
                 r#"<input type="hidden" name="log_channel" value="99">"#,
-                r#"<p class="field-hint field-warning" id="field-log_channel-help">Discord is down</p></div>"#,
+                r#"<p class="field-help" id="logs-log-channel-help">Discord is down</p></div>"#,
             ),
             CHEVRON_DOWN
         )
@@ -595,8 +600,15 @@ async fn locked_select_with_nothing_stored_reads_not_set() {
     assert!(html.contains(r#"<input type="hidden" name="log_channel" value="">"#));
 }
 
-#[page("/select/channels")]
-async fn select_channels() -> ViewResult<impl View> {
+fn labels(options: &[SelectOption]) -> Vec<(&str, &str)> {
+    options
+        .iter()
+        .map(|option| (option.value.as_str(), option.label.as_str()))
+        .collect()
+}
+
+#[test]
+fn channel_options_prefix_each_label_by_channel_type() {
     let channels = [
         channel("1", "chat", ChannelType::GuildText),
         channel("2", "lounge", ChannelType::GuildVoice),
@@ -606,126 +618,52 @@ async fn select_channels() -> ViewResult<impl View> {
         channel("6", "help", ChannelType::GuildForum),
         channel("7", "thread", ChannelType::PublicThread),
     ];
-    Ok(view! {
-        channel_select(
-            label: "Channel",
-            name: "channel",
-            selected: "",
-            channels: Ok(&channels)
-        )
-    })
+    let options = channel_options(Ok(&channels), &[]).unwrap();
+
+    assert_eq!(labels(&options), [
+        ("1", "# chat"),
+        ("2", "🔊 lounge"),
+        ("3", "▸ Info"),
+        ("4", "📢 news"),
+        ("5", "🎤 stage"),
+        ("6", "💬 help"),
+        ("7", "# thread"),
+    ]);
 }
 
-#[page("/select/channels-filtered")]
-async fn select_channels_filtered() -> ViewResult<impl View> {
+#[test]
+fn channel_options_filter_by_kind() {
     let channels = [
         channel("1", "chat", ChannelType::GuildText),
         channel("3", "Info", ChannelType::GuildCategory),
     ];
-    Ok(view! {
-        channel_select(
-            label: "Category",
-            name: "category",
-            selected: "",
-            channels: Ok(&channels),
-            kinds: &[ChannelType::GuildCategory]
-        )
-    })
+    let options =
+        channel_options(Ok(&channels), &[ChannelType::GuildCategory]).unwrap();
+
+    assert_eq!(labels(&options), [("3", "▸ Info")]);
 }
 
-#[page("/select/channels-down")]
-async fn select_channels_down() -> ViewResult<impl View> {
-    Ok(view! {
-        channel_select(
-            label: "Channel",
-            name: "channel",
-            selected: "5",
-            channels: Err("timeout")
-        )
-    })
+#[test]
+fn unreachable_lists_explain_themselves() {
+    assert_eq!(
+        channel_options(Err("timeout"), &[]).unwrap_err(),
+        "Couldn't reach Discord; the channel list is unavailable. Saving keeps the current value. (timeout)"
+    );
+    assert_eq!(
+        role_options(Err("timeout")).unwrap_err(),
+        "Couldn't reach Discord; the role list is unavailable. Saving keeps the current value. (timeout)"
+    );
 }
 
-#[tokio::test]
-async fn channel_select_prefixes_each_label_by_channel_type() {
-    let html = render(Router::builder().page(select_channels), "/select/channels")
-        .await
-        .unwrap();
-
-    assert!(html.contains(concat!(
-        r##"<option value="1"># chat</option>"##,
-        r#"<option value="2">🔊 lounge</option>"#,
-        r#"<option value="3">▸ Info</option>"#,
-        r#"<option value="4">📢 news</option>"#,
-        r#"<option value="5">🎤 stage</option>"#,
-        r#"<option value="6">💬 help</option>"#,
-        r##"<option value="7"># thread</option>"##,
-    )));
-}
-
-#[tokio::test]
-async fn channel_select_filters_by_kind() {
-    let html = render(
-        Router::builder().page(select_channels_filtered),
-        "/select/channels-filtered",
-    )
-    .await
-    .unwrap();
-
-    assert!(html.contains(r#"<option value="3">▸ Info</option>"#));
-    assert!(!html.contains("chat"));
-}
-
-#[tokio::test]
-async fn channel_select_explains_an_unreachable_channel_list() {
-    let html = render(
-        Router::builder().page(select_channels_down),
-        "/select/channels-down",
-    )
-    .await
-    .unwrap();
-
-    assert!(html.contains(concat!(
-        r#"<p class="field-hint field-warning" id="field-channel-help">Couldn't reach Discord; the channel list is "#,
-        "unavailable. Saving keeps the current value. (timeout)</p>",
-    )));
-    assert!(html.contains("<option selected>Unchanged (5)</option>"));
-}
-
-#[page("/select/roles")]
-async fn select_roles() -> ViewResult<impl View> {
+#[test]
+fn role_options_label_roles_with_an_at_sign() {
     let roles = [Role { id: "8".to_owned(), name: "Mods".to_owned() }];
-    Ok(view! {
-        role_select(label: "Role", name: "role", selected: "8", roles: Ok(&roles))
-    })
+
+    assert_eq!(labels(&role_options(Ok(&roles)).unwrap()), [("8", "@Mods")]);
 }
 
-#[page("/select/roles-down")]
-async fn select_roles_down() -> ViewResult<impl View> {
-    Ok(view! {
-        role_select(label: "Role", name: "role", selected: "", roles: Err("timeout"))
-    })
-}
-
-#[tokio::test]
-async fn role_select_labels_roles_with_an_at_sign() {
-    let html =
-        render(Router::builder().page(select_roles), "/select/roles").await.unwrap();
-
-    assert!(html.contains(r#"<option value="8" selected>@Mods</option>"#));
-}
-
-#[tokio::test]
-async fn role_select_explains_an_unreachable_role_list() {
-    let html =
-        render(Router::builder().page(select_roles_down), "/select/roles-down")
-            .await
-            .unwrap();
-
-    assert!(html.contains("Discord; the role list is unavailable. Saving keeps the current value. (timeout)</p>"));
-}
-
-#[page("/select/tags")]
-async fn select_tags() -> ViewResult<impl View> {
+#[test]
+fn forum_tag_options_flatten_tags_under_their_forum() {
     let mut forum = channel("6", "help", ChannelType::GuildForum);
     forum.tags =
         vec![ForumTag { id: "61".to_owned(), name: "Open".to_owned() }, ForumTag {
@@ -733,39 +671,27 @@ async fn select_tags() -> ViewResult<impl View> {
             name: "Solved".to_owned(),
         }];
     let channels = [channel("1", "chat", ChannelType::GuildText), forum];
-    Ok(view! {
-        forum_tag_select(
-            label: "Tag",
-            name: "tag",
-            selected: "62",
-            channels: Ok(&channels)
-        )
-    })
-}
 
-#[tokio::test]
-async fn forum_tag_select_flattens_tags_under_their_forum() {
-    let html =
-        render(Router::builder().page(select_tags), "/select/tags").await.unwrap();
-
-    assert!(html.contains(concat!(
-        r#"<option value="">(not set)</option>"#,
-        r##"<option value="61">#help / Open</option>"##,
-        r##"<option value="62" selected>#help / Solved</option></select>"##,
-    )));
+    assert_eq!(labels(&forum_tag_options(Ok(&channels)).unwrap()), [
+        ("61", "#help / Open"),
+        ("62", "#help / Solved"),
+    ]);
 }
 
 #[page("/toggle/on")]
 async fn toggle_on() -> ViewResult<impl View> {
-    Ok(view! { toggle_field(label: "Enabled", name: "enabled", value: true) })
+    Ok(
+        view! { toggle_row(form: "ai", name: "enabled", label: "Enabled", value: true) },
+    )
 }
 
 #[page("/toggle/off")]
 async fn toggle_off() -> ViewResult<impl View> {
     Ok(view! {
-        toggle_field(
-            label: "Visibility",
+        toggle_row(
+            form: "patreon",
             name: "public_only",
+            label: "Visibility",
             value: false,
             on_label: "Public only",
             off_label: "All posts"
@@ -774,7 +700,7 @@ async fn toggle_off() -> ViewResult<impl View> {
 }
 
 #[tokio::test]
-async fn toggle_field_is_a_true_false_select() {
+async fn toggle_row_is_a_true_false_select() {
     let html =
         render(Router::builder().page(toggle_on), "/toggle/on").await.unwrap();
 
@@ -782,9 +708,9 @@ async fn toggle_field_is_a_true_false_select() {
         html,
         format!(
             concat!(
-                r#"<div class="setting-field"><label for="field-enabled">Enabled</label><div class="select">"#,
-                r#"<select class="input" id="field-enabled" name="enabled"><option value="true" selected>Enabled</option>"#,
-                r#"<option value="false">Disabled</option></select>"#,
+                r#"<div class="field-row"><label class="field-label" for="ai-enabled">Enabled</label><div class="select">"#,
+                r#"<select class="input" id="ai-enabled" name="enabled"><option value="true" selected>On</option>"#,
+                r#"<option value="false">Off</option></select>"#,
                 r#"<span class="select-chevron">{}</span></div></div>"#,
             ),
             CHEVRON_DOWN
@@ -793,7 +719,7 @@ async fn toggle_field_is_a_true_false_select() {
 }
 
 #[tokio::test]
-async fn toggle_field_takes_custom_labels() {
+async fn toggle_row_takes_custom_labels() {
     let html =
         render(Router::builder().page(toggle_off), "/toggle/off").await.unwrap();
 
@@ -803,244 +729,58 @@ async fn toggle_field_takes_custom_labels() {
     )));
 }
 
-#[page("/setting/default")]
-async fn setting_default() -> ViewResult<impl View> {
-    Ok(
-        view! { setting_field(label: "Channel ID", name: "channel_id", value: "123") },
-    )
+#[page("/text/numeric")]
+async fn text_numeric() -> ViewResult<impl View> {
+    Ok(view! {
+        text_row(
+            form: "rr",
+            name: "message_id",
+            label: "Message ID",
+            value: "123",
+            numeric: true
+        )
+    })
 }
 
-#[page("/setting/custom")]
-async fn setting_custom() -> ViewResult<impl View> {
+#[page("/text/ranged")]
+async fn text_ranged() -> ViewResult<impl View> {
     Ok(view! {
-        setting_field(
-            label: "Image URL",
-            name: "image",
-            value: "",
-            pattern: "https://.*",
-            placeholder: "https://",
-            hint: Some("Shown in the embed."),
-            input_type: "url"
+        text_row(
+            form: "music",
+            name: "auto_disconnect",
+            label: "Auto-disconnect",
+            value: "60",
+            help: Some("Seconds."),
+            range: Some(Range { min: 0, max: Some(600) })
         )
     })
 }
 
 #[tokio::test]
-async fn setting_field_defaults_to_a_numeric_text_input() {
-    let html = render(Router::builder().page(setting_default), "/setting/default")
-        .await
-        .unwrap();
+async fn text_row_marks_numeric_input() {
+    let html =
+        render(Router::builder().page(text_numeric), "/text/numeric").await.unwrap();
 
     assert_eq!(
         html,
         concat!(
-            r#"<div class="setting-field"><label for="field-channel_id">Channel ID</label>"#,
-            r#"<input class="input" id="field-channel_id" type="text" name="channel_id" value="123" placeholder="(not set)" pattern="[0-9]*">"#,
+            r#"<div class="field-row"><label class="field-label" for="rr-message-id">Message ID</label>"#,
+            r#"<input class="input" id="rr-message-id" type="text" name="message_id" value="123" inputmode="numeric" pattern="[0-9]*" autocomplete="off">"#,
             r#"</div>"#,
         )
     );
 }
 
 #[tokio::test]
-async fn setting_field_renders_its_hint() {
-    let html = render(Router::builder().page(setting_custom), "/setting/custom")
-        .await
-        .unwrap();
+async fn text_row_bounds_a_ranged_number_and_describes_it() {
+    let html =
+        render(Router::builder().page(text_ranged), "/text/ranged").await.unwrap();
 
     assert!(html.contains(
-        r#"<input class="input" id="field-image" aria-describedby="field-image-help" type="url" name="image" value="" placeholder="https://" pattern="https://.*">"#
-    ));
-    assert!(html.contains(r#"<p class="field-hint" id="field-image-help">Shown in the embed.</p></div>"#));
-}
-
-#[page("/save-button")]
-async fn save_button_page() -> ViewResult<impl View> {
-    Ok(view! { save_button() })
-}
-
-#[page("/save-form")]
-async fn save_form_page() -> ViewResult<impl View> {
-    Ok(view! {
-        <form method="post" data-pending="">
-            setting_field(label: "Channel ID", name: "channel_id", value: "")
-            save_button()
-        </form>
-    })
-}
-
-#[tokio::test]
-async fn save_button_submits_the_form_and_names_its_pending_label() {
-    let html = render(Router::builder().page(save_button_page), "/save-button")
-        .await
-        .unwrap();
-
-    assert_eq!(
-        html,
-        concat!(
-            r#"<div class="form-actions"><button type="submit" class="btn btn-primary" "#,
-            r#"data-pending-label="Saving…">Save</button></div>"#,
-        )
-    );
-}
-
-#[tokio::test]
-async fn save_button_sits_in_a_form_that_opts_into_the_pending_state() {
-    let html =
-        render(Router::builder().page(save_form_page), "/save-form").await.unwrap();
-
-    assert!(html.starts_with(r#"<form method="post" data-pending="">"#));
-    assert!(html.ends_with(concat!(
-        r#"<button type="submit" class="btn btn-primary" data-pending-label="Saving…">"#,
-        "Save</button></div></form>",
-    )));
-    assert_eq!(html.matches("type=\"submit\"").count(), 1);
-}
-
-#[page("/alert")]
-async fn alert_page() -> ViewResult<impl View> {
-    Ok(view! { alert(class: "alert warning", role: "status", message: "Heads up") })
-}
-
-#[tokio::test]
-async fn alert_carries_its_role_and_a_labelled_dismiss_control() {
-    let html = render(Router::builder().page(alert_page), "/alert").await.unwrap();
-
-    assert_eq!(
-        html,
-        format!(
-            concat!(
-                r#"<div class="alert warning" role="status"><span>Heads up</span>"#,
-                r#"<button type="button" class="alert-dismiss" aria-label="Dismiss">{}</button></div>"#,
-            ),
-            X
-        )
-    );
-}
-
-#[tokio::test]
-async fn alert_binds_its_visibility_to_the_dismiss_button() {
-    let html =
-        render_raw(Router::builder().page(alert_page), "/alert").await.unwrap();
-
-    assert!(html.contains(
-        r#"<div class="alert warning" role="status" data-topcoat-bind:hidden="#
+        r#"<input class="input" id="music-auto-disconnect" type="number" name="auto_disconnect" value="60" min="0" max="600" step="1" autocomplete="off" aria-describedby="music-auto-disconnect-help">"#
     ));
     assert!(html.contains(
-        r#"<button type="button" class="alert-dismiss" aria-label="Dismiss" data-topcoat-on:click="#
-    ));
-    assert!(!html.contains(" hidden=\"\""), "the alert renders visible");
-}
-
-#[page("/feedback/ok")]
-async fn feedback_ok() -> ViewResult<impl View> {
-    Ok(view! {
-        save_feedback(outcome: Ok(()))
-        create_feedback(outcome: Ok(()))
-        delete_feedback(outcome: Ok(()))
-    })
-}
-
-#[page("/feedback/err")]
-async fn feedback_err() -> ViewResult<impl View> {
-    Ok(view! {
-        save_feedback(outcome: Err("nope"))
-        create_feedback(outcome: Err("no category"))
-        delete_feedback(outcome: Err("gone"))
-    })
-}
-
-#[tokio::test]
-async fn success_feedback_is_a_polite_status() {
-    let html =
-        render(Router::builder().page(feedback_ok), "/feedback/ok").await.unwrap();
-
-    for message in ["Saved.", "Creator channel created.", "Loadout deleted."] {
-        assert!(html.contains(&format!("<span>{message}</span>")), "{message}");
-    }
-    assert_eq!(
-        html.matches(r#"<div class="alert success" role="status""#).count(),
-        3
-    );
-}
-
-#[tokio::test]
-async fn failure_feedback_is_an_assertive_alert() {
-    let html =
-        render(Router::builder().page(feedback_err), "/feedback/err").await.unwrap();
-
-    for message in [
-        "Failed to save: error running server function: nope",
-        "Failed to create channel: error running server function: no category",
-        "Failed to delete: error running server function: gone",
-    ] {
-        assert!(html.contains(&format!("<span>{message}</span>")), "{message}");
-    }
-    assert_eq!(html.matches(r#"<div class="alert error" role="alert""#).count(), 3);
-}
-
-#[tokio::test]
-async fn each_alert_dismisses_independently() {
-    let html = render_raw(Router::builder().page(feedback_ok), "/feedback/ok")
-        .await
-        .unwrap();
-
-    let ids: std::collections::BTreeSet<_> = html
-        .split("data-topcoat-bind:hidden=\"")
-        .skip(1)
-        .filter_map(|rest| rest.split_once('"').map(|(binding, _)| binding))
-        .collect();
-    assert_eq!(ids.len(), 3, "three alerts need three distinct signals: {ids:?}");
-}
-
-#[page("/key-list/open")]
-async fn key_list_open() -> ViewResult<impl View> {
-    let keys = ["solar".to_owned(), "void".to_owned()];
-    Ok(view! {
-        key_list_field(label: "Tags", keys: &keys, list: "tag-suggestions", max: 3)
-    })
-}
-
-#[page("/key-list/full")]
-async fn key_list_full() -> ViewResult<impl View> {
-    let keys = ["solar".to_owned(), "void".to_owned()];
-    Ok(view! {
-        key_list_field(label: "Tags", keys: &keys, list: "tag-suggestions", max: 2)
-    })
-}
-
-#[tokio::test]
-async fn key_list_renders_a_chip_per_key_and_an_add_row() {
-    let html = render(Router::builder().page(key_list_open), "/key-list/open")
-        .await
-        .unwrap();
-
-    let chip = |key: &str| {
-        format!(
-            r#"<span class="chip"><span class="chip-label">{key}</span><button type="button" class="chip-remove" title="Remove">{X}</button></span>"#
-        )
-    };
-    assert_eq!(
-        html,
-        format!(
-            concat!(
-                r#"<div class="setting-field"><label>Tags</label><div class="chip-list">{}{}</div>"#,
-                r#"<div class="chip-add"><input class="input" list="tag-suggestions">"#,
-                r#"<button type="button" class="btn btn-secondary">Add</button></div></div>"#,
-            ),
-            chip("solar"),
-            chip("void")
-        )
-    );
-}
-
-#[tokio::test]
-async fn key_list_disables_add_at_the_limit() {
-    let html = render(Router::builder().page(key_list_full), "/key-list/full")
-        .await
-        .unwrap();
-
-    assert!(html.contains(
-        r#"<button type="button" class="btn btn-secondary" disabled>Add</button>"#
+        r#"<p class="field-help" id="music-auto-disconnect-help">Seconds.</p></div>"#
     ));
 }
 
@@ -1073,29 +813,12 @@ fn auth_roles_convert_into_select_roles() {
     assert_eq!(Role::from(info), expected);
 }
 
-#[page("/select/from-auth")]
-async fn select_from_auth() -> ViewResult<impl View> {
-    let roles: Result<Vec<RoleInfo>, String> =
-        Ok(vec![RoleInfo { id: "8".to_owned(), name: "Mods".to_owned(), color: 0 }]);
-    let roles: Result<Vec<Role>, String> =
-        roles.map(|roles| roles.iter().map(Role::from).collect());
-    Ok(view! {
-        role_select(
-            label: "Role",
-            name: "role",
-            selected: "8",
-            roles: roles.as_deref().map_err(String::as_str)
-        )
-    })
-}
+#[test]
+fn converted_auth_roles_become_role_options() {
+    let info = RoleInfo { id: "8".to_owned(), name: "Mods".to_owned(), color: 0 };
+    let roles = [Role::from(&info)];
 
-#[tokio::test]
-async fn converted_auth_roles_render_as_role_options() {
-    let html = render(Router::builder().page(select_from_auth), "/select/from-auth")
-        .await
-        .unwrap();
-
-    assert!(html.contains(r#"<option value="8" selected>@Mods</option>"#));
+    assert_eq!(labels(&role_options(Ok(&roles)).unwrap()), [("8", "@Mods")]);
 }
 
 #[test]

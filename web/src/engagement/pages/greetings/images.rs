@@ -6,11 +6,11 @@ use url::Url;
 
 use super::{GreetingAction, IMAGES, PAGE, REMOVE_IMAGE, add_image_form};
 use crate::components::confirm_dialog::confirm_dialog;
+use crate::components::field_row::{form_summary, text_row};
 use crate::components::flash::flash;
 use crate::components::icons::{Icon, icon};
 use crate::engagement::GreetingImageInfo;
 use crate::engagement::pages::action::form_action;
-use crate::engagement::pages::fields::{Constraints, form_summary, text_row};
 use crate::engagement::pages::state::PageState;
 
 const MAX_IMAGES: i64 = GreetingImage::MAX_PER_KIND;
@@ -100,11 +100,8 @@ async fn image_list(
                 value: sent.value("url", ""),
                 help: Some(LINK_HELP),
                 error: sent.error("url"),
-                constraints: Constraints {
-                    max_length: Some(MAX_URL_LEN),
-                    required: true,
-                    ..Constraints::default()
-                },
+                max_length: Some(MAX_URL_LEN),
+                required: true,
                 input_type: "url",
                 placeholder: Some("https://example.com/sunrise.gif"),
                 pattern: Some("https://.*")

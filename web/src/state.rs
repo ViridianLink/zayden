@@ -44,6 +44,7 @@ pub struct SessionIdentity {
 pub type SessionCache = Cache<String, SessionIdentity>;
 pub type UserGuildsCache = Cache<i64, Arc<[CurrentUserGuild]>>;
 pub type SessionUsersCache = Cache<i64, SessionUser>;
+pub type MemberNamesCache = Cache<(u64, u64), String>;
 
 pub struct OAuthState {
     pub client: DiscordOAuthClient,
@@ -54,6 +55,7 @@ pub struct DiscordState {
     pub http: Arc<twilight_http::Client>,
     pub user_guilds: UserGuildsCache,
     pub users: SessionUsersCache,
+    pub member_names: MemberNamesCache,
 }
 
 pub struct IntegrationsState {
@@ -96,6 +98,7 @@ impl WebState {
                 )),
                 user_guilds: cache(CACHE_TTL),
                 users: cache(USERS_CACHE_TTL),
+                member_names: cache(USERS_CACHE_TTL),
             },
             integrations: IntegrationsState {
                 patreon: config.patreon.as_ref().map(|p| PatreonApp {

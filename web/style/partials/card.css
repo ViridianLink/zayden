@@ -1,12 +1,9 @@
 .card,
 .settings-section,
-.module-card,
 .plan-card,
 .feature-card,
 .guild-card,
 .greet-card,
-.rr-table,
-.leaderboard,
 .pro-feature,
 .rack,
 .data-table-wrap,
@@ -20,7 +17,6 @@
    containers get their padding from the rows instead. */
 .card,
 .settings-section,
-.module-card,
 .plan-card,
 .feature-card {
     padding: var(--space-5);

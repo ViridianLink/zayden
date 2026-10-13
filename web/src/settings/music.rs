@@ -5,18 +5,17 @@ use topcoat::router::{RouterBuilder, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 use zayden_app::config::MusicSettingsRow;
 
-use super::fields::{
+use super::fields::{channels, roles};
+use super::header::switch_module;
+use super::state::{Done, PageState, settle};
+use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::components::field_row::{
     Range,
-    channels,
     form_summary,
-    roles,
     select_row,
     text_row,
     toggle_row,
 };
-use super::header::switch_module;
-use super::state::{Done, PageState, settle};
-use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
 use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::MusicSection;

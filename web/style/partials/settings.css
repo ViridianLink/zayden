@@ -73,6 +73,18 @@
   border-top: 1px solid var(--border);
 }
 
+.settings-section > :is(.page-lead, .field-hint, .warning, .error, .success) {
+  margin: 0 0 var(--space-4);
+}
+
+.settings-section > .label {
+  margin: 0 0 var(--space-3);
+}
+
+.settings-section > :last-child {
+  margin-bottom: 0;
+}
+
 .settings-actions {
   display: flex;
   flex-wrap: wrap;

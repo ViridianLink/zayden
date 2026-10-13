@@ -11,7 +11,7 @@ use topcoat::view::{View, ViewExt, component, view};
 use super::icons::{Icon, icon};
 use crate::admin::{guild_operator_access, is_admin, is_operator};
 use crate::nav::{GENERAL, GROUPS, ModuleNav};
-use crate::shell::link::{is_active_for, module_list_location};
+use crate::shell::link::is_active_for;
 
 const OVERVIEW: &str = "Overview";
 const ALL_SERVERS: &str = "Servers";
@@ -53,9 +53,6 @@ pub async fn nav_links(
 ) -> Result<impl View> {
     let location = uri(cx).path();
     let NavAccess { operator, admin, on_operator_page } = access;
-    let list_location = guild_id.map_or_else(String::new, |guild_id| {
-        module_list_location(guild_id, location)
-    });
     let overview = guild_id.map(|guild_id| format!("/guild/{guild_id}"));
     let settings = guild_id.map(|guild_id| GENERAL.href(guild_id));
 
@@ -83,7 +80,7 @@ pub async fn nav_links(
                         href: settings,
                         label: GENERAL.label,
                         icon_name: Some(Icon::Settings),
-                        aria_current: current(settings, &list_location, false)
+                        aria_current: current(settings, location, false)
                     )
                 </ul>
                 #[key(group.label)]
@@ -93,7 +90,7 @@ pub async fn nav_links(
                         label: group.label,
                         guild_id: guild_id,
                         entries: group.entries,
-                        location: &list_location
+                        location: location
                     )
                 }
             } else {

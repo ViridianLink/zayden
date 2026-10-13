@@ -79,6 +79,7 @@ pub async fn public_nav(
                 id=(MENU_ID)
                 popover=""
                 class="sheet-panel sheet-end"
+                role="dialog"
                 aria-label="Menu"
             >
                 <div class="sheet-head">

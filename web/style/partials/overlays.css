@@ -99,13 +99,6 @@
     overflow-y: auto;
 }
 
-.menu-empty {
-    margin: 0;
-    padding: var(--space-3);
-    font-size: 13px;
-    color: var(--text-2);
-}
-
 .sheet-panel {
     margin: 0;
     padding: 0;
@@ -121,6 +114,7 @@
 }
 
 .sheet-panel:popover-open {
+    --sheet-from: -24px;
     display: flex;
     flex-direction: column;
     animation: sheet-in var(--dur) var(--ease-out);
@@ -128,6 +122,10 @@
 
 .sheet-panel::backdrop {
     background-color: var(--scrim);
+}
+
+.sheet-end:popover-open {
+    --sheet-from: 24px;
 }
 
 .sheet-end {
@@ -156,7 +154,7 @@
 
 @keyframes sheet-in {
     from {
-        transform: translateX(-24px);
+        transform: translateX(var(--sheet-from));
         opacity: 0;
     }
 

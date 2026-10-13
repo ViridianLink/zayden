@@ -13,7 +13,14 @@ use topcoat::view::{View, view};
 use web::components::data_table::{data_cell, data_row, data_table};
 use web::components::empty_state::empty_state;
 use web::components::error_panel::{ErrorAction, error_panel};
-use web::components::field_row::{describedby, field_row};
+use web::components::field_row::{
+    describedby,
+    field_id,
+    field_row,
+    select_row,
+    text_row,
+    toggle_row,
+};
 use web::components::flash::{flash, flash_message};
 use web::components::guild_grid::GuildCard;
 use web::components::lamp::{LampState, lamp};
@@ -26,12 +33,11 @@ use web::components::module_row::{
 use web::components::nav_links::NavAccess;
 use web::components::nav_rail::nav_rail;
 use web::components::nav_sheet::{SHEET_ID, nav_sheet};
-use web::components::pickers::{SelectOption, select_field};
+use web::components::pickers::SelectOption;
 use web::components::plan_note::{plan_note, plan_tag};
 use web::components::progress_bar::progress_bar;
 use web::components::save_bar::save_bar;
 use web::components::server_plate::{FILTER_THRESHOLD, PANEL_ID, server_plate};
-use web::components::settings::{field_id, setting_field, toggle_field};
 use web::flash::{Flash, FlashKind, MAX_MESSAGE_CHARS};
 use web::guild::dto::GuildInfo;
 
@@ -271,41 +277,33 @@ fn describedby_names_only_the_lines_that_exist() {
 #[page("/settings-ids")]
 async fn settings_ids() -> ViewResult<impl View> {
     Ok(view! {
-        setting_field(
-            label: "Title",
-            name: "title",
-            value: "",
-            id: Some("article-3-title")
-        )
-        toggle_field(
-            label: "Enabled",
-            name: "enabled",
-            value: true,
-            id: Some("ai-enabled")
-        )
-        select_field(
-            label: "Channel",
+        text_row(form: "faq-3", name: "title", label: "Title", value: "")
+        toggle_row(form: "ai", name: "enabled", label: "Enabled", value: true)
+        select_row(
+            form: "rr",
             name: "channel_id",
+            label: "Channel",
             selected: "",
             options: Ok(
                 vec![SelectOption { value: "1".to_owned(), label: "# a".to_owned() }],
-            ),
-            id: Some("rr-channel")
+            )
         )
     })
 }
 
 #[tokio::test]
-async fn settings_fields_take_an_explicit_id_for_repeated_forms() {
+async fn field_rows_take_their_id_from_the_form_for_repeated_forms() {
     let html =
         render(Router::builder().page(settings_ids), "/settings-ids").await.unwrap();
 
-    for id in ["article-3-title", "ai-enabled", "rr-channel"] {
-        assert!(html.contains(&format!(r#"<label for="{id}">"#)), "{id}: {html}");
+    for id in ["faq-3-title", "ai-enabled", "rr-channel-id"] {
+        assert!(
+            html.contains(&format!(r#"<label class="field-label" for="{id}">"#)),
+            "{id}: {html}"
+        );
         assert_eq!(count(&html, &format!(r#"id="{id}""#)), 1, "{id}: {html}");
     }
-    assert_eq!(field_id(None, "title"), "field-title");
-    assert_eq!(field_id(Some("x"), "title"), "x");
+    assert_eq!(field_id("faq-new", "channel_id"), "faq-new-channel-id");
 }
 
 #[page("/table")]
@@ -454,7 +452,7 @@ async fn the_rail_and_sheet_mark_the_current_page_and_label_their_groups() {
     assert_eq!(count(&html, r#"id="rail-admin""#), 1, "{html}");
     assert_eq!(count(&html, r#"id="sheet-admin""#), 0, "{html}");
     assert!(html.contains(&format!(
-        r#"<div id="{SHEET_ID}" popover="" class="sheet-panel" aria-label="Menu">"#
+        r#"<div id="{SHEET_ID}" popover="" class="sheet-panel" role="dialog" aria-label="Menu">"#
     )), "{html}");
     assert!(html.contains(&format!(
         r#"popovertarget="{SHEET_ID}" popovertargetaction="hide" aria-label="Close menu""#

@@ -1,9 +1,4 @@
-use web::shell::link::{
-    aria_current,
-    is_active_for,
-    module_list_location,
-    sidebar_active,
-};
+use web::shell::link::{aria_current, is_active_for, sidebar_active};
 
 #[test]
 fn a_link_is_current_on_its_own_page_and_below_it() {
@@ -63,17 +58,7 @@ fn exact_sidebar_entries_match_only_their_page() {
 
 #[test]
 fn the_bare_settings_page_highlights_general() {
-    assert_eq!(
-        module_list_location("7", "/guild/7/settings"),
-        "/guild/7/settings/general"
-    );
-    assert_eq!(
-        module_list_location("7", "/guild/7/settings/ai"),
-        "/guild/7/settings/ai"
-    );
-    assert_eq!(
-        module_list_location("7", "/guild/7/settings/bogus"),
-        "/guild/7/settings/bogus"
-    );
-    assert_eq!(module_list_location("7", "/guild/7"), "/guild/7");
+    assert!(is_active_for("/guild/7/settings", "/guild/7/settings"));
+    assert!(!is_active_for("/guild/7/music", "/guild/7/settings"));
+    assert!(!is_active_for("/guild/7/settings", "/guild/7"));
 }

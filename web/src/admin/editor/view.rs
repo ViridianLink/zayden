@@ -1,6 +1,6 @@
 use topcoat::Result;
 use topcoat::asset::Asset;
-use topcoat::view::{Unescaped, View, component, view};
+use topcoat::view::{Unescaped, View, ViewExt, component, view};
 
 use super::index::{CatalogIndex, missing_emojis};
 use crate::admin::dto::{
@@ -119,7 +119,8 @@ pub(super) async fn editor(
             (Unescaped::new_unchecked(data.to_owned()))
         </script>
         <script type="module" src=(script)></script>
-    })
+    }
+    .boxed())
 }
 
 #[component]
@@ -419,7 +420,8 @@ async fn subclass_card(
                 }
             </div>
         </section>
-    })
+    }
+    .boxed())
 }
 
 #[component]
@@ -495,7 +497,8 @@ async fn gear_card(
                 }
             </div>
         </section>
-    })
+    }
+    .boxed())
 }
 
 #[component]
@@ -638,7 +641,8 @@ async fn artifact_card(
                 index: index
             )
         </section>
-    })
+    }
+    .boxed())
 }
 
 #[component]
@@ -663,7 +667,8 @@ async fn stats_card(form: &LoadoutForm, index: &CatalogIndex) -> Result<impl Vie
                 }
             </div>
         </section>
-    })
+    }
+    .boxed())
 }
 
 #[component]
@@ -741,7 +746,8 @@ async fn details_card(form: &LoadoutForm) -> Result<impl View> {
                 </textarea>
             </div>
         </section>
-    })
+    }
+    .boxed())
 }
 
 #[component]

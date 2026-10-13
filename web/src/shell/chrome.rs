@@ -83,7 +83,7 @@ pub(super) async fn frame(
 
     Ok(view! {
         <div class="app">
-            <header class="app-header">
+            <header>
                 topbar(viewer: &viewer, show_plate: guild_id.is_some(), guilds: guilds)
                 progress_bar()
                 nav_rail(access: viewer.access, guild_id: guild_id)

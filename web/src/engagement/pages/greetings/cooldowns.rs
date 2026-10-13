@@ -3,11 +3,11 @@ use topcoat::view::{View, ViewExt, component, view};
 use zayden_app::config::GreetingsSettingsRow;
 
 use super::{COOLDOWNS, GreetingAction, PAGE};
+use crate::components::field_row::{Range, form_summary, text_row};
 use crate::components::plan_note::plan_note;
 use crate::components::save_bar::save_bar;
 use crate::engagement::CooldownView;
 use crate::engagement::pages::action::form_action;
-use crate::engagement::pages::fields::{Constraints, form_summary, text_row};
 use crate::engagement::pages::state::PageState;
 
 const MAX_SECS: i32 = GreetingsSettingsRow::MAX_COOLDOWN_SECS;
@@ -18,8 +18,8 @@ fn limits(floor: i32, plan: &str) -> String {
     )
 }
 
-fn bounds(floor: i32) -> Constraints {
-    Constraints { min: Some(floor), max: Some(MAX_SECS), ..Constraints::default() }
+const fn bounds(floor: i32) -> Range {
+    Range { min: floor, max: Some(MAX_SECS) }
 }
 
 #[component]
@@ -64,7 +64,7 @@ pub(super) async fn cooldown_section(
                     value: sent.value("user_cooldown", &user_secs),
                     help: Some(&user_help),
                     error: sent.error("user_cooldown"),
-                    constraints: bounds(cooldowns.floor_user_secs)
+                    range: Some(bounds(cooldowns.floor_user_secs))
                 )
                 text_row(
                     form: COOLDOWNS,
@@ -73,7 +73,7 @@ pub(super) async fn cooldown_section(
                     value: sent.value("guild_cooldown", &guild_secs),
                     help: Some(&guild_help),
                     error: sent.error("guild_cooldown"),
-                    constraints: bounds(cooldowns.floor_guild_secs)
+                    range: Some(bounds(cooldowns.floor_guild_secs))
                 )
                 if let (Some(next), Some(pitch)) = (cooldowns.next_tier, cooldowns.upgrade_pitch()) {
                     plan_note(tier: next.label(), text: &pitch)
