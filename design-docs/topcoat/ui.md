@@ -1580,6 +1580,26 @@ async fn head_page() -> Result<impl View> {
 
 Probe: `scratch/topcoat-kb/ui/tests/font_and_stylesheet.rs`. The `<html>` in the head example carries `class="dark"`; see [Dark mode](#dark-mode).
 
+### Vendored faces: `font!` with `asset!` sources
+
+Status: VERIFIED (compiled and rendered by `web`: `web/src/font.rs`, `web/tests/router.rs` `document_head_renders_shell_stylesheet_and_runtime`).
+
+`web` does not use `fontsource_font!`. It vendors the three Geist latin woff2 files under `web/assets/fonts/geist/` and declares them with the CSS-like form of `font!`, one `@font-face` block per weight, so no CDN or `@latest` URL is involved (D-181).
+
+| Item | Detail |
+|---|---|
+| Feature | `font` (plain `font!`; `font-fontsource` is not needed) plus `asset`. |
+| Declaration | `font! { "Family", @font-face { .. } .. }`. Each block uses `font_face!` syntax and inherits the family. Descriptors used: `src`, `font-weight`, `font-style`, `font-display`, `unicode-range`. Literal values are checked at compile time. |
+| Asset source | `src: url(asset!("../assets/fonts/geist/geist-latin-400-normal.woff2")) format("woff2");`. A `url(..)` argument may be any expression, including an `Asset`, which is resolved to its bundled URL when the face renders. A source with an expression is built at run time, which is fine in a `const Font` because the font data is a `LazyLock`. |
+| Registration | Same as above: `RouterBuilderFontExt::font(GEIST)` (`web/src/document.rs`), or rendering fails. |
+| Faces at run time | `Font::faces()` gives the faces; `FontFace::weight()` returns `Option<FontWeightRange>`, `FontFace::src()` the `FontSources` (a slice via `as_slice()`). A single weight compares equal to `FontWeightRange::from_u16(400, 400)` (`const`; panics outside `100..=900`). |
+| Source shape | `FontSource::Url { url, format, tech }` or `FontSource::Local { name }`; `url` is `FontSourceUrl::Asset(Asset)` for an `asset!` source. |
+| Preload | `link(font: GEIST, preload: false)` renders only the stylesheet link. `preload_link(source: &FontSource)` renders one `<link rel="preload" href=.. as="font" type="font/woff2" crossorigin="true">` for a `Url` source and nothing for a `Local` one. `web` preloads only the 400 face this way. |
+| Missing asset | Rendering an `Asset` URL that the registered `AssetConfig` catalog does not hold panics (`failed to resolve asset .. in the asset catalog`). `web/src/font.rs` checks `asset_config(cx).get(asset).is_some()` before preloading, so a build without the bundled file renders no preload instead of failing the page. |
+| `topcoat fmt` | The `font!` printer breaks descriptor lines longer than its margin mid-value (for example `format(\n"woff2");` and a re-indented `unicode-range` list). The tokens are unchanged, so the font's content hash and CSS are identical; keep the printer's output so `topcoat fmt --check` stays clean. |
+
+Source: `topcoat-font-macro-0.10.0/docs/font.md` (CSS-like and expression forms, registration), `topcoat-font-macro-0.10.0/docs/font_face.md:39-58` (`src`, expression and `Asset` arguments), `topcoat-font-0.10.0/src/font.rs:35-85` (`Font`, `faces`), `src/face.rs:129-140,204-208` (`src`, `weight`, `FontFaces::as_slice`), `src/weight.rs:120-130` (`FontWeightRange::from_u16`), `src/source.rs:14-20,138-155,287-291` (`FontSourceUrl::Asset`, `FontSource`, `FontSources::as_slice`), `src/component.rs:23-66` (`link`, `preload_link`), `topcoat-asset-0.10.0/src/config.rs:96-101,126-133,164-167` (`AssetConfig::get`, `fmt_url` panic, `asset_config`), `topcoat-core-grammar-0.10.0/src/pretty/printer.rs:11` (`MARGIN`).
+
 ## Icons
 
 Status: VERIFIED.
