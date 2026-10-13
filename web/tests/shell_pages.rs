@@ -59,17 +59,13 @@ const ICON_OPEN: &str = r#"<svg class="icon" viewBox="0 0 24 24" fill="none" str
 const CHEVRON_DOWN: &str = r#"<path d="m6 9 6 6 6-6"/></svg>"#;
 const CHECK: &str = r#"<path d="M20 6 9 17l-5-5"/></svg>"#;
 
-path_param!(probe);
-
-#[page("/guild/{guild_id}/{probe}")]
+#[page("/guild/{guild_id}/probe")]
 async fn guild_probe(cx: &Cx) -> ViewResult<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
-    let probe: &str = path_param::<Probe>(cx);
     Ok(view! {
         <p id="probe">
             (guild_id)
-            "/"
-            (probe)
+            "/probe"
         </p>
     })
 }
@@ -849,7 +845,7 @@ async fn the_upgrade_page_follows_the_viewer_and_links_kofi_emails(
     );
     assert!(!html.contains("plan-chip"), "{html}");
     assert!(!html.contains(r#"aria-label="Dashboard""#), "{html}");
-    assert!(html.contains(r#"<main id="main" class="public-main" tabindex="-1"><div class="page"><div class="page-header"><div><h1>Plans</h1><p class="page-lead">Paid tiers are cost-recovery: they unlock the features that cost real money to run. Everything else stays free.</p></div></div><div class="flash-region" role="status"></div><ul class="pro-features">"#), "{html}");
+    assert!(html.contains(r#"<main id="main" class="public-main" tabindex="-1"><div class="page upgrade-page"><div class="page-header"><div><h1>Plans</h1><p class="page-lead">Paid tiers are cost-recovery: they unlock the features that cost real money to run. Everything else stays free.</p></div></div><div class="flash-region" role="status"></div><ul class="pro-features">"#), "{html}");
     assert!(html.contains(
         "<strong>Lower greeting cooldowns</strong><span>Drop the per-member and server-wide limits on <code>/good</code> - for servers busy enough to hit them.</span>"
     ), "{html}");
@@ -981,4 +977,46 @@ async fn seed_users(users: &SessionUsersCache, ids: &[i64]) {
             })
             .await;
     }
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_missing_page_inside_a_managed_guild_keeps_the_guild_shell(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(&pool, None).await.unwrap();
+
+    let response = app.get("/guild/7/nope", Some(MEMBER)).await.unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let html = body_text(response).await.unwrap();
+    assert!(html.contains("<title>Not found - Zayden</title>"), "{html}");
+    assert!(html.contains(r#"popovertarget="server-switcher""#), "{html}");
+    assert!(html.contains(&format!(
+        r#"{MAIN}<div class="page"><section class="error-panel"><h1 class="error-title">Page not found</h1><p class="error-text">There is no page at this address in this server. The link may have a typo, or the page may have moved.</p><div class="error-actions"><a href="/guild/7" class="btn btn-primary">Back to Guild 7</a><a href="/guilds" class="btn btn-secondary">Back to servers</a></div></section></div></main>"#
+    )), "{html}");
+
+    for path in ["/guild/8/nope", "/guild/abc/nope", "/nope"] {
+        let response = app.get(path, Some(MEMBER)).await.unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND, "{path}");
+        let html = body_text(response).await.unwrap();
+        assert!(!html.contains("server-switcher"), "{path}: {html}");
+        assert!(
+            html.contains(r#"<a href="/guilds" class="btn btn-primary btn-lg">Back to servers</a>"#),
+            "{path}: {html}"
+        );
+    }
+
+    let response = app.get("/nope", None).await.unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let html = body_text(response).await.unwrap();
+    assert!(
+        html.contains(r#"<a href="/" class="btn btn-primary btn-lg">Back home</a>"#),
+        "{html}"
+    );
+
+    let response = app.get("/guild/7/nope", None).await.unwrap();
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+
+    pool.close().await;
 }

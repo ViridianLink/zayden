@@ -28,6 +28,12 @@ pub enum StartupError {
     Serve(#[source] io::Error),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum MissingPage {
+    #[error("loadout not found")]
+    Loadout,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum CookieKeyError {
     #[error("not standard base64: {0}")]

@@ -50,7 +50,7 @@ fn article_failure(
     form: &'static str,
     values: Vec<(String, String)>,
     error: ArticleError,
-    missing: Option<&str>,
+    missing: &[&str],
 ) -> Result<Failure> {
     Ok(match error {
         ArticleError::Guild(error) => {
@@ -60,7 +60,7 @@ fn article_failure(
             Failure::with_message(form, values, &error.to_string(), missing)
         },
         ArticleError::NoSuchArticle => {
-            Failure::with_message(form, values, &error.to_string(), None)
+            Failure::with_message(form, values, &error.to_string(), &[])
         },
     })
 }
@@ -101,7 +101,7 @@ async fn article_list(cx: &Cx, guild_id: &str) -> Result<impl View> {
                     id=(ARTICLES_SECTION)
                     aria-labelledby="faq-articles-title"
                 >
-                    <h2 class="label" id="faq-articles-title">"Articles"</h2>
+                    <h3 class="label" id="faq-articles-title">"Articles"</h3>
                     <p class="page-lead">
                         "Articles answer \"/ticket faq ask\" and the automatic ticket triage, alongside the wiki. Articles written from solved tickets go live as soon as they are written, so review them here."
                     </p>
@@ -187,7 +187,7 @@ async fn create_article(
                 message: "Article created.",
             }));
         },
-        Err(error) => article_failure(ARTICLE_FORM, values, error, missing)?,
+        Err(error) => article_failure(ARTICLE_FORM, values, error, &missing)?,
     };
     let state = PageState::failed(failure);
 
@@ -207,13 +207,13 @@ async fn save(
     guild_id: &str,
     pairs: Vec<(String, String)>,
     id: Option<i32>,
-) -> (std::result::Result<i32, ArticleError>, Option<&'static str>) {
+) -> (std::result::Result<i32, ArticleError>, Vec<&'static str>) {
     let form = match ArticleForm::from_pairs(pairs) {
         Ok(form) => form,
-        Err(error) => return (Err(error.into()), None),
+        Err(error) => return (Err(error.into()), Vec::new()),
     };
     if let Err(error) = ensure_path_guild(&form.guild, guild_id) {
-        return (Err(error.into()), None);
+        return (Err(error.into()), Vec::new());
     }
     (save_faq_article(cx, &form, id).await, form.missing())
 }
@@ -248,7 +248,7 @@ async fn update_article(
     let values = pairs.clone();
     let (result, missing) = match id {
         Some(id) => save(cx, guild_id, pairs, Some(id)).await,
-        None => (Err(ArticleError::NoSuchArticle), None),
+        None => (Err(ArticleError::NoSuchArticle), Vec::new()),
     };
     let failure = match result {
         Ok(id) => {
@@ -258,7 +258,7 @@ async fn update_article(
                 message: "Article saved.",
             }));
         },
-        Err(error) => article_failure(ARTICLE_FORM, values, error, missing)?,
+        Err(error) => article_failure(ARTICLE_FORM, values, error, &missing)?,
     };
     let state = PageState::failed(failure);
 
@@ -296,7 +296,7 @@ async fn delete_article(
                 message: "Article deleted.",
             }));
         },
-        Err(error) => article_failure(DELETE_FORM, values, error, None)?,
+        Err(error) => article_failure(DELETE_FORM, values, error, &[])?,
     };
     let state = PageState::failed(failure);
 
@@ -340,9 +340,9 @@ async fn article_editor(
                     form_summary(form: "page", message: failure)
                 }
                 <section class="error-panel" aria-labelledby="faq-missing-title">
-                    <h2 class="error-title" id="faq-missing-title">
+                    <h3 class="error-title" id="faq-missing-title">
                         "Article not found"
-                    </h2>
+                    </h3>
                     <p class="error-text">
                         "This FAQ article doesn't exist. It may have been deleted."
                     </p>

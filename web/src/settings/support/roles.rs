@@ -236,7 +236,7 @@ async fn roles_section(
             id=(ROLES_SECTION)
             aria-labelledby="support-roles-title"
         >
-            <h2 class="label" id="support-roles-title">"Support roles"</h2>
+            <h3 class="label" id="support-roles-title">"Support roles"</h3>
             <p class="page-lead">
                 "One list, two jobs: these roles are pinged in every new ticket thread, and holding one is what makes somebody a helper - for idle reminders, for donation credit, and for the reminder buttons. With none set, Zayden falls back to pinging the server owner when a ticket opens."
             </p>
@@ -295,6 +295,10 @@ async fn roles_section(
                                     "Remove support role {}?",
                                     row.name,
                                 );
+                                let trigger_label = format!(
+                                    "Remove support role {}",
+                                    row.name,
+                                );
                                 data_row(
                                     data_cell(label: "Role", header: true, (row.name.as_str()))
                                     data_cell(
@@ -317,7 +321,8 @@ async fn roles_section(
                                                 description: Some(
                                                     "Its members stop being pinged for new tickets and stop counting as helpers.",
                                                 ),
-                                                confirm: "Remove role"
+                                                confirm: "Remove role",
+                                                trigger_label: Some(&trigger_label)
                                             )
                                         </form>
                                     )
@@ -350,7 +355,7 @@ async fn links_section(
             id=(LINKS_SECTION)
             aria-labelledby="helper-links-title"
         >
-            <h2 class="label" id="helper-links-title">"Helper donation links"</h2>
+            <h3 class="label" id="helper-links-title">"Helper donation links"</h3>
             <p class="page-lead">
                 "When a post is solved, anyone with a support role who posted in it and has a link here gets credited in a follow-up message."
             </p>
@@ -423,6 +428,10 @@ async fn links_section(
                                     "Remove the donation link of {}?",
                                     link.name,
                                 );
+                                let trigger_label = format!(
+                                    "Remove the donation link of {}",
+                                    link.name,
+                                );
                                 data_row(
                                     data_cell(
                                         label: "Helper",
@@ -455,7 +464,8 @@ async fn links_section(
                                                 description: Some(
                                                     "They stop being credited when a post they helped with is solved.",
                                                 ),
-                                                confirm: "Remove link"
+                                                confirm: "Remove link",
+                                                trigger_label: Some(&trigger_label)
                                             )
                                         </form>
                                     )

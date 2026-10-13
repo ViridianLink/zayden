@@ -174,6 +174,7 @@ pub(super) async fn tab(
     let line = query_value(cx, OUTCOME_PARAM)
         .as_deref()
         .and_then(PatreonOutcome::from_key)
+        .filter(|outcome| !outcome.is_success())
         .map(|outcome| Banner {
             class: outcome.class(),
             role: outcome.role(),

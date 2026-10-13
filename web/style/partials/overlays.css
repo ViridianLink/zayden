@@ -169,6 +169,7 @@ body:has(.sheet-panel:popover-open) {
 }
 
 .dialog {
+    margin: auto;
     width: min(28rem, calc(100vw - var(--space-5)));
     max-height: calc(100dvh - var(--space-5));
     padding: 0;

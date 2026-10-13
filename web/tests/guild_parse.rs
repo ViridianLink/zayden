@@ -143,10 +143,11 @@ fn idle_delays_clamp_between_an_hour_and_a_month() {
 }
 
 #[test]
-fn max_partners_is_at_least_one() {
-    assert_eq!(parse_max_partners(""), 1);
-    assert_eq!(parse_max_partners("0"), 1);
-    assert_eq!(parse_max_partners(" 4 "), 4);
+fn max_partners_is_a_whole_number_of_at_least_one() {
+    assert_eq!(parse_max_partners(""), Err(GuildError::MaxPartners));
+    assert_eq!(parse_max_partners("0"), Err(GuildError::MaxPartners));
+    assert_eq!(parse_max_partners("two"), Err(GuildError::MaxPartners));
+    assert_eq!(parse_max_partners(" 4 "), Ok(4));
 }
 
 #[test]

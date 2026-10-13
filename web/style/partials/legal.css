@@ -92,6 +92,12 @@
   color: var(--text);
 }
 
+.legal-callout a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+}
+
 .login-page .legal-links {
   position: relative;
   z-index: 1;

@@ -1,13 +1,21 @@
 use rand::RngExt;
+use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::cookie::time::Duration;
 use topcoat::cookie::{Cookie, Cookies};
+use topcoat::router::response::Response;
 
+use super::reply::redirect;
 use crate::auth::{AuthError, build_cookie, cookie_jar};
+use crate::flash::{FlashKind, set as set_flash};
 use crate::nav;
 use crate::util::hex_encode;
 
 const STATE_TTL_MINUTES: i64 = 10;
+
+fn settings_page(guild_id: &str, slug: &str) -> String {
+    nav::settings_href(guild_id, slug).unwrap_or_else(|| nav::GENERAL.href(guild_id))
+}
 
 pub(super) fn settings_url(
     guild_id: &str,
@@ -15,10 +23,17 @@ pub(super) fn settings_url(
     param: &str,
     outcome_key: &str,
 ) -> String {
-    let base = nav::settings_href(guild_id, slug)
-        .unwrap_or_else(|| nav::GENERAL.href(guild_id));
+    format!("{}?{param}={outcome_key}", settings_page(guild_id, slug))
+}
 
-    format!("{base}?{param}={outcome_key}")
+pub(super) fn report_success(
+    cx: &Cx,
+    guild_id: &str,
+    slug: &str,
+    message: &str,
+) -> Result<Response> {
+    set_flash(cx, FlashKind::Success, message)?;
+    redirect(cx, &settings_page(guild_id, slug))
 }
 
 pub(super) fn random_hex() -> String {

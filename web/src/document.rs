@@ -8,7 +8,12 @@ use topcoat::router::error::NotFoundError;
 use topcoat::router::{RouterBuilder, Slot, StatusCode, layout, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
-use crate::admin::editor::{EDITOR_TITLE, NEW_LOADOUT_TITLE};
+use crate::admin::editor::{
+    EDITOR_TITLE,
+    LOADOUT_NOT_FOUND_TITLE,
+    NEW_LOADOUT_TITLE,
+    missing_loadout,
+};
 use crate::admin::pages::{LOADOUTS_TITLE, SERVERS_TITLE};
 use crate::components::brand::LOGO;
 use crate::engagement::pages::{
@@ -16,6 +21,7 @@ use crate::engagement::pages::{
     LEVELS_TITLE,
     REACTION_ROLES_TITLE,
 };
+use crate::error::MissingPage;
 use crate::font::{GEIST, font_head};
 use crate::pages::not_found::not_found_page;
 use crate::public::{LANDING_TITLE, LOGIN_TITLE, PRIVACY_TITLE, TERMS_TITLE};
@@ -134,13 +140,20 @@ pub(crate) async fn root_layout(cx: &Cx, slot: Slot<'_>) -> Result<impl View> {
     Ok(view! {
         error_boundary(
             fallback: |error| {
-                if error.downcast_ref::<NotFoundError>().is_none() {
+                let missing = error.downcast_ref::<MissingPage>().copied();
+                if missing.is_none() && error.downcast_ref::<NotFoundError>().is_none() {
                     return Err(error);
                 }
+
                 Ok(
                     view! {
                         (StatusCode::NOT_FOUND)
-                        document(title: NOT_FOUND_TITLE, not_found_page())
+                        match missing {
+                            Some(MissingPage::Loadout) => {
+                                document(title: LOADOUT_NOT_FOUND_TITLE, missing_loadout())
+                            }
+                            None => document(title: NOT_FOUND_TITLE, not_found_page()),
+                        }
                     },
                 )
             },

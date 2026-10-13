@@ -18,7 +18,12 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, StatusCode, header};
-use web::admin::editor::{EDITOR_TITLE, LOADOUT_EDITOR_JS, NEW_LOADOUT_TITLE};
+use web::admin::editor::{
+    EDITOR_TITLE,
+    LOADOUT_EDITOR_JS,
+    LOADOUT_NOT_FOUND_TITLE,
+    NEW_LOADOUT_TITLE,
+};
 use web::admin::keys::display_name;
 use web::admin::{LoadoutForm, stored_form};
 use web::auth::SessionUser;
@@ -295,8 +300,9 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
     has(
         html,
         &format!(
-            r#"<div class="slot-drag" draggable="true" title="Drag, or press Alt + arrow keys, to reorder"><div class="slot slot-filled"><button type="button" class="slot-button" id="reorder-{}-0" aria-label="Mods mod 1: {}, change""#,
+            r#"<div class="slot-drag" draggable="true" title="Drag, or press Alt + arrow keys, to reorder"><div class="slot slot-filled"><button type="button" class="slot-button" id="reorder-{}-0" aria-label="{} mods mod 1: {}, change""#,
             mods_list + position,
+            attr(&armour.slot),
             attr(&display_name(armour.mods.first().ok_or("mods")?))
         ),
     )?;
@@ -323,7 +329,8 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
     has(
         html,
         &format!(
-            r#"<input id="stat-value-0" class="input" type="number" placeholder="0–200" value="{}">"#,
+            r#"<input id="stat-value-0" class="input" aria-label="{} value" type="number" placeholder="0–200" value="{}">"#,
+            attr(&stat.stat),
             attr(&stat.value)
         ),
     )?;
@@ -491,7 +498,10 @@ async fn admins_get_the_server_rendered_editor(
         let (status, html) = h.get(&path, Some(ADMIN_COOKIE)).await?;
         assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
         assert!(html.contains(NOT_FOUND), "{path}: {html}");
-        assert!(html.contains(&format!("<title>{EDITOR_TITLE}</title>")), "{path}");
+        assert!(
+            html.contains(&format!("<title>{LOADOUT_NOT_FOUND_TITLE}</title>")),
+            "{path}"
+        );
         assert!(!html.contains("loadout-editor"), "{path}");
     }
 

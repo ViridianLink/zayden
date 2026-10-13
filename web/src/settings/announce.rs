@@ -152,6 +152,7 @@ pub(super) async fn ping_roles_section(
                     for row in &rows {
                         let confirm_id = format!("ping-role-{}-remove", row.id);
                         let confirm_title = format!("Stop pinging {}?", row.name);
+                        let trigger_label = format!("Remove ping role {}", row.name);
                         data_row(
                             data_cell(label: "Role", header: true, (row.name.as_str()))
                             data_cell(
@@ -174,7 +175,8 @@ pub(super) async fn ping_roles_section(
                                         description: Some(
                                             "New announcements stop mentioning this role.",
                                         ),
-                                        confirm: "Remove role"
+                                        confirm: "Remove role",
+                                        trigger_label: Some(&trigger_label)
                                     )
                                 </form>
                             )

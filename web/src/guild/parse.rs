@@ -92,9 +92,12 @@ pub fn parse_idle_secs(s: &str, default: i32) -> i32 {
     s.trim().parse::<i32>().unwrap_or(default).clamp(3_600, 2_592_000)
 }
 
-#[must_use]
-pub fn parse_max_partners(s: &str) -> i32 {
-    s.trim().parse::<i32>().unwrap_or(1).max(1)
+pub fn parse_max_partners(s: &str) -> Result<i32, GuildError> {
+    s.trim()
+        .parse::<i32>()
+        .ok()
+        .filter(|value| *value >= 1)
+        .ok_or(GuildError::MaxPartners)
 }
 
 #[must_use]

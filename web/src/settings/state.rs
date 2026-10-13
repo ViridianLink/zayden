@@ -54,7 +54,7 @@ pub(super) struct Failure {
     form: &'static str,
     values: Vec<(String, String)>,
     message: String,
-    field: Option<String>,
+    fields: Vec<String>,
 }
 
 impl Failure {
@@ -67,7 +67,7 @@ impl Failure {
             form,
             values,
             message: plain(&error.to_string()).to_owned(),
-            field: field_of(error),
+            fields: field_of(error).into_iter().collect(),
         }
     }
 
@@ -75,13 +75,13 @@ impl Failure {
         form: &'static str,
         values: Vec<(String, String)>,
         message: &str,
-        field: Option<&str>,
+        fields: &[&str],
     ) -> Self {
         Self {
             form,
             values,
             message: plain(message).to_owned(),
-            field: field.map(str::to_owned),
+            fields: fields.iter().map(|field| (*field).to_owned()).collect(),
         }
     }
 }
@@ -108,6 +108,7 @@ fn field_of(error: &GuildError) -> Option<String> {
         | GuildError::LinkCredentials
         | GuildError::LinkTooLong => "link",
         GuildError::NoCategory => "temp_voice_category",
+        GuildError::MaxPartners => "max_partners",
         GuildError::Auth(_)
         | GuildError::Server(_)
         | GuildError::PartlySaved { .. }
@@ -155,7 +156,11 @@ impl<'a> Sent<'a> {
 
     pub(super) fn error(self, name: &str) -> Option<&'a str> {
         let failure = self.0?;
-        (failure.field.as_deref() == Some(name)).then_some(failure.message.as_str())
+        failure
+            .fields
+            .iter()
+            .any(|field| field == name)
+            .then_some(failure.message.as_str())
     }
 
     pub(super) fn summary(self) -> Option<&'a str> {

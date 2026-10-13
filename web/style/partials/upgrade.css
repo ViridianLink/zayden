@@ -1,5 +1,11 @@
 /* Upgrade (Pro) page */
 
+.upgrade-page {
+    width: 100%;
+    margin: 0 auto;
+    padding: var(--space-9) var(--space-5);
+}
+
 .pro-features {
     list-style: none;
     margin: 0 0 var(--space-6);

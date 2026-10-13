@@ -93,7 +93,7 @@ async fn upgrade_page(
     #[default] failure: Option<KofiFailure>,
 ) -> Result<impl View> {
     Ok(view! {
-        <div class="page">
+        <div class="page upgrade-page">
             <div class="page-header">
                 <div>
                     <h1>"Plans"</h1>

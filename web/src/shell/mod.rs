@@ -3,6 +3,7 @@ mod chrome;
 mod guild_layout;
 mod guilds;
 pub mod link;
+mod missing;
 mod overview;
 mod upgrade;
 
@@ -23,4 +24,5 @@ pub fn routes(base: RouterBuilder) -> RouterBuilder {
         .page(overview::toggle_module)
         .page(upgrade::upgrade)
         .page(upgrade::link_kofi)
+        .page(missing::guild_not_found)
 }

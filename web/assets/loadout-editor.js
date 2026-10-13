@@ -591,7 +591,7 @@ function start(data) {
             : '<img class="enum-icon" src="' + esc(src) + '" alt="">';
     };
 
-    const textInput = (id, label, value, placeholder, kind) =>
+    const textInput = (id, label, value, placeholder, kind, ariaLabel) =>
         '<div class="setting-field"><label for="' +
         esc(id) +
         '">' +
@@ -599,7 +599,9 @@ function start(data) {
         "</label>" +
         '<input id="' +
         esc(id) +
-        '" class="input" type="' +
+        '" class="input"' +
+        (ariaLabel ? ' aria-label="' + esc(ariaLabel) + '"' : "") +
+        ' type="' +
         kind +
         '" placeholder="' +
         esc(placeholder) +
@@ -1060,7 +1062,7 @@ function start(data) {
                   )
                 : "") +
             "</div>" +
-            keySlotList("Perks", "weaponPerk", row.perks, MAX.perks, list, {
+            keySlotList(row.name + " perks", "weaponPerk", row.perks, MAX.perks, list, {
                 round: true,
                 weapon: () => row.name,
             }) +
@@ -1110,7 +1112,7 @@ function start(data) {
             enumIcon(row.slot) +
             esc(row.slot) +
             "</span></div>" +
-            keySlotList("Mods", "armourMod", row.mods, MAX.mods, list, {
+            keySlotList(row.slot + " mods", "armourMod", row.mods, MAX.mods, list, {
                 reorderable: true,
             }) +
             "</div>"
@@ -1256,6 +1258,7 @@ function start(data) {
                     row.value,
                     "0–200",
                     "number",
+                    row.stat + " value",
                 ) +
                 "</div>";
         });

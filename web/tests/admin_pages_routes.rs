@@ -300,7 +300,7 @@ async fn save(pool: &PgPool, raw: RawLoadout) -> TestResult<i32> {
 
 fn confirm(id: i32, name: &str) -> String {
     format!(
-        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" data-confirm-trigger="">Delete</button><dialog class="dialog" aria-labelledby="loadout-{id}-delete-title" aria-describedby="loadout-{id}-delete-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="loadout-{id}-delete-title">Delete loadout “{name}”?</h2><p class="dialog-desc" id="loadout-{id}-delete-desc">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Delete loadout</button></div></div></dialog></div>"#
+        r#"<div class="confirm" data-confirm=""><button type="submit" class="btn btn-ghost" aria-label="Delete loadout {name}" data-confirm-trigger="">Delete</button><dialog class="dialog" aria-labelledby="loadout-{id}-delete-title" aria-describedby="loadout-{id}-delete-desc" data-confirm-dialog=""><div class="dialog-panel"><h2 class="dialog-title" id="loadout-{id}-delete-title">Delete loadout “{name}”?</h2><p class="dialog-desc" id="loadout-{id}-delete-desc">This removes the build from /destiny2 builds for everyone. It cannot be undone.</p><div class="dialog-actions"><button type="button" class="btn btn-secondary" data-dialog-close="" autofocus="">Cancel</button><button type="submit" class="btn btn-danger">Delete loadout</button></div></div></dialog></div>"#
     )
 }
 

@@ -360,6 +360,8 @@ async fn mapping_row(
     let emoji_name = custom_emoji_name(&mapping.emoji)
         .map_or_else(|| mapping.emoji.clone(), |name| format!(":{name}:"));
     let confirm_title = format!("Remove the {emoji_name} reaction role for {role}?");
+    let remove_label = format!("Remove the {emoji_name} reaction role for {role}");
+    let link_label = format!("Open in Discord: {emoji_name} message in {channel}");
 
     Ok(view! {
         data_row(
@@ -367,12 +369,21 @@ async fn mapping_row(
             data_cell(
                 label: "Emoji",
                 match custom_emoji_id(&mapping.emoji) {
-                    Some(id) => <img
-                        class="rr-emoji-img"
-                        src=(emoji_image_url(id))
-                        alt=(emoji_name.as_str())
+                    Some(id) => <span
+                        class="rr-emoji-frame"
+                        role="img"
+                        aria-label=(emoji_name.as_str())
                         title=(emoji_name.as_str())
-                    >,
+                    >
+                        <object
+                            class="rr-emoji-img"
+                            data=(emoji_image_url(id))
+                            type="image/png"
+                            aria-hidden="true"
+                        >
+                            <span class="rr-emoji-name">(emoji_name.as_str())</span>
+                        </object>
+                    </span>,
                     None => <span class="rr-emoji">(mapping.emoji.as_str())</span>,
                 }
             )
@@ -382,6 +393,7 @@ async fn mapping_row(
                 <a
                     class="rr-link"
                     href=(link)
+                    aria-label=(link_label.as_str())
                     rel="external noreferrer"
                     target="_blank"
                 >
@@ -411,7 +423,8 @@ async fn mapping_row(
                         description: Some(
                             "Reactions already on the message stay, but they stop granting the role.",
                         ),
-                        confirm: "Remove reaction role"
+                        confirm: "Remove reaction role",
+                        trigger_label: Some(&remove_label)
                     )
                 </form>
             )

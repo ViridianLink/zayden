@@ -166,6 +166,7 @@ async fn channel_row(
     let action = form_action(guild_id, PAGE, GreetingAction::RemoveChannel);
     let confirm_id = format!("good-channel-{index}-remove");
     let confirm_title = format!("Remove {label} from the /good list?");
+    let trigger_label = format!("Remove {label}");
 
     Ok(view! {
         data_row(
@@ -183,7 +184,8 @@ async fn channel_row(
                             description: Some(
                                 "Removing the last channel lets /good work everywhere again.",
                             ),
-                            confirm: "Remove channel"
+                            confirm: "Remove channel",
+                            trigger_label: Some(&trigger_label)
                         )
                     </form>
                 )

@@ -675,7 +675,10 @@ async fn provider_pages_follow_the_connection(
         .unwrap();
     let html = app.page("/guild/7/youtube?youtube=connected").await.unwrap();
     let main = main_content(&html);
-    assert!(main.contains(r#"<p class="success" role="status">YouTube connected. Choose where its uploads should be announced.</p>"#), "{main}");
+    assert!(
+        !main.contains("YouTube connected."),
+        "only the callback's flash reports a connection: {main}"
+    );
     assert!(
         main.contains(r#"<p class="page-lead">Connected to Seed Channel.</p>"#),
         "{main}"
@@ -779,7 +782,10 @@ async fn provider_pages_follow_the_connection(
     patreon::PatreonConnection::disable(db, 7).await.unwrap();
     let html = app.page("/guild/7/patreon?patreon=connected").await.unwrap();
     let main = main_content(&html);
-    assert!(main.contains(r#"<p class="success" role="status">Patreon connected. Choose where its posts should be announced.</p>"#), "{main}");
+    assert!(
+        !main.contains("Patreon connected."),
+        "only the callback's flash reports a connection: {main}"
+    );
     assert!(main.contains(r#"<p class="page-lead">Connected to camp-1, but Patreon has rejected the stored authorisation. Reconnect to resume announcements.</p>"#), "{main}");
     assert!(main.contains(r#"<a class="btn btn-secondary" href="/patreon/connect?guild=7" rel="external">Reconnect Patreon</a>"#), "{main}");
     assert!(main.contains(&confirm(
@@ -1321,7 +1327,10 @@ async fn support_roles_and_links_are_list_actions_behind_confirms(
             "Remove support role @Mods?",
             "Its members stop being pinged for new tickets and stop counting as helpers.",
             "Remove role"
-        ).replace(r#"class="btn btn-danger" data-confirm-trigger"#, r#"class="btn btn-ghost" data-confirm-trigger"#)
+        ).replace(
+            r#"class="btn btn-danger" data-confirm-trigger"#,
+            r#"class="btn btn-ghost" aria-label="Remove support role @Mods" data-confirm-trigger"#
+        )
     )), "{main}");
     assert!(
         !element(main, "select", "add-role-role-id")
@@ -1473,6 +1482,35 @@ async fn faq_articles_have_list_new_and_edit_pages(
         Some("A title and a body are both required.")
     );
     assert_eq!(value(&html, "faq-article-title"), Some("Fixing 502"));
+    assert_eq!(field_error(&html, "faq-article-title"), None);
+
+    let body = "guild=7&title=+&summary=&category=&tags=&content=";
+    let html = app
+        .submit(&format!("{faq}/new"), body, StatusCode::UNPROCESSABLE_ENTITY)
+        .await
+        .unwrap();
+    for id in ["faq-article-title", "faq-article-content"] {
+        assert_eq!(
+            field_error(&html, id),
+            Some("A title and a body are both required."),
+            "{id}: {html}"
+        );
+        assert!(
+            element(
+                &html,
+                if id.ends_with("content") { "textarea" } else { "input" },
+                id
+            )
+            .unwrap()
+            .contains(r#"aria-invalid="true""#),
+            "{id}: {html}"
+        );
+    }
+    assert!(
+        main_content(&html)
+            .contains(r#"</nav><h2 class="subpage-title">FAQ articles</h2>"#),
+        "the sub-page names itself under the Support heading: {html}"
+    );
 
     app.app.settings.support.update(7, |_| {}).await.unwrap();
     let body = "guild=7&title=Fixing+502&summary=Restart+it&category=&tags=Radarr%2C+radarr%2C+HTTP&content=Restart+Radarr.";
@@ -1539,7 +1577,7 @@ async fn faq_articles_have_list_new_and_edit_pages(
         let response = app.get(path, Some(MEMBER)).await.unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND, "{path}");
         let html = body_text(response).await.unwrap();
-        assert!(html.contains(r#"<h2 class="error-title" id="faq-missing-title">Article not found</h2>"#), "{html}");
+        assert!(html.contains(r#"<h3 class="error-title" id="faq-missing-title">Article not found</h3>"#), "{html}");
         assert!(html.contains(r#"<a href="/guild/7/support/faq" class="btn btn-primary">Back to FAQ articles</a>"#), "{html}");
         assert!(
             html.contains(r#"class="nav-link""#),

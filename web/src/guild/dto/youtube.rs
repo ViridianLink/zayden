@@ -44,6 +44,11 @@ impl YoutubeOutcome {
     }
 
     #[must_use]
+    pub const fn is_success(self) -> bool {
+        matches!(self, Self::Connected | Self::Disconnected)
+    }
+
+    #[must_use]
     pub const fn class(self) -> &'static str {
         match self {
             Self::Connected | Self::Disconnected => "success",

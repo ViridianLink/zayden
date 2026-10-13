@@ -52,6 +52,8 @@ pub enum GuildError {
     LinkTooLong,
     #[error("select a category first")]
     NoCategory,
+    #[error("enter a whole number of at least 1")]
+    MaxPartners,
     #[error("invalid channel id")]
     InvalidChannelId,
     #[error("invalid email")]
