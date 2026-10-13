@@ -315,7 +315,9 @@ async fn panel(
                         label: "Message",
                         value: sent.value("message", status.message.as_deref()),
                         rows: 4,
-                        help: Some("Shown above the post card. Leave empty to post only the card."),
+                        help: Some(
+                            "Shown above the post card. Leave empty to post only the card.",
+                        ),
                         error: sent.error("message")
                     )
                     placeholder_legend(entries: PLACEHOLDERS)

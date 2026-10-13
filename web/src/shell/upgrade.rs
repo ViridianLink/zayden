@@ -273,10 +273,12 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                                         rel="external noopener noreferrer"
                                         target="_blank"
                                     >
-                                        (host.as_ref().map_or_else(
-                                            || format!("Get {}", plan.label()),
-                                            |host| format!("Get {} on {host}", plan.label()),
-                                        ))
+                                        (host
+                                            .as_ref()
+                                            .map_or_else(
+                                                || format!("Get {}", plan.label()),
+                                                |host| format!("Get {} on {host}", plan.label()),
+                                            ))
                                     </a>
                                 }
                             }

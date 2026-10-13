@@ -87,9 +87,9 @@ pub(super) async fn guild_overview(cx: &Cx) -> Result<impl View> {
     let notice = take_flash(cx);
     let loaded = load(cx, guild_id).await?;
 
-    Ok(view! {
-        overview(guild_id: guild_id, loaded: loaded, notice: notice.as_ref())
-    })
+    Ok(
+        view! { overview(guild_id: guild_id, loaded: loaded, notice: notice.as_ref()) },
+    )
 }
 
 #[page(POST "/guild/{guild_id}")]

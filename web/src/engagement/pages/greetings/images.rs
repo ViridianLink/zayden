@@ -37,11 +37,17 @@ pub(super) async fn image_section(
         >
             <h2 class="label" id="greeting-images-title">"Images"</h2>
             <p class="page-lead">
-                (format!("Each greeting picks one of its images at random. Up to {MAX_IMAGES} per greeting."))
+                (format!(
+                    "Each greeting picks one of its images at random. Up to {MAX_IMAGES} per greeting.",
+                ))
             </p>
             flash(notice: state.notice_for(IMAGES))
             if let Some(message) = removed.summary() {
-                form_summary(form: REMOVE_IMAGE, message: message, outcome: "Not removed")
+                form_summary(
+                    form: REMOVE_IMAGE,
+                    message: message,
+                    outcome: "Not removed"
+                )
             }
             image_list(
                 guild_id: guild_id,

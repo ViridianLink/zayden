@@ -8,7 +8,9 @@ use topcoat::view::{View, component, view};
 
 #[component]
 pub async fn progress_bar() -> Result<impl View> {
-    Ok(
-        view! { <div class="nav-progress" data-nav-progress="" aria-hidden="true"></div> },
-    )
+    let bar = view! {
+        <div class="nav-progress" data-nav-progress="" aria-hidden="true"></div>
+    };
+
+    Ok(bar)
 }
