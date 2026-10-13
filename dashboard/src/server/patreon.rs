@@ -10,6 +10,7 @@ use {
 };
 
 use crate::dto::PatreonStatus;
+use crate::server::auth;
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn fetch_patreon_status(
@@ -18,11 +19,11 @@ pub(crate) async fn fetch_patreon_status(
 ) -> Result<PatreonStatus, ServerFnError> {
     let connection = PatreonConnection::select(&app.db, guild_id)
         .await
-        .map_err(crate::server::auth::server_err)?;
+        .map_err(auth::server_err)?;
 
     let announce = PatreonAnnounceRow::select(&app.db, guild_id)
         .await
-        .map_err(crate::server::auth::server_err)?;
+        .map_err(auth::server_err)?;
 
     Ok(PatreonStatus {
         connected: connection.is_some(),
@@ -62,7 +63,7 @@ pub async fn save_patreon_settings(
         PatreonAnnounceRow::delete(&app.db, guild_id)
             .await
             .map(|_removed| ())
-            .map_err(crate::server::auth::server_err)?;
+            .map_err(auth::server_err)?;
 
         return Ok(());
     }
@@ -76,7 +77,7 @@ pub async fn save_patreon_settings(
 
     let message = PatreonAnnounceRow::select(&app.db, guild_id)
         .await
-        .map_err(crate::server::auth::server_err)?
+        .map_err(auth::server_err)?
         .and_then(|row| row.message);
 
     PatreonAnnounceRow::upsert(
@@ -87,7 +88,7 @@ pub async fn save_patreon_settings(
         message.as_deref(),
     )
     .await
-    .map_err(crate::server::auth::server_err)
+    .map_err(auth::server_err)
 }
 
 #[server]
@@ -102,11 +103,9 @@ pub async fn disconnect_patreon(guild: String) -> Result<(), ServerFnError> {
 
     let connection = PatreonConnection::select(&app.db, guild_id)
         .await
-        .map_err(crate::server::auth::server_err)?;
+        .map_err(auth::server_err)?;
 
-    PatreonConnection::delete(&app.db, guild_id)
-        .await
-        .map_err(crate::server::auth::server_err)?;
+    PatreonConnection::delete(&app.db, guild_id).await.map_err(auth::server_err)?;
 
     if let Some(connection) = connection {
         let patreon_app = use_context::<PatreonApp>();
