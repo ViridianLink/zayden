@@ -141,7 +141,7 @@ impl BotState {
         );
 
         let wiki_index = Arc::new(WikiIndex::new(app.http.clone()));
-        WikiIndex::spawn_invalidator(Arc::clone(&wiki_index), app.subscribe());
+        WikiIndex::spawn_invalidator(&wiki_index, app.subscribe());
 
         Ok(Self {
             app,

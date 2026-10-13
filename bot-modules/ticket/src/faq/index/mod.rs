@@ -63,10 +63,14 @@ impl WikiIndex {
         self.guilds.remove(&guild_id);
     }
 
-    pub fn spawn_invalidator(index: Arc<Self>, mut rx: Receiver<AppEvent>) {
+    pub fn spawn_invalidator(index: &Arc<Self>, mut rx: Receiver<AppEvent>) {
+        let weak = Arc::downgrade(index);
         tokio::spawn(async move {
             loop {
-                match rx.recv().await {
+                let event = rx.recv().await;
+                let Some(index) = weak.upgrade() else { break };
+
+                match event {
                     Ok(AppEvent::ConfigChanged(guild_id)) => {
                         if guild_id != 0 {
                             index.invalidate(GuildId::new(guild_id));
