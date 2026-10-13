@@ -10,16 +10,17 @@ use topcoat::router::{Body, Router, page};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 use topcoat::view::{View, view};
 use web::components::confirm::confirm_button;
+use web::components::field_row::{
+    form_summary,
+    select_row,
+    text_row,
+    textarea_row,
+    toggle_row,
+};
 use web::components::guild_grid::{GuildCard, guild_grid};
 use web::components::icons::{Icon, icon};
-use web::components::key_list::key_list_field;
-use web::components::pickers::{SelectOption, select_field};
-use web::components::settings::{
-    save_button,
-    save_feedback,
-    setting_field,
-    toggle_field,
-};
+use web::components::pickers::SelectOption;
+use web::components::save_bar::save_bar;
 use web::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 
 type TestResult<T = ()> = Result<T, Box<dyn Error + Send + Sync>>;
@@ -86,7 +87,6 @@ async fn everything() -> ViewResult<impl View> {
     ];
     let options =
         vec![SelectOption { value: "1".to_owned(), label: "# chat".to_owned() }];
-    let keys = ["solar".to_owned()];
 
     Ok(view! {
         <form method="post" data-pending="">
@@ -96,22 +96,29 @@ async fn everything() -> ViewResult<impl View> {
                 prompt: "Sure?",
                 confirm: "Delete it"
             )
-            save_button()
+            save_bar()
         </form>
         guild_grid(guilds: &guilds)
         icon(name: Icon::Plus)
-        key_list_field(label: "Tags", keys: &keys, list: "tags", max: 1)
-        select_field(label: "A", name: "a", selected: "", options: Ok(options))
-        select_field(
-            label: "B",
+        form_summary(form: "f", message: "nope")
+        select_row(form: "f", name: "a", label: "A", selected: "", options: Ok(options))
+        select_row(
+            form: "f",
             name: "b",
+            label: "B",
             selected: "9",
-            options: Err("down".to_owned())
+            options: Err("down")
         )
-        setting_field(label: "C", name: "c", value: "", hint: Some("hint"))
-        toggle_field(label: "D", name: "d", value: true)
-        save_feedback(outcome: Ok(()))
-        save_feedback(outcome: Err("nope"))
+        text_row(
+            form: "f",
+            name: "c",
+            label: "C",
+            value: "",
+            help: Some("hint"),
+            error: Some("wrong")
+        )
+        textarea_row(form: "f", name: "e", label: "E", value: "")
+        toggle_row(form: "f", name: "d", label: "D", value: true)
         shape_skeleton(shape: SkeletonShape::Btn)
         shape_skeleton(shape: SkeletonShape::Badge)
         shape_skeleton(shape: SkeletonShape::Switcher)

@@ -10,10 +10,10 @@ use super::{ADD_CHANNEL, CHANNELS, GreetingAction, PAGE, REMOVE_CHANNEL};
 use crate::auth::ChannelInfo;
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_row, data_table};
+use crate::components::field_row::{form_summary, select_row};
 use crate::components::flash::flash;
 use crate::components::pickers::{Channel, channel_options};
 use crate::engagement::pages::action::form_action;
-use crate::engagement::pages::fields::{form_summary, select_row};
 use crate::engagement::{GATE_KINDS, channel_label, unconfigured_channels};
 use crate::flash::Flash;
 
@@ -115,7 +115,7 @@ pub async fn channel_section(
                             name: "channel_id",
                             label: "Allow a channel",
                             selected: chosen,
-                            options: &choices,
+                            options: Ok(choices),
                             help: Some("A text, announcement or forum channel, or a whole category."),
                             error: add_field_error,
                             required: true

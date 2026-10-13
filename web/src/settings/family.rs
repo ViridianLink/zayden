@@ -4,10 +4,10 @@ use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
-use super::fields::{Range, form_summary, text_row};
 use super::header::switch_module;
 use super::state::{Done, PageState, settle};
 use super::{Page, ensure_path_guild, settings_page};
+use crate::components::field_row::{Range, form_summary, text_row};
 use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::FamilySection;

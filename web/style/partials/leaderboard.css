@@ -1,45 +1,5 @@
 /* Leaderboard */
 
-.leaderboard {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.lb-row {
-  display: grid;
-  grid-template-columns: 3rem 1fr 5rem 6rem 7rem;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-top: 1px solid var(--border);
-}
-
-.lb-row:first-child {
-  border-top: none;
-}
-
-.lb-head {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-3);
-  background-color: var(--wash-1);
-}
-
-.lb-rank {
-  font-weight: 600;
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-}
-
-.lb-user {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
 .lb-avatar {
   width: 32px;
   height: 32px;
@@ -61,12 +21,3 @@
   text-overflow: ellipsis;
 }
 
-.lb-num {
-  text-align: right;
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-}
-
-.lb-head .lb-num {
-  color: var(--text-3);
-}

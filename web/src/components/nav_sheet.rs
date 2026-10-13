@@ -18,7 +18,13 @@ pub async fn nav_sheet(
     #[default] guild_id: Option<&str>,
 ) -> Result<impl View> {
     Ok(view! {
-        <div id=(SHEET_ID) popover="" class="sheet-panel" aria-label="Menu">
+        <div
+            id=(SHEET_ID)
+            popover=""
+            class="sheet-panel"
+            role="dialog"
+            aria-label="Menu"
+        >
             <div class="sheet-head">
                 <span class="label">"Menu"</span>
                 <button

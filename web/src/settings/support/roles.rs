@@ -7,10 +7,11 @@ use topcoat::view::{View, ViewExt, component, view};
 use super::Pane;
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_row, data_table};
+use crate::components::field_row::{form_summary, select_row, text_row};
 use crate::components::flash::flash;
 use crate::components::pickers::{Role, SelectOption};
 use crate::guild::GuildError;
-use crate::guild::dto::{HelperLinkInfo, SupportSection};
+use crate::guild::dto::{HelperLinkInfo, SupportRolesSection};
 use crate::guild::support::{
     AddHelperLinkForm,
     RemoveHelperLinkForm,
@@ -20,12 +21,7 @@ use crate::guild::support::{
     remove_helper_link,
     remove_support_role,
 };
-use crate::settings::fields::{
-    form_summary,
-    roles as role_choices,
-    select_row,
-    text_row,
-};
+use crate::settings::fields::roles as role_choices;
 use crate::settings::state::{Done, Failure, PageState, plain, settle};
 use crate::settings::{
     Lists,
@@ -183,7 +179,7 @@ struct RoleRow {
 #[component]
 pub(super) async fn pane(
     guild_id: &str,
-    settings: &SupportSection,
+    settings: &SupportRolesSection,
     lists: &Lists,
     state: &PageState,
 ) -> Result<impl View> {

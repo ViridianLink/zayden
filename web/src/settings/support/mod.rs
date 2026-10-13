@@ -82,11 +82,6 @@ pub(super) async fn subnav(guild_id: &str, current: Pane) -> Result<impl View> {
                     <li>
                         <a
                             href=(Page::Support(pane).href(guild_id))
-                            class=(if here {
-                                "btn btn-secondary"
-                            } else {
-                                "btn btn-ghost"
-                            })
                             aria-current=(here.then_some("page"))
                         >
                             (pane.label())
@@ -101,14 +96,13 @@ pub(super) async fn subnav(guild_id: &str, current: Pane) -> Result<impl View> {
 #[component]
 pub(super) async fn tab(
     guild_id: &str,
-    pane: Pane,
     settings: &SupportSection,
     lists: &Lists,
     state: &PageState,
 ) -> Result<impl View> {
     Ok(view! {
-        match pane {
-            Pane::Tickets | Pane::Faq => (view! {
+        match settings {
+            SupportSection::Tickets(settings) => (view! {
                 settings::tickets(
                     guild_id: guild_id,
                     settings: settings,
@@ -118,7 +112,7 @@ pub(super) async fn tab(
             }.boxed(
 
             )),
-            Pane::Suggestions => (view! {
+            SupportSection::Suggestions(settings) => (view! {
                 settings::suggestions(
                     guild_id: guild_id,
                     settings: settings,
@@ -128,16 +122,12 @@ pub(super) async fn tab(
             }.boxed(
 
             )),
-            Pane::Wiki => (view! {
-                settings::wiki(
-                    guild_id: guild_id,
-                    settings: &settings.faq,
-                    state: state
-                )
+            SupportSection::Wiki(settings) => (view! {
+                settings::wiki(guild_id: guild_id, settings: settings, state: state)
             }.boxed(
 
             )),
-            Pane::Roles => (view! {
+            SupportSection::Roles(settings) => (view! {
                 roles::pane(
                     guild_id: guild_id,
                     settings: settings,

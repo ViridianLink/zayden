@@ -208,6 +208,7 @@ document.addEventListener("submit", (event) => {
 window.addEventListener("beforeunload", (event) => {
   if (leaveApproved) {
     leaveApproved = false;
+    sent = null;
     return;
   }
   if (!dirtyBesides(null)) return;

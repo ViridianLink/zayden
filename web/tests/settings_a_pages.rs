@@ -339,6 +339,7 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
         ),
         user_guilds: state.discord.user_guilds,
         users: state.discord.users,
+        member_names: state.discord.member_names,
     };
     state
         .sessions

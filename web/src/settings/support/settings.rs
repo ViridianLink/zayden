@@ -5,8 +5,15 @@ use topcoat::router::{RouterBuilder, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
 use super::Pane;
+use crate::components::field_row::{
+    Range,
+    form_summary,
+    select_row,
+    text_row,
+    toggle_row,
+};
 use crate::components::save_bar::save_bar;
-use crate::guild::dto::{FaqSection, SupportSection};
+use crate::guild::dto::{FaqSection, SuggestionsSection, TicketsSection};
 use crate::guild::faq::{
     FaqWikiKeyForm,
     WikiSettingsForm,
@@ -20,15 +27,7 @@ use crate::guild::support::{
     save_suggestions_settings,
     save_ticket_settings,
 };
-use crate::settings::fields::{
-    Range,
-    channels,
-    form_summary,
-    forum_tags,
-    select_row,
-    text_row,
-    toggle_row,
-};
+use crate::settings::fields::{channels, forum_tags};
 use crate::settings::state::{Done, PageState, settle};
 use crate::settings::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
 use crate::shell::GuildId;
@@ -201,7 +200,7 @@ async fn save_key(
 #[component]
 pub(super) async fn tickets(
     guild_id: &str,
-    settings: &SupportSection,
+    settings: &TicketsSection,
     lists: &Lists,
     state: &PageState,
 ) -> Result<impl View> {
@@ -362,7 +361,7 @@ pub(super) async fn tickets(
 #[component]
 pub(super) async fn suggestions(
     guild_id: &str,
-    settings: &SupportSection,
+    settings: &SuggestionsSection,
     lists: &Lists,
     state: &PageState,
 ) -> Result<impl View> {

@@ -6,19 +6,13 @@ use topcoat::router::{page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
 use super::action::{FormAction, form_action, not_saved, page_href};
-use super::fields::{
-    Constraints,
-    form_summary,
-    load_error,
-    load_problem,
-    select_row,
-    text_row,
-};
+use super::fields::{load_error, load_problem};
 use super::header::page_header;
 use super::state::{Done, PageState, rerender, settle};
 use crate::auth::{ChannelInfo, RoleInfo};
 use crate::components::confirm_dialog::confirm_dialog;
 use crate::components::data_table::{data_cell, data_row, data_table};
+use crate::components::field_row::{form_summary, select_row, text_row};
 use crate::components::flash::flash;
 use crate::components::icons::{Icon, icon};
 use crate::components::pickers::{Channel, Role, channel_options, role_options};
@@ -238,7 +232,7 @@ async fn add_section(
                     name: "channel_id",
                     label: "Channel",
                     selected: sent.value("channel_id", ""),
-                    options: &channel_choices,
+                    options: Ok(channel_choices),
                     help: Some("Where the message is, or where Zayden posts the new panel."),
                     error: sent.error("channel_id"),
                     required: true
@@ -250,7 +244,7 @@ async fn add_section(
                     value: sent.value("message_id", ""),
                     help: Some("Optional. Leave blank to post a new panel message."),
                     error: sent.error("message_id"),
-                    constraints: Constraints { numeric: true, ..Constraints::default() }
+                    numeric: true
                 )
                 text_row(
                     form: ADD_FORM,
@@ -259,7 +253,7 @@ async fn add_section(
                     value: sent.value("emoji", ""),
                     help: Some("A standard emoji such as \u{2705}, or a server emoji written as <:name:id>."),
                     error: sent.error("emoji"),
-                    constraints: Constraints { required: true, ..Constraints::default() },
+                    required: true,
                     placeholder: Some("\u{2705} or <:name:id>")
                 )
                 select_row(
@@ -267,7 +261,7 @@ async fn add_section(
                     name: "role_id",
                     label: "Role",
                     selected: sent.value("role_id", ""),
-                    options: &role_choices,
+                    options: Ok(role_choices),
                     help: Some(ROLE_ORDER_NOTE),
                     error: sent.error("role_id"),
                     required: true

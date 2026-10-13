@@ -7,7 +7,7 @@ use std::path::Path;
 
 const CRATE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
-const SECTION_TABS: [(&str, &str); 9] = [
+const SECTION_TABS: [(&str, &str); 10] = [
     ("ai.rs", "AiSection"),
     ("family.rs", "FamilySection"),
     ("general.rs", "GeneralSection"),
@@ -16,10 +16,11 @@ const SECTION_TABS: [(&str, &str); 9] = [
     ("music.rs", "MusicSection"),
     ("temp_voice.rs", "TempVoiceSection"),
     ("support/mod.rs", "SupportSection"),
-    ("support/settings.rs", "SupportSection"),
+    ("support/settings.rs", "TicketsSection"),
+    ("support/roles.rs", "SupportRolesSection"),
 ];
 
-const SECTION_TYPES: [&str; 8] = [
+const SECTION_TYPES: [&str; 11] = [
     "AiSection",
     "FamilySection",
     "GeneralSection",
@@ -28,9 +29,12 @@ const SECTION_TYPES: [&str; 8] = [
     "MusicSection",
     "TempVoiceSection",
     "SupportSection",
+    "TicketsSection",
+    "SuggestionsSection",
+    "SupportRolesSection",
 ];
 
-const SECTION_HELPERS: [&str; 8] = [
+const SECTION_HELPERS: [&str; 11] = [
     "general_section",
     "ai_section",
     "family_section",
@@ -38,7 +42,10 @@ const SECTION_HELPERS: [&str; 8] = [
     "lfg_section",
     "music_section",
     "temp_voice_section",
-    "support_section",
+    "tickets_section",
+    "suggestions_section",
+    "wiki_section",
+    "support_roles_section",
 ];
 
 /// The file's text, or empty text if it cannot be read; the canaries below
@@ -311,4 +318,36 @@ fn the_legal_pages_need_no_session_or_database() {
             assert!(!source.contains(needle), "{file} reaches for `{needle}`");
         }
     }
+}
+
+#[test]
+fn the_flash_is_taken_only_in_a_page_handler_before_the_body_streams() {
+    let mut files = Vec::new();
+    collect(&Path::new(CRATE_ROOT).join("src"), &mut files);
+
+    let mut takers: Vec<&str> = files
+        .iter()
+        .filter_map(|file| file.split_once('\u{0}'))
+        .filter(|(_, text)| {
+            text.contains("flash::take(cx)") || text.contains("notice: take(cx)")
+        })
+        .map(|(path, _)| path)
+        .collect();
+    takers.sort_unstable();
+    assert_eq!(takers, ["src/engagement/pages/state.rs", "src/settings/state.rs"]);
+
+    let mut calls = 0;
+    for (path, text) in files.iter().filter_map(|file| file.split_once('\u{0}')) {
+        for (at, _) in text.match_indices("PageState::load(cx)") {
+            calls += 1;
+            let head = text.get(..at).unwrap_or_default();
+            let item =
+                head.rfind("\n}\n").and_then(|end| head.get(end..)).unwrap_or(head);
+            assert!(
+                item.contains("#[page(") && !item.contains("view!"),
+                "{path}: PageState::load outside a page handler's prologue"
+            );
+        }
+    }
+    assert!(calls > 10, "only {calls} page state loads found");
 }

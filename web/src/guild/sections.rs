@@ -1,6 +1,5 @@
 use sqlx::PgPool;
 use topcoat::context::Cx;
-use twilight_http::Client;
 use zayden_app::state::AppState as ZaydenAppState;
 
 use super::access::admin_app;
@@ -13,15 +12,19 @@ use super::dto::{
     LfgSection,
     MusicSection,
     SectionSettings,
+    SuggestionsSection,
+    SupportRolesSection,
     SupportSection,
     TempVoiceSection,
+    TicketsSection,
 };
 use super::error::{GuildError, server_err};
 use super::parse::opt_str;
 use super::patreon::fetch_patreon_status;
 use super::support::{fetch_helper_links, fetch_support_roles};
 use super::youtube::fetch_youtube_status;
-use crate::auth::{db_pool, discord_client};
+use crate::auth::{db_pool, web_state};
+use crate::state::DiscordState;
 use crate::util::server_error_text;
 
 async fn general_section(
@@ -117,25 +120,13 @@ async fn temp_voice_section(
     })
 }
 
-async fn support_section(
+async fn tickets_section(
     app: &ZaydenAppState,
-    pool: &PgPool,
-    http: &Client,
     guild_id: i64,
-) -> Result<SupportSection, GuildError> {
-    let (support, suggestions, faq, support_roles, helper_links) = tokio::join!(
-        app.settings.support.get(guild_id),
-        app.settings.suggestions.get(guild_id),
-        app.settings.faq.get(guild_id),
-        fetch_support_roles(pool, guild_id),
-        fetch_helper_links(pool, http, guild_id),
-    );
+) -> Result<TicketsSection, GuildError> {
+    let support = app.settings.support.get(guild_id).await.map_err(server_err)?;
 
-    let support = support.map_err(server_err)?;
-    let suggestions = suggestions.map_err(server_err)?;
-    let faq = faq.map_err(server_err)?;
-
-    Ok(SupportSection {
+    Ok(TicketsSection {
         support_channel_id: opt_str(support.support_channel_id),
         solved_tag_id: opt_str(support.solved_tag_id),
         closed_tag_id: opt_str(support.closed_tag_id),
@@ -147,27 +138,60 @@ async fn support_section(
         stale_enabled: support.stale_enabled,
         stale_tag_id: opt_str(support.stale_tag_id),
         stale_after_secs: support.stale_after_secs.to_string(),
+    })
+}
+
+async fn suggestions_section(
+    app: &ZaydenAppState,
+    guild_id: i64,
+) -> Result<SuggestionsSection, GuildError> {
+    let suggestions =
+        app.settings.suggestions.get(guild_id).await.map_err(server_err)?;
+
+    Ok(SuggestionsSection {
         suggestions_channel_id: opt_str(suggestions.suggestions_channel_id),
         review_channel_id: opt_str(suggestions.review_channel_id),
         promote_threshold: suggestions.promote_threshold.to_string(),
         demote_threshold: suggestions.demote_threshold.to_string(),
-        faq: FaqSection {
-            enabled: faq.enabled,
-            auto_triage: faq.auto_triage,
-            auto_generate: faq.auto_generate,
-            wiki_url: faq.wiki_url.clone().unwrap_or_default(),
-            wiki_api_key_set: faq
-                .wiki_api_key
-                .as_deref()
-                .is_some_and(|key| !key.trim().is_empty()),
-            wiki_locale: faq.wiki_locale.clone(),
-            max_results: faq.max_results.to_string(),
-            answer_max_tokens: faq.answer_max_tokens.to_string(),
-            answer_temperature: faq.answer_temperature.to_string(),
-        },
+    })
+}
+
+async fn wiki_section(
+    app: &ZaydenAppState,
+    guild_id: i64,
+) -> Result<FaqSection, GuildError> {
+    let faq = app.settings.faq.get(guild_id).await.map_err(server_err)?;
+
+    Ok(FaqSection {
+        enabled: faq.enabled,
+        auto_triage: faq.auto_triage,
+        auto_generate: faq.auto_generate,
+        wiki_url: faq.wiki_url.clone().unwrap_or_default(),
+        wiki_api_key_set: faq
+            .wiki_api_key
+            .as_deref()
+            .is_some_and(|key| !key.trim().is_empty()),
+        wiki_locale: faq.wiki_locale.clone(),
+        max_results: faq.max_results.to_string(),
+        answer_max_tokens: faq.answer_max_tokens.to_string(),
+        answer_temperature: faq.answer_temperature.to_string(),
+    })
+}
+
+async fn support_roles_section(
+    pool: &PgPool,
+    discord: &DiscordState,
+    guild_id: i64,
+) -> SupportRolesSection {
+    let (support_roles, helper_links) = tokio::join!(
+        fetch_support_roles(pool, guild_id),
+        fetch_helper_links(pool, discord, guild_id),
+    );
+
+    SupportRolesSection {
         support_roles: support_roles.map_err(server_error_text),
         helper_links: helper_links.map_err(server_error_text),
-    })
+    }
 }
 
 pub async fn get_section_settings(
@@ -195,12 +219,25 @@ pub async fn get_section_settings(
             fetch_youtube_status(app, guild_id).await.map_err(server_error_text),
         ),
         "support" => {
+            support(SupportSection::Tickets(tickets_section(app, guild_id).await?))
+        },
+        "support-suggestions" => support(SupportSection::Suggestions(
+            suggestions_section(app, guild_id).await?,
+        )),
+        "support-wiki" => {
+            support(SupportSection::Wiki(wiki_section(app, guild_id).await?))
+        },
+        "support-roles" => {
             let pool = db_pool(cx)?;
-            let http = discord_client(cx)?;
-            SectionSettings::Support(Box::new(
-                support_section(app, pool, http, guild_id).await?,
+            let discord = &web_state(cx)?.discord;
+            support(SupportSection::Roles(
+                support_roles_section(pool, discord, guild_id).await,
             ))
         },
         _ => SectionSettings::General(general_section(app, guild_id).await?),
     })
+}
+
+fn support(section: SupportSection) -> SectionSettings {
+    SectionSettings::Support(Box::new(section))
 }

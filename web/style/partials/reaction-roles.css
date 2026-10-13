@@ -1,47 +1,5 @@
 /* Reaction-role mapping table */
 
-.rr-table {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: var(--space-5);
-}
-
-.rr-row {
-    display: grid;
-    grid-template-columns: 1fr 4rem 1fr 7rem 7rem;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    border-top: 1px solid var(--border);
-}
-
-.rr-row:first-child {
-    border-top: none;
-}
-
-.rr-head {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-3);
-    background-color: var(--wash-1);
-    border-radius: var(--radius-panel) var(--radius-panel) 0 0;
-}
-
-.rr-channel,
-.rr-role {
-    font-weight: 600;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.rr-cell {
-    display: flex;
-    align-items: center;
-}
-
 .rr-emoji {
     font-size: 20px;
     line-height: 1;
@@ -56,6 +14,7 @@
 .rr-link {
     display: inline-flex;
     align-items: center;
+    min-height: var(--target-min);
     gap: var(--space-1);
     color: var(--text-2);
     font-size: 13px;
@@ -63,8 +22,4 @@
 
 .rr-link:hover {
     color: var(--text);
-}
-
-.rr-remove {
-    justify-self: end;
 }

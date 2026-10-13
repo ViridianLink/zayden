@@ -11,14 +11,10 @@ use super::lamp::{LampState, lamp};
 
 pub const NOT_SYNCED_NOTE: &str = "Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.";
 
-/// What a module row offers beside its name.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ModuleControl {
-    /// A command-backed module: a real switch posting to `/guild/{id}`.
     Switch { on: bool },
-    /// A module whose state comes from its own page: status text and a link.
     Status { on: bool },
-    /// No state yet: an amber lamp and the explanation, no switch.
     NotSynced,
 }
 
@@ -26,8 +22,6 @@ const fn lamp_state(on: bool) -> LampState {
     if on { LampState::On } else { LampState::Off }
 }
 
-/// One module in the overview rack: name (a link when it has a page),
-/// description, lamp with text, and the control for its kind.
 #[component]
 pub async fn module_row(
     guild_id: &str,
@@ -102,7 +96,6 @@ pub async fn module_row(
     })
 }
 
-/// A purpose group of the rack: a heading over its rows.
 #[component]
 pub async fn module_group(
     title: &str,

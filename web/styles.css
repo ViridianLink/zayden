@@ -17,6 +17,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-indicator: var(--indicator);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -52,8 +53,6 @@
 @import "./style/partials/settings.css";
 @import "./style/partials/upgrade.css";
 @import "./style/partials/segmented.css";
-@import "./style/partials/toggle.css";
-@import "./style/partials/module-card.css";
 @import "./style/partials/leaderboard.css";
 @import "./style/partials/reaction-roles.css";
 @import "./style/partials/greetings.css";

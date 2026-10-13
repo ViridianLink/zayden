@@ -23,16 +23,6 @@ pub fn sidebar_active(href: &str, location: &str, exact: bool) -> bool {
 }
 
 #[must_use]
-pub fn module_list_location(guild_id: &str, location: &str) -> String {
-    let settings = format!("/guild/{guild_id}/settings");
-    if location == settings {
-        format!("{settings}/general")
-    } else {
-        location.to_owned()
-    }
-}
-
-#[must_use]
 pub fn switch_href(current: &str, location: &str, target: &str) -> String {
     let overview = format!("/guild/{target}");
     let prefix = format!("/guild/{current}");

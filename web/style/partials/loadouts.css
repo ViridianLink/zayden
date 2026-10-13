@@ -9,17 +9,10 @@
     gap: var(--space-2);
 }
 
-.loadout-row {
-    display: grid;
-    grid-template-columns: minmax(10rem, 1fr) 2fr auto;
-    align-items: center;
-    gap: var(--space-3);
-    padding: var(--space-3);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-control);
-}
-
 .loadout-name {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
     font-weight: 600;
 }
 
@@ -365,6 +358,7 @@
 .gear-affinity {
     display: inline-flex;
     align-items: center;
+    min-height: var(--target-min);
     gap: var(--space-1);
     padding: 0 var(--space-1);
     border: 1px dashed transparent;

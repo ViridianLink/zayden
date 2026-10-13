@@ -134,22 +134,6 @@
     text-decoration: none;
 }
 
-.account-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-full);
-    object-fit: cover;
-}
-
-.account-avatar.placeholder {
-    display: grid;
-    place-items: center;
-    background-color: var(--surface-2);
-    border: 1px solid var(--line);
-    font-size: 13px;
-    font-weight: 600;
-}
-
 .account-name {
     max-width: 12ch;
     overflow: hidden;
@@ -172,10 +156,6 @@
     overscroll-behavior: contain;
     border-right: 1px solid var(--rule);
     background-color: var(--surface-1);
-}
-
-.app-header {
-    display: contents;
 }
 
 .nav {
