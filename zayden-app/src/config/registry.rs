@@ -57,26 +57,20 @@ impl SettingsRegistry {
         let ai = Arc::new(SettingsStore::new(db.clone(), events.clone()));
         let faq = Arc::new(SettingsStore::new(db, events.clone()));
 
-        SettingsStore::spawn_invalidator(Arc::clone(&support), events.subscribe());
-        SettingsStore::spawn_invalidator(
-            Arc::clone(&suggestions),
-            events.subscribe(),
-        );
-        SettingsStore::spawn_invalidator(Arc::clone(&channels), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&roles), events.subscribe());
-        SettingsStore::spawn_invalidator(
-            Arc::clone(&temp_voice),
-            events.subscribe(),
-        );
-        SettingsStore::spawn_invalidator(Arc::clone(&lfg), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&music), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&ticket), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&family), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&honeypot), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&jellyfin), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&greetings), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&ai), events.subscribe());
-        SettingsStore::spawn_invalidator(Arc::clone(&faq), events.subscribe());
+        SettingsStore::spawn_invalidator(&support, events.subscribe());
+        SettingsStore::spawn_invalidator(&suggestions, events.subscribe());
+        SettingsStore::spawn_invalidator(&channels, events.subscribe());
+        SettingsStore::spawn_invalidator(&roles, events.subscribe());
+        SettingsStore::spawn_invalidator(&temp_voice, events.subscribe());
+        SettingsStore::spawn_invalidator(&lfg, events.subscribe());
+        SettingsStore::spawn_invalidator(&music, events.subscribe());
+        SettingsStore::spawn_invalidator(&ticket, events.subscribe());
+        SettingsStore::spawn_invalidator(&family, events.subscribe());
+        SettingsStore::spawn_invalidator(&honeypot, events.subscribe());
+        SettingsStore::spawn_invalidator(&jellyfin, events.subscribe());
+        SettingsStore::spawn_invalidator(&greetings, events.subscribe());
+        SettingsStore::spawn_invalidator(&ai, events.subscribe());
+        SettingsStore::spawn_invalidator(&faq, events.subscribe());
 
         Self {
             support,

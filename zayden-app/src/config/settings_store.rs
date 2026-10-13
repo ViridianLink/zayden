@@ -101,10 +101,14 @@ impl<Row: SettingsRow> SettingsStore<Row> {
         Ok(entry)
     }
 
-    pub fn spawn_invalidator(store: Arc<Self>, mut rx: Receiver<AppEvent>) {
+    pub fn spawn_invalidator(store: &Arc<Self>, mut rx: Receiver<AppEvent>) {
+        let weak = Arc::downgrade(store);
+
         tokio::spawn(async move {
             loop {
-                match rx.recv().await {
+                let event = rx.recv().await;
+                let Some(store) = weak.upgrade() else { break };
+                match event {
                     Ok(AppEvent::ConfigChanged(guild_id)) => {
                         store
                             .cache
