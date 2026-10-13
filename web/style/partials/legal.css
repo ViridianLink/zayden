@@ -103,10 +103,3 @@
     min-height: var(--row-h);
   }
 }
-
-.login-page .legal-links {
-  position: relative;
-  z-index: 1;
-  justify-content: center;
-  margin-top: var(--space-5);
-}

@@ -6,9 +6,9 @@ use topcoat::router::request::uri;
 use topcoat::view::{View, component, view};
 use url::form_urlencoded;
 
+use super::layout::public_layout;
 use crate::auth;
 use crate::components::brand::brand_mark;
-use crate::components::legal::legal_links;
 
 const SIGNED_IN_PATH: &str = "/guilds";
 
@@ -34,27 +34,34 @@ pub(crate) async fn login(cx: &Cx) -> Result<impl View> {
 #[component]
 async fn login_card(failed: bool) -> Result<impl View> {
     Ok(view! {
-        <main class="login-page" id="main" tabindex="-1">
-            <div class="hero-glow"></div>
-            <div class="login-card">
-                <span class="brand">
-                    brand_mark()
-                    "Zayden"
-                </span>
-                <h1>"Welcome back"</h1>
-                <p>"Connect your Discord account to manage your server settings."</p>
-                if failed {
-                    <p class="error" role="alert">(AUTH_FAILED_TEXT)</p>
-                }
-                <a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">
-                    (if failed {
-                        "Try again with Discord"
-                    } else {
-                        "Sign in with Discord"
-                    })
-                </a>
+        public_layout(
+            <div class="login-page">
+                <div class="hero-glow"></div>
+                <div class="login-card">
+                    <span class="brand">
+                        brand_mark()
+                        "Zayden"
+                    </span>
+                    <h1>"Welcome back"</h1>
+                    <p>
+                        "Connect your Discord account to manage your server settings."
+                    </p>
+                    if failed {
+                        <p class="error" role="alert">(AUTH_FAILED_TEXT)</p>
+                    }
+                    <a
+                        href="/auth/discord"
+                        rel="external"
+                        class="btn btn-primary btn-lg"
+                    >
+                        (if failed {
+                            "Try again with Discord"
+                        } else {
+                            "Sign in with Discord"
+                        })
+                    </a>
+                </div>
             </div>
-            legal_links()
-        </main>
+        )
     })
 }

@@ -461,16 +461,19 @@ async fn login_renders_the_card_in_a_main_landmark() {
     let html = page_html("/login").await.unwrap();
     assert!(html.contains("<title>Sign In - Zayden Dashboard</title>"));
 
+    assert!(html.contains(
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="public"><header class="public-header">"##
+    ));
     assert!(html.contains(concat!(
-        r##"<body><a class="skip-link" href="#main">Skip to main content</a><main class="login-page" id="main" tabindex="-1"><div class="hero-glow"></div><div class="login-card">"##,
+        r#"<main id="main" class="public-main" tabindex="-1"><div class="login-page"><div class="hero-glow"></div><div class="login-card">"#,
         r#"<span class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28">Zayden</span>"#,
         "<h1>Welcome back</h1>",
         "<p>Connect your Discord account to manage your server settings.</p>",
-        r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a></div>"#,
-        r#"<nav class="legal-links" aria-label="Legal"><a href="/privacy">Privacy Policy</a><a href="/terms">Terms of Service</a></nav></main></body>"#,
+        r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a></div></div></main>"#,
     )));
     assert_eq!(1, count(&html, "<main"));
-    assert!(!html.contains("<header"));
+    assert_eq!(1, count(&html, "<header class=\"public-header\">"));
+    assert_eq!(1, count(&html, "<footer class=\"footer\">"));
     assert!(!html.contains(r#"role="alert""#));
 }
 
@@ -509,7 +512,7 @@ async fn login_still_offers_sign_in_in_a_main_landmark_when_the_session_lookup_f
     assert_eq!(StatusCode::OK, response.status());
     let html = body_text(response).await.unwrap();
     assert!(html.contains(
-        r##"<body><a class="skip-link" href="#main">Skip to main content</a><main class="login-page" id="main" tabindex="-1">"##
+        r#"<main id="main" class="public-main" tabindex="-1"><div class="login-page">"#
     ));
     assert!(html.contains(
         r#"<a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">Sign in with Discord</a>"#
