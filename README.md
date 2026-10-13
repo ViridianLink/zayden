@@ -191,17 +191,18 @@ codegen backend is not used.
 `clippy`, the dashboard's two extra clippy targets (`ssr` and wasm32 `hydrate`),
 workspace tests against a Postgres service, `cargo-deny`, and
 `sqlx prepare --check`. `web` is covered by the workspace `clippy` and `test`
-jobs; `web-bundle` runs `topcoat asset bundle -p web` and `web-image` builds
-`docker/Dockerfile.web` without pushing. Jobs that compile `web` set
-`TAILWIND_CLI` to a checksummed Tailwind download. Everything builds on **stable**
+jobs. Jobs that compile `web` set `TAILWIND_CLI` to a
+checksummed Tailwind download. Everything builds on **stable**
 (`RUSTUP_TOOLCHAIN=stable` outranks `rust-toolchain.toml`, and `RUSTFLAGS=""`
-clears the nightly-only flags in `.cargo/config.toml`), so the CI format gate is
-weaker than `cargo fmt` locally — stable `rustfmt` ignores the unstable options
-rather than erroring.
+clears the nightly-only flags in `.cargo/config.toml`), except `rustfmt`, which
+runs on nightly so the unstable options in `rustfmt.toml` apply.
 
-The `images` job in the same workflow builds the `bot` and `dashboard` release
-images once `rustfmt`, both dashboard clippy jobs and `cargo-deny` pass, and
-pushes them to GHCR for every event except pull requests.
+The `images` job in the same workflow builds the `bot`, `dashboard` and `web`
+release images once `rustfmt`, both dashboard clippy jobs and `cargo-deny`
+pass, and pushes them to GHCR for every event except pull requests. The `web`
+image runs `topcoat asset bundle --release`, so it is also the asset bundle
+check. The slow checks cancel the whole run on failure, so a red check stops the
+image builds already in flight.
 
 ## Database
 
