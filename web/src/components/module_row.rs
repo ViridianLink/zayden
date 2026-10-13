@@ -8,6 +8,7 @@ use topcoat::view::{Child, View, component, view};
 
 use super::icons::{Icon, icon};
 use super::lamp::{LampState, lamp};
+use crate::nav::path_segment;
 
 pub const NOT_SYNCED_NOTE: &str = "Not synced yet: this module's state appears once Zayden is in the server and has synced its commands.";
 
@@ -49,7 +50,7 @@ pub async fn module_row(
                     <form
                         class="rack-form"
                         method="post"
-                        action=(format!("/guild/{guild_id}"))
+                        action=(format!("/guild/{}", path_segment(guild_id)))
                         data-pending=""
                     >
                         <input type="hidden" name="guild" value=(guild_id)>

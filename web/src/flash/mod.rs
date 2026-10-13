@@ -7,6 +7,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use topcoat::context::{Cx, try_app_context};
 use topcoat::cookie::time::Duration;
 use topcoat::cookie::{Cookies, Key};
+use topcoat::runtime::connected_untracked;
 
 pub use self::error::FlashError;
 use crate::auth::{build_cookie, cookie_jar};
@@ -137,6 +138,11 @@ fn write(cx: &Cx, flash: &Flash) -> Result<(), FlashError> {
 
 #[must_use]
 pub fn take(cx: &Cx) -> Option<Flash> {
+    // A runtime socket re-run sends no headers, so its removal cookie could
+    // never reach the browser; the first HTTP render already took the flash.
+    if connected_untracked(cx) {
+        return None;
+    }
     let jar = cookie_jar(cx).ok()?;
     jar.get(FLASH_COOKIE)?;
     let verified = key(cx).and_then(|key| jar.signed(key).get(FLASH_COOKIE));

@@ -3,6 +3,7 @@ use topcoat::context::Cx;
 use topcoat::router::StatusCode;
 use topcoat::router::error::see_other;
 
+use crate::auth::{AuthError, ForeignIdError};
 use crate::flash::{self, Flash, FlashKind};
 use crate::guild::GuildError;
 use crate::guild::parse::parse_flag;
@@ -90,12 +91,15 @@ fn field_of(error: &GuildError) -> Option<String> {
         GuildError::UnknownField(name) | GuildError::DuplicateField(name) => {
             return Some(name.clone());
         },
-        GuildError::MissingField(name) | GuildError::InvalidField(name) => *name,
+        GuildError::MissingField(name)
+        | GuildError::InvalidField(name)
+        | GuildError::Auth(AuthError::ForeignId(ForeignIdError::Tag(name))) => *name,
         GuildError::InvalidWikiUrl | GuildError::WikiUrlScheme => "wiki_url",
         GuildError::InvalidRole
         | GuildError::DuplicateSupportRole
         | GuildError::DuplicatePingRole
         | GuildError::TooManyPingRoles(_)
+        | GuildError::RoleNotPinged
         | GuildError::NoAnnounceChannel => "role_id",
         GuildError::MessageTooLong(_) => "message",
         GuildError::InvalidUserId => "user_id",

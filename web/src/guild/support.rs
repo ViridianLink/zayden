@@ -181,7 +181,13 @@ pub async fn save_ticket_settings(
     let stale_tag_id = parse_id(&form.stale_tag_id);
     let stale_secs = parse_idle_secs(&form.stale_after_secs, DEFAULT_STALE_SECS);
 
-    GuildIds::default().channel(support_channel_id).ensure_in(cx, guild_id).await?;
+    GuildIds::default()
+        .channel(support_channel_id)
+        .forum_tag("solved_tag_id", solved_tag_id)
+        .forum_tag("closed_tag_id", closed_tag_id)
+        .forum_tag("stale_tag_id", stale_tag_id)
+        .ensure_in(cx, guild_id)
+        .await?;
 
     app.settings
         .support

@@ -34,6 +34,8 @@ pub enum GuildError {
     DuplicatePingRole,
     #[error("at most {0} roles can be pinged")]
     TooManyPingRoles(usize),
+    #[error("that role isn't pinged")]
+    RoleNotPinged,
     #[error("choose an announcement channel first")]
     NoAnnounceChannel,
     #[error("the message can be at most {0} characters")]

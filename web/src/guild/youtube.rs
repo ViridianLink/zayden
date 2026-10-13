@@ -3,7 +3,13 @@ use youtube::{YoutubeAnnounceRow, YoutubeConnection};
 use zayden_app::state::AppState as ZaydenAppState;
 
 use super::access::admin_app;
-use super::announce::{PingRoleForm, new_ping_role, parse_message};
+use super::announce::{
+    PingRoleForm,
+    new_ping_role,
+    parse_message,
+    ping_role_limit,
+    refused_ping_role,
+};
 use super::dto::YoutubeStatus;
 use super::error::{GuildError, server_err};
 use super::form::{GuildForm, form_args};
@@ -83,10 +89,24 @@ pub async fn add_youtube_ping_role(
     let role =
         new_ping_role(cx, guild_id, &announce.ping_role_ids, &form.role_id).await?;
 
-    YoutubeAnnounceRow::add_ping_role(&app.db, guild_id, role)
-        .await
-        .map(|_added| ())
-        .map_err(server_err)
+    let added = YoutubeAnnounceRow::add_ping_role(
+        &app.db,
+        guild_id,
+        role,
+        ping_role_limit(),
+    )
+    .await
+    .map_err(server_err)?;
+    if added {
+        return Ok(());
+    }
+
+    let stored =
+        YoutubeAnnounceRow::select(&app.db, guild_id).await.map_err(server_err)?;
+    Err(refused_ping_role(
+        stored.as_ref().map(|row| row.ping_role_ids.as_slice()),
+        role,
+    ))
 }
 
 pub async fn remove_youtube_ping_role(
@@ -97,10 +117,11 @@ pub async fn remove_youtube_ping_role(
 
     let role = parse_role(&form.role_id)?.cast_signed();
 
-    YoutubeAnnounceRow::remove_ping_role(&app.db, guild_id, role)
+    let removed = YoutubeAnnounceRow::remove_ping_role(&app.db, guild_id, role)
         .await
-        .map(|_removed| ())
-        .map_err(server_err)
+        .map_err(server_err)?;
+
+    if removed { Ok(()) } else { Err(GuildError::RoleNotPinged) }
 }
 
 pub async fn disconnect_youtube(
