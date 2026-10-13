@@ -47,16 +47,22 @@ async fn acceptance() -> Result<impl View> {
             <p class="legal-lead">
                 "Zayden is a Discord bot and web dashboard operated by Oscar Six "
                 "(\"ViridianLink\", \"we\", \"us\"). By using the bot or the dashboard "
-                "you accept these terms and our " <a href="/privacy">"Privacy Policy"</a> "."
+                "you accept these terms and our "
+                <a href="/privacy">"Privacy Policy"</a>
+                "."
             </p>
             <p>
                 <strong>
                     "By using the YouTube features, you agree to be bound by the "
-                    <a href="https://www.youtube.com/t/terms">"YouTube Terms of Service"</a>
+                    <a href="https://www.youtube.com/t/terms">
+                        "YouTube Terms of Service"
+                    </a>
                     "."
                 </strong>
                 " Google's handling of data is covered by the "
-                <a href="https://policies.google.com/privacy">"Google Privacy Policy"</a>
+                <a href="https://policies.google.com/privacy">
+                    "Google Privacy Policy"
+                </a>
                 "."
             </p>
         </section>
@@ -88,7 +94,9 @@ async fn acceptable_use() -> Result<impl View> {
             <ul>
                 <li>"use Zayden to harass, abuse or harm anyone;"</li>
                 <li>"spam commands, messages or requests;"</li>
-                <li>"try to disrupt, overload or break the bot, the dashboard or hosted servers;"</li>
+                <li>
+                    "try to disrupt, overload or break the bot, the dashboard or hosted servers;"
+                </li>
                 <li>
                     "get around cooldowns, usage limits, paid-feature checks or other "
                     "restrictions, or exploit bugs to do so;"
@@ -201,7 +209,9 @@ async fn changes() -> Result<impl View> {
             <p>
                 "We may update these terms. When we do, we change this page and the "
                 "\"Last updated\" date at the top; continuing to use Zayden after that "
-                "means you accept the new terms. Questions: " contact_email() "."
+                "means you accept the new terms. Questions: "
+                contact_email()
+                "."
             </p>
         </section>
     })

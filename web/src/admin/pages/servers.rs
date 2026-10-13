@@ -179,7 +179,10 @@ async fn server_tools(cx: &Cx, guilds: &[GuildCard]) -> Result<impl View> {
                             <a href=(guild.href())>
                                 match guild.icon_url() {
                                     Some(url) => <img src=(url) alt="" class="guild-icon">,
-                                    None => <span class="guild-icon placeholder" aria-hidden="true">
+                                    None => <span
+                                        class="guild-icon placeholder"
+                                        aria-hidden="true"
+                                    >
                                         (guild.initial())
                                     </span>,
                                 }

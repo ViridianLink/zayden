@@ -82,7 +82,9 @@ pub(super) async fn ping_roles_section(
         >
             <h2 class="label" id="ping-roles-title">"Roles to ping"</h2>
             <p class="page-lead">
-                (format!("Up to {MAX_PING_ROLES} roles are mentioned where the message has {{roles}}, or at its start when it doesn't."))
+                (format!(
+                    "Up to {MAX_PING_ROLES} roles are mentioned where the message has {{roles}}, or at its start when it doesn't.",
+                ))
             </p>
             <p class="field-hint">
                 "Roles that aren't set as mentionable only ping when Zayden has the Mention @everyone, @here and All Roles permission."
@@ -95,7 +97,9 @@ pub(super) async fn ping_roles_section(
                 </p>
             } else if full {
                 <p class="page-lead">
-                    (format!("All {MAX_PING_ROLES} role slots are in use. Remove one to add another."))
+                    (format!(
+                        "All {MAX_PING_ROLES} role slots are in use. Remove one to add another.",
+                    ))
                 </p>
             } else {
                 <form

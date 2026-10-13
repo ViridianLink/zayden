@@ -47,7 +47,11 @@ async fn login_card(failed: bool) -> Result<impl View> {
                     <p class="error" role="alert">(AUTH_FAILED_TEXT)</p>
                 }
                 <a href="/auth/discord" rel="external" class="btn btn-primary btn-lg">
-                    (if failed { "Try again with Discord" } else { "Sign in with Discord" })
+                    (if failed {
+                        "Try again with Discord"
+                    } else {
+                        "Sign in with Discord"
+                    })
                 </a>
             </div>
             legal_links()

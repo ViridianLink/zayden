@@ -172,8 +172,11 @@ async fn reaction_roles_page(
             flash(notice: state.top_notice())
             match data {
                 Err(error) => {
-                    let (message, actions) =
-                        load_problem(guild_id, &page_href(guild_id, PAGE), &error);
+                    let (message, actions) = load_problem(
+                        guild_id,
+                        &page_href(guild_id, PAGE),
+                        &error,
+                    );
                     if let Some(failure) = state.any_failure() {
                         form_summary(form: "page", message: failure)
                     }
@@ -233,7 +236,9 @@ async fn add_section(
                     label: "Channel",
                     selected: sent.value("channel_id", ""),
                     options: Ok(channel_choices),
-                    help: Some("Where the message is, or where Zayden posts the new panel."),
+                    help: Some(
+                        "Where the message is, or where Zayden posts the new panel.",
+                    ),
                     error: sent.error("channel_id"),
                     required: true
                 )
@@ -251,7 +256,9 @@ async fn add_section(
                     name: "emoji",
                     label: "Emoji",
                     value: sent.value("emoji", ""),
-                    help: Some("A standard emoji such as \u{2705}, or a server emoji written as <:name:id>."),
+                    help: Some(
+                        "A standard emoji such as \u{2705}, or a server emoji written as <:name:id>.",
+                    ),
                     error: sent.error("emoji"),
                     required: true,
                     placeholder: Some("\u{2705} or <:name:id>")
@@ -372,7 +379,12 @@ async fn mapping_row(
             data_cell(label: "Role", (role.as_str()))
             data_cell(
                 label: "Message",
-                <a class="rr-link" href=(link) rel="external noreferrer" target="_blank">
+                <a
+                    class="rr-link"
+                    href=(link)
+                    rel="external noreferrer"
+                    target="_blank"
+                >
                     "Open in Discord"
                     icon(name: Icon::ExternalLink)
                 </a>
