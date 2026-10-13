@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use {
+    crate::server::auth,
     crate::server::auth::admin_guild_id,
     crate::server::discord::{ensure_bot_can_post, ensure_guild_channel},
     crate::server::guild::admin_app,
@@ -10,7 +11,6 @@ use {
 };
 
 use crate::dto::PatreonStatus;
-use crate::server::auth;
 
 #[cfg(feature = "ssr")]
 pub(crate) async fn fetch_patreon_status(
