@@ -143,6 +143,7 @@ pub fn take(cx: &Cx) -> Option<Flash> {
     if connected_untracked(cx) {
         return None;
     }
+
     let jar = cookie_jar(cx).ok()?;
     jar.get(FLASH_COOKIE)?;
     let verified = key(cx).and_then(|key| jar.signed(key).get(FLASH_COOKIE));
