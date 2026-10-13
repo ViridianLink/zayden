@@ -1,0 +1,15 @@
+{
+  "data": {
+    "attributes": {
+      "title": "Hero post",
+      "image": {
+        "url": "https://c10.patreonusercontent.com/4/patreon-media/p/post/1001/620/1.png?token-hash=abc",
+        "large_url": "https://c10.patreonusercontent.com/4/patreon-media/p/post/1001/1080/1.png?token-hash=abc",
+        "width": 1280,
+        "height": 720
+      }
+    },
+    "id": "1001",
+    "type": "post"
+  }
+}

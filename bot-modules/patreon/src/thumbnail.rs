@@ -2,27 +2,44 @@ use std::time::Duration;
 
 use reqwest::Client;
 use scraper::{Html, Selector};
+use serde::Deserialize;
 use tracing::{debug, warn};
 
 const TIMEOUT: Duration = Duration::from_secs(8);
 
-const BROWSER_USER_AGENT: &str = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
-     AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+const POST_API: &str = "https://www.patreon.com/api/posts";
+
+#[derive(Deserialize)]
+struct PostResponse {
+    data: PostData,
+}
+
+#[derive(Deserialize)]
+struct PostData {
+    attributes: PostAttributes,
+}
+
+#[derive(Deserialize)]
+struct PostAttributes {
+    image: Option<PostImage>,
+}
+
+#[derive(Deserialize)]
+struct PostImage {
+    large_url: Option<String>,
+    url: Option<String>,
+}
 
 #[must_use]
-pub fn og_image(html: &str) -> Option<String> {
-    let document = Html::parse_document(html);
-    let selector = Selector::parse(r#"meta[property="og:image"]"#).ok()?;
+pub fn api_image(json: &str) -> Option<String> {
+    let image =
+        serde_json::from_str::<PostResponse>(json).ok()?.data.attributes.image?;
 
-    let content = document
-        .select(&selector)
-        .next()?
-        .value()
-        .attr("content")?
-        .trim()
-        .to_owned();
-
-    (!content.is_empty()).then_some(content)
+    [image.large_url, image.url]
+        .into_iter()
+        .flatten()
+        .map(|url| url.trim().to_owned())
+        .find(|url| url.starts_with("https://"))
 }
 
 #[must_use]
@@ -38,20 +55,19 @@ pub fn content_image(content_html: &str) -> Option<String> {
         .map(str::to_owned)
 }
 
-pub async fn fetch(client: &Client, post_url: &str) -> Option<String> {
+pub async fn fetch(client: &Client, post_id: &str) -> Option<String> {
     let response = client
-        .get(post_url)
+        .get(format!("{POST_API}/{post_id}"))
         .timeout(TIMEOUT)
-        .header(reqwest::header::USER_AGENT, BROWSER_USER_AGENT)
         .send()
         .await
         .and_then(reqwest::Response::error_for_status);
 
-    let html = match response {
+    let json = match response {
         Ok(response) => match response.text().await {
-            Ok(html) => html,
+            Ok(json) => json,
             Err(e) => {
-                warn!(error = ?e, post_url, "patreon: thumbnail page body unreadable");
+                warn!(error = ?e, post_id, "patreon: thumbnail lookup body unreadable");
                 return None;
             },
         },
@@ -59,16 +75,16 @@ pub async fn fetch(client: &Client, post_url: &str) -> Option<String> {
             warn!(
                 status = ?e.status(),
                 error = %e,
-                post_url,
-                "patreon: thumbnail page fetch failed"
+                post_id,
+                "patreon: thumbnail lookup failed"
             );
             return None;
         },
     };
 
-    let image = og_image(&html);
+    let image = api_image(&json);
     if image.is_none() {
-        debug!(post_url, "patreon: post page has no og:image");
+        debug!(post_id, "patreon: post has no image");
     }
     image
 }

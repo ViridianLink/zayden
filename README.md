@@ -177,9 +177,8 @@ codegen backend is not used.
 `.github/workflows/ci.yml` runs these jobs in parallel: `rustfmt`, workspace
 `clippy`, workspace tests against a Postgres service, `cargo-deny`, and
 `sqlx prepare --check`. `web` is covered by the workspace `clippy` and `test`
-jobs; `web-bundle` runs `topcoat asset bundle -p web` and `web-image` builds
-`docker/Dockerfile.web` without pushing. Jobs that compile `web` set
-`TAILWIND_CLI` to a checksummed Tailwind download. Everything builds on **stable**
+jobs. Jobs that compile `web` set `TAILWIND_CLI` to a
+checksummed Tailwind download. Everything builds on **stable**
 (`RUSTUP_TOOLCHAIN=stable` outranks `rust-toolchain.toml`, and `RUSTFLAGS=""`
 clears the nightly-only flags in `.cargo/config.toml`), so the CI format gate is
 weaker than `cargo fmt` locally — stable `rustfmt` ignores the unstable options

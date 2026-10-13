@@ -69,10 +69,14 @@ impl ServingResolver {
         Ok(bot)
     }
 
-    pub fn spawn_invalidator(this: Arc<Self>, mut rx: Receiver<AppEvent>) {
+    pub fn spawn_invalidator(this: &Arc<Self>, mut rx: Receiver<AppEvent>) {
+        let weak = Arc::downgrade(this);
+
         tokio::spawn(async move {
             loop {
-                match rx.recv().await {
+                let event = rx.recv().await;
+                let Some(this) = weak.upgrade() else { break };
+                match event {
                     Ok(AppEvent::ServingChanged(guild_id)) => {
                         this.cache.invalidate(&guild_id.cast_signed()).await;
                     },

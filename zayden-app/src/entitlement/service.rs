@@ -4,7 +4,7 @@ use std::time::Duration;
 use jiff_sqlx::Timestamp;
 use moka::future::Cache;
 use sqlx::PgPool;
-use tokio::sync::broadcast;
+use tokio::sync::broadcast::{self, Receiver};
 use tracing::{info, warn};
 
 use super::types::{EntitlementScope, Tier};
@@ -146,13 +146,14 @@ impl EntitlementService {
         Ok(())
     }
 
-    pub fn spawn_invalidator(
-        this: Arc<Self>,
-        mut rx: broadcast::Receiver<AppEvent>,
-    ) {
+    pub fn spawn_invalidator(this: &Arc<Self>, mut rx: Receiver<AppEvent>) {
+        let weak = Arc::downgrade(this);
+
         tokio::spawn(async move {
             loop {
-                match rx.recv().await {
+                let event = rx.recv().await;
+                let Some(this) = weak.upgrade() else { break };
+                match event {
                     Ok(AppEvent::EntitlementChanged(scope)) => {
                         this.cache.invalidate(&scope).await;
                     },

@@ -1,4 +1,5 @@
 mod code;
+mod html_block;
 mod links;
 mod sections;
 mod spans;
@@ -29,7 +30,7 @@ pub fn for_discord(content: &str, config: &WikiConfig) -> String {
 }
 
 fn prose(text: &str, config: &WikiConfig) -> String {
-    let inline = map_text(text, |chunk| {
+    let inline = map_text(&html_block::flatten(text), |chunk| {
         let chunk = html::strip(chunk);
         let chunk = links::strip_images(&chunk);
         let chunk = links::strip_attribute_blocks(&chunk);

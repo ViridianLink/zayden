@@ -58,15 +58,12 @@ impl AppState {
 
         let entitlements =
             Arc::new(EntitlementService::new(pool.clone(), events.clone()));
-        EntitlementService::spawn_invalidator(
-            Arc::clone(&entitlements),
-            events.subscribe(),
-        );
+        EntitlementService::spawn_invalidator(&entitlements, events.subscribe());
 
         let modules = Arc::new(ModuleStore::new(pool.clone()));
 
         let serving = Arc::new(ServingResolver::new(pool.clone(), config.zayden_id));
-        ServingResolver::spawn_invalidator(Arc::clone(&serving), events.subscribe());
+        ServingResolver::spawn_invalidator(&serving, events.subscribe());
 
         let mut sku_tiers = HashMap::new();
         if let Some(sku) = config.discord_sku_pro {

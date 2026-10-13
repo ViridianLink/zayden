@@ -220,24 +220,10 @@ async fn save_form(
             )
             .await
         },
-        "support" => {
-            support::save_support_settings(
+        "tickets" => {
+            support::save_ticket_settings(
                 cx,
-                &support::SupportSettingsForm::from_pairs(pairs)?,
-            )
-            .await
-        },
-        "idle" => {
-            support::save_idle_settings(
-                cx,
-                &support::IdleSettingsForm::from_pairs(pairs)?,
-            )
-            .await
-        },
-        "stale" => {
-            support::save_stale_settings(
-                cx,
-                &support::StaleSettingsForm::from_pairs(pairs)?,
+                &support::TicketSettingsForm::from_pairs(pairs)?,
             )
             .await
         },
@@ -722,16 +708,8 @@ async fn support_settings_round_trip(pool: PgPool) {
 
     let saves = [
         (
-            "support",
-            "guild=7&support_channel_id=&solved_tag_id=5&closed_tag_id=x&solved_archive_secs=-3",
-        ),
-        (
-            "idle",
-            "guild=7&idle_enabled=true&idle_after_secs=10&idle_close_enabled=false&idle_close_after_secs=",
-        ),
-        (
-            "stale",
-            "guild=7&stale_enabled=true&stale_tag_id=6&stale_after_secs=99999999",
+            "tickets",
+            "guild=7&support_channel_id=&solved_tag_id=5&closed_tag_id=x&solved_archive_secs=-3&idle_enabled=true&idle_after_secs=10&idle_close_enabled=false&idle_close_after_secs=&stale_enabled=true&stale_tag_id=6&stale_after_secs=99999999",
         ),
         (
             "suggestions",
