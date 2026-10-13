@@ -47,52 +47,6 @@ command = [
 ]
 need_stdout = false
 
-[jobs.check-ssr]
-command = [
-    "cargo",
-    "check",
-    "-p",
-    "dashboard",
-    "--features",
-    "ssr",
-    "--color",
-    "always",
-]
-need_stdout = false
-
-[jobs.check-hydrate]
-command = [
-    "cargo",
-    "check",
-    "-p",
-    "dashboard",
-    "--target",
-    "wasm32-unknown-unknown",
-    "--features",
-    "hydrate",
-    "--color",
-    "always",
-]
-need_stdout = false
-
-[jobs.clippy-hydrate]
-command = [
-    "cargo",
-    "clippy",
-    "-p",
-    "dashboard",
-    "--target",
-    "wasm32-unknown-unknown",
-    "--features",
-    "hydrate",
-    "--color",
-    "always",
-    "--",
-    "-D",
-    "warnings",
-]
-need_stdout = false
-
 [jobs.clippy-web]
 command = [
     "cargo",
@@ -147,20 +101,6 @@ command = [
     "check",
     "--workspace",
     "--all-targets",
-    "--color",
-    "always",
-]
-need_stdout = false
-env.SQLX_OFFLINE = "true"
-
-[jobs.check-offline-ssr]
-command = [
-    "cargo",
-    "check",
-    "-p",
-    "dashboard",
-    "--features",
-    "ssr",
     "--color",
     "always",
 ]

@@ -754,11 +754,8 @@ Then the offline gate, which no CI job covers:
 ```bash
 SQLX_OFFLINE=true cargo check --workspace --all-targets
 ```
-```bash
-SQLX_OFFLINE=true cargo check -p dashboard --features ssr
-```
 
-If either finishes in under a second it reused a fingerprint from the online configuration
+If it finishes in under a second it reused a fingerprint from the online configuration
 and did not actually run — `touch` a source file in the crate and rerun.
 
 Visual check (the one that actually decides whether this works):

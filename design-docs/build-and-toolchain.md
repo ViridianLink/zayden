@@ -65,14 +65,11 @@ Two dead ends, so nobody re-runs them:
 - **`aws-lc-sys`'s own backend is not the cause.** Overriding just that crate
   changes nothing — the final link is driven by the _leaf_ crate's backend.
 
-Cranelift also has no wasm32 backend at all, so the dashboard's hydration bundle
-would need its own LLVM profile even if the above were solved.
-
 ## The nightly/stable split
 
-Local development, bacon, tests and `cargo-leptos` run on **nightly**, pinned by
+Local development, bacon and tests run on **nightly**, pinned by
 `rust-toolchain.toml`. The Docker release images build on **stable**, set by
-`ENV RUSTUP_TOOLCHAIN=stable` in both Dockerfiles. Two mechanisms keep that
+`ENV RUSTUP_TOOLCHAIN=stable` in every Dockerfile. Two mechanisms keep that
 working, and breaking either one breaks the release build:
 
 1. **`Cargo.toml` must stay stable-parseable.** Nightly-only build settings live
@@ -96,8 +93,7 @@ nothing, so nightly there costs nothing.
 
 The same split shows up in lints. Clippy's lint set differs between the two
 channels, so a `#[expect(clippy::…)]` that is fulfilled on nightly can be
-unfulfilled on stable and fail the `-D warnings` gate — `clippy::empty_enums` in
-`dashboard/src/lib.rs` is `allow` rather than `expect` for exactly that reason.
+unfulfilled on stable and fail the `-D warnings` gate.
 The reverse case is only noise: `clippy::assert_is_empty` in the workspace lint
 table does not exist on stable, and its `unknown_lints` warning is documented to
 ignore `-D warnings`.

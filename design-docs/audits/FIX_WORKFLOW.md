@@ -142,10 +142,6 @@ cargo sqlx prepare --workspace -- --all-features   # if SQL changed (then commit
 cargo machete                                        # if a Cargo.toml dep list changed
 ```
 
-If a finding lives in the dashboard's feature-gated code, also run the relevant
-feature check(s) from [`CLAUDE.md`](../../CLAUDE.md) (`-p dashboard --features
-ssr`, and the wasm/hydrate check where hydration code changed).
-
 Record the **actual** results. If a gate fails, it failed — fix it or report it;
 do not narrate green over red.
 

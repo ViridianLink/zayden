@@ -1,7 +1,7 @@
 # Zayden
 
 A Discord bot, an operator dashboard, and the shared application layer between
-them. Serenity for Discord, Leptos for the dashboard, Postgres via `sqlx`.
+them. Serenity for Discord, Topcoat for the dashboard, Postgres via `sqlx`.
 
 ## Layout
 
@@ -11,7 +11,6 @@ them. Serenity for Discord, Leptos for the dashboard, Postgres via `sqlx`.
 | `bot-modules/*`           | one crate per feature (gambling, levels, music, palworld, …)    |
 | `bot-modules/zayden-core` | command/event routing traits shared by every module             |
 | `zayden-app`              | application layer: config, entitlements, shared state           |
-| `dashboard/`              | Leptos SSR + WASM hydration operator dashboard                  |
 | `web/`                    | Topcoat server-rendered operator dashboard                      |
 | `migrations/`             | sqlx migrations, immutable once written                         |
 | `.sqlx/`                  | offline query cache; committed, regenerated on any query change |
@@ -28,15 +27,6 @@ cargo fmt --all
 `--all-targets` defaults to _off_ and silently skips tests, benches and
 examples. Always pass it.
 
-`--all-features` is deliberately **not** used here, unlike the template this
-project tracks: `dashboard` exposes mutually exclusive `ssr` and `hydrate`
-features and does not build with both on. Cover it with its own commands:
-
-```bash
-cargo clippy -p dashboard --features ssr -- -D warnings
-cargo clippy -p dashboard --target wasm32-unknown-unknown --features hydrate -- -D warnings
-```
-
 Clippy never codegens or links, so it reports green while the build is broken.
 Only a real build exercises linking:
 
@@ -51,8 +41,6 @@ bacon                    # clippy, the default job
 bacon test               # cargo test
 bacon fmt                # cargo fmt --all --check
 bacon build              # link check
-bacon check-ssr          # dashboard, server side
-bacon check-hydrate      # dashboard, wasm32 side
 bacon check-web          # web, check
 bacon check-offline-web  # web, check with SQLX_OFFLINE=true
 bacon clippy-web         # web, clippy
@@ -69,8 +57,8 @@ command weaker than CI is how drift starts.
 `web` is a [Topcoat](https://github.com/tokio-rs/topcoat) 0.10 app: every page
 renders on the server, and `web/src/router.rs` registers every layout, page and
 route in one `router()` function that the binary and the `tests/` harness share.
-It reads the same `bot/config.toml` `[dashboard]` keys and environment as
-`dashboard`.
+It reads the `[dashboard]` keys of `bot/config.toml` and the `DASHBOARD_*`
+environment variables.
 
 It needs the Topcoat CLI, pinned to the same version as the crate:
 
@@ -94,9 +82,9 @@ cargo run -p web
   change, before `cargo run`. `--release` bundles the release build. The CLI
   passes `RUSTUP_TOOLCHAIN`, `RUSTFLAGS` and `CARGO_TARGET_DIR` through to its
   inner build.
-- **`DASHBOARD_BIND_ADDR`** overrides `[dashboard].bind_addr`, so `web` can run
-  next to `dashboard` on `:3000`. Discord OAuth redirects are registered for
-  `:3000`, so log-in flows only complete when `web` runs there.
+- **`DASHBOARD_BIND_ADDR`** overrides `[dashboard].bind_addr`. Discord OAuth
+  redirects are registered for `:3000`, so log-in flows only complete when `web`
+  runs there.
 - **`DASHBOARD_COOKIE_KEY`** signs the one-shot result cookie shown after a
   save: standard base64 of at least 64 random bytes
   (`openssl rand -base64 64 | tr -d '\n'`). Set the same value on every
@@ -140,8 +128,8 @@ Most files in `web/tests/` render pages through the real router. The ones that
 touch Postgres use `#[sqlx::test]`, which needs `DATABASE_URL` pointing at a
 **throwaway** server (see Database below); `cargo test` creates and drops one
 database per test. Nothing in `web` is feature-gated, so the plain workspace
-commands run every test. `tests/legacy_*.rs` hold the source and stylesheet
-scans carried over from the `dashboard` crate.
+commands run every test. `tests/legacy_*.rs` hold the source, markup and
+stylesheet scans.
 
 ### Docker
 
@@ -151,15 +139,14 @@ downloads the Tailwind CLI and checks its SHA-256, the builder installs
 `rust-toolchain.toml` and runs `topcoat asset bundle --release -p web`, and the
 runtime image copies `/app/web` and `/app/assets` side by side (the binary
 looks for `assets/` next to itself). It runs as the `zayden` user, listens on
-`0.0.0.0:3000` (`DASHBOARD_BIND_ADDR`) and reads `/app/config.toml` like the
-dashboard image.
+`0.0.0.0:3000` (`DASHBOARD_BIND_ADDR`) and reads `/app/config.toml`.
 
 ```bash
 docker build -f docker/Dockerfile.web -t zayden-web .
 ```
 
-The image is not in the publish matrix and has no `docker-compose.yml`
-service yet; CI only builds it.
+CI publishes it as `zayden-web`; `docker-compose.yml` runs it as the `web`
+service on host port `3100` with `bot/config.toml` mounted read-only.
 
 ## Conventions
 
@@ -188,8 +175,7 @@ codegen backend is not used.
 ## CI
 
 `.github/workflows/ci.yml` runs these jobs in parallel: `rustfmt`, workspace
-`clippy`, the dashboard's two extra clippy targets (`ssr` and wasm32 `hydrate`),
-workspace tests against a Postgres service, `cargo-deny`, and
+`clippy`, workspace tests against a Postgres service, `cargo-deny`, and
 `sqlx prepare --check`. `web` is covered by the workspace `clippy` and `test`
 jobs; `web-bundle` runs `topcoat asset bundle -p web` and `web-image` builds
 `docker/Dockerfile.web` without pushing. Jobs that compile `web` set
@@ -199,9 +185,9 @@ clears the nightly-only flags in `.cargo/config.toml`), so the CI format gate is
 weaker than `cargo fmt` locally — stable `rustfmt` ignores the unstable options
 rather than erroring.
 
-The `images` job in the same workflow builds the `bot` and `dashboard` release
-images once `rustfmt`, both dashboard clippy jobs and `cargo-deny` pass, and
-pushes them to GHCR for every event except pull requests.
+The `images` job in the same workflow builds the `bot` and `web` release images
+once `rustfmt`, `clippy` and `cargo-deny` pass, and pushes them to GHCR for
+every event except pull requests.
 
 ## Database
 
@@ -209,7 +195,7 @@ pushes them to GHCR for every event except pull requests.
 cp .env.example .env
 sqlx database create
 sqlx migrate run
-cargo sqlx prepare --workspace -- --features ssr
+cargo sqlx prepare --workspace -- --all-targets
 ```
 
 **Only ever run mutating `sqlx` commands against a throwaway database.** The
@@ -232,7 +218,7 @@ populated DB will fail CI's `prepare --check`.
 docker compose up --build
 ```
 
-`docker/Dockerfile.bot`, `docker/Dockerfile.dashboard` and `docker/Dockerfile.web` are cargo-chef builds:
+`docker/Dockerfile.bot` and `docker/Dockerfile.web` are cargo-chef builds:
 dependencies are cooked into a cached layer, then the binary is compiled and
 copied into a `debian:trixie-slim` runtime that runs as a non-root `zayden`
 user. Both build on **stable** — `.dockerignore` keeps `rust-toolchain.toml` and

@@ -1,6 +1,6 @@
 # Zayden
 
-Discord bot (`bot/`, `bot-modules/*`), Leptos dashboard (`dashboard/`), shared app layer (`zayden-app/`). Serenity, Postgres (`sqlx`), Rust 2024.
+Discord bot (`bot/`, `bot-modules/*`), Topcoat dashboard (`web/`), shared app layer (`zayden-app/`). Serenity, Postgres (`sqlx`), Rust 2024.
 
 ## Constraints
 
@@ -19,14 +19,11 @@ When validation is requested:
 
 - **Bacon** runs in the background. If `pgrep bacon` is empty, inform the user or fall back to raw commands. Touch a file after config/migration edits to prevent stale `.bacon-locations`.
 - **Traps**:
-  - Never use `--all-features` (`dashboard`'s `ssr` and `hydrate` conflict).
   - Clippy does not codegen or link; full build is required to verify compilation.
 - **Full Validation Suite**:
   ```sh
   cargo fmt --check
-  cargo clippy --workspace --exclude dashboard --all-targets -- -D warnings
-  cargo clippy -p dashboard --features ssr -- -D warnings
-  cargo clippy -p dashboard --target wasm32-unknown-unknown --features hydrate -- -D warnings
+  cargo clippy --workspace --all-targets -- -D warnings
   cargo build --workspace --all-targets
   cargo test --workspace
   ```
@@ -42,7 +39,7 @@ When validation is requested:
 - **Live DB (`.env`)**: Never mutate without explicit user confirmation. Read-only queries are fine.
 - **Regenerating `.sqlx`**: Required when `query!` changes. Run against an empty, freshly-migrated DB (plan-sensitive nullability inference):
   ```sh
-  cargo sqlx prepare --workspace -- --all-targets --features ssr
+  cargo sqlx prepare --workspace -- --all-targets
   ```
   If prepare fails, revert via `git restore .sqlx`.
 
