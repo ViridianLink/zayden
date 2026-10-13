@@ -421,6 +421,8 @@ pub struct PatreonAnnounceRow {
     pub guild_id: i64,
     pub channel_id: i64,
     pub public_only: bool,
+    pub message: Option<String>,
+    pub ping_role_ids: Vec<i64>,
 }
 
 impl PatreonAnnounceRow {
@@ -437,7 +439,8 @@ impl PatreonAnnounceRow {
         let rows = sqlx::query_as!(
             Self,
             r#"
-            SELECT a.guild_id, a.channel_id, a.public_only
+            SELECT a.guild_id, a.channel_id, a.public_only, a.message,
+                   a.ping_role_ids
             FROM patreon_announce a
             JOIN patreon_oauth o ON o.guild_id = a.guild_id
             WHERE o.campaign_id = $1
@@ -456,8 +459,11 @@ impl PatreonAnnounceRow {
     pub async fn select(pool: &PgPool, guild_id: i64) -> Result<Option<Self>> {
         let row = sqlx::query_as!(
             Self,
-            "SELECT guild_id, channel_id, public_only
-             FROM patreon_announce WHERE guild_id = $1",
+            r#"
+            SELECT guild_id, channel_id, public_only, message, ping_role_ids
+            FROM patreon_announce
+            WHERE guild_id = $1
+            "#,
             guild_id
         )
         .fetch_optional(pool)
@@ -471,24 +477,71 @@ impl PatreonAnnounceRow {
         guild_id: i64,
         channel_id: i64,
         public_only: bool,
+        message: Option<&str>,
     ) -> Result<()> {
         sqlx::query!(
             r#"
-            INSERT INTO patreon_announce (guild_id, channel_id, public_only)
-            VALUES ($1, $2, $3)
+            INSERT INTO patreon_announce (guild_id, channel_id, public_only, message)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (guild_id) DO UPDATE
             SET channel_id = EXCLUDED.channel_id,
                 public_only = EXCLUDED.public_only,
+                message = EXCLUDED.message,
                 updated_at = now()
             "#,
             guild_id,
             channel_id,
-            public_only
+            public_only,
+            message
         )
         .execute(pool)
         .await?;
 
         Ok(())
+    }
+
+    pub async fn add_ping_role(
+        pool: &PgPool,
+        guild_id: i64,
+        role_id: i64,
+    ) -> Result<bool> {
+        let updated = sqlx::query!(
+            r#"
+            UPDATE patreon_announce
+            SET ping_role_ids = array_append(ping_role_ids, $2),
+                updated_at = now()
+            WHERE guild_id = $1 AND NOT ($2 = ANY (ping_role_ids))
+            "#,
+            guild_id,
+            role_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(updated > 0)
+    }
+
+    pub async fn remove_ping_role(
+        pool: &PgPool,
+        guild_id: i64,
+        role_id: i64,
+    ) -> Result<bool> {
+        let updated = sqlx::query!(
+            r#"
+            UPDATE patreon_announce
+            SET ping_role_ids = array_remove(ping_role_ids, $2),
+                updated_at = now()
+            WHERE guild_id = $1 AND $2 = ANY (ping_role_ids)
+            "#,
+            guild_id,
+            role_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(updated > 0)
     }
 
     pub async fn delete(pool: &PgPool, guild_id: i64) -> Result<bool> {

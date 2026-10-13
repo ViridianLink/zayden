@@ -1,4 +1,5 @@
 mod access;
+pub mod announce;
 pub mod command_permissions;
 pub mod directory;
 pub mod dto;

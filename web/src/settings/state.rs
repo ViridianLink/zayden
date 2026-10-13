@@ -92,7 +92,12 @@ fn field_of(error: &GuildError) -> Option<String> {
         },
         GuildError::MissingField(name) | GuildError::InvalidField(name) => *name,
         GuildError::InvalidWikiUrl | GuildError::WikiUrlScheme => "wiki_url",
-        GuildError::InvalidRole | GuildError::DuplicateSupportRole => "role_id",
+        GuildError::InvalidRole
+        | GuildError::DuplicateSupportRole
+        | GuildError::DuplicatePingRole
+        | GuildError::TooManyPingRoles(_)
+        | GuildError::NoAnnounceChannel => "role_id",
+        GuildError::MessageTooLong(_) => "message",
         GuildError::InvalidUserId => "user_id",
         GuildError::InvalidLink(_)
         | GuildError::LinkScheme

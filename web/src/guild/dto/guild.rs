@@ -23,6 +23,8 @@ pub struct PatreonStatus {
     pub webhook_registered: bool,
     pub channel_id: Option<String>,
     pub public_only: bool,
+    pub message: Option<String>,
+    pub ping_role_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -31,6 +33,8 @@ pub struct YoutubeStatus {
     pub channel_title: Option<String>,
     pub push_active: bool,
     pub channel_id: Option<String>,
+    pub message: Option<String>,
+    pub ping_role_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,7 +107,7 @@ pub struct FaqSection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SupportSection {
+pub struct TicketsSection {
     pub support_channel_id: Option<String>,
     pub solved_tag_id: Option<String>,
     pub closed_tag_id: Option<String>,
@@ -115,13 +119,28 @@ pub struct SupportSection {
     pub stale_enabled: bool,
     pub stale_tag_id: Option<String>,
     pub stale_after_secs: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SuggestionsSection {
     pub suggestions_channel_id: Option<String>,
     pub review_channel_id: Option<String>,
     pub promote_threshold: String,
     pub demote_threshold: String,
-    pub faq: FaqSection,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SupportRolesSection {
     pub support_roles: Result<Vec<String>, String>,
     pub helper_links: Result<Vec<HelperLinkInfo>, String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SupportSection {
+    Tickets(TicketsSection),
+    Suggestions(SuggestionsSection),
+    Wiki(FaqSection),
+    Roles(SupportRolesSection),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

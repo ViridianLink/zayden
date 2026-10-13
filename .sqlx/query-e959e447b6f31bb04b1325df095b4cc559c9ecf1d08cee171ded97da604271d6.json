@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE youtube_announce\n            SET ping_role_ids = array_remove(ping_role_ids, $2),\n                updated_at = now()\n            WHERE guild_id = $1 AND $2 = ANY (ping_role_ids)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e959e447b6f31bb04b1325df095b4cc559c9ecf1d08cee171ded97da604271d6"
+}

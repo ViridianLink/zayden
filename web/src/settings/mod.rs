@@ -1,4 +1,5 @@
 mod ai;
+mod announce;
 mod family;
 mod faq;
 mod fields;
@@ -27,6 +28,7 @@ use self::state::{PageState, plain};
 pub use self::support::Pane;
 use crate::auth::AuthError;
 use crate::components::error_panel::ErrorAction;
+use crate::components::field_row::form_summary;
 use crate::components::flash::flash;
 use crate::components::pickers::{Channel, Role};
 use crate::document::PAGE_TITLES;
@@ -130,6 +132,25 @@ impl Page {
         match self.pane() {
             Some(pane) => format!("{base}{}", pane.suffix()),
             None => base,
+        }
+    }
+
+    #[must_use]
+    pub const fn section(self) -> &'static str {
+        match self {
+            Self::Support(Pane::Suggestions) => "support-suggestions",
+            Self::Support(Pane::Wiki) => "support-wiki",
+            Self::Support(Pane::Roles) => "support-roles",
+            Self::Support(Pane::Tickets | Pane::Faq) => "support",
+            Self::Server
+            | Self::Ai
+            | Self::Family
+            | Self::Honeypot
+            | Self::Lfg
+            | Self::Music
+            | Self::TempVoice
+            | Self::Patreon
+            | Self::Youtube => self.slug(),
         }
     }
 
@@ -249,7 +270,7 @@ async fn load_error(
 
     Ok(view! {
         if let Some(failure) = failure {
-            fields::form_summary(form: "page", message: failure)
+            form_summary(form: "page", message: failure)
         }
         <section class="error-panel" role="alert" aria-labelledby="load-error-title">
             <h2 class="error-title" id="load-error-title">
@@ -280,7 +301,7 @@ async fn section_panel(
     page: Page,
     state: &PageState,
 ) -> Result<impl View> {
-    let slug = page.slug();
+    let slug = page.section();
     let (directory, settings) = tokio::join!(
         get_guild_directory(cx, guild_id),
         get_section_settings(cx, guild_id, slug),
@@ -300,7 +321,6 @@ async fn section_panel(
             ),
             Ok((lists, settings)) => section_tab(
                 guild_id: guild_id,
-                page: page,
                 lists: &lists,
                 settings: settings,
                 state: state
@@ -313,13 +333,10 @@ async fn section_panel(
 #[component]
 async fn section_tab(
     guild_id: &str,
-    page: Page,
     lists: &Lists,
     settings: SectionSettings,
     state: &PageState,
 ) -> Result<impl View> {
-    let pane = page.pane().unwrap_or(Pane::Tickets);
-
     Ok(view! {
         match settings {
             SectionSettings::General(settings) => (view! {
@@ -410,7 +427,6 @@ async fn section_tab(
             SectionSettings::Support(settings) => (view! {
                 support::tab(
                     guild_id: guild_id,
-                    pane: pane,
                     settings: settings.as_ref(),
                     lists: lists,
                     state: state

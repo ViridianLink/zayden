@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE youtube_announce\n            SET ping_role_ids = array_append(ping_role_ids, $2),\n                updated_at = now()\n            WHERE guild_id = $1 AND NOT ($2 = ANY (ping_role_ids))\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "783b540293df4b29503d6e0b05500f1d05d4e19d43567a4cd29e1c59e7fc9260"
+}

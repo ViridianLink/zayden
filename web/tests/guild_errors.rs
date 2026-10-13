@@ -15,6 +15,13 @@ fn every_message_matches_what_the_dashboard_shows() {
         ),
         (GuildError::InvalidRole, "invalid role"),
         (GuildError::DuplicateSupportRole, "that role is already a support role"),
+        (GuildError::DuplicatePingRole, "that role is already pinged"),
+        (GuildError::TooManyPingRoles(10), "at most 10 roles can be pinged"),
+        (GuildError::NoAnnounceChannel, "choose an announcement channel first"),
+        (
+            GuildError::MessageTooLong(1500),
+            "the message can be at most 1500 characters",
+        ),
         (GuildError::InvalidUserId, "invalid user id"),
         (
             GuildError::InvalidLink("empty host".to_owned()),

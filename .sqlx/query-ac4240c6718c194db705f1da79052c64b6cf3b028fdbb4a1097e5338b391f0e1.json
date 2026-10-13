@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO patreon_announce (guild_id, channel_id, public_only, message)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (guild_id) DO UPDATE\n            SET channel_id = EXCLUDED.channel_id,\n                public_only = EXCLUDED.public_only,\n                message = EXCLUDED.message,\n                updated_at = now()\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ac4240c6718c194db705f1da79052c64b6cf3b028fdbb4a1097e5338b391f0e1"
+}
