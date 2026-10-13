@@ -17,8 +17,11 @@ pub use guild::{
     MusicSection,
     PatreonStatus,
     SectionSettings,
+    SuggestionsSection,
+    SupportRolesSection,
     SupportSection,
     TempVoiceSection,
+    TicketsSection,
     YoutubeStatus,
 };
 pub use modules::ModuleView;

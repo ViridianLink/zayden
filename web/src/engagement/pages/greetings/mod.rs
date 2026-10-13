@@ -15,9 +15,10 @@ use self::cooldowns::cooldown_section;
 use self::images::image_section;
 use self::messages::messages_section;
 use super::action::{FormAction, form_action, not_saved, page_href};
-use super::fields::{form_summary, load_error, load_problem};
+use super::fields::{load_error, load_problem};
 use super::header::{MODULE_FORM, page_header, switch_module};
 use super::state::{Done, PageState, rerender, settle};
+use crate::components::field_row::form_summary;
 use crate::components::flash::flash;
 use crate::engagement::EngagementError;
 use crate::engagement::greetings::{

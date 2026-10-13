@@ -8,6 +8,7 @@ use super::Pane;
 use crate::components::confirm::confirm_button;
 use crate::components::data_table::{data_cell, data_row, data_table};
 use crate::components::empty_state::empty_state;
+use crate::components::field_row::{form_summary, text_row, textarea_row};
 use crate::components::save_bar::save_bar;
 use crate::components::shape_skeleton::{SkeletonShape, shape_skeleton};
 use crate::guild::{GuildError, GuildForm};
@@ -21,7 +22,6 @@ use crate::settings::faq::{
     parse_article_id,
     save_faq_article,
 };
-use crate::settings::fields::{form_summary, text_row, textarea_row};
 use crate::settings::state::{Done, Failure, PageState, succeed};
 use crate::settings::{Page, ensure_path_guild, frame, load_error};
 use crate::shell::GuildId;

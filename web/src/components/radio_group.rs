@@ -46,14 +46,14 @@ pub async fn radio_group(
 /// Classes for the radio input and its selected border.
 const RADIO: StaticClass = class!(
     "peer size-6 shrink-0 appearance-none rounded-full border border-input \
-     bg-popover transition-colors outline-none checked:border-primary \
+     bg-popover transition-colors outline-none checked:border-indicator \
      focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 \
      focus-visible:ring-offset-background disabled:pointer-events-none",
 );
 
 /// The classes for the dot marking the picked option.
 const DOT: StaticClass = class!(
-    "pointer-events-none absolute inset-0 m-auto size-2.5 rounded-full bg-primary \
+    "pointer-events-none absolute inset-0 m-auto size-2.5 rounded-full bg-indicator \
      opacity-0 transition-opacity peer-checked:opacity-100",
 );
 

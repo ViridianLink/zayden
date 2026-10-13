@@ -4,9 +4,10 @@ use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
-use super::fields::{channels, form_summary, select_row, toggle_row};
+use super::fields::channels;
 use super::state::{Done, PageState, settle};
 use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
+use crate::components::field_row::{form_summary, select_row, toggle_row};
 use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::dto::AiSection;

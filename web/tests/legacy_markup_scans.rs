@@ -22,8 +22,7 @@ const SERVER_PREFIXES: [&str; 7] = [
 
 const FORMS_WITHOUT_PENDING: [&str; 1] = ["src/shell/card.rs"];
 
-const SKELETON_CONTAINERS: [&str; 3] =
-    ["skeleton-list", "skeleton-grid", "skeleton-stack"];
+const SKELETON_CONTAINERS: [&str; 2] = ["skeleton-list", "skeleton-grid"];
 
 const fn is_name(c: char) -> bool {
     c.is_ascii_alphanumeric() || matches!(c, '-' | '_')

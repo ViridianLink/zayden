@@ -562,6 +562,7 @@ async fn harness(pool: PgPool) -> TestResult<Harness> {
         ),
         user_guilds: state.discord.user_guilds,
         users: state.discord.users,
+        member_names: state.discord.member_names,
     };
     seed_guilds(&state.discord.user_guilds).await;
     seed_users(&state.discord.users, &[41, 43, 44]).await;

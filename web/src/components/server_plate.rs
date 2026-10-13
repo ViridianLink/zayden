@@ -63,7 +63,7 @@ pub async fn server_plate(
                     </div>
                     <p class="menu-count" role="status" data-filter-count=""></p>
                 }
-                <div class="menu-list" data-filter-list="">
+                <div class="menu-list">
                     #[key(guild.id.as_str())]
                     for guild in guilds {
                         let option = GuildCard::from(guild);

@@ -16,6 +16,8 @@ pub enum StartupError {
     OAuthUrl(#[from] ParseError),
     #[error("invalid bind address: {0}")]
     BindAddr(#[from] AddrParseError),
+    #[error("invalid DASHBOARD_COOKIE_KEY: {0}")]
+    CookieKey(#[from] CookieKeyError),
     #[error(
         "could not load the asset bundle (run `topcoat asset bundle -p web`): {0}"
     )]
@@ -24,4 +26,12 @@ pub enum StartupError {
     Listen(#[source] io::Error),
     #[error("server error: {0}")]
     Serve(#[source] io::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CookieKeyError {
+    #[error("not standard base64: {0}")]
+    Base64(#[from] base64::DecodeError),
+    #[error("decodes to {0} bytes, at least 64 are needed")]
+    TooShort(usize),
 }

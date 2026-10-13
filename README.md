@@ -97,6 +97,11 @@ cargo run -p web
 - **`DASHBOARD_BIND_ADDR`** overrides `[dashboard].bind_addr`, so `web` can run
   next to `dashboard` on `:3000`. Discord OAuth redirects are registered for
   `:3000`, so log-in flows only complete when `web` runs there.
+- **`DASHBOARD_COOKIE_KEY`** signs the one-shot result cookie shown after a
+  save: standard base64 of at least 64 random bytes
+  (`openssl rand -base64 64 | tr -d '\n'`). Set the same value on every
+  instance. Unset, `web` logs a warning and signs with a key created at
+  start, so a restart drops an unread result; a malformed value stops startup.
 - **`TAILWIND_CLI`** points `web/build.rs` at a Tailwind CLI binary (v4.3.2).
   Unset, the build downloads that release itself (about 112 MB) and, on
   x86-64 Linux, checks it against a pinned SHA-256; on nightly the download

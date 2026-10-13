@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 use http_body_util::BodyExt;
 use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
@@ -16,6 +17,13 @@ const SCRIPT_FILE: &str = "pending-submit-0123456789abcdef.js";
 const SCRIPT_SOURCE: &str = include_str!("../assets/pending-submit.js");
 
 fn bundle_dir() -> TestResult<PathBuf> {
+    static DIR: OnceLock<Result<PathBuf, String>> = OnceLock::new();
+    DIR.get_or_init(|| write_bundle().map_err(|e| e.to_string()))
+        .clone()
+        .map_err(Into::into)
+}
+
+fn write_bundle() -> TestResult<PathBuf> {
     let dir = std::env::temp_dir()
         .join(format!("web-document-assets-{}", std::process::id()));
     std::fs::create_dir_all(&dir)?;

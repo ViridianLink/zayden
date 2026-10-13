@@ -78,6 +78,11 @@
     background-color: var(--danger-wash);
 }
 
+.error[tabindex="-1"]:focus {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
 .warning {
     color: var(--caution);
     padding: var(--space-2) var(--space-3);
@@ -184,25 +189,6 @@
 .tier-ultra {
     background-color: var(--caution-wash);
     color: var(--caution);
-}
-
-/* Pro banner */
-
-.banner-pro {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: var(--space-3) var(--space-4);
-    margin-bottom: var(--space-6);
-    background-color: var(--lamp-wash);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-control);
-    color: var(--text);
-}
-
-.banner-pro .icon {
-    color: var(--accent);
-    font-size: 18px;
 }
 
 .alert {

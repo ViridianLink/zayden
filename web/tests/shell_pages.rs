@@ -232,6 +232,7 @@ async fn web_state(
         ),
         user_guilds: state.discord.user_guilds,
         users: state.discord.users,
+        member_names: state.discord.member_names,
     };
 
     for (token, user_id) in
@@ -455,7 +456,7 @@ async fn the_guild_list_frames_the_managed_guilds(
 
     assert!(html.contains("<title>Servers - Zayden Dashboard</title>"), "{html}");
     assert!(html.contains(
-        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="app"><header class="app-header"><div class="topbar"><button type="button" class="topbar-button menu-button" popovertarget="nav-sheet" aria-controls="nav-sheet" aria-expanded="false" aria-label="Menu">"##
+        r##"<body><a class="skip-link" href="#main">Skip to main content</a><div class="app"><header><div class="topbar"><button type="button" class="topbar-button menu-button" popovertarget="nav-sheet" aria-controls="nav-sheet" aria-expanded="false" aria-label="Menu">"##
     ), "{html}");
     assert!(html.contains(
         r#"<a href="/guilds" class="brand"><img class="brand-mark" src="/_topcoat/assets/logo-0123456789abcdef.png" alt="" width="28" height="28"><span class="brand-name">Zayden</span></a>"#
@@ -553,7 +554,7 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
         r#"<button type="button" class="topbar-button plate" popovertarget="server-switcher" aria-controls="server-switcher" aria-expanded="false" aria-label="Switch server, current: Guild 7"><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHEVRON_DOWN}</button>"#
     )), "{html}");
     assert!(html.contains(&format!(
-        r#"<div class="menu-list" data-filter-list=""><a href="/guild/7" class="menu-item" aria-current="page" data-filter-item=""><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHECK}</a><a href="/guild/9" class="menu-item" data-filter-item=""><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" width="24" height="24" class="plate-avatar"><span class="plate-name">Nine</span></a></div><a href="/guilds" class="menu-item">{ICON_OPEN}{SERVER}<span class="plate-name">All servers</span></a>"#
+        r#"<div class="menu-list"><a href="/guild/7" class="menu-item" aria-current="page" data-filter-item=""><span class="plate-avatar placeholder" aria-hidden="true">G</span><span class="plate-name">Guild 7</span>{ICON_OPEN}{CHECK}</a><a href="/guild/9" class="menu-item" data-filter-item=""><img src="https://cdn.discordapp.com/icons/9/a_0123456789abcdef0123456789abcdef.png?size=64" alt="" width="24" height="24" class="plate-avatar"><span class="plate-name">Nine</span></a></div><a href="/guilds" class="menu-item">{ICON_OPEN}{SERVER}<span class="plate-name">All servers</span></a>"#
     )), "{html}");
     assert!(!html.contains("operator-badge"), "{html}");
     assert!(html.contains(&format!(

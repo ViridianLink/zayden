@@ -6,6 +6,20 @@
 use topcoat::Result;
 use topcoat::view::{Unescaped, View, component, view};
 
+macro_rules! glyph {
+    (check) => {
+        r#"<path d="M20 6 9 17l-5-5"/>"#
+    };
+    (chevron_down) => {
+        r#"<path d="m6 9 6 6 6-6"/>"#
+    };
+    (chevron_right) => {
+        r#"<path d="m9 18 6-6-6-6"/>"#
+    };
+}
+
+pub(crate) use glyph;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Icon {
     Server,
@@ -78,11 +92,11 @@ impl Icon {
             Self::Grid => {
                 r#"<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>"#
             },
-            Self::ChevronDown => r#"<path d="m6 9 6 6 6-6"/>"#,
+            Self::ChevronDown => glyph!(chevron_down),
             Self::Grip => {
                 r#"<circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/>"#
             },
-            Self::ChevronRight => r#"<path d="m9 18 6-6-6-6"/>"#,
+            Self::ChevronRight => glyph!(chevron_right),
             Self::ArrowRight => r#"<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>"#,
             Self::ExternalLink => {
                 r#"<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>"#
@@ -92,7 +106,7 @@ impl Icon {
             },
             Self::Plus => r#"<path d="M5 12h14"/><path d="M12 5v14"/>"#,
             Self::X => r#"<path d="M18 6 6 18"/><path d="m6 6 12 12"/>"#,
-            Self::Check => r#"<path d="M20 6 9 17l-5-5"/>"#,
+            Self::Check => glyph!(check),
             Self::Zap => {
                 r#"<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>"#
             },
