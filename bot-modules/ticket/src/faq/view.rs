@@ -36,7 +36,7 @@ pub(crate) fn answer(
     let body = render::truncate(answer, BODY_LIMIT);
 
     container(
-        header(&page.title, Some(&page.path), None),
+        header(&page.title, None),
         &body,
         WIKI_FOOTER,
         link(config, &page.path),
@@ -53,7 +53,7 @@ pub(crate) fn page(
     let thumbnail = render::thumbnail(&page.content, config);
 
     container(
-        header(&page.title, Some(&page.path), thumbnail.map(Into::into)),
+        header(&page.title, thumbnail.map(Into::into)),
         &body,
         WIKI_FOOTER,
         link(config, &page.path),
@@ -125,7 +125,7 @@ fn local(stored: &FaqArticle, body: &str) -> CreateComponent<'static> {
         tags => format!("{LOCAL_FOOTER} | {}", tags.join(", ")),
     };
 
-    container(header(&stored.title, None, None), body, &footer, None)
+    container(header(&stored.title, None), body, &footer, None)
 }
 
 fn container(
@@ -150,13 +150,9 @@ fn container(
 
 fn header(
     title: &str,
-    path: Option<&str>,
     thumbnail: Option<String>,
 ) -> CreateContainerComponent<'static> {
-    let heading = path.map_or_else(
-        || format!("## {title}"),
-        |path| format!("## {title}\n-# {path}"),
-    );
+    let heading = format!("## {title}");
 
     let Some(thumbnail) = thumbnail else {
         return text(heading);

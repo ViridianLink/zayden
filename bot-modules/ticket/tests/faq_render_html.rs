@@ -73,3 +73,23 @@ fn html_inside_a_fence_is_left_alone() {
 fn html_inside_inline_code_is_left_alone() {
     assert!(render("use `<br>` for a break").contains("`<br>`"));
 }
+
+#[test]
+fn an_html_block_flattens_into_tight_markdown_lines() {
+    let out = render(
+        "intro\n\n<div class=\"glance\">\n  <div><span>Port</span><b><code>7476</code></b></div>\n  <div><span>Deploy via</span><b>Docker compose</b></div>\n  <div class=\"glance-links\">\n    <a href=\"https://github.com/autobrr/qui\"><i class=\"mdi mdi-github\"></i>Project</a>\n  </div>\n</div>\n\nafter",
+    );
+
+    assert_eq!(
+        out.trim(),
+        "intro\n\nPort: **`7476`**\nDeploy via: **Docker compose**\n[Project](https://github.com/autobrr/qui)\n\nafter"
+    );
+}
+
+#[test]
+fn indented_lines_inside_an_html_block_are_not_code() {
+    let out = render("<div>\n    <p>deep</p>\n</div>");
+
+    assert!(!out.contains("```"), "{out}");
+    assert_eq!(out.trim(), "deep");
+}
