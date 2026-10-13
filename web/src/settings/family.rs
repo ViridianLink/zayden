@@ -106,7 +106,8 @@ pub(super) async fn tab(
                     value: sent.value("max_partners", Some(&settings.max_partners)),
                     help: Some("At least 1."),
                     error: sent.error("max_partners"),
-                    range: Some(Range { min: 1, max: None })
+                    range: Some(Range { min: 1, max: None }),
+                    required: true
                 )
             </fieldset>
             save_bar(notice: state.notice_for(FORM))

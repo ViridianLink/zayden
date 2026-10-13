@@ -696,11 +696,11 @@ function start(data) {
         );
     };
 
-    const keySlot = (label, field, get, set, diamond, picked) =>
+    const keySlot = (label, field, get, set, diamond, picked, name) =>
         '<div class="slot-cell">' +
         slotFace(
             get(),
-            label,
+            name || label,
             diamond,
             null,
             () =>
@@ -951,17 +951,21 @@ function start(data) {
                         row.aspect = v;
                     },
                     false,
+                    null,
+                    "Aspect " + (i + 1),
                 ) +
                 '<div class="aspect-fragments"><span class="label">Fragments</span>' +
                 keySlotList(
-                    "Fragments",
+                    "Aspect " + (i + 1) + " fragments",
                     "fragment",
                     row.fragments,
                     MAX.fragments,
                     l.fragments + i,
                     {},
                 ) +
-                '</div><button type="button" class="btn btn-ghost aspect-remove"' +
+                '</div><button type="button" class="btn btn-ghost aspect-remove" aria-label="Remove aspect ' +
+                (i + 1) +
+                '"' +
                 on({
                     click: () => {
                         s.aspects = s.aspects.filter((r) => r !== row);

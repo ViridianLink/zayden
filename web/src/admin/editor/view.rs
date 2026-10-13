@@ -260,13 +260,14 @@ async fn key_slot(
     label: &str,
     value: &str,
     #[default] diamond: bool,
+    #[default] name: Option<&str>,
     index: &CatalogIndex,
 ) -> Result<impl View> {
     Ok(view! {
         <div class="slot-cell">
             slot_face(
                 key: value,
-                label: label,
+                label: name.unwrap_or(label),
                 diamond: diamond,
                 id: None,
                 index: index
@@ -410,6 +411,7 @@ async fn subclass_card(
                 for (position, row) in form.aspects.iter().enumerate() {
                     aspect_block(
                         row: row,
+                        number: position + 1,
                         list: lists.fragments + position,
                         index: index
                     )
@@ -429,16 +431,24 @@ async fn subclass_card(
 #[component]
 async fn aspect_block(
     row: &AspectForm,
+    number: usize,
     list: usize,
     index: &CatalogIndex,
 ) -> Result<impl View> {
+    let name = format!("Aspect {number}");
+    let fragments = format!("{name} fragments");
     Ok(view! {
         <div class="aspect-block">
-            key_slot(label: "Aspect", value: &row.aspect, index: index)
+            key_slot(
+                label: "Aspect",
+                value: &row.aspect,
+                name: Some(&name),
+                index: index
+            )
             <div class="aspect-fragments">
                 <span class="label">"Fragments"</span>
                 key_slot_list(
-                    label: "Fragments",
+                    label: &fragments,
                     noun: "fragment",
                     values: &row.fragments,
                     max: MAX_FRAGMENTS,
@@ -446,7 +456,11 @@ async fn aspect_block(
                     index: index
                 )
             </div>
-            <button type="button" class="btn btn-ghost aspect-remove">
+            <button
+                type="button"
+                class="btn btn-ghost aspect-remove"
+                aria-label=(format!("Remove aspect {number}"))
+            >
                 "Remove aspect"
             </button>
         </div>

@@ -511,6 +511,7 @@
     }
 
     .data-table :is(td, th) > a:not(.btn),
+    .rack-name a,
     .plan-note a,
     .page-subnav a {
         min-height: var(--row-h);

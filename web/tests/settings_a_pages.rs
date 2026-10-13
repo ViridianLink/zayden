@@ -696,7 +696,7 @@ async fn every_page_renders_its_stored_settings(
     assert_eq!(value(main, "family-settings-max-partners"), Some("1"));
     assert!(
         main.contains(
-            r#"type="number" name="max_partners" value="1" min="1" step="1""#
+            r#"type="number" name="max_partners" value="1" min="1" step="1" required"#
         ),
         "{main}"
     );

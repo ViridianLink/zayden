@@ -98,6 +98,12 @@
   min-height: var(--target-min);
 }
 
+@media (max-width: 767px) {
+  .legal-callout a {
+    min-height: var(--row-h);
+  }
+}
+
 .login-page .legal-links {
   position: relative;
   z-index: 1;

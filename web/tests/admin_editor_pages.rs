@@ -275,6 +275,31 @@ fn assert_filled_markup(html: &str, form: &LoadoutForm) -> TestResult {
         has(html, &format!(r#"<span class="gear-meta">{weapons} of 3</span>"#))?;
     }
 
+    ensure(!form.aspects.is_empty(), "seeded loadout has aspects")?;
+    for (position, aspect) in form.aspects.iter().enumerate() {
+        let number = position + 1;
+        has(
+            html,
+            &format!(
+                r#"<button type="button" class="btn btn-ghost aspect-remove" aria-label="Remove aspect {number}">Remove aspect</button>"#
+            ),
+        )?;
+        has(
+            html,
+            &format!(
+                r#"<div class="slot-list" role="group" aria-label="Aspect {number} fragments">"#
+            ),
+        )?;
+        if !aspect.aspect.is_empty() {
+            has(
+                html,
+                &format!(
+                    r#"<button type="button" class="slot-clear" aria-label="Remove Aspect {number}">"#
+                ),
+            )?;
+        }
+    }
+
     let mods_list = form.aspects.len() + weapons;
     let (position, armour) = form
         .armour
