@@ -26,8 +26,7 @@ fn documented_version(readme: &str) -> Option<String> {
 fn the_topcoat_reference_matches_the_locked_version() {
     let root = Path::new(CRATE_ROOT).join("..");
     let lock = fs::read_to_string(root.join("Cargo.lock")).unwrap();
-    let readme =
-        fs::read_to_string(root.join("docs/topcoat/README.md")).unwrap();
+    let readme = fs::read_to_string(root.join("docs/topcoat/README.md")).unwrap();
 
     let locked = locked_version(&lock, "topcoat").unwrap();
     let documented = documented_version(&readme).unwrap();
