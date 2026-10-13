@@ -1584,7 +1584,7 @@ Probe: `scratch/topcoat-kb/ui/tests/font_and_stylesheet.rs`. The `<html>` in the
 
 Status: VERIFIED (compiled and rendered by `web`: `web/src/font.rs`, `web/tests/router.rs` `document_head_renders_shell_stylesheet_and_runtime`).
 
-`web` does not use `fontsource_font!`. It vendors the three Geist latin woff2 files under `web/assets/fonts/geist/` and declares them with the CSS-like form of `font!`, one `@font-face` block per weight, so no CDN or `@latest` URL is involved (D-181).
+`web` does not use `fontsource_font!`. It vendors the three Geist latin woff2 files under `web/assets/fonts/geist/` and declares them with the CSS-like form of `font!`, one `@font-face` block per weight, so no CDN or `@latest` URL is involved.
 
 | Item | Detail |
 |---|---|
