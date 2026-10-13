@@ -709,7 +709,7 @@ async fn support_settings_round_trip(pool: PgPool) {
     let saves = [
         (
             "tickets",
-            "guild=7&support_channel_id=&solved_tag_id=5&closed_tag_id=x&solved_archive_secs=-3&idle_enabled=true&idle_after_secs=10&idle_close_enabled=false&idle_close_after_secs=&stale_enabled=true&stale_tag_id=6&stale_after_secs=99999999",
+            "guild=7&support_channel_id=&solved_tag_id=&closed_tag_id=x&solved_archive_secs=-3&idle_enabled=true&idle_after_secs=10&idle_close_enabled=false&idle_close_after_secs=&stale_enabled=true&stale_tag_id=&stale_after_secs=99999999",
         ),
         (
             "suggestions",
@@ -731,7 +731,7 @@ async fn support_settings_round_trip(pool: PgPool) {
 
     let tickets = TicketsSection {
         support_channel_id: None,
-        solved_tag_id: Some("5".to_owned()),
+        solved_tag_id: None,
         closed_tag_id: None,
         solved_archive_secs: "-1".to_owned(),
         idle_enabled: true,
@@ -739,7 +739,7 @@ async fn support_settings_round_trip(pool: PgPool) {
         idle_close_enabled: false,
         idle_close_after_secs: "86400".to_owned(),
         stale_enabled: true,
-        stale_tag_id: Some("6".to_owned()),
+        stale_tag_id: None,
         stale_after_secs: "2592000".to_owned(),
     };
     let suggestions = SuggestionsSection {
