@@ -5,20 +5,56 @@ use serenity::all::{
     CreateComponent,
     CreateContainer,
     CreateContainerComponent,
+    CreateTextDisplay,
 };
+use zayden_core::announce::{escape, render};
 use zayden_core::templates::{body_component, separator, text};
 
 use crate::content;
-use crate::store::PendingPost;
+use crate::store::{PatreonAnnounceRow, PendingPost};
 
 /// Patreon's brand coral.
 const ACCENT: Colour = Colour::from_rgb(0xff, 0x42, 0x4d);
 
 const UNTITLED: &str = "New Patreon post";
 
+pub const PLACEHOLDERS: &[(&str, &str)] = &[
+    ("{roles}", "the roles to ping"),
+    ("{title}", "the post's title"),
+    ("{url}", "the post's link"),
+    ("{access}", "\"Public post\" or \"Patrons only\""),
+];
+
+const fn access(post: &PendingPost) -> &'static str {
+    if post.is_public { "Public post" } else { "Patrons only" }
+}
+
+/// The guild's own text above the post card, empty when it has none.
+#[must_use]
+pub fn intro_content(post: &PendingPost, row: &PatreonAnnounceRow) -> String {
+    let title = escape(post.title.as_deref().unwrap_or(UNTITLED));
+
+    render(row.message.as_deref().unwrap_or_default(), &row.ping_role_ids, &[
+        ("title", &title),
+        ("url", &post.url),
+        ("access", access(post)),
+    ])
+}
+
+#[must_use]
+pub fn intro_component(
+    post: &PendingPost,
+    row: &PatreonAnnounceRow,
+) -> Option<CreateComponent<'static>> {
+    let content = intro_content(post, row);
+
+    (!content.is_empty())
+        .then(|| CreateComponent::TextDisplay(CreateTextDisplay::new(content)))
+}
+
 pub fn post_component(post: &PendingPost) -> CreateComponent<'static> {
     let title = post.title.as_deref().unwrap_or(UNTITLED);
-    let access = if post.is_public { "Public post" } else { "Patrons only" };
+    let access = access(post);
 
     let mut header = format!(
         "## {title}\n-# Patreon \u{b7} {access} \u{b7} <t:{}:R>",

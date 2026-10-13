@@ -32,8 +32,11 @@ use web::guild::dto::{
     MusicSection,
     PatreonStatus,
     SectionSettings,
+    SuggestionsSection,
+    SupportRolesSection,
     SupportSection,
     TempVoiceSection,
+    TicketsSection,
     Tier,
     YoutubeStatus,
 };
@@ -429,6 +432,7 @@ async fn harness_for(pool: PgPool, zayden_id: u64) -> TestResult<Harness> {
     let state = WebState::new(app, &config)?;
     seed_guilds(&state.discord.user_guilds).await;
     seed_users(&state.discord.users, &[41, 43]).await;
+    state.discord.member_names.insert((7, 9), "Nine".to_owned()).await;
     insert_session(&pool, "admin-token", 41).await?;
     insert_session(&pool, "member-token", 43).await?;
 
@@ -742,7 +746,7 @@ async fn support_settings_round_trip(pool: PgPool) {
         assert_eq!(app.admin_save(kind, body).await.unwrap(), "ok", "{kind}");
     }
 
-    let expected = SupportSection {
+    let tickets = TicketsSection {
         support_channel_id: None,
         solved_tag_id: Some("5".to_owned()),
         closed_tag_id: None,
@@ -754,29 +758,41 @@ async fn support_settings_round_trip(pool: PgPool) {
         stale_enabled: true,
         stale_tag_id: Some("6".to_owned()),
         stale_after_secs: "2592000".to_owned(),
+    };
+    let suggestions = SuggestionsSection {
         suggestions_channel_id: None,
         review_channel_id: None,
         promote_threshold: "10".to_owned(),
         demote_threshold: "9".to_owned(),
-        faq: FaqSection {
-            enabled: true,
-            auto_triage: false,
-            auto_generate: true,
-            wiki_url: "https://wiki.example.com".to_owned(),
-            wiki_api_key_set: true,
-            wiki_locale: "en".to_owned(),
-            max_results: "25".to_owned(),
-            answer_max_tokens: "64".to_owned(),
-            answer_temperature: "2".to_owned(),
-        },
+    };
+    let wiki = FaqSection {
+        enabled: true,
+        auto_triage: false,
+        auto_generate: true,
+        wiki_url: "https://wiki.example.com".to_owned(),
+        wiki_api_key_set: true,
+        wiki_locale: "en".to_owned(),
+        max_results: "25".to_owned(),
+        answer_max_tokens: "64".to_owned(),
+        answer_temperature: "2".to_owned(),
+    };
+    let roles = SupportRolesSection {
         support_roles: Ok(Vec::new()),
         helper_links: Ok(Vec::new()),
     };
 
-    assert_eq!(
-        app.section("support").await.unwrap(),
-        debug(&SectionSettings::Support(Box::new(expected)))
-    );
+    for (name, expected) in [
+        ("support", SupportSection::Tickets(tickets)),
+        ("support-suggestions", SupportSection::Suggestions(suggestions)),
+        ("support-wiki", SupportSection::Wiki(wiki)),
+        ("support-roles", SupportSection::Roles(roles)),
+    ] {
+        assert_eq!(
+            app.section(name).await.unwrap(),
+            debug(&SectionSettings::Support(Box::new(expected))),
+            "{name}"
+        );
+    }
 }
 
 #[sqlx::test(migrations = "../migrations")]
@@ -794,12 +810,12 @@ async fn a_blank_wiki_key_with_keep_leaves_the_stored_key(pool: PgPool) {
             .unwrap(),
         "ok"
     );
-    assert!(key_set(&app.section("support").await.unwrap()));
+    assert!(key_set(&app.section("support-wiki").await.unwrap()));
 
     app.admin_save("faq-key", "guild=7&wiki_api_key=&keep_wiki_api_key=false")
         .await
         .unwrap();
-    assert!(!key_set(&app.section("support").await.unwrap()));
+    assert!(!key_set(&app.section("support-wiki").await.unwrap()));
 }
 
 #[sqlx::test(migrations = "../migrations")]
@@ -821,7 +837,7 @@ async fn support_roles_are_listed_and_removed_without_an_ownership_check(
     SupportRoles::add(&app.pool, GuildId::new(7), RoleId::new(5)).await.unwrap();
 
     assert!(
-        app.section("support")
+        app.section("support-roles")
             .await
             .unwrap()
             .contains(r#"support_roles: Ok(["5"])"#)
@@ -874,6 +890,12 @@ async fn helper_links_are_validated_then_stored_normalized(pool: PgPool) {
     assert_eq!(links.len(), 1);
     assert_eq!(links[0].user_id.get(), 9);
     assert_eq!(links[0].link, "https://a.example/");
+    assert!(
+        app.section("support-roles").await.unwrap().contains(
+            r#"helper_links: Ok([HelperLinkInfo { user_id: "9", name: "Nine", link: "https://a.example/" }])"#
+        ),
+        "the helper's name comes from the member cache"
+    );
 
     assert_eq!(
         app.admin_save("remove-helper-link", "guild=7&user_id=9").await.unwrap(),
@@ -901,7 +923,11 @@ async fn announcement_channels_clear_or_must_parse(pool: PgPool) {
     let app = harness(pool).await.unwrap();
 
     for kind in ["patreon", "youtube"] {
-        let public_only = if kind == "patreon" { "&public_only=true" } else { "" };
+        let public_only = if kind == "patreon" {
+            "&public_only=true&message="
+        } else {
+            "&message="
+        };
 
         assert_eq!(
             app.admin_save(kind, &format!("guild=7&channel_id={public_only}"))

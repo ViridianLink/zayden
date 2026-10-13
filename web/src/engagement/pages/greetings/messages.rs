@@ -3,10 +3,19 @@ use topcoat::Result;
 use topcoat::view::{View, ViewExt, component, view};
 
 use super::{GreetingAction, MESSAGES, PAGE};
+use crate::components::field_row::{form_summary, text_row};
+use crate::components::placeholder_legend::placeholder_legend;
 use crate::components::save_bar::save_bar;
 use crate::engagement::pages::action::form_action;
-use crate::engagement::pages::fields::{form_summary, text_row};
 use crate::engagement::pages::state::PageState;
+
+const LEGEND: &[(&str, &str)] = &[
+    (
+        "{user}",
+        "mentions the person being greeted, or the sender when the command is run without a user.",
+    ),
+    ("{author}", "mentions whoever ran the command."),
+];
 
 #[component]
 pub(super) async fn messages_section(
@@ -53,26 +62,10 @@ pub(super) async fn messages_section(
                     help: Some(&help),
                     error: sent.error("night_message")
                 )
-                placeholder_legend()
+                placeholder_legend(entries: LEGEND)
                 save_bar(notice: state.notice_for(MESSAGES))
             </form>
         </section>
     }
     .boxed())
-}
-
-#[component]
-async fn placeholder_legend() -> Result<impl View> {
-    Ok(view! {
-        <ul class="greet-legend">
-            <li>
-                <code>"{user}"</code>
-                " - mentions the person being greeted, or the sender when the command is run without a user."
-            </li>
-            <li>
-                <code>"{author}"</code>
-                " - mentions whoever ran the command."
-            </li>
-        </ul>
-    })
 }

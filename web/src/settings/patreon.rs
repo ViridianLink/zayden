@@ -1,20 +1,37 @@
+use ::patreon::embeds::PLACEHOLDERS;
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
 use topcoat::router::{RouterBuilder, page, path_param};
 use topcoat::view::{View, ViewExt, component, view};
 
-use super::fields::{channels, form_summary, select_row, toggle_row};
+use super::announce::{
+    ADD_PING_ROLE,
+    REMOVE_PING_ROLE,
+    ping_roles_section,
+    settle_ping_role,
+};
+use super::fields::channels;
 use super::provider::{Banner, banner, query_value, status_unknown};
 use super::state::{Done, PageState, settle};
 use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
 use crate::components::confirm::confirm_button;
+use crate::components::field_row::{
+    form_summary,
+    select_row,
+    textarea_row,
+    toggle_row,
+};
+use crate::components::placeholder_legend::placeholder_legend;
 use crate::components::save_bar::save_bar;
+use crate::guild::announce::PingRoleForm;
 use crate::guild::dto::patreon::OUTCOME_PARAM;
 use crate::guild::dto::{PatreonOutcome, PatreonStatus};
 use crate::guild::patreon::{
     PatreonSettingsForm,
+    add_patreon_ping_role,
     disconnect_patreon,
+    remove_patreon_ping_role,
     save_patreon_settings,
 };
 use crate::guild::{GuildError, GuildForm};
@@ -26,7 +43,11 @@ const FORM: &str = "patreon-settings";
 const DISCONNECT: &str = "patreon-disconnect";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
-    base.page(patreon).page(save).page(disconnect)
+    base.page(patreon)
+        .page(save)
+        .page(disconnect)
+        .page(add_ping_role)
+        .page(remove_ping_role)
 }
 
 #[page("/guild/{guild_id}/patreon")]
@@ -72,6 +93,49 @@ async fn disconnect(
         message: PatreonOutcome::Disconnected.message(),
     })?;
     let state = PageState::failed(failure);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
+#[page(POST "/guild/{guild_id}/patreon/add-ping-role")]
+async fn add_ping_role(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = async {
+        let form = PingRoleForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        add_patreon_ping_role(cx, &form).await
+    }
+    .await;
+    let state = settle_ping_role(cx, PAGE, guild_id, ADD_PING_ROLE, values, result)?;
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
+#[page(POST "/guild/{guild_id}/patreon/remove-ping-role")]
+async fn remove_ping_role(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = async {
+        let form = PingRoleForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        remove_patreon_ping_role(cx, &form).await
+    }
+    .await;
+    let state =
+        settle_ping_role(cx, PAGE, guild_id, REMOVE_PING_ROLE, values, result)?;
 
     Ok(view! {
         (state.status())
@@ -232,7 +296,7 @@ async fn panel(
                         selected: sent.value("channel_id", status.channel_id.as_deref()),
                         options: channels(lists, TEXT_KINDS),
                         help: Some(
-                            "Leave unset to stop announcing without disconnecting the account.",
+                            "Leave unset to stop announcing without disconnecting the account. This also clears the message and roles below.",
                         ),
                         error: sent.error("channel_id")
                     )
@@ -245,9 +309,27 @@ async fn panel(
                         off_label: "Public and patron-only posts",
                         error: sent.error("public_only")
                     )
+                    textarea_row(
+                        form: FORM,
+                        name: "message",
+                        label: "Message",
+                        value: sent.value("message", status.message.as_deref()),
+                        rows: 4,
+                        help: Some("Shown above the post card. Leave empty to post only the card."),
+                        error: sent.error("message")
+                    )
+                    placeholder_legend(entries: PLACEHOLDERS)
                 </fieldset>
                 save_bar(notice: state.notice_for(FORM))
             </form>
+            ping_roles_section(
+                guild_id: guild_id,
+                page: PAGE,
+                configured: &status.ping_role_ids,
+                has_channel: status.channel_id.is_some(),
+                lists: lists,
+                state: state
+            )
         } else {
             <section
                 class="settings-section"

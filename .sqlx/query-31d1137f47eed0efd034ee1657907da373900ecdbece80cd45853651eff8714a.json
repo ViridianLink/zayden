@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT guild_id, channel_id, public_only\n             FROM patreon_announce WHERE guild_id = $1",
+  "query": "\n            SELECT guild_id, channel_id, public_only, message, ping_role_ids\n            FROM patreon_announce\n            WHERE guild_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -35,6 +35,28 @@
             "name": "public_only"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "patreon_announce",
+            "name": "message"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "ping_role_ids",
+        "type_info": "Int8Array",
+        "origin": {
+          "Table": {
+            "table": "patreon_announce",
+            "name": "ping_role_ids"
+          }
+        }
       }
     ],
     "parameters": {
@@ -45,8 +67,10 @@
     "nullable": [
       false,
       false,
+      false,
+      true,
       false
     ]
   },
-  "hash": "110c3c8bb34153800fee2f4dc3df6674ea39461155161abe6beeb6126d1eaadc"
+  "hash": "31d1137f47eed0efd034ee1657907da373900ecdbece80cd45853651eff8714a"
 }

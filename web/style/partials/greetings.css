@@ -1,16 +1,3 @@
-.greet-legend {
-  margin: 0 0 var(--space-4);
-  padding-left: var(--space-4);
-  color: var(--text-3);
-  font-size: 13px;
-  line-height: 1.6;
-  list-style: disc;
-}
-
-.greet-legend code {
-  color: var(--text-2);
-}
-
 .greet-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
@@ -35,6 +22,8 @@
 }
 
 .greet-url {
+  display: block;
+  line-height: var(--target-min);
   color: var(--text-2);
   font-size: 12px;
   white-space: nowrap;

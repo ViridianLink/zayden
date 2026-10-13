@@ -214,7 +214,7 @@ async fn failures_accumulate_and_a_success_clears_them(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../migrations", fixtures("patreon"))]
 async fn setting_a_channel_does_not_touch_the_connection(pool: PgPool) {
-    PatreonAnnounceRow::upsert(&pool, 1, 9999, true).await.unwrap();
+    PatreonAnnounceRow::upsert(&pool, 1, 9999, true, None).await.unwrap();
 
     let row = PatreonAnnounceRow::select(&pool, 1).await.unwrap().unwrap();
     assert_eq!(row.channel_id, 9999);

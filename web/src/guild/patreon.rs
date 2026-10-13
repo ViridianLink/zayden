@@ -3,10 +3,11 @@ use topcoat::context::Cx;
 use zayden_app::state::AppState as ZaydenAppState;
 
 use super::access::admin_app;
+use super::announce::{PingRoleForm, new_ping_role, parse_message};
 use super::dto::PatreonStatus;
 use super::error::{GuildError, server_err};
 use super::form::{GuildForm, form_args};
-use super::parse::parse_flag;
+use super::parse::{parse_flag, parse_role};
 use crate::auth::{
     admin_guild_id,
     ensure_bot_can_post,
@@ -15,7 +16,7 @@ use crate::auth::{
 };
 
 form_args! {
-    PatreonSettingsForm { guild, channel_id, public_only }
+    PatreonSettingsForm { guild, channel_id, public_only, message }
 }
 
 /// The guild's Patreon connection and announcement settings.
@@ -39,6 +40,12 @@ pub(crate) async fn fetch_patreon_status(
             .is_some_and(|c| c.webhook_id.is_some()),
         channel_id: announce.as_ref().map(|a| a.channel_id.to_string()),
         public_only: announce.as_ref().is_some_and(|a| a.public_only),
+        message: announce.as_ref().and_then(|a| a.message.clone()),
+        ping_role_ids: announce
+            .iter()
+            .flat_map(|a| &a.ping_role_ids)
+            .map(ToString::to_string)
+            .collect(),
     })
 }
 
@@ -71,6 +78,7 @@ pub async fn save_patreon_settings(
     let Ok(channel_id) = channel_id.parse::<i64>() else {
         return Err(GuildError::InvalidChannelId);
     };
+    let message = parse_message(&form.message)?;
 
     ensure_guild_channel(cx, guild_id, channel_id).await?;
     ensure_bot_can_post(cx, guild_id, channel_id).await?;
@@ -80,9 +88,45 @@ pub async fn save_patreon_settings(
         guild_id,
         channel_id,
         parse_flag(&form.public_only),
+        message,
     )
     .await
     .map_err(server_err)
+}
+
+pub async fn add_patreon_ping_role(
+    cx: &Cx,
+    form: &PingRoleForm,
+) -> Result<(), GuildError> {
+    let (guild_id, app) = admin_app(cx, &form.guild).await?;
+
+    let Some(announce) =
+        PatreonAnnounceRow::select(&app.db, guild_id).await.map_err(server_err)?
+    else {
+        return Err(GuildError::NoAnnounceChannel);
+    };
+
+    let role =
+        new_ping_role(cx, guild_id, &announce.ping_role_ids, &form.role_id).await?;
+
+    PatreonAnnounceRow::add_ping_role(&app.db, guild_id, role)
+        .await
+        .map(|_added| ())
+        .map_err(server_err)
+}
+
+pub async fn remove_patreon_ping_role(
+    cx: &Cx,
+    form: &PingRoleForm,
+) -> Result<(), GuildError> {
+    let (guild_id, app) = admin_app(cx, &form.guild).await?;
+
+    let role = parse_role(&form.role_id)?.cast_signed();
+
+    PatreonAnnounceRow::remove_ping_role(&app.db, guild_id, role)
+        .await
+        .map(|_removed| ())
+        .map_err(server_err)
 }
 
 pub async fn can_manage_patreon(cx: &Cx, guild: &str) -> Result<bool, GuildError> {
