@@ -10,7 +10,7 @@ use topcoat::view::{View, ViewExt, component, view};
 
 use super::icons::{Icon, icon};
 use crate::admin::{guild_operator_access, is_admin, is_operator};
-use crate::nav::{GENERAL, GROUPS, ModuleNav};
+use crate::nav::{GENERAL, GROUPS, ModuleNav, path_segment};
 use crate::shell::link::is_active_for;
 
 const OVERVIEW: &str = "Overview";
@@ -53,7 +53,8 @@ pub async fn nav_links(
 ) -> Result<impl View> {
     let location = uri(cx).path();
     let NavAccess { operator, admin, on_operator_page } = access;
-    let overview = guild_id.map(|guild_id| format!("/guild/{guild_id}"));
+    let overview =
+        guild_id.map(|guild_id| format!("/guild/{}", path_segment(guild_id)));
     let settings = guild_id.map(|guild_id| GENERAL.href(guild_id));
 
     Ok(view! {

@@ -644,6 +644,14 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
         "{html}"
     );
 
+    let crafted = "/guild/1%2F..%2F..%2Flogout";
+    let html = app.page(crafted, Some(MEMBER)).await.unwrap();
+    assert!(
+        html.contains(&nav_link(crafted, Some(GRID), "Overview", true)),
+        "{html}"
+    );
+    assert!(!html.contains(r#"href="/guild/1/"#), "{html}");
+
     pool.close().await;
 }
 

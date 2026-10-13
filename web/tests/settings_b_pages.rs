@@ -973,6 +973,31 @@ async fn announcements_keep_a_message_and_ping_roles(
     let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
     assert_eq!(row.ping_role_ids, [201]);
 
+    let html = app
+        .submit(&remove, "guild=7&role_id=200", StatusCode::UNPROCESSABLE_ENTITY)
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "remove-ping-role"),
+        Some("Not removed: that role isn't pinged"),
+        "{html}"
+    );
+    assert!(flash_after(&html, r#"id="ping-roles""#).is_none(), "{html}");
+
+    for role in 300..309 {
+        assert!(
+            youtube::YoutubeAnnounceRow::add_ping_role(db, 7, role, 10)
+                .await
+                .unwrap()
+        );
+    }
+    assert!(
+        !youtube::YoutubeAnnounceRow::add_ping_role(db, 7, 309, 10).await.unwrap(),
+        "the append itself refuses an eleventh role"
+    );
+    let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.ping_role_ids.len(), 10);
+
     pool.close().await;
 }
 
@@ -1108,6 +1133,27 @@ async fn support_pages_have_their_own_addresses_and_one_form_each(
         settings.support.get(7).await.unwrap().idle_enabled,
         "a rejected channel writes nothing"
     );
+
+    for field in ["solved_tag_id", "closed_tag_id", "stale_tag_id"] {
+        let body = TICKET_BODY
+            .replace("closed_tag_id=", "closed_tag_id=600")
+            .replace(&format!("{field}=600"), &format!("{field}=601"))
+            .replace("idle_enabled=true", "idle_enabled=false");
+        let html = app
+            .submit(TICKETS, &body, StatusCode::UNPROCESSABLE_ENTITY)
+            .await
+            .unwrap();
+        let id = format!("ticket-settings-{}", field.replace('_', "-"));
+        assert_eq!(
+            field_error(&html, &id),
+            Some("that tag is not on a forum channel in this server"),
+            "{field}: {html}"
+        );
+        assert!(
+            settings.support.get(7).await.unwrap().idle_enabled,
+            "{field}: a tag from no forum in this server writes nothing"
+        );
+    }
     assert_eq!(selected(&html, "ticket-settings-idle-enabled"), Some("false"));
 
     let html = app

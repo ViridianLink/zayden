@@ -70,4 +70,6 @@ pub enum ForeignIdError {
     Channel,
     #[error("that role is not in this server")]
     Role,
+    #[error("that tag is not on a forum channel in this server")]
+    Tag(&'static str),
 }
