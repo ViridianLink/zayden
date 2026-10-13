@@ -82,7 +82,7 @@ pub async fn announce_pending(
 }
 
 async fn lookup_thumbnail(client: &Client, post: &PendingPost) -> Option<String> {
-    if let Some(url) = thumbnail::fetch(client, &post.url).await {
+    if let Some(url) = thumbnail::fetch(client, &post.post_id).await {
         return Some(url);
     }
 

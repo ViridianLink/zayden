@@ -55,7 +55,7 @@ fn render(node: NodeRef<'_, Node>, out: &mut String) {
 fn render_element(node: NodeRef<'_, Node>, element: &Element, out: &mut String) {
     match element.name() {
         // Script-like elements carry no prose, and Patreon's lead image is
-        // already the og:image the thumbnail lookup finds.
+        // already the image the thumbnail lookup finds.
         "script" | "style" | "svg" | "iframe" | "img" => {},
         "br" => out.push('\n'),
         "hr" => out.push_str("\n---\n"),
