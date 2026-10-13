@@ -67,36 +67,6 @@ jobs:
       - uses: ./.github/actions/cancel-run
         if: failure()
 
-  clippy-dashboard-ssr:
-    name: clippy (dashboard, ssr)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: rustup toolchain install stable --profile minimal --component clippy
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-on-failure: true
-      - run: cargo clippy -p dashboard --features ssr --locked -- -D warnings
-
-  clippy-dashboard-hydrate:
-    name: clippy (dashboard, wasm32 hydrate)
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - run: >-
-          rustup toolchain install stable --profile minimal --component clippy
-          --target wasm32-unknown-unknown
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
-        with:
-          save-if: ${{ github.ref == 'refs/heads/main' }}
-          cache-on-failure: true
-      - run: >
-          cargo clippy -p dashboard --target wasm32-unknown-unknown
-          --features hydrate --locked -- -D warnings
-
   test:
     name: test
     runs-on: ubuntu-latest
@@ -190,7 +160,7 @@ jobs:
 
   images:
     name: ${{ matrix.name }} image
-    needs: [fmt, clippy-dashboard-ssr, clippy-dashboard-hydrate, deny]
+    needs: [fmt, deny]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -204,10 +174,6 @@ jobs:
             dockerfile: docker/Dockerfile.bot
             image: zayden-bot
             needs_ytdlp: true
-          - name: dashboard
-            dockerfile: docker/Dockerfile.dashboard
-            image: zayden-dashboard
-            needs_ytdlp: false
           - name: web
             dockerfile: docker/Dockerfile.web
             image: zayden-web

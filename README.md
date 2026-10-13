@@ -188,8 +188,7 @@ codegen backend is not used.
 ## CI
 
 `.github/workflows/ci.yml` runs these jobs in parallel: `rustfmt`, workspace
-`clippy`, the dashboard's two extra clippy targets (`ssr` and wasm32 `hydrate`),
-workspace tests against a Postgres service, `cargo-deny`, and
+`clippy`, workspace tests against a Postgres service, `cargo-deny`, and
 `sqlx prepare --check`. `web` is covered by the workspace `clippy` and `test`
 jobs. Jobs that compile `web` set `TAILWIND_CLI` to a
 checksummed Tailwind download. Everything builds on **stable**
@@ -197,9 +196,8 @@ checksummed Tailwind download. Everything builds on **stable**
 clears the nightly-only flags in `.cargo/config.toml`), except `rustfmt`, which
 runs on nightly so the unstable options in `rustfmt.toml` apply.
 
-The `images` job in the same workflow builds the `bot`, `dashboard` and `web`
-release images once `rustfmt`, both dashboard clippy jobs and `cargo-deny`
-pass, and pushes them to GHCR for every event except pull requests. The `web`
+The `images` job in the same workflow builds the `bot` and `web` release images
+once `rustfmt` and `cargo-deny` pass, and pushes them to GHCR for every event except pull requests. The `web`
 image runs `topcoat asset bundle --release`, so it is also the asset bundle
 check. The slow checks cancel the whole run on failure, so a red check stops the
 image builds already in flight.
