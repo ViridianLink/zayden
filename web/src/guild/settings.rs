@@ -261,7 +261,7 @@ pub async fn save_family_settings(
 ) -> Result<(), GuildError> {
     let (guild_id, app) = admin_app(cx, &form.guild).await?;
 
-    let max_partners = parse_max_partners(&form.max_partners);
+    let max_partners = parse_max_partners(&form.max_partners)?;
 
     app.settings
         .family

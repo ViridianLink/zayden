@@ -37,7 +37,9 @@ pub(super) async fn guilds(cx: &Cx) -> Result<impl View> {
                         <div class="page-header">
                             <div>
                                 <h1>"Servers"</h1>
-                                <p class="page-lead">"Pick a server to configure Zayden."</p>
+                                <p class="page-lead">
+                                    "Pick a server to configure Zayden."
+                                </p>
                             </div>
                             if !cards.is_empty() {
                                 <a href="/invite" rel="external" class="btn btn-secondary">

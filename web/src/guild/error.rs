@@ -34,6 +34,8 @@ pub enum GuildError {
     DuplicatePingRole,
     #[error("at most {0} roles can be pinged")]
     TooManyPingRoles(usize),
+    #[error("that role isn't pinged")]
+    RoleNotPinged,
     #[error("choose an announcement channel first")]
     NoAnnounceChannel,
     #[error("the message can be at most {0} characters")]
@@ -50,6 +52,8 @@ pub enum GuildError {
     LinkTooLong,
     #[error("select a category first")]
     NoCategory,
+    #[error("enter a whole number of at least 1")]
+    MaxPartners,
     #[error("invalid channel id")]
     InvalidChannelId,
     #[error("invalid email")]

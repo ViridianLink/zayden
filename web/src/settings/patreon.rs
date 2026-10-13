@@ -174,6 +174,7 @@ pub(super) async fn tab(
     let line = query_value(cx, OUTCOME_PARAM)
         .as_deref()
         .and_then(PatreonOutcome::from_key)
+        .filter(|outcome| !outcome.is_success())
         .map(|outcome| Banner {
             class: outcome.class(),
             role: outcome.role(),
@@ -315,7 +316,9 @@ async fn panel(
                         label: "Message",
                         value: sent.value("message", status.message.as_deref()),
                         rows: 4,
-                        help: Some("Shown above the post card. Leave empty to post only the card."),
+                        help: Some(
+                            "Shown above the post card. Leave empty to post only the card.",
+                        ),
                         error: sent.error("message")
                     )
                     placeholder_legend(entries: PLACEHOLDERS)

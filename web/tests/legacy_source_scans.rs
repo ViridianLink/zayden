@@ -320,34 +320,177 @@ fn the_legal_pages_need_no_session_or_database() {
     }
 }
 
+/// The call forms a file's `use crate::flash` items give `take`: the full
+/// path, `flash::take` once the module is imported, and the function's own
+/// name or alias once it is. `None` when an import names the module in a form
+/// this reader does not follow, so a new import style fails the scan instead
+/// of hiding a call.
+fn flash_take_calls(text: &str) -> Option<Vec<String>> {
+    let mut calls = vec!["crate::flash::take(".to_owned()];
+
+    for (at, _) in text.match_indices("use ") {
+        let line_start =
+            text.get(..at).and_then(|head| head.rfind('\n')).map_or(0, |i| i + 1);
+        let visibility = text.get(line_start..at).unwrap_or_default().trim_start();
+        if !(visibility.is_empty()
+            || (visibility.starts_with("pub") && visibility.ends_with(' ')))
+        {
+            continue;
+        }
+        let item = text.get(at + 4..).unwrap_or_default();
+        let path = squeezed(item.split_once(';').map_or(item, |(path, _)| path));
+
+        let Some(rest) = path.strip_prefix("crate::flash") else {
+            if path.starts_with("crate::{") && path.contains("flash") {
+                return None;
+            }
+            continue;
+        };
+        let names: Vec<&str> = if rest.is_empty() {
+            vec!["self"]
+        } else {
+            rest.strip_prefix("::")?
+                .trim_start_matches('{')
+                .trim_end_matches('}')
+                .split(',')
+                .map(str::trim)
+                .filter(|name| !name.is_empty())
+                .collect()
+        };
+        for name in names {
+            let (original, local) = name.split_once(" as ").unwrap_or((name, name));
+            let local = if local == "self" { "flash" } else { local };
+            match original {
+                "self" => calls.push(format!("{local}::take(")),
+                "take" => calls.push(format!("{local}(")),
+                _ => {},
+            }
+        }
+    }
+
+    Some(calls)
+}
+
+/// Byte offsets where `call` starts as its own path, not as the tail of a
+/// longer name or a method call.
+fn call_sites(text: &str, call: &str) -> Vec<usize> {
+    text.match_indices(call)
+        .map(|(at, _)| at)
+        .filter(|&at| {
+            text.get(..at).and_then(|head| head.chars().next_back()).is_none_or(
+                |before| {
+                    !(before.is_alphanumeric() || matches!(before, '_' | ':' | '.'))
+                },
+            )
+        })
+        .collect()
+}
+
+/// The text of the top-level item that holds `at`, from the previous closing
+/// brace in the first column up to `at`.
+fn enclosing_item(text: &str, at: usize) -> &str {
+    let head = text.get(..at).unwrap_or_default();
+    head.rfind("\n}\n").and_then(|end| head.get(end..)).unwrap_or(head)
+}
+
+/// Whether the end of `item` lies inside a `view!` body still open there,
+/// which the renderer runs after the handler has returned.
+fn ends_inside_a_view(item: &str) -> bool {
+    item.match_indices("view!").any(|(at, _)| {
+        let mut depth = 0_usize;
+        for byte in item.bytes().skip(at) {
+            match byte {
+                b'{' => depth += 1,
+                b'}' if depth == 1 => return false,
+                b'}' => depth = depth.saturating_sub(1),
+                _ => {},
+            }
+        }
+        depth > 0
+    })
+}
+
+/// Whether the end of `item` is in a `#[page]` handler's own code, which runs
+/// before the response headers are written.
+fn in_page_prologue(item: &str) -> bool {
+    item.contains("\n#[page(")
+        && !item.contains("\n#[component]")
+        && !ends_inside_a_view(item)
+}
+
 #[test]
 fn the_flash_is_taken_only_in_a_page_handler_before_the_body_streams() {
     let mut files = Vec::new();
     collect(&Path::new(CRATE_ROOT).join("src"), &mut files);
 
-    let mut takers: Vec<&str> = files
-        .iter()
-        .filter_map(|file| file.split_once('\u{0}'))
-        .filter(|(_, text)| {
-            text.contains("flash::take(cx)") || text.contains("notice: take(cx)")
-        })
-        .map(|(path, _)| path)
-        .collect();
-    takers.sort_unstable();
-    assert_eq!(takers, ["src/engagement/pages/state.rs", "src/settings/state.rs"]);
+    let mut takes = 0;
+    let mut in_page_state = 0;
+    for (path, text) in files.iter().filter_map(|file| file.split_once('\u{0}')) {
+        if path.starts_with("src/flash/") {
+            continue;
+        }
+        let calls = flash_take_calls(text)
+            .unwrap_or_else(|| panic!("{path}: unrecognised `crate::flash` import"));
+
+        for call in &calls {
+            for at in call_sites(text, call) {
+                takes += 1;
+                let item = enclosing_item(text, at);
+                let in_load = item.contains("impl PageState")
+                    && item
+                        .rfind("fn ")
+                        .and_then(|fn_at| item.get(fn_at..))
+                        .is_some_and(|tail| tail.starts_with("fn load("));
+                in_page_state += usize::from(in_load);
+                assert!(
+                    in_load || in_page_prologue(item),
+                    "{path}: `{call}` outside a page handler's prologue or PageState::load"
+                );
+            }
+        }
+    }
+    assert!(takes >= 5, "only {takes} flash takes found");
+    assert_eq!(in_page_state, 2, "PageState::load takes the flash in two modules");
 
     let mut calls = 0;
     for (path, text) in files.iter().filter_map(|file| file.split_once('\u{0}')) {
         for (at, _) in text.match_indices("PageState::load(cx)") {
             calls += 1;
-            let head = text.get(..at).unwrap_or_default();
-            let item =
-                head.rfind("\n}\n").and_then(|end| head.get(end..)).unwrap_or(head);
+            let item = enclosing_item(text, at);
             assert!(
-                item.contains("#[page(") && !item.contains("view!"),
+                in_page_prologue(item),
                 "{path}: PageState::load outside a page handler's prologue"
             );
         }
     }
     assert!(calls > 10, "only {calls} page state loads found");
+}
+
+#[test]
+fn the_flash_scan_follows_import_aliases_and_rejects_streamed_takes() {
+    let aliased = "use crate::flash::{Flash, take as grab};\n\n#[page(\"/x\")]\nasync fn x(cx: &Cx) -> Result<impl View> {\n    let notice = grab(cx);\n    Ok(view! { body(notice: notice) })\n}\n";
+    let calls = flash_take_calls(aliased).unwrap();
+    assert!(calls.iter().any(|call| call == "grab("), "{calls:?}");
+    let [at] = call_sites(aliased, "grab(")[..] else {
+        panic!("one call site expected");
+    };
+    assert!(in_page_prologue(enclosing_item(aliased, at)));
+
+    let module = "use crate::flash::{self, FlashKind};\nuse crate::flash;\n";
+    let calls = flash_take_calls(module).unwrap();
+    assert!(calls.iter().any(|call| call == "flash::take("), "{calls:?}");
+
+    let in_view = "#[page(\"/x\")]\nasync fn x(cx: &Cx) -> Result<impl View> {\n    Ok(view! { body(notice: take(cx)) })\n}\n";
+    let at = in_view.find("take(").unwrap();
+    assert!(!in_page_prologue(enclosing_item(in_view, at)));
+
+    let in_component = "#[page(\"/x\")]\nasync fn x() {}\n\n#[component]\nasync fn body(cx: &Cx) {\n    let notice = take(cx);\n}\n";
+    let at = in_component.find("take(").unwrap();
+    assert!(!in_page_prologue(enclosing_item(in_component, at)));
+
+    assert_eq!(flash_take_calls("use crate::{flash::take, form};\n"), None);
+    assert_eq!(
+        call_sites("let a = jar.take(cx); let b = try_take(cx);", "take("),
+        Vec::<usize>::new()
+    );
 }

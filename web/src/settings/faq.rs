@@ -43,14 +43,12 @@ impl ArticleForm {
         Ok(Self { guild, title, summary, content, category, tags })
     }
 
-    pub(super) fn missing(&self) -> Option<&'static str> {
-        if self.title.trim().is_empty() {
-            Some("title")
-        } else if self.content.trim().is_empty() {
-            Some("content")
-        } else {
-            None
-        }
+    pub(super) fn missing(&self) -> Vec<&'static str> {
+        [("title", &self.title), ("content", &self.content)]
+            .into_iter()
+            .filter(|(_, value)| value.trim().is_empty())
+            .map(|(name, _)| name)
+            .collect()
     }
 }
 
@@ -82,7 +80,7 @@ pub(super) async fn save_faq_article(
 ) -> Result<i32, ArticleError> {
     let (guild_id, app) = admin_app(cx, &form.guild).await?;
 
-    if form.missing().is_some() {
+    if !form.missing().is_empty() {
         return Err(ArticleError::TitleAndBodyRequired);
     }
 

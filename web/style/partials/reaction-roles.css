@@ -5,10 +5,27 @@
     line-height: 1;
 }
 
+.rr-emoji-frame {
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    min-height: 24px;
+    vertical-align: middle;
+}
+
 .rr-emoji-img {
-    width: 24px;
     height: 24px;
-    object-fit: contain;
+}
+
+.rr-emoji-name {
+    display: inline-block;
+    padding: 0 var(--space-2);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-control);
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 22px;
+    white-space: nowrap;
 }
 
 .rr-link {

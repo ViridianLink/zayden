@@ -696,7 +696,7 @@ async fn every_page_renders_its_stored_settings(
     assert_eq!(value(main, "family-settings-max-partners"), Some("1"));
     assert!(
         main.contains(
-            r#"type="number" name="max_partners" value="1" min="1" step="1""#
+            r#"type="number" name="max_partners" value="1" min="1" step="1" required"#
         ),
         "{main}"
     );
@@ -823,18 +823,38 @@ async fn saves_redirect_with_the_result_in_the_save_bar(
     let html = app
         .redirected(
             "/guild/7/family",
-            "guild=7&max_partners=0",
+            "guild=7&max_partners=4",
             "/guild/7/family#family-settings",
         )
         .await
         .unwrap();
-    assert_eq!(settings.family.get(7).await.unwrap().max_partners, 1);
+    assert_eq!(settings.family.get(7).await.unwrap().max_partners, 4);
     assert_eq!(bar_flash(&html, "family-settings"), Some("Family settings saved."));
     assert_eq!(
         value(&html, "family-settings-max-partners"),
-        Some("1"),
+        Some("4"),
         "the page shows what was stored"
     );
+
+    for sent in ["", "0"] {
+        let html = app
+            .submit(
+                "/guild/7/family",
+                &format!("guild=7&max_partners={sent}"),
+                StatusCode::UNPROCESSABLE_ENTITY,
+            )
+            .await
+            .unwrap();
+        assert_eq!(settings.family.get(7).await.unwrap().max_partners, 4);
+        assert_eq!(bar_flash(&html, "family-settings"), None, "{html}");
+        assert_eq!(
+            field_error(&html, "family-settings-max-partners"),
+            Some("enter a whole number of at least 1"),
+            "{sent:?}: {html}"
+        );
+        assert!(html.contains(r#"aria-invalid="true""#), "{html}");
+        assert_eq!(value(&html, "family-settings-max-partners"), Some(sent));
+    }
 
     let html = app
         .redirected(

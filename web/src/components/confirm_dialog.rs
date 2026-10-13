@@ -16,6 +16,7 @@ pub async fn confirm_dialog(
     #[default("btn btn-ghost")] trigger_class: &str,
     #[default] form: Option<&str>,
     #[default("Cancel")] cancel: &str,
+    #[default] trigger_label: Option<&str>,
 ) -> Result<impl View> {
     let title_id = format!("{id}-title");
     let desc_id = description.map(|_| format!("{id}-desc"));
@@ -26,6 +27,7 @@ pub async fn confirm_dialog(
                 type="submit"
                 class=(trigger_class)
                 form=(form)
+                aria-label=(trigger_label)
                 data-confirm-trigger=""
             >
                 (trigger)

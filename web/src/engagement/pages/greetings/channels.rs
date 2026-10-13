@@ -58,11 +58,19 @@ pub async fn channel_section(
             </p>
             flash(notice: notice)
             if let Some(message) = remove_error {
-                form_summary(form: REMOVE_CHANNEL, message: message, outcome: "Not removed")
+                form_summary(
+                    form: REMOVE_CHANNEL,
+                    message: message,
+                    outcome: "Not removed"
+                )
             }
             if unknown {
                 if let Some(message) = add_error {
-                    form_summary(form: ADD_CHANNEL, message: message, outcome: "Not added")
+                    form_summary(
+                        form: ADD_CHANNEL,
+                        message: message,
+                        outcome: "Not added"
+                    )
                 }
                 <p class="warning">
                     "Discord didn't report which channels "
@@ -94,7 +102,11 @@ pub async fn channel_section(
                 }
                 if locked {
                     if let Some(message) = add_error {
-                        form_summary(form: ADD_CHANNEL, message: message, outcome: "Not added")
+                        form_summary(
+                            form: ADD_CHANNEL,
+                            message: message,
+                            outcome: "Not added"
+                        )
                     }
                     <p class="warning">
                         "Read-only: Discord only lets a member with Manage Server change which channels a command is allowed in."
@@ -107,7 +119,11 @@ pub async fn channel_section(
                         data-dirty-guard=""
                     >
                         if let Some(message) = add_error {
-                            form_summary(form: ADD_CHANNEL, message: message, outcome: "Not added")
+                            form_summary(
+                                form: ADD_CHANNEL,
+                                message: message,
+                                outcome: "Not added"
+                            )
                         }
                         <input type="hidden" name="guild" value=(guild_id)>
                         select_row(
@@ -116,7 +132,9 @@ pub async fn channel_section(
                             label: "Allow a channel",
                             selected: chosen,
                             options: Ok(choices),
-                            help: Some("A text, announcement or forum channel, or a whole category."),
+                            help: Some(
+                                "A text, announcement or forum channel, or a whole category.",
+                            ),
                             error: add_field_error,
                             required: true
                         )
@@ -148,6 +166,7 @@ async fn channel_row(
     let action = form_action(guild_id, PAGE, GreetingAction::RemoveChannel);
     let confirm_id = format!("good-channel-{index}-remove");
     let confirm_title = format!("Remove {label} from the /good list?");
+    let trigger_label = format!("Remove {label}");
 
     Ok(view! {
         data_row(
@@ -165,7 +184,8 @@ async fn channel_row(
                             description: Some(
                                 "Removing the last channel lets /good work everywhere again.",
                             ),
-                            confirm: "Remove channel"
+                            confirm: "Remove channel",
+                            trigger_label: Some(&trigger_label)
                         )
                     </form>
                 )

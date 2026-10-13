@@ -624,14 +624,19 @@ async fn family_partners_are_at_least_one(pool: PgPool) {
         }))
     );
 
-    assert_eq!(
-        app.admin_save("family", "guild=7&max_partners=0").await.unwrap(),
-        "ok"
-    );
+    for value in ["0", "", "two"] {
+        assert_eq!(
+            app.admin_save("family", &format!("guild=7&max_partners={value}"))
+                .await
+                .unwrap(),
+            shown("enter a whole number of at least 1"),
+            "{value:?}"
+        );
+    }
     assert_eq!(
         app.section("family").await.unwrap(),
         debug(&SectionSettings::Family(FamilySection {
-            max_partners: "1".to_owned()
+            max_partners: "3".to_owned()
         }))
     );
 }

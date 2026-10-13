@@ -100,8 +100,11 @@ async fn leaderboard(
     Ok(view! {
         match page {
             Err(error) => {
-                let (message, actions) =
-                    load_problem(guild_id, &board.href(&segment), &error);
+                let (message, actions) = load_problem(
+                    guild_id,
+                    &board.href(&segment),
+                    &error,
+                );
                 load_error(
                     title: "Couldn't load the leaderboard",
                     message: &message,

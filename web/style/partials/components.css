@@ -137,6 +137,9 @@
 }
 
 .rack-name a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
     color: var(--text);
     text-decoration: none;
 }
@@ -316,6 +319,14 @@
     font-variant-numeric: tabular-nums;
 }
 
+.data-table :is(td, th) > a:not(.btn) {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
 .empty-state {
     display: flex;
     flex-direction: column;
@@ -377,6 +388,12 @@
     color: var(--text-2);
 }
 
+.plan-note a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--target-min);
+}
+
 .plan-tag {
     display: inline-flex;
     align-items: center;
@@ -422,6 +439,14 @@
 .page-subnav a[aria-current="page"] {
     color: var(--text);
     box-shadow: inset 0 -2px 0 var(--indicator);
+}
+
+.subpage-title {
+    margin: 0 0 var(--space-4);
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
 }
 
 @media (max-width: 767px) {
@@ -483,6 +508,13 @@
 
     .data-table .num {
         text-align: left;
+    }
+
+    .data-table :is(td, th) > a:not(.btn),
+    .rack-name a,
+    .plan-note a,
+    .page-subnav a {
+        min-height: var(--row-h);
     }
 
     .save-bar {

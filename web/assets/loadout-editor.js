@@ -591,7 +591,7 @@ function start(data) {
             : '<img class="enum-icon" src="' + esc(src) + '" alt="">';
     };
 
-    const textInput = (id, label, value, placeholder, kind) =>
+    const textInput = (id, label, value, placeholder, kind, ariaLabel) =>
         '<div class="setting-field"><label for="' +
         esc(id) +
         '">' +
@@ -599,7 +599,9 @@ function start(data) {
         "</label>" +
         '<input id="' +
         esc(id) +
-        '" class="input" type="' +
+        '" class="input"' +
+        (ariaLabel ? ' aria-label="' + esc(ariaLabel) + '"' : "") +
+        ' type="' +
         kind +
         '" placeholder="' +
         esc(placeholder) +
@@ -694,11 +696,11 @@ function start(data) {
         );
     };
 
-    const keySlot = (label, field, get, set, diamond, picked) =>
+    const keySlot = (label, field, get, set, diamond, picked, name) =>
         '<div class="slot-cell">' +
         slotFace(
             get(),
-            label,
+            name || label,
             diamond,
             null,
             () =>
@@ -949,17 +951,21 @@ function start(data) {
                         row.aspect = v;
                     },
                     false,
+                    null,
+                    "Aspect " + (i + 1),
                 ) +
                 '<div class="aspect-fragments"><span class="label">Fragments</span>' +
                 keySlotList(
-                    "Fragments",
+                    "Aspect " + (i + 1) + " fragments",
                     "fragment",
                     row.fragments,
                     MAX.fragments,
                     l.fragments + i,
                     {},
                 ) +
-                '</div><button type="button" class="btn btn-ghost aspect-remove"' +
+                '</div><button type="button" class="btn btn-ghost aspect-remove" aria-label="Remove aspect ' +
+                (i + 1) +
+                '"' +
                 on({
                     click: () => {
                         s.aspects = s.aspects.filter((r) => r !== row);
@@ -1060,7 +1066,7 @@ function start(data) {
                   )
                 : "") +
             "</div>" +
-            keySlotList("Perks", "weaponPerk", row.perks, MAX.perks, list, {
+            keySlotList(row.name + " perks", "weaponPerk", row.perks, MAX.perks, list, {
                 round: true,
                 weapon: () => row.name,
             }) +
@@ -1110,7 +1116,7 @@ function start(data) {
             enumIcon(row.slot) +
             esc(row.slot) +
             "</span></div>" +
-            keySlotList("Mods", "armourMod", row.mods, MAX.mods, list, {
+            keySlotList(row.slot + " mods", "armourMod", row.mods, MAX.mods, list, {
                 reorderable: true,
             }) +
             "</div>"
@@ -1256,6 +1262,7 @@ function start(data) {
                     row.value,
                     "0–200",
                     "number",
+                    row.stat + " value",
                 ) +
                 "</div>";
         });

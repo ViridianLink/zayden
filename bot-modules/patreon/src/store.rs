@@ -504,16 +504,20 @@ impl PatreonAnnounceRow {
         pool: &PgPool,
         guild_id: i64,
         role_id: i64,
+        max_roles: i32,
     ) -> Result<bool> {
         let updated = sqlx::query!(
             r#"
             UPDATE patreon_announce
             SET ping_role_ids = array_append(ping_role_ids, $2),
                 updated_at = now()
-            WHERE guild_id = $1 AND NOT ($2 = ANY (ping_role_ids))
+            WHERE guild_id = $1
+              AND NOT ($2 = ANY (ping_role_ids))
+              AND cardinality(ping_role_ids) < $3
             "#,
             guild_id,
-            role_id
+            role_id,
+            max_roles
         )
         .execute(pool)
         .await?

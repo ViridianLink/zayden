@@ -37,11 +37,17 @@ pub(super) async fn image_section(
         >
             <h2 class="label" id="greeting-images-title">"Images"</h2>
             <p class="page-lead">
-                (format!("Each greeting picks one of its images at random. Up to {MAX_IMAGES} per greeting."))
+                (format!(
+                    "Each greeting picks one of its images at random. Up to {MAX_IMAGES} per greeting.",
+                ))
             </p>
             flash(notice: state.notice_for(IMAGES))
             if let Some(message) = removed.summary() {
-                form_summary(form: REMOVE_IMAGE, message: message, outcome: "Not removed")
+                form_summary(
+                    form: REMOVE_IMAGE,
+                    message: message,
+                    outcome: "Not removed"
+                )
             }
             image_list(
                 guild_id: guild_id,
@@ -149,15 +155,25 @@ async fn image_card(
     let host = host_of(&image.url);
     let confirm_id = format!("image-{}-remove", image.id);
     let confirm_title = format!("Remove this {noun} image from {host}?");
+    let trigger_label = format!("Remove {noun} image {}", image.url);
 
     Ok(view! {
         <li class="greet-card">
-            <img
+            <div
                 class="greet-thumb"
-                src=(image.url.as_str())
-                alt=(format!("Image from {host}"))
-                loading="lazy"
+                role="img"
+                aria-label=(format!("Image from {host}"))
             >
+                <span class="greet-thumb-host" aria-hidden="true">(host.as_str())</span>
+                <img
+                    class="greet-thumb-img"
+                    src=(image.url.as_str())
+                    alt=""
+                    aria-hidden="true"
+                    loading="lazy"
+                    data-host=(host.as_str())
+                >
+            </div>
             <a
                 class="greet-url"
                 href=(image.url.as_str())
@@ -180,7 +196,8 @@ async fn image_card(
                     trigger: "Remove",
                     title: &confirm_title,
                     description: Some(image.url.as_str()),
-                    confirm: "Remove image"
+                    confirm: "Remove image",
+                    trigger_label: Some(&trigger_label)
                 )
             </form>
         </li>

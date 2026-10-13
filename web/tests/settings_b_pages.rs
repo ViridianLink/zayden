@@ -675,7 +675,10 @@ async fn provider_pages_follow_the_connection(
         .unwrap();
     let html = app.page("/guild/7/youtube?youtube=connected").await.unwrap();
     let main = main_content(&html);
-    assert!(main.contains(r#"<p class="success" role="status">YouTube connected. Choose where its uploads should be announced.</p>"#), "{main}");
+    assert!(
+        !main.contains("YouTube connected."),
+        "only the callback's flash reports a connection: {main}"
+    );
     assert!(
         main.contains(r#"<p class="page-lead">Connected to Seed Channel.</p>"#),
         "{main}"
@@ -779,7 +782,10 @@ async fn provider_pages_follow_the_connection(
     patreon::PatreonConnection::disable(db, 7).await.unwrap();
     let html = app.page("/guild/7/patreon?patreon=connected").await.unwrap();
     let main = main_content(&html);
-    assert!(main.contains(r#"<p class="success" role="status">Patreon connected. Choose where its posts should be announced.</p>"#), "{main}");
+    assert!(
+        !main.contains("Patreon connected."),
+        "only the callback's flash reports a connection: {main}"
+    );
     assert!(main.contains(r#"<p class="page-lead">Connected to camp-1, but Patreon has rejected the stored authorisation. Reconnect to resume announcements.</p>"#), "{main}");
     assert!(main.contains(r#"<a class="btn btn-secondary" href="/patreon/connect?guild=7" rel="external">Reconnect Patreon</a>"#), "{main}");
     assert!(main.contains(&confirm(
@@ -973,6 +979,31 @@ async fn announcements_keep_a_message_and_ping_roles(
     let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
     assert_eq!(row.ping_role_ids, [201]);
 
+    let html = app
+        .submit(&remove, "guild=7&role_id=200", StatusCode::UNPROCESSABLE_ENTITY)
+        .await
+        .unwrap();
+    assert_eq!(
+        summary(&html, "remove-ping-role"),
+        Some("Not removed: that role isn't pinged"),
+        "{html}"
+    );
+    assert!(flash_after(&html, r#"id="ping-roles""#).is_none(), "{html}");
+
+    for role in 300..309 {
+        assert!(
+            youtube::YoutubeAnnounceRow::add_ping_role(db, 7, role, 10)
+                .await
+                .unwrap()
+        );
+    }
+    assert!(
+        !youtube::YoutubeAnnounceRow::add_ping_role(db, 7, 309, 10).await.unwrap(),
+        "the append itself refuses an eleventh role"
+    );
+    let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.ping_role_ids.len(), 10);
+
     pool.close().await;
 }
 
@@ -1108,6 +1139,27 @@ async fn support_pages_have_their_own_addresses_and_one_form_each(
         settings.support.get(7).await.unwrap().idle_enabled,
         "a rejected channel writes nothing"
     );
+
+    for field in ["solved_tag_id", "closed_tag_id", "stale_tag_id"] {
+        let body = TICKET_BODY
+            .replace("closed_tag_id=", "closed_tag_id=600")
+            .replace(&format!("{field}=600"), &format!("{field}=601"))
+            .replace("idle_enabled=true", "idle_enabled=false");
+        let html = app
+            .submit(TICKETS, &body, StatusCode::UNPROCESSABLE_ENTITY)
+            .await
+            .unwrap();
+        let id = format!("ticket-settings-{}", field.replace('_', "-"));
+        assert_eq!(
+            field_error(&html, &id),
+            Some("that tag is not on a forum channel in this server"),
+            "{field}: {html}"
+        );
+        assert!(
+            settings.support.get(7).await.unwrap().idle_enabled,
+            "{field}: a tag from no forum in this server writes nothing"
+        );
+    }
     assert_eq!(selected(&html, "ticket-settings-idle-enabled"), Some("false"));
 
     let html = app
@@ -1275,7 +1327,10 @@ async fn support_roles_and_links_are_list_actions_behind_confirms(
             "Remove support role @Mods?",
             "Its members stop being pinged for new tickets and stop counting as helpers.",
             "Remove role"
-        ).replace(r#"class="btn btn-danger" data-confirm-trigger"#, r#"class="btn btn-ghost" data-confirm-trigger"#)
+        ).replace(
+            r#"class="btn btn-danger" data-confirm-trigger"#,
+            r#"class="btn btn-ghost" aria-label="Remove support role @Mods" data-confirm-trigger"#
+        )
     )), "{main}");
     assert!(
         !element(main, "select", "add-role-role-id")
@@ -1427,6 +1482,35 @@ async fn faq_articles_have_list_new_and_edit_pages(
         Some("A title and a body are both required.")
     );
     assert_eq!(value(&html, "faq-article-title"), Some("Fixing 502"));
+    assert_eq!(field_error(&html, "faq-article-title"), None);
+
+    let body = "guild=7&title=+&summary=&category=&tags=&content=";
+    let html = app
+        .submit(&format!("{faq}/new"), body, StatusCode::UNPROCESSABLE_ENTITY)
+        .await
+        .unwrap();
+    for id in ["faq-article-title", "faq-article-content"] {
+        assert_eq!(
+            field_error(&html, id),
+            Some("A title and a body are both required."),
+            "{id}: {html}"
+        );
+        assert!(
+            element(
+                &html,
+                if id.ends_with("content") { "textarea" } else { "input" },
+                id
+            )
+            .unwrap()
+            .contains(r#"aria-invalid="true""#),
+            "{id}: {html}"
+        );
+    }
+    assert!(
+        main_content(&html)
+            .contains(r#"</nav><h2 class="subpage-title">FAQ articles</h2>"#),
+        "the sub-page names itself under the Support heading: {html}"
+    );
 
     app.app.settings.support.update(7, |_| {}).await.unwrap();
     let body = "guild=7&title=Fixing+502&summary=Restart+it&category=&tags=Radarr%2C+radarr%2C+HTTP&content=Restart+Radarr.";
@@ -1493,7 +1577,7 @@ async fn faq_articles_have_list_new_and_edit_pages(
         let response = app.get(path, Some(MEMBER)).await.unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND, "{path}");
         let html = body_text(response).await.unwrap();
-        assert!(html.contains(r#"<h2 class="error-title" id="faq-missing-title">Article not found</h2>"#), "{html}");
+        assert!(html.contains(r#"<h3 class="error-title" id="faq-missing-title">Article not found</h3>"#), "{html}");
         assert!(html.contains(r#"<a href="/guild/7/support/faq" class="btn btn-primary">Back to FAQ articles</a>"#), "{html}");
         assert!(
             html.contains(r#"class="nav-link""#),

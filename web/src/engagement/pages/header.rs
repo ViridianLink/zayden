@@ -92,7 +92,9 @@ pub(super) async fn page_header(
                         <span class="switch-thumb" aria-hidden="true"></span>
                     </button>
                 </form>,
-                (Some(ModuleState::Switch(on) | ModuleState::Status(on)), _) => <div class="settings-actions">
+                (Some(ModuleState::Switch(on) | ModuleState::Status(on)), _) => <div
+                    class="settings-actions"
+                >
                     lamp(state: lamp_state(on))
                 </div>,
                 (Some(ModuleState::NotSynced), _) => <div class="settings-actions">

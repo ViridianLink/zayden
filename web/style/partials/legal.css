@@ -92,9 +92,14 @@
   color: var(--text);
 }
 
-.login-page .legal-links {
-  position: relative;
-  z-index: 1;
-  justify-content: center;
-  margin-top: var(--space-5);
+.legal-callout a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target-min);
+}
+
+@media (max-width: 767px) {
+  .legal-callout a {
+    min-height: var(--row-h);
+  }
 }

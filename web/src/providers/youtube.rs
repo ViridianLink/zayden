@@ -22,6 +22,7 @@ use super::oauth::{
     oauth_state,
     random_hex,
     remember_nonce,
+    report_success,
     settings_url,
     split_state,
     take_nonce,
@@ -120,6 +121,9 @@ pub(super) async fn youtube_callback_handler(cx: &Cx) -> Result<Response> {
     )
     .await;
 
+    if outcome.is_success() {
+        return report_success(cx, guild, SETTINGS_SLUG, outcome.message());
+    }
     redirect(cx, &outcome_url(guild, outcome))
 }
 

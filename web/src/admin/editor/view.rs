@@ -130,6 +130,7 @@ async fn text_input(
     value: &str,
     placeholder: &str,
     kind: &str,
+    #[default] aria_label: Option<&str>,
 ) -> Result<impl View> {
     Ok(view! {
         <div class="setting-field">
@@ -137,6 +138,7 @@ async fn text_input(
             <input
                 id=(id)
                 class="input"
+                aria-label=(aria_label)
                 type=(kind)
                 placeholder=(placeholder)
                 value=(value)
@@ -258,13 +260,14 @@ async fn key_slot(
     label: &str,
     value: &str,
     #[default] diamond: bool,
+    #[default] name: Option<&str>,
     index: &CatalogIndex,
 ) -> Result<impl View> {
     Ok(view! {
         <div class="slot-cell">
             slot_face(
                 key: value,
-                label: label,
+                label: name.unwrap_or(label),
                 diamond: diamond,
                 id: None,
                 index: index
@@ -408,6 +411,7 @@ async fn subclass_card(
                 for (position, row) in form.aspects.iter().enumerate() {
                     aspect_block(
                         row: row,
+                        number: position + 1,
                         list: lists.fragments + position,
                         index: index
                     )
@@ -427,16 +431,24 @@ async fn subclass_card(
 #[component]
 async fn aspect_block(
     row: &AspectForm,
+    number: usize,
     list: usize,
     index: &CatalogIndex,
 ) -> Result<impl View> {
+    let name = format!("Aspect {number}");
+    let fragments = format!("{name} fragments");
     Ok(view! {
         <div class="aspect-block">
-            key_slot(label: "Aspect", value: &row.aspect, index: index)
+            key_slot(
+                label: "Aspect",
+                value: &row.aspect,
+                name: Some(&name),
+                index: index
+            )
             <div class="aspect-fragments">
                 <span class="label">"Fragments"</span>
                 key_slot_list(
-                    label: "Fragments",
+                    label: &fragments,
                     noun: "fragment",
                     values: &row.fragments,
                     max: MAX_FRAGMENTS,
@@ -444,7 +456,11 @@ async fn aspect_block(
                     index: index
                 )
             </div>
-            <button type="button" class="btn btn-ghost aspect-remove">
+            <button
+                type="button"
+                class="btn btn-ghost aspect-remove"
+                aria-label=(format!("Remove aspect {number}"))
+            >
                 "Remove aspect"
             </button>
         </div>
@@ -514,6 +530,7 @@ async fn weapon_line(
         .find(|w| w.name == row.name)
         .map(|w| w.affinity.as_str())
         .filter(|usual| *usual != row.affinity);
+    let perks_label = format!("{} perks", row.name);
 
     Ok(view! {
         <div class="gear-row">
@@ -537,7 +554,7 @@ async fn weapon_line(
                 </span>
             </div>
             key_slot_list(
-                label: "Perks",
+                label: &perks_label,
                 noun: "perk",
                 values: &row.perks,
                 max: MAX_PERKS,
@@ -563,6 +580,7 @@ async fn armour_line(
     index: &CatalogIndex,
 ) -> Result<impl View> {
     let empty = row.name.is_empty();
+    let mods_label = format!("{} mods", row.slot);
 
     Ok(view! {
         <div class="gear-row">
@@ -582,7 +600,7 @@ async fn armour_line(
                 </span>
             </div>
             key_slot_list(
-                label: "Mods",
+                label: &mods_label,
                 noun: "mod",
                 values: &row.mods,
                 max: MAX_MODS,
@@ -680,6 +698,7 @@ async fn stat_line(
 ) -> Result<impl View> {
     let rank = position + 1;
     let input_id = format!("stat-value-{position}");
+    let value_label = format!("{} value", row.stat);
 
     Ok(view! {
         <div class="stat-row">
@@ -700,7 +719,8 @@ async fn stat_line(
                 label: "Value",
                 value: &row.value,
                 placeholder: "0\u{2013}200",
-                kind: "number"
+                kind: "number",
+                aria_label: Some(&value_label)
             )
         </div>
     })

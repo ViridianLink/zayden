@@ -93,7 +93,7 @@ async fn upgrade_page(
     #[default] failure: Option<KofiFailure>,
 ) -> Result<impl View> {
     Ok(view! {
-        <div class="page">
+        <div class="page upgrade-page">
             <div class="page-header">
                 <div>
                     <h1>"Plans"</h1>
@@ -273,10 +273,12 @@ async fn plan_ladder(cx: &Cx) -> Result<impl View> {
                                         rel="external noopener noreferrer"
                                         target="_blank"
                                     >
-                                        (host.as_ref().map_or_else(
-                                            || format!("Get {}", plan.label()),
-                                            |host| format!("Get {} on {host}", plan.label()),
-                                        ))
+                                        (host
+                                            .as_ref()
+                                            .map_or_else(
+                                                || format!("Get {}", plan.label()),
+                                                |host| format!("Get {} on {host}", plan.label()),
+                                            ))
                                     </a>
                                 }
                             }

@@ -73,7 +73,11 @@ async fn intro() -> Result<impl View> {
             "Zayden collects, why it is used, who it is shared with, and the choices "
             "you have. It covers the bot and the dashboard at zayden.viridian.icu."
         </p>
-        <p>"Questions or requests about your data: " contact_email() "."</p>
+        <p>
+            "Questions or requests about your data: "
+            contact_email()
+            "."
+        </p>
         <p>
             "We do not sell personal information, and we do not use it for "
             "advertising. The dashboard sets no analytics or advertising cookies."
@@ -348,7 +352,9 @@ async fn youtube() -> Result<impl View> {
             <h3>"When you connect"</h3>
             <p>
                 "You sign in with Google and grant read-only YouTube access. Zayden "
-                "makes a single request, " <code>"channels.list?mine=true"</code> ", and "
+                "makes a single request, "
+                <code>"channels.list?mine=true"</code>
+                ", and "
                 "reads only your channel ID, channel title and uploads-playlist ID."
             </p>
             <p>
@@ -368,7 +374,9 @@ async fn youtube() -> Result<impl View> {
             <h3>"What is stored"</h3>
             <ul>
                 <li>"The channel ID, title and uploads-playlist ID."</li>
-                <li>"Public video IDs, titles and publish times, and when each was announced."</li>
+                <li>
+                    "Public video IDs, titles and publish times, and when each was announced."
+                </li>
                 <li>"The push-notification subscription secret and its expiry."</li>
                 <li>
                     "Which Discord server connected the channel, who connected it, and "
@@ -382,7 +390,9 @@ async fn youtube() -> Result<impl View> {
                 "unsubscribes from its push notifications and deletes its stored video "
                 "list. The channel's ID, title, uploads-playlist ID and subscription "
                 "secret are kept so it can be reconnected, until deletion is requested "
-                "at " contact_email() ". You can also revoke Zayden's access at any time "
+                "at "
+                contact_email()
+                ". You can also revoke Zayden's access at any time "
                 "at "
                 <a href="https://security.google.com/settings/security/permissions">
                     "https://security.google.com/settings/security/permissions"
@@ -391,13 +401,17 @@ async fn youtube() -> Result<impl View> {
             </p>
             <p>
                 "Google's handling of your data is described in the "
-                <a href="https://policies.google.com/privacy">"Google Privacy Policy"</a>
+                <a href="https://policies.google.com/privacy">
+                    "Google Privacy Policy"
+                </a>
                 "."
             </p>
             <p class="legal-callout">
                 "Zayden's use and transfer of information received from Google APIs will "
                 "adhere to the "
-                <a href="https://developers.google.com/terms/api-services-user-data-policy">
+                <a
+                    href="https://developers.google.com/terms/api-services-user-data-policy"
+                >
                     "Google API Services User Data Policy"
                 </a>
                 ", including the Limited Use requirements."
@@ -560,7 +574,9 @@ async fn retention() -> Result<impl View> {
                     "are deleted every hour. Logging out deletes your session at once."
                 </li>
                 <li>"The cached server list lasts about a minute."</li>
-                <li>"The Google access token is revoked and discarded at connect time."</li>
+                <li>
+                    "The Google access token is revoked and discarded at connect time."
+                </li>
                 <li>
                     "A YouTube channel's stored video list, and a Patreon campaign's "
                     "cached posts, are deleted once no server is connected to them."
@@ -598,7 +614,8 @@ async fn rights() -> Result<impl View> {
             <h2>"Your choices and rights"</h2>
             <ul>
                 <li>
-                    "To access, correct or delete your data, email " contact_email()
+                    "To access, correct or delete your data, email "
+                    contact_email()
                     " from an address we can reply to and include your Discord user ID."
                 </li>
                 <li>

@@ -403,9 +403,32 @@
         min-height: 44px;
     }
 
+    .brand {
+        justify-content: center;
+        min-width: var(--row-h);
+        min-height: var(--row-h);
+    }
+
     .plate {
         flex: 1;
         justify-content: flex-start;
+        max-width: none;
+    }
+
+    .plate ~ .topbar-spacer {
+        display: none;
+    }
+
+    .plate .plate-name {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        font-size: 14px;
+        line-height: 1.2;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
 
     .plan-chip,

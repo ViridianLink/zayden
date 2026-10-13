@@ -224,6 +224,7 @@ async fn loadout_row(
     let own_class = loadout.class.clone();
     let delete_id = format!("loadout-{}-delete", loadout.id);
     let delete_title = format!("Delete loadout \u{201c}{}\u{201d}?", loadout.name);
+    let delete_label = format!("Delete loadout {}", loadout.name);
     let hidden =
         expr!(if class.get().is_empty() { false } else { class.get() != own_class });
 
@@ -247,7 +248,8 @@ async fn loadout_row(
                         trigger: "Delete",
                         title: &delete_title,
                         description: Some(DELETE_PROMPT),
-                        confirm: "Delete loadout"
+                        confirm: "Delete loadout",
+                        trigger_label: Some(&delete_label)
                     )
                 </form>
             )

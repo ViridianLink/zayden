@@ -26,6 +26,7 @@ pub struct GuildIds {
     channels: Vec<i64>,
     roles: Vec<i64>,
     threads: Vec<i64>,
+    forum_tags: Vec<(&'static str, i64)>,
 }
 
 impl GuildIds {
@@ -47,10 +48,19 @@ impl GuildIds {
         self
     }
 
+    /// A tag that must be offered by one of the server's forum channels;
+    /// `field` names the form field a refusal points at.
+    #[must_use]
+    pub fn forum_tag(mut self, field: &'static str, id: Option<i64>) -> Self {
+        self.forum_tags.extend(id.map(|id| (field, id)));
+        self
+    }
+
     pub async fn ensure_in(self, cx: &Cx, guild_id: i64) -> Result<(), AuthError> {
         if self.channels.is_empty()
             && self.roles.is_empty()
             && self.threads.is_empty()
+            && self.forum_tags.is_empty()
         {
             return Ok(());
         }
@@ -59,7 +69,7 @@ impl GuildIds {
         let guild_id = guild_id.cast_unsigned();
 
         let (channels, roles, threads) = tokio::join!(
-            ensure_channels(http, guild_id, &self.channels),
+            ensure_channels(http, guild_id, &self.channels, &self.forum_tags),
             ensure_roles(http, guild_id, &self.roles),
             ensure_threads(http, guild_id, &self.threads),
         );
@@ -72,15 +82,29 @@ async fn ensure_channels(
     http: &Client,
     guild_id: u64,
     submitted: &[i64],
+    forum_tags: &[(&'static str, i64)],
 ) -> Result<(), AuthError> {
-    if submitted.is_empty() {
+    if submitted.is_empty() && forum_tags.is_empty() {
         return Ok(());
     }
 
     let channels = fetch_guild_channels(http, guild_id).await?;
 
-    match first_foreign(channels.iter().map(|c| c.id.as_str()), submitted) {
-        Some(_) => Err(ForeignIdError::Channel.into()),
+    if first_foreign(channels.iter().map(|c| c.id.as_str()), submitted).is_some() {
+        return Err(ForeignIdError::Channel.into());
+    }
+
+    let known: HashSet<u64> = channels
+        .iter()
+        .flat_map(|channel| &channel.tags)
+        .filter_map(|tag| tag.id.parse().ok())
+        .collect();
+
+    match forum_tags
+        .iter()
+        .find(|&&(_, id)| u64::try_from(id).map_or(true, |id| !known.contains(&id)))
+    {
+        Some(&(field, _)) => Err(ForeignIdError::Tag(field).into()),
         None => Ok(()),
     }
 }

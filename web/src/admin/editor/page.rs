@@ -14,6 +14,7 @@ use crate::admin::loadouts::{get_loadout, loadout_catalog};
 use crate::admin::pages::gate::{Gate, closed, gate};
 use crate::auth::WebRole;
 use crate::components::error_panel::{ErrorAction, error_panel};
+use crate::error::MissingPage;
 use crate::shell::app_shell;
 
 const LIST_PATH: &str = "/admin/destiny2/loadouts";
@@ -61,10 +62,11 @@ pub(super) async fn edit_loadout(cx: &Cx) -> Result<impl View> {
     }
     let raw: &str = path_param::<LoadoutId>(cx);
 
-    Ok(match editor_id(raw) {
-        Some(id) => view! { editor_page(id: Some(id)) }.boxed(),
-        None => view! { missing_loadout() }.boxed(),
-    })
+    let Some(id) = editor_id(raw) else {
+        return Err(MissingPage::Loadout.into());
+    };
+
+    Ok(view! { editor_page(id: Some(id)) }.boxed())
 }
 
 enum Loaded {
@@ -98,7 +100,7 @@ async fn editor_page(cx: &Cx, id: Option<i32>) -> Result<impl View> {
     );
 
     Ok(match loaded {
-        Loaded::Missing => view! { missing_loadout() }.boxed(),
+        Loaded::Missing => return Err(MissingPage::Loadout.into()),
         Loaded::Denied => {
             view! { closed(role: WebRole::Admin, gate: Gate::Forbidden) }.boxed()
         },
@@ -138,7 +140,7 @@ async fn editor_page(cx: &Cx, id: Option<i32>) -> Result<impl View> {
 }
 
 #[component]
-async fn missing_loadout() -> Result<impl View> {
+pub(crate) async fn missing_loadout() -> Result<impl View> {
     let back = [ErrorAction::new("Back to loadouts", LIST_PATH)];
 
     Ok(view! {

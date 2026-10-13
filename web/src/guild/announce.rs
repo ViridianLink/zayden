@@ -46,3 +46,18 @@ pub(crate) async fn new_ping_role(
 
     Ok(role)
 }
+
+/// The column bound for the append, which refuses a role once the stored list
+/// is full even when two adds race past the check in [`new_ping_role`].
+pub(crate) fn ping_role_limit() -> i32 {
+    i32::try_from(MAX_PING_ROLES).unwrap_or(i32::MAX)
+}
+
+/// Why an append changed nothing, judged from the list stored afterwards.
+pub(crate) fn refused_ping_role(stored: Option<&[i64]>, role: i64) -> GuildError {
+    match stored {
+        None => GuildError::NoAnnounceChannel,
+        Some(roles) if roles.contains(&role) => GuildError::DuplicatePingRole,
+        Some(_) => GuildError::TooManyPingRoles(MAX_PING_ROLES),
+    }
+}

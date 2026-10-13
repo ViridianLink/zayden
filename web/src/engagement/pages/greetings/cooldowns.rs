@@ -75,7 +75,10 @@ pub(super) async fn cooldown_section(
                     error: sent.error("guild_cooldown"),
                     range: Some(bounds(cooldowns.floor_guild_secs))
                 )
-                if let (Some(next), Some(pitch)) = (cooldowns.next_tier, cooldowns.upgrade_pitch()) {
+                if let (Some(next), Some(pitch)) = (
+                    cooldowns.next_tier,
+                    cooldowns.upgrade_pitch(),
+                ) {
                     plan_note(tier: next.label(), text: &pitch)
                 }
                 save_bar(notice: state.notice_for(COOLDOWNS))

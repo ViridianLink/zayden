@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["bot", "bot-modules/*", "dashboard", "web", "zayden-app"]
+members = ["bot", "bot-modules/*", "web", "zayden-app"]
 
 [workspace.package]
 version = "1.0.0"
@@ -242,22 +242,6 @@ scraper = { version = "*", default-features = false }
 url = { version = "*", default-features = false }
 
 # -- HTTP server
-axum = { version = "*", default-features = false, features = [
-  "http1",
-  "http2",
-  "macros",
-  "form",
-  "json",
-  "matched-path",
-  "original-uri",
-  "query",
-  "tokio",
-  "tower-log",
-  "tracing",
-] }
-tower-cookies = { version = "*", default-features = false, features = [
-  "axum-core",
-] }
 # Unused; uncomment instead of hand-rolling UUID generation or parsing.
 # utoipa = { version = "*", default-features = false, features = [
 #   "macros",
@@ -324,18 +308,8 @@ sha2 = { version = "*", default-features = false }
 aws-lc-rs = { version = "*", default-features = false }
 secrecy = { version = "*", default-features = false }
 
-# -- Frontend (Leptos)
-leptos = { version = "*", default-features = false }
-leptos_meta = { version = "*", default-features = false }
-leptos_router = { version = "*", default-features = false }
-leptos_axum = { version = "*" }
-
 # -- Frontend (Topcoat)
 topcoat = { version = "0.10", default-features = false, }
-
-# ── WASM (hydrate target only) ───────────────────────────────────────────────
-wasm-bindgen = { version = "*" }
-web-sys = { version = "*" }
 
 # ── Testing and benchmarking ─────────────────────────────────────────────────
 criterion = { version = "*", default-features = false, features = [
@@ -367,9 +341,3 @@ debug-assertions = false
 overflow-checks = false
 incremental = false
 
-[profile.wasm-release]
-inherits = "release"
-opt-level = "z"
-lto = "fat"
-codegen-units = 1
-panic = "abort"

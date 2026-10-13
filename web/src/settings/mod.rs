@@ -211,6 +211,7 @@ async fn frame(
             feature_header(guild_id: guild_id, page: page, state: state)
             if let Page::Support(pane) = page {
                 support::subnav(guild_id: guild_id, current: pane)
+                <h2 class="subpage-title">(pane.label())</h2>
             }
             flash(notice: state.top_notice())
             (child)

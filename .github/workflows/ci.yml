@@ -154,13 +154,13 @@ jobs:
       - *fetch-tailwind
       - name: Check the offline cache is current
         run: >-
-          cargo sqlx prepare --workspace --check -- --features ssr --locked
+          cargo sqlx prepare --workspace --check -- --all-targets --locked
       - uses: ./.github/actions/cancel-run
         if: failure()
 
   images:
     name: ${{ matrix.name }} image
-    needs: [fmt, deny]
+    needs: [fmt, clippy, deny]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:

@@ -252,8 +252,11 @@ async fn greetings_page(
             flash(notice: state.top_notice())
             match data {
                 Err(error) => {
-                    let (message, actions) =
-                        load_problem(guild_id, &page_href(guild_id, PAGE), &error);
+                    let (message, actions) = load_problem(
+                        guild_id,
+                        &page_href(guild_id, PAGE),
+                        &error,
+                    );
                     if let Some(failure) = state.any_failure() {
                         form_summary(form: "page", message: failure)
                     }
@@ -263,7 +266,11 @@ async fn greetings_page(
                         actions: &actions
                     )
                 }
-                Ok(page) => greeting_sections(guild_id: guild_id, page: &page, state: state),
+                Ok(page) => greeting_sections(
+                    guild_id: guild_id,
+                    page: &page,
+                    state: state
+                ),
             }
         </div>
     }
@@ -297,7 +304,11 @@ async fn greeting_sections(
             remove_error: removed.summary(),
             chosen: added.value("channel_id", "")
         )
-        cooldown_section(guild_id: guild_id, cooldowns: page.view.cooldowns, state: state)
+        cooldown_section(
+            guild_id: guild_id,
+            cooldowns: page.view.cooldowns,
+            state: state
+        )
         image_section(
             guild_id: guild_id,
             morning: &page.view.morning,
