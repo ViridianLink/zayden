@@ -390,6 +390,8 @@ pub async fn claim_pending(pool: &PgPool, limit: i64) -> Result<Vec<PendingVideo
 pub struct YoutubeAnnounceRow {
     pub guild_id: i64,
     pub channel_id: i64,
+    pub message: Option<String>,
+    pub ping_role_ids: Vec<i64>,
 }
 
 impl YoutubeAnnounceRow {
@@ -405,7 +407,7 @@ impl YoutubeAnnounceRow {
         let rows = sqlx::query_as!(
             Self,
             r#"
-            SELECT a.guild_id, a.channel_id
+            SELECT a.guild_id, a.channel_id, a.message, a.ping_role_ids
             FROM youtube_announce a
             JOIN youtube_connections o ON o.guild_id = a.guild_id
             WHERE o.channel_id = $1
@@ -421,7 +423,11 @@ impl YoutubeAnnounceRow {
     pub async fn select(pool: &PgPool, guild_id: i64) -> Result<Option<Self>> {
         let row = sqlx::query_as!(
             Self,
-            "SELECT guild_id, channel_id FROM youtube_announce WHERE guild_id = $1",
+            r#"
+            SELECT guild_id, channel_id, message, ping_role_ids
+            FROM youtube_announce
+            WHERE guild_id = $1
+            "#,
             guild_id
         )
         .fetch_optional(pool)
@@ -434,22 +440,69 @@ impl YoutubeAnnounceRow {
         pool: &PgPool,
         guild_id: i64,
         channel_id: i64,
+        message: Option<&str>,
     ) -> Result<()> {
         sqlx::query!(
             r#"
-            INSERT INTO youtube_announce (guild_id, channel_id)
-            VALUES ($1, $2)
+            INSERT INTO youtube_announce (guild_id, channel_id, message)
+            VALUES ($1, $2, $3)
             ON CONFLICT (guild_id) DO UPDATE
             SET channel_id = EXCLUDED.channel_id,
+                message = EXCLUDED.message,
                 updated_at = now()
             "#,
             guild_id,
-            channel_id
+            channel_id,
+            message
         )
         .execute(pool)
         .await?;
 
         Ok(())
+    }
+
+    pub async fn add_ping_role(
+        pool: &PgPool,
+        guild_id: i64,
+        role_id: i64,
+    ) -> Result<bool> {
+        let updated = sqlx::query!(
+            r#"
+            UPDATE youtube_announce
+            SET ping_role_ids = array_append(ping_role_ids, $2),
+                updated_at = now()
+            WHERE guild_id = $1 AND NOT ($2 = ANY (ping_role_ids))
+            "#,
+            guild_id,
+            role_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(updated > 0)
+    }
+
+    pub async fn remove_ping_role(
+        pool: &PgPool,
+        guild_id: i64,
+        role_id: i64,
+    ) -> Result<bool> {
+        let updated = sqlx::query!(
+            r#"
+            UPDATE youtube_announce
+            SET ping_role_ids = array_remove(ping_role_ids, $2),
+                updated_at = now()
+            WHERE guild_id = $1 AND $2 = ANY (ping_role_ids)
+            "#,
+            guild_id,
+            role_id
+        )
+        .execute(pool)
+        .await?
+        .rows_affected();
+
+        Ok(updated > 0)
     }
 
     pub async fn delete(pool: &PgPool, guild_id: i64) -> Result<bool> {

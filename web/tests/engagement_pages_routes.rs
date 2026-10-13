@@ -373,6 +373,7 @@ fn web_state(pool: PgPool) -> TestResult<(WebState, Discord, Arc<ZaydenAppState>
         ),
         user_guilds: state.discord.user_guilds,
         users: state.discord.users,
+        member_names: state.discord.member_names,
     };
 
     Ok((state, discord, app))
@@ -1435,7 +1436,7 @@ fn action(name: &str) -> String {
 }
 
 const CHANNEL_SELECT_OPTIONS: &str = "<option value=\"\" selected=\"\">(not set)</option><option value=\"23\">\u{25b8} Lounge</option><option value=\"20\"># rules</option><option value=\"21\"># chat</option><option value=\"22\"># bots</option>";
-const LEGEND_LIST: &str = r#"<ul class="greet-legend"><li><code>{user}</code> - mentions the person being greeted, or the sender when the command is run without a user.</li><li><code>{author}</code> - mentions whoever ran the command.</li></ul>"#;
+const LEGEND_LIST: &str = r#"<ul class="placeholder-legend"><li><code>{user}</code> - mentions the person being greeted, or the sender when the command is run without a user.</li><li><code>{author}</code> - mentions whoever ran the command.</li></ul>"#;
 const SEE_PLANS: &str = r#"<p class="plan-note"><span class="plan-tag">Pro</span><span>On Pro these floors drop to 3s and 1s.</span><a href="/upgrade">See plans</a></p>"#;
 const GOOD_WORKS_LEAD: &str = "<h2 class=\"label\" id=\"good-channels-title\">Where /good works</h2><p class=\"page-lead\">With nothing listed, <code>/good</code> works in every channel. Add one or more and Discord hides the command everywhere else - it never even shows up in the picker. Adding a category covers every channel inside it.</p><p class=\"page-lead\">This writes the same command permissions as Discord's own Server Settings \u{2192} Integrations panel, so changes made either way show up in both.</p>";
 const NO_IMAGES: &str = r#"<p class="page-lead">No images yet - the command replies with just the message until you add one.</p>"#;

@@ -358,6 +358,7 @@ async fn harness(pool: &PgPool) -> TestResult<Harness> {
         ),
         user_guilds: state.discord.user_guilds,
         users: state.discord.users,
+        member_names: state.discord.member_names,
     };
     state
         .sessions
@@ -696,7 +697,7 @@ async fn provider_pages_follow_the_connection(
     let html = app
         .submit(
             "/guild/7/youtube",
-            "guild=7&channel_id=100",
+            "guild=7&channel_id=100&message=",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
@@ -711,7 +712,7 @@ async fn provider_pages_follow_the_connection(
     let html = app
         .redirected(
             "/guild/7/youtube",
-            "guild=7&channel_id=101",
+            "guild=7&channel_id=101&message=",
             "/guild/7/youtube#youtube-settings",
         )
         .await
@@ -793,7 +794,7 @@ async fn provider_pages_follow_the_connection(
     let html = app
         .submit(
             "/guild/7/patreon",
-            "guild=7&channel_id=100&public_only=true",
+            "guild=7&channel_id=100&public_only=true&message=",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
@@ -812,7 +813,7 @@ async fn provider_pages_follow_the_connection(
     let html = app
         .redirected(
             "/guild/7/patreon",
-            "guild=7&channel_id=101&public_only=true",
+            "guild=7&channel_id=101&public_only=true&message=",
             "/guild/7/patreon#patreon-settings",
         )
         .await
@@ -851,12 +852,126 @@ async fn provider_pages_follow_the_connection(
     let html = app
         .submit(
             "/guild/8/youtube",
-            "guild=8&channel_id=101",
+            "guild=8&channel_id=101&message=",
             StatusCode::UNPROCESSABLE_ENTITY,
         )
         .await
         .unwrap();
     assert_eq!(summary(&html, "page"), Some("Not saved: forbidden"));
+
+    pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn announcements_keep_a_message_and_ping_roles(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(&pool).await.unwrap();
+    let db = &app.app.db;
+    let page = "/guild/7/youtube";
+
+    youtube::YoutubeConnection::connect(db, 7, &connect_youtube_json(), 41, "s")
+        .await
+        .unwrap();
+
+    let html = app.page(page).await.unwrap();
+    let main = main_content(&html);
+    assert!(
+        main.contains(
+            "Choose an announcement channel and save it before adding roles."
+        ),
+        "{main}"
+    );
+    assert!(!main.contains(r#"<form id="add-ping-role""#), "{main}");
+    assert!(
+        main.contains(r#"<ul class="placeholder-legend"><li><code>{roles}</code> - the roles to ping</li>"#),
+        "{main}"
+    );
+
+    let html = app
+        .submit(
+            page,
+            &format!("guild=7&channel_id=101&message={}", "x".repeat(1501)),
+            StatusCode::UNPROCESSABLE_ENTITY,
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        field_error(&html, "youtube-settings-message"),
+        Some("the message can be at most 1500 characters")
+    );
+    assert!(youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().is_none());
+
+    let html = app
+        .redirected(
+            page,
+            "guild=7&channel_id=101&message=%7Broles%7D+New%3A+%7Btitle%7D",
+            "/guild/7/youtube#youtube-settings",
+        )
+        .await
+        .unwrap();
+    let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.message.as_deref(), Some("{roles} New: {title}"));
+    assert!(
+        element(&html, "textarea", "youtube-settings-message")
+            .unwrap()
+            .contains("{roles} New: {title}</textarea>"),
+        "{html}"
+    );
+
+    let add = format!("{page}/add-ping-role");
+    let remove = format!("{page}/remove-ping-role");
+    let html = app
+        .redirected(&add, "guild=7&role_id=200", "/guild/7/youtube#ping-roles")
+        .await
+        .unwrap();
+    assert_eq!(flash_after(&html, r#"id="ping-roles""#), Some("Role added."));
+    assert!(
+        main_content(&html).contains(
+            r#"<th scope="row" role="rowheader" data-label="Role">@Mods</th>"#
+        ),
+        "{html}"
+    );
+    assert!(
+        !element(&html, "select", "add-ping-role-role-id")
+            .unwrap()
+            .contains(r#"value="200""#),
+        "a pinged role is not offered again"
+    );
+
+    for (body, error) in [
+        ("guild=7&role_id=200", "that role is already pinged"),
+        ("guild=7&role_id=7", "invalid role"),
+    ] {
+        let html =
+            app.submit(&add, body, StatusCode::UNPROCESSABLE_ENTITY).await.unwrap();
+        assert_eq!(field_error(&html, "add-ping-role-role-id"), Some(error));
+    }
+
+    app.redirected(&add, "guild=7&role_id=201", "/guild/7/youtube#ping-roles")
+        .await
+        .unwrap();
+    let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.ping_role_ids, [200, 201]);
+
+    app.redirected(
+        page,
+        "guild=7&channel_id=101&message=",
+        "/guild/7/youtube#youtube-settings",
+    )
+    .await
+    .unwrap();
+    let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.message, None, "an empty message falls back to the default");
+    assert_eq!(row.ping_role_ids, [200, 201], "saving the form keeps the roles");
+
+    app.redirected(&remove, "guild=7&role_id=200", "/guild/7/youtube#ping-roles")
+        .await
+        .unwrap();
+    let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.ping_role_ids, [201]);
 
     pool.close().await;
 }
@@ -904,9 +1019,11 @@ async fn support_pages_have_their_own_addresses_and_one_form_each(
         .iter()
         .map(|(href, label)| {
             if *label == current {
-                format!(r#"<li><a href="{href}" class="btn btn-secondary" aria-current="page">{label}</a></li>"#)
+                format!(
+                    r#"<li><a href="{href}" aria-current="page">{label}</a></li>"#
+                )
             } else {
-                format!(r#"<li><a href="{href}" class="btn btn-ghost">{label}</a></li>"#)
+                format!(r#"<li><a href="{href}">{label}</a></li>"#)
             }
         })
         .collect();

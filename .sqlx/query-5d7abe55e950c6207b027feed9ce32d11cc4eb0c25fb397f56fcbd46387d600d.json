@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT a.guild_id, a.channel_id, a.message, a.ping_role_ids\n            FROM youtube_announce a\n            JOIN youtube_connections o ON o.guild_id = a.guild_id\n            WHERE o.channel_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "youtube_announce",
+            "name": "guild_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "youtube_announce",
+            "name": "channel_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "message",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "youtube_announce",
+            "name": "message"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "ping_role_ids",
+        "type_info": "Int8Array",
+        "origin": {
+          "Table": {
+            "table": "youtube_announce",
+            "name": "ping_role_ids"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "5d7abe55e950c6207b027feed9ce32d11cc4eb0c25fb397f56fcbd46387d600d"
+}

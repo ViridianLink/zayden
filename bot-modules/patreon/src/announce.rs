@@ -4,6 +4,7 @@ use reqwest::Client;
 use serenity::all::{CreateMessage, Http, MessageFlags};
 use sqlx::PgPool;
 use tracing::{error, info, warn};
+use zayden_core::announce::allowed_roles;
 
 use crate::error::Result;
 use crate::store::{self, PatreonAnnounceRow, PendingPost};
@@ -102,9 +103,15 @@ async fn broadcast(http: &Http, post: &PendingPost, rows: Vec<PatreonAnnounceRow
     futures::stream::iter(rows.into_iter().map(|row| {
         let component = component.clone();
         async move {
+            let components = embeds::intro_component(post, &row)
+                .into_iter()
+                .chain([component])
+                .collect::<Vec<_>>();
+
             let message = CreateMessage::new()
                 .flags(MessageFlags::IS_COMPONENTS_V2)
-                .components(vec![component]);
+                .components(components)
+                .allowed_mentions(allowed_roles(&row.ping_role_ids));
 
             match row.channel().widen().send_message(http, message).await {
                 Ok(sent) => info!(

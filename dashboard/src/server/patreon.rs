@@ -74,11 +74,17 @@ pub async fn save_patreon_settings(
     ensure_guild_channel(guild_id, channel_id).await?;
     ensure_bot_can_post(guild_id, channel_id).await?;
 
+    let message = PatreonAnnounceRow::select(&app.db, guild_id)
+        .await
+        .map_err(crate::server::auth::server_err)?
+        .and_then(|row| row.message);
+
     PatreonAnnounceRow::upsert(
         &app.db,
         guild_id,
         channel_id,
         public_only.trim() == "true",
+        message.as_deref(),
     )
     .await
     .map_err(crate::server::auth::server_err)

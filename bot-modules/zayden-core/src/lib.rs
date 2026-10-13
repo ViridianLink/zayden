@@ -39,6 +39,8 @@ pub use retry::{
     status_is_transient,
 };
 
+pub mod announce;
+
 pub mod templates;
 
 pub mod error;

@@ -57,7 +57,12 @@ pub async fn save_youtube_settings(
     ensure_guild_channel(guild_id, channel_id).await?;
     ensure_bot_can_post(guild_id, channel_id).await?;
 
-    YoutubeAnnounceRow::upsert(&app.db, guild_id, channel_id)
+    let message = YoutubeAnnounceRow::select(&app.db, guild_id)
+        .await
+        .map_err(server_err)?
+        .and_then(|row| row.message);
+
+    YoutubeAnnounceRow::upsert(&app.db, guild_id, channel_id, message.as_deref())
         .await
         .map_err(server_err)
 }

@@ -30,6 +30,14 @@ pub enum GuildError {
     InvalidRole,
     #[error("that role is already a support role")]
     DuplicateSupportRole,
+    #[error("that role is already pinged")]
+    DuplicatePingRole,
+    #[error("at most {0} roles can be pinged")]
+    TooManyPingRoles(usize),
+    #[error("choose an announcement channel first")]
+    NoAnnounceChannel,
+    #[error("the message can be at most {0} characters")]
+    MessageTooLong(usize),
     #[error("invalid user id")]
     InvalidUserId,
     #[error("invalid link: {0}")]
