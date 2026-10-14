@@ -1,16 +1,21 @@
 use serenity::all::{
+    AutoArchiveDuration,
+    ChannelId,
     CreateEmbed,
     CreateInteractionResponse,
     CreateInteractionResponseMessage,
     CreateMessage,
+    CreateThread,
     EditThread,
     Http,
     LabelComponent,
+    MessageId,
     ModalComponent,
     ModalInteraction,
     ThreadId,
 };
 
+use crate::layout::{parse_link, thread_name};
 use crate::{Result, Suggestions, SuggestionsError};
 
 impl Suggestions {
@@ -49,12 +54,8 @@ impl Suggestions {
             .as_deref()
             .ok_or(SuggestionsError::InvalidModalStructure)?;
 
-        let channel_id = old_url
-            .split('/')
-            .nth(5)
-            .ok_or(SuggestionsError::InvalidModalStructure)?
-            .parse::<ThreadId>()
-            .map_err(|_e| SuggestionsError::InvalidModalStructure)?;
+        let (channel_id, message_id) =
+            parse_link(old_url).ok_or(SuggestionsError::InvalidModalStructure)?;
 
         let prefix = if accepted { "[Accepted] - " } else { "[Rejected] - " };
 
@@ -66,7 +67,9 @@ impl Suggestions {
             format!("{prefix}{old_title}").chars().take(100).collect::<String>()
         };
 
-        channel_id.edit(http, EditThread::new().name(&name).archived(false)).await?;
+        let thread_id = suggestion_thread(http, channel_id, message_id).await?;
+
+        thread_id.edit(http, EditThread::new().name(&name).archived(false)).await?;
 
         let old_description = old_embed
             .description
@@ -103,7 +106,7 @@ impl Suggestions {
         let title =
             if accepted { "Suggestion Accepted" } else { "Suggestion Rejected" };
 
-        channel_id
+        thread_id
             .widen()
             .send_message(
                 http,
@@ -116,4 +119,36 @@ impl Suggestions {
 
         Ok(())
     }
+}
+
+async fn suggestion_thread(
+    http: &Http,
+    channel_id: ChannelId,
+    message_id: MessageId,
+) -> Result<ThreadId> {
+    let thread_id = ThreadId::new(message_id.get());
+
+    if channel_id.get() == message_id.get() {
+        return Ok(thread_id);
+    }
+
+    let message = channel_id.widen().message(http, message_id).await?;
+
+    if message.thread.is_some() {
+        return Ok(thread_id);
+    }
+
+    let thread = channel_id
+        .create_thread_from_message(
+            http,
+            message_id,
+            CreateThread::new(thread_name(
+                message.author.display_name(),
+                &message.content,
+            ))
+            .auto_archive_duration(AutoArchiveDuration::OneWeek),
+        )
+        .await?;
+
+    Ok(thread.id)
 }

@@ -4,6 +4,7 @@ use futures::FutureExt;
 use gambling::{GamblingManager, level_up_reward};
 use serenity::all::{Context, Message};
 use sqlx::PgPool;
+use suggestions::Suggestions;
 use tracing::debug;
 use zayden_app::state::AppState;
 use zayden_core::as_i64;
@@ -13,7 +14,7 @@ use crate::bindings::honeypot::record_hit;
 use crate::bindings::ticket::events::message as track_activity;
 use crate::bindings::ticket::message_commands::support;
 use crate::handler::Handler;
-use crate::{BotState, Result};
+use crate::{BotError, BotState, Result};
 
 impl Handler {
     pub async fn message_create(
@@ -61,6 +62,8 @@ impl Handler {
             llamad2::BehindTheScenes::run(ctx, msg).map(Result::Ok),
             llamad2::CountingFail::run(ctx, msg, pool).map(Result::Ok),
             Box::pin(support(&ctx.http, msg, &app)),
+            Suggestions::message(&ctx.http, msg, pool)
+                .map(|r| r.map_err(BotError::from)),
             Box::pin(track_activity(msg, &app)),
             Box::pin(Ai::run(ctx, msg, &app)),
         )?;

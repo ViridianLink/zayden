@@ -2,6 +2,7 @@ use std::time;
 
 use futures::{StreamExt, stream};
 use serenity::all::{
+    ChannelType,
     CommandInteraction,
     CommandOptionType,
     CreateCommand,
@@ -45,6 +46,10 @@ impl FetchSuggestions {
                 .ok_or(SuggestionsError::MissingSuggesionChannel)?,
         };
 
+        let is_forum =
+            channel_id.to_guild_channel(http, Some(guild_id)).await?.base.kind
+                == ChannelType::Forum;
+
         let active_guild_threads = guild_id.get_active_threads(http).await?;
         let threads_iter = active_guild_threads
             .threads
@@ -58,10 +63,14 @@ impl FetchSuggestions {
             );
 
         let mut reaction_counts = stream::iter(threads_iter)
-            .then(|thread| async {
-                let count = thread
-                    .id
-                    .widen()
+            .then(|thread| async move {
+                let starter_channel = if is_forum {
+                    thread.id.widen()
+                } else {
+                    thread.parent_id.widen()
+                };
+
+                let count = starter_channel
                     .reaction_users(
                         http,
                         thread.id.get().into(),

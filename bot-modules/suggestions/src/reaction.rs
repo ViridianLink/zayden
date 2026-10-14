@@ -1,6 +1,7 @@
 use futures::{StreamExt, TryStreamExt};
 use serenity::all::{
     ButtonStyle,
+    ChannelId,
     CreateActionRow,
     CreateButton,
     CreateComponent,
@@ -10,7 +11,7 @@ use serenity::all::{
     CreateMessage,
     EditMessage,
     EmbedField,
-    GuildChannel,
+    GuildId,
     Http,
     Message,
     Reaction,
@@ -19,7 +20,31 @@ use serenity::all::{
 use sqlx::PgPool;
 use tracing::debug;
 
+use crate::layout::{Candidate, candidate, parse_link, thread_name};
 use crate::{Result, Suggestions, SuggestionsError, SuggestionsGuildRow};
+
+struct Suggestion {
+    message: Message,
+    title: String,
+    link: String,
+}
+
+impl Suggestion {
+    fn new(message: Message, title: String, guild_id: GuildId) -> Self {
+        let link = message.id.link(message.channel_id, Some(guild_id)).to_string();
+
+        Self { message, title, link }
+    }
+
+    fn is_reviewed_by(&self, review: &Message) -> bool {
+        review
+            .embeds
+            .first()
+            .and_then(|embed| embed.url.as_deref())
+            .and_then(parse_link)
+            .is_some_and(|(_, message_id)| message_id == self.message.id)
+    }
+}
 
 impl Suggestions {
     pub async fn reaction(
@@ -27,12 +52,16 @@ impl Suggestions {
         reaction: &Reaction,
         pool: &PgPool,
     ) -> Result<()> {
-        let Some(channel) = reaction.channel(http).await?.guild() else {
-            debug!(channel_id = %reaction.channel_id, "reaction channel is not a guild channel; ignoring");
+        let Some(guild_id) = reaction.guild_id else {
+            debug!(channel_id = %reaction.channel_id, "reaction is not in a guild; ignoring");
             return Ok(());
         };
 
-        let guild_id = channel.base.guild_id;
+        if reaction.user_id.is_some_and(|user_id| {
+            http.application_id().is_some_and(|app_id| app_id.get() == user_id.get())
+        }) {
+            return Ok(());
+        }
 
         let row = match SuggestionsGuildRow::get(pool, guild_id).await {
             Ok(Some(row)) => row,
@@ -43,17 +72,16 @@ impl Suggestions {
             Err(e) => return Err(e.into()),
         };
 
-        if channel.parent_id.is_none()
-            || row.channel_id().is_none()
-            || channel.parent_id != row.channel_id()
-        {
-            return Err(SuggestionsError::Internal(format!(
-                "reaction in channel {} is not in the suggestions forum (parent={:?}, configured={:?})",
-                channel.id,
-                channel.parent_id,
-                row.channel_id()
-            )));
-        }
+        let Some(configured) = row.channel_id() else {
+            debug!(%guild_id, "guild has no suggestions channel configured; ignoring reaction");
+            return Ok(());
+        };
+
+        let Some(suggestion) = locate(http, reaction, guild_id, configured).await?
+        else {
+            debug!(channel_id = %reaction.channel_id, "reaction is not on a suggestion; ignoring");
+            return Ok(());
+        };
 
         let Some(review_channel_id) = row.review_channel_id() else {
             return Err(SuggestionsError::Internal(format!(
@@ -61,7 +89,7 @@ impl Suggestions {
             )));
         };
 
-        let message = reaction.message(http).await?;
+        let message = &suggestion.message;
 
         let positive_reaction = ReactionType::from('👍');
         let negative_reaction = ReactionType::from('👎');
@@ -85,13 +113,9 @@ impl Suggestions {
         match review_action(pos_count, neg_count, thresholds) {
             ReviewAction::Promote => {
                 while let Some(mut msg) = messages.try_next().await? {
-                    if let Some(embed) = msg.embeds.first()
-                        && embed.url.as_deref()
-                            == Some(message.link().to_string().as_str())
-                    {
+                    if suggestion.is_reviewed_by(&msg) {
                         let embed = create_embed(
-                            &channel,
-                            &message,
+                            &suggestion,
                             msg.embeds.first().map_or(&[], |e| e.fields.as_slice()),
                             pos_count,
                             neg_count,
@@ -115,9 +139,8 @@ impl Suggestions {
                         http,
                         CreateMessage::new()
                             .embed(create_embed(
-                                &channel,
-                                &message,
-                                &Vec::new(),
+                                &suggestion,
+                                &[],
                                 pos_count,
                                 neg_count,
                             ))
@@ -132,9 +155,7 @@ impl Suggestions {
                 );
 
                 while let Some(msg) = messages.try_next().await? {
-                    if msg.embeds.first().and_then(|e| e.url.as_deref())
-                        == Some(message.link().to_string().as_str())
-                    {
+                    if suggestion.is_reviewed_by(&msg) {
                         msg.delete(http, Some(&reason)).await?;
 
                         return Ok(());
@@ -145,6 +166,48 @@ impl Suggestions {
         }
 
         Ok(())
+    }
+}
+
+async fn locate(
+    http: &Http,
+    reaction: &Reaction,
+    guild_id: GuildId,
+    configured: ChannelId,
+) -> Result<Option<Suggestion>> {
+    match candidate(reaction.channel_id, reaction.message_id, configured) {
+        Candidate::Ignore => Ok(None),
+        Candidate::TextMessage => {
+            let message = reaction.message(http).await?;
+
+            if message.author.bot() {
+                return Ok(None);
+            }
+
+            let title = message.thread.as_ref().map_or_else(
+                || thread_name(message.author.display_name(), &message.content),
+                |thread| thread.base.name.to_string(),
+            );
+
+            Ok(Some(Suggestion::new(message, title, guild_id)))
+        },
+        Candidate::ThreadStarter => {
+            let Some(thread) = reaction.channel(http).await?.thread() else {
+                return Ok(None);
+            };
+
+            if thread.parent_id != configured {
+                return Ok(None);
+            }
+
+            let message = reaction.message(http).await?;
+
+            Ok(Some(Suggestion::new(
+                message,
+                thread.base.name.to_string(),
+                guild_id,
+            )))
+        },
     }
 }
 
@@ -216,17 +279,16 @@ pub const fn review_action(
 }
 
 fn create_embed<'a>(
-    channel: &'a GuildChannel,
-    message: &'a Message,
+    suggestion: &'a Suggestion,
     embed_fields: &[EmbedField],
     pos_count: i32,
     neg_count: i32,
 ) -> CreateEmbed<'a> {
     let mut embed = CreateEmbed::new()
-        .title(&channel.base.name)
-        .url(message.link().to_string())
-        .description(&message.content)
-        .author(CreateEmbedAuthor::new(&message.author.name))
+        .title(&suggestion.title)
+        .url(&suggestion.link)
+        .description(&suggestion.message.content)
+        .author(CreateEmbedAuthor::new(&suggestion.message.author.name))
         .footer(CreateEmbedFooter::new(format!("👍 {pos_count} · 👎 {neg_count}")));
 
     if let Some(team_response) = embed_fields.first() {
