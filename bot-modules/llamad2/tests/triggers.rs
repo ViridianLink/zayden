@@ -20,7 +20,7 @@
 //! | `should_greet`: `last_author != author` dropped | `a_greeting_after_your_own_greeting_is_not_answered` fails |
 //! | `is_codeword`: `eq_ignore_ascii_case` → `to_lowercase().contains` | `codewords_match_the_whole_message_case_insensitively` fails |
 
-use llamad2::{is_codeword, is_good_morning, should_greet};
+use llamad2::{is_good_morning, should_greet};
 use serenity::all::UserId;
 
 const ALICE: UserId = UserId::new(1);
@@ -105,31 +105,4 @@ fn both_messages_must_be_greetings() {
 #[test]
 fn the_first_message_in_a_channel_is_not_answered() {
     assert!(!should_greet(true, ALICE, None));
-}
-
-/// The seven codewords, each granting the behind-the-scenes role.
-#[test]
-fn every_codeword_is_recognised() {
-    for code in
-        ["password", "bonk", "fusion", "green man", "nova", "threadling", "buddy"]
-    {
-        assert!(is_codeword(code), "{code:?} must be recognised");
-    }
-}
-
-/// Codewords are matched case-insensitively against the **whole** message.
-///
-/// The whole-message rule is the security-relevant half: this predicate gates
-/// `add_member_role`, so loosening it to `contains` would grant the role to
-/// anyone pasting a wordlist into the channel. Catches that change, and catches
-/// swapping `eq_ignore_ascii_case` for `==`.
-#[test]
-fn codewords_match_the_whole_message_case_insensitively() {
-    assert!(is_codeword("PASSWORD"), "case-insensitive");
-    assert!(is_codeword("Green Man"), "…including multi-word codewords");
-
-    assert!(!is_codeword("the password is bonk"), "must not match a substring");
-    assert!(!is_codeword("password "), "…and is not trimmed");
-    assert!(!is_codeword("passwords"));
-    assert!(!is_codeword(""));
 }

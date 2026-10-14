@@ -3,7 +3,6 @@ use serenity::all::{GuildId, UserId};
 pub mod error;
 pub use error::{LlamaD2Error, Result};
 
-mod behind_the_scenes;
 mod counter;
 mod counting_fail;
 mod dungeon_report;
@@ -16,7 +15,6 @@ mod sensitivity;
 mod socials;
 mod status_update;
 
-pub use behind_the_scenes::{BehindTheScenes, is_codeword};
 pub use counter::Counter;
 pub use counting_fail::CountingFail;
 pub use dungeon_report::DungeonReport;
