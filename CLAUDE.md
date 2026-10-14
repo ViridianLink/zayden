@@ -19,29 +19,29 @@ When validation is requested:
 
 - **Bacon** runs in the background. If `pgrep bacon` is empty, inform the user or fall back to raw commands. Touch a file after config/migration edits to prevent stale `.bacon-locations`.
 - **Traps**:
-    - Clippy does not codegen or link; full build is required to verify compilation.
+  - Clippy does not codegen or link; full build is required to verify compilation.
 - **Full Validation Suite**:
-    ```sh
-    cargo fmt --check
-    cargo clippy --workspace --all-targets -- -D warnings
-    cargo build --workspace --all-targets
-    cargo test --workspace
-    ```
+  ```sh
+  cargo fmt --check
+  cargo clippy --workspace --all-targets -- -D warnings
+  cargo build --workspace --all-targets
+  cargo test --workspace
+  ```
 
 ## Database
 
 - **Local/Throwaway**: Free to run migrations, create/drop DBs, and run `cargo test` / `cargo sqlx prepare`.
-    ```sh
-    docker run --rm -d --name zayden-prepare -p 55432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=zayden_prepare postgres:18-alpine
-    export DATABASE_URL="postgres://postgres:postgres@localhost:55432/zayden_prepare"
-    sqlx migrate run
-    ```
+  ```sh
+  docker run --rm -d --name zayden-prepare -p 55432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=zayden_prepare postgres:18-alpine
+  export DATABASE_URL="postgres://postgres:postgres@localhost:55432/zayden_prepare"
+  sqlx migrate run
+  ```
 - **Live DB (`.env`)**: Never mutate without explicit user confirmation. Read-only queries are fine.
 - **Regenerating `.sqlx`**: Required when `query!` changes. Run against an empty, freshly-migrated DB (plan-sensitive nullability inference):
-    ```sh
-    cargo sqlx prepare --workspace -- --all-targets
-    ```
-    If prepare fails, revert via `git restore .sqlx`.
+  ```sh
+  cargo sqlx prepare --workspace -- --all-targets
+  ```
+  If prepare fails, revert via `git restore .sqlx`.
 
 ## Code Style
 
@@ -60,20 +60,13 @@ When validation is requested:
 - `design-docs/build-and-toolchain.md` — Toolchain, profile configurations, Cranelift notes.
 - `design-docs/topcoat/` — Topcoat reference for the pinned version: core APIs, UI components, tooling, release changes.
 - `.claude/skills/rust-skills/` — Rust guidelines.
-- `.claude/agents/` — Perimeter subagents.
 - `README.md` — Layout, build commands, Docker/CI setup.
 
-## Multi-Agent Delegation Policy
+## Agent workflow (main agent only; subagents ignore)
 
-Core (Opus): Architecture, algorithms, lifetimes, borrow-checking, state machines.  
-Perimeter (Sonnet in `.claude/agents/`): High-volume, low-signal I/O (greps, test logs, diffs).
-Code writing (Opus): Any agent that writes code to a file (source, tests, styles, scripts, build config) runs on Opus. Sonnet agents are read-only or run commands; formatter output is exempt.
-Effort: `high` (`writer` agent) for new, inventive or research-dependent code; `medium` (`writer-light` agent) only for trivial sections such as mechanical edits or following an existing pattern. When in doubt, use `high`.
+For multi-file or interface-changing work; trivial edits stay inline:
 
-1. **`recon`**: Symbol searches, directory scans, call-graph tracing. Never dump large greps into core context.
-2. **`planner`**: Scoping tasks and acceptance gates from `design-docs/` and manifests.
-3. **`verifier`**: Test and validation execution. **Invoke ONLY when validation is explicitly requested or at final handoff**, not per-task. Ingest only `VERIFICATION_SUCCESS` or distilled failure blocks.
-4. **`test-generator`**: Boilerplate test fixtures, tables, and mocks in `tests/` based on core-defined specifications.
-5. **`git-hygiene`**: `cargo fmt`, diff auditing, explicit staging, Conventional Commit drafts. Never execute `git commit` or `git push` without explicit user confirmation.
-
-**Escalation**: If a subagent fails twice on a task, execute the step directly in core.
+1. Scout: `repo-scout` for signatures/call sites; don't read large files yourself.
+2. Spec: write a TDS: exact signatures/types/schemas, files in edit order, out-of-bounds areas, error/edge rules.
+3. Build: pass the TDS to `code-builder`; on PARTIAL/BLOCKED, resolve and re-dispatch, never let it decide.
+4. Verify: `test-runner`, then review the diff against the TDS yourself before done.
