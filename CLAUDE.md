@@ -13,35 +13,35 @@ Discord bot (`bot/`, `bot-modules/*`), Topcoat dashboard (`web/`), shared app la
 
 ## Validation
 
-**Do NOT run the validation suite on every task.** It is token and time-intensive. Run it only when explicitly requested by the user or at final milestone handoffs. For routine edits, rely on local background tools or narrow crate checks (`cargo check -p <crate>`).
+**Do NOT run the full validation suite on every task.** It is token and time-intensive. Run it only when explicitly requested by the user or at final milestone handoffs. For routine edits, rely on local background tools or narrow checks (`cargo check -p <crate>`, `cargo test -p <crate> <filter>` for the tests you touched).
 
 When validation is requested:
 
 - **Bacon** runs in the background. If `pgrep bacon` is empty, inform the user or fall back to raw commands. Touch a file after config/migration edits to prevent stale `.bacon-locations`.
 - **Traps**:
-  - Clippy does not codegen or link; full build is required to verify compilation.
+    - Clippy does not codegen or link; full build is required to verify compilation.
 - **Full Validation Suite**:
-  ```sh
-  cargo fmt --check
-  cargo clippy --workspace --all-targets -- -D warnings
-  cargo build --workspace --all-targets
-  cargo test --workspace
-  ```
+    ```sh
+    cargo fmt --check
+    cargo clippy --workspace --all-targets -- -D warnings
+    cargo build --workspace --all-targets
+    cargo test --workspace
+    ```
 
 ## Database
 
 - **Local/Throwaway**: Free to run migrations, create/drop DBs, and run `cargo test` / `cargo sqlx prepare`.
-  ```sh
-  docker run --rm -d --name zayden-prepare -p 55432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=zayden_prepare postgres:18-alpine
-  export DATABASE_URL="postgres://postgres:postgres@localhost:55432/zayden_prepare"
-  sqlx migrate run
-  ```
+    ```sh
+    docker run --rm -d --name zayden-prepare -p 55432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=zayden_prepare postgres:18-alpine
+    export DATABASE_URL="postgres://postgres:postgres@localhost:55432/zayden_prepare"
+    sqlx migrate run
+    ```
 - **Live DB (`.env`)**: Never mutate without explicit user confirmation. Read-only queries are fine.
 - **Regenerating `.sqlx`**: Required when `query!` changes. Run against an empty, freshly-migrated DB (plan-sensitive nullability inference):
-  ```sh
-  cargo sqlx prepare --workspace -- --all-targets
-  ```
-  If prepare fails, revert via `git restore .sqlx`.
+    ```sh
+    cargo sqlx prepare --workspace -- --all-targets
+    ```
+    If prepare fails, revert via `git restore .sqlx`.
 
 ## Code Style
 
