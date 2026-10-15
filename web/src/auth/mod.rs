@@ -6,6 +6,7 @@ mod error;
 mod guild;
 mod login;
 mod middleware;
+mod next;
 mod ownership;
 mod roles;
 mod session;
@@ -14,6 +15,7 @@ pub mod supersede;
 pub(crate) use context::cookie_jar;
 pub use context::{app_state, db_pool, discord_client, web_state};
 pub use cookie::{
+    LOGIN_NEXT_COOKIE,
     OAUTH_STATE_COOKIE,
     SESSION_COOKIE,
     SESSION_TTL_HOURS,
@@ -44,6 +46,7 @@ pub use guild::{
 };
 pub use login::start_session;
 pub use middleware::require_auth;
+pub use next::{remember_login_next, safe_next};
 pub use ownership::{GuildIds, first_foreign};
 pub use roles::{WebRole, has_role, require_role};
 pub use session::{

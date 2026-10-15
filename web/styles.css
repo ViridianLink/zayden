@@ -52,6 +52,7 @@
 @import "./style/partials/pages.css";
 @import "./style/partials/settings.css";
 @import "./style/partials/upgrade.css";
+@import "./style/partials/account.css";
 @import "./style/partials/segmented.css";
 @import "./style/partials/leaderboard.css";
 @import "./style/partials/reaction-roles.css";

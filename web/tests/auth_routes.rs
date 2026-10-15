@@ -115,6 +115,7 @@ fn config() -> BotConfig {
         jellyfin: None,
         hosting: None,
         redirect_uri: REDIRECT_URI.to_owned(),
+        dashboard_url: "http://localhost:3000".to_owned(),
         bind_addr: "127.0.0.1:0".to_owned(),
         invite_url: None,
         upgrade_url: None,

@@ -69,6 +69,7 @@ pub struct IntegrationsState {
 pub struct SiteUrls {
     pub invite: Option<String>,
     pub upgrade: Option<String>,
+    pub dashboard: String,
 }
 
 pub struct WebState {
@@ -128,6 +129,7 @@ impl WebState {
             urls: SiteUrls {
                 invite: config.invite_url.clone(),
                 upgrade: config.upgrade_url.clone(),
+                dashboard: config.dashboard_url.clone(),
             },
         })
     }

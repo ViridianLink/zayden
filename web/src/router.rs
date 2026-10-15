@@ -3,6 +3,7 @@ use topcoat::router::{Router, RouterBuilder};
 use topcoat::runtime::RouterBuilderRuntimeExt;
 
 use crate::{
+    account,
     admin,
     auth,
     document,
@@ -14,11 +15,12 @@ use crate::{
     shell,
 };
 
-const ROUTE_GROUPS: [fn(RouterBuilder) -> RouterBuilder; 9] = [
+const ROUTE_GROUPS: [fn(RouterBuilder) -> RouterBuilder; 10] = [
     document::routes,
     public::routes,
     auth::routes,
     providers::routes,
+    account::routes,
     shell::routes,
     settings::routes,
     engagement::pages::routes,

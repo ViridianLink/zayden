@@ -10,9 +10,16 @@ use topcoat::router::error::{SeeOther, see_other};
 use topcoat::router::{query_params, route};
 
 use super::context::{cookie_jar, web_state};
-use super::cookie::{self, OAUTH_STATE_COOKIE, SESSION_COOKIE, SESSION_TTL_HOURS};
+use super::cookie::{
+    self,
+    LOGIN_NEXT_COOKIE,
+    OAUTH_STATE_COOKIE,
+    SESSION_COOKIE,
+    SESSION_TTL_HOURS,
+};
 use super::discord::bearer_client;
 use super::error::AuthError;
+use super::next::safe_next;
 use super::session::{LOGIN_PATH, remember_session_user};
 use crate::util::hex_encode;
 
@@ -112,7 +119,12 @@ pub(crate) async fn discord_auth_callback_handler(cx: &Cx) -> Result<SeeOther> {
 
     remember_session_user(cx, discord_user_id, discord_user).await;
 
-    Ok(see_other(SIGNED_IN_PATH))
+    let next = jar.get(LOGIN_NEXT_COOKIE).map(|c| c.value().to_owned());
+    let mut removal = Cookie::from(LOGIN_NEXT_COOKIE);
+    removal.set_path("/");
+    jar.remove(removal);
+
+    Ok(see_other(next.as_deref().and_then(safe_next).unwrap_or(SIGNED_IN_PATH)))
 }
 
 pub async fn start_session(

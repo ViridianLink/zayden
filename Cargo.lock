@@ -3,6 +3,23 @@
 version = 4
 
 [[package]]
+name = "accounts"
+version = "1.0.0"
+dependencies = [
+ "jiff",
+ "jiff-sqlx",
+ "reqwest 0.13.5",
+ "serde_json",
+ "serenity",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+ "url",
+ "zayden-core",
+]
+
+[[package]]
 name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -459,6 +476,7 @@ dependencies = [
 name = "bot"
 version = "1.0.0"
 dependencies = [
+ "accounts",
  "ai",
  "async-trait",
  "bungie-api",
@@ -7705,6 +7723,7 @@ dependencies = [
 name = "web"
 version = "1.0.0"
 dependencies = [
+ "accounts",
  "base64 0.23.1",
  "destiny2",
  "dotenvy",

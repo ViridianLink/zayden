@@ -196,6 +196,7 @@ async fn account_menu(name: &str) -> Result<impl View> {
         >
             <p class="menu-label"><strong>"Signed in with Discord"</strong></p>
             <a href="/upgrade" class="menu-item menu-plan">"Plans"</a>
+            <a href="/account" class="menu-item">"Linked accounts"</a>
             <a href="/logout" rel="external" class="menu-item">
                 icon(name: Icon::LogOut)
                 <span class="plate-name">"Log out"</span>

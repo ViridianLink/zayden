@@ -3,6 +3,7 @@ use topcoat::cookie::{Cookie, SameSite};
 
 pub const SESSION_COOKIE: &str = "session";
 pub const OAUTH_STATE_COOKIE: &str = "oauth_state";
+pub const LOGIN_NEXT_COOKIE: &str = "login_next";
 pub const SESSION_TTL_HOURS: i64 = 24 * 7;
 
 #[must_use]

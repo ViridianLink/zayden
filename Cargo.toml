@@ -143,6 +143,7 @@ redundant_pub_crate = "allow"
 [workspace.dependencies]
 
 # -- Workspace members
+accounts = { path = "./bot-modules/accounts" }
 ai = { path = "./bot-modules/ai" }
 destiny2 = { path = "./bot-modules/destiny2" }
 family = { path = "./bot-modules/family" }

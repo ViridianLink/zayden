@@ -1,5 +1,6 @@
 #![recursion_limit = "256"]
 
+pub mod account;
 pub mod admin;
 pub mod auth;
 pub mod components;

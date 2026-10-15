@@ -36,7 +36,7 @@ pub(super) fn report_success(
     redirect(cx, &settings_page(guild_id, slug))
 }
 
-pub(super) fn random_hex() -> String {
+pub(crate) fn random_hex() -> String {
     let mut bytes = [0u8; 32];
     rand::rng().fill(&mut bytes[..]);
     hex_encode(&bytes)
@@ -46,7 +46,7 @@ pub(super) fn oauth_state(nonce: &str, guild: &str) -> String {
     format!("{nonce}.{guild}")
 }
 
-pub(super) fn remember_nonce(
+pub(crate) fn remember_nonce(
     cx: &Cx,
     cookie_name: &'static str,
     nonce: String,
@@ -59,7 +59,7 @@ pub(super) fn remember_nonce(
     Ok(())
 }
 
-pub(super) fn take_nonce(
+pub(crate) fn take_nonce(
     cx: &Cx,
     cookie_name: &'static str,
 ) -> Result<Option<String>, AuthError> {
@@ -75,6 +75,6 @@ pub(super) fn split_state(state: Option<&str>) -> Option<(&str, &str)> {
     state.and_then(|s| s.split_once('.'))
 }
 
-pub(super) fn nonce_matches(cookie: Option<&str>, returned: &str) -> bool {
+pub(crate) fn nonce_matches(cookie: Option<&str>, returned: &str) -> bool {
     matches!(cookie, Some(n) if n == returned && !n.is_empty())
 }

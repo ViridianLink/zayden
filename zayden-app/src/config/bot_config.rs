@@ -21,6 +21,7 @@ const DEFAULT_AI_MODEL: &str = "openrouter/free";
 const DEFAULT_AI_MODEL_STRUCTURED: &str = "nvidia/nemotron-3-super-120b-a12b:free";
 const DEFAULT_AI_MODEL_PRO: &str = "google/gemini-2.5-flash";
 
+const DEFAULT_DASHBOARD_URL: &str = "http://localhost:3000";
 const DEFAULT_REDIRECT_URI: &str = "http://localhost:3000/auth/callback";
 const DEFAULT_PATREON_REDIRECT_URI: &str = "http://localhost:3000/patreon/callback";
 const DEFAULT_YOUTUBE_REDIRECT_URI: &str = "http://localhost:3000/youtube/callback";
@@ -142,6 +143,7 @@ pub struct BotConfig {
     pub hosting: Option<HostingConfig>,
 
     pub redirect_uri: String,
+    pub dashboard_url: String,
     pub bind_addr: String,
     pub invite_url: Option<String>,
     pub upgrade_url: Option<String>,
@@ -272,6 +274,13 @@ impl BotConfig {
                 .dashboard
                 .redirect_uri
                 .unwrap_or_else(|| DEFAULT_REDIRECT_URI.to_owned()),
+            dashboard_url: toml_cfg
+                .dashboard
+                .public_url
+                .as_deref()
+                .unwrap_or(DEFAULT_DASHBOARD_URL)
+                .trim_end_matches('/')
+                .to_owned(),
             bind_addr: toml_cfg
                 .dashboard
                 .bind_addr
@@ -677,6 +686,7 @@ struct TomlIds {
 #[derive(Debug, Default, Deserialize)]
 struct TomlDashboard {
     redirect_uri: Option<String>,
+    public_url: Option<String>,
     patreon_redirect_uri: Option<String>,
     youtube_redirect_uri: Option<String>,
     bind_addr: Option<String>,

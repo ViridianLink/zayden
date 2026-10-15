@@ -8,6 +8,7 @@ use topcoat::router::error::NotFoundError;
 use topcoat::router::{RouterBuilder, Slot, StatusCode, layout, try_endpoint};
 use topcoat::view::{Child, View, component, error_boundary, view};
 
+use crate::account::ACCOUNT_TITLE;
 use crate::admin::editor::{
     EDITOR_TITLE,
     LOADOUT_NOT_FOUND_TITLE,
@@ -43,6 +44,7 @@ pub const PAGE_TITLES: &[(&str, &str)] = &[
     ("/guilds", GUILDS_TITLE),
     ("/guild/{guild_id}", OVERVIEW_TITLE),
     ("/upgrade", UPGRADE_TITLE),
+    ("/account", ACCOUNT_TITLE),
     ("/guild/{guild_id}/levels", LEVELS_TITLE),
     ("/guild/{guild_id}/reaction-roles", REACTION_ROLES_TITLE),
     ("/guild/{guild_id}/greetings", GREETINGS_TITLE),

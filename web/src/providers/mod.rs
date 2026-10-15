@@ -2,7 +2,7 @@ mod access;
 mod error;
 mod fields;
 mod kofi;
-mod oauth;
+pub(crate) mod oauth;
 mod patreon;
 mod reply;
 mod youtube;

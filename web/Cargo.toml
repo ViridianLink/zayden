@@ -11,6 +11,7 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+accounts = { workspace = true }
 base64 = { workspace = true, features = ["alloc"] }
 destiny2 = { workspace = true }
 dotenvy = { workspace = true }

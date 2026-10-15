@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::registry::OverlapError;
 use crate::{CommandRegistry, RegistryBuilder};
 
+pub mod accounts;
 pub mod ai;
 pub mod destiny2;
 pub mod family;
@@ -30,6 +31,7 @@ pub fn build_registry(
     llamad2_guild: u64,
 ) -> Result<Arc<CommandRegistry>, OverlapError> {
     let mut builder = RegistryBuilder::new();
+    accounts::register(&mut builder)?;
     destiny2::register(&mut builder);
     family::register(&mut builder)?;
     gambling::register(&mut builder)?;

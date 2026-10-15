@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO account_links (discord_id, provider, external_id)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (discord_id, provider)\n            DO UPDATE SET external_id = EXCLUDED.external_id, linked_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7cf31b8b92c6ba49741c745613eed1837b300ac61e907b607dc4c255c4f0acba"
+}
