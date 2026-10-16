@@ -18,6 +18,7 @@ use serenity::all::{
     CreateUnfurledMediaItem,
     SeparatorSpacingSize,
 };
+use zayden_core::limits::autocomplete::CHOICE_NAME as MAX_CHOICE_NAME;
 use zayden_core::{EmojiCache, EmojiCacheData, EmojiResult};
 
 use super::domain::{Archetype, ArmourSlot, Class, Element, StatKind};
@@ -29,8 +30,6 @@ use crate::endgame_analysis::sheet::Affinity;
 
 pub(crate) const SUBCLASS_HEADING: &str = "### SUBCLASS\nSuper       Abilities                                       Aspects";
 pub(crate) const GEAR_HEADING: &str = "### GEAR AND MODS";
-
-const CHOICE_LABEL: usize = 100;
 
 #[derive(Debug, Clone)]
 pub struct AspectRecord {
@@ -91,7 +90,7 @@ impl LoadoutRecord {
     pub fn choice_label(&self) -> String {
         format!("{} | {}", self.element, self.name)
             .chars()
-            .take(CHOICE_LABEL)
+            .take(MAX_CHOICE_NAME)
             .collect()
     }
 

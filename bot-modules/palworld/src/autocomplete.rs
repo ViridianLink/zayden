@@ -7,6 +7,7 @@ use serenity::all::{
     CreateInteractionResponse,
     ResolvedValue,
 };
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 use zayden_core::{AutocompleteCtx, as_i64, parse_subcommand};
 
 use crate::client::{PalworldClient, SourceKey};
@@ -67,7 +68,7 @@ pub async fn run(cx: &AutocompleteCtx<'_>, client: &PalworldClient) -> Result<()
                     players
                         .iter()
                         .filter(|p| p.search_key.contains(&query_lower))
-                        .take(25)
+                        .take(MAX_CHOICES)
                         .map(|p| {
                             AutocompleteChoice::new(p.name.clone(), p.name.clone())
                         })
@@ -145,6 +146,6 @@ fn filter_choices<'a, T: 'a>(
                 .contains(query_lower)
                 .then(|| AutocompleteChoice::new(name.to_string(), key.to_string()))
         })
-        .take(25)
+        .take(MAX_CHOICES)
         .collect()
 }

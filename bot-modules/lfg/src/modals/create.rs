@@ -17,6 +17,7 @@ use serenity::all::{
 use sqlx::PgPool;
 use sqlx::prelude::FromRow;
 use tracing::warn;
+use zayden_core::limits::embed::FIELD_VALUE as MAX_FIELD_VALUE;
 use zayden_core::{CronJobData, UserTimezone, as_u64, parse_modal_components};
 
 use super::start_time;
@@ -75,7 +76,11 @@ impl Create {
         let description = inputs.remove("description").map_or_else(
             || activity.to_string(),
             |mut d| {
-                d.pop().unwrap_or_default().chars().take(1024).collect::<String>()
+                d.pop()
+                    .unwrap_or_default()
+                    .chars()
+                    .take(MAX_FIELD_VALUE)
+                    .collect::<String>()
             },
         );
 

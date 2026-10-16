@@ -1,0 +1,589 @@
+[
+ {
+  "hero_build": {
+   "hero_id": 1,
+   "hero_build_id": 557267,
+   "author_account_id": 1105000141,
+   "last_updated_timestamp": 1775214468,
+   "publish_timestamp": 1775214468,
+   "name": "НАБЕГАЙ ЕТЕРНУСА ЗА НЕДЕЛЮ || [new PATCH]",
+   "description": "Лучшая сборка на инфернусе ever, с ней у тебя будет все. Тачки, собачки, деньги, бабки, телки, админки - тебя начнут уважать в унике, а катки станут ощущатся как мед!",
+   "language": 8,
+   "version": 7,
+   "origin_build_id": 500941,
+   "tags": [
+    3516947824,
+    36498494,
+    3516947824
+   ],
+   "development_build": null,
+   "details": {
+    "mod_categories": [
+     {
+      "name": "12.8k souls",
+      "width": 1038.75,
+      "height": 163.5,
+      "description": "",
+      "mods": [
+       {
+        "ability_id": 968099481,
+        "annotation": "Зарождение мощи",
+        "required_flex_slots": null,
+        "sell_priority": 10,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1439347412,
+        "annotation": "Начинаем хиляться",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 7409189,
+        "annotation": "Грейд спиритизма на уровень барбосика",
+        "required_flex_slots": null,
+        "sell_priority": 99,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 876563814,
+        "annotation": "Больше хила",
+        "required_flex_slots": null,
+        "sell_priority": 97,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3399065363,
+        "annotation": "Бегаем | Потом /SELL",
+        "required_flex_slots": null,
+        "sell_priority": 95,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 2447176615,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3776945997,
+        "annotation": "Больше зарядов на первый и второй скилл",
+        "required_flex_slots": null,
+        "sell_priority": 96,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 754480263,
+        "annotation": "Увеличиваем радиус потихоньку",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": 3516947824
+       },
+       {
+        "ability_id": 787198704,
+        "annotation": "Грейд зарядов",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 380806748,
+        "annotation": "Быстрее восстанавливается второй скилл",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": 3516947824
+       },
+       {
+        "ability_id": 2951612397,
+        "annotation": "ОДА больше длительности для второго скилла",
+        "required_flex_slots": null,
+        "sell_priority": 98,
+        "imbue_target_ability_id": 3516947824
+       }
+      ],
+      "optional": null
+     },
+     {
+      "name": "28.8k souls",
+      "width": 735.75,
+      "height": 163.5,
+      "description": "",
+      "mods": [
+       {
+        "ability_id": 3140772621,
+        "annotation": "Хорошая защита от пуль | Потом /Sell если сильно хочется",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1102081447,
+        "annotation": "Пускай расслабятся в нашем огне | Потом /SELL",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1925087134,
+        "annotation": "По голове себе постреляй | Потом /SELL",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 2947183272,
+        "annotation": "Грейд хила",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 2717651715,
+        "annotation": "Грейд длительности",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1193964439,
+        "annotation": "Грейд радиуса",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3261353684,
+        "annotation": "Грейд перезарядки",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 2081037738,
+        "annotation": "Начало конца",
+        "required_flex_slots": null,
+        "sell_priority": 94,
+        "imbue_target_ability_id": null
+       }
+      ],
+      "optional": null
+     },
+     {
+      "name": "[MB] ?? Atall !but why",
+      "width": 291.75,
+      "height": 150.75,
+      "description": "",
+      "mods": [
+       {
+        "ability_id": 4139877411,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1150006784,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 334300056,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       }
+      ],
+      "optional": true
+     },
+     {
+      "name": "64k souls",
+      "width": 737.25,
+      "height": 163.5,
+      "description": "",
+      "mods": [
+       {
+        "ability_id": 630839635,
+        "annotation": "Теперь второго скилла еще больше",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": 3516947824
+       },
+       {
+        "ability_id": 3005970438,
+        "annotation": "Начинаешь писать в чат - mad ?",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 2519598785,
+        "annotation": "Грейд спирита",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1797283378,
+        "annotation": "Еще больше хилла (с целебным темпом отхил 100%)",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3028234315,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 915014646,
+        "annotation": "Грейд перезарядки",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1427630806,
+        "annotation": "Теперь ты хиляешься еще вкуснее",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 343572757,
+        "annotation": "Витюхе и другим хилляторам привет",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       }
+      ],
+      "optional": null
+     },
+     {
+      "name": "[Bullet/Spirit Res]",
+      "width": 288.0,
+      "height": 117.0,
+      "description": "",
+      "mods": [
+       {
+        "ability_id": 1378931225,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3491236900,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1955841979,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       }
+      ],
+      "optional": true
+     },
+     {
+      "name": "[Maybe]",
+      "width": 1038.75,
+      "height": 139.5,
+      "description": "",
+      "mods": [
+       {
+        "ability_id": 2603935618,
+        "annotation": "Хиляторы (на еарли стадии)",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1254091416,
+        "annotation": "Леталки (нищ)",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1813726886,
+        "annotation": "Аполло и тд *инфернус тоже кста",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1976391348,
+        "annotation": "побольше в огне постойте да (нищ)",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3812615317,
+        "annotation": "побольше в огне постойте да (рич)",
+        "required_flex_slots": null,
+        "sell_priority": 0,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 2226497419,
+        "annotation": "Отличная шмотка которая грейдит длительность скиллов и спирит мощь",
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3357231760,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 1414025773,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 3731635960,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 677738769,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       },
+       {
+        "ability_id": 493591231,
+        "annotation": null,
+        "required_flex_slots": null,
+        "sell_priority": null,
+        "imbue_target_ability_id": null
+       }
+      ],
+      "optional": true
+     }
+    ],
+    "ability_order": {
+     "currency_changes": [
+      {
+       "ability_id": 1593133799,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 1593133799,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      },
+      {
+       "ability_id": 1593133799,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 1593133799,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      },
+      {
+       "ability_id": 1593133799,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 1593133799,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 2,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 1,
+       "delta": -1,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 3516947824,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      },
+      {
+       "ability_id": 1593133799,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 1,
+       "delta": -2,
+       "annotation": null
+      },
+      {
+       "ability_id": 1593133799,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      },
+      {
+       "ability_id": 491391007,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      },
+      {
+       "ability_id": 1142270357,
+       "currency_type": 1,
+       "delta": -5,
+       "annotation": null
+      }
+     ]
+    }
+   }
+  },
+  "num_favorites": null,
+  "num_ignores": null,
+  "num_reports": null,
+  "num_weekly_favorites": 4528,
+  "rollup_category": 3
+ }
+]

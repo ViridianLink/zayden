@@ -9,14 +9,14 @@ use serenity::all::{
 };
 use sqlx::PgPool;
 use zayden_core::as_i64;
+use zayden_core::limits::select_menu::{
+    OPTION_DESCRIPTION as MAX_OPTION_DESCRIPTION,
+    OPTIONS as MAX_OPTIONS,
+};
 
 use crate::faq::FaqArticle;
 use crate::{Result, Ticket};
 
-/// Discord's per-menu option budget.
-const MENU_LIMIT: i64 = 25;
-
-const DESCRIPTION_LIMIT: usize = 100;
 const EMPTY: &str = "There are no FAQ entries to list yet.";
 
 impl Ticket {
@@ -28,8 +28,12 @@ impl Ticket {
     ) -> Result<()> {
         interaction.defer(http).await?;
 
-        let articles =
-            FaqArticle::list(pool, as_i64(guild_id.get()), MENU_LIMIT).await?;
+        let articles = FaqArticle::list(
+            pool,
+            as_i64(guild_id.get()),
+            i64::try_from(MAX_OPTIONS).unwrap_or(i64::MAX),
+        )
+        .await?;
 
         if articles.is_empty() {
             interaction
@@ -50,7 +54,7 @@ impl Ticket {
                     article
                         .summary
                         .chars()
-                        .take(DESCRIPTION_LIMIT)
+                        .take(MAX_OPTION_DESCRIPTION)
                         .collect::<String>(),
                 )
             })

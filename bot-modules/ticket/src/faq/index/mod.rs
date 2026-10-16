@@ -13,9 +13,10 @@ use tokio::sync::broadcast::Receiver;
 use tokio::sync::broadcast::error::RecvError;
 use tracing::{debug, warn};
 use zayden_app::events::AppEvent;
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 
 pub use crate::faq::index::choice::Target;
-use crate::faq::index::choice::{MAX_CHOICES, ask, jump};
+use crate::faq::index::choice::{ask, jump};
 use crate::faq::index::entry::{Entry, score};
 use crate::faq::index::policy::Policy;
 use crate::faq::render;

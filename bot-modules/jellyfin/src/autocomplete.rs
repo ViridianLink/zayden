@@ -6,14 +6,13 @@ use serenity::all::{
     CreateInteractionResponse,
     ResolvedValue,
 };
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 use zayden_core::{AutocompleteCtx, parse_subcommand};
 
 use crate::discovery::resolve;
 use crate::error::Result;
 use crate::index::LibraryItemRow;
 use crate::runtime::JellyfinRuntime;
-
-const CHOICES: i64 = 25;
 
 pub async fn run(
     cx: &AutocompleteCtx<'_>,
@@ -66,7 +65,13 @@ pub async fn local_choices(
     query: &str,
     item_type: Option<&str>,
 ) -> Result<Vec<AutocompleteChoice<'static>>> {
-    let rows = LibraryItemRow::search(&cx.app.db, query, item_type, CHOICES).await?;
+    let rows = LibraryItemRow::search(
+        &cx.app.db,
+        query,
+        item_type,
+        i64::try_from(MAX_CHOICES).unwrap_or(i64::MAX),
+    )
+    .await?;
 
     Ok(rows
         .into_iter()
@@ -95,7 +100,7 @@ pub async fn remote_choices(
     Ok(results
         .into_iter()
         .filter(|r| r.kind().is_some())
-        .take(usize::try_from(CHOICES).unwrap_or(25))
+        .take(MAX_CHOICES)
         .map(|r| {
             let title = r.display_title().to_owned();
             let year = r.year().and_then(|y| y.parse().ok());

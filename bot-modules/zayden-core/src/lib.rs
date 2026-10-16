@@ -48,6 +48,8 @@ pub use error::{CoreError, HandlerError, Respond};
 
 pub mod html;
 
+pub mod limits;
+
 pub mod text;
 
 pub mod format_num;

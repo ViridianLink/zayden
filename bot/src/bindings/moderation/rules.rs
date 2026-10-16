@@ -18,8 +18,16 @@ use serenity::all::{
     Permissions,
     ResolvedValue,
 };
+use serenity::constants::{EMBED_MAX_LENGTH, MESSAGE_CODE_LIMIT};
 use sqlx::PgPool;
 use zayden_core::error::CoreError;
+use zayden_core::limits::embed::{
+    DESCRIPTION as MAX_DESCRIPTION,
+    FIELD_NAME as MAX_FIELD_NAME,
+    FIELD_VALUE as MAX_FIELD_VALUE,
+    FIELDS as MAX_FIELDS,
+    TITLE as MAX_TITLE,
+};
 use zayden_core::{
     HandlerError,
     InvocationCtx,
@@ -31,14 +39,6 @@ use zayden_core::{
     parse_subcommand,
     required_option,
 };
-
-const MAX_FIELDS: usize = 25;
-const MAX_TITLE_LEN: u16 = 256;
-const MAX_DESCRIPTION_LEN: u16 = 4096;
-const MAX_FIELD_NAME_LEN: u16 = 256;
-const MAX_FIELD_VALUE_LEN: u16 = 1024;
-const MAX_EMBED_LEN: usize = 6000;
-const MAX_CONTENT_LEN: usize = 2000;
 
 const DEFAULT_TITLE: &str = "Server Rules";
 const DEFAULT_COLOUR: i32 = 0x00ff_0000; // red
@@ -71,7 +71,7 @@ impl ModuleCommand for RulesCommand {
                 "title",
                 "The embed title (default \"Server Rules\")",
             )
-            .max_length(MAX_TITLE_LEN),
+            .max_length(option_len(MAX_TITLE)),
         )
         .add_sub_option(
             CreateCommandOption::new(
@@ -79,7 +79,7 @@ impl ModuleCommand for RulesCommand {
                 "description",
                 "Text shown above the rules",
             )
-            .max_length(MAX_DESCRIPTION_LEN),
+            .max_length(option_len(MAX_DESCRIPTION)),
         )
         .add_sub_option(CreateCommandOption::new(
             CommandOptionType::String,
@@ -98,7 +98,7 @@ impl ModuleCommand for RulesCommand {
                 "title",
                 "The rule heading",
             )
-            .max_length(MAX_FIELD_NAME_LEN)
+            .max_length(option_len(MAX_FIELD_NAME))
             .required(true),
         )
         .add_sub_option(
@@ -107,7 +107,7 @@ impl ModuleCommand for RulesCommand {
                 "body",
                 "The rule text",
             )
-            .max_length(MAX_FIELD_VALUE_LEN)
+            .max_length(option_len(MAX_FIELD_VALUE))
             .required(true),
         );
 
@@ -131,7 +131,7 @@ impl ModuleCommand for RulesCommand {
                 "title",
                 "The new rule heading",
             )
-            .max_length(MAX_FIELD_NAME_LEN),
+            .max_length(option_len(MAX_FIELD_NAME)),
         )
         .add_sub_option(
             CreateCommandOption::new(
@@ -139,7 +139,7 @@ impl ModuleCommand for RulesCommand {
                 "body",
                 "The new rule text",
             )
-            .max_length(MAX_FIELD_VALUE_LEN),
+            .max_length(option_len(MAX_FIELD_VALUE)),
         );
 
         let remove = CreateCommandOption::new(
@@ -532,7 +532,7 @@ async fn list(pool: &PgPool, guild_id: GuildId) -> Result<String, HandlerError> 
         let remaining = rules.len() - shown;
         let more = format!("\n…and {remaining} more");
         if out.chars().count() + entry.chars().count() + more.chars().count()
-            > MAX_CONTENT_LEN
+            > MESSAGE_CODE_LIMIT
         {
             out.push_str(&more);
             break;
@@ -577,10 +577,10 @@ async fn post(
     }
 
     let embed_len = embed_len(&config, &rules);
-    if embed_len > MAX_EMBED_LEN {
+    if embed_len > EMBED_MAX_LENGTH {
         return Ok(format!(
             "The rules embed would be {embed_len} characters; Discord allows at \
-             most {MAX_EMBED_LEN}. Please shorten some rules before posting."
+             most {EMBED_MAX_LENGTH}. Please shorten some rules before posting."
         ));
     }
 
@@ -686,4 +686,8 @@ fn parse_colour(raw: &str) -> Option<i32> {
         return None;
     }
     i32::try_from(value).ok()
+}
+
+fn option_len(limit: usize) -> u16 {
+    u16::try_from(limit).unwrap_or(u16::MAX)
 }

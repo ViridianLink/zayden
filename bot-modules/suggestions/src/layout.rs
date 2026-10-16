@@ -1,6 +1,5 @@
 use serenity::all::{ChannelId, GenericChannelId, MessageId};
-
-const THREAD_NAME_LIMIT: usize = 100;
+use zayden_core::limits::thread::NAME as MAX_THREAD_NAME;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Candidate {
@@ -37,7 +36,7 @@ pub fn thread_name(author: &str, content: &str) -> String {
         format!("{author} - {first_line}")
     };
 
-    name.chars().take(THREAD_NAME_LIMIT).collect()
+    name.chars().take(MAX_THREAD_NAME).collect()
 }
 
 #[must_use]

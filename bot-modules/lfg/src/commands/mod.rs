@@ -20,6 +20,7 @@ use serenity::all::{
     ResolvedOption,
 };
 use sqlx::PgPool;
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 use zayden_core::{parse_options, parse_subcommand};
 
 use crate::{ACTIVITIES, LfgError, Result};
@@ -203,7 +204,7 @@ impl Command {
             "create" => ACTIVITIES
                 .iter()
                 .filter(|activity| activity.name.to_lowercase().contains(&opt_value))
-                .take(25)
+                .take(MAX_CHOICES)
                 .map(|activity| {
                     AutocompleteChoice::new(activity.name, activity.name)
                 })
@@ -212,7 +213,7 @@ impl Command {
             "timezone" => jiff::tz::db()
                 .available()
                 .filter(|tz| tz.as_str().to_lowercase().contains(&opt_value))
-                .take(25)
+                .take(MAX_CHOICES)
                 .map(|tz| {
                     AutocompleteChoice::new(
                         tz.as_str().to_string(),

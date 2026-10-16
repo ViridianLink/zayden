@@ -6,6 +6,7 @@ use secrecy::ExposeSecret;
 use serde::Deserialize;
 use serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use zayden_app::state::AppState;
+use zayden_core::limits::embed::FIELD_VALUE as MAX_FIELD_VALUE;
 
 use crate::faq::article::NewArticle;
 use crate::faq::essential::Essential;
@@ -85,8 +86,6 @@ const EMBED_FOOTER: &str =
     "Please reply to this channel with the requested information.";
 const ARTICLES_FIELD: &str = "Recommended Reading";
 pub(crate) const QUESTIONS_FIELD: &str = "Follow-up Questions";
-
-const FIELD_LIMIT: usize = 1024;
 
 #[derive(Deserialize)]
 pub(crate) struct Triage {
@@ -277,7 +276,7 @@ pub(crate) fn embed(
     if !articles.is_empty() {
         embed = embed.field(
             ARTICLES_FIELD,
-            truncate(&articles.join("\n"), FIELD_LIMIT),
+            truncate(&articles.join("\n"), MAX_FIELD_VALUE),
             false,
         );
     }
@@ -286,7 +285,7 @@ pub(crate) fn embed(
         embed = embed
             .field(
                 QUESTIONS_FIELD,
-                truncate(&questions.join("\n"), FIELD_LIMIT),
+                truncate(&questions.join("\n"), MAX_FIELD_VALUE),
                 false,
             )
             .footer(CreateEmbedFooter::new(EMBED_FOOTER));

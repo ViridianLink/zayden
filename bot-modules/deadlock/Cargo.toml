@@ -11,7 +11,10 @@ publish.workspace = true
 workspace = true
 
 [dependencies]
+zayden-core = { workspace = true }
+
 deadlock-api = { workspace = true }
+futures = { workspace = true, features = ["std", "async-await"] }
 jiff = { workspace = true, features = ["std"] }
 jiff-sqlx = { workspace = true, features = ["postgres"] }
 moka = { workspace = true, features = ["future"] }
@@ -19,6 +22,7 @@ reqwest = { workspace = true }
 secrecy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
+serenity = { workspace = true, features = ["rustls_backend", "builder", "gateway"] }
 sqlx = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

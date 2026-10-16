@@ -12,6 +12,7 @@ use serenity::all::{
     ResolvedOption,
 };
 use sqlx::PgPool;
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 use zayden_core::sole_option;
 
 use crate::endgame_analysis::sheet::EndgameAnalysisSheet;
@@ -82,7 +83,7 @@ impl WeaponCommand {
                 w.name().to_lowercase().contains(&option.value.to_lowercase())
             })
             .map(AutocompleteChoice::from)
-            .take(25)
+            .take(MAX_CHOICES)
             .collect::<Vec<_>>();
 
         interaction

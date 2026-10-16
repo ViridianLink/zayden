@@ -41,6 +41,7 @@ use serenity::all::{
 };
 use sqlx::PgPool;
 use tokio::sync::RwLock;
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 use zayden_core::{
     CoreError,
     EmojiCache,
@@ -221,7 +222,7 @@ impl Loadout {
             .filter(|r| {
                 r.class == class && r.choice_label().to_lowercase().contains(&input)
             })
-            .take(25)
+            .take(MAX_CHOICES)
             .map(|r| AutocompleteChoice::new(r.choice_label(), r.choice_value()))
             .collect::<Vec<_>>();
 

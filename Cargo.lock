@@ -1254,6 +1254,7 @@ name = "deadlock"
 version = "1.0.0"
 dependencies = [
  "deadlock-api",
+ "futures",
  "jiff",
  "jiff-sqlx",
  "moka",
@@ -1261,15 +1262,18 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
+ "serenity",
  "sqlx",
  "thiserror 1.0.69",
  "tokio",
  "tracing",
+ "zayden-core",
 ]
 
 [[package]]
 name = "deadlock-api"
 version = "0.1.0"
+source = "git+https://github.com/ViridianLink/deadlock-api.git?branch=main#ea4fbb9e382e6cda7e0edc62b74f595003195aa9"
 dependencies = [
  "jiff",
  "reqwest 0.13.5",
@@ -7794,6 +7798,7 @@ dependencies = [
  "url",
  "youtube",
  "zayden-app",
+ "zayden-core",
 ]
 
 [[package]]

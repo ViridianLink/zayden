@@ -9,6 +9,7 @@
 
 use family::commands::Command;
 use serde_json::Value;
+use zayden_core::limits::command::OPTIONS as MAX_OPTIONS;
 
 /// Every subcommand `Command::run` dispatches on, in registration order.
 const SUBCOMMANDS: [&str; 12] = [
@@ -28,9 +29,6 @@ const SUBCOMMANDS: [&str; 12] = [
 
 /// Discord's option-type discriminant for `SUB_COMMAND`.
 const SUB_COMMAND: u64 = 1;
-
-/// Discord's per-command option cap.
-const MAX_OPTIONS: usize = 25;
 
 // A macro rather than a function: `clippy.toml` allows `.expect()` only inside a
 // `#[test]` item, so a free helper fn using it trips `expect_used` under the

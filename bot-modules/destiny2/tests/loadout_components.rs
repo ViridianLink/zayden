@@ -21,6 +21,7 @@ use destiny2::loadouts::{
 use serde_json::Value;
 use serenity::all::EmojiId;
 use zayden_core::EmojiCache;
+use zayden_core::limits::message::COMPONENTS as MAX_COMPONENTS;
 
 fn keys(prefix: &str, n: usize) -> Vec<String> {
     (0..n).map(|i| format!("{prefix}_{i}")).collect()
@@ -138,7 +139,7 @@ fn the_formula_matches_the_built_message() {
 #[test]
 fn every_build_the_editor_allows_fits_discords_limit() {
     let largest = record(limits::TAGS, limits::WEAPONS, ArmourSlot::ALL.len(), true);
-    assert_eq!(emitted!(largest), budget::MAX_COMPONENTS);
+    assert_eq!(emitted!(largest), MAX_COMPONENTS);
 }
 
 #[test]
@@ -160,7 +161,7 @@ fn the_spacer_is_dropped_only_when_it_would_not_fit() {
         ArmourSlot::ALL.len(),
         true,
     );
-    assert_eq!(base, budget::MAX_COMPONENTS);
+    assert_eq!(base, MAX_COMPONENTS);
     assert!(!budget::has_spacer(limits::WEAPONS, base));
     assert!(!budget::has_spacer(0, 20), "no weapons, nothing to separate");
 }

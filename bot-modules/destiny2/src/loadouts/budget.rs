@@ -1,8 +1,8 @@
+use zayden_core::limits::message::COMPONENTS as MAX_COMPONENTS;
+
 use super::draft::{EmojiKey, LoadoutDraft};
 use super::record::{GEAR_HEADING, SUBCLASS_HEADING};
 
-pub const MAX_COMPONENTS: usize = 40;
-pub const MAX_TEXT: usize = 4000;
 const EMOJI_WRAPPER: usize = "<::>".len() + 20;
 
 const FIXED: usize = 12;

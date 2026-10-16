@@ -4,6 +4,7 @@ use serenity::all::{
     CreateInteractionResponse,
     ResolvedValue,
 };
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 use zayden_core::{AutocompleteCtx, parse_subcommand};
 
 use crate::client::MarathonClient;
@@ -80,6 +81,6 @@ fn filter_choices<T>(
                 .contains(query_lower)
                 .then(|| AutocompleteChoice::new(name.to_string(), slug.to_string()))
         })
-        .take(25)
+        .take(MAX_CHOICES)
         .collect()
 }

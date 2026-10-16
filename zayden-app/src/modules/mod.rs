@@ -68,6 +68,13 @@ pub const MODULES: &[ModuleDef] = &[
         introduced: None,
     },
     ModuleDef {
+        id: "deadlock",
+        label: "Deadlock",
+        description: "Builds, ability orders, matchups and patch notes.",
+        backing: Backing::Commands,
+        introduced: Some(Timestamp::constant(1_792_108_800, 0)),
+    },
+    ModuleDef {
         id: "gambling",
         label: "Gambling & Economy",
         description: "Currency games, shop, and leaderboards.",

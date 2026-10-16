@@ -17,14 +17,13 @@ use serenity::all::{
 };
 use sqlx::PgPool;
 use zayden_app::entitlement::{EntitlementService, Tier};
+use zayden_core::limits::autocomplete::CHOICES as MAX_CHOICES;
 use zayden_core::{parse_options, parse_subcommand, required_option};
 
 use crate::error::{HostingError, Result};
 use crate::pricing::{self, Plan};
 use crate::store::{self, HostedServer, state};
 use crate::{HostingRuntime, modal};
-
-const AUTOCOMPLETE_LIMIT: usize = 25;
 
 pub struct Hosting;
 
@@ -134,7 +133,7 @@ impl Hosting {
 
         let choices: Vec<AutocompleteChoice<'_>> = runtime
             .catalog
-            .search(query, AUTOCOMPLETE_LIMIT)
+            .search(query, MAX_CHOICES)
             .into_iter()
             .map(|game| AutocompleteChoice::new(game.name.clone(), game.key.clone()))
             .collect();

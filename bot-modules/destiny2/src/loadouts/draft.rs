@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
+use zayden_core::limits::message::COMPONENTS_TEXT as MAX_TEXT;
+
 use super::budget;
 use super::domain::{Archetype, ArmourSlot, Class, Element, StatKind};
 use super::mode::Mode;
@@ -255,8 +257,8 @@ impl TryFrom<RawLoadout> for LoadoutDraft {
 
 fn within_discord_limits(draft: &LoadoutDraft) -> Result<(), DraftError> {
     let estimate = budget::text(draft);
-    if estimate > budget::MAX_TEXT {
-        return Err(DraftError::TooMuchText { estimate, max: budget::MAX_TEXT });
+    if estimate > MAX_TEXT {
+        return Err(DraftError::TooMuchText { estimate, max: MAX_TEXT });
     }
     Ok(())
 }

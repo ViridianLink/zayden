@@ -18,6 +18,10 @@ use destiny2::loadouts::{
     budget,
     limits,
 };
+use zayden_core::limits::message::{
+    COMPONENTS as MAX_COMPONENTS,
+    COMPONENTS_TEXT as MAX_TEXT,
+};
 
 use super::dto::{
     ArmourForm,
@@ -274,9 +278,9 @@ pub fn loadout_check(form: &LoadoutForm) -> LoadoutCheck {
 
     LoadoutCheck {
         components: count(components),
-        max_components: count(budget::MAX_COMPONENTS),
+        max_components: count(MAX_COMPONENTS),
         text: text.map(count),
-        max_text: count(budget::MAX_TEXT),
+        max_text: count(MAX_TEXT),
         error,
     }
 }

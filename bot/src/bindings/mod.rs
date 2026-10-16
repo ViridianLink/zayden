@@ -5,6 +5,7 @@ use crate::{CommandRegistry, RegistryBuilder};
 
 pub mod accounts;
 pub mod ai;
+pub mod deadlock;
 pub mod destiny2;
 pub mod family;
 pub mod gambling;
@@ -32,6 +33,7 @@ pub fn build_registry(
 ) -> Result<Arc<CommandRegistry>, OverlapError> {
     let mut builder = RegistryBuilder::new();
     accounts::register(&mut builder)?;
+    deadlock::register(&mut builder);
     destiny2::register(&mut builder);
     family::register(&mut builder)?;
     gambling::register(&mut builder)?;

@@ -1,8 +1,10 @@
 use serenity::all::AutocompleteChoice;
+use zayden_core::limits::autocomplete::{
+    CHOICE_NAME as MAX_CHOICE_NAME,
+    CHOICE_VALUE as MAX_CHOICE_VALUE,
+};
 
 const SENTINEL: &str = "faq://page/";
-const CHOICE_LIMIT: usize = 100;
-pub const MAX_CHOICES: usize = 25;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Target {
@@ -50,19 +52,19 @@ pub fn jump(label: &str, target: &Target) -> AutocompleteChoice<'static> {
 }
 
 fn clamp(text: &str) -> String {
-    if text.chars().count() <= CHOICE_LIMIT {
+    if text.chars().count() <= MAX_CHOICE_NAME {
         return text.to_owned();
     }
 
-    text.chars().take(CHOICE_LIMIT - 1).collect::<String>() + "\u{2026}"
+    text.chars().take(MAX_CHOICE_NAME - 1).collect::<String>() + "\u{2026}"
 }
 
 fn truncate(text: &str) -> String {
-    if text.chars().count() <= CHOICE_LIMIT {
+    if text.chars().count() <= MAX_CHOICE_VALUE {
         return text.to_owned();
     }
 
-    let cut = text.chars().take(CHOICE_LIMIT).collect::<String>();
+    let cut = text.chars().take(MAX_CHOICE_VALUE).collect::<String>();
 
     match cut.rsplit_once(char::is_whitespace) {
         Some((head, _tail)) if !head.trim().is_empty() => head.trim_end().to_owned(),
