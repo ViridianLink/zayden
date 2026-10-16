@@ -1,5 +1,6 @@
 use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
+use secrecy::ExposeSecret;
 use zayden_app::state::AppState;
 
 use crate::faq::render::{PROMPT_LIMIT, truncate};
@@ -33,7 +34,7 @@ pub(crate) async fn answer(
     ];
 
     let client = AiClient::new(
-        &app.ai_provider_key,
+        app.ai_provider_key.expose_secret(),
         &app.ai_api_endpoint,
         &app.ai_model_pro,
     )?;

@@ -7,6 +7,7 @@ use std::sync::Arc;
 
 use http_body_util::BodyExt;
 use jiff::{SignedDuration, Timestamp};
+use secrecy::SecretString;
 use sqlx::PgPool;
 use topcoat::Result;
 use topcoat::context::{Cx, CxTestBuilder};
@@ -89,11 +90,11 @@ async fn protected() -> Result<&'static str> {
 
 fn config() -> BotConfig {
     BotConfig {
-        discord_token: "test-bot-token".to_owned(),
-        bungie_api_key: String::new(),
-        ai_provider_key: String::new(),
-        google_api_key: String::new(),
-        discord_client_secret: "test-client-secret".to_owned(),
+        discord_token: SecretString::from("test-bot-token"),
+        bungie_api_key: SecretString::from(""),
+        ai_provider_key: SecretString::from(""),
+        google_api_key: SecretString::from(""),
+        discord_client_secret: SecretString::from("test-client-secret"),
         spotify: None,
         ai_api_endpoint: String::new(),
         ai_model: String::new(),
@@ -106,6 +107,7 @@ fn config() -> BotConfig {
         error_log_webhook: None,
         normal_log_webhook: None,
         flaresolverr_url: None,
+        deadlock_api_key: None,
         youtube_cookies: None,
         palworld_paldex_url: None,
         palworld_palcalc_url: None,

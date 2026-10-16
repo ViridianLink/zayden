@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM deadlock_api_cache WHERE client_version IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "07b6be928b05a137b530964735ee6f9698eb93607c35d0362a345d67bda8a207"
+}

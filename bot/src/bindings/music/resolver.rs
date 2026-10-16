@@ -12,6 +12,7 @@ use music::{
     YouTubeResolver,
     probe_yt_dlp,
 };
+use secrecy::ExposeSecret;
 use tracing::{error, info, warn};
 use zayden_app::config::BotConfig;
 
@@ -37,7 +38,7 @@ pub async fn build_resolver(config: &BotConfig) -> Result<Arc<dyn TrackResolver>
         Some(creds) => {
             let resolver = SpotifyResolver::new(
                 creds.client_id.clone(),
-                creds.client_secret.clone(),
+                creds.client_secret.expose_secret().to_owned(),
             )
             .await
             .map_err(BotError::from)?;

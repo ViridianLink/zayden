@@ -24,6 +24,7 @@ jiff-sqlx = { workspace = true }
 regex = { workspace = true, features = ["std", "unicode-perl"] }
 reqwest = { workspace = true, features = ["rustls", "http2", "json"] }
 scraper = { workspace = true }
+secrecy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sqlx = { workspace = true, features = ["macros", "migrate"] }

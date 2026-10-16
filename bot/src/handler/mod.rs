@@ -1,5 +1,6 @@
 use std::sync::{Arc, OnceLock};
 
+use secrecy::ExposeSecret;
 use serenity::all::{Event, EventHandler, FullEvent, RatelimitInfo};
 use serenity::async_trait;
 use serenity::model::prelude::Interaction;
@@ -208,8 +209,8 @@ impl EventHandler for Handler {
     async fn ratelimit(&self, data: RatelimitInfo) {
         Self::log_ratelimit(
             &data,
-            &self.app.error_log_webhook,
-            &self.app.normal_log_webhook,
+            self.app.error_log_webhook.expose_secret(),
+            self.app.normal_log_webhook.expose_secret(),
         );
     }
 }

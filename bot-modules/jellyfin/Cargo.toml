@@ -23,6 +23,7 @@ jiff-sqlx = { workspace = true }
 moka = { workspace = true, features = ["future"] }
 quick-xml = { workspace = true }
 reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
+secrecy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serenity = { workspace = true }

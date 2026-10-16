@@ -1,0 +1,2023 @@
+[
+ {
+  "id": 1,
+  "class_name": "hero_inferno",
+  "name": "Infernus",
+  "description": {
+   "lore": "Like most teenagers; Infernus was wild, rebellious, and impetuous.  Unlike most teenagers, Infernus was a creature from another plane and had a supernatural mastery over fire.  Needless to say:  his youth was filled with no small amount of arson, murder, and evidence disposal.  But that was then.  Now an adult, Infernus has mellowed out considerably.  He's happy working at a bar with good live music, and talking to interesting people.  That being said when someone at the bar gets belligerent or violent, he's not afraid to dust off the skills he once honed.",
+   "role": "Lights up enemies and watches them burn",
+   "playstyle": "Infernus has many ways to deal damage over time, burning foes before swooping in for the kill. Due to Infernus' blazing speed, his enemies won't be able to escape the flames."
+  },
+  "player_selectable": true,
+  "development_state": "release",
+  "disabled": false,
+  "in_development": false,
+  "needs_testing": false,
+  "assigned_players_only": false,
+  "tags": [
+   "Arsonist",
+   "Explosive",
+   "Burn Rubber"
+  ],
+  "gun_tag": "Rapid Fire",
+  "hideout_rich_presence": "Mixing Drinks In The Hideout",
+  "hero_type": "marksman",
+  "gender": "male",
+  "search_name": "Infernus",
+  "popular_items": {
+   "timestamp": 1790702781,
+   "early_game": [
+    {
+     "item_id": 2951612397,
+     "class_name": "upgrade_arcane_extension",
+     "pick_pct": 7.239438,
+     "winrate_pct": 52.416492
+    },
+    {
+     "item_id": 4104549924,
+     "class_name": "upgrade_blitz_bullets",
+     "pick_pct": 31.735987,
+     "winrate_pct": 50.95943
+    },
+    {
+     "item_id": 1548066885,
+     "class_name": "upgrade_clip_size",
+     "pick_pct": 60.34076,
+     "winrate_pct": 50.475616
+    },
+    {
+     "item_id": 2829638276,
+     "class_name": "upgrade_endurance",
+     "pick_pct": 20.001682,
+     "winrate_pct": 50.24357
+    },
+    {
+     "item_id": 3776945997,
+     "class_name": "upgrade_extra_charge",
+     "pick_pct": 8.391831,
+     "winrate_pct": 54.11125
+    },
+    {
+     "item_id": 1672893796,
+     "class_name": "upgrade_grit",
+     "pick_pct": 7.560975,
+     "winrate_pct": 52.45431
+    },
+    {
+     "item_id": 2603935618,
+     "class_name": "upgrade_healbane",
+     "pick_pct": 7.827593,
+     "winrate_pct": 55.88435
+    },
+    {
+     "item_id": 876563814,
+     "class_name": "upgrade_health_stealing_magic",
+     "pick_pct": 7.547245,
+     "winrate_pct": 55.52491
+    },
+    {
+     "item_id": 968099481,
+     "class_name": "upgrade_improved_spirit",
+     "pick_pct": 68.275085,
+     "winrate_pct": 50.458942
+    },
+    {
+     "item_id": 668299740,
+     "class_name": "upgrade_rapid_rounds",
+     "pick_pct": 66.79318,
+     "winrate_pct": 49.884293
+    },
+    {
+     "item_id": 7409189,
+     "class_name": "upgrade_soaring_spirit",
+     "pick_pct": 62.311165,
+     "winrate_pct": 50.826267
+    },
+    {
+     "item_id": 2356412290,
+     "class_name": "upgrade_titan_round",
+     "pick_pct": 22.906582,
+     "winrate_pct": 51.394985
+    }
+   ],
+   "mid_game": [
+    {
+     "item_id": 2951612397,
+     "class_name": "upgrade_arcane_extension",
+     "pick_pct": 53.275845,
+     "winrate_pct": 50.481747
+    },
+    {
+     "item_id": 4104549924,
+     "class_name": "upgrade_blitz_bullets",
+     "pick_pct": 30.414236,
+     "winrate_pct": 49.082596
+    },
+    {
+     "item_id": 2739107182,
+     "class_name": "upgrade_burst_fire",
+     "pick_pct": 9.921209,
+     "winrate_pct": 50.604885
+    },
+    {
+     "item_id": 2447176615,
+     "class_name": "upgrade_cardio_calibrator",
+     "pick_pct": 14.591499,
+     "winrate_pct": 53.071693
+    },
+    {
+     "item_id": 1548066885,
+     "class_name": "upgrade_clip_size",
+     "pick_pct": 12.378371,
+     "winrate_pct": 48.34162
+    },
+    {
+     "item_id": 3776945997,
+     "class_name": "upgrade_extra_charge",
+     "pick_pct": 18.36582,
+     "winrate_pct": 51.572296
+    },
+    {
+     "item_id": 2603935618,
+     "class_name": "upgrade_healbane",
+     "pick_pct": 38.932808,
+     "winrate_pct": 50.837257
+    },
+    {
+     "item_id": 876563814,
+     "class_name": "upgrade_health_stealing_magic",
+     "pick_pct": 63.69708,
+     "winrate_pct": 50.808296
+    },
+    {
+     "item_id": 2717651715,
+     "class_name": "upgrade_imbued_duration_extender",
+     "pick_pct": 28.507147,
+     "winrate_pct": 53.72091
+    },
+    {
+     "item_id": 2081037738,
+     "class_name": "upgrade_magic_vulnerability",
+     "pick_pct": 49.33057,
+     "winrate_pct": 51.476437
+    },
+    {
+     "item_id": 84321454,
+     "class_name": "upgrade_quick_silver",
+     "pick_pct": 18.186892,
+     "winrate_pct": 48.833527
+    },
+    {
+     "item_id": 787198704,
+     "class_name": "upgrade_rapid_recharge",
+     "pick_pct": 22.79872,
+     "winrate_pct": 53.752163
+    },
+    {
+     "item_id": 668299740,
+     "class_name": "upgrade_rapid_rounds",
+     "pick_pct": 10.423891,
+     "winrate_pct": 49.970257
+    },
+    {
+     "item_id": 3731635960,
+     "class_name": "upgrade_reduce_debuff_duration",
+     "pick_pct": 14.544109,
+     "winrate_pct": 54.541855
+    },
+    {
+     "item_id": 2480592370,
+     "class_name": "upgrade_ricochet",
+     "pick_pct": 6.04591,
+     "winrate_pct": 53.725002
+    },
+    {
+     "item_id": 7409189,
+     "class_name": "upgrade_soaring_spirit",
+     "pick_pct": 22.334126,
+     "winrate_pct": 49.058064
+    },
+    {
+     "item_id": 4075861416,
+     "class_name": "upgrade_spellslinger_headshots",
+     "pick_pct": 5.290781,
+     "winrate_pct": 51.25565
+    },
+    {
+     "item_id": 3399065363,
+     "class_name": "upgrade_sprint_booster",
+     "pick_pct": 9.207269,
+     "winrate_pct": 51.57535
+    },
+    {
+     "item_id": 1925087134,
+     "class_name": "upgrade_suppressor",
+     "pick_pct": 6.436098,
+     "winrate_pct": 54.899532
+    },
+    {
+     "item_id": 1144549437,
+     "class_name": "upgrade_tech_defense_shredders",
+     "pick_pct": 16.15845,
+     "winrate_pct": 50.550926
+    },
+    {
+     "item_id": 2356412290,
+     "class_name": "upgrade_titan_round",
+     "pick_pct": 47.418163,
+     "winrate_pct": 49.716526
+    },
+    {
+     "item_id": 3696726732,
+     "class_name": "upgrade_toxic_bullets",
+     "pick_pct": 31.882864,
+     "winrate_pct": 53.164417
+    }
+   ],
+   "late_game": [
+    {
+     "item_id": 2951612397,
+     "class_name": "upgrade_arcane_extension",
+     "pick_pct": 11.257263,
+     "winrate_pct": 51.290424
+    },
+    {
+     "item_id": 951866250,
+     "class_name": "upgrade_auto_cleanse",
+     "pick_pct": 7.820472,
+     "winrate_pct": 55.20444
+    },
+    {
+     "item_id": 2519598785,
+     "class_name": "upgrade_boundless_spirit",
+     "pick_pct": 46.939663,
+     "winrate_pct": 54.300568
+    },
+    {
+     "item_id": 2739107182,
+     "class_name": "upgrade_burst_fire",
+     "pick_pct": 13.107196,
+     "winrate_pct": 51.079575
+    },
+    {
+     "item_id": 2447176615,
+     "class_name": "upgrade_cardio_calibrator",
+     "pick_pct": 11.956579,
+     "winrate_pct": 50.51302
+    },
+    {
+     "item_id": 865846625,
+     "class_name": "upgrade_damage_recycler",
+     "pick_pct": 20.736784,
+     "winrate_pct": 53.81658
+    },
+    {
+     "item_id": 1047818222,
+     "class_name": "upgrade_debuff_reducer",
+     "pick_pct": 5.174674,
+     "winrate_pct": 51.06984
+    },
+    {
+     "item_id": 3005970438,
+     "class_name": "upgrade_escalating_exposure",
+     "pick_pct": 60.97249,
+     "winrate_pct": 53.69613
+    },
+    {
+     "item_id": 3919289022,
+     "class_name": "upgrade_ethereal_bullets",
+     "pick_pct": 11.441947,
+     "winrate_pct": 55.858334
+    },
+    {
+     "item_id": 876563814,
+     "class_name": "upgrade_health_stealing_magic",
+     "pick_pct": 13.049621,
+     "winrate_pct": 47.900898
+    },
+    {
+     "item_id": 2717651715,
+     "class_name": "upgrade_imbued_duration_extender",
+     "pick_pct": 49.28474,
+     "winrate_pct": 50.40483
+    },
+    {
+     "item_id": 1797283378,
+     "class_name": "upgrade_infuser",
+     "pick_pct": 7.524181,
+     "winrate_pct": 55.947968
+    },
+    {
+     "item_id": 2037039379,
+     "class_name": "upgrade_inhibitor",
+     "pick_pct": 7.201318,
+     "winrate_pct": 55.81796
+    },
+    {
+     "item_id": 1250307611,
+     "class_name": "upgrade_juggernaut",
+     "pick_pct": 9.033093,
+     "winrate_pct": 54.839184
+    },
+    {
+     "item_id": 2081037738,
+     "class_name": "upgrade_magic_vulnerability",
+     "pick_pct": 18.560001,
+     "winrate_pct": 50.514233
+    },
+    {
+     "item_id": 84321454,
+     "class_name": "upgrade_quick_silver",
+     "pick_pct": 5.716766,
+     "winrate_pct": 50.178185
+    },
+    {
+     "item_id": 787198704,
+     "class_name": "upgrade_rapid_recharge",
+     "pick_pct": 13.33351,
+     "winrate_pct": 50.60453
+    },
+    {
+     "item_id": 3731635960,
+     "class_name": "upgrade_reduce_debuff_duration",
+     "pick_pct": 14.955358,
+     "winrate_pct": 48.916134
+    },
+    {
+     "item_id": 2480592370,
+     "class_name": "upgrade_ricochet",
+     "pick_pct": 42.162697,
+     "winrate_pct": 54.185925
+    },
+    {
+     "item_id": 4075861416,
+     "class_name": "upgrade_spellslinger_headshots",
+     "pick_pct": 25.60321,
+     "winrate_pct": 52.13112
+    },
+    {
+     "item_id": 343572757,
+     "class_name": "upgrade_spirit_burn",
+     "pick_pct": 11.730265,
+     "winrate_pct": 57.03013
+    },
+    {
+     "item_id": 1144549437,
+     "class_name": "upgrade_tech_defense_shredders",
+     "pick_pct": 12.985402,
+     "winrate_pct": 51.742836
+    },
+    {
+     "item_id": 2226497419,
+     "class_name": "upgrade_tech_overflow",
+     "pick_pct": 46.99015,
+     "winrate_pct": 53.36004
+    },
+    {
+     "item_id": 2163598980,
+     "class_name": "upgrade_tech_purge",
+     "pick_pct": 14.282171,
+     "winrate_pct": 47.95336
+    },
+    {
+     "item_id": 2356412290,
+     "class_name": "upgrade_titan_round",
+     "pick_pct": 9.152228,
+     "winrate_pct": 49.4556
+    },
+    {
+     "item_id": 3696726732,
+     "class_name": "upgrade_toxic_bullets",
+     "pick_pct": 36.295353,
+     "winrate_pct": 48.14892
+    },
+    {
+     "item_id": 3357231760,
+     "class_name": "upgrade_unstoppable",
+     "pick_pct": 5.38903,
+     "winrate_pct": 53.032543
+    },
+    {
+     "item_id": 499683006,
+     "class_name": "upgrade_vampire",
+     "pick_pct": 6.526361,
+     "winrate_pct": 55.910694
+    },
+    {
+     "item_id": 3270001687,
+     "class_name": "upgrade_warp_stone",
+     "pick_pct": 5.104255,
+     "winrate_pct": 54.308025
+    }
+   ]
+  },
+  "prerelease_only": false,
+  "limited_testing": false,
+  "complexity": 1,
+  "skin": 0,
+  "images": {
+   "icon_hero_card": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_card.png",
+   "icon_hero_card_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_card.webp",
+   "icon_image_small": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_sm.png",
+   "icon_image_small_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_sm.webp",
+   "minimap_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_mm.png",
+   "minimap_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_mm.webp",
+   "hero_card_critical": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_card_critical.png",
+   "hero_card_critical_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_card_critical.webp",
+   "hero_card_gloat": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_card_gloat.png",
+   "hero_card_gloat_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_card_gloat.webp",
+   "top_bar_vertical_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_vertical.png",
+   "top_bar_vertical_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/inferno_vertical.webp",
+   "background_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/infernus_bg.png",
+   "background_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/infernus_bg.webp",
+   "name_image": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/heroes/hero_names/infernus.svg"
+  },
+  "models": {
+   "hero_select": "https://assets-bucket.deadlock-api.com/assets-api-res/models/heroes_wip/inferno/inferno/hero_select.glb"
+  },
+  "items": {
+   "weapon_primary": "citadel_weapon_inferno_set",
+   "weapon_melee": "ability_melee_inferno",
+   "ability_mantle": "citadel_ability_mantle",
+   "ability_jump": "citadel_ability_jump",
+   "ability_slide": "citadel_ability_slide",
+   "ability_zip_line": "citadel_ability_zip_line",
+   "ability_zip_line_boost": "citadel_ability_zipline_boost",
+   "ability_climb_rope": "citadel_ability_climb_rope",
+   "ability_innate1": "citadel_ability_dash",
+   "ability_innate2": "citadel_ability_sprint",
+   "ability_innate3": "citadel_ability_melee_parry",
+   "signature1": "ability_incendiary_projectile",
+   "signature2": "ability_flame_dash",
+   "signature3": "ability_afterburn",
+   "signature4": "ability_fire_bomb"
+  },
+  "starting_stats": {
+   "max_move_speed": {
+    "value": 6.7,
+    "display_stat_name": "EMaxMoveSpeed"
+   },
+   "sprint_speed": {
+    "value": 1.6,
+    "display_stat_name": "ESprintSpeed"
+   },
+   "crouch_speed": {
+    "value": 4.75,
+    "display_stat_name": "ECrouchSpeed"
+   },
+   "move_acceleration": {
+    "value": 4.0,
+    "display_stat_name": "EMoveAcceleration"
+   },
+   "light_melee_damage": {
+    "value": 50.0,
+    "display_stat_name": "ELightMeleeDamage"
+   },
+   "heavy_melee_damage": {
+    "value": 116,
+    "display_stat_name": "EHeavyMeleeDamage"
+   },
+   "max_health": {
+    "value": 830,
+    "display_stat_name": "EMaxHealth"
+   },
+   "weapon_power": {
+    "value": 0,
+    "display_stat_name": "EWeaponPower"
+   },
+   "reload_speed": {
+    "value": 1,
+    "display_stat_name": "EReloadSpeed"
+   },
+   "weapon_power_scale": {
+    "value": 1,
+    "display_stat_name": "EWeaponPowerScale"
+   },
+   "proc_build_up_rate_scale": {
+    "value": 1,
+    "display_stat_name": "EProcBuildUpRateScale"
+   },
+   "stamina": {
+    "value": 3,
+    "display_stat_name": "EStamina"
+   },
+   "base_health_regen": {
+    "value": 2.0,
+    "display_stat_name": "EBaseHealthRegen"
+   },
+   "stamina_regen_per_second": {
+    "value": 0.222222,
+    "display_stat_name": "EStaminaRegenPerSecond"
+   },
+   "ability_resource_max": {
+    "value": 0,
+    "display_stat_name": "EAbilityResourceMax"
+   },
+   "ability_resource_regen_per_second": {
+    "value": 0,
+    "display_stat_name": "EAbilityResourceRegenPerSecond"
+   },
+   "crit_damage_received_scale": {
+    "value": 1.0,
+    "display_stat_name": "ECritDamageReceivedScale"
+   },
+   "tech_duration": {
+    "value": 1,
+    "display_stat_name": "ETechDuration"
+   },
+   "tech_range": {
+    "value": 1,
+    "display_stat_name": "ETechRange"
+   },
+   "ground_dash_distance_in_meters": {
+    "value": 10.0,
+    "display_stat_name": "EGroundDashDistanceInMeters"
+   },
+   "ground_dash_duration": {
+    "value": 0.68,
+    "display_stat_name": "EGroundDashDuration"
+   },
+   "air_dash_distance_in_meters": {
+    "value": 8.0,
+    "display_stat_name": "EAirDashDistanceInMeters"
+   },
+   "air_dash_duration": {
+    "value": 0.47,
+    "display_stat_name": "EAirDashDuration"
+   },
+   "ooc_health_regen": {
+    "value": 0.0,
+    "display_stat_name": "EOOCHealthRegen"
+   }
+  },
+  "item_slot_info": {
+   "weapon": {
+    "max_purchases_for_tier": [
+     6,
+     6,
+     6
+    ]
+   },
+   "vitality": {
+    "max_purchases_for_tier": [
+     6,
+     6,
+     6
+    ]
+   },
+   "spirit": {
+    "max_purchases_for_tier": [
+     6,
+     6,
+     6
+    ]
+   }
+  },
+  "physics": {
+   "stealth_speed_meters_per_second": 4.0
+  },
+  "colors": {
+   "ui": [
+    255,
+    70,
+    45
+   ],
+   "style": [
+    201,
+    60,
+    38
+   ],
+   "style_hex": "#C93C26"
+  },
+  "shop_stat_display": {
+   "spirit_stats_display": {
+    "display_stats": [
+     "ETechCooldown",
+     "ETechDuration",
+     "ETechRange",
+     "ETechLifesteal",
+     "EMaxChargesIncrease",
+     "ETechCooldownBetweenChargeUses"
+    ]
+   },
+   "vitality_stats_display": {
+    "display_stats": [
+     "EMaxHealth",
+     "EBaseHealthRegen",
+     "EHealingOutput",
+     "EOOCHealthRegen",
+     "EHeroSpiritLifestealEffectiveness",
+     "EBulletArmorDamageReduction",
+     "ETechArmorDamageReduction",
+     "EMeleeResist",
+     "EDebuffResist",
+     "ECritDamageReceivedScale"
+    ],
+    "other_display_stats": [
+     "EMaxMoveSpeed",
+     "ESprintSpeed",
+     "EStaminaCooldown",
+     "EStaminaRegenIncrease",
+     "EStamina",
+     "EDashSpeedInMeters"
+    ]
+   },
+   "weapon_stats_display": {
+    "display_stats": [
+     "EBulletDamage",
+     "EBaseWeaponDamageIncrease",
+     "ERoundsPerSecond",
+     "EFireRate",
+     "EClipSize",
+     "EClipSizeIncrease",
+     "EReloadTime",
+     "EReloadSpeed",
+     "EBulletSpeed",
+     "EBulletSpeedIncrease",
+     "EBulletLifesteal",
+     "ECritDamageBonusScale"
+    ],
+    "other_display_stats": [
+     "ELightMeleeDamage",
+     "EHeavyMeleeDamage"
+    ],
+    "weapon_attributes": [
+     "EWeaponAttribute_RapidFire",
+     "EWeaponAttribute_MediumRange"
+    ],
+    "weapon_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/guns/inferno_gun.png",
+    "weapon_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/guns/inferno_gun.webp"
+   }
+  },
+  "cost_bonuses": {
+   "weapon": [
+    {
+     "gold_threshold": 800,
+     "bonus": 9.0,
+     "percent_on_graph": 7.0
+    },
+    {
+     "gold_threshold": 1600,
+     "bonus": 12.0,
+     "percent_on_graph": 7.0
+    },
+    {
+     "gold_threshold": 2400,
+     "bonus": 15.0,
+     "percent_on_graph": 8.0
+    },
+    {
+     "gold_threshold": 3200,
+     "bonus": 18.0,
+     "percent_on_graph": 8.0
+    },
+    {
+     "gold_threshold": 4800,
+     "bonus": 46.0,
+     "percent_on_graph": 9.0
+    },
+    {
+     "gold_threshold": 6400,
+     "bonus": 54.0,
+     "percent_on_graph": 9.0
+    },
+    {
+     "gold_threshold": 8000,
+     "bonus": 62.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 11200,
+     "bonus": 74.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 16000,
+     "bonus": 86.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 22400,
+     "bonus": 100.0,
+     "percent_on_graph": 11.0
+    },
+    {
+     "gold_threshold": 28800,
+     "bonus": 115.0,
+     "percent_on_graph": 11.0
+    }
+   ],
+   "vitality": [
+    {
+     "gold_threshold": 800,
+     "bonus": 9.0,
+     "percent_on_graph": 7.0
+    },
+    {
+     "gold_threshold": 1600,
+     "bonus": 12.0,
+     "percent_on_graph": 7.0
+    },
+    {
+     "gold_threshold": 2400,
+     "bonus": 15.0,
+     "percent_on_graph": 8.0
+    },
+    {
+     "gold_threshold": 3200,
+     "bonus": 20.0,
+     "percent_on_graph": 8.0
+    },
+    {
+     "gold_threshold": 4800,
+     "bonus": 38.0,
+     "percent_on_graph": 9.0
+    },
+    {
+     "gold_threshold": 6400,
+     "bonus": 42.0,
+     "percent_on_graph": 9.0
+    },
+    {
+     "gold_threshold": 8000,
+     "bonus": 46.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 11200,
+     "bonus": 50.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 16000,
+     "bonus": 54.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 22400,
+     "bonus": 60.0,
+     "percent_on_graph": 11.0
+    },
+    {
+     "gold_threshold": 28800,
+     "bonus": 66.0,
+     "percent_on_graph": 11.0
+    }
+   ],
+   "spirit": [
+    {
+     "gold_threshold": 800,
+     "bonus": 7.0,
+     "percent_on_graph": 7.0
+    },
+    {
+     "gold_threshold": 1600,
+     "bonus": 11.0,
+     "percent_on_graph": 7.0
+    },
+    {
+     "gold_threshold": 2400,
+     "bonus": 15.0,
+     "percent_on_graph": 8.0
+    },
+    {
+     "gold_threshold": 3200,
+     "bonus": 19.0,
+     "percent_on_graph": 8.0
+    },
+    {
+     "gold_threshold": 4800,
+     "bonus": 38.0,
+     "percent_on_graph": 9.0
+    },
+    {
+     "gold_threshold": 6400,
+     "bonus": 45.0,
+     "percent_on_graph": 9.0
+    },
+    {
+     "gold_threshold": 8000,
+     "bonus": 52.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 11200,
+     "bonus": 59.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 16000,
+     "bonus": 66.0,
+     "percent_on_graph": 10.0
+    },
+    {
+     "gold_threshold": 22400,
+     "bonus": 75.0,
+     "percent_on_graph": 11.0
+    },
+    {
+     "gold_threshold": 28800,
+     "bonus": 100.0,
+     "percent_on_graph": 11.0
+    }
+   ]
+  },
+  "stats_display": {
+   "health_header_stats": [
+    "EMaxHealth",
+    "EBaseHealthRegen"
+   ],
+   "health_stats": [
+    "EBulletArmorDamageReduction",
+    "ETechArmorDamageReduction",
+    "EBulletShieldHealth",
+    "EBulletLifesteal",
+    "ETechLifesteal",
+    "EMaxMoveSpeed",
+    "ESprintSpeed",
+    "EStamina",
+    "EHealingOutput"
+   ],
+   "magic_header_stats": [
+    "ETechPower"
+   ],
+   "magic_stats": [
+    "ETechCooldown",
+    "ETechRange",
+    "ETechDuration"
+   ],
+   "weapon_header_stats": [
+    "EWeaponDPS",
+    "EBulletDamage"
+   ],
+   "weapon_stats": [
+    "ELightMeleeDamage",
+    "EHeavyMeleeDamage",
+    "EFireRate",
+    "EClipSize"
+   ]
+  },
+  "hero_stats_ui": {
+   "weapon_stat_display": "EMeleeDamage_DEPRECATED",
+   "display_stats": [
+    {
+     "category": "ECitadelStat_Vitality",
+     "stat_type": "EMaxHealth"
+    },
+    {
+     "category": "ECitadelStat_Vitality",
+     "stat_type": "EBaseHealthRegen"
+    },
+    {
+     "category": "ECitadelStat_Vitality",
+     "stat_type": "EBulletArmorDamageReduction"
+    },
+    {
+     "category": "ECitadelStat_Vitality",
+     "stat_type": "ETechArmorDamageReduction"
+    },
+    {
+     "category": "ECitadelStat_Spirit",
+     "stat_type": "ETechPower"
+    },
+    {
+     "category": "ECitadelStat_Weapon",
+     "stat_type": "EWeaponDPS"
+    },
+    {
+     "category": "ECitadelStat_Weapon",
+     "stat_type": "EBulletDamage"
+    },
+    {
+     "category": "ECitadelStat_Weapon",
+     "stat_type": "EClipSize"
+    },
+    {
+     "category": "ECitadelStat_Weapon",
+     "stat_type": "ERoundsPerSecond"
+    },
+    {
+     "category": "ECitadelStat_Weapon",
+     "stat_type": "ELightMeleeDamage"
+    },
+    {
+     "category": "ECitadelStat_Weapon",
+     "stat_type": "EHeavyMeleeDamage"
+    },
+    {
+     "category": "ECitadelStat_Vitality",
+     "stat_type": "EMaxMoveSpeed"
+    },
+    {
+     "category": "ECitadelStat_Vitality",
+     "stat_type": "ESprintSpeed"
+    },
+    {
+     "category": "ECitadelStat_Vitality",
+     "stat_type": "EStamina"
+    }
+   ]
+  },
+  "level_info": {
+   "1": {
+    "bonus_currencies": [
+     "EAbilityUnlocks"
+    ],
+    "required_gold": 0
+   },
+   "2": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 200
+   },
+   "3": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityUnlocks"
+    ],
+    "required_gold": 500
+   },
+   "4": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 900
+   },
+   "5": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityUnlocks"
+    ],
+    "required_gold": 1400
+   },
+   "6": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 2000
+   },
+   "7": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 2600
+   },
+   "8": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityUnlocks"
+    ],
+    "required_gold": 3200
+   },
+   "9": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 3900
+   },
+   "10": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 4600
+   },
+   "11": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 5300
+   },
+   "12": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 6000
+   },
+   "13": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 6800
+   },
+   "14": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 7600
+   },
+   "15": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 8400
+   },
+   "16": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 9200
+   },
+   "17": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 10100
+   },
+   "18": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 11000
+   },
+   "19": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 11900
+   },
+   "20": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 12800
+   },
+   "21": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 13800
+   },
+   "22": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 14900
+   },
+   "23": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 16100
+   },
+   "24": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 17400
+   },
+   "25": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 18900
+   },
+   "26": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 20600
+   },
+   "27": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 22500
+   },
+   "28": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 24600
+   },
+   "29": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 26900
+   },
+   "30": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 29400
+   },
+   "31": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 32100
+   },
+   "32": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 35000
+   },
+   "33": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 38100
+   },
+   "34": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 41400
+   },
+   "35": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 44900
+   },
+   "36": {
+    "use_standard_upgrade": true,
+    "bonus_currencies": [
+     "EAbilityPoints"
+    ],
+    "required_gold": 48600
+   }
+  },
+  "scaling_stats": {},
+  "purchase_bonuses": {},
+  "standard_level_up_upgrades": {
+   "MODIFIER_VALUE_BASE_BULLET_DAMAGE_FROM_LEVEL": 0.088,
+   "MODIFIER_VALUE_BASE_BULLET_DAMAGE_FROM_LEVEL_ALT_FIRE": 0.0,
+   "MODIFIER_VALUE_BASE_HEALTH_FROM_LEVEL": 39.0,
+   "MODIFIER_VALUE_BASE_MELEE_DAMAGE_FROM_LEVEL": 1.58,
+   "MODIFIER_VALUE_BONUS_ATTACK_RANGE": 0.0,
+   "MODIFIER_VALUE_BOON_COUNT": 1.0,
+   "MODIFIER_VALUE_BULLET_ARMOR_DAMAGE_RESIST": 0.0,
+   "MODIFIER_VALUE_TECH_RESIST": 0.0,
+   "MODIFIER_VALUE_TECH_DAMAGE_MULTIPLIER": 0.0,
+   "MODIFIER_VALUE_TECH_POWER": 1.1,
+   "MODIFIER_VALUE_OUT_OF_COMBAT_HEALTH_REGEN": 0.0
+  },
+  "item_draft_bucketing": {
+   "upgrade_ability_power_shard": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_ability_refresher": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_absorbing_armor": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_acolytes_glove": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_active_reload": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_aerial_supremacy": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_ancient_shield": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_aoe_root": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_apex_combat": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_aprounds": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_arcane_extension": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_arcane_surge": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_arctic_blast": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_banshee_slugs": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_berserker": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_blitz_bullets": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_blood_tribute": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_boundless_spirit": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_boxing_glove": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_bullet_armor_reduction_aura": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_bullet_resist_shredder": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_bulletshredimbue": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_burst_fire": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_capacitor": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_cardio_calibrator": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_celestial_guidance": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_chain_lightning": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_cheat_death": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_chonky": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_clip_size": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_cloak_of_opportunity": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_cloaking_device_active": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_close_quarter_combat": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_close_range": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_cold_front": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_colossus": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_containment": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_cooldown_reduction": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_counterspell": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_crackshot": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_critshot": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_crushing_fists": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_damage_recycler": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_debuff_reducer": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_deflecting_armor": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_discord": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_divine_barrier": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_diviners_kevlar": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_dps_aura": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_eldritch_shot": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_electric_slippers": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_enchanted_holsters": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_endurance": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_escalating_exposure": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_eternal_gift": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_ethereal_bullets": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_express_shot": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_extra_charge": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_fervor": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_fleetfoot_boots": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_focus_lens": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_fury_trance": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_glass_cannon": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_glitch": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_greater_withering_whip": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_guardian_ward": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_haunting_scream": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_headhunter": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_headshot_booster": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_headshot_booster2": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_healbane": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_healbuff": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_healing_booster": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_health": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_health_nova": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_health_stealing_magic": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_health_stimpak": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_high_velocity_mag": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_hollow_point_rounds": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_icarus_wings": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_imbued_duration_extender": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_improved_bullet_armor": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_improved_spirit": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_improved_stamina": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_infinite_rounds": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_infuser": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_inhibitor": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_intensifying_clip": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_juggernaut": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_kinetic_sash": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_lifestrike_gauntlets": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_long_range": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_burst": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_carpet": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_reach": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_shield": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_magic_shock": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_slow": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_storm": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_tempo": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_magic_vulnerability": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_medic_bullets": {
+    "bucket": "Normal",
+    "weight": 0.4
+   },
+   "upgrade_melee_charge": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_melee_rebuttal": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_metal_skin": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_mystic_regeneration": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_mystic_reverb": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_mystical_piano": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_non_player_bonus": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_non_player_bonus_sacrifice": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_nullification_aura": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_omnicharge_pendant": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_patrons_blessing": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_phantom_strike": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_prism_blast": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_pristine_emblem": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_proc_silence": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_quick_silver": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_rapid_recharge": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_rapid_rounds": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_rechargingbullets": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_reduce_debuff_duration": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_regenerating_bullet_shield": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_reinforcing_casings": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_rescue_beam": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_resonant_healing": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_restorative_locket": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_return_fire": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_ricochet": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_rocket_booster": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_runed_gauntlets": {
+    "bucket": "Normal",
+    "weight": 0.4
+   },
+   "upgrade_rupture": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_self_bubble": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_shadow_step": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_shadow_strike": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_sharpshooter": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_shivas_bracelet": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_shrink_ray": {
+    "bucket": "Normal",
+    "weight": 0.4
+   },
+   "upgrade_siphon_bullets": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_slowing_bullets": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_soaring_spirit": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_spellbreaker": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_spellslinger_headshots": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_spirit_bubble": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_spirit_burn": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_spirit_sap": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_spirit_snatch": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_split_shot": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_sprint_booster": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_superior_stamina": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_suppressor": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_surging_power": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_target_stun": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_targeted_silence": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_tech_damage_pulse": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_tech_defense_shredders": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_tech_overflow": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_tech_purge": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_tech_range": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_thermal_detonator": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_timeless_emblem": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_titan_round": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_toxic_bullets": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_transcendent_cooldown": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_trophy_collector": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_ultimate_burst": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_unstable_concoction": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_unstoppable": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_vampire": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_veil_walker": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_vex_barrier": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_warp_stone": {
+    "bucket": "Good",
+    "weight": 1.0
+   },
+   "upgrade_weapon_backstabber": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_weapon_shielding": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_weighted_shots": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_withering_whip": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_auto_cleanse": {
+    "bucket": "Normal",
+    "weight": 1.0
+   },
+   "upgrade_grit": {
+    "bucket": "Normal",
+    "weight": 1.0
+   }
+  }
+ },
+ {
+  "id": 2,
+  "class_name": "hero_gigawatt",
+  "name": "Seven",
+  "player_selectable": true,
+  "disabled": false,
+  "in_development": false,
+  "development_state": "release",
+  "images": {
+   "icon_hero_card": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_card.png",
+   "icon_hero_card_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_card.webp",
+   "icon_image_small": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_sm.png",
+   "icon_image_small_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_sm.webp",
+   "minimap_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_mm.png",
+   "minimap_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_mm.webp",
+   "hero_card_critical": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_card_critical.png",
+   "hero_card_critical_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_card_critical.webp",
+   "hero_card_gloat": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_card_gloat.png",
+   "hero_card_gloat_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_card_gloat.webp",
+   "top_bar_vertical_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_vertical.png",
+   "top_bar_vertical_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/gigawatt_vertical.webp",
+   "background_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/seven_bg.png",
+   "background_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/seven_bg.webp",
+   "name_image": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/heroes/hero_names/seven.svg"
+  },
+  "hero_type": "mystic",
+  "tags": [
+   "High Voltage",
+   "Merciless",
+   "Area Denial"
+  ],
+  "search_name": "Seven",
+  "limited_testing": false,
+  "needs_testing": false,
+  "prerelease_only": false,
+  "assigned_players_only": false,
+  "complexity": 1,
+  "skin": 0
+ },
+ {
+  "id": 6,
+  "class_name": "hero_atlas",
+  "name": "Abrams",
+  "player_selectable": true,
+  "disabled": false,
+  "in_development": false,
+  "development_state": "release",
+  "images": {
+   "icon_hero_card": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_card.png",
+   "icon_hero_card_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_card.webp",
+   "icon_image_small": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_sm.png",
+   "icon_image_small_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_sm.webp",
+   "minimap_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_mm.png",
+   "minimap_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_mm.webp",
+   "hero_card_critical": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_card_critical.png",
+   "hero_card_critical_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_card_critical.webp",
+   "hero_card_gloat": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_card_gloat.png",
+   "hero_card_gloat_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_card_gloat.webp",
+   "top_bar_vertical_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_vertical.png",
+   "top_bar_vertical_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/bull_vertical.webp",
+   "background_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/abrams_bg.png",
+   "background_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/abrams_bg.webp",
+   "name_image": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/heroes/hero_names/abrams.svg"
+  },
+  "hero_type": "brawler",
+  "tags": [
+   "Tank",
+   "Brawler",
+   "Bull-Headed"
+  ],
+  "search_name": "Abrams",
+  "limited_testing": false,
+  "needs_testing": false,
+  "prerelease_only": false,
+  "assigned_players_only": false,
+  "complexity": 1,
+  "skin": 0
+ },
+ {
+  "id": 999,
+  "class_name": "hero_baba",
+  "name": "Test Disabled",
+  "player_selectable": false,
+  "disabled": true,
+  "in_development": true,
+  "development_state": "release",
+  "images": {
+   "icon_hero_card": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_card.png",
+   "icon_hero_card_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_card.webp",
+   "icon_image_small": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_sm.png",
+   "icon_image_small_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_sm.webp",
+   "minimap_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_mm.png",
+   "minimap_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_mm.webp",
+   "hero_card_critical": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_card_critical.png",
+   "hero_card_critical_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_card_critical.webp",
+   "hero_card_gloat": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_card_gloat.png",
+   "hero_card_gloat_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_card_gloat.webp",
+   "top_bar_vertical_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_vertical.png",
+   "top_bar_vertical_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/baba_vertical.webp",
+   "background_image": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/baba_bg.png",
+   "background_image_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/heroes/backgrounds/baba_bg.webp",
+   "name_image": "https://assets-bucket.deadlock-api.com/assets-api-res/icons/heroes/hero_names/baba.svg",
+   "vote_sticker": "https://assets-bucket.deadlock-api.com/assets-api-res/images/events/voting_sept2026/sticker_baba.png",
+   "vote_sticker_webp": "https://assets-bucket.deadlock-api.com/assets-api-res/images/events/voting_sept2026/sticker_baba.webp"
+  },
+  "hero_type": "mystic",
+  "tags": [
+   "Cackling",
+   "Beady",
+   "Hexing"
+  ],
+  "search_name": "Baba",
+  "limited_testing": false,
+  "needs_testing": false,
+  "prerelease_only": false,
+  "assigned_players_only": false,
+  "complexity": 1,
+  "skin": 0
+ }
+]

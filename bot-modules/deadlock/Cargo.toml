@@ -1,0 +1,28 @@
+[package]
+name = "deadlock"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+deadlock-api = { workspace = true }
+jiff = { workspace = true, features = ["std"] }
+jiff-sqlx = { workspace = true, features = ["postgres"] }
+moka = { workspace = true, features = ["future"] }
+reqwest = { workspace = true }
+secrecy = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true, features = ["std"] }
+sqlx = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+sqlx = { workspace = true, features = ["migrate"] }
+tokio = { workspace = true, features = ["macros", "rt", "net", "io-util"] }

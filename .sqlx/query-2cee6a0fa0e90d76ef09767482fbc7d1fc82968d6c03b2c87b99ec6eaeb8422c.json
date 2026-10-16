@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                body,\n                fetched_at as \"fetched_at: jiff_sqlx::Timestamp\",\n                expires_at > now() AS \"fresh!\"\n            FROM deadlock_api_cache\n            WHERE key = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "body",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deadlock_api_cache",
+            "name": "body"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "fetched_at: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deadlock_api_cache",
+            "name": "fetched_at"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "fresh!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "2cee6a0fa0e90d76ef09767482fbc7d1fc82968d6c03b2c87b99ec6eaeb8422c"
+}

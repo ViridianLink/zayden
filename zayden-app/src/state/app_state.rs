@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use secrecy::SecretString;
 use sqlx::PgPool;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Sender;
@@ -31,15 +32,15 @@ pub struct AppState {
     pub serving: Arc<ServingResolver>,
     pub events: Sender<AppEvent>,
     pub http: reqwest::Client,
-    pub discord_token: String,
-    pub ai_provider_key: String,
+    pub discord_token: SecretString,
+    pub ai_provider_key: SecretString,
     pub ai_api_endpoint: String,
     pub ai_model: String,
     pub ai_model_structured: String,
     pub ai_model_pro: String,
-    pub google_api_key: String,
-    pub error_log_webhook: String,
-    pub normal_log_webhook: String,
+    pub google_api_key: SecretString,
+    pub error_log_webhook: SecretString,
+    pub normal_log_webhook: SecretString,
     /// Discord user/application ID of the bot itself.
     pub zayden_id: u64,
     pub zayden_guild: u64,
@@ -88,11 +89,14 @@ impl AppState {
             ai_model_structured: config.ai_model_structured.clone(),
             ai_model_pro: config.ai_model_pro.clone(),
             google_api_key: config.google_api_key.clone(),
-            error_log_webhook: config.error_log_webhook.clone().unwrap_or_default(),
+            error_log_webhook: config
+                .error_log_webhook
+                .clone()
+                .unwrap_or_else(|| SecretString::from(String::new())),
             normal_log_webhook: config
                 .normal_log_webhook
                 .clone()
-                .unwrap_or_default(),
+                .unwrap_or_else(|| SecretString::from(String::new())),
             zayden_id: config.zayden_id,
             zayden_guild: config.zayden_guild,
             upgrade_url: config.upgrade_url.clone(),

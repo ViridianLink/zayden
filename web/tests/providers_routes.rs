@@ -17,6 +17,7 @@ use hmac::{Hmac, KeyInit, Mac};
 use http_body_util::BodyExt;
 use jiff::{SignedDuration, Timestamp};
 use md5::Md5;
+use secrecy::SecretString;
 use sha1::Sha1;
 use sqlx::PgPool;
 use sqlx::postgres::{PgListener, PgPoolOptions};
@@ -54,11 +55,11 @@ const CROSS_SITE: [(&str, &str); 3] = [
 
 fn config(connectable: bool) -> BotConfig {
     BotConfig {
-        discord_token: "test-bot-token".to_owned(),
-        bungie_api_key: String::new(),
-        ai_provider_key: String::new(),
-        google_api_key: "api-key".to_owned(),
-        discord_client_secret: "test-client-secret".to_owned(),
+        discord_token: SecretString::from("test-bot-token"),
+        bungie_api_key: SecretString::from(""),
+        ai_provider_key: SecretString::from(""),
+        google_api_key: SecretString::from("api-key"),
+        discord_client_secret: SecretString::from("test-client-secret"),
         spotify: None,
         ai_api_endpoint: String::new(),
         ai_model: String::new(),
@@ -71,6 +72,7 @@ fn config(connectable: bool) -> BotConfig {
         error_log_webhook: None,
         normal_log_webhook: None,
         flaresolverr_url: None,
+        deadlock_api_key: None,
         youtube_cookies: None,
         palworld_paldex_url: None,
         palworld_palcalc_url: None,
@@ -84,15 +86,15 @@ fn config(connectable: bool) -> BotConfig {
         bind_addr: "127.0.0.1:0".to_owned(),
         invite_url: None,
         upgrade_url: None,
-        kofi_verification_token: Some(KOFI_TOKEN.to_owned()),
+        kofi_verification_token: Some(SecretString::from(KOFI_TOKEN)),
         patreon: connectable.then(|| PatreonConfig {
             client_id: "patreon-client".to_owned(),
-            client_secret: "patreon-secret".to_owned(),
+            client_secret: SecretString::from("patreon-secret"),
             redirect_uri: "http://localhost:3000/patreon/callback".to_owned(),
         }),
         youtube: connectable.then(|| YoutubeConfig {
             client_id: "google-client".to_owned(),
-            client_secret: "google-secret".to_owned(),
+            client_secret: SecretString::from("google-secret"),
             redirect_uri: "http://localhost:3000/youtube/callback".to_owned(),
             webhook_uri: "http://localhost:3000/webhooks/youtube".to_owned(),
         }),

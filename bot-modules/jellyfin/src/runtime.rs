@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use reqwest::Client;
+use secrecy::ExposeSecret;
 use zayden_app::config::JellyfinConfig;
 
 use crate::cache::JellyfinCaches;
@@ -22,7 +23,7 @@ impl JellyfinRuntime {
             http.clone(),
             config.internal_url.clone(),
             config.public_url.clone(),
-            config.api_key.clone(),
+            config.api_key.expose_secret().to_owned(),
             config.movie_library_id.clone(),
             config.show_library_id.clone(),
         );
@@ -30,13 +31,13 @@ impl JellyfinRuntime {
         let playback = PlaybackClient::new(
             http.clone(),
             config.internal_url.clone(),
-            config.api_key.clone(),
+            config.api_key.expose_secret().to_owned(),
         );
 
         let seer = SeerClient::new(
             http,
             &config.seer_base_url,
-            config.seer_api_key.clone(),
+            config.seer_api_key.expose_secret().to_owned(),
             config.region.clone(),
         )?;
 
@@ -45,7 +46,10 @@ impl JellyfinRuntime {
             seer,
             playback,
             caches: JellyfinCaches::new(),
-            dddie_api_key: config.dddie_api_key.clone(),
+            dddie_api_key: config
+                .dddie_api_key
+                .as_ref()
+                .map(|key| key.expose_secret().to_owned()),
         }))
     }
 

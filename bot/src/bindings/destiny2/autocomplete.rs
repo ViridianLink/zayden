@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use destiny2::commands::Command as Destiny2Command;
+use secrecy::ExposeSecret;
 use tokio::sync::RwLock;
 use zayden_core::ctx::AutocompleteCtx;
 use zayden_core::error::HandlerError;
@@ -34,7 +35,7 @@ impl ModuleAutocomplete for Destiny2 {
             option,
             &cx.app.db,
             &client,
-            &cx.app.google_api_key,
+            cx.app.google_api_key.expose_secret(),
         )
         .await?;
 

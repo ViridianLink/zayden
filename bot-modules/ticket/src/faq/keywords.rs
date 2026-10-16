@@ -2,6 +2,7 @@ use std::fmt::Write as _;
 
 use ai::chat::{Message as ChatMessage, Role};
 use ai::openai::AiClient;
+use secrecy::ExposeSecret;
 use serde::Deserialize;
 use zayden_app::state::AppState;
 
@@ -70,7 +71,7 @@ pub(crate) async fn extract(
     ];
 
     let client = AiClient::new(
-        &app.ai_provider_key,
+        app.ai_provider_key.expose_secret(),
         &app.ai_api_endpoint,
         &app.ai_model_structured,
     )?;

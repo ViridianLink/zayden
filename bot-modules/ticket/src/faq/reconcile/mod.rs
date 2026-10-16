@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 
 use ai::openai::AiClient;
 use jiff::Timestamp;
+use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use zayden_app::state::AppState;
 
@@ -122,7 +123,7 @@ impl Reconciler {
 
     pub fn from_app(app: &AppState) -> Result<Self, ai::Error> {
         Self::new(
-            &app.ai_provider_key,
+            app.ai_provider_key.expose_secret(),
             &app.ai_api_endpoint,
             &app.ai_model_structured,
             &app.ai_model_pro,

@@ -18,6 +18,7 @@ jiff = { workspace = true }
 moka = { workspace = true, features = ["future"] }
 rand = { workspace = true }
 reqwest = { workspace = true }
+secrecy = { workspace = true }
 serenity = { workspace = true }
 sqlx = { workspace = true, features = ["migrate"] }
 tracing = { workspace = true }

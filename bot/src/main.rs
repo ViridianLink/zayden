@@ -4,6 +4,7 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
+use secrecy::ExposeSecret;
 use serenity::all::{ClientBuilder, GatewayIntents, Http, Token};
 use sqlx::PgPool;
 use tokio::sync::{OnceCell, RwLock};
@@ -85,7 +86,11 @@ async fn main() -> Result<()> {
     modules::validate(&registry.commands_by_module())?;
 
     let mut client = ClientBuilder::new(
-        bot_config.discord_token.parse::<Token>().map_err(serenity::Error::Token)?,
+        bot_config
+            .discord_token
+            .expose_secret()
+            .parse::<Token>()
+            .map_err(serenity::Error::Token)?,
         GatewayIntents::GUILDS
             | GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::GUILD_MESSAGE_REACTIONS
@@ -105,8 +110,8 @@ async fn main() -> Result<()> {
 
     logging(
         Arc::clone(&client.http),
-        bot_config.error_log_webhook.as_deref(),
-        bot_config.normal_log_webhook.as_deref(),
+        bot_config.error_log_webhook.as_ref().map(ExposeSecret::expose_secret),
+        bot_config.normal_log_webhook.as_ref().map(ExposeSecret::expose_secret),
     )
     .await;
 

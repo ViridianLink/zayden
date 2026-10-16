@@ -145,6 +145,7 @@ redundant_pub_crate = "allow"
 # -- Workspace members
 accounts = { path = "./bot-modules/accounts" }
 ai = { path = "./bot-modules/ai" }
+deadlock = { path = "./bot-modules/deadlock" }
 destiny2 = { path = "./bot-modules/destiny2" }
 family = { path = "./bot-modules/family" }
 gambling = { path = "./bot-modules/gambling" }
@@ -173,6 +174,7 @@ zayden-app = { path = "./zayden-app" }
 
 # -- First-party git dependencies
 bungie-api = { git = "https://github.com/ViridianLink/bungie-api.git", branch = "main" }
+deadlock-api = { git = "https://github.com/ViridianLink/deadlock-api.git", branch = "main" }
 google-sheets-api = { git = "https://github.com/ViridianLink/google-sheets-api.git", branch = "main" }
 
 # -- Discord

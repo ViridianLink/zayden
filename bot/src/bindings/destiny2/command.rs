@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use destiny2::commands::Command as Destiny2Command;
+use secrecy::ExposeSecret;
 use serenity::all::{CreateCommand, GuildId};
 use tokio::sync::RwLock;
 use zayden_core::ctx::InvocationCtx;
@@ -39,7 +40,7 @@ impl ModuleCommand for Destiny2 {
             cx.interaction,
             &cx.app.db,
             &client,
-            &cx.app.google_api_key,
+            cx.app.google_api_key.expose_secret(),
             parent_token,
             GuildId::new(cx.app.zayden_guild),
         )

@@ -21,6 +21,7 @@ jiff = { workspace = true }
 jiff-cron = { workspace = true }
 jiff-sqlx = { workspace = true }
 reqwest = { workspace = true, features = ["rustls", "http2", "json", "query"] }
+secrecy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 serenity = { workspace = true }

@@ -198,6 +198,12 @@ impl From<bungie_api::BungieApiError> for BotError {
     }
 }
 
+impl From<deadlock::DeadlockError> for BotError {
+    fn from(e: deadlock::DeadlockError) -> Self {
+        Self::Other(e.to_string())
+    }
+}
+
 impl From<std::io::Error> for BotError {
     fn from(e: std::io::Error) -> Self {
         Self::Other(e.to_string())

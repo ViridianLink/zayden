@@ -3,6 +3,7 @@ use std::sync::OnceLock;
 use ai::chat::{Message as ChatMessage, Role, strip_speaker_prefix};
 use ai::openai::AiClient;
 use ai::persona::Persona;
+use secrecy::ExposeSecret;
 use serenity::all::{Context, CurrentUser, Message, UserId};
 use tracing::debug;
 use zayden_app::entitlement::Tier;
@@ -240,7 +241,7 @@ impl Ai {
         if let Err(e) = Self::reply(
             ctx,
             message,
-            &app.ai_provider_key,
+            app.ai_provider_key.expose_secret(),
             &app.ai_api_endpoint,
             &params,
         )

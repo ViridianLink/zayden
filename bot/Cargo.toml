@@ -13,6 +13,7 @@ workspace = true
 [dependencies]
 accounts = { workspace = true }
 ai = { workspace = true }
+deadlock = { workspace = true }
 destiny2 = { workspace = true }
 family = { workspace = true }
 gambling = { workspace = true }

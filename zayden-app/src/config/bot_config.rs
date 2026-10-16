@@ -3,6 +3,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use secrecy::SecretString;
 use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::warn;
@@ -33,13 +34,13 @@ const DEFAULT_PALWORLD_UPLOADS_DIR: &str = "palworld_uploads";
 #[derive(Debug, Clone)]
 pub struct SpotifyCredentials {
     pub client_id: String,
-    pub client_secret: String,
+    pub client_secret: SecretString,
 }
 
 #[derive(Debug, Clone)]
 pub struct PelicanConfig {
     pub base_url: String,
-    pub api_key: String,
+    pub api_key: SecretString,
     pub save: Option<PelicanSaveConfig>,
 }
 
@@ -77,26 +78,26 @@ pub struct HostingConfig {
 pub struct JellyfinConfig {
     pub internal_url: String,
     pub public_url: String,
-    pub api_key: String,
+    pub api_key: SecretString,
     pub movie_library_id: String,
     pub show_library_id: String,
     pub seer_base_url: String,
-    pub seer_api_key: String,
+    pub seer_api_key: SecretString,
     pub region: String,
-    pub dddie_api_key: Option<String>,
+    pub dddie_api_key: Option<SecretString>,
 }
 
 #[derive(Debug, Clone)]
 pub struct PatreonConfig {
     pub client_id: String,
-    pub client_secret: String,
+    pub client_secret: SecretString,
     pub redirect_uri: String,
 }
 
 #[derive(Debug, Clone)]
 pub struct YoutubeConfig {
     pub client_id: String,
-    pub client_secret: String,
+    pub client_secret: SecretString,
     pub redirect_uri: String,
     /// Where the `WebSub` hub delivers upload notifications. Both processes
     /// need it: the dashboard subscribes on connect, the bot renews leases.
@@ -105,11 +106,11 @@ pub struct YoutubeConfig {
 
 #[derive(Debug, Clone)]
 pub struct BotConfig {
-    pub discord_token: String,
-    pub bungie_api_key: String,
-    pub ai_provider_key: String,
-    pub google_api_key: String,
-    pub discord_client_secret: String,
+    pub discord_token: SecretString,
+    pub bungie_api_key: SecretString,
+    pub ai_provider_key: SecretString,
+    pub google_api_key: SecretString,
+    pub discord_client_secret: SecretString,
     pub spotify: Option<SpotifyCredentials>,
 
     pub ai_api_endpoint: String,
@@ -123,10 +124,12 @@ pub struct BotConfig {
     /// Discord user/application ID of the Zayden bot itself.
     pub zayden_id: u64,
 
-    pub error_log_webhook: Option<String>,
-    pub normal_log_webhook: Option<String>,
+    pub error_log_webhook: Option<SecretString>,
+    pub normal_log_webhook: Option<SecretString>,
 
     pub flaresolverr_url: Option<String>,
+
+    pub deadlock_api_key: Option<SecretString>,
 
     pub youtube_cookies: Option<PathBuf>,
 
@@ -148,7 +151,7 @@ pub struct BotConfig {
     pub invite_url: Option<String>,
     pub upgrade_url: Option<String>,
 
-    pub kofi_verification_token: Option<String>,
+    pub kofi_verification_token: Option<SecretString>,
 
     pub patreon: Option<PatreonConfig>,
     pub youtube: Option<YoutubeConfig>,
@@ -161,18 +164,19 @@ pub struct BotConfig {
 
 impl BotConfig {
     pub async fn load(pool: &PgPool) -> Result<Self> {
-        let discord_token = require_env("DISCORD_TOKEN")?;
-        let bungie_api_key = require_env("BUNGIE_API_KEY")?;
-        let ai_provider_key = require_env("AI_PROVIDER_KEY")?;
-        let google_api_key = require_env("GOOGLE_API_KEY")?;
-        let discord_client_secret = require_env("DISCORD_CLIENT_SECRET")?;
+        let discord_token = require_env("DISCORD_TOKEN")?.into();
+        let bungie_api_key = require_env("BUNGIE_API_KEY")?.into();
+        let ai_provider_key = require_env("AI_PROVIDER_KEY")?.into();
+        let google_api_key = require_env("GOOGLE_API_KEY")?.into();
+        let discord_client_secret = require_env("DISCORD_CLIENT_SECRET")?.into();
         let spotify = match (
             env::var("SPOTIFY_CLIENT_ID"),
             env::var("SPOTIFY_CLIENT_SECRET"),
         ) {
-            (Ok(client_id), Ok(client_secret)) => {
-                Some(SpotifyCredentials { client_id, client_secret })
-            },
+            (Ok(client_id), Ok(client_secret)) => Some(SpotifyCredentials {
+                client_id,
+                client_secret: client_secret.into(),
+            }),
             (Err(_), Err(_)) => None,
             (Ok(_), Err(_)) | (Err(_), Ok(_)) => {
                 warn!(
@@ -241,13 +245,20 @@ impl BotConfig {
             error_log_webhook: db
                 .as_ref()
                 .and_then(|r| r.error_log_webhook.clone())
-                .or_else(|| env::var("ERROR_LOG_WEBHOOK").ok()),
+                .or_else(|| env::var("ERROR_LOG_WEBHOOK").ok())
+                .map(SecretString::from),
             normal_log_webhook: db
                 .as_ref()
                 .and_then(|r| r.normal_log_webhook.clone())
-                .or_else(|| env::var("NORMAL_LOG_WEBHOOK").ok()),
+                .or_else(|| env::var("NORMAL_LOG_WEBHOOK").ok())
+                .map(SecretString::from),
 
             flaresolverr_url: env::var("FLARESOLVERR_URL").ok(),
+
+            deadlock_api_key: env::var("DEADLOCK_API_KEY")
+                .ok()
+                .filter(|key| !key.is_empty())
+                .map(SecretString::from),
 
             youtube_cookies: youtube_cookies_path(),
 
@@ -287,7 +298,9 @@ impl BotConfig {
                 .unwrap_or_else(|| DEFAULT_BIND_ADDR.to_owned()),
             invite_url: toml_cfg.dashboard.invite_url,
             upgrade_url: toml_cfg.dashboard.upgrade_url,
-            kofi_verification_token: env::var("KOFI_VERIFICATION_TOKEN").ok(),
+            kofi_verification_token: env::var("KOFI_VERIFICATION_TOKEN")
+                .ok()
+                .map(SecretString::from),
 
             patreon,
             youtube,
@@ -358,7 +371,7 @@ fn load_pelican_config(toml_cfg: &TomlConfig) -> Option<PelicanConfig> {
         },
     };
 
-    Some(PelicanConfig { base_url, api_key, save })
+    Some(PelicanConfig { base_url, api_key: api_key.into(), save })
 }
 
 const DEFAULT_HOSTING_TRIAL_HOURS: i64 = 4;
@@ -483,16 +496,18 @@ fn load_jellyfin_config(toml_cfg: &TomlConfig) -> Option<JellyfinConfig> {
     Some(JellyfinConfig {
         internal_url: cfg.internal_url.clone().unwrap_or_else(|| public_url.clone()),
         public_url,
-        api_key,
+        api_key: api_key.into(),
         movie_library_id,
         show_library_id,
         seer_base_url,
-        seer_api_key,
+        seer_api_key: seer_api_key.into(),
         region: cfg
             .region
             .clone()
             .unwrap_or_else(|| DEFAULT_JELLYFIN_REGION.to_owned()),
-        dddie_api_key: env::var("DOESTHEDOGDIE_API_KEY").ok(),
+        dddie_api_key: env::var("DOESTHEDOGDIE_API_KEY")
+            .ok()
+            .map(SecretString::from),
     })
 }
 
@@ -501,9 +516,11 @@ fn load_patreon_config(redirect_uri: String) -> Option<PatreonConfig> {
         env::var("PATREON_CLIENT_ID").ok(),
         env::var("PATREON_CLIENT_SECRET").ok(),
     ) {
-        (Some(client_id), Some(client_secret)) => {
-            Some(PatreonConfig { client_id, client_secret, redirect_uri })
-        },
+        (Some(client_id), Some(client_secret)) => Some(PatreonConfig {
+            client_id,
+            client_secret: client_secret.into(),
+            redirect_uri,
+        }),
         (None, None) => None,
         _ => {
             warn!(
@@ -535,7 +552,7 @@ fn load_youtube_config(redirect_uri: String) -> Option<YoutubeConfig> {
 
             Some(YoutubeConfig {
                 client_id,
-                client_secret,
+                client_secret: client_secret.into(),
                 redirect_uri,
                 webhook_uri,
             })

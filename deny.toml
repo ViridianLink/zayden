@@ -45,6 +45,11 @@ expression = "LicenseRef-Proprietary"
 license-files = []
 
 [[licenses.clarify]]
+name = "deadlock-api"
+expression = "LicenseRef-Proprietary"
+license-files = []
+
+[[licenses.clarify]]
 name = "google-sheets-api"
 expression = "LicenseRef-Proprietary"
 license-files = []
@@ -71,5 +76,6 @@ allow-git = [
     "https://github.com/KiloOscarSix/songbird",
     "https://github.com/Erk-/rsget",
     "https://github.com/ViridianLink/bungie-api.git",
+    "https://github.com/ViridianLink/deadlock-api.git",
     "https://github.com/ViridianLink/google-sheets-api.git",
 ]

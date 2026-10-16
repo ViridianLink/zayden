@@ -27,7 +27,8 @@ rand = { workspace = true, features = ["thread_rng"] }
 reaction-roles = { workspace = true }
 reqwest = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
-serde = { workspace = true, features = ["derive"] }
+secrecy = { workspace = true }
+serde ={ workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
 sqlx = { workspace = true }

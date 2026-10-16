@@ -7,6 +7,7 @@ use jellyfin::JellyfinError;
 use jellyfin::runtime::JellyfinRuntime;
 use jellyfin::transport::jellyseerr::discover::DiscoverFilters;
 use jellyfin::transport::jellyseerr::model::{MediaType, SearchResult};
+use secrecy::ExposeSecret;
 use serde::Deserialize;
 use zayden_app::state::AppState;
 
@@ -84,12 +85,12 @@ pub fn genre_id(name: &str) -> Option<i32> {
 }
 
 pub async fn facets(app: &AppState, description: &str) -> Result<VibeFacets> {
-    if app.ai_provider_key.is_empty() {
+    if app.ai_provider_key.expose_secret().is_empty() {
         return Err(JellyfinError::AiUnavailable.into());
     }
 
     let client = AiClient::new(
-        &app.ai_provider_key,
+        app.ai_provider_key.expose_secret(),
         &app.ai_api_endpoint,
         &app.ai_model_structured,
     )

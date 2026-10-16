@@ -481,6 +481,7 @@ dependencies = [
  "async-trait",
  "bungie-api",
  "dashmap",
+ "deadlock",
  "destiny2",
  "dotenvy",
  "family",
@@ -1246,6 +1247,35 @@ dependencies = [
  "subtle",
  "thiserror 2.0.21",
  "tracing",
+]
+
+[[package]]
+name = "deadlock"
+version = "1.0.0"
+dependencies = [
+ "deadlock-api",
+ "jiff",
+ "jiff-sqlx",
+ "moka",
+ "reqwest 0.13.5",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "deadlock-api"
+version = "0.1.0"
+dependencies = [
+ "jiff",
+ "reqwest 0.13.5",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]
@@ -2097,6 +2127,7 @@ dependencies = [
  "moka",
  "rand 0.10.3",
  "reqwest 0.13.5",
+ "secrecy",
  "serde_json",
  "serenity",
  "sqlx",
@@ -2814,6 +2845,7 @@ dependencies = [
  "moka",
  "quick-xml",
  "reqwest 0.13.5",
+ "secrecy",
  "serde",
  "serde_json",
  "serenity",
@@ -6367,6 +6399,7 @@ dependencies = [
  "regex",
  "reqwest 0.13.5",
  "scraper",
+ "secrecy",
  "serde",
  "serde_json",
  "serenity",
@@ -7708,6 +7741,7 @@ dependencies = [
  "jiff-cron",
  "jiff-sqlx",
  "reqwest 0.13.5",
+ "secrecy",
  "serde",
  "serde_json",
  "serenity",
@@ -7742,6 +7776,7 @@ dependencies = [
  "reaction-roles",
  "reqwest 0.13.5",
  "rustls",
+ "secrecy",
  "serde",
  "serde_json",
  "sha1 0.11.0",

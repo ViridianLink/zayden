@@ -14,6 +14,7 @@ use oauth2::{
     TokenUrl,
 };
 use patreon::oauth::PatreonApp;
+use secrecy::{ExposeSecret, SecretString};
 use twilight_model::user::CurrentUserGuild;
 use youtube::{YoutubeApp, YoutubeRuntime};
 use zayden_app::config::BotConfig;
@@ -63,7 +64,7 @@ pub struct IntegrationsState {
     pub patreon_webhook_uri: String,
     pub youtube: Option<YoutubeApp>,
     pub youtube_runtime: Option<YoutubeRuntime>,
-    pub kofi_verification_token: Option<String>,
+    pub kofi_verification_token: Option<SecretString>,
 }
 
 pub struct SiteUrls {
@@ -95,7 +96,7 @@ impl WebState {
             },
             discord: DiscordState {
                 http: Arc::new(twilight_http::Client::new(
-                    config.discord_token.clone(),
+                    config.discord_token.expose_secret().to_owned(),
                 )),
                 user_guilds: cache(CACHE_TTL),
                 users: cache(USERS_CACHE_TTL),
@@ -104,7 +105,7 @@ impl WebState {
             integrations: IntegrationsState {
                 patreon: config.patreon.as_ref().map(|p| PatreonApp {
                     client_id: p.client_id.clone(),
-                    client_secret: p.client_secret.clone(),
+                    client_secret: p.client_secret.expose_secret().to_owned(),
                     redirect_uri: p.redirect_uri.clone(),
                 }),
                 // Patreon delivers to a fixed URL, so it is derived from the
@@ -117,11 +118,11 @@ impl WebState {
                     }),
                 youtube: config.youtube.as_ref().map(|y| YoutubeApp {
                     client_id: y.client_id.clone(),
-                    client_secret: y.client_secret.clone(),
+                    client_secret: y.client_secret.expose_secret().to_owned(),
                     redirect_uri: y.redirect_uri.clone(),
                 }),
                 youtube_runtime: config.youtube.as_ref().map(|y| YoutubeRuntime {
-                    api_key: Arc::from(config.google_api_key.as_str()),
+                    api_key: Arc::from(config.google_api_key.expose_secret()),
                     webhook_uri: Arc::from(y.webhook_uri.as_str()),
                 }),
                 kofi_verification_token: config.kofi_verification_token.clone(),
@@ -158,7 +159,9 @@ where
 
 fn build_oauth_client(config: &BotConfig) -> Result<DiscordOAuthClient, ParseError> {
     Ok(BasicClient::new(ClientId::new(config.zayden_id.to_string()))
-        .set_client_secret(ClientSecret::new(config.discord_client_secret.clone()))
+        .set_client_secret(ClientSecret::new(
+            config.discord_client_secret.expose_secret().to_owned(),
+        ))
         .set_auth_uri(AuthUrl::new(DISCORD_OAUTH_AUTH_URL.to_string())?)
         .set_token_uri(TokenUrl::new(DISCORD_OAUTH_TOKEN_URL.to_string())?)
         .set_redirect_uri(RedirectUrl::new(config.redirect_uri.clone())?))

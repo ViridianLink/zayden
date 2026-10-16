@@ -2,6 +2,7 @@ use std::env;
 use std::error::Error;
 use std::time::Duration;
 
+use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use ticket::FaqArticle;
 use ticket::faq::reconcile::{Outcome, Reconciler, Subject, candidates};
@@ -35,7 +36,7 @@ async fn main() -> Result<(), BoxError> {
     let pool = PgPool::connect(&env::var("DATABASE_URL")?).await?;
     let config = BotConfig::load(&pool).await?;
     let reconciler = Reconciler::new(
-        &config.ai_provider_key,
+        config.ai_provider_key.expose_secret(),
         &config.ai_api_endpoint,
         &config.ai_model_structured,
         &config.ai_model_pro,

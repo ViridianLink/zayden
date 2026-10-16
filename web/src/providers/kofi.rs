@@ -1,6 +1,7 @@
 use hosting::kofi::{Payment, Settlement};
 use hosting::{kofi, pricing};
 use jiff::Timestamp;
+use secrecy::ExposeSecret;
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Json;
@@ -36,8 +37,11 @@ pub(super) async fn kofi_webhook_handler(cx: &Cx, body: Bytes) -> Result<Respons
     };
 
     let app = app_state(cx)?;
-    let verification_token =
-        web_state(cx)?.integrations.kofi_verification_token.as_deref();
+    let verification_token = web_state(cx)?
+        .integrations
+        .kofi_verification_token
+        .as_ref()
+        .map(ExposeSecret::expose_secret);
 
     process(app, verification_token, &data).await;
     acknowledge(cx)

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deadlock_api_cache SET expires_at = now() - interval '1 hour'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "e2f8f7ec1562e6ed6e2d097dc263770844a3e9e700e7f9e62ac065a4a5ba390b"
+}

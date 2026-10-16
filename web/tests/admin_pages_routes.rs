@@ -24,6 +24,7 @@ use destiny2::loadouts::{
     StatKind,
 };
 use http_body_util::BodyExt;
+use secrecy::SecretString;
 use sqlx::PgPool;
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
@@ -90,11 +91,11 @@ fn write_bundle() -> TestResult<PathBuf> {
 
 fn config() -> BotConfig {
     BotConfig {
-        discord_token: "test-bot-token".to_owned(),
-        bungie_api_key: String::new(),
-        ai_provider_key: String::new(),
-        google_api_key: String::new(),
-        discord_client_secret: "test-client-secret".to_owned(),
+        discord_token: SecretString::from("test-bot-token"),
+        bungie_api_key: SecretString::from(""),
+        ai_provider_key: SecretString::from(""),
+        google_api_key: SecretString::from(""),
+        discord_client_secret: SecretString::from("test-client-secret"),
         spotify: None,
         ai_api_endpoint: String::new(),
         ai_model: String::new(),
@@ -107,6 +108,7 @@ fn config() -> BotConfig {
         error_log_webhook: None,
         normal_log_webhook: None,
         flaresolverr_url: None,
+        deadlock_api_key: None,
         youtube_cookies: None,
         palworld_paldex_url: None,
         palworld_palcalc_url: None,

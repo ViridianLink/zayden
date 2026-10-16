@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO deadlock_api_cache\n                (key, kind, client_version, body, fetched_at, expires_at)\n            VALUES ($1, $2, $3, $4, now(), now() + make_interval(secs => $5))\n            ON CONFLICT (key) DO UPDATE SET\n                kind = EXCLUDED.kind,\n                client_version = EXCLUDED.client_version,\n                body = EXCLUDED.body,\n                fetched_at = now(),\n                expires_at = EXCLUDED.expires_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int4",
+        "Text",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "eca0a35970b81066e5e7885a3f94f48e05cd99429d26fe191c2447b9e13c0889"
+}

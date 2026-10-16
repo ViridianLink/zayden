@@ -1,5 +1,6 @@
 use rand::rng;
 use rand::seq::IndexedRandom;
+use secrecy::ExposeSecret;
 use serenity::all::{
     CommandOptionType,
     CreateAttachment,
@@ -48,7 +49,14 @@ async fn attach(
     url: &str,
     kind: GreetingKind,
 ) -> Option<CreateAttachment<'static>> {
-    match attachment::fetch(&cx.app.http, &cx.app.discord_token, url, kind).await {
+    match attachment::fetch(
+        &cx.app.http,
+        cx.app.discord_token.expose_secret(),
+        url,
+        kind,
+    )
+    .await
+    {
         Ok(attachment) => Some(attachment),
         Err(error) => {
             tracing::warn!(

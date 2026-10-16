@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use bungie_api::{BungieClient, BungieClientBuilder};
 use dashmap::DashMap;
+use deadlock::DeadlockApi;
 use destiny2::endgame_analysis::EndgameAnalysisSheetCron;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use hosting::HostingRuntime;
@@ -22,6 +23,7 @@ use palworld::cron::{
 use palworld::transport::Pelican;
 use patreon::PatreonPollCron;
 use patreon::oauth::PatreonApp;
+use secrecy::{ExposeSecret, SecretString};
 use serenity::all::{Context, GenericChannelId, Guild, GuildId, Ready, UserId};
 use songbird::Songbird;
 use sqlx::PgPool;
@@ -52,12 +54,13 @@ pub struct BotState {
     pub music_resolver: Arc<dyn TrackResolver>,
     pub voice_states: Arc<VoiceStateCache>,
     pub marathon: Arc<MarathonClient>,
+    pub deadlock: Arc<DeadlockApi>,
     pub palworld: Arc<PalworldClient>,
     pub bungie_client: Arc<BungieClient>,
     pub wiki_index: Arc<WikiIndex>,
     pub jellyfin: Option<Arc<JellyfinRuntime>>,
     pub hosting: Option<Arc<HostingRuntime>>,
-    marathon_bungie_api_key: String,
+    marathon_bungie_api_key: SecretString,
     pub patreon: Option<Arc<PatreonApp>>,
     pub youtube: Option<YoutubeRuntime>,
     pub dashboard_url: Arc<str>,
@@ -74,20 +77,28 @@ impl BotState {
         config: &BotConfig,
         music_resolver: Arc<dyn TrackResolver>,
     ) -> Result<Self> {
-        let bungie_client =
-            BungieClientBuilder::new(config.bungie_api_key.clone()).build()?;
+        let bungie_client = BungieClientBuilder::new(
+            config.bungie_api_key.expose_secret().to_owned(),
+        )
+        .build()?;
 
         let marathon = Arc::new(MarathonClient::new(
             app.http.clone(),
             config.flaresolverr_url.clone(),
         ));
 
+        let deadlock = Arc::new(DeadlockApi::new(
+            app.http.clone(),
+            app.db.clone(),
+            config.deadlock_api_key.as_ref(),
+        )?);
+
         let pelican = config.pelican.clone().and_then(|p| {
             let save = p.save?;
             Some(Pelican::new(
                 app.http.clone(),
                 p.base_url,
-                p.api_key,
+                p.api_key.expose_secret().to_owned(),
                 save.server_id,
                 save.save_path,
             ))
@@ -106,13 +117,13 @@ impl BotState {
         let patreon = config.patreon.as_ref().map(|p| {
             Arc::new(PatreonApp {
                 client_id: p.client_id.clone(),
-                client_secret: p.client_secret.clone(),
+                client_secret: p.client_secret.expose_secret().to_owned(),
                 redirect_uri: p.redirect_uri.clone(),
             })
         });
 
         let youtube = config.youtube.as_ref().map(|y| YoutubeRuntime {
-            api_key: Arc::from(config.google_api_key.as_str()),
+            api_key: Arc::from(config.google_api_key.expose_secret()),
             webhook_uri: Arc::from(y.webhook_uri.as_str()),
         });
 
@@ -129,7 +140,7 @@ impl BotState {
                 let runtime = Arc::new(HostingRuntime::new(
                     app.http.clone(),
                     &pelican.base_url,
-                    &pelican.api_key,
+                    pelican.api_key.expose_secret(),
                     hosting.clone(),
                 ));
                 HostingRuntime::spawn_paid_listener(
@@ -151,6 +162,7 @@ impl BotState {
             music_resolver,
             voice_states: Arc::new(VoiceStateCache::new()),
             marathon,
+            deadlock,
             palworld,
             bungie_client: Arc::new(bungie_client),
             wiki_index,
@@ -248,12 +260,12 @@ impl BotState {
             HigherLower::cron_job(),
             EndgameAnalysisSheetCron::cron_job(
                 Arc::clone(&self.bungie_client),
-                self.app.google_api_key.clone(),
+                self.app.google_api_key.expose_secret().to_owned(),
             ),
             MarathonAnnounceCron::cron_job(Arc::clone(&self.marathon)),
             MarathonNewsCron::cron_job(
                 self.app.http.clone(),
-                Some(self.marathon_bungie_api_key.clone()),
+                Some(self.marathon_bungie_api_key.expose_secret().to_owned()),
             ),
             PalworldUploadSweepCron::cron_job(),
             PalworldSaveRefreshCron::cron_job(Arc::clone(&self.palworld)),
