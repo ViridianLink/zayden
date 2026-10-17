@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT heroes, items FROM deadlock_asset_snapshots WHERE client_version = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "heroes",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deadlock_asset_snapshots",
+            "name": "heroes"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "items",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deadlock_asset_snapshots",
+            "name": "items"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "0447b7ea4809bd5aadaedb37dbffdfe882d7abd9d807e7a1086550e06f7ba760"
+}

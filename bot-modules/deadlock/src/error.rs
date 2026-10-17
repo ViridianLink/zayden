@@ -23,6 +23,14 @@ pub enum DeadlockError {
     },
     #[error("invalid option: {0}")]
     InvalidOption(String),
+    #[error("invalid patch date `{0}`")]
+    PatchDate(String),
+    #[error("failed to encode {what}")]
+    Encode {
+        what: &'static str,
+        #[source]
+        source: serde_json::Error,
+    },
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
@@ -46,6 +54,8 @@ impl Respond for DeadlockError {
             Self::Api(_)
             | Self::CacheDecode { .. }
             | Self::InvalidOption(_)
+            | Self::PatchDate(_)
+            | Self::Encode { .. }
             | Self::Sqlx(_)
             | Self::Serenity(_) => None,
         }

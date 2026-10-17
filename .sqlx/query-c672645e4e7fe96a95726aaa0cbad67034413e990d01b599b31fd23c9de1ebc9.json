@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_asset_snapshots (client_version, heroes, items)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (client_version) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c672645e4e7fe96a95726aaa0cbad67034413e990d01b599b31fd23c9de1ebc9"
+}

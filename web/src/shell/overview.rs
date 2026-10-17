@@ -46,7 +46,9 @@ const RACK: &[RackGroup] = &[
     RackGroup {
         slug: "voice",
         title: "Voice & games",
-        modules: &["music", "jellyfin", "palworld", "marathon", "hosting"],
+        modules: &[
+            "music", "jellyfin", "palworld", "marathon", "deadlock", "hosting",
+        ],
     },
     RackGroup {
         slug: "integrations",

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE deadlock_patch_announce\n            SET ping_role_ids = array_append(ping_role_ids, $2),\n                updated_at = now()\n            WHERE guild_id = $1\n              AND NOT ($2 = ANY (ping_role_ids))\n              AND cardinality(ping_role_ids) < $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "41f19f617cfd9a6f3e6548133eaaef4f025192eec025b839eed3bf4219d9934c"
+}

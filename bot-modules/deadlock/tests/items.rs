@@ -1,5 +1,7 @@
+use std::collections::BTreeMap;
+
 use deadlock::items::ItemIndex;
-use deadlock_api::model::{Item, ItemKind};
+use deadlock_api::model::{Item, ItemKind, WeaponInfo};
 
 const ITEMS: &str = include_str!("fixtures/items.json");
 
@@ -14,6 +16,12 @@ fn item(id: u32, class_name: &str, name: &str) -> Item {
         cost: None,
         shopable: true,
         image: None,
+        hero: None,
+        heroes: Vec::new(),
+        ability_type: None,
+        properties: BTreeMap::new(),
+        upgrades: Vec::new(),
+        weapon_info: WeaponInfo::default(),
     }
 }
 

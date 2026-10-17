@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_watch_state (key, client_version)\n        VALUES ($1, $2)\n        ON CONFLICT (key) DO UPDATE\n        SET client_version = EXCLUDED.client_version,\n            updated_at = now()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e6081fbb411f71f6bb5621d8df9618969991e8333bc44980bf3ac64551da10ea"
+}

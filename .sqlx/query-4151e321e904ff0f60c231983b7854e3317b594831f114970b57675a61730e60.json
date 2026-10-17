@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE deadlock_patch_announce\n            SET ping_role_ids = array_remove(ping_role_ids, $2),\n                updated_at = now()\n            WHERE guild_id = $1 AND $2 = ANY (ping_role_ids)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4151e321e904ff0f60c231983b7854e3317b594831f114970b57675a61730e60"
+}

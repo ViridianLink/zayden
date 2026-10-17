@@ -129,6 +129,16 @@ const LFG: ModuleNav = ModuleNav {
     module_id: None,
 };
 
+const DEADLOCK: ModuleNav = ModuleNav {
+    label: "Deadlock",
+    dest: Dest::Section {
+        slug: "deadlock",
+        path: "deadlock",
+        lead: "Patch-note announcements for Deadlock.",
+    },
+    module_id: Some("deadlock"),
+};
+
 const AI_CHAT: ModuleNav = ModuleNav {
     label: "AI Chat",
     dest: Dest::Section {
@@ -171,7 +181,10 @@ pub const GROUPS: &[NavGroup] = &[
         entries: &[GREETINGS, LEVELS, REACTION_ROLES, FAMILY],
     },
     NavGroup { label: "Support & safety", entries: &[SUPPORT, HONEYPOT] },
-    NavGroup { label: "Voice & games", entries: &[MUSIC, TEMP_VOICE, LFG] },
+    NavGroup {
+        label: "Voice & games",
+        entries: &[MUSIC, TEMP_VOICE, LFG, DEADLOCK],
+    },
     NavGroup { label: "Integrations", entries: &[AI_CHAT, PATREON, YOUTUBE] },
 ];
 
@@ -186,6 +199,7 @@ pub const MODULES: &[ModuleNav] = &[
     MUSIC,
     TEMP_VOICE,
     LFG,
+    DEADLOCK,
     AI_CHAT,
     PATREON,
     YOUTUBE,

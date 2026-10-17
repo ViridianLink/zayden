@@ -1,5 +1,6 @@
 mod ai;
 mod announce;
+mod deadlock;
 mod family;
 mod faq;
 mod fields;
@@ -63,6 +64,7 @@ pub fn routes(base: RouterBuilder) -> RouterBuilder {
         temp_voice::routes,
         patreon::routes,
         youtube::routes,
+        deadlock::routes,
         support::routes,
     ]
     .into_iter()
@@ -101,6 +103,7 @@ pub enum Page {
     TempVoice,
     Patreon,
     Youtube,
+    Deadlock,
     Support(Pane),
 }
 
@@ -117,6 +120,7 @@ impl Page {
             Self::TempVoice => "temp-voice",
             Self::Patreon => "patreon",
             Self::Youtube => "youtube",
+            Self::Deadlock => "deadlock",
             Self::Support(_) => "support",
         }
     }
@@ -150,7 +154,8 @@ impl Page {
             | Self::Music
             | Self::TempVoice
             | Self::Patreon
-            | Self::Youtube => self.slug(),
+            | Self::Youtube
+            | Self::Deadlock => self.slug(),
         }
     }
 
@@ -352,6 +357,16 @@ async fn section_tab(
             )),
             SectionSettings::Ai(settings) => (view! {
                 ai::tab(
+                    guild_id: guild_id,
+                    settings: &settings,
+                    lists: lists,
+                    state: state
+                )
+            }.boxed(
+
+            )),
+            SectionSettings::Deadlock(settings) => (view! {
+                deadlock::tab(
                     guild_id: guild_id,
                     settings: &settings,
                     lists: lists,

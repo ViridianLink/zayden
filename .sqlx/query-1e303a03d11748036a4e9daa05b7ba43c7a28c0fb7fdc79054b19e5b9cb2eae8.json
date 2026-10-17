@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT guid,\n               title,\n               link,\n               published_at AS \"published_at: jiff_sqlx::Timestamp\",\n               detected_at AS \"detected_at: jiff_sqlx::Timestamp\",\n               diff\n        FROM deadlock_patches\n        WHERE announced_at IS NULL AND diff IS NULL\n        ORDER BY published_at, guid\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guid",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deadlock_patches",
+            "name": "guid"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deadlock_patches",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "link",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deadlock_patches",
+            "name": "link"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "published_at: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deadlock_patches",
+            "name": "published_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "detected_at: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "deadlock_patches",
+            "name": "detected_at"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "diff",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "deadlock_patches",
+            "name": "diff"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "1e303a03d11748036a4e9daa05b7ba43c7a28c0fb7fdc79054b19e5b9cb2eae8"
+}

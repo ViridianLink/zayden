@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_patches (guid, title, link, published_at, announced_at)\n        VALUES ($1, $2, $3, $4, CASE WHEN $5 THEN now() END)\n        ON CONFLICT (guid) DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "145e8c18397f7f441a2ff34ddb679e40bc939d2db67444e035ed252ea092d77a"
+}

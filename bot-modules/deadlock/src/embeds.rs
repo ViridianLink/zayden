@@ -8,19 +8,28 @@ use serenity::all::{
     CreateContainer,
     CreateContainerComponent,
 };
+use zayden_core::limits::message::{
+    COMPONENTS as MAX_COMPONENTS,
+    COMPONENTS_TEXT as MAX_TEXT,
+};
 use zayden_core::templates::{body_component, separator, text};
 
 use crate::analysis::{AbilityPicks, Counter, Counters, LaneSummary, Phase};
+use crate::db::patches::PatchRow;
+use crate::diff::{Change, HeroDiff, ItemDiff, PatchDiff, Presence};
 use crate::heroes::HeroIndex;
 use crate::items::ItemIndex;
 
-const ACCENT: Colour = Colour::new(0x00e0_8a2e);
+pub(crate) const ACCENT: Colour = Colour::new(0x00e0_8a2e);
 
 const ALL_RANKS: &str = "All ranks";
 const UNAVAILABLE: &str = "*Data unavailable.*";
+const NO_CHANGES: &str = "*No hero or item stat changes detected.*";
 const MAX_NAME_CHARS: usize = 100;
 const MAX_MODS_PER_CATEGORY: usize = 12;
 const COMPACT_THRESHOLD: u64 = 10_000;
+const TEXT_RESERVE: usize = 300;
+const MAX_SECTIONS: usize = MAX_COMPONENTS - 6;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Freshness {
@@ -322,4 +331,147 @@ pub fn matchup_component(
     }
 
     container(parts, fresh)
+}
+
+struct Section {
+    heading: String,
+    lines: Vec<String>,
+}
+
+fn change_line(scope: &str, change: &Change) -> String {
+    let label = &change.label;
+
+    match (&change.old, &change.new) {
+        (Some(old), Some(new)) => format!("- {scope}{label}: {old} → {new}"),
+        (None, Some(new)) => format!("- {scope}{label}: {new} (new)"),
+        (Some(_), None) => format!("- {scope}{label}: removed"),
+        (None, None) => format!("- {scope}{label}: changed"),
+    }
+}
+
+fn hero_section(hero: &HeroDiff) -> Section {
+    let mut lines = Vec::new();
+
+    match hero.presence {
+        Presence::Added => lines.push("- New hero".to_owned()),
+        Presence::Removed => {
+            lines.push("- Removed from the hero pool".to_owned());
+        },
+        Presence::Changed => {},
+    }
+
+    lines.extend(hero.stats.iter().map(|change| change_line("", change)));
+    lines.extend(hero.weapon.iter().map(|change| change_line("Weapon · ", change)));
+
+    for ability in &hero.abilities {
+        match ability.presence {
+            Presence::Added => {
+                lines.push(format!("- New ability: {}", ability.name));
+            },
+            Presence::Removed => {
+                lines.push(format!("- Removed ability: {}", ability.name));
+            },
+            Presence::Changed => {
+                let scope = format!("{} · ", ability.name);
+                lines.extend(
+                    ability.changes.iter().map(|change| change_line(&scope, change)),
+                );
+            },
+        }
+    }
+
+    Section { heading: format!("### {}", hero.name), lines }
+}
+
+fn items_section(items: &[ItemDiff]) -> Section {
+    let mut lines = Vec::new();
+
+    for item in items {
+        match item.presence {
+            Presence::Added => lines.push(format!("- New item: {}", item.name)),
+            Presence::Removed => {
+                lines.push(format!("- Removed item: {}", item.name));
+            },
+            Presence::Changed => {
+                let scope = format!("{}: ", item.name);
+                lines.extend(
+                    item.changes.iter().map(|change| change_line(&scope, change)),
+                );
+            },
+        }
+    }
+
+    Section { heading: "### Items".to_owned(), lines }
+}
+
+fn patch_sections(diff: &PatchDiff) -> Vec<Section> {
+    let mut sections: Vec<Section> = diff.heroes.iter().map(hero_section).collect();
+
+    if !diff.items.is_empty() {
+        sections.push(items_section(&diff.items));
+    }
+
+    sections
+}
+
+pub fn patch_component(
+    patch: &PatchRow,
+    text_budget: usize,
+) -> CreateComponent<'static> {
+    let header = format!(
+        "## {}\n[Read the official patch notes]({})",
+        patch.title, patch.link
+    );
+    let limit = text_budget.min(MAX_TEXT).saturating_sub(TEXT_RESERVE);
+    let mut used = header.chars().count();
+    let mut parts = vec![text(header)];
+
+    let sections = patch.diff.as_ref().map_or_else(Vec::new, patch_sections);
+    if sections.is_empty() {
+        parts.push(text(NO_CHANGES));
+        return CreateComponent::Container(
+            CreateContainer::new(parts).accent_colour(ACCENT),
+        );
+    }
+
+    let total: usize = sections.iter().map(|section| section.lines.len()).sum();
+    let mut shown = 0;
+
+    'sections: for section in sections.iter().take(MAX_SECTIONS) {
+        let mut block = String::new();
+
+        for line in &section.lines {
+            let heading =
+                if block.is_empty() { section.heading.chars().count() } else { 0 };
+            let cost = heading + line.chars().count() + 1;
+
+            if used + cost > limit {
+                if !block.is_empty() {
+                    parts.push(text(block));
+                }
+                break 'sections;
+            }
+
+            if block.is_empty() {
+                block.push_str(&section.heading);
+            }
+            block.push('\n');
+            block.push_str(line);
+            used += cost;
+            shown += 1;
+        }
+
+        if !block.is_empty() {
+            parts.push(text(block));
+        }
+    }
+
+    if shown < total {
+        parts.push(text(format!(
+            "…and {} more changes in the official notes.",
+            total - shown
+        )));
+    }
+
+    CreateComponent::Container(CreateContainer::new(parts).accent_colour(ACCENT))
 }

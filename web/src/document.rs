@@ -57,6 +57,7 @@ pub const PAGE_TITLES: &[(&str, &str)] = &[
     ("/guild/{guild_id}/temp-voice", "Temp voice - Zayden Dashboard"),
     ("/guild/{guild_id}/patreon", "Patreon - Zayden Dashboard"),
     ("/guild/{guild_id}/youtube", "YouTube - Zayden Dashboard"),
+    ("/guild/{guild_id}/deadlock", "Deadlock - Zayden Dashboard"),
     ("/guild/{guild_id}/support", "Support - Zayden Dashboard"),
     (
         "/guild/{guild_id}/support/suggestions",

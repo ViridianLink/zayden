@@ -7,6 +7,7 @@ fn section_titles_name_the_page() {
     for (slug, expected) in [
         ("general", "Server settings - Zayden Dashboard"),
         ("ai", "AI Chat - Zayden Dashboard"),
+        ("deadlock", "Deadlock - Zayden Dashboard"),
         ("family", "Family - Zayden Dashboard"),
         ("honeypot", "Honeypot - Zayden Dashboard"),
         ("lfg", "LFG - Zayden Dashboard"),

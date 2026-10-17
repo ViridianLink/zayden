@@ -1,3 +1,4 @@
+use deadlock::db::announce::PatchAnnounceRow;
 use sqlx::PgPool;
 use topcoat::context::Cx;
 use zayden_app::state::AppState as ZaydenAppState;
@@ -5,6 +6,7 @@ use zayden_app::state::AppState as ZaydenAppState;
 use super::access::admin_app;
 use super::dto::{
     AiSection,
+    DeadlockSection,
     FamilySection,
     FaqSection,
     GeneralSection,
@@ -107,6 +109,24 @@ async fn music_section(
     })
 }
 
+async fn deadlock_section(
+    app: &ZaydenAppState,
+    guild_id: i64,
+) -> Result<DeadlockSection, GuildError> {
+    let announce =
+        PatchAnnounceRow::select(&app.db, guild_id).await.map_err(server_err)?;
+
+    Ok(DeadlockSection {
+        channel_id: announce.as_ref().map(|a| a.channel_id.to_string()),
+        message: announce.as_ref().and_then(|a| a.message.clone()),
+        ping_role_ids: announce
+            .iter()
+            .flat_map(|a| &a.ping_role_ids)
+            .map(ToString::to_string)
+            .collect(),
+    })
+}
+
 async fn temp_voice_section(
     app: &ZaydenAppState,
     guild_id: i64,
@@ -203,6 +223,9 @@ pub async fn get_section_settings(
 
     Ok(match section {
         "ai" => SectionSettings::Ai(ai_section(app, guild_id).await?),
+        "deadlock" => {
+            SectionSettings::Deadlock(deadlock_section(app, guild_id).await?)
+        },
         "family" => SectionSettings::Family(family_section(app, guild_id).await?),
         "honeypot" => {
             SectionSettings::Honeypot(honeypot_section(app, guild_id).await?)

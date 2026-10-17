@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use deadlock::analysis::{
     Counters,
     ability_picks,
@@ -51,6 +53,9 @@ fn enemy() -> Hero {
         disabled: false,
         in_development: false,
         images: HeroImages::default(),
+        starting_stats: BTreeMap::new(),
+        items: BTreeMap::new(),
+        standard_level_up_upgrades: BTreeMap::new(),
     }
 }
 

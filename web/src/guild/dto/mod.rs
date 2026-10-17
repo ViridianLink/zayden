@@ -6,6 +6,7 @@ pub mod youtube;
 
 pub use guild::{
     AiSection,
+    DeadlockSection,
     FamilySection,
     FaqSection,
     GeneralSection,

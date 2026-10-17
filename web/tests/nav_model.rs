@@ -33,6 +33,7 @@ fn every_section_resolves_to_its_feature_page() {
     for (slug, path) in [
         ("general", "settings"),
         ("ai", "ai"),
+        ("deadlock", "deadlock"),
         ("family", "family"),
         ("honeypot", "honeypot"),
         ("lfg", "lfg"),
@@ -96,6 +97,7 @@ fn the_module_list_keeps_its_labels_links_and_order() {
         ("Music", "/guild/7/music", Some("music")),
         ("Temp voice", "/guild/7/temp-voice", None),
         ("LFG", "/guild/7/lfg", None),
+        ("Deadlock", "/guild/7/deadlock", Some("deadlock")),
         ("AI Chat", "/guild/7/ai", Some("ai")),
         ("Patreon", "/guild/7/patreon", Some("patreon")),
         ("YouTube", "/guild/7/youtube", Some("youtube")),
@@ -126,7 +128,7 @@ fn the_groups_hold_every_entry_after_server_settings_in_order() {
     assert_eq!(groups, [
         ("Community", vec!["Greetings", "Levels", "Reaction roles", "Family"]),
         ("Support & safety", vec!["Support", "Honeypot"]),
-        ("Voice & games", vec!["Music", "Temp voice", "LFG"]),
+        ("Voice & games", vec!["Music", "Temp voice", "LFG", "Deadlock"]),
         ("Integrations", vec!["AI Chat", "Patreon", "YouTube"]),
     ]);
 
@@ -158,6 +160,7 @@ fn every_entry_keeps_its_lead() {
             "On-demand voice channels created from a join-to-create channel.",
         ),
         ("LFG", "Where looking-for-group posts go and who they ping."),
+        ("Deadlock", "Patch-note announcements for Deadlock."),
         ("AI Chat", "Whether Zayden answers when mentioned, and where."),
         (
             "Patreon",
@@ -191,6 +194,7 @@ fn an_unknown_section_falls_back_to_general() {
 fn configure_links_follow_the_module_id() {
     let configurable: Vec<_> = [
         "ai",
+        "deadlock",
         "family",
         "greetings",
         "honeypot",
@@ -205,6 +209,7 @@ fn configure_links_follow_the_module_id() {
 
     assert_eq!(configurable, [
         Some("AI Chat"),
+        Some("Deadlock"),
         Some("Family"),
         Some("Greetings"),
         Some("Honeypot"),

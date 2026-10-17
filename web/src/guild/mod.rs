@@ -1,6 +1,7 @@
 mod access;
 pub mod announce;
 pub mod command_permissions;
+pub mod deadlock;
 pub mod directory;
 pub mod dto;
 mod error;

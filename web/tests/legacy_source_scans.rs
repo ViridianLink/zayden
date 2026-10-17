@@ -7,8 +7,9 @@ use std::path::Path;
 
 const CRATE_ROOT: &str = env!("CARGO_MANIFEST_DIR");
 
-const SECTION_TABS: [(&str, &str); 10] = [
+const SECTION_TABS: [(&str, &str); 11] = [
     ("ai.rs", "AiSection"),
+    ("deadlock.rs", "DeadlockSection"),
     ("family.rs", "FamilySection"),
     ("general.rs", "GeneralSection"),
     ("honeypot.rs", "HoneypotSection"),
@@ -20,8 +21,9 @@ const SECTION_TABS: [(&str, &str); 10] = [
     ("support/roles.rs", "SupportRolesSection"),
 ];
 
-const SECTION_TYPES: [&str; 11] = [
+const SECTION_TYPES: [&str; 12] = [
     "AiSection",
+    "DeadlockSection",
     "FamilySection",
     "GeneralSection",
     "HoneypotSection",

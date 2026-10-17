@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT client_version FROM deadlock_watch_state WHERE key = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "client_version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deadlock_watch_state",
+            "name": "client_version"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "398ddfc5535f4124736d3dc65f0117af075b55118d961330129ebfb67e8e4d63"
+}

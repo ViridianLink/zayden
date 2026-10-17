@@ -16,6 +16,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::thread;
 
+use deadlock::db::announce::PatchAnnounceRow;
 use http_body_util::BodyExt;
 use secrecy::SecretString;
 use sqlx::PgPool;
@@ -1006,6 +1007,80 @@ async fn announcements_keep_a_message_and_ping_roles(
     );
     let row = youtube::YoutubeAnnounceRow::select(db, 7).await.unwrap().unwrap();
     assert_eq!(row.ping_role_ids.len(), 10);
+
+    pool.close().await;
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn deadlock_keeps_a_message_and_ping_roles(
+    options: PgPoolOptions,
+    connect: PgConnectOptions,
+) {
+    let pool = test_pool(options, connect).await.unwrap();
+    let app = harness(&pool).await.unwrap();
+    let db = &app.app.db;
+    let page = "/guild/7/deadlock";
+
+    let html = app.page(page).await.unwrap();
+    let main = main_content(&html);
+    assert!(
+        main.contains(
+            "Choose an announcement channel and save it before adding roles."
+        ),
+        "{main}"
+    );
+    assert!(!main.contains(r#"<form id="add-ping-role""#), "{main}");
+    assert!(
+        main.contains(r#"<ul class="placeholder-legend"><li><code>{roles}</code> - the roles to ping</li>"#),
+        "{main}"
+    );
+
+    let html = app
+        .redirected(
+            page,
+            "guild=7&channel_id=101&message=%7Broles%7D+Patch%3A+%7Btitle%7D",
+            "/guild/7/deadlock#deadlock-settings",
+        )
+        .await
+        .unwrap();
+    let row = PatchAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.channel_id, 101);
+    assert_eq!(row.message.as_deref(), Some("{roles} Patch: {title}"));
+    assert!(
+        element(&html, "textarea", "deadlock-settings-message")
+            .unwrap()
+            .contains("{roles} Patch: {title}</textarea>"),
+        "{html}"
+    );
+
+    let add = format!("{page}/add-ping-role");
+    let remove = format!("{page}/remove-ping-role");
+    let html = app
+        .redirected(&add, "guild=7&role_id=200", "/guild/7/deadlock#ping-roles")
+        .await
+        .unwrap();
+    assert_eq!(flash_after(&html, r#"id="ping-roles""#), Some("Role added."));
+
+    app.redirected(&add, "guild=7&role_id=201", "/guild/7/deadlock#ping-roles")
+        .await
+        .unwrap();
+    let row = PatchAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.ping_role_ids, [200, 201]);
+
+    app.redirected(&remove, "guild=7&role_id=200", "/guild/7/deadlock#ping-roles")
+        .await
+        .unwrap();
+    let row = PatchAnnounceRow::select(db, 7).await.unwrap().unwrap();
+    assert_eq!(row.ping_role_ids, [201]);
+
+    app.redirected(
+        page,
+        "guild=7&channel_id=&message=",
+        "/guild/7/deadlock#deadlock-settings",
+    )
+    .await
+    .unwrap();
+    assert!(PatchAnnounceRow::select(db, 7).await.unwrap().is_none());
 
     pool.close().await;
 }

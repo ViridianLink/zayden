@@ -603,8 +603,8 @@ async fn the_guild_frame_wraps_the_overview_and_nested_pages(
             "{group}: {html}"
         );
     }
-    assert_eq!(count(&html, ROW), 15, "{html}");
-    assert_eq!(count(&html, NOT_SYNCED), 11, "{html}");
+    assert_eq!(count(&html, ROW), 16, "{html}");
+    assert_eq!(count(&html, NOT_SYNCED), 12, "{html}");
     assert_eq!(count(&html, r#"role="switch""#), 1, "{html}");
     assert!(
         html.contains(&rack_switch("gambling", "Gambling &amp; Economy", true)),
@@ -682,7 +682,7 @@ async fn the_chrome_and_a_streamed_page_body_share_one_connection(
         assert!(html.contains(loaded), "{path}: {html}");
     }
     let html = app.page("/guild/7", Some(MEMBER)).await.unwrap();
-    assert_eq!(count(&html, ROW), 15, "{html}");
+    assert_eq!(count(&html, ROW), 16, "{html}");
 
     pool.close().await;
 }

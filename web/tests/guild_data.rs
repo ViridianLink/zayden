@@ -23,8 +23,10 @@ use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
 use web::auth::SessionUser;
+use web::guild::deadlock::{DeadlockSettingsForm, save_deadlock_settings};
 use web::guild::dto::{
     AiSection,
+    DeadlockSection,
     FamilySection,
     FaqSection,
     GeneralSection,
@@ -293,6 +295,10 @@ async fn save_form(
         },
         "youtube-disconnect" => {
             youtube::disconnect_youtube(cx, &GuildForm::from_pairs(pairs)?).await
+        },
+        "deadlock" => {
+            save_deadlock_settings(cx, &DeadlockSettingsForm::from_pairs(pairs)?)
+                .await
         },
         "kofi" => {
             kofi::link_kofi_email(cx, &kofi::KofiEmailForm::from_pairs(pairs)?).await
@@ -930,6 +936,40 @@ async fn announcement_channels_clear_or_must_parse(pool: PgPool) {
             "{kind}"
         );
     }
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn deadlock_starts_without_an_announcement(pool: PgPool) {
+    let app = harness(pool).await.unwrap();
+
+    assert_eq!(
+        app.section("deadlock").await.unwrap(),
+        debug(&SectionSettings::Deadlock(DeadlockSection {
+            channel_id: None,
+            message: None,
+            ping_role_ids: Vec::new(),
+        }))
+    );
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn deadlock_channel_clears_or_must_parse(pool: PgPool) {
+    let app = harness(pool).await.unwrap();
+
+    assert_eq!(
+        app.admin_save("deadlock", "guild=7&channel_id=&message=").await.unwrap(),
+        "ok"
+    );
+    assert_eq!(
+        app.admin_save("deadlock", "guild=7&channel_id=abc&message=").await.unwrap(),
+        shown("invalid channel id")
+    );
+    assert_eq!(
+        app.save("deadlock", "guild=7&channel_id=&message=", Some(MEMBER))
+            .await
+            .unwrap(),
+        shown("forbidden")
+    );
 }
 
 #[sqlx::test(migrations = "../migrations")]

@@ -88,6 +88,13 @@ pub struct MusicSection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeadlockSection {
+    pub channel_id: Option<String>,
+    pub message: Option<String>,
+    pub ping_role_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TempVoiceSection {
     pub category: Option<String>,
     pub creator_channel: Option<String>,
@@ -147,6 +154,7 @@ pub enum SupportSection {
 pub enum SectionSettings {
     General(GeneralSection),
     Ai(AiSection),
+    Deadlock(DeadlockSection),
     Family(FamilySection),
     Honeypot(HoneypotSection),
     Lfg(LfgSection),
