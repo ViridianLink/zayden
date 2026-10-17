@@ -1116,7 +1116,7 @@ async fn deadlock_keeps_a_message_and_ping_roles(
 
     app.redirected(
         &squad,
-        "guild=7&squad_channel_id=",
+        "guild=7&squad_channel_id=&squad_leaderboard=true",
         "/guild/7/deadlock#deadlock-squad",
     )
     .await
