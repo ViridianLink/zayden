@@ -21,7 +21,7 @@ use sqlx::PgPool;
 use tracing::debug;
 
 use crate::layout::{Candidate, candidate, parse_link, thread_name};
-use crate::{Result, Suggestions, SuggestionsError, SuggestionsGuildRow};
+use crate::{Result, Suggestions, SuggestionsGuildRow};
 
 struct Suggestion {
     message: Message,
@@ -77,16 +77,15 @@ impl Suggestions {
             return Ok(());
         };
 
+        let Some(review_channel_id) = row.review_channel_id() else {
+            debug!(%guild_id, "guild has no review channel configured; ignoring reaction");
+            return Ok(());
+        };
+
         let Some(suggestion) = locate(http, reaction, guild_id, configured).await?
         else {
             debug!(channel_id = %reaction.channel_id, "reaction is not on a suggestion; ignoring");
             return Ok(());
-        };
-
-        let Some(review_channel_id) = row.review_channel_id() else {
-            return Err(SuggestionsError::Internal(format!(
-                "guild {guild_id} has no review channel configured"
-            )));
         };
 
         let message = &suggestion.message;
