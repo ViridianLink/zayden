@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_players (account_id, discord_id)\n        SELECT external_id::bigint - 76561197960265728, discord_id\n        FROM account_links\n        WHERE provider = 'steam' AND external_id ~ '^[0-9]{17}$'\n        ON CONFLICT DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "2ead032041140f56b5715febf7185bc3480809afd31aa2b5e0be12d126c51e3a"
+}

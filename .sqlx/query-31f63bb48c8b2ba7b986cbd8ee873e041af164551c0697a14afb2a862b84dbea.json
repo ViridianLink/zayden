@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO guild_presence (guild_id, application_id) VALUES ($1, 1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "31f63bb48c8b2ba7b986cbd8ee873e041af164551c0697a14afb2a862b84dbea"
+}

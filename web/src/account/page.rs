@@ -7,29 +7,40 @@ use topcoat::router::{page, path_param};
 use topcoat::view::{View, component, view};
 use tracing::warn;
 
-use crate::auth::{AuthError, current_user_id, db_pool, remember_login_next};
+use super::deadlock::{DeadlockPrefs, deadlock_section, load as load_deadlock};
+use crate::auth::{
+    AuthError,
+    current_user_id,
+    db_pool,
+    remember_login_next,
+    require_user,
+};
 use crate::components::flash::flash;
 use crate::flash::{Flash, FlashKind, set as set_flash, take as take_flash};
 use crate::public::layout::public_layout;
 
 path_param!(provider);
 
-const PAGE: &str = "/account";
-const SIGN_IN_PATH: &str = "/auth/discord";
+pub(super) const PAGE: &str = "/account";
+pub(super) const SIGN_IN_PATH: &str = "/auth/discord";
 
 #[page("/account")]
 pub(super) async fn account(cx: &Cx) -> Result<impl View> {
     let notice = take_flash(cx);
 
-    let links = match current_user_id(cx).await {
-        Ok(user_id) => {
-            match AccountLink::list_for_user(db_pool(cx)?, user_id).await {
-                Ok(links) => Some(links),
-                Err(error) => {
-                    warn!(error = %error, "failed to load linked accounts");
-                    None
-                },
-            }
+    let (links, summaries) = match require_user(cx).await {
+        Ok(identity) => {
+            let links =
+                match AccountLink::list_for_user(db_pool(cx)?, identity.user_id)
+                    .await
+                {
+                    Ok(links) => Some(links),
+                    Err(error) => {
+                        warn!(error = %error, "failed to load linked accounts");
+                        None
+                    },
+                };
+            (links, load_deadlock(cx, &identity).await)
         },
         Err(AuthError::Unauthenticated) => {
             remember_login_next(cx, PAGE)?;
@@ -37,12 +48,16 @@ pub(super) async fn account(cx: &Cx) -> Result<impl View> {
         },
         Err(error) => {
             warn!(error = %error, "failed to resolve the signed-in user");
-            None
+            (None, None)
         },
     };
 
     Ok(view! {
-        public_layout(account_page(notice: notice.as_ref(), links: links.as_deref()))
+        public_layout(account_page(
+            notice: notice.as_ref(),
+            links: links.as_deref(),
+            summaries: summaries.as_ref()
+        ))
     })
 }
 
@@ -98,6 +113,7 @@ async fn unlink_provider(cx: &Cx, provider: &str) -> Result<()> {
 async fn account_page(
     notice: Option<&Flash>,
     links: Option<&[AccountLink]>,
+    summaries: Option<&DeadlockPrefs>,
 ) -> Result<impl View> {
     Ok(view! {
         <div class="page account-page">
@@ -128,6 +144,7 @@ async fn account_page(
                     </ul>
                 }
             }
+            deadlock_section(prefs: summaries)
         </div>
     })
 }

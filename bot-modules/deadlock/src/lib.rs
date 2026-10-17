@@ -5,12 +5,15 @@ pub mod client;
 pub mod commands;
 pub mod cron;
 pub mod db;
+pub mod deliver;
 pub mod diff;
 pub mod embeds;
 pub mod error;
 pub mod heroes;
 pub mod items;
+pub mod match_poll;
 pub mod patch_watch;
+pub mod summary;
 
 pub use client::DeadlockApi;
 pub use error::{DeadlockError, Result};

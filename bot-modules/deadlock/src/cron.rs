@@ -10,7 +10,9 @@ use zayden_core::CronJob;
 
 use crate::announce::announce_ready;
 use crate::client::DeadlockApi;
+use crate::deliver::deliver;
 use crate::error::DeadlockError;
+use crate::match_poll::{self, SummaryJob};
 use crate::patch_watch::{self, WatchOutcome};
 
 #[derive(Debug, Default)]
@@ -74,6 +76,67 @@ async fn announce(
 ) {
     if let Err(e) = announce_ready(&http, &pool, application_id).await {
         error!(error = ?e, "deadlock: failed to announce patches");
+    }
+}
+
+pub struct DeadlockMatchCron;
+
+impl DeadlockMatchCron {
+    pub fn cron_job(
+        api: Arc<DeadlockApi>,
+        application_id: u64,
+    ) -> Result<CronJob, jiff_cron::error::Error> {
+        let guard = Arc::new(RunGuard::default());
+
+        CronJob::new("deadlock_match_poll", "0 */3 * * * * *").map(|job| {
+            job.set_action(move |ctx, pool| {
+                let api = Arc::clone(&api);
+                let guard = Arc::clone(&guard);
+
+                async move {
+                    let Some(ticket) = guard.try_start() else {
+                        return;
+                    };
+
+                    match match_poll::poll(&api, &pool, Timestamp::now()).await {
+                        Ok((outcome, jobs)) => {
+                            debug!(?outcome, "deadlock: match poll finished");
+
+                            if !jobs.is_empty() {
+                                tokio::spawn(summarize(
+                                    ticket,
+                                    Arc::clone(&ctx.http),
+                                    pool,
+                                    api,
+                                    application_id.cast_signed(),
+                                    jobs,
+                                ));
+                            }
+                        },
+                        Err(DeadlockError::Api(
+                            e @ DeadlockApiError::Busy { .. },
+                        )) => {
+                            debug!(error = %e, "deadlock: match poll deferred, deadlock-api is busy");
+                        },
+                        Err(e) => error!(error = ?e, "deadlock: match poll failed"),
+                    }
+                }
+            })
+        })
+    }
+}
+
+async fn summarize(
+    _ticket: RunTicket,
+    http: Arc<Http>,
+    pool: PgPool,
+    api: Arc<DeadlockApi>,
+    application_id: i64,
+    jobs: Vec<SummaryJob>,
+) {
+    match deliver(&http, &pool, &api, application_id, jobs).await {
+        Ok(outcome) => debug!(?outcome, "deadlock: match summaries delivered"),
+        Err(e) => error!(error = ?e, "deadlock: failed to deliver match summaries"),
     }
 }
 

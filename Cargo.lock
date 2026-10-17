@@ -1274,7 +1274,7 @@ dependencies = [
 [[package]]
 name = "deadlock-api"
 version = "0.1.0"
-source = "git+https://github.com/ViridianLink/deadlock-api.git?branch=main#2dfbc929267be8fbc28d422f927067fe2fce1d48"
+source = "git+https://github.com/ViridianLink/deadlock-api.git?branch=main#0ba1e54aca689dff7521cf6b514ddd9bc8d08fa9"
 dependencies = [
  "jiff",
  "reqwest 0.13.5",

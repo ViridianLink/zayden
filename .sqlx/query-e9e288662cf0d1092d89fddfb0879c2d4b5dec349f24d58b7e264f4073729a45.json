@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_summary_channel (guild_id, channel_id)\n        VALUES ($1, $2)\n        ON CONFLICT (guild_id) DO UPDATE\n        SET channel_id = EXCLUDED.channel_id,\n            updated_at = now()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e9e288662cf0d1092d89fddfb0879c2d4b5dec349f24d58b7e264f4073729a45"
+}

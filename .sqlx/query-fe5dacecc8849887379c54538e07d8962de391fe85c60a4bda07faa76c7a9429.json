@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT dm_summaries FROM deadlock_user_settings WHERE discord_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "dm_summaries",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "deadlock_user_settings",
+            "name": "dm_summaries"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fe5dacecc8849887379c54538e07d8962de391fe85c60a4bda07faa76c7a9429"
+}

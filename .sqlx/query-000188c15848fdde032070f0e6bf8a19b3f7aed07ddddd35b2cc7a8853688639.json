@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deadlock_players SET last_polled_at = $2 WHERE account_id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "000188c15848fdde032070f0e6bf8a19b3f7aed07ddddd35b2cc7a8853688639"
+}

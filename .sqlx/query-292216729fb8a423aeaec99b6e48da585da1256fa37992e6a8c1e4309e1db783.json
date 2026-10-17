@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM deadlock_summary_channel WHERE guild_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "292216729fb8a423aeaec99b6e48da585da1256fa37992e6a8c1e4309e1db783"
+}

@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_matches_seen (account_id, match_id, hero_id, won, start_time)\n        VALUES ($1, $2, $3, $4, $5)\n        ON CONFLICT DO NOTHING\n        RETURNING match_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "match_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_matches_seen",
+            "name": "match_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Bool",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "072957f67ee1fb1bc02da1261e008ac2bf305cfe03b8e0e8b814f75f2a2fee96"
+}

@@ -9,6 +9,7 @@ use std::sync::{Arc, OnceLock};
 
 use accounts::links::AccountLink;
 use accounts::provider::Provider;
+use deadlock::db::{guild_members, user_settings};
 use http_body_util::BodyExt;
 use secrecy::SecretString;
 use sqlx::PgPool;
@@ -16,6 +17,10 @@ use topcoat::asset::{AssetBundle, RouterBuilderAssetExt};
 use topcoat::router::request::Request;
 use topcoat::router::response::Response;
 use topcoat::router::{Body, Router, StatusCode, header};
+use twilight_model::guild::Permissions;
+use twilight_model::id::Id;
+use twilight_model::user::CurrentUserGuild;
+use web::account::deadlock::shared_selection;
 use web::auth::safe_next;
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
@@ -29,6 +34,8 @@ const MEMBER: &str = "session=member-token";
 const USER_ID: i64 = 41;
 const STEAM_ID: &str = "76561197960287930";
 const FORM: &str = "application/x-www-form-urlencoded";
+const SERVED_GUILD: i64 = 7;
+const UNSERVED_GUILD: i64 = 8;
 
 fn bundle_dir() -> TestResult<PathBuf> {
     static DIR: OnceLock<Result<PathBuf, String>> = OnceLock::new();
@@ -109,6 +116,31 @@ fn config() -> BotConfig {
     }
 }
 
+fn member_guild(id: i64, name: &str) -> CurrentUserGuild {
+    CurrentUserGuild {
+        id: Id::new(id.cast_unsigned()),
+        name: name.to_owned(),
+        icon: None,
+        owner: false,
+        permissions: Permissions::empty(),
+        features: Vec::new(),
+    }
+}
+
+async fn seed_served_guild(pool: &PgPool) -> TestResult {
+    sqlx::query!("INSERT INTO guilds (id) VALUES ($1)", SERVED_GUILD)
+        .execute(pool)
+        .await?;
+    sqlx::query!(
+        "INSERT INTO guild_presence (guild_id, application_id) VALUES ($1, 1)",
+        SERVED_GUILD
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 async fn harness(pool: &PgPool) -> TestResult<Router> {
     let _ = rustls::crypto::aws_lc_rs::default_provider().install_default();
 
@@ -121,6 +153,17 @@ async fn harness(pool: &PgPool) -> TestResult<Router> {
             user_id: USER_ID,
             access_token: "member-token-access".to_owned(),
         })
+        .await;
+    state
+        .discord
+        .user_guilds
+        .insert(
+            USER_ID,
+            Arc::from([
+                member_guild(SERVED_GUILD, "Served"),
+                member_guild(UNSERVED_GUILD, "Unserved"),
+            ]),
+        )
         .await;
 
     let base = Router::builder()
@@ -151,6 +194,19 @@ async fn post(
         request = request.header(header::COOKIE, cookie);
     }
     Ok(router.handle(request.body(Body::empty())?).await)
+}
+
+async fn post_form(
+    router: &Router,
+    path: &str,
+    cookie: &str,
+    body: &str,
+) -> TestResult<Response> {
+    let request = Request::post(path)
+        .header(header::CONTENT_TYPE, FORM)
+        .header(header::COOKIE, cookie)
+        .body(Body::from(body.to_owned()))?;
+    Ok(router.handle(request).await)
 }
 
 async fn body_text(response: Response) -> TestResult<String> {
@@ -319,6 +375,104 @@ async fn an_unknown_provider_unlinks_nothing(pool: PgPool) {
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(location(&response), Some("/account"));
     assert_eq!(AccountLink::list_for_user(&pool, USER_ID).await.unwrap().len(), 1);
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn the_account_page_offers_summaries_for_servers_that_use_the_module(
+    pool: PgPool,
+) {
+    let router = harness(&pool).await.unwrap();
+    seed_served_guild(&pool).await.unwrap();
+
+    let response = get(&router, "/account", Some(MEMBER)).await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let html = body_text(response).await.unwrap();
+    assert!(html.contains(r#"action="/account/deadlock""#), "{html}");
+    assert!(html.contains(r#"action="/account/deadlock/servers""#), "{html}");
+    assert!(html.contains(r#"name="dm_summaries""#), "{html}");
+    assert!(html.contains(r#"name="share_7""#), "{html}");
+    assert!(!html.contains(r#"name="share_8""#), "{html}");
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn the_dm_checkbox_saves_and_clears_the_preference(pool: PgPool) {
+    let router = harness(&pool).await.unwrap();
+
+    let response =
+        post_form(&router, "/account/deadlock", MEMBER, "").await.unwrap();
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/account"));
+    assert!(!user_settings::dm_summaries(&pool, USER_ID).await.unwrap());
+
+    let response =
+        post_form(&router, "/account/deadlock", MEMBER, "dm_summaries=on")
+            .await
+            .unwrap();
+
+    assert_eq!(location(&response), Some("/account"));
+    assert!(user_settings::dm_summaries(&pool, USER_ID).await.unwrap());
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn sharing_is_saved_only_for_servers_that_use_the_module(pool: PgPool) {
+    let router = harness(&pool).await.unwrap();
+    seed_served_guild(&pool).await.unwrap();
+
+    let response = post_form(
+        &router,
+        "/account/deadlock/servers",
+        MEMBER,
+        "share_7=on&share_8=on&share_9=on",
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    assert_eq!(location(&response), Some("/account"));
+    assert_eq!(guild_members::shared_guilds(&pool, USER_ID).await.unwrap(), vec![
+        SERVED_GUILD
+    ]);
+
+    post_form(&router, "/account/deadlock/servers", MEMBER, "").await.unwrap();
+
+    assert_eq!(
+        guild_members::shared_guilds(&pool, USER_ID).await.unwrap(),
+        Vec::<i64>::new()
+    );
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn a_signed_out_visitor_cannot_change_summary_settings(pool: PgPool) {
+    let router = harness(&pool).await.unwrap();
+
+    for path in ["/account/deadlock", "/account/deadlock/servers"] {
+        let response = post(&router, path, None).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::SEE_OTHER, "{path}");
+        assert_eq!(location(&response), Some("/auth/discord"), "{path}");
+    }
+    assert!(user_settings::dm_summaries(&pool, USER_ID).await.unwrap());
+}
+
+#[test]
+fn the_selection_covers_exactly_the_allowed_servers() {
+    let form = vec![
+        ("share_7".to_owned(), "on".to_owned()),
+        ("share_9".to_owned(), "on".to_owned()),
+        ("dm_summaries".to_owned(), "on".to_owned()),
+    ];
+
+    assert_eq!(shared_selection(&[7, 8], &form), vec![(7, true), (8, false)]);
+}
+
+#[test]
+fn an_empty_form_clears_every_allowed_server() {
+    let form = [("share_7".to_owned(), "on".to_owned())];
+
+    assert_eq!(shared_selection(&[7, 8], &[]), vec![(7, false), (8, false)]);
+    assert_eq!(shared_selection(&[], &form), Vec::<(i64, bool)>::new());
 }
 
 #[test]

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deadlock_players SET streak = $2 WHERE account_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bf02fa4d36ee5692fac987af6d516aa8454cd028a53135ec7d1daccd8f9c2421"
+}

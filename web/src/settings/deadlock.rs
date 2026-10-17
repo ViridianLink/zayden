@@ -22,20 +22,24 @@ use crate::guild::GuildError;
 use crate::guild::announce::PingRoleForm;
 use crate::guild::deadlock::{
     DeadlockSettingsForm,
+    DeadlockSummariesForm,
     add_deadlock_ping_role,
     remove_deadlock_ping_role,
     save_deadlock_settings,
+    save_deadlock_summaries,
 };
 use crate::guild::dto::DeadlockSection;
 use crate::shell::GuildId;
 
 const PAGE: Page = Page::Deadlock;
 const FORM: &str = "deadlock-settings";
+const SUMMARIES_FORM: &str = "deadlock-summaries";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
     base.page(deadlock)
         .page(save)
         .page(switch)
+        .page(save_summaries)
         .page(add_ping_role)
         .page(remove_ping_role)
 }
@@ -76,6 +80,32 @@ async fn switch(
 ) -> Result<impl View> {
     let guild_id: &str = path_param::<GuildId>(cx);
     let state = PageState::failed(switch_module(cx, guild_id, PAGE, pairs).await?);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
+#[page(POST "/guild/{guild_id}/deadlock/summaries")]
+async fn save_summaries(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = async {
+        let form = DeadlockSummariesForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        save_deadlock_summaries(cx, &form).await
+    }
+    .await;
+    let failure = settle(cx, SUMMARIES_FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(SUMMARIES_FORM),
+        message: "Match summary settings saved.",
+    })?;
+    let state = PageState::failed(failure);
 
     Ok(view! {
         (state.status())
@@ -145,6 +175,7 @@ pub(super) async fn tab(
 ) -> Result<impl View> {
     let page = PAGE.href(guild_id);
     let sent = state.sent(FORM);
+    let summaries_sent = state.sent(SUMMARIES_FORM);
     let default_help = format!(
         "Leave empty for the default: {}",
         DEFAULT_MESSAGE.replace('\n', " then ")
@@ -199,6 +230,37 @@ pub(super) async fn tab(
             lists: lists,
             state: state
         )
+        <form
+            id=(SUMMARIES_FORM)
+            method="post"
+            action=(format!("{page}/summaries"))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = summaries_sent.summary() {
+                form_summary(form: SUMMARIES_FORM, message: message)
+            }
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Match summaries"</legend>
+                <p class="page-lead">
+                    "After a match, members who linked Steam and chose to share summaries in this server get a recap posted here."
+                </p>
+                select_row(
+                    form: SUMMARIES_FORM,
+                    name: "summary_channel_id",
+                    label: "Summary channel",
+                    selected: summaries_sent.value(
+                        "summary_channel_id",
+                        settings.summary_channel_id.as_deref(),
+                    ),
+                    options: channels(lists, TEXT_KINDS),
+                    help: Some("Leave unset to stop posting summaries here."),
+                    error: summaries_sent.error("summary_channel_id")
+                )
+            </fieldset>
+            save_bar(notice: state.notice_for(SUMMARIES_FORM))
+        </form>
     }
     .boxed())
 }

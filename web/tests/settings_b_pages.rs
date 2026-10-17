@@ -17,6 +17,7 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::thread;
 
 use deadlock::db::announce::PatchAnnounceRow;
+use deadlock::db::summary_channel;
 use http_body_util::BodyExt;
 use secrecy::SecretString;
 use sqlx::PgPool;
@@ -1081,6 +1082,25 @@ async fn deadlock_keeps_a_message_and_ping_roles(
     .await
     .unwrap();
     assert!(PatchAnnounceRow::select(db, 7).await.unwrap().is_none());
+
+    let summaries = format!("{page}/summaries");
+    app.redirected(
+        &summaries,
+        "guild=7&summary_channel_id=101",
+        "/guild/7/deadlock#deadlock-summaries",
+    )
+    .await
+    .unwrap();
+    assert_eq!(summary_channel::select(db, 7).await.unwrap(), Some(101));
+
+    app.redirected(
+        &summaries,
+        "guild=7&summary_channel_id=",
+        "/guild/7/deadlock#deadlock-summaries",
+    )
+    .await
+    .unwrap();
+    assert_eq!(summary_channel::select(db, 7).await.unwrap(), None);
 
     pool.close().await;
 }

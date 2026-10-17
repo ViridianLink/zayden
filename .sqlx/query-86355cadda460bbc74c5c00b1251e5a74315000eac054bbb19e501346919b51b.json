@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE account_links SET external_id = $1 WHERE discord_id = 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "86355cadda460bbc74c5c00b1251e5a74315000eac054bbb19e501346919b51b"
+}

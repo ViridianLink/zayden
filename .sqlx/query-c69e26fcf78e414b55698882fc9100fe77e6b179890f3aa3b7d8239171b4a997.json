@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT channel_id FROM deadlock_summary_channel WHERE guild_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "channel_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_summary_channel",
+            "name": "channel_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c69e26fcf78e414b55698882fc9100fe77e6b179890f3aa3b7d8239171b4a997"
+}

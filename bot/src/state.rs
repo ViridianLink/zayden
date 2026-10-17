@@ -3,7 +3,7 @@ use std::sync::Arc;
 use bungie_api::{BungieClient, BungieClientBuilder};
 use dashmap::DashMap;
 use deadlock::DeadlockApi;
-use deadlock::cron::DeadlockPatchCron;
+use deadlock::cron::{DeadlockMatchCron, DeadlockPatchCron};
 use destiny2::endgame_analysis::EndgameAnalysisSheetCron;
 use gambling::{GamblingData, GameCache, HigherLower, Lotto, StaminaCron};
 use hosting::HostingRuntime;
@@ -269,6 +269,10 @@ impl BotState {
                 Some(self.marathon_bungie_api_key.expose_secret().to_owned()),
             ),
             DeadlockPatchCron::cron_job(
+                Arc::clone(&self.deadlock),
+                self.app.zayden_id,
+            ),
+            DeadlockMatchCron::cron_job(
                 Arc::clone(&self.deadlock),
                 self.app.zayden_id,
             ),

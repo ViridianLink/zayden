@@ -15,6 +15,8 @@ pub enum DeadlockError {
     UnknownRank(String),
     #[error("Pick two different heroes.")]
     SameHero,
+    #[error("Use this in a server to change server sharing.")]
+    GuildOnly,
     #[error("failed to decode cached deadlock-api data for {key}: {source}")]
     CacheDecode {
         key: String,
@@ -48,9 +50,10 @@ impl Respond for DeadlockError {
             {
                 Some(Cow::Owned(e.to_string()))
             },
-            Self::UnknownHero(_) | Self::UnknownRank(_) | Self::SameHero => {
-                Some(Cow::Owned(self.to_string()))
-            },
+            Self::UnknownHero(_)
+            | Self::UnknownRank(_)
+            | Self::SameHero
+            | Self::GuildOnly => Some(Cow::Owned(self.to_string())),
             Self::Api(_)
             | Self::CacheDecode { .. }
             | Self::InvalidOption(_)

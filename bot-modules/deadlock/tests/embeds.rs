@@ -11,6 +11,12 @@ use deadlock::analysis::{
 use deadlock::embeds::{self, Freshness};
 use deadlock::heroes::HeroIndex;
 use deadlock::items::ItemIndex;
+use deadlock::summary::{
+    AbilityComparison,
+    ItemTiming,
+    MatchSummary,
+    SoulCheckpoint,
+};
 use deadlock_api::model::{
     AbilityOrderStats,
     Build,
@@ -262,4 +268,124 @@ fn combining_no_sources_is_fresh() {
     let combined = Freshness::combine(&[]);
 
     assert!(!combined.stale);
+}
+
+fn summary(hero_id: u32, won: bool, average: bool) -> MatchSummary {
+    MatchSummary {
+        match_id: 69_192_735,
+        account_id: 141_610_988,
+        hero_id,
+        won,
+        start_time: Timestamp::UNIX_EPOCH,
+        duration_s: 749,
+        kills: 9,
+        deaths: 1,
+        assists: 22,
+        net_worth: 37_306,
+        last_hits: 205,
+        denies: 2,
+        level: 29,
+        souls: vec![SoulCheckpoint {
+            time_s: 360,
+            net_worth: 5_486,
+            average: average.then_some(5_000.0),
+        }],
+        items: vec![ItemTiming {
+            item_id: 968_099_481,
+            bought_at_s: 125,
+            average_s: average.then_some(100.0),
+        }],
+        abilities: average.then_some(AbilityComparison { followed: 5, total: 7 }),
+    }
+}
+
+#[test]
+fn summary_component_shows_the_outcome_and_scoreline() {
+    let index = heroes().unwrap();
+    let hero = index.find("Infernus").unwrap();
+    let items = items().unwrap();
+
+    let won = embeds::summary_component(
+        &summary(hero.id, true, true),
+        Some(hero),
+        &items,
+        None,
+    );
+    let lost = embeds::summary_component(
+        &summary(hero.id, false, true),
+        Some(hero),
+        &items,
+        None,
+    );
+    let won = json(&won);
+
+    assert!(won.contains("Victory"));
+    assert!(json(&lost).contains("Defeat"));
+    assert!(won.contains("as Infernus"));
+    assert!(won.contains("K/D/A 9/1/22"));
+    assert!(won.contains("37306 souls"));
+    assert!(won.contains("205 LH / 2 DN"));
+    assert!(won.contains("12:29"));
+    assert!(won.contains("<t:0:R>"));
+    assert!(!won.contains("deadlock-api.com"));
+}
+
+#[test]
+fn summary_component_compares_against_the_averages() {
+    let items = items().unwrap();
+
+    let component =
+        embeds::summary_component(&summary(1, true, true), None, &items, None);
+    let json = json(&component);
+
+    assert!(json.contains("as Hero #1"));
+    assert!(json.contains("6m  5486  (+486 vs avg)"));
+    assert!(json.contains("Extra Spirit 2:05 (+0:25 vs avg)"));
+    assert!(
+        json.contains("Followed the most-played ability order for 5/7 upgrades")
+    );
+}
+
+#[test]
+fn summary_component_omits_comparisons_without_averages() {
+    let items = items().unwrap();
+
+    let component =
+        embeds::summary_component(&summary(1, true, false), None, &items, None);
+    let json = json(&component);
+
+    assert!(json.contains("6m  5486"));
+    assert!(json.contains("Extra Spirit 2:05"));
+    assert!(!json.contains("vs avg"));
+    assert!(!json.contains("most-played"));
+}
+
+#[test]
+fn summary_post_mentions_the_player_without_pinging() {
+    let index = heroes().unwrap();
+    let items = items().unwrap();
+    let first = summary(1, true, true);
+    let second = summary(1, false, false);
+
+    let message =
+        embeds::summary_post(&[(&first, 123), (&second, 456)], &index, &items);
+    let json = serde_json::to_string(&message).unwrap_or_default();
+
+    assert!(json.contains("<@123>"));
+    assert!(json.contains("<@456>"));
+    assert!(json.contains("Victory"));
+    assert!(json.contains("Defeat"));
+    assert!(json.contains("allowed_mentions"));
+}
+
+#[test]
+fn summary_dm_is_a_components_message_without_a_mention() {
+    let items = items().unwrap();
+
+    let message = embeds::summary_dm(&summary(1, true, true), None, &items);
+    let json = serde_json::to_string(&message).unwrap_or_default();
+
+    assert!(json.contains("Victory"));
+    assert!(!json.contains("<@"));
+    assert!(json.contains("allowed_mentions"));
 }

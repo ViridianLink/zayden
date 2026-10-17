@@ -948,6 +948,7 @@ async fn deadlock_starts_without_an_announcement(pool: PgPool) {
             channel_id: None,
             message: None,
             ping_role_ids: Vec::new(),
+            summary_channel_id: None,
         }))
     );
 }

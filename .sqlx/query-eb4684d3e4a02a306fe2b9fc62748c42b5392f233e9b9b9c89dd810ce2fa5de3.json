@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_guild_posts (guild_id, match_id)\n        VALUES ($1, $2)\n        ON CONFLICT DO NOTHING\n        RETURNING match_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "match_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_guild_posts",
+            "name": "match_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "eb4684d3e4a02a306fe2b9fc62748c42b5392f233e9b9b9c89dd810ce2fa5de3"
+}

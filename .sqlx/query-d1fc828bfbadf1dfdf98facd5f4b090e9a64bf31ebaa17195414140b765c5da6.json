@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT share_summaries\n        FROM deadlock_guild_members\n        WHERE guild_id = $1 AND discord_id = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "share_summaries",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "deadlock_guild_members",
+            "name": "share_summaries"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d1fc828bfbadf1dfdf98facd5f4b090e9a64bf31ebaa17195414140b765c5da6"
+}

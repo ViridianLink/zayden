@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deadlock_players SET seeded_at = '2026-01-01T00:00:00Z'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "d51994811a5639d14fd5effe80dfd00a0012d8d5d49098b4f6c5d114697310ae"
+}

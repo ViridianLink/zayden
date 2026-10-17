@@ -12,9 +12,11 @@ use deadlock_api::model::{
     HeroCounterStats,
     Item,
     ItemFlowStats,
+    ItemStats,
     LaneMatchupStats,
     LaneSoulCurve,
     PatchNote,
+    PerformancePoint,
     Rank,
 };
 use moka::future::Cache;
@@ -98,6 +100,8 @@ pub struct DeadlockApi {
     hero_counters_cache: Cache<String, Fetched<Vec<HeroCounterStats>>>,
     lane_matchups_cache: Cache<String, Fetched<Vec<LaneMatchupStats>>>,
     lane_soul_curves_cache: Cache<String, Fetched<Vec<LaneSoulCurve>>>,
+    item_stats_cache: Cache<String, Fetched<Vec<ItemStats>>>,
+    performance_curve_cache: Cache<String, Fetched<Vec<PerformancePoint>>>,
     builds_cache: Cache<String, Fetched<Vec<Build>>>,
 }
 
@@ -131,6 +135,8 @@ impl DeadlockApi {
             hero_counters_cache: l1_cache(ANALYTICS_TTL, ANALYTICS_CAPACITY),
             lane_matchups_cache: l1_cache(ANALYTICS_TTL, ANALYTICS_CAPACITY),
             lane_soul_curves_cache: l1_cache(ANALYTICS_TTL, ANALYTICS_CAPACITY),
+            item_stats_cache: l1_cache(ANALYTICS_TTL, BUILD_CAPACITY),
+            performance_curve_cache: l1_cache(ANALYTICS_TTL, BUILD_CAPACITY),
             builds_cache: l1_cache(BUILD_TTL, BUILD_CAPACITY),
         }
     }
@@ -146,6 +152,8 @@ impl DeadlockApi {
         self.hero_counters_cache.invalidate_all();
         self.lane_matchups_cache.invalidate_all();
         self.lane_soul_curves_cache.invalidate_all();
+        self.item_stats_cache.invalidate_all();
+        self.performance_curve_cache.invalidate_all();
         self.builds_cache.invalidate_all();
 
         sqlx::query!("DELETE FROM deadlock_api_cache WHERE client_version IS NULL")

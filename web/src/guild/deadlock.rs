@@ -1,4 +1,5 @@
 use deadlock::db::announce::PatchAnnounceRow;
+use deadlock::db::summary_channel;
 use topcoat::context::Cx;
 
 use super::access::admin_app;
@@ -16,6 +17,10 @@ use crate::auth::{ensure_bot_can_post, ensure_guild_channel};
 
 form_args! {
     DeadlockSettingsForm { guild, channel_id, message }
+}
+
+form_args! {
+    DeadlockSummariesForm { guild, summary_channel_id }
 }
 
 pub async fn save_deadlock_settings(
@@ -46,6 +51,33 @@ pub async fn save_deadlock_settings(
     PatchAnnounceRow::upsert(&app.db, guild_id, channel_id, message)
         .await
         .map_err(server_err)
+}
+
+pub async fn save_deadlock_summaries(
+    cx: &Cx,
+    form: &DeadlockSummariesForm,
+) -> Result<(), GuildError> {
+    let (guild_id, app) = admin_app(cx, &form.guild).await?;
+
+    let channel_id = form.summary_channel_id.trim();
+
+    if channel_id.is_empty() {
+        summary_channel::delete(&app.db, guild_id)
+            .await
+            .map(|_removed| ())
+            .map_err(server_err)?;
+
+        return Ok(());
+    }
+
+    let Ok(channel_id) = channel_id.parse::<i64>() else {
+        return Err(GuildError::InvalidChannelId);
+    };
+
+    ensure_guild_channel(cx, guild_id, channel_id).await?;
+    ensure_bot_can_post(cx, guild_id, channel_id).await?;
+
+    summary_channel::upsert(&app.db, guild_id, channel_id).await.map_err(server_err)
 }
 
 pub async fn add_deadlock_ping_role(

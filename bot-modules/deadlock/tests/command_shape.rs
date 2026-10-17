@@ -2,9 +2,11 @@ use deadlock::commands::Command;
 use serde_json::Value;
 use zayden_core::limits::command::OPTIONS as MAX_OPTIONS;
 
-const SUBCOMMANDS: [&str; 4] = ["build", "abilities", "counter", "matchup"];
+const SUBCOMMANDS: [&str; 5] =
+    ["build", "abilities", "counter", "matchup", "summaries"];
 
 const SUB_COMMAND: u64 = 1;
+const STRING: u64 = 3;
 
 macro_rules! definition {
     () => {
@@ -86,6 +88,10 @@ fn hero_and_rank_options_offer_autocomplete() {
 
     for option in options {
         for sub_option in options!(option) {
+            if sub_option.get("type").and_then(Value::as_u64) != Some(STRING) {
+                continue;
+            }
+
             let autocomplete = sub_option
                 .get("autocomplete")
                 .and_then(Value::as_bool)

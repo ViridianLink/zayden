@@ -2,6 +2,7 @@ mod abilities;
 mod build;
 mod counter;
 mod matchup;
+mod summaries;
 
 use deadlock_api::Priority;
 use deadlock_api::model::{Hero, Rank};
@@ -49,12 +50,29 @@ impl Command {
         .add_sub_option(hero_option("vs", "Enemy laner"))
         .add_sub_option(rank_option());
 
+        let summaries = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "summaries",
+            "Post-match summary preferences",
+        )
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::Boolean,
+            "dm",
+            "DM me a summary after each match",
+        ))
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::Boolean,
+            "server",
+            "Share my summaries in this server's summary channel",
+        ));
+
         CreateCommand::new("deadlock")
             .description("Deadlock builds, ability orders and matchups.")
             .add_option(build)
             .add_option(abilities)
             .add_option(counter)
             .add_option(matchup)
+            .add_option(summaries)
     }
 
     pub async fn run(cx: &InvocationCtx<'_>, api: &DeadlockApi) -> Result<()> {
@@ -66,6 +84,9 @@ impl Command {
             "abilities" => abilities::run(cx, api, parse_options(sub_options)).await,
             "counter" => counter::run(cx, api, parse_options(sub_options)).await,
             "matchup" => matchup::run(cx, api, parse_options(sub_options)).await,
+            "summaries" => {
+                summaries::run(cx, &cx.app.db, parse_options(sub_options)).await
+            },
             _ => Err(DeadlockError::InvalidOption(name.to_string())),
         }
     }

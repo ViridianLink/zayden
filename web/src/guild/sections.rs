@@ -1,4 +1,5 @@
 use deadlock::db::announce::PatchAnnounceRow;
+use deadlock::db::summary_channel;
 use sqlx::PgPool;
 use topcoat::context::Cx;
 use zayden_app::state::AppState as ZaydenAppState;
@@ -115,6 +116,8 @@ async fn deadlock_section(
 ) -> Result<DeadlockSection, GuildError> {
     let announce =
         PatchAnnounceRow::select(&app.db, guild_id).await.map_err(server_err)?;
+    let summary_channel_id =
+        summary_channel::select(&app.db, guild_id).await.map_err(server_err)?;
 
     Ok(DeadlockSection {
         channel_id: announce.as_ref().map(|a| a.channel_id.to_string()),
@@ -124,6 +127,7 @@ async fn deadlock_section(
             .flat_map(|a| &a.ping_role_ids)
             .map(ToString::to_string)
             .collect(),
+        summary_channel_id: opt_str(summary_channel_id),
     })
 }
 

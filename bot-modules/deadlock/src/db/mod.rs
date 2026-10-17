@@ -1,4 +1,11 @@
 pub mod announce;
+pub mod guild_members;
+pub mod guild_posts;
+pub mod matches;
+pub mod modules;
 pub mod patches;
+pub mod players;
 pub mod snapshots;
+pub mod summary_channel;
+pub mod user_settings;
 pub mod watch_state;

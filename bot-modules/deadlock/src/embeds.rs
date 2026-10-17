@@ -4,9 +4,12 @@ use deadlock_api::model::{Hero, HeroBuild};
 use jiff::Timestamp;
 use serenity::all::{
     Colour,
+    CreateAllowedMentions,
     CreateComponent,
     CreateContainer,
     CreateContainerComponent,
+    CreateMessage,
+    MessageFlags,
 };
 use zayden_core::limits::message::{
     COMPONENTS as MAX_COMPONENTS,
@@ -19,6 +22,7 @@ use crate::db::patches::PatchRow;
 use crate::diff::{Change, HeroDiff, ItemDiff, PatchDiff, Presence};
 use crate::heroes::HeroIndex;
 use crate::items::ItemIndex;
+use crate::summary::MatchSummary;
 
 pub(crate) const ACCENT: Colour = Colour::new(0x00e0_8a2e);
 
@@ -30,6 +34,7 @@ const MAX_MODS_PER_CATEGORY: usize = 12;
 const COMPACT_THRESHOLD: u64 = 10_000;
 const TEXT_RESERVE: usize = 300;
 const MAX_SECTIONS: usize = MAX_COMPONENTS - 6;
+const SUMMARY_TEXT: usize = MAX_TEXT / 8;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Freshness {
@@ -474,4 +479,184 @@ pub fn patch_component(
     }
 
     CreateComponent::Container(CreateContainer::new(parts).accent_colour(ACCENT))
+}
+
+fn clock(seconds: u32) -> String {
+    format!("{}:{:02}", seconds / 60, seconds % 60)
+}
+
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "the value is made non-negative, rounded and clamped to the u32 range first"
+)]
+fn signed_clock(delta: f64) -> String {
+    let sign = if delta < 0.0 { '-' } else { '+' };
+    let seconds = delta.abs().round().min(f64::from(u32::MAX)) as u32;
+
+    format!("{sign}{}", clock(seconds))
+}
+
+fn bounded(block: String) -> String {
+    if block.chars().count() <= SUMMARY_TEXT {
+        return block;
+    }
+
+    let mut clipped: String = block.chars().take(SUMMARY_TEXT - 1).collect();
+    clipped.push('…');
+
+    clipped
+}
+
+fn summary_blocks(
+    summary: &MatchSummary,
+    hero: Option<&Hero>,
+    items: &ItemIndex,
+    mention: Option<i64>,
+) -> Vec<String> {
+    let outcome = if summary.won { "Victory" } else { "Defeat" };
+    let name = hero.map_or_else(
+        || format!("Hero #{}", summary.hero_id),
+        |hero| hero.name.clone(),
+    );
+    let prefix =
+        mention.map_or_else(String::new, |id| format!("<@{}> ", id.cast_unsigned()));
+
+    let mut blocks = vec![format!(
+        "{prefix}**{outcome}** as {name}\nK/D/A {}/{}/{} · {} souls · {} LH / {} DN · {} · <t:{}:R>",
+        summary.kills,
+        summary.deaths,
+        summary.assists,
+        summary.net_worth,
+        summary.last_hits,
+        summary.denies,
+        clock(summary.duration_s),
+        summary.start_time.as_second()
+    )];
+
+    if !summary.souls.is_empty() {
+        let lines = summary
+            .souls
+            .iter()
+            .map(|soul| {
+                let mut line = format!("{}m  {}", soul.time_s / 60, soul.net_worth);
+                if let Some(average) = soul.average {
+                    let _ = write!(
+                        line,
+                        "  ({} vs avg)",
+                        signed_thousands(f64::from(soul.net_worth) - average)
+                    );
+                }
+                line
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        blocks.push(format!("**Souls**\n{lines}"));
+    }
+
+    if !summary.items.is_empty() {
+        let lines = summary
+            .items
+            .iter()
+            .map(|timing| {
+                let mut line = format!(
+                    "{} {}",
+                    items.name(timing.item_id),
+                    clock(timing.bought_at_s)
+                );
+                if let Some(average) = timing.average_s {
+                    let _ = write!(
+                        line,
+                        " ({} vs avg)",
+                        signed_clock(f64::from(timing.bought_at_s) - average)
+                    );
+                }
+                line
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        blocks.push(format!("**Items**\n{lines}"));
+    }
+
+    if let Some(abilities) = &summary.abilities {
+        blocks.push(format!(
+            "Followed the most-played ability order for {}/{} upgrades",
+            abilities.followed, abilities.total
+        ));
+    }
+
+    blocks.into_iter().map(bounded).collect()
+}
+
+fn summary_parts(
+    summary: &MatchSummary,
+    hero: Option<&Hero>,
+    items: &ItemIndex,
+    mention: Option<i64>,
+) -> (Vec<CreateContainerComponent<'static>>, usize) {
+    let blocks = summary_blocks(summary, hero, items, mention);
+    let used = blocks.iter().map(|block| block.chars().count()).sum();
+
+    let mut parts = Vec::new();
+    for (index, block) in blocks.into_iter().enumerate() {
+        if index > 0 {
+            parts.push(separator());
+        }
+        parts.push(text(block));
+    }
+
+    (parts, used)
+}
+
+pub fn summary_component(
+    summary: &MatchSummary,
+    hero: Option<&Hero>,
+    items: &ItemIndex,
+    mention: Option<i64>,
+) -> CreateComponent<'static> {
+    let (parts, _) = summary_parts(summary, hero, items, mention);
+
+    CreateComponent::Container(CreateContainer::new(parts).accent_colour(ACCENT))
+}
+
+pub fn summary_dm(
+    summary: &MatchSummary,
+    hero: Option<&Hero>,
+    items: &ItemIndex,
+) -> CreateMessage<'static> {
+    CreateMessage::new()
+        .flags(MessageFlags::IS_COMPONENTS_V2)
+        .components(vec![summary_component(summary, hero, items, None)])
+        .allowed_mentions(CreateAllowedMentions::new())
+}
+
+pub fn summary_post(
+    sections: &[(&MatchSummary, i64)],
+    heroes: &HeroIndex,
+    items: &ItemIndex,
+) -> CreateMessage<'static> {
+    let mut used = 0;
+    let mut components = Vec::new();
+
+    for (summary, discord_id) in sections {
+        let (parts, chars) = summary_parts(
+            summary,
+            heroes.get(summary.hero_id),
+            items,
+            Some(*discord_id),
+        );
+        if !components.is_empty() && used + chars > MAX_TEXT {
+            break;
+        }
+
+        used += chars;
+        components.push(CreateComponent::Container(
+            CreateContainer::new(parts).accent_colour(ACCENT),
+        ));
+    }
+
+    CreateMessage::new()
+        .flags(MessageFlags::IS_COMPONENTS_V2)
+        .components(components)
+        .allowed_mentions(CreateAllowedMentions::new())
 }

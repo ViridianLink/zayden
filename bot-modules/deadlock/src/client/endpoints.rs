@@ -7,10 +7,12 @@ use deadlock_api::model::{
     HeroCounterStats,
     Item,
     ItemFlowStats,
+    ItemStats,
     LaneMatchupStats,
     LaneSoulCurve,
     MatchMetadata,
     PatchNote,
+    PerformancePoint,
     Rank,
 };
 use deadlock_api::rank::BadgeRange;
@@ -198,6 +200,32 @@ impl DeadlockApi {
 
         self.cached(&self.lane_soul_curves_cache, key, ANALYTICS_POLICY, || {
             self.client.lane_soul_curves(hero_id, enemy_hero_id, badge, priority)
+        })
+        .await
+    }
+
+    pub async fn item_stats(
+        &self,
+        hero_id: u32,
+        priority: Priority,
+    ) -> Result<Fetched<Vec<ItemStats>>> {
+        let key = format!("item_stats?hero={hero_id}");
+
+        self.cached(&self.item_stats_cache, key, ANALYTICS_POLICY, || {
+            self.client.item_stats(hero_id, None, priority)
+        })
+        .await
+    }
+
+    pub async fn performance_curve(
+        &self,
+        hero_id: u32,
+        priority: Priority,
+    ) -> Result<Fetched<Vec<PerformancePoint>>> {
+        let key = format!("performance_curve?hero={hero_id}");
+
+        self.cached(&self.performance_curve_cache, key, ANALYTICS_POLICY, || {
+            self.client.performance_curve(hero_id, None, priority)
         })
         .await
     }
