@@ -177,15 +177,13 @@ impl WeaponBuilder {
             .values
             .iter()
             .zip(row.values)
-            .map(|(h, r)| {
-                (h.formatted_value.as_deref().unwrap_or_default().to_lowercase(), r)
-            })
+            .map(|(h, r)| (h.formatted_value.to_lowercase(), r))
             .collect::<HashMap<String, CellData>>();
 
         let weapon_name = data
             .remove("name")
+            .map(cell_value)
             .ok_or_else(|| ZaydenError::missing_data("name column"))?
-            .formatted_value
             .ok_or_else(|| ZaydenError::missing_data("name cell value"))?;
 
         if weapon_name == "Ideal" {
@@ -194,7 +192,7 @@ impl WeaponBuilder {
 
         let reserves = data
             .remove("reserves")
-            .and_then(|r| r.formatted_value)
+            .and_then(cell_value)
             .filter(|s| !matches!(s.as_str(), "?" | "N/A" | "TBA"))
             .and_then(|s| {
                 s.parse().map_or_else(
@@ -208,7 +206,7 @@ impl WeaponBuilder {
 
         let shield = data
             .remove("shield")
-            .and_then(|r| r.formatted_value)
+            .and_then(cell_value)
             .filter(|s| s != "?")
             .and_then(|s| s.parse().ok());
 
@@ -230,52 +228,49 @@ impl WeaponBuilder {
             .remove("affinity")
             .or_else(|| data.remove("energy"))
             .ok_or_else(|| ZaydenError::missing_data("affinity/energy column"))?
-            .formatted_value
-            .unwrap_or_default();
+            .formatted_value;
 
-        let frame = data.remove("frame").and_then(|f| f.formatted_value);
+        let frame = data.remove("frame").and_then(cell_value);
 
         let enhance_cell = data
             .remove("enhance")
             .or_else(|| data.remove("⬆\u{fe0f}"))
             .ok_or_else(|| ZaydenError::missing_data("enhance column"))?;
-        let enhanceable = enhance_cell.formatted_value.unwrap_or_default() == "Yes";
+        let enhanceable = enhance_cell.formatted_value == "Yes";
 
         let barrel = data
             .remove("barrel")
             .ok_or_else(|| ZaydenError::missing_data("barrel column"))?
-            .formatted_value
-            .unwrap_or_default();
+            .formatted_value;
 
         let magazine = data
             .remove("mag")
             .ok_or_else(|| ZaydenError::missing_data("mag column"))?
-            .formatted_value
-            .unwrap_or_default();
+            .formatted_value;
 
         let perk_1 = data
             .remove("column 1")
             .or_else(|| data.remove("perk 1"))
+            .map(cell_value)
             .ok_or_else(|| ZaydenError::missing_data("perk 1 / column 1"))?
-            .formatted_value
             .ok_or_else(|| ZaydenError::missing_data("perk 1 cell value"))?;
 
         let perk_2 = data
             .remove("column 2")
             .or_else(|| data.remove("perk 2"))
+            .map(cell_value)
             .ok_or_else(|| ZaydenError::missing_data("perk 2 / column 2"))?
-            .formatted_value
             .ok_or_else(|| ZaydenError::missing_data("perk 2 cell value"))?;
 
         let origin_trait = data
             .remove("origin trait")
+            .map(cell_value)
             .ok_or_else(|| ZaydenError::missing_data("origin trait column"))?
-            .formatted_value
             .ok_or_else(|| ZaydenError::missing_data("origin trait cell value"))?;
 
         let rank = data
             .remove("rank")
-            .and_then(|c| c.formatted_value)
+            .and_then(cell_value)
             .and_then(|s| s.parse().ok())
             .unwrap_or_default();
 
@@ -298,7 +293,7 @@ impl WeaponBuilder {
             .rank(rank)
             .tier(tier);
 
-        if let Some(notes) = data.remove("notes").and_then(|d| d.formatted_value) {
+        if let Some(notes) = data.remove("notes").and_then(cell_value) {
             weapon = weapon.notes(notes);
         }
 
@@ -717,4 +712,8 @@ fn generate_combinations_iterative(
             current_combination.pop();
         }
     }
+}
+
+fn cell_value(cell: CellData) -> Option<String> {
+    Some(cell.formatted_value).filter(|s| !s.is_empty())
 }

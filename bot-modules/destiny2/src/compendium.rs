@@ -53,7 +53,10 @@ pub async fn update(pool: &PgPool, api_key: &str) -> Result<()> {
         .skip(5)
         .filter_map(|row| {
             perk_entry(
-                row.values.into_iter().map(|cell| cell.formatted_value).collect(),
+                row.values
+                    .into_iter()
+                    .map(|cell| Some(cell.formatted_value).filter(|s| !s.is_empty()))
+                    .collect(),
             )
         })
         .collect::<Vec<(String, PerkInfo)>>();

@@ -2115,12 +2115,13 @@ dependencies = [
 
 [[package]]
 name = "google-sheets-api"
-version = "0.1.0"
-source = "git+https://github.com/ViridianLink/google-sheets-api.git?branch=main#7b986c5060de6fd93c37d7cd712d7a50255b6818"
+version = "0.2.0"
+source = "git+https://github.com/ViridianLink/google-sheets-api.git?branch=main#5c50d00dfdbfc0247e4d912dcb1647adc62916cf"
 dependencies = [
- "reqwest 0.12.28",
+ "reqwest 0.13.5",
  "serde",
  "serde_json",
+ "thiserror 2.0.21",
  "url",
 ]
 
@@ -4838,11 +4839,9 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-rustls",
- "hyper-tls",
  "hyper-util",
  "js-sys",
  "log",
- "native-tls",
  "percent-encoding",
  "pin-project-lite",
  "quinn",
@@ -4853,7 +4852,6 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper",
  "tokio",
- "tokio-native-tls",
  "tokio-rustls",
  "tower",
  "tower-http 0.6.11",
@@ -4873,6 +4871,7 @@ checksum = "16a1cfa75cc186dd73d5818e510e042e40927bccc9c236b061cea97e1eb08029"
 dependencies = [
  "base64 0.23.1",
  "bytes",
+ "encoding_rs",
  "futures-core",
  "futures-util",
  "h2",
@@ -4885,6 +4884,7 @@ dependencies = [
  "hyper-util",
  "js-sys",
  "log",
+ "mime",
  "mime_guess",
  "native-tls",
  "percent-encoding",

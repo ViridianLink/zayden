@@ -1,6 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
+use google_sheets_api::types::common::ColorStyle;
 use google_sheets_api::types::sheet::CellData;
 use serenity::all::Colour;
 use zayden_core::CoreError as ZaydenError;
@@ -34,17 +35,16 @@ impl TryFrom<CellData> for Tier {
     type Error = EndgameAnalysisError;
 
     fn try_from(value: CellData) -> Result<Self, Self::Error> {
-        let tier =
-            value.formatted_value.map_or_default(|s| s.parse().unwrap_or_default());
+        let tier = value.formatted_value.parse().unwrap_or_default();
         let effective_format = value
             .effective_format
             .ok_or_else(|| ZaydenError::missing_data("effective_format"))?;
         let background_color_style = effective_format
             .background_color_style
             .ok_or_else(|| ZaydenError::missing_data("background_color_style"))?;
-        let colour = background_color_style
-            .rgb_color
-            .ok_or_else(|| ZaydenError::missing_data("rgb_color"))?;
+        let ColorStyle::RgbColor(colour) = background_color_style else {
+            return Err(ZaydenError::missing_data("rgb_color").into());
+        };
 
         Ok(Self { tier, colour: google_colour_to_serde_colour(&colour) })
     }

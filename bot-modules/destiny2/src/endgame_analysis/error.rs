@@ -12,7 +12,7 @@ pub enum EndgameAnalysisError {
 
     Sqlx(#[from] sqlx::Error),
     BungieApi(#[from] bungie_api::BungieApiError),
-    GoogleSheets(#[from] google_sheets_api::Error),
+    GoogleSheets(#[from] google_sheets_api::SheetsApiError),
     ZaydenCore(#[from] ZaydenError),
 }
 

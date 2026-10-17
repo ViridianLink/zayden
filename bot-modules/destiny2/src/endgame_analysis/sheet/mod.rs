@@ -90,10 +90,9 @@ impl EndgameAnalysisSheet {
             .into_iter()
             .filter(|s| !s.properties.hidden)
             .filter(|s| {
-                primary_colour(&s.properties.tab_color)
-                    || special_colour(&s.properties.tab_color)
-                    || heavy_colour(&s.properties.tab_color)
-                    || s.properties.title == "Other"
+                s.properties.tab_color.as_ref().is_some_and(|c| {
+                    primary_colour(c) || special_colour(c) || heavy_colour(c)
+                }) || s.properties.title == "Other"
             })
             .filter_map(|mut sheet| {
                 let data = sheet.data.pop()?;

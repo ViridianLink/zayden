@@ -13,7 +13,7 @@ pub enum DestinyError {
     #[error(transparent)]
     BungieApi(#[from] bungie_api::BungieApiError),
     #[error(transparent)]
-    GoogleSheets(#[from] google_sheets_api::Error),
+    GoogleSheets(#[from] google_sheets_api::SheetsApiError),
     #[error(transparent)]
     HandlerError(HandlerError),
     #[error(transparent)]
