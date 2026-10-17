@@ -2,8 +2,8 @@ use deadlock::commands::Command;
 use serde_json::Value;
 use zayden_core::limits::command::OPTIONS as MAX_OPTIONS;
 
-const SUBCOMMANDS: [&str; 6] =
-    ["build", "abilities", "counter", "matchup", "summaries", "squad"];
+const SUBCOMMANDS: [&str; 7] =
+    ["build", "abilities", "counter", "matchup", "summaries", "briefing", "squad"];
 
 const SUB_COMMAND: u64 = 1;
 const SUB_COMMAND_GROUP: u64 = 2;

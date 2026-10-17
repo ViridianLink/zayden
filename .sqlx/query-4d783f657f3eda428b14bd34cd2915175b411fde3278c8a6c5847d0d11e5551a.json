@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_user_settings (discord_id, patch_briefing)\n        VALUES ($1, $2)\n        ON CONFLICT (discord_id) DO UPDATE\n        SET patch_briefing = EXCLUDED.patch_briefing,\n            updated_at = now()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4d783f657f3eda428b14bd34cd2915175b411fde3278c8a6c5847d0d11e5551a"
+}

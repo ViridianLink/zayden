@@ -1,4 +1,5 @@
 use deadlock::db::{guild_members, modules, user_settings};
+use sqlx::PgPool;
 use topcoat::Result;
 use topcoat::context::Cx;
 use topcoat::router::content::Form;
@@ -22,6 +23,7 @@ use crate::state::SessionIdentity;
 const DM_ACTION: &str = "/account/deadlock";
 const SERVERS_ACTION: &str = "/account/deadlock/servers";
 const DM_FIELD: &str = "dm_summaries";
+const BRIEFING_FIELD: &str = "patch_briefing";
 const SHARE_PREFIX: &str = "share_";
 const SQUAD_PREFIX: &str = "squad_";
 
@@ -34,6 +36,7 @@ pub(super) struct ServerChoice {
 
 pub(super) struct DeadlockPrefs {
     dm_summaries: bool,
+    patch_briefing: bool,
     servers: Vec<ServerChoice>,
 }
 
@@ -71,14 +74,16 @@ async fn load_prefs(
 ) -> std::result::Result<DeadlockPrefs, AuthError> {
     let pool = db_pool(cx)?;
     let allowed = allowed_guilds(cx, identity).await?;
-    let (dm_summaries, shared, squad) = tokio::try_join!(
+    let (dm_summaries, patch_briefing, shared, squad) = tokio::try_join!(
         user_settings::dm_summaries(pool, identity.user_id),
+        user_settings::patch_briefing(pool, identity.user_id),
         guild_members::shared_guilds(pool, identity.user_id),
         guild_members::squad_guilds(pool, identity.user_id),
     )?;
 
     Ok(DeadlockPrefs {
         dm_summaries,
+        patch_briefing,
         servers: allowed
             .into_iter()
             .map(|(id, name)| ServerChoice {
@@ -132,25 +137,36 @@ pub(super) async fn save_dm(
     Form(pairs): Form<Vec<(String, String)>>,
 ) -> Result<impl View> {
     let identity = signed_in(cx).await?;
-    let enabled = pairs.iter().any(|(name, _)| name == DM_FIELD);
+    let summaries = pairs.iter().any(|(name, _)| name == DM_FIELD);
+    let briefing = pairs.iter().any(|(name, _)| name == BRIEFING_FIELD);
 
-    match user_settings::set_dm_summaries(db_pool(cx)?, identity.user_id, enabled)
+    match save_dm_preferences(db_pool(cx)?, identity.user_id, summaries, briefing)
         .await
     {
         Ok(()) => {
-            set_flash(cx, FlashKind::Success, "Deadlock summary settings saved.")?;
+            set_flash(cx, FlashKind::Success, "Deadlock DM settings saved.")?;
         },
         Err(error) => {
-            warn!(error = %error, "failed to save the Deadlock DM preference");
+            warn!(error = %error, "failed to save the Deadlock DM preferences");
             set_flash(
                 cx,
                 FlashKind::Error,
-                "Couldn't save your Deadlock summary settings. Please try again.",
+                "Couldn't save your Deadlock DM settings. Please try again.",
             )?;
         },
     }
 
     Err::<(), _>(see_other(PAGE).into())
+}
+
+async fn save_dm_preferences(
+    pool: &PgPool,
+    user_id: i64,
+    summaries: bool,
+    briefing: bool,
+) -> sqlx::Result<()> {
+    user_settings::set_dm_summaries(pool, user_id, summaries).await?;
+    user_settings::set_patch_briefing(pool, user_id, briefing).await
 }
 
 #[page(POST "/account/deadlock/servers")]
@@ -227,6 +243,14 @@ pub(super) async fn deadlock_section(
                                 checked=(prefs.dm_summaries)
                             >
                             <span>"DM me a summary after each match"</span>
+                        </label>
+                        <label class="account-check">
+                            <input
+                                type="checkbox"
+                                name=(BRIEFING_FIELD)
+                                checked=(prefs.patch_briefing)
+                            >
+                            <span>"DM me a patch-day briefing for the heroes I play"</span>
                         </label>
                         <button
                             type="submit"

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deadlock_patches SET briefed_at = now() WHERE guid = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ed6748f22eb132d42d3d28f5df390f19644c4e0bbd86cddfb7e2b15ce800fa61"
+}

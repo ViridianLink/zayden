@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM deadlock_rank_snapshots WHERE captured_at < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "62b0fc252b4ee70f54b93313f11220d625b14fc3ffe4ce39fa486c021db88b8f"
+}

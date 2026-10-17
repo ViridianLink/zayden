@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT client_version FROM deadlock_asset_snapshots ORDER BY client_version",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "client_version",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deadlock_asset_snapshots",
+            "name": "client_version"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "54606dcad0928d821d1149219b41c7a2cc4af97a5dbd2e3d06fb2e9cc945a515"
+}

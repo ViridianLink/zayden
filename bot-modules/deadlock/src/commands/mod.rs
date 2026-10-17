@@ -1,4 +1,5 @@
 mod abilities;
+mod briefing;
 mod build;
 mod counter;
 mod matchup;
@@ -67,6 +68,17 @@ impl Command {
             "Share my summaries in this server's summary channel",
         ));
 
+        let briefing = CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "briefing",
+            "Patch-day briefing preferences",
+        )
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::Boolean,
+            "enabled",
+            "DM me the patch changes to heroes I play",
+        ));
+
         let squad = CreateCommandOption::new(
             CommandOptionType::SubCommandGroup,
             "squad",
@@ -95,6 +107,7 @@ impl Command {
             .add_option(counter)
             .add_option(matchup)
             .add_option(summaries)
+            .add_option(briefing)
             .add_option(squad)
     }
 
@@ -110,10 +123,17 @@ impl Command {
             "summaries" => {
                 summaries::run(cx, &cx.app.db, parse_options(sub_options)).await
             },
+            "briefing" => {
+                briefing::run(cx, &cx.app.db, parse_options(sub_options)).await
+            },
             "squad" => squad::run(cx, &cx.app.db, api, sub_options).await,
             _ => Err(DeadlockError::InvalidOption(name.to_string())),
         }
     }
+}
+
+pub(super) const fn on_off(enabled: bool) -> &'static str {
+    if enabled { "on" } else { "off" }
 }
 
 pub(crate) fn hero_option(

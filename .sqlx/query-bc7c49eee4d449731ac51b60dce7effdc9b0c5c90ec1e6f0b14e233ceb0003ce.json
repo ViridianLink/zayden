@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM deadlock_asset_snapshots\n        WHERE client_version NOT IN (\n                SELECT client_version FROM deadlock_asset_snapshots\n                ORDER BY client_version DESC LIMIT $1)\n          AND client_version NOT IN (SELECT client_version FROM deadlock_watch_state)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bc7c49eee4d449731ac51b60dce7effdc9b0c5c90ec1e6f0b14e233ceb0003ce"
+}

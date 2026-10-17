@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT patch_briefing FROM deadlock_user_settings WHERE discord_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "patch_briefing",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "deadlock_user_settings",
+            "name": "patch_briefing"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ecb519ed282eead7024011a489bbd071a8fcee6a035420cb25c93e0c6e20d9e6"
+}

@@ -172,3 +172,43 @@ pub async fn mark_announced(pool: &PgPool, guid: &str) -> sqlx::Result<()> {
 
     Ok(())
 }
+
+#[expect(
+    trivial_casts,
+    reason = "not a cast: `as T` is sqlx's bind-param type-override syntax, required because TIMESTAMPTZ has no built-in jiff mapping"
+)]
+pub async fn awaiting_briefing(
+    pool: &PgPool,
+    since: Timestamp,
+) -> Result<Vec<PatchRow>> {
+    let records = sqlx::query_as!(
+        PatchRecord,
+        r#"
+        SELECT guid,
+               title,
+               link,
+               published_at AS "published_at: jiff_sqlx::Timestamp",
+               detected_at AS "detected_at: jiff_sqlx::Timestamp",
+               diff
+        FROM deadlock_patches
+        WHERE briefed_at IS NULL AND diff IS NOT NULL AND published_at >= $1
+        ORDER BY published_at, guid
+        "#,
+        since.to_sqlx() as jiff_sqlx::Timestamp
+    )
+    .fetch_all(pool)
+    .await?;
+
+    records.into_iter().map(PatchRecord::into_row).collect()
+}
+
+pub async fn mark_briefed(pool: &PgPool, guid: &str) -> sqlx::Result<()> {
+    sqlx::query!(
+        "UPDATE deadlock_patches SET briefed_at = now() WHERE guid = $1",
+        guid
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}

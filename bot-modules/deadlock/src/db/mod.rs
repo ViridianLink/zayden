@@ -1,4 +1,6 @@
 pub mod announce;
+pub mod briefings;
+pub mod gc;
 pub mod guild_members;
 pub mod guild_posts;
 pub mod matches;

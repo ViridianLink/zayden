@@ -430,11 +430,20 @@ pub fn patch_component(
         "## {}\n[Read the official patch notes]({})",
         patch.title, patch.link
     );
+
+    patch_container(header, patch.diff.as_ref(), text_budget)
+}
+
+fn patch_container(
+    header: String,
+    diff: Option<&PatchDiff>,
+    text_budget: usize,
+) -> CreateComponent<'static> {
     let limit = text_budget.min(MAX_TEXT).saturating_sub(TEXT_RESERVE);
     let mut used = header.chars().count();
     let mut parts = vec![text(header)];
 
-    let sections = patch.diff.as_ref().map_or_else(Vec::new, patch_sections);
+    let sections = diff.map_or_else(Vec::new, patch_sections);
     if sections.is_empty() {
         parts.push(text(NO_CHANGES));
         return CreateComponent::Container(
@@ -482,6 +491,29 @@ pub fn patch_component(
     }
 
     CreateComponent::Container(CreateContainer::new(parts).accent_colour(ACCENT))
+}
+
+pub fn briefing_dm(patch: &PatchRow, hero_ids: &[u32]) -> CreateMessage<'static> {
+    let heroes = patch.diff.as_ref().map_or_else(Vec::new, |diff| {
+        hero_ids
+            .iter()
+            .filter_map(|hero_id| {
+                diff.heroes.iter().find(|hero| hero.hero_id == *hero_id).cloned()
+            })
+            .collect()
+    });
+    let filtered = PatchDiff { heroes, items: Vec::new() };
+
+    let header = format!(
+        "## Patch-day briefing\nChanges in **{}** to heroes you played recently.\n[Read the official patch notes]({})\n-# Turn these off with `/deadlock briefing enabled:False`.",
+        patch.title, patch.link
+    );
+    let container = patch_container(header, Some(&filtered), MAX_TEXT);
+
+    CreateMessage::new()
+        .flags(MessageFlags::IS_COMPONENTS_V2)
+        .components(vec![container])
+        .allowed_mentions(CreateAllowedMentions::new())
 }
 
 fn clock(seconds: u32) -> String {

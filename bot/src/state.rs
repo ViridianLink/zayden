@@ -4,6 +4,8 @@ use bungie_api::{BungieClient, BungieClientBuilder};
 use dashmap::DashMap;
 use deadlock::DeadlockApi;
 use deadlock::cron::{
+    DeadlockBriefingCron,
+    DeadlockCacheGcCron,
     DeadlockLeaderboardCron,
     DeadlockMatchCron,
     DeadlockPatchCron,
@@ -289,6 +291,8 @@ impl BotState {
                 Arc::clone(&self.deadlock),
                 self.app.zayden_id,
             ),
+            DeadlockBriefingCron::cron_job(),
+            DeadlockCacheGcCron::cron_job(),
             PalworldUploadSweepCron::cron_job(),
             PalworldSaveRefreshCron::cron_job(Arc::clone(&self.palworld)),
             PalworldWarmCron::cron_job(Arc::clone(&self.palworld)),

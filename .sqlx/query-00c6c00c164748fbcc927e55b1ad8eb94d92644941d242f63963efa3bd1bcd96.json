@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT p.discord_id,\n               m.hero_id,\n               count(*) AS \"games!\",\n               max(m.start_time) AS \"last_played!: jiff_sqlx::Timestamp\"\n        FROM deadlock_players p\n        JOIN deadlock_matches_seen m ON m.account_id = p.account_id\n        LEFT JOIN deadlock_user_settings s ON s.discord_id = p.discord_id\n        WHERE COALESCE(s.patch_briefing, TRUE)\n          AND m.start_time >= $3\n          AND m.start_time < $2\n          AND NOT EXISTS (\n              SELECT 1 FROM deadlock_matches_seen later\n              WHERE later.account_id = p.account_id AND later.start_time >= $2\n          )\n          AND NOT EXISTS (\n              SELECT 1 FROM deadlock_briefings_sent b\n              WHERE b.patch_guid = $1 AND b.discord_id = p.discord_id\n          )\n        GROUP BY p.discord_id, m.hero_id\n        ORDER BY p.discord_id, m.hero_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "discord_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_players",
+            "name": "discord_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "hero_id",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deadlock_matches_seen",
+            "name": "hero_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "games!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_played!: jiff_sqlx::Timestamp",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "00c6c00c164748fbcc927e55b1ad8eb94d92644941d242f63963efa3bd1bcd96"
+}

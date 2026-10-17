@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_briefings_sent (patch_guid, discord_id)\n        VALUES ($1, $2)\n        ON CONFLICT DO NOTHING\n        RETURNING discord_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "discord_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_briefings_sent",
+            "name": "discord_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "70909f459d9a08841ba174a13ded7f339b1a9d2ba19fe02a02a33a281ffd7617"
+}

@@ -9,13 +9,14 @@ use tracing::{debug, error, info};
 use zayden_core::CronJob;
 
 use crate::announce::announce_ready;
+use crate::briefing::{self, BriefingOutcome};
 use crate::client::DeadlockApi;
 use crate::deliver::deliver;
 use crate::error::DeadlockError;
 use crate::match_poll::{self, SummaryJob};
 use crate::patch_watch::{self, WatchOutcome};
 use crate::rank_poll::{self, SquadEvent};
-use crate::squad_deliver;
+use crate::{gc, squad_deliver};
 
 #[derive(Debug, Default)]
 pub struct RunGuard(AtomicBool);
@@ -244,6 +245,51 @@ async fn post_leaderboards(
     {
         Ok(posts) => debug!(posts, "deadlock: squad leaderboards posted"),
         Err(e) => error!(error = ?e, "deadlock: failed to post squad leaderboards"),
+    }
+}
+
+pub struct DeadlockBriefingCron;
+
+impl DeadlockBriefingCron {
+    pub fn cron_job() -> Result<CronJob, jiff_cron::error::Error> {
+        let guard = Arc::new(RunGuard::default());
+
+        CronJob::new("deadlock_patch_briefing", "30 */10 * * * * *").map(|job| {
+            job.set_action(move |ctx, pool| {
+                let guard = Arc::clone(&guard);
+
+                async move {
+                    if let Some(ticket) = guard.try_start() {
+                        tokio::spawn(brief(ticket, Arc::clone(&ctx.http), pool));
+                    }
+                }
+            })
+        })
+    }
+}
+
+async fn brief(_ticket: RunTicket, http: Arc<Http>, pool: PgPool) {
+    match briefing::run(&http, &pool, Timestamp::now()).await {
+        Ok(outcome) if outcome == BriefingOutcome::default() => {
+            debug!("deadlock: no patch briefings to send");
+        },
+        Ok(outcome) => info!(?outcome, "deadlock: patch briefings sent"),
+        Err(e) => error!(error = ?e, "deadlock: patch briefing failed"),
+    }
+}
+
+pub struct DeadlockCacheGcCron;
+
+impl DeadlockCacheGcCron {
+    pub fn cron_job() -> Result<CronJob, jiff_cron::error::Error> {
+        CronJob::new("deadlock_cache_gc", "0 15 4 * * * *").map(|job| {
+            job.set_action(|_ctx, pool| async move {
+                match gc::run(&pool, Timestamp::now()).await {
+                    Ok(outcome) => info!(?outcome, "deadlock: cache gc finished"),
+                    Err(e) => error!(error = ?e, "deadlock: cache gc failed"),
+                }
+            })
+        })
     }
 }
 

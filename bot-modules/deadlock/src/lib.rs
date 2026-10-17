@@ -1,6 +1,7 @@
 pub mod analysis;
 pub mod announce;
 pub mod autocomplete;
+pub mod briefing;
 pub mod client;
 pub mod commands;
 pub mod cron;
@@ -9,6 +10,7 @@ pub mod deliver;
 pub mod diff;
 pub mod embeds;
 pub mod error;
+pub mod gc;
 pub mod heroes;
 pub mod items;
 pub mod match_poll;

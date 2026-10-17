@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM deadlock_matches_seen WHERE start_time < $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "03a144cfca7f3940fa23bedf2be2f1c0af2cdb8a556bdc32ed6d9679df8a18f0"
+}

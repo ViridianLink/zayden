@@ -391,6 +391,7 @@ async fn the_account_page_offers_summaries_for_servers_that_use_the_module(
     assert!(html.contains(r#"action="/account/deadlock""#), "{html}");
     assert!(html.contains(r#"action="/account/deadlock/servers""#), "{html}");
     assert!(html.contains(r#"name="dm_summaries""#), "{html}");
+    assert!(html.contains(r#"name="patch_briefing""#), "{html}");
     assert!(html.contains(r#"name="share_7""#), "{html}");
     assert!(!html.contains(r#"name="share_8""#), "{html}");
     assert!(html.contains(r#"name="squad_7""#), "{html}");
@@ -440,6 +441,30 @@ async fn the_dm_checkbox_saves_and_clears_the_preference(pool: PgPool) {
 
     assert_eq!(location(&response), Some("/account"));
     assert!(user_settings::dm_summaries(&pool, USER_ID).await.unwrap());
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn the_briefing_checkbox_saves_independently_of_summaries(pool: PgPool) {
+    let router = harness(&pool).await.unwrap();
+
+    post_form(&router, "/account/deadlock", MEMBER, "dm_summaries=on")
+        .await
+        .unwrap();
+
+    assert!(user_settings::dm_summaries(&pool, USER_ID).await.unwrap());
+    assert!(!user_settings::patch_briefing(&pool, USER_ID).await.unwrap());
+
+    post_form(
+        &router,
+        "/account/deadlock",
+        MEMBER,
+        "dm_summaries=on&patch_briefing=on",
+    )
+    .await
+    .unwrap();
+
+    assert!(user_settings::dm_summaries(&pool, USER_ID).await.unwrap());
+    assert!(user_settings::patch_briefing(&pool, USER_ID).await.unwrap());
 }
 
 #[sqlx::test(migrations = "../migrations")]

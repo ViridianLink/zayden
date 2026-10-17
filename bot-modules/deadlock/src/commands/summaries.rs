@@ -8,15 +8,12 @@ use serenity::all::{
 use sqlx::PgPool;
 use zayden_core::{InvocationCtx, as_i64, optional_option};
 
+use super::on_off;
 use crate::db::{guild_members, players, summary_channel, user_settings};
 use crate::error::{DeadlockError, Result};
 
 const NO_CHANNEL: &str = "This server has no summary channel yet — an admin can set one on the dashboard.";
 pub(super) const LINK_STEAM: &str = "Link your Steam account with `/link steam` to start receiving summaries. Summaries only appear once deadlock-api has your match; friending a deadlock-api bot keeps your history current.";
-
-const fn on_off(enabled: bool) -> &'static str {
-    if enabled { "on" } else { "off" }
-}
 
 pub(super) async fn run(
     cx: &InvocationCtx<'_>,
