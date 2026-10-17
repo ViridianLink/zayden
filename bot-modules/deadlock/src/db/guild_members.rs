@@ -132,3 +132,22 @@ pub async fn squad_guilds(pool: &PgPool, discord_id: i64) -> sqlx::Result<Vec<i6
     .fetch_all(pool)
     .await
 }
+
+pub async fn remove(
+    pool: &PgPool,
+    guild_id: i64,
+    discord_id: i64,
+) -> sqlx::Result<bool> {
+    let result = sqlx::query!(
+        r#"
+        DELETE FROM deadlock_guild_members
+        WHERE guild_id = $1 AND discord_id = $2
+        "#,
+        guild_id,
+        discord_id
+    )
+    .execute(pool)
+    .await?;
+
+    Ok(result.rows_affected() > 0)
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        DELETE FROM deadlock_guild_members\n        WHERE guild_id = $1 AND discord_id = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bbe664d602748b15c5b966d285a57c73ec3447b39efecd839447fae931146413"
+}

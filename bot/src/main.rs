@@ -92,6 +92,7 @@ async fn main() -> Result<()> {
             .parse::<Token>()
             .map_err(serenity::Error::Token)?,
         GatewayIntents::GUILDS
+            | GatewayIntents::GUILD_MEMBERS
             | GatewayIntents::GUILD_MESSAGES
             | GatewayIntents::GUILD_MESSAGE_REACTIONS
             | GatewayIntents::GUILD_VOICE_STATES
