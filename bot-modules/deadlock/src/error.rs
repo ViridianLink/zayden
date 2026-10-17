@@ -39,6 +39,19 @@ pub enum DeadlockError {
     Serenity(#[from] serenity::Error),
 }
 
+impl DeadlockError {
+    #[must_use]
+    pub fn is_transient(&self) -> bool {
+        matches!(
+            self,
+            Self::Api(DeadlockApiError::Request(e)) if e.is_timeout() || e.is_connect()
+        ) || matches!(
+            self,
+            Self::Api(DeadlockApiError::Http { status }) if status.is_server_error()
+        )
+    }
+}
+
 impl Respond for DeadlockError {
     fn user_message(&self) -> Option<Cow<'_, str>> {
         match self {

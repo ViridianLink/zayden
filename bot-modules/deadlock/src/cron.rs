@@ -5,7 +5,7 @@ use deadlock_api::DeadlockApiError;
 use jiff::Timestamp;
 use serenity::all::Http;
 use sqlx::PgPool;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use zayden_core::CronJob;
 
 use crate::announce::announce_ready;
@@ -121,6 +121,9 @@ impl DeadlockMatchCron {
                         )) => {
                             debug!(error = %e, "deadlock: match poll deferred, deadlock-api is busy");
                         },
+                        Err(e) if e.is_transient() => {
+                            warn!(error = %e, "deadlock: match poll deferred, deadlock-api unavailable");
+                        },
                         Err(e) => error!(error = ?e, "deadlock: match poll failed"),
                     }
                 }
@@ -181,6 +184,9 @@ impl DeadlockRankCron {
                             e @ DeadlockApiError::Busy { .. },
                         )) => {
                             debug!(error = %e, "deadlock: rank poll deferred, deadlock-api is busy");
+                        },
+                        Err(e) if e.is_transient() => {
+                            warn!(error = %e, "deadlock: rank poll deferred, deadlock-api unavailable");
                         },
                         Err(e) => error!(error = ?e, "deadlock: rank poll failed"),
                     }
@@ -301,6 +307,9 @@ async fn watch(api: &DeadlockApi, pool: &PgPool) {
         Ok(outcome) => info!(?outcome, "deadlock: patch watch made progress"),
         Err(DeadlockError::Api(e @ DeadlockApiError::Busy { .. })) => {
             debug!(error = %e, "deadlock: patch watch deferred, deadlock-api is busy");
+        },
+        Err(e) if e.is_transient() => {
+            warn!(error = %e, "deadlock: patch watch deferred, deadlock-api unavailable");
         },
         Err(e) => error!(error = ?e, "deadlock: patch watch failed"),
     }
