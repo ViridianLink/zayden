@@ -88,13 +88,15 @@ fn validate_rejects_a_command_module_without_commands() {
 }
 
 #[sqlx::test(migrations = "../migrations")]
-async fn first_seed_enables_every_module(pool: PgPool) -> sqlx::Result<()> {
+async fn first_seed_applies_module_defaults(pool: PgPool) -> sqlx::Result<()> {
     let states = ModuleStore::new(pool)
         .seed(GUILD, joined(), JoinKind::First, &HashSet::new())
         .await?;
 
     assert_eq!(states.len(), command_modules().count());
-    assert!(states.values().all(|enabled| *enabled));
+    for m in command_modules() {
+        assert_eq!(states.get(m.id), Some(&m.default_enabled(joined())), "{}", m.id);
+    }
 
     Ok(())
 }
