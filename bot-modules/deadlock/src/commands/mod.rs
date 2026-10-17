@@ -2,6 +2,7 @@ mod abilities;
 mod build;
 mod counter;
 mod matchup;
+mod squad;
 mod summaries;
 
 use deadlock_api::Priority;
@@ -66,6 +67,27 @@ impl Command {
             "Share my summaries in this server's summary channel",
         ));
 
+        let squad = CreateCommandOption::new(
+            CommandOptionType::SubCommandGroup,
+            "squad",
+            "Track ranks and streaks with this server",
+        )
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "join",
+            "Post my rank changes and streaks in this server",
+        ))
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "leave",
+            "Stop posting my rank changes and streaks here",
+        ))
+        .add_sub_option(CreateCommandOption::new(
+            CommandOptionType::SubCommand,
+            "leaderboard",
+            "Show this server's squad leaderboard",
+        ));
+
         CreateCommand::new("deadlock")
             .description("Deadlock builds, ability orders and matchups.")
             .add_option(build)
@@ -73,6 +95,7 @@ impl Command {
             .add_option(counter)
             .add_option(matchup)
             .add_option(summaries)
+            .add_option(squad)
     }
 
     pub async fn run(cx: &InvocationCtx<'_>, api: &DeadlockApi) -> Result<()> {
@@ -87,6 +110,7 @@ impl Command {
             "summaries" => {
                 summaries::run(cx, &cx.app.db, parse_options(sub_options)).await
             },
+            "squad" => squad::run(cx, &cx.app.db, api, sub_options).await,
             _ => Err(DeadlockError::InvalidOption(name.to_string())),
         }
     }

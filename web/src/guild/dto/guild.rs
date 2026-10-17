@@ -93,6 +93,8 @@ pub struct DeadlockSection {
     pub message: Option<String>,
     pub ping_role_ids: Vec<String>,
     pub summary_channel_id: Option<String>,
+    pub squad_channel_id: Option<String>,
+    pub squad_leaderboard: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

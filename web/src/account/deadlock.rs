@@ -23,11 +23,13 @@ const DM_ACTION: &str = "/account/deadlock";
 const SERVERS_ACTION: &str = "/account/deadlock/servers";
 const DM_FIELD: &str = "dm_summaries";
 const SHARE_PREFIX: &str = "share_";
+const SQUAD_PREFIX: &str = "squad_";
 
 pub(super) struct ServerChoice {
     id: i64,
     name: String,
     shared: bool,
+    squad: bool,
 }
 
 pub(super) struct DeadlockPrefs {
@@ -36,14 +38,15 @@ pub(super) struct DeadlockPrefs {
 }
 
 #[must_use]
-pub fn shared_selection(
+pub fn selection(
+    prefix: &str,
     allowed: &[i64],
     form: &[(String, String)],
 ) -> Vec<(i64, bool)> {
     allowed
         .iter()
         .map(|&guild_id| {
-            let field = format!("{SHARE_PREFIX}{guild_id}");
+            let field = format!("{prefix}{guild_id}");
             (guild_id, form.iter().any(|(name, _)| *name == field))
         })
         .collect()
@@ -68,9 +71,10 @@ async fn load_prefs(
 ) -> std::result::Result<DeadlockPrefs, AuthError> {
     let pool = db_pool(cx)?;
     let allowed = allowed_guilds(cx, identity).await?;
-    let (dm_summaries, shared) = tokio::try_join!(
+    let (dm_summaries, shared, squad) = tokio::try_join!(
         user_settings::dm_summaries(pool, identity.user_id),
         guild_members::shared_guilds(pool, identity.user_id),
+        guild_members::squad_guilds(pool, identity.user_id),
     )?;
 
     Ok(DeadlockPrefs {
@@ -81,6 +85,7 @@ async fn load_prefs(
                 id,
                 name,
                 shared: shared.contains(&id),
+                squad: squad.contains(&id),
             })
             .collect(),
     })
@@ -155,18 +160,16 @@ pub(super) async fn save_servers(
 ) -> Result<impl View> {
     let identity = signed_in(cx).await?;
 
-    match share_selected(cx, &identity, &pairs).await {
-        Ok(()) => set_flash(
-            cx,
-            FlashKind::Success,
-            "Server sharing for Deadlock summaries saved.",
-        )?,
+    match save_selected(cx, &identity, &pairs).await {
+        Ok(()) => {
+            set_flash(cx, FlashKind::Success, "Deadlock server settings saved.")?;
+        },
         Err(error) => {
-            warn!(error = %error, "failed to save Deadlock server sharing");
+            warn!(error = %error, "failed to save Deadlock server settings");
             set_flash(
                 cx,
                 FlashKind::Error,
-                "Couldn't save your server sharing choices. Please try again.",
+                "Couldn't save your server choices. Please try again.",
             )?;
         },
     }
@@ -174,7 +177,7 @@ pub(super) async fn save_servers(
     Err::<(), _>(see_other(PAGE).into())
 }
 
-async fn share_selected(
+async fn save_selected(
     cx: &Cx,
     identity: &SessionIdentity,
     pairs: &[(String, String)],
@@ -183,9 +186,12 @@ async fn share_selected(
     let allowed: Vec<i64> =
         allowed_guilds(cx, identity).await?.into_iter().map(|(id, _)| id).collect();
 
-    for (guild_id, shared) in shared_selection(&allowed, pairs) {
+    for (guild_id, shared) in selection(SHARE_PREFIX, &allowed, pairs) {
         guild_members::set_share_summaries(pool, guild_id, identity.user_id, shared)
             .await?;
+    }
+    for (guild_id, squad) in selection(SQUAD_PREFIX, &allowed, pairs) {
+        guild_members::set_squad(pool, guild_id, identity.user_id, squad).await?;
     }
 
     Ok(())
@@ -230,7 +236,7 @@ pub(super) async fn deadlock_section(
                             "Save"
                         </button>
                     </form>
-                    <h3 class="label">"Share summaries in servers"</h3>
+                    <h3 class="label">"Servers"</h3>
                     if prefs.servers.is_empty() {
                         <p class="account-meta">
                             "None of your servers use Zayden's Deadlock module."
@@ -253,6 +259,14 @@ pub(super) async fn deadlock_section(
                                                 checked=(server.shared)
                                             >
                                             <span>(server.name.as_str())</span>
+                                        </label>
+                                        <label class="account-check">
+                                            <input
+                                                type="checkbox"
+                                                name=(format!("{SQUAD_PREFIX}{}", server.id))
+                                                checked=(server.squad)
+                                            >
+                                            <span>"Squad"</span>
                                         </label>
                                     </li>
                                 }

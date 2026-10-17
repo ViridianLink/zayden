@@ -1,6 +1,7 @@
 use std::fmt::Write as _;
 
-use deadlock_api::model::{Hero, HeroBuild};
+use deadlock_api::model::{Hero, HeroBuild, Rank};
+use deadlock_api::rank::{Badge, badge_label};
 use jiff::Timestamp;
 use serenity::all::{
     Colour,
@@ -22,6 +23,8 @@ use crate::db::patches::PatchRow;
 use crate::diff::{Change, HeroDiff, ItemDiff, PatchDiff, Presence};
 use crate::heroes::HeroIndex;
 use crate::items::ItemIndex;
+use crate::rank_poll::{SquadEvent, SquadEventKind};
+use crate::squad::LeaderboardEntry;
 use crate::summary::MatchSummary;
 
 pub(crate) const ACCENT: Colour = Colour::new(0x00e0_8a2e);
@@ -658,5 +661,101 @@ pub fn summary_post(
     CreateMessage::new()
         .flags(MessageFlags::IS_COMPONENTS_V2)
         .components(components)
+        .allowed_mentions(CreateAllowedMentions::new())
+}
+
+fn squad_line(event: &SquadEvent, ranks: &[Rank]) -> String {
+    let mention = event.discord_id.cast_unsigned();
+
+    match event.kind {
+        SquadEventKind::RankUp { from, to } => format!(
+            "<@{mention}> ranked up: {} → {}",
+            badge_label(ranks, from),
+            badge_label(ranks, to)
+        ),
+        SquadEventKind::RankDown { from, to } => format!(
+            "<@{mention}> dropped to {} (from {})",
+            badge_label(ranks, to),
+            badge_label(ranks, from)
+        ),
+        SquadEventKind::Streak(streak) if streak > 0 => {
+            format!("<@{mention}> is on a {streak}-game win streak")
+        },
+        SquadEventKind::Streak(streak) => format!(
+            "<@{mention}> is on a {}-game losing streak",
+            streak.unsigned_abs()
+        ),
+    }
+}
+
+pub fn squad_post(events: &[SquadEvent], ranks: &[Rank]) -> CreateMessage<'static> {
+    let mut used = 0;
+    let body = events
+        .iter()
+        .map(|event| squad_line(event, ranks))
+        .take_while(|line| {
+            used += line.chars().count() + 1;
+            used <= MAX_TEXT
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    CreateMessage::new()
+        .flags(MessageFlags::IS_COMPONENTS_V2)
+        .components(vec![CreateComponent::Container(
+            CreateContainer::new(vec![text(body)]).accent_colour(ACCENT),
+        )])
+        .allowed_mentions(CreateAllowedMentions::new())
+}
+
+fn leaderboard_line(
+    position: usize,
+    entry: &LeaderboardEntry,
+    ranks: &[Rank],
+) -> String {
+    let label = badge_label(ranks, entry.badge.unwrap_or(Badge::UNRANKED));
+    let mut line =
+        format!("{position}. <@{}> — {label}", entry.discord_id.cast_unsigned());
+
+    match entry.streak {
+        0 => {},
+        streak if streak > 0 => {
+            let _ = write!(line, " · W{streak}");
+        },
+        streak => {
+            let _ = write!(line, " · L{}", streak.unsigned_abs());
+        },
+    }
+
+    line
+}
+
+pub fn leaderboard_component(
+    entries: &[LeaderboardEntry],
+    ranks: &[Rank],
+) -> CreateComponent<'static> {
+    let body = if entries.is_empty() {
+        "No squad members yet. Use `/deadlock squad join`.".to_owned()
+    } else {
+        entries
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| leaderboard_line(index + 1, entry, ranks))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+
+    CreateComponent::Container(
+        CreateContainer::new(vec![text("## Squad leaderboard"), text(body)])
+            .accent_colour(ACCENT),
+    )
+}
+
+pub fn leaderboard_create(
+    component: CreateComponent<'static>,
+) -> CreateMessage<'static> {
+    CreateMessage::new()
+        .flags(MessageFlags::IS_COMPONENTS_V2)
+        .components(vec![component])
         .allowed_mentions(CreateAllowedMentions::new())
 }

@@ -26,6 +26,12 @@ async fn every_settings_table_notifies_config_changes(pool: PgPool) {
            WHERE n.nspname = 'public'
              AND c.relkind = 'r'
              AND c.relname LIKE '%\_settings'
+             AND EXISTS (
+                 SELECT 1 FROM pg_attribute a
+                 WHERE a.attrelid = c.oid
+                   AND a.attname = 'guild_id'
+                   AND NOT a.attisdropped
+             )
              AND NOT EXISTS (
                  SELECT 1 FROM pg_trigger t
                  JOIN pg_proc p ON p.oid = t.tgfoid

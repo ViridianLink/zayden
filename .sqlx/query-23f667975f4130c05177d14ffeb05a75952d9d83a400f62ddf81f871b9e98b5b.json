@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_rank_snapshots (account_id, captured_at, badge)\n        VALUES ($1, $2, $3)\n        ON CONFLICT DO NOTHING\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "23f667975f4130c05177d14ffeb05a75952d9d83a400f62ddf81f871b9e98b5b"
+}

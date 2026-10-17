@@ -13,6 +13,9 @@ pub mod heroes;
 pub mod items;
 pub mod match_poll;
 pub mod patch_watch;
+pub mod rank_poll;
+pub mod squad;
+pub mod squad_deliver;
 pub mod summary;
 
 pub use client::DeadlockApi;

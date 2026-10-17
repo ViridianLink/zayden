@@ -12,7 +12,7 @@ use crate::db::{guild_members, players, summary_channel, user_settings};
 use crate::error::{DeadlockError, Result};
 
 const NO_CHANNEL: &str = "This server has no summary channel yet — an admin can set one on the dashboard.";
-const LINK_STEAM: &str = "Link your Steam account with `/link steam` to start receiving summaries. Summaries only appear once deadlock-api has your match; friending a deadlock-api bot keeps your history current.";
+pub(super) const LINK_STEAM: &str = "Link your Steam account with `/link steam` to start receiving summaries. Summaries only appear once deadlock-api has your match; friending a deadlock-api bot keeps your history current.";
 
 const fn on_off(enabled: bool) -> &'static str {
     if enabled { "on" } else { "off" }

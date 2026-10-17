@@ -1,5 +1,5 @@
 use deadlock::db::announce::PatchAnnounceRow;
-use deadlock::db::summary_channel;
+use deadlock::db::{squad_channel, summary_channel};
 use topcoat::context::Cx;
 
 use super::access::admin_app;
@@ -12,7 +12,7 @@ use super::announce::{
 };
 use super::error::{GuildError, server_err};
 use super::form::form_args;
-use super::parse::parse_role;
+use super::parse::{parse_flag, parse_role};
 use crate::auth::{ensure_bot_can_post, ensure_guild_channel};
 
 form_args! {
@@ -21,6 +21,10 @@ form_args! {
 
 form_args! {
     DeadlockSummariesForm { guild, summary_channel_id }
+}
+
+form_args! {
+    DeadlockSquadForm { guild, squad_channel_id, squad_leaderboard }
 }
 
 pub async fn save_deadlock_settings(
@@ -78,6 +82,40 @@ pub async fn save_deadlock_summaries(
     ensure_bot_can_post(cx, guild_id, channel_id).await?;
 
     summary_channel::upsert(&app.db, guild_id, channel_id).await.map_err(server_err)
+}
+
+pub async fn save_deadlock_squad(
+    cx: &Cx,
+    form: &DeadlockSquadForm,
+) -> Result<(), GuildError> {
+    let (guild_id, app) = admin_app(cx, &form.guild).await?;
+
+    let channel_id = form.squad_channel_id.trim();
+
+    if channel_id.is_empty() {
+        squad_channel::delete(&app.db, guild_id)
+            .await
+            .map(|_removed| ())
+            .map_err(server_err)?;
+
+        return Ok(());
+    }
+
+    let Ok(channel_id) = channel_id.parse::<i64>() else {
+        return Err(GuildError::InvalidChannelId);
+    };
+
+    ensure_guild_channel(cx, guild_id, channel_id).await?;
+    ensure_bot_can_post(cx, guild_id, channel_id).await?;
+
+    squad_channel::upsert(
+        &app.db,
+        guild_id,
+        channel_id,
+        parse_flag(&form.squad_leaderboard),
+    )
+    .await
+    .map_err(server_err)
 }
 
 pub async fn add_deadlock_ping_role(

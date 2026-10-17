@@ -20,7 +20,7 @@ use topcoat::router::{Body, Router, StatusCode, header};
 use twilight_model::guild::Permissions;
 use twilight_model::id::Id;
 use twilight_model::user::CurrentUserGuild;
-use web::account::deadlock::shared_selection;
+use web::account::deadlock::selection;
 use web::auth::safe_next;
 use web::components::brand::LOGO;
 use web::document::{PENDING_SUBMIT, STYLESHEET};
@@ -393,6 +393,33 @@ async fn the_account_page_offers_summaries_for_servers_that_use_the_module(
     assert!(html.contains(r#"name="dm_summaries""#), "{html}");
     assert!(html.contains(r#"name="share_7""#), "{html}");
     assert!(!html.contains(r#"name="share_8""#), "{html}");
+    assert!(html.contains(r#"name="squad_7""#), "{html}");
+    assert!(!html.contains(r#"name="squad_8""#), "{html}");
+}
+
+#[sqlx::test(migrations = "../migrations")]
+async fn squad_membership_is_saved_with_the_server_choices(pool: PgPool) {
+    let router = harness(&pool).await.unwrap();
+    seed_served_guild(&pool).await.unwrap();
+
+    post_form(&router, "/account/deadlock/servers", MEMBER, "squad_7=on&squad_8=on")
+        .await
+        .unwrap();
+
+    assert_eq!(guild_members::squad_guilds(&pool, USER_ID).await.unwrap(), vec![
+        SERVED_GUILD
+    ]);
+    assert_eq!(
+        guild_members::shared_guilds(&pool, USER_ID).await.unwrap(),
+        Vec::<i64>::new()
+    );
+
+    post_form(&router, "/account/deadlock/servers", MEMBER, "").await.unwrap();
+
+    assert_eq!(
+        guild_members::squad_guilds(&pool, USER_ID).await.unwrap(),
+        Vec::<i64>::new()
+    );
 }
 
 #[sqlx::test(migrations = "../migrations")]
@@ -464,15 +491,25 @@ fn the_selection_covers_exactly_the_allowed_servers() {
         ("dm_summaries".to_owned(), "on".to_owned()),
     ];
 
-    assert_eq!(shared_selection(&[7, 8], &form), vec![(7, true), (8, false)]);
+    assert_eq!(selection("share_", &[7, 8], &form), vec![(7, true), (8, false)]);
+}
+
+#[test]
+fn each_prefix_reads_only_its_own_checkboxes() {
+    let form = vec![
+        ("share_7".to_owned(), "on".to_owned()),
+        ("squad_8".to_owned(), "on".to_owned()),
+    ];
+
+    assert_eq!(selection("squad_", &[7, 8], &form), vec![(7, false), (8, true)]);
 }
 
 #[test]
 fn an_empty_form_clears_every_allowed_server() {
     let form = [("share_7".to_owned(), "on".to_owned())];
 
-    assert_eq!(shared_selection(&[7, 8], &[]), vec![(7, false), (8, false)]);
-    assert_eq!(shared_selection(&[], &form), Vec::<(i64, bool)>::new());
+    assert_eq!(selection("share_", &[7, 8], &[]), vec![(7, false), (8, false)]);
+    assert_eq!(selection("share_", &[], &form), Vec::<(i64, bool)>::new());
 }
 
 #[test]

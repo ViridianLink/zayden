@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deadlock_squad_channel SET leaderboard_message_id = $2 WHERE guild_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "92ed38f8d60c1cab13c274501f7358ae3088b51acb279ef420db8a43173c8569"
+}

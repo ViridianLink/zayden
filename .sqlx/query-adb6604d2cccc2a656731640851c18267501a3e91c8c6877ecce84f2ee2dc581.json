@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_squad_channel (guild_id, channel_id, leaderboard)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (guild_id) DO UPDATE\n        SET leaderboard_message_id = CASE\n                WHEN deadlock_squad_channel.channel_id <> EXCLUDED.channel_id\n                THEN NULL\n                ELSE deadlock_squad_channel.leaderboard_message_id\n            END,\n            channel_id = EXCLUDED.channel_id,\n            leaderboard = EXCLUDED.leaderboard,\n            updated_at = now()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "adb6604d2cccc2a656731640851c18267501a3e91c8c6877ecce84f2ee2dc581"
+}

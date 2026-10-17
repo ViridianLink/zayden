@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE deadlock_players SET badge = $2 WHERE account_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ee8842354ada209a307e062b53f8edf6e043f92181730599f84d6ca020610c23"
+}

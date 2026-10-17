@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO deadlock_guild_members (guild_id, discord_id, squad)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (guild_id, discord_id) DO UPDATE\n        SET squad = EXCLUDED.squad,\n            updated_at = now()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bb1b46a40bca7f792365d71c4d5340a7da863760b79322b2610753c0488eafd9"
+}

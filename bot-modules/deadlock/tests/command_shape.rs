@@ -2,10 +2,11 @@ use deadlock::commands::Command;
 use serde_json::Value;
 use zayden_core::limits::command::OPTIONS as MAX_OPTIONS;
 
-const SUBCOMMANDS: [&str; 5] =
-    ["build", "abilities", "counter", "matchup", "summaries"];
+const SUBCOMMANDS: [&str; 6] =
+    ["build", "abilities", "counter", "matchup", "summaries", "squad"];
 
 const SUB_COMMAND: u64 = 1;
+const SUB_COMMAND_GROUP: u64 = 2;
 const STRING: u64 = 3;
 
 macro_rules! definition {
@@ -42,18 +43,31 @@ fn every_dispatched_subcommand_is_registered() {
 }
 
 #[test]
-fn every_option_is_a_subcommand() {
+fn every_option_is_a_subcommand_or_group() {
     let definition = definition!();
     let options = options!(definition);
 
     for option in options {
-        assert_eq!(
-            option.get("type").and_then(Value::as_u64),
-            Some(SUB_COMMAND),
-            "`{}` is not a subcommand",
+        let kind = option.get("type").and_then(Value::as_u64);
+
+        assert!(
+            kind == Some(SUB_COMMAND) || kind == Some(SUB_COMMAND_GROUP),
+            "`{}` is not a subcommand or group",
             name_of(option)
         );
     }
+}
+
+#[test]
+fn the_squad_group_holds_join_leave_and_leaderboard() {
+    let definition = definition!();
+    let options = options!(definition);
+
+    let squad = options.iter().find(|option| name_of(option) == "squad").unwrap();
+    let names: Vec<&str> = options!(squad).iter().map(name_of).collect();
+
+    assert_eq!(squad.get("type").and_then(Value::as_u64), Some(SUB_COMMAND_GROUP));
+    assert_eq!(names, ["join", "leave", "leaderboard"]);
 }
 
 #[test]

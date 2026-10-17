@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT p.account_id,\n               p.discord_id,\n               p.badge,\n               p.streak,\n               p.announced_streak\n        FROM deadlock_players p\n        WHERE EXISTS (\n            SELECT 1 FROM deadlock_guild_members m\n            WHERE m.discord_id = p.discord_id AND m.squad\n        )\n        ORDER BY p.account_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "account_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_players",
+            "name": "account_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "discord_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_players",
+            "name": "discord_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "badge",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deadlock_players",
+            "name": "badge"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "streak",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deadlock_players",
+            "name": "streak"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "announced_streak",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "deadlock_players",
+            "name": "announced_streak"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "35aed7363c8e39c5167cbc9a88e01877ef413711ebf39ee817c9b9b2f60bad07"
+}

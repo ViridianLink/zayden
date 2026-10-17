@@ -14,6 +14,8 @@ use crate::deliver::deliver;
 use crate::error::DeadlockError;
 use crate::match_poll::{self, SummaryJob};
 use crate::patch_watch::{self, WatchOutcome};
+use crate::rank_poll::{self, SquadEvent};
+use crate::squad_deliver;
 
 #[derive(Debug, Default)]
 pub struct RunGuard(AtomicBool);
@@ -137,6 +139,111 @@ async fn summarize(
     match deliver(&http, &pool, &api, application_id, jobs).await {
         Ok(outcome) => debug!(?outcome, "deadlock: match summaries delivered"),
         Err(e) => error!(error = ?e, "deadlock: failed to deliver match summaries"),
+    }
+}
+
+pub struct DeadlockRankCron;
+
+impl DeadlockRankCron {
+    pub fn cron_job(
+        api: Arc<DeadlockApi>,
+        application_id: u64,
+    ) -> Result<CronJob, jiff_cron::error::Error> {
+        let guard = Arc::new(RunGuard::default());
+
+        CronJob::new("deadlock_rank_poll", "0 7,37 * * * * *").map(|job| {
+            job.set_action(move |ctx, pool| {
+                let api = Arc::clone(&api);
+                let guard = Arc::clone(&guard);
+
+                async move {
+                    let Some(ticket) = guard.try_start() else {
+                        return;
+                    };
+
+                    match rank_poll::poll(&api, &pool, Timestamp::now()).await {
+                        Ok((outcome, events)) => {
+                            debug!(?outcome, "deadlock: rank poll finished");
+
+                            if !events.is_empty() {
+                                tokio::spawn(announce_squad(
+                                    ticket,
+                                    Arc::clone(&ctx.http),
+                                    pool,
+                                    api,
+                                    application_id.cast_signed(),
+                                    events,
+                                ));
+                            }
+                        },
+                        Err(DeadlockError::Api(
+                            e @ DeadlockApiError::Busy { .. },
+                        )) => {
+                            debug!(error = %e, "deadlock: rank poll deferred, deadlock-api is busy");
+                        },
+                        Err(e) => error!(error = ?e, "deadlock: rank poll failed"),
+                    }
+                }
+            })
+        })
+    }
+}
+
+async fn announce_squad(
+    _ticket: RunTicket,
+    http: Arc<Http>,
+    pool: PgPool,
+    api: Arc<DeadlockApi>,
+    application_id: i64,
+    events: Vec<SquadEvent>,
+) {
+    match squad_deliver::deliver(&http, &pool, &api, application_id, events).await {
+        Ok(posts) => debug!(posts, "deadlock: squad events delivered"),
+        Err(e) => error!(error = ?e, "deadlock: failed to deliver squad events"),
+    }
+}
+
+pub struct DeadlockLeaderboardCron;
+
+impl DeadlockLeaderboardCron {
+    pub fn cron_job(
+        api: Arc<DeadlockApi>,
+        application_id: u64,
+    ) -> Result<CronJob, jiff_cron::error::Error> {
+        let guard = Arc::new(RunGuard::default());
+
+        CronJob::new("deadlock_leaderboard", "0 0 18 * * Sun *").map(|job| {
+            job.set_action(move |ctx, pool| {
+                let api = Arc::clone(&api);
+                let guard = Arc::clone(&guard);
+
+                async move {
+                    if let Some(ticket) = guard.try_start() {
+                        tokio::spawn(post_leaderboards(
+                            ticket,
+                            Arc::clone(&ctx.http),
+                            pool,
+                            api,
+                            application_id.cast_signed(),
+                        ));
+                    }
+                }
+            })
+        })
+    }
+}
+
+async fn post_leaderboards(
+    _ticket: RunTicket,
+    http: Arc<Http>,
+    pool: PgPool,
+    api: Arc<DeadlockApi>,
+    application_id: i64,
+) {
+    match squad_deliver::post_leaderboards(&http, &pool, &api, application_id).await
+    {
+        Ok(posts) => debug!(posts, "deadlock: squad leaderboards posted"),
+        Err(e) => error!(error = ?e, "deadlock: failed to post squad leaderboards"),
     }
 }
 

@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.relname AS \"relname!\"\n           FROM pg_class c\n           JOIN pg_namespace n ON n.oid = c.relnamespace\n           WHERE n.nspname = 'public'\n             AND c.relkind = 'r'\n             AND c.relname LIKE '%\\_settings'\n             AND EXISTS (\n                 SELECT 1 FROM pg_attribute a\n                 WHERE a.attrelid = c.oid\n                   AND a.attname = 'guild_id'\n                   AND NOT a.attisdropped\n             )\n             AND NOT EXISTS (\n                 SELECT 1 FROM pg_trigger t\n                 JOIN pg_proc p ON p.oid = t.tgfoid\n                 WHERE t.tgrelid = c.oid AND p.proname = 'notify_config_changed'\n             )\n           ORDER BY c.relname",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "relname!",
+        "type_info": "Name",
+        "origin": {
+          "Table": {
+            "table": "pg_class",
+            "name": "relname"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "72a9fc8d1151f1e5477fc22c53ef814bc6752385258be0d4a1455078fd3f92ca"
+}

@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT guild_id\n        FROM deadlock_guild_members\n        WHERE discord_id = $1 AND squad\n        ORDER BY guild_id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8",
+        "origin": {
+          "Table": {
+            "table": "deadlock_guild_members",
+            "name": "guild_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "614cdeec1e765d65c485b7a9bb31327b5b8d0346d8f9ef3715c73f44c24bda2a"
+}

@@ -15,17 +15,24 @@ use super::fields::channels;
 use super::header::switch_module;
 use super::state::{Done, PageState, settle};
 use super::{Lists, Page, TEXT_KINDS, ensure_path_guild, settings_page};
-use crate::components::field_row::{form_summary, select_row, textarea_row};
+use crate::components::field_row::{
+    form_summary,
+    select_row,
+    textarea_row,
+    toggle_row,
+};
 use crate::components::placeholder_legend::placeholder_legend;
 use crate::components::save_bar::save_bar;
 use crate::guild::GuildError;
 use crate::guild::announce::PingRoleForm;
 use crate::guild::deadlock::{
     DeadlockSettingsForm,
+    DeadlockSquadForm,
     DeadlockSummariesForm,
     add_deadlock_ping_role,
     remove_deadlock_ping_role,
     save_deadlock_settings,
+    save_deadlock_squad,
     save_deadlock_summaries,
 };
 use crate::guild::dto::DeadlockSection;
@@ -34,12 +41,14 @@ use crate::shell::GuildId;
 const PAGE: Page = Page::Deadlock;
 const FORM: &str = "deadlock-settings";
 const SUMMARIES_FORM: &str = "deadlock-summaries";
+const SQUAD_FORM: &str = "deadlock-squad";
 
 pub(super) fn routes(base: RouterBuilder) -> RouterBuilder {
     base.page(deadlock)
         .page(save)
         .page(switch)
         .page(save_summaries)
+        .page(save_squad)
         .page(add_ping_role)
         .page(remove_ping_role)
 }
@@ -113,6 +122,32 @@ async fn save_summaries(
     })
 }
 
+#[page(POST "/guild/{guild_id}/deadlock/squad")]
+async fn save_squad(
+    cx: &Cx,
+    Form(pairs): Form<Vec<(String, String)>>,
+) -> Result<impl View> {
+    let guild_id: &str = path_param::<GuildId>(cx);
+    let values = pairs.clone();
+    let result = async {
+        let form = DeadlockSquadForm::from_pairs(pairs)?;
+        ensure_path_guild(&form.guild, guild_id)?;
+        save_deadlock_squad(cx, &form).await
+    }
+    .await;
+    let failure = settle(cx, SQUAD_FORM, values, result, &Done {
+        page: PAGE.href(guild_id),
+        section: Some(SQUAD_FORM),
+        message: "Squad tracking settings saved.",
+    })?;
+    let state = PageState::failed(failure);
+
+    Ok(view! {
+        (state.status())
+        settings_page(guild_id: guild_id, page: PAGE, state: &state)
+    })
+}
+
 #[page(POST "/guild/{guild_id}/deadlock/add-ping-role")]
 async fn add_ping_role(
     cx: &Cx,
@@ -176,6 +211,7 @@ pub(super) async fn tab(
     let page = PAGE.href(guild_id);
     let sent = state.sent(FORM);
     let summaries_sent = state.sent(SUMMARIES_FORM);
+    let squad_sent = state.sent(SQUAD_FORM);
     let default_help = format!(
         "Leave empty for the default: {}",
         DEFAULT_MESSAGE.replace('\n', " then ")
@@ -260,6 +296,47 @@ pub(super) async fn tab(
                 )
             </fieldset>
             save_bar(notice: state.notice_for(SUMMARIES_FORM))
+        </form>
+        <form
+            id=(SQUAD_FORM)
+            method="post"
+            action=(format!("{page}/squad"))
+            data-pending=""
+            data-dirty-guard=""
+        >
+            if let Some(message) = squad_sent.summary() {
+                form_summary(form: SQUAD_FORM, message: message)
+            }
+            <input type="hidden" name="guild" value=(guild_id)>
+            <fieldset class="settings-section">
+                <legend>"Squad tracking"</legend>
+                <p class="page-lead">
+                    "Members who link Steam and run `/deadlock squad join` get rank changes and win/loss streaks posted here."
+                </p>
+                select_row(
+                    form: SQUAD_FORM,
+                    name: "squad_channel_id",
+                    label: "Squad channel",
+                    selected: squad_sent.value(
+                        "squad_channel_id",
+                        settings.squad_channel_id.as_deref(),
+                    ),
+                    options: channels(lists, TEXT_KINDS),
+                    help: Some("Leave unset to stop posting squad updates here."),
+                    error: squad_sent.error("squad_channel_id")
+                )
+                toggle_row(
+                    form: SQUAD_FORM,
+                    name: "squad_leaderboard",
+                    label: "Post a weekly leaderboard (Sundays)",
+                    value: squad_sent.flag(
+                        "squad_leaderboard",
+                        settings.squad_leaderboard,
+                    ),
+                    error: squad_sent.error("squad_leaderboard")
+                )
+            </fieldset>
+            save_bar(notice: state.notice_for(SQUAD_FORM))
         </form>
     }
     .boxed())
