@@ -736,3 +736,60 @@ async fn a_completion_survives_provider_specific_fields() {
     assert_eq!(content, "Hello there!");
     assert_eq!(served.load(Ordering::SeqCst), 1, "a good response is not retried");
 }
+
+const REASONING_ONLY_NULL: &str = r#"{
+    "id": "chatcmpl-test123",
+    "object": "chat.completion",
+    "created": 1700000000,
+    "model": "test-model",
+    "choices": [
+        {
+            "index": 0,
+            "message": { "role": "assistant", "content": null },
+            "finish_reason": "length"
+        }
+    ],
+    "usage": null
+}"#;
+
+const REASONING_ONLY_EMPTY: &str = r#"{
+    "id": "chatcmpl-test123",
+    "object": "chat.completion",
+    "created": 1700000000,
+    "model": "test-model",
+    "choices": [
+        {
+            "index": 0,
+            "message": { "role": "assistant", "content": "" },
+            "finish_reason": "length"
+        }
+    ],
+    "usage": null
+}"#;
+
+/// A thinking model that spends the whole budget on reasoning answers with
+/// `finish_reason: "length"` and empty or null content.
+/// See <https://openrouter.ai/docs/use-cases/reasoning-tokens>.
+#[tokio::test]
+async fn a_reply_lost_to_reasoning_reports_why_it_is_empty() {
+    for body in [REASONING_ONLY_NULL, REASONING_ONLY_EMPTY] {
+        let base_url = spawn_mock_server("HTTP/1.1 200 OK", body)
+            .await
+            .expect("start mock server");
+
+        let client = AiClient::new("test-key", &base_url, "test-model")
+            .expect("build client");
+        let err = client
+            .chat(vec![Message::new(Role::User, "hi")], 16, None)
+            .await
+            .expect_err("an empty reply must surface as an error");
+
+        assert!(
+            matches!(
+                &err,
+                AiError::NoContent { finish_reason: Some(reason) } if reason == "length"
+            ),
+            "expected NoContent carrying the length finish reason, got {err:?}"
+        );
+    }
+}

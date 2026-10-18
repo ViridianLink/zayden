@@ -46,14 +46,23 @@ const LENGTH_CAPPED: &str = "length";
 
 impl ChatCompletion {
     pub fn into_completion(self) -> Result<Completion, Error> {
-        let choice = self.choices.into_iter().next().ok_or(Error::NoContent)?;
+        let choice = self
+            .choices
+            .into_iter()
+            .next()
+            .ok_or(Error::NoContent { finish_reason: None })?;
 
         if let Some(error) = choice.error {
             return Err(error.into_error());
         }
 
-        let content =
-            choice.message.and_then(|m| m.content).ok_or(Error::NoContent)?;
+        let Some(content) = choice
+            .message
+            .and_then(|m| m.content)
+            .filter(|content| !content.trim().is_empty())
+        else {
+            return Err(Error::NoContent { finish_reason: choice.finish_reason });
+        };
 
         Ok(Completion {
             content,

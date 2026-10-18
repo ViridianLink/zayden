@@ -27,9 +27,9 @@ struct ChatParams<'a> {
 }
 
 impl<'a> ChatParams<'a> {
-    const FREE_MAX_TOKENS: u32 = 200;
+    const FREE_MAX_TOKENS: u32 = 1000;
     const FREE_WORD_LIMIT: u32 = 100;
-    const PRO_MAX_TOKENS: u32 = 800;
+    const PRO_MAX_TOKENS: u32 = 2000;
     const PRO_WORD_LIMIT: u32 = 300;
 
     fn for_tier(app: &'a AppState, tier: Tier) -> Self {
